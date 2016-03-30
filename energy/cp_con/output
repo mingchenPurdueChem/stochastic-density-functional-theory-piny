@@ -1,0 +1,30 @@
+26d25
+< #define MAX_ITER 1000
+462,469d460
+<     if(*iter_shake_cp > MAX_ITER){
+<       printf("Maximum CP SHAKE iterations exceeded\n");
+<       printf("with # iterations = %d\n",*iter_shake_cp);
+<       printf("and tolerance = %.12g\n",dxmax);
+<       printf("Consider increasing your tolerance if dxmax is small\n");
+<       exit(1);
+<     }/* endif */
+< 
+548,555d538
+<     if(*iter_shake_cp > MAX_ITER){
+<       printf("Maximum CP SHAKE iterations exceeded\n");
+<       printf("with # iterations = %d\n",*iter_shake_cp);
+<       printf("and tolerance = %.12g\n",dxmax);
+<       printf("Consider increasing your tolerance if dxmax is small\n");
+<       exit(1);
+<     }/* endif */
+< 
+626,634d608
+< 
+<     if(*iter_rattle_cp > MAX_ITER){
+<       printf("Maximum CP SHAKE iterations exceeded\n");
+<       printf("with # iterations = %d\n",*iter_rattle_cp);
+<       printf("and tolerance = %.12g\n",dymax);
+<       printf("Consider increasing your tolerance if dymax is small\n");
+<       exit(1);
+<     }/* endif */
+< 

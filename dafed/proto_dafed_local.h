@@ -1,0 +1,12 @@
+void bias_init(DAFED_INFO *,DAFED *);
+void update_gau(DAFED_INFO *,DAFED *);
+void scale_params(DAFED *);
+void initialize_therm(GGMT *);
+void get_Phi_params(DAFED *,CLATOMS_INFO *);
+void dafed_screen_io(DAFED_INFO *,DAFED *,int);
+void dafed_trajectory_io(DAFED_INFO *,DAFED *,int);
+void check_boundaries(DAFED *);
+void int_dafed_ggmt(DAFED *);
+void evolve_position(DAFED *);
+void evolve_velocity(DAFED *);
+void get_dafed_therm_energy(GGMT *,double *,double *);

@@ -1,0 +1,108 @@
+void control_exc_real_space_dvr (CELL *cell,EWALD *ewald,PSEUDO *pseudo,CPOPTS *cpopts,
+                            CPCOEFFS_INFO *cpcoeffs_info,CPSCR_WAVE *cpscr_wave,
+                            PARA_FFT_PKG3D *cp_para_fft_pkg,
+                            CPCOEFFS_POS_DVR *cpcoeffs_pos_dvr,
+                            COMMUNICATE *communicate, CPSCR *cpscr,
+                            DVR_GRADIENTS *dvr_gradients, double *zfft, double *zfft_tmp,
+                            CP_COMM_STATE_PKG *cp_comm_state_pkg_dvr_up,
+                            CP_COMM_STATE_PKG *cp_comm_state_pkg_dvr_dn,
+                            double *cp_exc_ret, double *cp_muxc_ret) 
+
+/*=======================================================================*/
+{/*Begin Routine*/
+/*=======================================================================*/
+
+  /* Local Pointers */
+  int static ifirst = 1;
+ 
+  int cp_lsda           = cpopts->cp_lsda;
+  int cp_gga            = cpopts->cp_gga;
+  int cp_b3             = cpopts->cp_b3;
+  int cp_lyp            = cpopts->cp_lyp;
+  int cp_lypm1          = cpopts->cp_lypm1;
+  int erfcg_corr        = pseudo->erfcg_corr;
+
+  int nstate_up_proc = cpcoeffs_info->nstate_up_proc;
+  int nstate_up      = cpcoeffs_info->nstate_up;
+  int nstate_dn_proc = cpcoeffs_info->nstate_dn_proc;
+  int nstate_dn      = cpcoeffs_info->nstate_dn;
+
+  int np_states         = communicate->np_states;
+  int myid_state        = communicate->myid_state;
+  MPI_Comm  comm_states = communicate->comm_states;
+
+  double *dvrc_up       = cpcoeffs_pos_dvr->dvrc_up;
+  double *dvrfc_up      = cpcoeffs_pos_dvr->dvrfc_up;
+  double *dvrc_dn       = cpcoeffs_pos_dvr->dvrc_dn;
+  double *dvrfc_dn      = cpcoeffs_pos_dvr->dvrfc_dn;
+  double *rho_up        = cpscr->cpscr_rho.rho_up;
+  double *rho_dn        = cpscr->cpscr_rho.rho_dn;
+
+/*==========================================================================*/
+/* I) First time only calculation for B3LYP */
+
+  if(ifirst ==1 && cp_b3==1) {
+
+    if( nstate_up_proc < 2 || nstate_dn_proc < 2){
+      printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@@@@\n");
+      printf(" No. of state per processor is smaller than 2.    \n");
+      printf(" This will cause a problem in calc_singular_corr  \n");
+      printf(" STOP!                                            \n");
+      printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@@@@\n");
+    }
+
+    /* calc_singular_corr(cell,ewald,pseudo, cpcoeffs_info->dvr_grid_dens,
+                       zfft,zfft_tmp,cpscr_wave->fft_map, cpscr_wave->fft_map_rev,
+                       cp_para_fft_pkg3d,myid_state); */
+  }
+
+
+/*========================================================================*/
+/* II) LDA part : Perdew-Zunger only for now */
+
+   excpot_pz_lda_dvr(dvrfc_up,dvrc_up,rho_up, cp_exc_ret, cp_muxc_ret,
+                     cell->vol_cp,nstate_up,nfft,nfft_proc,
+                     cp_lyp,cp_lypm1,cp_b3,erfcg_corr);
+
+  if(cp_lsda){
+  }
+
+/*=======================================================================*/
+/* III) Exact exchange */
+
+     if(cp->cpopts.cp_b3==1){
+       if(myid_state==0) printf("SHORT-RANGE EXACT EXCHANGE\n");
+
+       calc_exact_exchange(&(stat_avg->cp_exc),cell,&(cp->pseudo),
+                           &(cp->cpcoeffs_info),&(cp->cpcoeffs_pos_dvr[ip_now]),
+                           &(cp->cp_para_fft_pkg3d_sm),&(cp->communicate),
+                           &(cp->cpscr),cp->cpcoeffs_info_dvr.scale_fact);
+
+     }
+
+/*========================================================================*/
+/* IV) density gradient */
+
+     grad_dens_dvr_par(dvrc_up,&(cp->dvr_gradients),
+                   &(cp->cpscr.cpscr_grho),&(cp->cpcoeffs_info_dvr),
+                   &(cp->cpcoeffs_info),
+                   cp->cpscr.cpscr_wave.cre_up,&(cp->cp_comm_state_pkg_dvr_up),
+                   zfft,zfft_tmp,
+                   &(cp->communicate),&(cp->cp_para_fft_pkg3d_sm));
+
+/*==========================================================================*/
+/* V) GGA correction to LDA */
+
+     grad_corr_lda_dvr_par(&(cp->cpscr),&(cp->cpewald),&(cp->cpcoeffs_info_dvr),
+                       &(cp->cpcoeffs_info), dvrc_up,dvrfc_up,ewald,cell,
+                       &(stat_avg->cp_exc),&(stat_avg->cp_muxc),cell->vol_cp,
+                       &(cp->cpopts),cp->pseudo.gga_cut,
+                       zfft,zfft_tmp,&(cp->dvr_gradients),
+                       &(cp->communicate), &(cp->cp_comm_state_pkg_dvr_up),
+                       &(cp->cp_para_fft_pkg3d_sm),
+                       nstate_up);
+
+/*==========================================================================*/
+}/*end routine */
+/*==========================================================================*/
+

@@ -172,6 +172,7 @@ void control_set_cp_ewald(SIMOPTS *simopts,CELL *cell,
 
    calc_cutoff(kmax_ewd,&ecut_now,&(cp_parse->cp_ecut),cp_on,
                 kmax_cp,kmaxv,hmati_ewd_cp,deth_cp);  
+   printf("!!!!!!!!!!!!!! ecut_now %lg\n",ecut_now);
 
    countkvec3d(&(ewald->nktot),ecut_now,kmaxv,hmati_ewd_cp); 
 

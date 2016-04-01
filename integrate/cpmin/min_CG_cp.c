@@ -256,6 +256,15 @@ void min_CG_cp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
                        &(general_data->ptens),
                        &(general_data->simopts),
                        &(class->for_scr));
+  /* Let's test how does force=H|psi> works */
+  // Frist, we should check the orthogonal to make sure we got a row major matrix
+  int icoeff;
+  double sum_test = 0.0;
+  for(icoeff=1;icoeff<=ncoef_up_max;icoeff++){
+    sum_test += cre_up[icoeff]*cre_up[ncoef_up_max+icoeff]+cim_up[icoeff]*cim_up[ncoef_up_max+icoeff];
+  }
+  printf("sum_test %lg\n",sum_test);
+
 
    get_diag_cp_hess(cp,ip_now,&(general_data->cell),gamma);
     
@@ -373,6 +382,17 @@ void min_CG_cp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /* V) Orthogonalize wave functions                                          */
   
    orthog_control_cp(cp,ip_now);
+
+  int istate;
+  for(istate=0;istate<nstate_up;istate++){  
+    sum_test = 0.0;
+    for(icoeff=0;icoeff<ncoef_up_max;icoeff++){
+      sum_test += cre_up[0*ncoef_up_max+icoeff+1]*cre_up[istate*ncoef_up_max+icoeff+1]+cim_up[0*ncoef_up_max+icoeff+1]*cim_up[istate*ncoef_up_max+icoeff+1];
+      //sum_test += cre_up[nstate_up*icoeff+istate+1]*cre_up[nstate_up*icoeff+istate+1]+cim_up[nstate_up*icoeff+istate+1]*cim_up[nstate_up*icoeff+istate+1];
+    }
+    printf("istate %i sum_test %lg\n",istate,sum_test);
+  }
+
  
 /*==========================================================================*/
 /* ii) Free the memory                                                      */

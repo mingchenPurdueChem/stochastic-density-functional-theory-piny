@@ -540,6 +540,186 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
                             &(cp->cp_para_fft_pkg3d_sm),
                             &(cp->cp_sclr_fft_pkg3d_sm),
                             cp_dual_grid_opt_on);
+  // We will try to construct and diag ks_mat. Then try to rotate the MO to eigenfunctions
+  //test ksmat
+  double *kseig_vals = (double*)cmalloc(nstate_up*sizeof(double))-1;
+  double *kseig_vecs = (double*)cmalloc(nstate_up*nstate_up*sizeof(double))-1;
+  double *ksmat_test = (double*)cmalloc(nstate_up*nstate_up*sizeof(double))-1;
+  double *ks_scr = (double*)cmalloc(nstate_up*nstate_up*sizeof(double))-1;
+  double *rs_scr1 = (double*)cmalloc(nstate_up*nstate_up*sizeof(double))-1;
+  double *rs_scr2 = (double*)cmalloc(nstate_up*nstate_up*sizeof(double))-1;
+  double kseig_sum;
+  cp_condiag_ksmat(cre_up,cim_up,*icoef_form_up,*icoef_orth_up,fcre_up,fcim_up,
+                   *ifcoef_form_up,*ifcoef_orth_up,kseig_vals,kseig_vecs,
+                    ksmat_test,ks_scr,rs_scr1,rs_scr2,ioff_upt,
+                    &(cp->cp_comm_state_pkg_up),&kseig_sum);
+
+  printf("kseig_sum %lg\n",kseig_sum);
+  // Finish testing
+  int ncoeftot = ncoef*nstate_up;
+  double *cre_temp = (double*)cmalloc(ncoeftot*sizeof(double))-1;
+  double *cim_temp = (double*)cmalloc(ncoeftot*sizeof(double))-1;
+  cp_rotate_vector(cre_up,cim_up,*icoef_form_up,
+                      kseig_vecs,ioff_upt,cre_temp,cim_temp,
+                      &(cp->cp_comm_state_pkg_up));
+
+  //cre_up and cim_up are now eigenstates
+  double *cre_up_backup = (double*)cmalloc(ncoeftot*sizeof(double))-1; // Eigenfuncion |phi>
+  double *cim_up_backup = (double*)cmalloc(ncoeftot*sizeof(double))-1;
+  double *fcre_up_backup = (double*)cmalloc(ncoeftot*sizeof(double))-1;
+  double *fcim_up_backup = (double*)cmalloc(ncoeftot*sizeof(double))-1;
+
+  for(icoef=1;icoef<=ncoeftot;icoef++){
+    cre_up_backup[icoef] = cre_up[icoef];
+    cim_up_backup[icoef] = cim_up[icoef];
+    fcre_up_backup[icoef] = fcre_up[icoef];
+    fcim_up_backup[icoef] = fcim_up[icoef];    
+    fcre_up[icoef] = 0.0;
+    fcim_up[icoef] = 0.0;
+  }
+  //test orthornormal
+  double  sum = 0.0;
+  for(icoef=1;icoef<ncoef;icoef++){
+    sum += cre_up[icoef]*cre_up[icoef]+cim_up[icoef]*cim_up[icoef];
+  }
+  sum *= 2.0;
+  sum += cre_up[ncoef]*cre_up[ncoef];
+  printf("test orthnormal %lg\n",sum);
+  printf("icoef_form_up %i ifcoef_orth_u %i\n",*icoef_form_up,*ifcoef_orth_up);
+  control_cp_eext_recip(clatoms_info,clatoms_pos,&(cp->cpcoeffs_info),
+                       &(cp->cpcoeffs_pos[ip_now]),
+                       &(cp->cpewald),&(cp->cpscr),
+                       &(cp->cpopts),&(cp->pseudo),ewd_scr,atommaps,cell,
+                       ewald,ptens,&(stat_avg->vrecip),
+                       &(stat_avg->cp_enl),&(cp->communicate),for_scr,
+                       cp_dual_grid_opt_on,
+                       &(cp->cp_para_fft_pkg3d_lg));
+
+  coef_force_control(&(cp->cpopts),&(cp->cpcoeffs_info),
+                            &(cp->cpcoeffs_pos[ip_now]),
+                            &(cp->cpscr),ewald,&(cp->cpewald),cell,stat_avg,
+                            cp->pseudo.vxc_typ,ptens->pvten_tmp,
+                            cp->pseudo.gga_cut,cp->pseudo.alpha_conv_dual,
+                            cp->pseudo.n_interp_pme_dual,cp_min_on,
+                            &(cp->communicate),
+                            &(cp->cp_comm_state_pkg_up),
+                            &(cp->cp_comm_state_pkg_dn),
+                            &(cp->cp_para_fft_pkg3d_lg),
+                            &(cp->cp_sclr_fft_pkg3d_lg),
+                            &(cp->cp_para_fft_pkg3d_dens_cp_box),
+                            &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
+                            &(cp->cp_para_fft_pkg3d_sm),
+                            &(cp->cp_sclr_fft_pkg3d_sm),
+                            cp_dual_grid_opt_on);
+  printf("fcre_up[1] %lg fcim_up[1] %lg fcre_up_backup[1] %lg fcim_up_backup[1] %lg\n",fcre_up[1],fcim_up[1],fcre_up_backup[1],fcim_up_backup[1]);
+  for(icoef=1;icoef<=ncoef;icoef++){
+     printf("Ephire %lg Ephiim %lg Hphire %lg Hphiim %lg\n",cre_up[icoef],cim_up[icoef],fcre_up[icoef],fcim_up[icoef]);
+     //printf("fcre_new %lg fcim_new %lg fre %lg fim %lg\n",fcre_up[icoef],fcim_up[icoef],fcre_up_backup[icoef],fcim_up_backup[icoef]);
+  }
+  double phiHphi;
+  sum = 0.0;
+  for(icoef=1;icoef<ncoef;icoef++){
+    sum += fcre_up[icoef]*cre_up[icoef]+fcim_up[icoef]*cim_up[icoef];
+  }
+  sum += fcre_up[ncoef]*cre_up[ncoef];
+  phiHphi = sum*-0.5;
+  printf("<phi|H|phi> %lg\n",phiHphi);
+  
+  /*
+  cp_condiag_ksmat(cre_up,cim_up,*icoef_form_up,*icoef_orth_up,fcre_up,fcim_up,
+                   *ifcoef_form_up,*ifcoef_orth_up,kseig_vals,kseig_vecs,
+                    ksmat_test,ks_scr,rs_scr1,rs_scr2,ioff_upt,
+                    &(cp->cp_comm_state_pkg_up),&kseig_sum);
+  */
+  
+  //We will back up the fcre(im)_up as cre_up_1 (H|phi>)
+  double *cre_up_1 = (double *)cmalloc(ncoeftot*sizeof(double))-1;
+  double *cim_up_1 = (double *)cmalloc(ncoeftot*sizeof(double))-1;
+  for(icoef=1;icoef<=ncoeftot;icoef++){
+    cre_up_1[icoef] = fcre_up[icoef];
+    cim_up_1[icoef] = fcim_up[icoef];
+  }
+  // Next put H|phi> as a new |phi1> and perform H|phi1>
+  for(icoef=1;icoef<=ncoeftot;icoef++){
+    cre_up[icoef] = -fcre_up[icoef];
+    cim_up[icoef] = -fcim_up[icoef];
+  }
+  sum = 0.0;
+  for(icoef=1;icoef<ncoef;icoef++){
+    sum += fcre_up[icoef]*fcre_up[icoef]+fcim_up[icoef]*fcim_up[icoef];
+  }
+  sum += fcre_up[ncoef]*fcre_up[ncoef];
+  printf("<phi|HH|phi> %lg\n",sum*0.5);
+
+  //Let's try to normalize the cre(im)_up to 2.0 and record the scaling factor
+  double *scaling = (double*)cmalloc(nstate_up*sizeof(double));
+  double scalingpre = sqrt(2.0);
+  int istate,index;
+  for(istate=0;istate<nstate_up;istate++){
+    sum = 0.0;
+    for(icoef=0;icoef<ncoef-1;icoef++){
+      index = istate*ncoef+icoef+1;
+      sum += cre_up[index]*cre_up[index]+
+	     cim_up[index]*cim_up[index];
+    }
+    sum += cre_up[istate*ncoef+ncoef]*cre_up[istate*ncoef+ncoef];
+    scaling[istate] = sqrt(sum);
+    for(icoef=0;icoef<ncoef;icoef++){
+      index = istate*ncoef+icoef+1;
+      cre_up[index] *= scalingpre/scaling[istate];
+      cim_up[index] *= scalingpre/scaling[istate];
+    }	
+  }
+  printf("scaling[0] %lg\n",scaling[0]);
+  
+  control_cp_eext_recip(clatoms_info,clatoms_pos,&(cp->cpcoeffs_info),
+                       &(cp->cpcoeffs_pos[ip_now]),
+                       &(cp->cpewald),&(cp->cpscr),
+                       &(cp->cpopts),&(cp->pseudo),ewd_scr,atommaps,cell,
+                       ewald,ptens,&(stat_avg->vrecip),
+                       &(stat_avg->cp_enl),&(cp->communicate),for_scr,
+                       cp_dual_grid_opt_on,
+                       &(cp->cp_para_fft_pkg3d_lg));
+
+  coef_force_control(&(cp->cpopts),&(cp->cpcoeffs_info),
+                            &(cp->cpcoeffs_pos[ip_now]),
+                            &(cp->cpscr),ewald,&(cp->cpewald),cell,stat_avg,
+                            cp->pseudo.vxc_typ,ptens->pvten_tmp,
+                            cp->pseudo.gga_cut,cp->pseudo.alpha_conv_dual,
+                            cp->pseudo.n_interp_pme_dual,cp_min_on,
+                            &(cp->communicate),
+                            &(cp->cp_comm_state_pkg_up),
+                            &(cp->cp_comm_state_pkg_dn),
+                            &(cp->cp_para_fft_pkg3d_lg),
+                            &(cp->cp_sclr_fft_pkg3d_lg),
+                            &(cp->cp_para_fft_pkg3d_dens_cp_box),
+                            &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
+                            &(cp->cp_para_fft_pkg3d_sm),
+                            &(cp->cp_sclr_fft_pkg3d_sm),
+                            cp_dual_grid_opt_on);
+
+  // Now we have H^2|phi> as fcre(im)_up bracket the first state with |phi>
+  double phiH2phi;
+  sum = 0.0;
+  for(icoef=1;icoef<ncoef;icoef++){
+    fcre_up[icoef] *= scaling[0]/scalingpre;
+    fcim_up[icoef] *= scaling[0]/scalingpre;
+    sum += fcre_up[icoef]*cre_up_backup[icoef]+fcim_up[icoef]*cim_up_backup[icoef];
+  }
+  fcre_up[ncoef] *= scaling[0]/scalingpre;
+  sum += fcre_up[ncoef]*cre_up_backup[ncoef];
+  phiH2phi = sum*-0.5;
+  printf("<phi|H2|phi> %lg\n",phiH2phi);
+  double difftest = sqrt(fabs(phiH2phi-phiHphi*phiHphi));
+  printf("sqrt diff %lg\n",difftest);
+ 
+
+  printf("kseig_sum2 %lg\n",kseig_sum);
+ 
+  exit(0);
+  
+
+
 #ifdef TIME_CP
   cputime(&cpu2);
   par_cpu_vomit((cpu2-cpu1),comm_states,np_states,myid_state,

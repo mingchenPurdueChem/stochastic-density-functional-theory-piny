@@ -981,6 +981,13 @@ void cp_condiag_ksmat(double *creal,double *cimag,
   for(is=1;is<=nstate2;is++){
     ksmat[is] *= -0.5;
   }/* endfor */
+  int js;
+  for(is=0;is<nstate;is++){
+    for(js=0;js<nstate;js++){
+      printf("%lg ",ksmat[is*nstate+js+1]);
+    }
+    printf("\n");
+  }
 
 /*========================================================================*/
    /* III) Diagonalize KS matrix                                          */

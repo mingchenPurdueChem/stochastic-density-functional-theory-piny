@@ -613,7 +613,7 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
                             cp_dual_grid_opt_on);
   printf("fcre_up[1] %lg fcim_up[1] %lg fcre_up_backup[1] %lg fcim_up_backup[1] %lg\n",fcre_up[1],fcim_up[1],fcre_up_backup[1],fcim_up_backup[1]);
   for(icoef=1;icoef<=ncoef;icoef++){
-     printf("Ephire %lg Ephiim %lg Hphire %lg Hphiim %lg\n",cre_up[icoef],cim_up[icoef],fcre_up[icoef],fcim_up[icoef]);
+     printf("Ephire %lg Ephiim %lg Hphire %lg Hphiim %lg\n",kseig_vals[1]*cre_up[icoef],kseig_vals[1]*cim_up[icoef],-fcre_up[icoef],-fcim_up[icoef]);
      //printf("fcre_new %lg fcim_new %lg fre %lg fim %lg\n",fcre_up[icoef],fcim_up[icoef],fcre_up_backup[icoef],fcim_up_backup[icoef]);
   }
   double phiHphi;
@@ -621,9 +621,31 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
   for(icoef=1;icoef<ncoef;icoef++){
     sum += fcre_up[icoef]*cre_up[icoef]+fcim_up[icoef]*cim_up[icoef];
   }
+  printf("test1 sum %lg\n",sum);
   sum += fcre_up[ncoef]*cre_up[ncoef];
   phiHphi = sum*-0.5;
   printf("<phi|H|phi> %lg\n",phiHphi);
+  //Let's test rescaling the k!=0 term in fcre(im)_up
+  int istate;
+  for(istate=0;istate<nstate_up;istate++){
+    for(icoef=1;icoef<ncoef;icoef++){
+      fcre_up[istate*ncoef+icoef] *= -0.5;
+      fcim_up[istate*ncoef+icoef] *= -0.5;
+    }
+    fcre_up[istate*ncoef+ncoef] *= -1.0;
+    fcim_up[istate*ncoef+ncoef] *= -1.0;
+  }
+
+  sum = 0.0;
+  for(icoef=1;icoef<ncoef;icoef++){
+    sum += fcre_up[icoef]*cre_up[icoef]+fcim_up[icoef]*cim_up[icoef];
+  }
+  sum *= 2.0;
+  printf("test2 sum %lg\n",sum);
+  sum += fcre_up[ncoef]*cre_up[ncoef];
+  phiHphi = sum*0.5;
+  printf("<phi|H|phi> after rescaling %lg\n",phiHphi);
+
   
   /*
   cp_condiag_ksmat(cre_up,cim_up,*icoef_form_up,*icoef_orth_up,fcre_up,fcim_up,
@@ -641,17 +663,19 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
   }
   // Next put H|phi> as a new |phi1> and perform H|phi1>
   for(icoef=1;icoef<=ncoeftot;icoef++){
-    cre_up[icoef] = -fcre_up[icoef];
-    cim_up[icoef] = -fcim_up[icoef];
+    cre_up[icoef] = fcre_up[icoef];
+    cim_up[icoef] = fcim_up[icoef];
   }
   sum = 0.0;
   for(icoef=1;icoef<ncoef;icoef++){
     sum += fcre_up[icoef]*fcre_up[icoef]+fcim_up[icoef]*fcim_up[icoef];
   }
+  sum *= 2.0;
   sum += fcre_up[ncoef]*fcre_up[ncoef];
   printf("<phi|HH|phi> %lg\n",sum*0.5);
 
   //Let's try to normalize the cre(im)_up to 2.0 and record the scaling factor
+  /*
   double *scaling = (double*)cmalloc(nstate_up*sizeof(double));
   double scalingpre = sqrt(2.0);
   int istate,index;
@@ -662,6 +686,7 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
       sum += cre_up[index]*cre_up[index]+
 	     cim_up[index]*cim_up[index];
     }
+    sum *= 2.0;
     sum += cre_up[istate*ncoef+ncoef]*cre_up[istate*ncoef+ncoef];
     scaling[istate] = sqrt(sum);
     for(icoef=0;icoef<ncoef;icoef++){
@@ -670,7 +695,13 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
       cim_up[index] *= scalingpre/scaling[istate];
     }	
   }
-  printf("scaling[0] %lg\n",scaling[0]);
+  */
+  // Reset the force
+  for(icoef=1;icoef<ncoeftot;icoef++){
+    fcre_up[icoef] = 0.0;
+    fcim_up[icoef] = 0.0;
+  }
+  //printf("scaling[0] %lg\n",scaling[0]);
   
   control_cp_eext_recip(clatoms_info,clatoms_pos,&(cp->cpcoeffs_info),
                        &(cp->cpcoeffs_pos[ip_now]),
@@ -698,17 +729,28 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
                             &(cp->cp_sclr_fft_pkg3d_sm),
                             cp_dual_grid_opt_on);
 
+  //Let's test rescaling the k!=0 term in fcre(im)_up
+  for(istate=0;istate<nstate_up;istate++){
+    for(icoef=1;icoef<ncoef;icoef++){
+      fcre_up[istate*ncoef+icoef] *= -0.5;
+      fcim_up[istate*ncoef+icoef] *= -0.5;
+    }
+    fcre_up[istate*ncoef+ncoef] *= -1.0;
+    fcim_up[istate*ncoef+ncoef] *= -1.0;
+  }
+
   // Now we have H^2|phi> as fcre(im)_up bracket the first state with |phi>
   double phiH2phi;
   sum = 0.0;
   for(icoef=1;icoef<ncoef;icoef++){
-    fcre_up[icoef] *= scaling[0]/scalingpre;
-    fcim_up[icoef] *= scaling[0]/scalingpre;
+    //fcre_up[icoef] *= scaling[0]/scalingpre;
+    //fcim_up[icoef] *= scaling[0]/scalingpre;
     sum += fcre_up[icoef]*cre_up_backup[icoef]+fcim_up[icoef]*cim_up_backup[icoef];
   }
-  fcre_up[ncoef] *= scaling[0]/scalingpre;
+  sum *= 2.0;
+  //fcre_up[ncoef] *= scaling[0]/scalingpre;
   sum += fcre_up[ncoef]*cre_up_backup[ncoef];
-  phiH2phi = sum*-0.5;
+  phiH2phi = sum*0.5;
   printf("<phi|H2|phi> %lg\n",phiH2phi);
   double difftest = sqrt(fabs(phiH2phi-phiHphi*phiHphi));
   printf("sqrt diff %lg\n",difftest);

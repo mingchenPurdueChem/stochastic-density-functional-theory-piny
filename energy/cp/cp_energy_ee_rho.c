@@ -751,6 +751,9 @@ void coef_force_control(CPOPTS *cpopts,CPCOEFFS_INFO *cpcoeffs_info,
    double   *fcimag_up        =  cpcoeffs_pos->fcim_up;
    double   *fcimag_dn        =  cpcoeffs_pos->fcim_dn;
    double   *fcreal_dn        =  cpcoeffs_pos->fcre_dn;
+   double   *kfcre_up         =  cpcoeffs_pos->kfcre_up;
+   double   *kfcim_up         =  cpcoeffs_pos->kfcim_up;
+
    double   *cp_hess_re_up    =  cpcoeffs_pos->cp_hess_re_up;
    double   *cp_hess_im_up    =  cpcoeffs_pos->cp_hess_im_up;
    double   *cp_hess_re_dn    =  cpcoeffs_pos->cp_hess_re_dn;
@@ -881,6 +884,21 @@ void coef_force_control(CPOPTS *cpopts,CPCOEFFS_INFO *cpcoeffs_info,
                           icoef_orth_up,ifcoef_form_up,cp_tau_functional,cp_min_on,
                           cp_sclr_fft_pkg3d_sm); 
   *cp_eke_ret += cp_eke;
+
+  int istest,icoeftest;
+  int ncoef = cpcoeffs_info->ncoef;
+  int ncoef1 = ncoef-1;
+  int indextest;
+  for(istest=0;istest<nstate_up;istest++){
+    for(icoeftest=0;icoeftest<ncoef1;icoeftest++){
+      indextest = istest*ncoef+icoeftest+1;
+      kfcre_up[indextest] = -2.0*ak2_sm[icoeftest+1]*creal_up[indextest];
+      kfcim_up[indextest] = -2.0*ak2_sm[icoeftest+1]*cimag_up[indextest];
+    }/*endfor i*/
+   kfcre_up[istest*ncoef+ncoef] = 0.0;
+   kfcim_up[istest*ncoef+ncoef] = 0.0;
+  }/*endfor*/
+
 
  /*--------------------------------------------*/
  /* ii) down states (if necessary)             */
@@ -1746,6 +1764,7 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
 /*==========================================================================*/
 /* 9) calculate the kinetic energy term and add its contribution to the force*/
 
+  //printf("I'm here kinetic energy!\n");
   tpi = 2.0*M_PI;
   eke = 0.0;
   for(is=1 ; is<= nstate ; is++){

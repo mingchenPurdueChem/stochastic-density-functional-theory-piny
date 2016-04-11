@@ -226,6 +226,9 @@ typedef struct cpcoeffs_pos {
                                       Lth: ncoef x nstate_up              */
   double *fcre_dn,*fcim_dn;        /* Lst: Re/Im part PW coeff forces;
                                       Lth: (0,ncoef) x nstate_dn          */
+  double *kfcre_up,*kfcim_up;      /* Lst: Re/Im part PW coeff forces     */
+                                   /*      kinetic contribution (test only)*/
+				   /* Lth: (0,ncoef) x nstate_up          */
   double *cp_hess_re_up;           /* Lst: CP up diagonal Hessian;
                                       Lth: ncoef                          */
   double *cp_hess_im_up;           /* Lst: CP up diagonal Hessian;

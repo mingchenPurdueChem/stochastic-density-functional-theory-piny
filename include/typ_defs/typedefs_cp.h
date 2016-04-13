@@ -265,6 +265,45 @@ typedef struct cpcoeffs_pos {
 
 } CPCOEFFS_POS;
 
+typedef struct stodftInfo{
+/* This structure contains flag and constant. */
+  int stodftOn;                     /* Opt: turn stochastic dft(1)/off(0)	*/
+  int expanType;                    /* Opt: Method of Fermi function expension. */
+				    /*      1 = Chebyshev Polynormial           */
+				    /*	    2 = Newton Polynormial              */
+				    /*	    3 = (Do we really have it?)		*/
+  int numOrbital;	            /* Num: number of stochastic orbitals	*/
+  int polynormLength;               /* Num: number of polynormials to expand    */
+				    /*	    the Fermi function.			*/
+  int numChemPot;		    /* Num: number of chemical potential values */
+  double energyMax,energyMin;       /* Num: Possible upper/lower bound of MO	*/
+				    /*	    energy.				*/ 
+  double energyDiff;		    /* Num: energy range=energyMax-energyMin	*/
+  
+}STODFTINFO;
+
+typedef struct stodftCoeffPos{
+  /***********************************************************************/
+  /* We'll only save |phi> and H|phi> and accumulate the contribution to */
+  /* the stochastic orbitals. We will cheate the CP code to replace	 */
+  /* nstate with numOrbital. Therefore there are nstate_up(dn)_proc	 */
+  /* wave functions on this processor. If we have a closed shell system  */
+  /* everything will be stored in the up spin part.			 */
+  /***********************************************************************/
+  double *expanCoeff;		    /* Lst: expansion coefficients		*/
+				    /* Lth: numChemPot*polynormLength		*/
+  double *wfInUp,*wfInDn;	    /* Lst: input wave function(up/down spin)	*/
+				    /* Lth: nstate_up_proc*ncoef		*/
+  double *wfOutUp,*wfOutDn;	    /* Lst: output wave function(up/down spin)  */
+                                    /* Lth: nstate_dn_proc*ncoef                */
+  double **stoWfProc;		    /* Lst: stochastic wave function on this	*/
+				    /*	    processor.				*/
+				    /* Lth: numChemPot*(nstate_up_proc*ncoef)	*/
+  double *chemPot;		    /* Lst: chemical potentials			*/
+				    /* Lth: numChemPot				*/
+
+}STODFTCOEFPOS;
+
 
 typedef struct cpcoeffs_pos_dvr {
 
@@ -1078,6 +1117,8 @@ typedef struct cp {
   VEL_SAMP_CP vel_samp_cp;
   CP_WANNIER cp_wannier;
   CP_DVR_CLUS cp_dvr_clus;
+  STODFTINFO *stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos; 
 } CP;
 
 

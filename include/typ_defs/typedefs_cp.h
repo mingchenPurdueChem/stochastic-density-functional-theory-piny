@@ -291,13 +291,13 @@ typedef struct stodftCoeffPos{
   /* everything will be stored in the up spin part.			 */
   /***********************************************************************/
   double *expanCoeff;		    /* Lst: expansion coefficients		*/
-				    /* Lth: numChemPot*polynormLength		*/
-  double *wfInUp,*wfInDn;	    /* Lst: input wave function(up/down spin)	*/
-				    /* Lth: nstate_up_proc*ncoef		*/
-  double *wfOutUp,*wfOutDn;	    /* Lst: output wave function(up/down spin)  */
-                                    /* Lth: nstate_dn_proc*ncoef                */
-  double **stoWfProc;		    /* Lst: stochastic wave function on this	*/
-				    /*	    processor.				*/
+				    /* Lth: polynormLength*numChemPot		*/
+  double *wfInReUp,*wfInImUp;	    /* Lst: input wave function(up/down spin)	*/
+  double *wfInReDn,*wfInImDn;	    /* Lth: nstate_up_proc*ncoef		*/
+  double *wfOutReUp,*wfOutImUp;	    /* Lst: output wave function(up/down spin)  */
+  double *wfOutReDn,*wfOutImDn;     /* Lth: nstate_dn_proc*ncoef                */
+  double **stoWfReUp,**stoWfImUp;   /* Lst: stochastic wave function on this	*/
+  double **stoWfReDn,**stoWfImDn;   /*	    processor.				*/
 				    /* Lth: numChemPot*(nstate_up_proc*ncoef)	*/
   double *chemPot;		    /* Lst: chemical potentials			*/
 				    /* Lth: numChemPot				*/

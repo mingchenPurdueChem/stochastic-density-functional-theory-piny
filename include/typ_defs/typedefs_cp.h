@@ -270,7 +270,7 @@ typedef struct stodftInfo{
   int stodftOn;                     /* Opt: turn stochastic dft(1)/off(0)	*/
   int expanType;                    /* Opt: Method of Fermi function expension. */
 				    /*      1 = Chebyshev Polynormial           */
-				    /*	    2 = Newton Polynormial              */
+				    /*	    2 = Newtonian Polynormial           */
 				    /*	    3 = (Do we really have it?)		*/
   int numOrbital;	            /* Num: number of stochastic orbitals	*/
   int polynormLength;               /* Num: number of polynormials to expand    */

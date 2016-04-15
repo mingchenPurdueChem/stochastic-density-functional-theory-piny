@@ -29,7 +29,7 @@
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void filterChebyshev(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
+void filterPolynormial(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
                        CELL *cell,CLATOMS_INFO *clatoms_info,
                        CLATOMS_POS *clatoms_pos,ATOMMAPS *atommaps,
                        STAT_AVG *stat_avg,PTENS *ptens,SIMOPTS *simopts,
@@ -51,6 +51,7 @@ void filterChebyshev(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
   COMMUNICATE *communicate	= &(cp->communicate);
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg); 
 
+  int expanType	     = stodftInfo->expanType;
   int polynormLength = stodftInfo->polynormLength;
   int numChemPot     = stodftInfo->numChemPot;
   int numStateUpProc = cpcoeffs_info->nstate_up_proc;
@@ -99,7 +100,14 @@ void filterChebyshev(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
 /* 1) Loop over all polynomial terms (iPoly=0<=>polynomial order 1) */
   
   for(iPoly=0;iPoly<polynormLength;iPoly++){
-    normHamiltonian(); 
+    switch(expanType){
+      case 1:
+	normHChebyshev(); 
+	break;
+      case 2:
+	normHNewton();
+	break;
+    }//endswitch expanType    
     for(imu=0;imu<numChemPot;imu++){
       polyCoeff = expanCoeff[iPoly*numChemPot+imu];
       for(iCoeff=0;iCoeff<numCoeffUpTotal;iCoeff++){

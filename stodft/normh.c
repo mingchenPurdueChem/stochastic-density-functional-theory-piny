@@ -30,11 +30,11 @@
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void normHNewton(STODFTCOEFPOS *stodftCoeffPos,STODFTINFO *stodftInfo,
-		 CPCOEFFS_POS *cpcoeffs_pos,CPCOEFFS_INFO *cpcoeffs_info,
+void normHNewton(CP *cp,CPCOEFFS_POS *cpcoeffs_pos,CPCOEFFS_INFO *cpcoeffs_info,
 		 CELL *cell,CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
-		 CPOPTS *cpopts,CPEWALD *cpewald,CPSCR *cpscr,PSEUDO *pseudo,
-		 EWALD *ewald,EWD_SCR *ewd_scr,ATOMMAPS *atommaps)
+		 EWALD *ewald,EWD_SCR *ewd_scr,ATOMMAPS *atommaps,FOR_SCR *for_scr,
+		 STAT_AVG *stat_avg,PTENS *ptens,
+		 double *vrecip,double *cp_enl)
 
 
 /*==========================================================================*/
@@ -47,12 +47,32 @@ void normHNewton(STODFTCOEFPOS *stodftCoeffPos,STODFTINFO *stodftInfo,
 /*************************************************************************/
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
+  STODFTINFO *stodftInfo        = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  CPOPTS *cpopts                = &(cp->cpopts);
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  CPEWALD *cpewald              = &(cp->cpewald);
+  CPSCR *cpscr                  = &(cp->cpscr);
+  CPOPTS *cpopts                = &(cp->cpopts);
+  PSEUDO *pseudo                = &(cp->pseudo);
+  COMMUNICATE *communicate      = &(cp->communicate);
+
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm;            = &(cp->cp_sclr_fft_pkg3d_sm);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_sm;		   = &(cp->cp_para_fft_pkg3d_sm);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_dens_cp_box;   = &(cp->cp_sclr_fft_pkg3d_dens_cp_box);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_dens_cp_box;   = &(cp->cp_para_fft_pkg3d_dens_cp_box);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_lg;		   = &(cp->cp_sclr_fft_pkg3d_lg);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg;		   = &(cp->cp_para_fft_pkg3d_lg);
+  CP_COMM_STATE_PKG *cp_comm_state_pkg_up          = &(cp_comm_state_pkg_up);
+  CP_COMM_STATE_PKG *cp_comm_state_pkg_dn          = &(cp_comm_state_pkg_dn);
+
   int cpLsda         = cpopts->cp_lsda;
   int numStateUpProc = cpcoeffs_info->nstate_up_proc;
   int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
   int numCoeff       = cpcoeffs_info->ncoef;
   int numCoeffUpTotal = numStateUpProc*numCoeff;
   int numCoeffDnTotal = numStateDnProc*numCoeff;
+  int cp_dual_grid_opt_on  = cpopts->cp_dual_grid_opt;
   int iCoeff;
   
   double *expanCoeff = stodftCoefPos->expanCoeff;
@@ -97,29 +117,16 @@ void normHNewton(STODFTCOEFPOS *stodftCoeffPos,STODFTINFO *stodftInfo,
   //control_vps_atm_list will be done somewhere else
 
   control_cp_eext_recip(clatoms_info,clatoms_pos,cpcoeffs_info,
-                       cpcoeffs_pos,cpewald,cpscr,
-                       cpopts,pseudo,ewd_scr,atommaps,cell,
-                       ewald,ptens,&(stat_avg->vrecip),
-                       &(stat_avg->cp_enl),&(cp->communicate),for_scr,
-                       cp_dual_grid_opt_on,
-                       &(cp->cp_para_fft_pkg3d_lg));
+                       cpcoeffs_pos,cpewald,cpscr,cpopts,pseudo,ewd_scr,atommaps,cell,
+                       ewald,ptens,vrecip,cp_enl,communicate,for_scr,cp_dual_grid_opt_on,
+                       cp_para_fft_pkg3d_lg);
 
-  coef_force_control(&(cp->cpopts),&(cp->cpcoeffs_info),
-                            &(cp->cpcoeffs_pos[ip_now]),
-                            &(cp->cpscr),ewald,&(cp->cpewald),cell,stat_avg,
-                            cp->pseudo.vxc_typ,ptens->pvten_tmp,
-                            cp->pseudo.gga_cut,cp->pseudo.alpha_conv_dual,
-                            cp->pseudo.n_interp_pme_dual,cp_min_on,
-                            &(cp->communicate),
-                            &(cp->cp_comm_state_pkg_up),
-                            &(cp->cp_comm_state_pkg_dn),
-                            &(cp->cp_para_fft_pkg3d_lg),
-                            &(cp->cp_sclr_fft_pkg3d_lg),
-                            &(cp->cp_para_fft_pkg3d_dens_cp_box),
-                            &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
-                            &(cp->cp_para_fft_pkg3d_sm),
-                            &(cp->cp_sclr_fft_pkg3d_sm),
-                            cp_dual_grid_opt_on);
+  coef_force_control(cpopts,cpcoeffs_info,cpcoeffs_pos,cpscr,ewald,cpewald,cell,stat_avg,
+                     pseudo->vxc_typ,ptens->pvten_tmp,pseudo->gga_cut,pseudo->alpha_conv_dual,
+                     pseudo->n_interp_pme_dual,cp_min_on,communicate,cp_comm_state_pkg_up,
+                     cp_comm_state_pkg_dn,cp_para_fft_pkg3d_lg,cp_sclr_fft_pkg3d_lg,
+                     cp_para_fft_pkg3d_dens_cp_box,cp_sclr_fft_pkg3d_dens_cp_box,
+		     cp_para_fft_pkg3d_sm,cp_sclr_fft_pkg3d_sm,cp_dual_grid_opt_on);
   
   
   

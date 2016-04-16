@@ -33,8 +33,7 @@
 void normHNewton(CP *cp,CPCOEFFS_POS *cpcoeffs_pos,CPCOEFFS_INFO *cpcoeffs_info,
 		 CELL *cell,CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 		 EWALD *ewald,EWD_SCR *ewd_scr,ATOMMAPS *atommaps,FOR_SCR *for_scr,
-		 STAT_AVG *stat_avg,PTENS *ptens,
-		 double *vrecip,double *cp_enl)
+		 STAT_AVG *stat_avg,PTENS *ptens,,double zn)
 
 
 /*==========================================================================*/
@@ -43,7 +42,8 @@ void normHNewton(CP *cp,CPCOEFFS_POS *cpcoeffs_pos,CPCOEFFS_INFO *cpcoeffs_info,
 /*************************************************************************/
 /* Let's first build a simple version. We will first apply this on       */
 /* Hermitian operator. So all the sample points will locate on the real  */
-/* axis.								 */
+/* axis. zn is the interpolation point. For details please read		 */
+/* Ashkenazi et.al. JChemPhys 103, 10005(1995).				 */
 /*************************************************************************/
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
@@ -66,6 +66,16 @@ void normHNewton(CP *cp,CPCOEFFS_POS *cpcoeffs_pos,CPCOEFFS_INFO *cpcoeffs_info,
   CP_COMM_STATE_PKG *cp_comm_state_pkg_up          = &(cp_comm_state_pkg_up);
   CP_COMM_STATE_PKG *cp_comm_state_pkg_dn          = &(cp_comm_state_pkg_dn);
 
+  NWETONINFO *newtonInfo = stodftInfo->newtonInfo;
+  double Smin		= newtonInfo->Smin;
+  double Smax		= newtonInfo->Smax;
+  double scale		= newtonInfo->scale;
+  double energyMean	= stodftInfo->energyMean;
+  double energyDiff	= stodftInfo->energyDiff;
+  double prefact	= -scale*energyMean-zn;
+  double scale1		= -scale*0.5;
+  double scale2		= -scale;
+
   int cpLsda         = cpopts->cp_lsda;
   int numStateUpProc = cpcoeffs_info->nstate_up_proc;
   int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
@@ -73,7 +83,10 @@ void normHNewton(CP *cp,CPCOEFFS_POS *cpcoeffs_pos,CPCOEFFS_INFO *cpcoeffs_info,
   int numCoeffUpTotal = numStateUpProc*numCoeff;
   int numCoeffDnTotal = numStateDnProc*numCoeff;
   int cp_dual_grid_opt_on  = cpopts->cp_dual_grid_opt;
-  int iCoeff;
+  int numCoeffM1     = numCoeff-1;
+  int incx = 1;
+  int incy = 1;
+  int iState,iCoeff,iCoeffStart,index1,index2;
   
   double *expanCoeff = stodftCoefPos->expanCoeff;
   double *wfInReUp   = stodftCoefPos->wfInReUp;
@@ -107,30 +120,67 @@ void normHNewton(CP *cp,CPCOEFFS_POS *cpcoeffs_pos,CPCOEFFS_INFO *cpcoeffs_info,
     memcpy(&(cre_dn[1]),wfInReDn,numCoeffDnTotal);
     memcpy(&(cim_dn[1]),wfInImDn,numCoeffDnTotal);
     for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
-      fcre_up[iCoeff] = 0.0;
-      fcim_up[iCoeff] = 0.0;
+      fcre_dn[iCoeff] = 0.0;
+      fcim_dn[iCoeff] = 0.0;
     }
   }
   
 /*==========================================================================*/
-/* 1) Calculate the H|phi> */
-  //control_vps_atm_list will be done somewhere else
+/* 1) Calculate the H/sigma|phi> */
+  //control_vps_atm_list will be done somewhere else (perhaps in density calculation?)
 
   control_cp_eext_recip(clatoms_info,clatoms_pos,cpcoeffs_info,
-                       cpcoeffs_pos,cpewald,cpscr,cpopts,pseudo,ewd_scr,atommaps,cell,
-                       ewald,ptens,vrecip,cp_enl,communicate,for_scr,cp_dual_grid_opt_on,
+                       cpcoeffs_pos,cpewald,cpscr,cpopts,pseudo,
+		       ewd_scr,atommaps,cell,ewald,ptens,&(stat_avg->vrecip),
+		       &(stat_avg->cp_enl),communicate,for_scr,cp_dual_grid_opt_on,
                        cp_para_fft_pkg3d_lg);
 
-  coef_force_control(cpopts,cpcoeffs_info,cpcoeffs_pos,cpscr,ewald,cpewald,cell,stat_avg,
-                     pseudo->vxc_typ,ptens->pvten_tmp,pseudo->gga_cut,pseudo->alpha_conv_dual,
-                     pseudo->n_interp_pme_dual,cp_min_on,communicate,cp_comm_state_pkg_up,
+  coef_force_control(cpopts,cpcoeffs_info,cpcoeffs_pos,cpscr,ewald,cpewald,
+		    cell,stat_avg,pseudo->vxc_typ,ptens->pvten_tmp,pseudo->gga_cut,
+		    pseudo->alpha_conv_dual,pseudo->n_interp_pme_dual,cp_min_on,
+		    communicate,cp_comm_state_pkg_up,
                      cp_comm_state_pkg_dn,cp_para_fft_pkg3d_lg,cp_sclr_fft_pkg3d_lg,
                      cp_para_fft_pkg3d_dens_cp_box,cp_sclr_fft_pkg3d_dens_cp_box,
 		     cp_para_fft_pkg3d_sm,cp_sclr_fft_pkg3d_sm,cp_dual_grid_opt_on);
-  
-  
-  
- 
+
+  for(iState=0;iState<numStateUpProc;iState++){
+    iCoeffStart = iState*numCoeff;
+    for(iCoeff=0;iCoeff<numCoeffM1;iCoeff++){
+      index1 = iCoeffStart+iCoeff;
+      index2 = index1+1;
+      wfOutReUp[index1] = fcre_up[index2]*scale1;
+      wfOutImUp[index1] = fcim_up[index2]*scale1;
+    }//endfor iCoeff
+    index1 = iCoeffStart+numCoeffM1;
+    index2 = index1+1;
+    wfOutReUp[index1] = fcre_up[index2]*scale2;
+    wfOutImUp[index1] = fcre_up[index2]*scale2;
+  }//endfor iState
+  if(cpLsda==1&&numStateDnProc!=0){
+    for(iState=0;iState<numStateDnProc;iState++){
+      iCoeffStart = iState*numCoeff;
+      for(iCoeff=0;iCoeff<numCoeffM1;iCoeff++){
+	index1 = iCoeffStart+iCoeff;
+	index2 = index1+1;
+	wfOutReDn[index1] = fcre_dn[index2]*scale1;
+	wfOutImDn[index1] = fcim_dn[index2]*scale1;
+      }//endfor iCoeff
+      index1 = iCoeffStart+numCoeffM1;
+      index2 = index1+1;
+      wfOutReDn[index1] = fcre_dn[index2]*scale2;
+      wfOutImDn[index1] = fcre_dn[index2]*scale2;
+    }//endfor iState
+  }
+
+/*==========================================================================*/
+/* 2) Calculate P_(n+1)(H)|phi> */
+
+  DAXPY(&numCoeffUpTotal,&prefact,wfInReUp,&incx,wfOutReUp,&incy);
+  DAXPY(&numCoeffUpTotal,&prefact,wfInImUp,&incx,wfOutImUp,&incy);
+  if(cpLsda==1&&numStateDnProc!=0){
+    DAXPY(&numCoeffDnTotal,&prefact,wfInReDn,&incx,wfOutReDn,&incy);
+    DAXPY(&numCoeffDnTotal,&prefact,wfInImDn,&incx,wfOutImDn,&incy);
+  }
   
 /*==========================================================================*/
 }/*end Routine*/

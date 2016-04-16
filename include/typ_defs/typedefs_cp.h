@@ -265,13 +265,21 @@ typedef struct cpcoeffs_pos {
 
 } CPCOEFFS_POS;
 
+typedef struct newtonInfo{
+/* option/parameter specific for Newtonian interpolation */
+  double Smin,Smax;		    /* Num: Interpolation Min/Max values	*/
+  double scale;			    /* Num: =(Smax-Smin)/(energyDiff) (1/sigma)	*/
+  void *sampPoint;		    /* Lst: Interpolation sample points.	*/
+				    /* Lth: polynormLength			*/
+}NWETONINFO;
+
 typedef struct stodftInfo{
 /* This structure contains flag and constant. */
   int stodftOn;                     /* Opt: turn stochastic dft(1)/off(0)	*/
   int expanType;                    /* Opt: Method of Fermi function expension. */
-				    /*      1 = Chebyshev Polynormial           */
-				    /*	    2 = Newtonian Polynormial           */
-				    /*	    3 = (Do we really have it?)		*/
+				    /*      1 = Chebyshev Poly	                */
+				    /*	    2 = Newtonian Poly (Hermitian)	*/
+				    /*	    3 = Newtonian Poly (non-Hermitian)	*/
   int numOrbital;	            /* Num: number of stochastic orbitals	*/
   int polynormLength;               /* Num: number of polynormials to expand    */
 				    /*	    the Fermi function.			*/
@@ -279,7 +287,9 @@ typedef struct stodftInfo{
   double energyMax,energyMin;       /* Num: Possible upper/lower bound of MO	*/
 				    /*	    energy.				*/ 
   double energyDiff;		    /* Num: energy range=energyMax-energyMin	*/
+  double energyMean;		    /* Num: mean energy=(energyMax+energyMin)/2 */
   
+  NEWTONINFO *newtonInfo;
 }STODFTINFO;
 
 typedef struct stodftCoeffPos{
@@ -290,8 +300,8 @@ typedef struct stodftCoeffPos{
   /* wave functions on this processor. If we have a closed shell system  */
   /* everything will be stored in the up spin part.			 */
   /***********************************************************************/
-  double *expanCoeff;		    /* Lst: expansion coefficients		*/
-				    /* Lth: polynormLength*numChemPot		*/
+  double *expanCoeffRe;		    /* Lst: expansion coefficients		*/
+  double *expanCoeffIm;		    /* Lth: polynormLength*numChemPot		*/
   double *wfInReUp,*wfInImUp;	    /* Lst: input wave function(up/down spin)	*/
   double *wfInReDn,*wfInImDn;	    /* Lth: nstate_up_proc*ncoef		*/
   double *wfOutReUp,*wfOutImUp;	    /* Lst: output wave function(up/down spin)  */
@@ -301,7 +311,6 @@ typedef struct stodftCoeffPos{
 				    /* Lth: numChemPot*(nstate_up_proc*ncoef)	*/
   double *chemPot;		    /* Lst: chemical potentials			*/
 				    /* Lth: numChemPot				*/
-
 }STODFTCOEFPOS;
 
 

@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <time.h>
+#include <complex.h>
 #ifdef PARALLEL
 #include "mpi.h"
 #else

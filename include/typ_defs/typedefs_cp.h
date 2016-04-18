@@ -271,7 +271,11 @@ typedef struct newtonInfo{
   double scale;			    /* Num: =(Smax-Smin)/(energyDiff) (1/sigma)	*/
   void *sampPoint;		    /* Lst: Interpolation sample points.	*/
 				    /* Lth: polynormLength			*/
+  void *sampPointUnscale;	    /* Lst: Interpolation sample points in energy space */
+				    /* Lth: polynormLength				*/
 }NWETONINFO;
+
+typedef double (*FERMIFUNC)(double complex,double,double);//Re(x),Im(x),mu,beta
 
 typedef struct stodftInfo{
 /* This structure contains flag and constant. */
@@ -288,6 +292,9 @@ typedef struct stodftInfo{
 				    /*	    energy.				*/ 
   double energyDiff;		    /* Num: energy range=energyMax-energyMin	*/
   double energyMean;		    /* Num: mean energy=(energyMax+energyMin)/2 */
+  double beta;			    /* Num: 1/kT				*/
+  
+  FERMIFUNC fermiFunction;
   
   NEWTONINFO *newtonInfo;
 }STODFTINFO;
@@ -300,14 +307,14 @@ typedef struct stodftCoeffPos{
   /* wave functions on this processor. If we have a closed shell system  */
   /* everything will be stored in the up spin part.			 */
   /***********************************************************************/
-  double *expanCoeffRe;		    /* Lst: expansion coefficients		*/
-  double *expanCoeffIm;		    /* Lth: polynormLength*numChemPot		*/
-  double *wfInReUp,*wfInImUp;	    /* Lst: input wave function(up/down spin)	*/
-  double *wfInReDn,*wfInImDn;	    /* Lth: nstate_up_proc*ncoef		*/
-  double *wfOutReUp,*wfOutImUp;	    /* Lst: output wave function(up/down spin)  */
-  double *wfOutReDn,*wfOutImDn;     /* Lth: nstate_dn_proc*ncoef                */
-  double **stoWfReUp,**stoWfImUp;   /* Lst: stochastic wave function on this	*/
-  double **stoWfReDn,**stoWfImDn;   /*	    processor.				*/
+  void *expanCoeff;		    /* Lst: expansion coefficients		*/
+				    /* Lth: polynormLength*numChemPot		*/
+  double complex *wfInUp,*wfInDn;   /* Lst: input wave function(up/down spin)	*/
+				    /* Lth: nstate_up_proc*ncoef		*/
+  double complex *wfOutUp,*wfOutDn; /* Lst: output wave function(up/down spin)  */
+				    /* Lth: nstate_dn_proc*ncoef                */
+  double complex **stoWfUp;	    /* Lst: stochastic wave function on this	*/
+  double complex **stoWfDn;	    /*	    processor.				*/
 				    /* Lth: numChemPot*(nstate_up_proc*ncoef)	*/
   double *chemPot;		    /* Lst: chemical potentials			*/
 				    /* Lth: numChemPot				*/

@@ -30,7 +30,7 @@
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void genCoeffNewton(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
+void genCoeffNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
@@ -43,25 +43,144 @@ void genCoeffNewton(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
    
 
   int polynormLength     = stodftInfo->polynormLength;
-  int iPoly,imu;
+  int numChemPot	 = stodftInfo->numChemPot;
+  int iPoly,jPoly,imu;
 
-  double Smin		 = newtonInfo->Smin;
-  double Smax		 = newtonInfo->Smax;
-  double scale		 = scale;
-  double *sampPointRe    = newtonInfo->sampPointRe;
-  double *sampPointIm    = newtonInfo->sampPointIm;
-  double *expanCoeffRe	 = stodftCoefPos->expanCoeff;
-  double *expanCoeffIm   = stodftCoefPos->expanCoeff;
+  double Smin		   = newtonInfo->Smin;
+  double Smax		   = newtonInfo->Smax;
+  double scale		   = newtonInfo->scale;
+  double *sampPoint        = (double*)newtonInfo->sampPoint;
+  double *expanCoeff       = (double*)stodftCoefPos->expanCoeff;
+  double *sampPointUnscale = (double*)newtonInfo->sampPointUnscale;
+  double *chemPot	   = stodftCoefPos->chemPot;
 
-
+  double beta = stodftInfo->beta;
+  double funValue,sum,prod;
   
-  
+  FERMIFUNC fermiFunction = stodftInfo->fermiFunction;
 
-  
-
-
+  for(imu=0;imu<numChemPot;imu++){
+    funValue = fermiFunction(sampPointUnscale[0],chemPot[imu],beta);
+    expanCoeff[imu] = funValue;
+    funValue = fermiFunction(sampPointUnscale[1],chemPot[imu],beta);
+    expanCoeff[numChemPot+imu] = (funValue-expanCoeff[imu])/(sampPoint[1]-sampPoint[0]);
+    for(iPoly=2;iPoly<polynormLength;iPoly++){
+      funValue = fermiFunction(sampPointUnscale[1],chemPot[imu],beta);
+      sum = funValue-expanCoeff[imu];
+      prod = 1.0;
+      for(jPoly=1;jPoly<iPoly;jPoly++){
+	prod *= (sampPoint[iPoly]-sampPoint[jPoly-1]);
+	sum -= expanCoeff[jPoly*numChemPot+imu]*prod;
+      }//endfor jPoly
+      prod *= (sampPoint[iPoly]-sampPoint[iPoly-1]);
+      expanCoeff[iPoly*numChemPot+imu] = sum/prod;
+    }//endfor iPoly
+  }//endfor imu
 
 /*==========================================================================*/
 }/*end Routine*/
+/*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void genCoeffNewtonNoHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* Calculate expanCoeff for different chemical potentials                */
+/*************************************************************************/
 /*=======================================================================*/
+/*         Local Variable declarations                                   */
+  NEWTONINFO *newtonInfo  = stodftInfo->newtonInfo;
+
+
+  int polynormLength     = stodftInfo->polynormLength;
+  int numChemPot         = stodftInfo->numChemPot;
+  int iPoly,jPoly,imu;
+
+  double Smin              = newtonInfo->Smin;
+  double Smax              = newtonInfo->Smax;
+  double scale             = newtonInfo->scale;
+  double complex *sampPoint        = (double complex*)newtonInfo->sampPoint;
+  double complex *expanCoeff       = (double complex*)stodftCoefPos->expanCoeff;
+  double complex *sampPointUnscale = (double complex*)newtonInfo->sampPointUnscale;
+  double *chemPot          = stodftCoefPos->chemPot;
+
+  double beta = stodftInfo->beta;
+  double funValue,sum,prod;
+
+  FERMIFUNC fermiFunction = stodftInfo->fermiFunction;
+
+  for(imu=0;imu<numChemPot;imu++){
+    funValue = fermiFunction(sampPointUnscale[0],chemPot[imu],beta);
+    expanCoeff[imu] = funValue;
+    funValue = fermiFunction(sampPointUnscale[1],chemPot[imu],beta);
+    expanCoeff[numChemPot+imu] = (funValue-expanCoeff[imu])/(sampPoint[1]-sampPoint[0]);
+    for(iPoly=2;iPoly<polynormLength;iPoly++){
+      funValue = fermiFunction(sampPointUnscale[iPoly],chemPot[imu],beta);
+      sum = funValue-expanCoeff[imu];
+      prod = 1.0;
+      for(jPoly=1;jPoly<iPoly;jPoly++){
+        prod *= (sampPoint[iPoly]-sampPoint[jPoly-1]);
+        sum -= expanCoeff[jPoly*numChemPot+imu]*prod;
+      }//endfor jPoly
+      prod *= (sampPoint[iPoly]-sampPoint[iPoly-1]);
+      expanCoeff[iPoly*numChemPot+imu] = sum/prod;
+    }//endfor iPoly
+  }//endfor imu
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void genSampNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* Calculate expanCoeff for different chemical potentials                */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+  NEWTONINFO *newtonInfo  = stodftInfo->newtonInfo;
+  int polynormLength	     = stodftInfo->polynormLength;
+  int numSampCand	     = 32*polynormLength;
+  int iPoly,jPoly,iCand;
+  int objMaxIndex;
+  double Smin = stodftInfo->Smin;
+  double Smax = stodftInfo->Smax;
+  double delta = (Smax-Smin)/(double)(numSampCand-1);
+  double obj,objMax,diff;
+  double *sampPoint = (double*)newtonInfo->sampPoint;
+  double *sampCand = (double*)cmalloc(numSampCand*sizeof(double));
+  
+  for(iPoly=0;iPoly<polynormLength;iPoly++)sampCand[iPoly] = Smin+iPoly*delta;
+  sampPoint[0] = sampCand[0];
+  for(iPoly=1;iPoly<polynormLength;iPoly++){
+    objMax = -100000.0
+    for(iCand=0;iCand<numSampCand;iCand++){
+      obj = 0.0;
+      for(jPoly=0;jPoly<iPoly;jPoly++){
+	diff = sampCand[iCand]-sampPoint[jPoly];
+	if(diff<1.0e-10)obj += -1.0e30;
+	else obj += log(diff*diff);
+      }//endfor jPoly
+      if(obj>objMax){
+	objMax = obj;
+	objMaxIndex = iCand;
+      }//endif
+    }//endfor iCand
+    sampPoint[iPoly] = sampCand[objMaxIndex];
+  }//endfor iPoly
+  
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
 

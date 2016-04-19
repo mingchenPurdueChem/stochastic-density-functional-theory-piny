@@ -284,6 +284,9 @@ typedef struct stodftInfo{
 				    /*      1 = Chebyshev Poly	                */
 				    /*	    2 = Newtonian Poly (Hermitian)	*/
 				    /*	    3 = Newtonian Poly (non-Hermitian)	*/
+  int fermiFunType;		    /* Opt: Fermi Function type			*/
+				    /*	    1 = exponential			*/
+				    /*	    2 = erfc function			*/
   int numOrbital;	            /* Num: number of stochastic orbitals	*/
   int polynormLength;               /* Num: number of polynormials to expand    */
 				    /*	    the Fermi function.			*/

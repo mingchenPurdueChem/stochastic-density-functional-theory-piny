@@ -612,3 +612,35 @@ void get_ind_rev(int *index,int *n_bin,int i,int ndim){
 }
 /*===============================================================*/
 
+/***************************************************************************/
+/* We will put some type of Fermi functions here.                          */
+/***************************************************************************/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+double fermiExpReal(double complex x,double mu,double beta){
+  double xre = (double)x;
+  return 1.0/(1.0+exp(beta*(x-mu)));
+
+}
+/*===============================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+double fermiExpComplex(double complex x,double mu,double beta){
+  return 1.0/(1.0+cexp(beta*(x-mu)));
+
+}
+/*===============================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+double fermiErfcReal(double complex x,double mu,double beta){
+  return 0.5*erfc(beta*(x-mu));
+
+}
+/*===============================================================*/
+

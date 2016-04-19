@@ -5,7 +5,7 @@
 /*                         Stochastic DFT:                                  */
 /*             The future of density functional theory                      */
 /*             ------------------------------------                         */
-/*                   Module: normh.c                                        */
+/*                   Module: coeff.c                                        */
 /*                                                                          */
 /* This routine costruct a_n for f(z)=\sum a_nP_n(z)                        */
 /* polynomial.                                                              */
@@ -56,7 +56,7 @@ void genCoeffNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
 
   double beta = stodftInfo->beta;
   double funValue,sum,prod;
-  
+
   FERMIFUNC fermiFunction = stodftInfo->fermiFunction;
 
   for(imu=0;imu<numChemPot;imu++){
@@ -155,12 +155,22 @@ void genSampNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   int objMaxIndex;
   double Smin = stodftInfo->Smin;
   double Smax = stodftInfo->Smax;
+  double scale = 1.0/newtonInfo->scale;
+  double energyMin = stodftInfo->energyMin;
   double delta = (Smax-Smin)/(double)(numSampCand-1);
   double obj,objMax,diff;
   double *sampPoint = (double*)newtonInfo->sampPoint;
+  double *sampPointUnscale = (double*)newtonInfo->sampPointUnscale;
   double *sampCand = (double*)cmalloc(numSampCand*sizeof(double));
+
+/*==========================================================================*/
+/* 0) Generate sample candidates in range [Smin,Smax] */
   
   for(iPoly=0;iPoly<polynormLength;iPoly++)sampCand[iPoly] = Smin+iPoly*delta;
+
+/*==========================================================================*/
+/* 1) Select samples form sample candidates  */
+
   sampPoint[0] = sampCand[0];
   for(iPoly=1;iPoly<polynormLength;iPoly++){
     objMax = -100000.0
@@ -178,8 +188,14 @@ void genSampNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
     }//endfor iCand
     sampPoint[iPoly] = sampCand[objMaxIndex];
   }//endfor iPoly
-  
 
+/*==========================================================================*/
+/* 2) Rescale the sample points to energy space  */
+  
+  for(iPoly=0;iPoly<polynormLength;iPoly++){
+    sampPointUnscale[iPoly] = (sampPoint[iPoly]-Smin)*scale+energyMin;
+  }
+  
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/

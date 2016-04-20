@@ -124,7 +124,14 @@
    control_min(&class,&bonded,&general_data,&analysis);  
   }
   if((general_data.simopts.cp_wave_min+general_data.simopts.cp_min) ==1 ){
-    control_cp_min(&class,&bonded,&general_data,&cp,&analysis);
+    if(cp.stodftInfo->stodftOn==0){
+      //Regular DFT scheme
+      control_cp_min(&class,&bonded,&general_data,&cp,&analysis);
+    }
+    else{
+      //Stochastic DFT scheme
+      controlStodftMin(&class,&bonded,&general_data,&cp,&analysis);
+    }
   }
   if((general_data.simopts.cp_wave_min_pimd) ==1 ){
     control_cp_pimd_min(&class,&bonded,&general_data,&cp,&analysis);

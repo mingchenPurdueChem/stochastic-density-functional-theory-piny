@@ -295,4 +295,8 @@ void ZSIDI(zomplex *,int *,int *,int *,zomplex *,zomplex *,int *);
 int get_ind(int*,int*,int);
 void get_ind_rev(int*,int*,int,int);
 
-
+/*----------------------------------------------------------------------*/
+/* Fillter functions  */
+double fermiExpReal(double,double,double);
+double complex fermiExpComplex(double complex,double,double);
+double fermiErfcReal(double,double,double);

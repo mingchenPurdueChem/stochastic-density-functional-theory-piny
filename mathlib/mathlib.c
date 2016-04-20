@@ -629,7 +629,7 @@ double fermiExpReal(double complex x,double mu,double beta){
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-double fermiExpComplex(double complex x,double mu,double beta){
+double complex fermiExpComplex(double complex x,double mu,double beta){
   return 1.0/(1.0+cexp(beta*(x-mu)));
 
 }
@@ -638,7 +638,7 @@ double fermiExpComplex(double complex x,double mu,double beta){
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-double fermiErfcReal(double complex x,double mu,double beta){
+double fermiErfcReal(double x,double mu,double beta){
   return 0.5*erfc(beta*(x-mu));
 
 }

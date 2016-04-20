@@ -306,6 +306,7 @@ typedef struct minopts {
   int cp_min_std;              /* Opt: Steepest descent min           */
   int cp_min_cg;               /* Opt: Conjugate gradiant min         */
   int cp_min_diis;             /* Opt: DIIS min                       */
+  int cp_min_stodft;	       /* Opt: stochastic DFT min	      */
   int cp_diis_hist_len;        /* Num: Length of DIIS history         */
   int cp_cg_line_min_len;       /* Num: COMMENT ME */
   int min_atm_com_fix_opt;     /* Opt: Keep the com fixed             */

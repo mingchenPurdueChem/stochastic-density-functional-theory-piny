@@ -275,7 +275,8 @@ typedef struct newtonInfo{
 				    /* Lth: polynormLength				*/
 }NWETONINFO;
 
-typedef double (*FERMIFUNC)(double complex,double,double);//Re(x),Im(x),mu,beta
+typedef double (*FERMIFUNR)(double,double,double);//x,mu,beta
+typedef double complex (*FERMIFUNC)(double complex,double,double);
 
 typedef struct stodftInfo{
 /* This structure contains flag and constant. */
@@ -297,7 +298,8 @@ typedef struct stodftInfo{
   double energyMean;		    /* Num: mean energy=(energyMax+energyMin)/2 */
   double beta;			    /* Num: 1/kT				*/
   
-  FERMIFUNC fermiFunction;
+  FERMIFUNR fermiFunctionReal;
+  FERMIFUNC fermiFunctionComplex;
   
   NEWTONINFO *newtonInfo;
 }STODFTINFO;

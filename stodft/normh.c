@@ -106,15 +106,13 @@ void normHNewtonHerm(CP *cp,CPCOEFFS_POS *cpcoeffs_pos,CPCOEFFS_INFO *cpcoeffs_i
 /*==========================================================================*/
 /* 0) Copy the input wave function to CP coeff and zero the force */
  
-  memcpy(&(cre_up[1]),wfInReUp,numCoeffUpTotal);
-  memcpy(&(cim_up[1]),wfInImUp,numCoeffUpTotal);
   for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
+    wfInUp[iCoeff-1] = cre_up[iCoeff]+cim_up[iCoeff]*I;
     fcre_up[iCoeff] = 0.0;
     fcim_up[iCoeff] = 0.0;
   }
   if(cpLsda==1&&numStateDnProc!=0){
-    memcpy(&(cre_dn[1]),wfInReDn,numCoeffDnTotal);
-    memcpy(&(cim_dn[1]),wfInImDn,numCoeffDnTotal);
+    wfInDn[iCoeff-1] = cre_dn[iCoeff]+cim_dn[iCoeff]*I;
     for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
       fcre_dn[iCoeff] = 0.0;
       fcim_dn[iCoeff] = 0.0;
@@ -254,16 +252,14 @@ void normHNewtonNoHerm(CP *cp,CPCOEFFS_POS *cpcoeffs_pos,CPCOEFFS_INFO *cpcoeffs
 /*==========================================================================*/
 /* 0) Copy the input wave function to CP coeff and zero the force */
  
-  memcpy(&(cre_up[1]),wfInReUp,numCoeffUpTotal);
-  memcpy(&(cim_up[1]),wfInImUp,numCoeffUpTotal);
   for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
+    wfInReUp[iCoeff-1] = cre_up[iCoeff]+cim_up[iCoeff]*I;
     fcre_up[iCoeff] = 0.0;
     fcim_up[iCoeff] = 0.0;
   }
   if(cpLsda==1&&numStateDnProc!=0){
-    memcpy(&(cre_dn[1]),wfInReDn,numCoeffDnTotal);
-    memcpy(&(cim_dn[1]),wfInImDn,numCoeffDnTotal);
     for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
+      wfInReDn[iCoeff-1] = cre_dn[iCoeff]+cim_dn[iCoeff]*I;
       fcre_dn[iCoeff] = 0.0;
       fcim_dn[iCoeff] = 0.0;
     }

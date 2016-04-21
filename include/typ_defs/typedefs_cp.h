@@ -292,6 +292,9 @@ typedef struct stodftInfo{
   int polynormLength;               /* Num: number of polynormials to expand    */
 				    /*	    the Fermi function.			*/
   int numChemPot;		    /* Num: number of chemical potential values */
+  int vpsAtomListFlag;		    /* Opt: Flag control control_vps_atm_list   */
+				    /*	    0 = call function			*/
+				    /*	    1 = skip function			*/
   double energyMax,energyMin;       /* Num: Possible upper/lower bound of MO	*/
 				    /*	    energy.				*/ 
   double energyDiff;		    /* Num: energy range=energyMax-energyMin	*/

@@ -72,6 +72,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
   stodftInfo->energyDiff = energyMax-energyMin;
   energyDiff = stodftInfo->energyDiff;
   stodftInfo->energyMean = (energyMax+energyMin)*0.5;
+  stodftInfo->vpsAtomListFlag = 0;
 
   stodftCoefPos->wfInUp = (double complex*)cmalloc(numStateUpTot*sizeof(double complex));
   stodftCoefPos->wfOutUp = (double complex*)cmalloc(numStateUpTot*sizeof(double complex));

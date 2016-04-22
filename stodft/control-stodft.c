@@ -79,7 +79,7 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int iopt_cp_dvr      = cp->cpcoeffs_info.iopt_cp_dvr;
 
 /*======================================================================*/
-/* 0) Write to Screen                                                   */
+/* I) Write to Screen                                                   */
 
  if(myid==0){
   PRINT_LINE_STAR;
@@ -88,21 +88,36 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
  }/* endif */
 
 /*======================================================================*/
-/* I) Set the flags/counters                                           */
+/* II) Initialize the stochastic DFT                                    */
+
+  initStodft(class,bonded,general_data,cp);
 
 /*======================================================================*/
-/* Initial call to output_cp_min: need to open confp file               */
+/* III) Initial call to output_cp_min: need to open confp file          */
+
+  
+
 
 /*======================================================================*/
-/* II) Loop over the specified number of time steps */
+/* IV) Electronic Structure calculation for initial configuration       */
+  
+  scfStodft(class,bonded,general_data,cp,ip_now);
+
+
+/*======================================================================*/
+/* V) Loop over the specified number of time steps for geometric	*/
+/*    optimization.							*/
+ 
+  numTime = 0; //I don't want to see this loop in today's debug
+  for(iTime=1;iTime<numTime;iTime++){
 
   /*---------------------------------------------------------------------*/
-  /* 1) atm minimization                                                 */
+  /* 1) Update Atom Coordinate                                           */
 
 //Let's temperaly test the filter by given the density and chemical potential, test how the filter looks like on KS eigenfunctions. 
 
   /*---------------------------------------------------------------------*/
-  /* 2) CP_wave minimization                                             */
+  /* 2) Run SCF calculation                                              */
 
   elec_e_old     = general_data->stat_avg.cp_eke
 		 + general_data->stat_avg.cp_enl
@@ -117,7 +132,7 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }/*endif*/
 
   //Minimize with stochastic dft
-  minStodft(class,bonded,general_data,cp,ip_now);
+  scfStodft(class,bonded,general_data,cp,ip_now);
   elec_e         = general_data->stat_avg.cp_eke
 		 + general_data->stat_avg.cp_enl
 		 + general_data->stat_avg.cp_ehart
@@ -141,6 +156,8 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
  /*---------------------------------------------------------------------*/
  /*   Check for exit condition                                      */
+
+  }//endfor iTime
 
   /*======================================================================*/
   /*  II) Final dump  : get all energyies and write EVERYTHING            */

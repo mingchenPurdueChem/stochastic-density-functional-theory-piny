@@ -67,7 +67,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
   double energyDiff;
 
 /*==========================================================================*/
-/* 0) General parameters and malloc  */
+/* I) General parameters and malloc					    */
   
   stodftInfo->energyDiff = energyMax-energyMin;
   energyDiff = stodftInfo->energyDiff;
@@ -104,7 +104,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
 
 
 /*==========================================================================*/
-/* 1) Malloc by expension type  */
+/* II) Malloc by expension type						    */
 
   switch(expanType){
     case 2:
@@ -131,7 +131,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
   }
 
 /*==========================================================================*/
-/* 2) Initialize utility data  */
+/* III) Initialize utility data						    */
   
   switch(expanType){
     case 2:
@@ -140,6 +140,18 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
     // I'll do chebyshev and non-Hermitain Newtonian later    
   }
 
+/*==========================================================================*/
+/* IV) Initialize Flags							    */
+
+/*==========================================================================*/
+/* V) Calculate the non-local pseudopotential list                          */
+
+  if(stodftInfo->vpsAtomListFlag==0||cp_dual_grid_opt_on >= 1){
+    control_vps_atm_list(pseudo,cell,clatoms_pos,clatoms_info,
+                         atommaps,ewd_scr,for_scr,cp_dual_grid_opt_on,
+                         stodftInfo->vpsAtomListFlag);
+    stodftInfo->vpsAtomListFlag = 1;
+  }
 
 /*==========================================================================*/
 }/*end Routine*/

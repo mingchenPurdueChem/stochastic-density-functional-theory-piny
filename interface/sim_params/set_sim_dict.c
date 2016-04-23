@@ -39,7 +39,7 @@ void set_sim_dict_fun(int *num_dict,DICT_WORD *dict[])
 /*========================================================================*/
 /*  0) Malloc the dictionary                                              */ 
 
-  *num_dict = 25;
+  *num_dict = 26;
   *dict = (DICT_WORD *)cmalloc(*num_dict*sizeof(DICT_WORD))-1;
 
 /*========================================================================*/
@@ -182,8 +182,11 @@ void set_sim_dict_fun(int *num_dict,DICT_WORD *dict[])
         strcpy((*dict)[25].keyword,"sim_dafed_def");
         strcpy((*dict)[25].keyarg,"");
         strcpy((*dict)[25].error_mes,"");
-  /*--------------------------------------------------------------------*/ 
-
+  /*-----------------------------------------------------------------------*/
+  /*  26) ~sim_stodft_def[] */
+        strcpy((*dict)[26].keyword,"sim_stodft_def");
+        strcpy((*dict)[26].keyarg,"");
+        strcpy((*dict)[26].error_mes,"");
 /*========================================================================*/
 /*------------------------------------------------------------------------*/
 /*========================================================================*/
@@ -2187,6 +2190,56 @@ void set_sim_dict_dafed (int *num_dict, DICT_WORD *dict[]) {
  } /* end routine set_sim_dict_harmonic */
  /*========================================================================*/
 
+
+void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
+/*==========================================================================*/
+/*               Begin subprogram:
+*/
+{ /*begin routine*/
+ /*=======================================================================*/
+ /*             Local variable declarations                                */
+  
+  unsigned int i;
+  *num_dict = 7;
+  *dict = (DICT_WORD *)cmalloc(*num_dict*sizeof(DICT_WORD))-1;
+
+  for (i=1;i<=*num_dict;i++) {
+    (*dict)[i].iuset = 0;
+    (*dict)[i].iflag = 0;
+    (*dict)[i].key_type = 1;
+  }
+
+  strcpy((*dict)[1].error_mes,"Stochastic dft mission type sp/geo_opt/md");
+  strcpy((*dict)[1].keyword,"sto_dft_type");
+  strcpy((*dict)[1].keyarg,"sp");
+
+  strcpy((*dict)[2].error_mes,"Choose the polynomial type chebyshev/newton_hermit/newton_nohermit");
+  strcpy((*dict)[2].keyword,"poly_type");
+  strcpy((*dict)[2].keyarg,"newton_hermit");
+
+  strcpy((*dict)[3].error_mes,"Choose Filter type fermi_exp/fermi_erfc/gauss");
+  strcpy((*dict)[3].keyword,"filter_type");
+  strcpy((*dict)[3].keyarg,"fermi_exp");
+
+  strcpy((*dict)[4].error_mes,"Positive integer: number of stochastic orbitals ");
+  strcpy((*dict)[4].keyword,"num_sto_orb");
+  strcpy((*dict)[4].keyarg,"0");
+
+  strcpy((*dict)[5].error_mes,"Positive integer:Number of polynomials used in filter expansion");
+  strcpy((*dict)[5].keyword,"num_poly");
+  strcpy((*dict)[5].keyarg,"0");
+
+  strcpy((*dict)[6].error_mes,"Positive integer:Number of chemical potentials in interpolation");
+  strcpy((*dict)[6].keyword,"num_chem_pot");
+  strcpy((*dict)[6].keyarg,"0");
+
+  strcpy((*dict)[7].error_mes,"Positive real number for smoothing step function(fermi)/standard deviation(gauss)");
+  strcpy((*dict)[7].keyword,"beta");
+  strcpy((*dict)[7].keyarg,"-1.0");
+
+ /*========================================================================*/
+ } /* end routine set_sim_dict_harmonic */
+ /*========================================================================*/
 
 
 

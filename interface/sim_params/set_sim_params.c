@@ -4493,34 +4493,112 @@ void set_sim_params_dafed(CLASS *class, GENERAL_DATA *general_data, DICT_WORD *d
     }/*end routine*/
 /*========================================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+
+void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp, 
+			   DICT_WORD *dict)
+/*=======================================================================*/
+/*             Begin routine                                              */
+{/*begin routine */
+/*=======================================================================*/
+/*             Local variable declarations                                */
+  double rka;
+  int stodftOn;
+  int missionType,stodftOn;
+  SIMOPTS *simopts = general_data->simopts;
+
+  STODFTINFO *stodftInfo = (STODFTINFO *)cmalloc(sizeof(STODFTINFO));;
+  STODFTCOEFPOS *stodftCoeffPos = (STODFTCOEFPOS *)cmalloc(sizeof(STODFTCOEFPOS));
+
+  /*-----------------------------------------------------------------------*/
+  /*  1)\sto_dft_on{#} */
+  stodftInfo->missionType = 0;
+  if(strcasecmp(dict[1].keyarg,"sp")==0)stodftInfo->missionType = 1;
+  if(strcasecmp(dict[1].keyarg,"geo_opt")==0)stodftInfo->missionType = 2;
+  if(strcasecmp(dict[1].keyarg,"md")==0)stodftInfo->missionType = 3;
+  missiontype = stodftInfo->missionType;
+  /*-----------------------------------------------------------------------*/
+  /*  2)\poly_type{#} */
+  if(strcasecmp(dict[2].keyarg,"chebyshev")==0)stodftInfo->expanType = 1;
+  if(strcasecmp(dict[2].keyarg,"newton_hermit")==0)stodftInfo->stodftOn = 2;
+  if(strcasecmp(dict[2].keyarg,"newton_hermit")==0)stodftInfo->stodftOn = 3;
+  /*-----------------------------------------------------------------------*/
+  /*  3)\filter_type{#} */
+  if(strcasecmp(dict[3].keyarg,"fermi_exp")==0)stodftInfo->expanType = 1;
+  if(strcasecmp(dict[3].keyarg,"fermi_erfc")==0)stodftInfo->stodftOn = 2;
+  if(strcasecmp(dict[3].keyarg,"gauss")==0)stodftInfo->stodftOn = 3;
+  /*-----------------------------------------------------------------------*/
+  /*  4)\num_sto_orb{#} */
+  sscanf(dict[4].keyarg,"%lg",&rka);
+  stodftInfo->numOrbital = (int)(rka);
+  /*-----------------------------------------------------------------------*/
+  /*  5)num_poly{#} */
+  sscanf(dict[5].keyarg,"%lg",&rka);
+  stodftInfo->polynormLength = (int)(rka);
+  /*-----------------------------------------------------------------------*/
+  /*  6)num_chem_pot{#} */
+  sscanf(dict[6].keyarg,"%lg",&rka);
+  stodftInfo->numChemPot = (int)(rka);
+  /*-----------------------------------------------------------------------*/
+  /*  7)\beta{#} */
+  sscanf(dict[7].keyarg,"%lg",&rka);
+  stodftInfo->beta = (int)(rka);
+
+/*=======================================================================*/
+/* Check the conflicate options						 */
+  
+  if(missiontype>0)stodftOn = 1;
+  stodftInfo->stodftOn = stodftOn;
+ 
+  if(stodftOn==1){
+    simopts->minimize = 0;
+    simopts->md = 0;
+    simopts->pimd = 0;
+    simopts->cp = 0;
+    simopts->cp_wave = 0;
+    simopts->cp_wave_pimd = 0;
+    simopts->cp_pimd = 0;
+    simopts->cp_min = 0;
+    simopts->cp_wave_min = 0.;
+    simopts->cp_wave_min_pimd = 0.;
+    simopts->debug = 0;
+    simopts->debug_pimd = 0;
+    simopts->debug_cp = 0;
+    simopts->debug_cp_pimd = 0;
+   
+    if(missiontype==1&&simopts->cp_wave_min==0){
+      printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
+      printf("You turn on the stochastic dft single point claculation ");
+      printf("I'll reset the simulation type to cp_wave_min");
+      printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
+      simopts->cp_wave_min = 1;  
+    }
+    if(missiontype==2&&simopts->cp_min==0){
+      printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
+      printf("You turn on the stochastic dft geometric optimization");
+      printf("I'll reset the simulation type to cp_min");
+      printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
+      simopts->cp_min = 1;
+    }
+    if(missiontype==3&&simopts->cp==0){
+      printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
+      printf("You turn on the stochastic dft molecular dynamics ");
+      printf("I'll reset the simulation type to cp");
+      printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
+      simopts->cp = 1;
+    }
+  }
+  
+    
+
+
+/*========================================================================*/
+    }/*end routine*/
+/*========================================================================*/
 
 
   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 

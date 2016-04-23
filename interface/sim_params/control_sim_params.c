@@ -55,7 +55,7 @@ void control_sim_params(CLASS *class,GENERAL_DATA *general_data,
   DICT_WORD *dict_fun,*dict_list,*dict_cp,*dict_gen,*dict_vpot,*dict_run; 
   DICT_WORD *dict_nhc,*dict_vol,*dict_write,*dict_pimd; 
   DICT_WORD *dict_velo,*dict_msqd,*dict_iikt_iso,*dict_ickt_iso,*dict_rdf,*dict_harmonic;
-  DICT_WORD *dict_dafed;
+  DICT_WORD *dict_dafed *dict_stodft;
   DICT_WORD word;            
                              /* Str: Dictionary of key words
                                      key arguments, etc;
@@ -106,6 +106,7 @@ void control_sim_params(CLASS *class,GENERAL_DATA *general_data,
   set_sim_dict_rdf(&num_dict_rdf,&dict_rdf);
   set_sim_dict_harmonic(&num_dict_harmonic,&dict_harmonic);
   set_sim_dict_dafed(&num_dict_dafed,&dict_dafed);
+  set_sim_difc_stodft(&num_dict_dafed,&dict_stodft);
   //debug Ma
    if(myid==0){ 
   printf("b/f request mem \n");
@@ -226,6 +227,8 @@ void control_sim_params(CLASS *class,GENERAL_DATA *general_data,
                                 fun_key,nline,nkey,nfun_key,input_name);break;
         case 25 : put_word_dict(&word,dict_dafed,num_dict_dafed,
                                fun_key,nline,nkey,nfun_key,input_name);break;
+        case 26 : put_word_dict(&word,dict_stodft,num_dict_stodft,
+                               fun_key,nline,nkey,nfun_key,input_name);break;
 
       }/*end switch*/
     }/* end while */
@@ -271,6 +274,8 @@ void control_sim_params(CLASS *class,GENERAL_DATA *general_data,
 
   set_sim_params_harmonic(class,general_data,bonded,cp,analysis,class_parse,
                           cp_parse,filename_parse,dict_harmonic,dict_fun[15].keyword);
+
+  set_sim_params_dafed(class,general_data,dict_dafed);
 
   set_sim_params_dafed(class,general_data,dict_dafed);
  

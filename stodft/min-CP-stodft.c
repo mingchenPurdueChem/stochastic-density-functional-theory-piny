@@ -38,6 +38,8 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 {/*begin routine*/
 /*========================================================================*/
 /*             Local variable declarations                                */
+  int iScf;
+  int numScf; //Need claim this in cp
 
 /*======================================================================*/
 /* 0) Check the forms                                                   */
@@ -154,11 +156,7 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /* IV) Get the total density, (spin densities too if lsda)              */
 /*       and necessary gradients of density for GGA calculations        */
 
-#ifdef TIME_CP
-  if(np_states>1){Barrier(comm_states);}
-  cputime(&cpu1);
-#endif
-
+  //debug only
   cp_rho_calc_hybrid(&(cp->cpewald),&(cp->cpscr),&(cp->cpcoeffs_info),
                      ewald,cell,cre_up,cim_up,*icoef_form_up,*icoef_orth_up,
                      rhocr_up,rhoci_up,rho_up,rhocr_up_dens_cp_box,rhoci_up_dens_cp_box,
@@ -194,11 +192,38 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       }/* endfor */
     } /* endif */
   }/* endif */
-#ifdef TIME_CP
-  cputime(&cpu2);
-  par_cpu_vomit((cpu2-cpu1),comm_states,np_states,myid_state,
-                      "cp_rho_calc");
-#endif
+
+  //debug only
+  genStoOrbital(class,bonded,general_data,cp,ipNow);
+
+/*======================================================================*/
+/* V) SCF loop						                */
+
+  for(iScf=0;iScf<numScf;iScf++){
+
+/*----------------------------------------------------------------------*/
+/* i) converge chemical potential					*/
+    while (/* Chemical potential does not converge*/){
+
+/*----------------------------------------------------------------------*/
+/* 1) converge chemical potential                                       */
+
+      genStoOrbital(class,bonded,general_data,cp,ipNow);
+
+/*----------------------------------------------------------------------*/
+/* 2)  Get the total density, for each chemical potential and get       */
+/*     total electron number for each chemical potential	        */
+
+/*----------------------------------------------------------------------*/
+/* 3)  Using interpolation, calculate the chemical potential w.r.t      */
+/*     Correct electron number.						*/
+
+    }//endwhile
+/*----------------------------------------------------------------------*/
+/* ii) Generate stochastic orbital for the correct chemical potential   */
+/*     (or pick a closest one) and update the density			*/
+
+  }//endfor iScf
 
 
 /*-----------------------------------------------------------------------*/
@@ -350,16 +375,6 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       
   }
 
-/*======================================================================*/
-/* VII) Get the total density, (spin densities too if lsda)              */
-/*       and necessary gradients of density for GGA calculations        */
-
-  calcRhoStodft(class,bonded,general_data,cp,cpcoeffs_pos);
-  
-/*======================================================================*/
-/* VII) Find the correct chemical potential			        */
-
-  
 
 /*-----------------------------------------------------------------------*/
 }/*end routine*/

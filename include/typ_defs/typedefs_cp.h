@@ -281,14 +281,20 @@ typedef double complex (*FERMIFUNC)(double complex,double,double);
 typedef struct stodftInfo{
 /* This structure contains flag and constant. */
   int stodftOn;                     /* Opt: turn stochastic dft(1)/off(0)	*/
+  int missionType;                  /* Opt: Mission type		        */
+				    /*	    1 = single point			*/
+				    /*	    2 = Geometric optimization          */
+				    /*	    3 = MD				*/
   int expanType;                    /* Opt: Method of Fermi function expension. */
 				    /*      1 = Chebyshev Poly	                */
 				    /*	    2 = Newtonian Poly (Hermitian)	*/
 				    /*	    3 = Newtonian Poly (non-Hermitian)	*/
-  int fermiFunType;		    /* Opt: Fermi Function type			*/
-				    /*	    1 = exponential			*/
-				    /*	    2 = erfc function			*/
+  int filterFunType;		    /* Opt: Fermi Function type			*/
+				    /*	    1 = Fermi exponential		*/
+				    /*	    2 = Fermi erfc function		*/
+				    /*	    3 = Gaussian (debug only)		*/
   int numOrbital;	            /* Num: number of stochastic orbitals	*/
+  //We will use numOrbital to replace nstate
   int polynormLength;               /* Num: number of polynormials to expand    */
 				    /*	    the Fermi function.			*/
   int numChemPot;		    /* Num: number of chemical potential values */

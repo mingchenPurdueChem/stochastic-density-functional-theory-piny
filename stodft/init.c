@@ -143,6 +143,11 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
 /*==========================================================================*/
 /* IV) Initialize Flags							    */
 
+  general_data->stat_avg.count_diag_srot      = 0.0;
+  general_data->stat_avg.fatm_mag = 10000.0;
+  general_data->stat_avg.fatm_max = 10000.0;
+ 
+
 /*==========================================================================*/
 /* V) Calculate the non-local pseudopotential list                          */
 

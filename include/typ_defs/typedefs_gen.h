@@ -63,7 +63,7 @@ typedef struct timeinfo{
   int nres_ter,nres_tra;       /* Num: # intra-inter respa steps         */ 
   int int_res_tor,nres_tor;    /* Opt: Torsion respa opts                */
   int int_res_pimd,nres_pimd;  /* Opt: Path integral respa options       */
-  int iget_pe_real_inter_freq;/*Opt: Freq calc of realspace inter PE     */
+  int iget_pe_real_inter_freq; /* Opt: Freq calc of realspace inter PE     */
   int exit_flag;               /* Num: Flat used to tell code to exit.   */
                                /*      Used with annealing and auto exit */
                                /*      options.                          */
@@ -306,7 +306,6 @@ typedef struct minopts {
   int cp_min_std;              /* Opt: Steepest descent min           */
   int cp_min_cg;               /* Opt: Conjugate gradiant min         */
   int cp_min_diis;             /* Opt: DIIS min                       */
-  int cp_min_stodft;	       /* Opt: stochastic DFT min	      */
   int cp_diis_hist_len;        /* Num: Length of DIIS history         */
   int cp_cg_line_min_len;       /* Num: COMMENT ME */
   int min_atm_com_fix_opt;     /* Opt: Keep the com fixed             */

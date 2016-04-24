@@ -4530,20 +4530,16 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   if(strcasecmp(dict[3].keyarg,"fermi_erfc")==0)stodftInfo->stodftOn = 2;
   if(strcasecmp(dict[3].keyarg,"gauss")==0)stodftInfo->stodftOn = 3;
   /*-----------------------------------------------------------------------*/
-  /*  4)\num_sto_orb{#} */
+  /*  4)num_poly{#} */
   sscanf(dict[4].keyarg,"%lg",&rka);
-  stodftInfo->numOrbital = (int)(rka);
-  /*-----------------------------------------------------------------------*/
-  /*  5)num_poly{#} */
-  sscanf(dict[5].keyarg,"%lg",&rka);
   stodftInfo->polynormLength = (int)(rka);
   /*-----------------------------------------------------------------------*/
-  /*  6)num_chem_pot{#} */
-  sscanf(dict[6].keyarg,"%lg",&rka);
+  /*  5)num_chem_pot{#} */
+  sscanf(dict[5].keyarg,"%lg",&rka);
   stodftInfo->numChemPot = (int)(rka);
   /*-----------------------------------------------------------------------*/
-  /*  7)\beta{#} */
-  sscanf(dict[7].keyarg,"%lg",&rka);
+  /*  6)\beta{#} */
+  sscanf(dict[6].keyarg,"%lg",&rka);
   stodftInfo->beta = (int)(rka);
 
 /*=======================================================================*/
@@ -4567,6 +4563,13 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
     simopts->debug_pimd = 0;
     simopts->debug_cp = 0;
     simopts->debug_cp_pimd = 0;
+    minopts->min_std = 0;
+    minopts->min_cg = 0;
+    minopts->min_diis = 0;
+    minopts->cp_min_std = 0;
+    minopts->cp_min_cg = 0;
+    minopts->cp_min_diis = 0;
+    
    
     if(missiontype==1&&simopts->cp_wave_min==0){
       printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
@@ -4574,6 +4577,7 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
       printf("I'll reset the simulation type to cp_wave_min");
       printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
       simopts->cp_wave_min = 1;  
+      minopts->cp_min_sd = 1;
     }
     if(missiontype==2&&simopts->cp_min==0){
       printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
@@ -4581,6 +4585,8 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
       printf("I'll reset the simulation type to cp_min");
       printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
       simopts->cp_min = 1;
+      simopts->min_std = 1; 
+      simopts->cp_min_std = 1;
     }
     if(missiontype==3&&simopts->cp==0){
       printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
@@ -4589,11 +4595,8 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
       printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
       simopts->cp = 1;
     }
-  }
+  }//endif stodftOn
   
-    
-
-
 /*========================================================================*/
     }/*end routine*/
 /*========================================================================*/

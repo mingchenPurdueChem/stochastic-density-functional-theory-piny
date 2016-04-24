@@ -2200,7 +2200,7 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
  /*             Local variable declarations                                */
   
   unsigned int i;
-  *num_dict = 7;
+  *num_dict = 6;
   *dict = (DICT_WORD *)cmalloc(*num_dict*sizeof(DICT_WORD))-1;
 
   for (i=1;i<=*num_dict;i++) {
@@ -2221,21 +2221,17 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
   strcpy((*dict)[3].keyword,"filter_type");
   strcpy((*dict)[3].keyarg,"fermi_exp");
 
-  strcpy((*dict)[4].error_mes,"Positive integer: number of stochastic orbitals ");
-  strcpy((*dict)[4].keyword,"num_sto_orb");
+  strcpy((*dict)[4].error_mes,"Positive integer:Number of polynomials used in filter expansion");
+  strcpy((*dict)[4].keyword,"num_poly");
   strcpy((*dict)[4].keyarg,"0");
 
-  strcpy((*dict)[5].error_mes,"Positive integer:Number of polynomials used in filter expansion");
-  strcpy((*dict)[5].keyword,"num_poly");
+  strcpy((*dict)[5].error_mes,"Positive integer:Number of chemical potentials in interpolation");
+  strcpy((*dict)[5].keyword,"num_chem_pot");
   strcpy((*dict)[5].keyarg,"0");
 
-  strcpy((*dict)[6].error_mes,"Positive integer:Number of chemical potentials in interpolation");
-  strcpy((*dict)[6].keyword,"num_chem_pot");
-  strcpy((*dict)[6].keyarg,"0");
-
-  strcpy((*dict)[7].error_mes,"Positive real number for smoothing step function(fermi)/standard deviation(gauss)");
-  strcpy((*dict)[7].keyword,"beta");
-  strcpy((*dict)[7].keyarg,"-1.0");
+  strcpy((*dict)[6].error_mes,"Positive real number for smoothing step function(fermi)/standard deviation(gauss)");
+  strcpy((*dict)[6].keyword,"beta");
+  strcpy((*dict)[6].keyarg,"-1.0");
 
  /*========================================================================*/
  } /* end routine set_sim_dict_harmonic */

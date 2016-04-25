@@ -49,34 +49,19 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
 #include "../typ_defs/typ_mask.h"
 
-  double fc_mag_up,fc_mag_dn,f_atm_mag,elec_e_old,elec_e;
-  double elec_e_old_tmp,elec_e_tmp;
-  double Delta_E = 0.0;
-  double delta_finite_diff;
-  double fp,fm;
-  int ncoef_tot,i,itime,iii,ip_now=1;
-  int pi_beads = class->clatoms_info.pi_beads;
-  int atm_step,ifirst_atm,atm_min;
-  int iexit = 0;
-  int ireset,idone;
-  int idone_atm=0;
-  int iatm_count;
-  int idum=0;
-  int iwrite_confp=general_data->filenames.iwrite_confp;
-  int iwrite_confc=general_data->filenames.iwrite_confc;
-  int myid = class->communicate.myid;
-  int np_state = cp->communicate.np_states;
-  int num_proc = cp->communicate.np;
-  int calcul_freq_on;
-  int do_analysis;
-  int displace_index=0;
-  int sign_index = 1;
-  int natm_tot = class->clatoms_info.natm_tot;
   MPI_Comm comm_states = class->communicate.comm_states;
   MPI_Comm world       = class->communicate.world;
 
-  int iopt_cp_pw       = cp->cpcoeffs_info.iopt_cp_pw;
-  int iopt_cp_dvr      = cp->cpcoeffs_info.iopt_cp_dvr;
+  STAT_AVG *stat_avg = &(general_data->stat_avg);
+
+  int myid = class->communicate.myid;
+  int numProc = cp->communicate.np;
+  int numTime = general_data->timeinfo.ntime;
+  int iTime;
+
+  double elecEnergy,elecEnergyOld,elecEnergyOldTemp,elecEnergyTemp;
+  double deltaEnergy;
+
 
 /*======================================================================*/
 /* I) Write to Screen                                                   */
@@ -119,30 +104,30 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   /*---------------------------------------------------------------------*/
   /* 2) Run SCF calculation                                              */
 
-  elec_e_old     = general_data->stat_avg.cp_eke
-		 + general_data->stat_avg.cp_enl
-		 + general_data->stat_avg.cp_ehart
-		 + general_data->stat_avg.cp_exc
-		 + general_data->stat_avg.cp_eext;
+  elecEnergyOld     = stat_avg->cp_eke
+	              + stat_avg->cp_enl
+		      + stat_avg->cp_ehart
+		      + stat_avg->cp_exc
+		      + stat_avg->cp_eext;
 
-  if(num_proc>1){
-   elec_e_old_tmp = elec_e_old;
-   Allreduce(&(elec_e_old_tmp),&(elec_e_old),1,MPI_DOUBLE,MPI_SUM,0,
+  if(numProc>1){
+   elecEnergyOldTemp = elecEnergyOld;
+   Allreduce(&(elecEnergyOldTemp),&(elecEnergyOld),1,MPI_DOUBLE,MPI_SUM,0,
 	     comm_states);
   }/*endif*/
 
   //Minimize with stochastic dft
   scfStodft(class,bonded,general_data,cp,ip_now);
-  elec_e         = general_data->stat_avg.cp_eke
-		 + general_data->stat_avg.cp_enl
-		 + general_data->stat_avg.cp_ehart
-		 + general_data->stat_avg.cp_exc
-		 + general_data->stat_avg.cp_eext;
-  if(num_proc>1){
-   elec_e_tmp = elec_e;
-   Allreduce(&(elec_e_tmp),&(elec_e),1,MPI_DOUBLE,MPI_SUM,0,comm_states);
+  elecEnergy     = stat_avg->cp_eke
+		 + stat_avg->cp_enl
+		 + stat_avg->cp_ehart
+		 + stat_avg->cp_exc
+		 + stat_avg->cp_eext;
+  if(numProc>1){
+   elecEnergyTemp = elecEnergy;
+   Allreduce(&(elecEnergyTemp),&(elecEnergy),1,MPI_DOUBLE,MPI_SUM,0,comm_states);
   }/*endif*/
-  Delta_E = fabs(elec_e - elec_e_old);
+  deltaEnergy = fabs(elecEnergy-elecEnergyOld);
 
   /*----------------------------------------------------------------------*/
   /*   6)Calculate some simple averages                                   */

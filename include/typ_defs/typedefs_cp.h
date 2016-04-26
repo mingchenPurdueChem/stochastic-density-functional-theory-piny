@@ -285,6 +285,7 @@ typedef struct stodftInfo{
 				    /*	    1 = single point			*/
 				    /*	    2 = Geometric optimization          */
 				    /*	    3 = MD				*/
+  int numScf;			    /* Num: Maximum SCF loop			*/
   int expanType;                    /* Opt: Method of Fermi function expension. */
 				    /*      1 = Chebyshev Poly	                */
 				    /*	    2 = Newtonian Poly (Hermitian)	*/

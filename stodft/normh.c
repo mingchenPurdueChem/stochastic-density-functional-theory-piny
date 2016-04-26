@@ -323,13 +323,13 @@ void normHNewtonNoHerm(CP *cp,CPCOEFFS_POS *cpcoeffs_pos,CPCOEFFS_INFO *cpcoeffs
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void calcRhoStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
+void calcRhoDeterm(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 		   CP *cp,CPCOEFFS_POS  *cpcoeffs_pos)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
 /*************************************************************************/
-/* This is the routine to calculate the density from stochastic orbitals */
+/* This is the routine to calculate the density from deterministic orbitals */
 /*************************************************************************/
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
@@ -387,21 +387,116 @@ void calcRhoStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
 
 /*======================================================================*/
-/* I) In parallel, transpose coefs back to normal form                 */
+/* III) Calculate the density			                        */
 
-  if(numProcStates>1){
 
-   cp_transpose_bck(coeffReUp,coeffImUp,coefFormUp,
-                    scrCoeffReUp,scrCoeffImUp,&(cp->cp_comm_state_pkg_up));
-   if(cpLsda==1&&numStateDnProc>0){
-    cp_transpose_bck(coeffReDn,coeffImDn,coefFormDn,
-                     scrCoeffReDn,scrCoeffImDn,&(cp->cp_comm_state_pkg_dn));
-   }/*endif*/
+  //Debug Flag: we temp do this for debug
+  cp_rho_calc_hybrid(cpewald,cpscr,cpcoeffs_info,
+                     ewald,cell,coeffReUp,coeffImUp,*coefFormUp,*coefOrthUp,
+                     rhoCoeffReUp,rhoCoeffImUp,rhoUp,rhoCoeffReUpDensCpBox,
+                     rhoCoeffImUpDensCpBox,divRhoxUp,divRhoyUp,
+                     divRhozUp,d2RhoUp,numStateUpProc,numCoeff,
+                     cpGGA,cpDualGridOptOn,numInterpPmeDual,communicate,
+                     &(cp->cp_para_fft_pkg3d_lg),&(cp->cp_sclr_fft_pkg3d_lg),
+                     &(cp->cp_para_fft_pkg3d_dens_cp_box),
+                     &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
+                     &(cp->cp_sclr_fft_pkg3d_sm));
 
-  }/*endif*/
+  if(cpLsda==1&&numStateDnProc>0){
+  cp_rho_calc_hybrid(cpewald,cpscr,cpcoeffs_info,
+                     ewald,cell,coeffReDn,coeffImUp,*coefFormDn,*coefOrthDn,
+                     rhoCoeffReDn,rhoCoeffImDn,rhoDn,rhoCoeffReUpDensCpBox,
+                     rhoCoeffImDnDensCpBox,divRhoxDn,divRhoyDn,
+                     divRhozDn,d2RhoDn,numStateDnProc,numCoeff,
+                     cpGGA,cpDualGridOptOn,numInterpPmeDual,communicate,
+                     &(cp->communicate),&(cp->cp_para_fft_pkg3d_lg),
+                     &(cp->cp_sclr_fft_pkg3d_lg),
+                     &(cp->cp_para_fft_pkg3d_dens_cp_box),
+                     &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
+                     &(cp->cp_sclr_fft_pkg3d_sm));
+    for(iCoeff=1;iCoeff<=numCoeffLargeProc;iCoeff++){
+      rhoCoeffReUp[iCoeff] += rhoCoeffReDn[iCoeff];
+      rhoCoeffImUp[iCoeff] += rhoCoeffImDn[iCoeff];
+    }/* endfor */
+    if(cpDualGridOptOn>=1){
+      for(iCoeff=1;iCoeff<=numCoeffLargeProcDensCpBox;iCoeff++){
+        rhoCoeffReUpDensCpBox[iCoeff] += rhoCoeffReDnDensCpBox[iCoeff];
+        rhoCoeffImUpDensCpBox[iCoeff] += rhoCoeffImDnDensCpBox[iCoeff];
+      }/* endfor */
+    } /* endif */
+  }/* endif */
+
+/*==========================================================================*/
+}/*end Routine*/
+/*=======================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void calcRhoSto(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
+                   CP *cp,CPCOEFFS_POS  *cpcoeffs_pos)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* This is the routine to calculate the density from stochastic orbitals */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+
+  EWALD        *ewald        = &(general_data->ewald);
+  CELL         *cell         = &(general_data->cell);
+  CPOPTS       *cpopts       = &(cp->cpopts);
+  CPSCR        *cpscr        = &(cp->cpscr);
+  CPEWALD      *cpewald      = &(cp->cpewald)
+  STODFTINFO   *stodftInfo   = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoeffPos = cp->stodftCoeffPos;
+  COMMUNICATE   *commCP         = &(cp->communicate);
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+
+
+  int cpLsda = cpopts->cp_lsda;
+  int cpGGA  = cpopts->cp_gga;
+  int numCoeffLarge       = cpcoeffs_info->ncoef_l;
+  int numCoeffLargeProc   = cp->cp_para_fft_pkg3d_lg.ncoef_proc;
+  int numCoeffLargeProcDensCpBox = cp->cp_para_fft_pkg3d_dens_cp_box.ncoef_proc;
+  int cpDualGridOptOn = cpopts->cp_dual_grid_opt;
+  int numInterpPmeDual = pseudo->n_interp_pme_dual;
+  int numStateUpProc = cpcoeffs_info->nstate_up_proc;
+  int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
+  int numCoeff       = cpcoeffs_info->ncoef;
+  int iCoeff;
+  int *coefFormUp   = &(cpcoeffs_pos->icoef_form_up);
+  int *coefFormDn   = &(cpcoeffs_pos->icoef_form_dn);
+  int *coefOrthUp   = &(cpcoeffs_pos->icoef_orth_up);
+  int *coefOrthDn   = &(cpcoeffs_pos->icoef_orth_dn);
+
+  double *coeffReUp = cpcoeffs_pos->cre_up;
+  double *coeffImUp = cpcoeffs_pos->cim_up;
+  double *coeffReDn = cpcoeffs_pos->cre_dn;
+  double *coeffImDn = cpcoeffs_pos->cim_dn;
+  double *rhoCoeffReUp   = cpscr->cpscr_rho.rhocr_up;
+  double *rhoCoeffImUp   = cpscr->cpscr_rho.rhoci_up;
+  double *rhoUp          = cpscr->cpscr_rho.rho_up;
+  double *rhoCoeffReUpDensCpBox = cpscr->cpscr_rho.rhocr_up_dens_cp_box;
+  double *rhoCoeffImUpDensCpBox = cpscr->cpscr_rho.rhoci_up_dens_cp_box;
+  double *divRhoxUp       = cpscr->cpscr_grho.d_rhox_up;
+  double *divRhoyUp       = cpscr->cpscr_grho.d_rhoy_up;
+  double *divRhozUp       = cpscr->cpscr_grho.d_rhoz_up;
+  double *d2RhoUp        = cpscr->cpscr_grho.d2_rho_up;
+  double *rhoCoeffReDn   = cpscr->cpscr_rho.rhocr_dn;
+  double *rhoCoeffImDn   = cpscr->cpscr_rho.rhoci_dn;
+  double *rhoDn          = cpscr->cpscr_rho.rho_dn;
+  double *rhoCoeffReDnDensCpBox = cpscr->cpscr_rho.rhocr_dn_dens_cp_box;
+  double *rhoCoeffImDnDensCpBox = cpscr->cpscr_rho.rhoci_dn_dens_cp_box;
+  double *divRhoxDn       = cpscr->cpscr_grho.d_rhox_dn;
+  double *divRhoyDn       = cpscr->cpscr_grho.d_rhoy_dn;
+  double *divRhozDn       = cpscr->cpscr_grho.d_rhoz_dn;
+  double *d2RhoDn        = cpscr->cpscr_grho.d2_rho_dn;
+
 
 /*======================================================================*/
-/* III) Calculate the density			                        */
+/* III) Calculate the density                                           */
 
 
   //Debug Flag: we temp do this for debug

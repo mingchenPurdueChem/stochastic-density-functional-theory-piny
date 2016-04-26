@@ -40,6 +40,7 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*             Local variable declarations                                */
 
   CELL *cell			 = &(general_data->cell);  
+  PTENS *ptens			 = &(general_data->ptens);
   
   STODFTINFO *stodftInfo         = cp->stodftInfo;
   STODFTCOEFFPOS *stodftCoeffPos = cp->stodftCoeffPos;
@@ -55,8 +56,8 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   ATOMMAPS *atommaps		= &(class->atommaps);
 
   int iperd            		= cell->iperd;
-  int iScf;
-  int numScf; //Need claim this in cp
+  int iScf,iCell;
+  int numScf			= stodftInfo=>numScf; //Need claim this in cp
   int cpLsda 			= cpopts->cp_lsda;
   int checkPerdSize 		= cpopts->icheck_perd_size;
   int checkDualSize 		= cpopts->icheck_dual_size;
@@ -64,9 +65,13 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int numProcStates 		= communicate->np_states; 
   int myidState 		= communicate->myid_state;
   int coefFormUp 		= cpcoeffs_pos->icoef_form_up;
+  int coefOrthUp                = cpcoeffs_pos->icoef_orth_up;
   int forceCoefFormUp 		= cpcoeffs_pos->ifcoef_form_up;
+  int forceCoefOrthUp           = cpcoeffs_pos->ifcoef_orth_up;
   int coefFormDn                = cpcoeffs_pos->icoef_form_dn;
+  int coefOrthDn                = cpcoeffs_pos->icoef_orth_dn;
   int forceCoefFormDn           = cpcoeffs_pos->ifcoef_form_dn;
+  int forceCoefOrthDn           = cpcoeffs_pos->ifcoef_orth_dn;
   int numStateUp		= cpcoeffs_info->nstate_up_proc;
   int numStateDn                = cpcoeffs_info->nstate_dn_proc;
 
@@ -80,6 +85,7 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   double *cpScrCoeffImUp   = cpscr->cpscr_wave.cim_up;
   double *cpScrCoeffReDn   = cpscr->cpscr_wave.cre_dn;
   double *cpScrCoeffImDn   = cpscr->cpscr_wave.cim_dn;
+  double *ptensPvtenTmp    = ptens->pvten_tmp;
   
 
 
@@ -129,32 +135,24 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
   if(numProcStates>1){
     cp_transpose_bck(coeffReUp,coeffImUp,coefFormUp,
-                    cpscr_cre_up,cpscr_cim_up,&(cp->cp_comm_state_pkg_up));
+                    cpScrCoeffReUp,cpScrCoeffImUp,&(cp->cp_comm_state_pkg_up));
     if(cpLsda==1&&numStateDn>0){
       cp_transpose_bck(coeffReDn,coeffImDn,coefFormDn,
-                     cpscr_cre_dn,cpscr_cim_dn,&(cp->cp_comm_state_pkg_dn));
+                     cpScrCoeffReDn,cpScrCoeffImDn,&(cp->cp_comm_state_pkg_dn));
     }/*endif*/
   }/*endif*/
 
 /*======================================================================*/
 /* III) Initialize forces, pressure tensor, inverse hmat                */
 
-  (*ifcoef_form_up) = 0;
-  (*ifcoef_orth_up) = 1;
-  for(i=1;i<=ncoef*nstate_up;i++){
-    fcre_up[i] = 0.0;
-    fcim_up[i] = 0.0;
-  }/*endfor*/
-  if( (cp_lsda == 1) && (nstate_dn != 0) ){
-    (*ifcoef_form_dn) = 0;
-    (*ifcoef_orth_dn) = 1;
-    for(i=1;i<=ncoef*nstate_dn;i++){
-      fcre_dn[i] = 0.0;
-      fcim_dn[i] = 0.0;
-    }/*endfor*/
+  cpcoeffs_pos->ifcoef_form_up = 0;
+  cpcoeffs_pos->ifcoef_orth_up = 1;
+  if(cpLsda==1&&numStateDn>0){
+    cpcoeffs_pos->ifcoef_form_dn = 0;
+    cpcoeffs_pos->ifcoef_orth_dn = 1;
   }/*endif*/
 
-  for(i=1;i<=9;i++){ptens_pvten_tmp[i] = 0.0;}
+  for(iCell=1;iCell<=9;iCell++){ptensPvtenTmp[iCell] = 0.0;}
   gethinv(cell->hmat_cp,cell->hmati_cp,&(cell->vol_cp),iperd);
   gethinv(cell->hmat,cell->hmati,&(cell->vol),iperd);
 
@@ -163,45 +161,13 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*       and necessary gradients of density for GGA calculations        */
 
   //debug only
-  cp_rho_calc_hybrid(&(cp->cpewald),&(cp->cpscr),&(cp->cpcoeffs_info),
-                     ewald,cell,cre_up,cim_up,*icoef_form_up,*icoef_orth_up,
-                     rhocr_up,rhoci_up,rho_up,rhocr_up_dens_cp_box,rhoci_up_dens_cp_box,
-                     d_rhox_up,d_rhoy_up,
-                     d_rhoz_up,d2_rho_up,nstate_up,ncoef,
-                     cp_gga,cp_dual_grid_opt_on,n_interp_pme_dual,
-                     &(cp->communicate),
-                     &(cp->cp_para_fft_pkg3d_lg),&(cp->cp_sclr_fft_pkg3d_lg),
-                     &(cp->cp_para_fft_pkg3d_dens_cp_box),
-                     &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
-                     &(cp->cp_sclr_fft_pkg3d_sm));
-
-  if((cp_lsda== 1) && (nstate_dn!= 0) ){
-  cp_rho_calc_hybrid(&(cp->cpewald),&(cp->cpscr),&(cp->cpcoeffs_info),
-                     ewald,cell,cre_dn,cim_dn,*icoef_form_dn,*icoef_orth_dn,
-                     rhocr_dn,rhoci_dn,rho_dn,rhocr_dn_dens_cp_box,rhoci_dn_dens_cp_box,
-                     d_rhox_dn,d_rhoy_dn,
-                     d_rhoz_dn,d2_rho_dn,nstate_dn,ncoef,
-                     cp_gga,cp_dual_grid_opt_on,n_interp_pme_dual,
-                     &(cp->communicate),&(cp->cp_para_fft_pkg3d_lg),
-                     &(cp->cp_sclr_fft_pkg3d_lg),
-                     &(cp->cp_para_fft_pkg3d_dens_cp_box),
-                     &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
-                     &(cp->cp_sclr_fft_pkg3d_sm));
-    for(i=1;i <= ncoef_l_proc;i++) {
-      rhocr_up[i] += rhocr_dn[i];
-      rhoci_up[i] += rhoci_dn[i];
-    }/* endfor */
-    if(cp_dual_grid_opt_on >= 1){
-      for(i=1;i<= ncoef_l_dens_cp_box; i++){
-        rhocr_up_dens_cp_box[i] += rhocr_dn_dens_cp_box[i];
-        rhoci_up_dens_cp_box[i] += rhoci_dn_dens_cp_box[i];
-      }/* endfor */
-    } /* endif */
-  }/* endif */
+  calcRhoDeterm(class,bonded,general_data,cp,cpcoeffs_pos);
 
   //debug only
   genStoOrbital(class,bonded,general_data,cp,ipNow);
 
+  
+  //exit(0);
 /*======================================================================*/
 /* V) SCF loop						                */
 

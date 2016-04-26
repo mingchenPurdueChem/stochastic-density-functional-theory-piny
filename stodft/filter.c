@@ -41,7 +41,6 @@ void filterNewtonPolyHerm(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
 /*         Local Variable declarations                                   */
   STODFTINFO *stodftInfo        = cp->stodftInfo;
   STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
-  CPOPTS *cpopts                = &(cp->cpopts);
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
   CPCOEFFS_POS *cpcoeffs_pos    = &(cp->cpcoeffs_pos[ip_now]);
   CPEWALD *cpewald		= &(cp->cpewald);

@@ -38,102 +38,96 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 {/*begin routine*/
 /*========================================================================*/
 /*             Local variable declarations                                */
-
-  CELL *cell			 = &(general_data->cell);  
-  
-  STODFTINFO *stodftInfo         = cp->stodftInfo;
-  STODFTCOEFFPOS *stodftCoeffPos = cp->stodftCoeffPos;
-  CPOPTS *cpopts                = &(cp->cpopts);
-  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
-  CPCOEFFS_POS *cpcoeffs_pos    = &(cp->cpcoeffs_pos[ip_now]);
-  CPEWALD *cpewald              = &(cp->cpewald);
-  CPSCR *cpscr                  = &(cp->cpscr);
-  PSEUDO *pseudo                = &(cp->pseudo);
-  COMMUNICATE *communicate      = &(cp->communicate);
-  CLATOMS_INFO *clatoms_info	= &(class->clatoms_info);
-  CLATOMS_POS *clatoms_pos	= &(class->clatoms_pos[ip_now]);
-  ATOMMAPS *atommaps		= &(class->atommaps);
-
-  int iperd            		= cell->iperd;
   int iScf;
   int numScf; //Need claim this in cp
-  int cpLsda 			= cpopts->cp_lsda;
-  int checkPerdSize 		= cpopts->icheck_perd_size;
-  int checkDualSize 		= cpopts->icheck_dual_size;
-  int cpDualGridOptOn 	 	= cpopts->cp_dual_grid_opt;
-  int numProcStates 		= communicate->np_states; 
-  int myidState 		= communicate->myid_state;
-  int coefFormUp 		= cpcoeffs_pos->icoef_form_up;
-  int forceCoefFormUp 		= cpcoeffs_pos->ifcoef_form_up;
-  int coefFormDn                = cpcoeffs_pos->icoef_form_dn;
-  int forceCoefFormDn           = cpcoeffs_pos->ifcoef_form_dn;
-  int numStateUp		= cpcoeffs_info->nstate_up_proc;
-  int numStateDn                = cpcoeffs_info->nstate_dn_proc;
-
-  double tolEdgeDist 		= cpopts->tol_edge_dist;
-
-  double *coeffReUp        = cpcoeffs_pos->cre_up;
-  double *coeffImUp        = cpcoeffs_pos->cim_up;
-  double *coeffReDn        = cpcoeffs_pos->cre_dn;
-  double *coeffImDn        = cpcoeffs_pos->cim_dn;
-  double *cpScrCoeffReUp   = cpscr->cpscr_wave.cre_up;
-  double *cpScrCoeffImUp   = cpscr->cpscr_wave.cim_up;
-  double *cpScrCoeffReDn   = cpscr->cpscr_wave.cre_dn;
-  double *cpScrCoeffImDn   = cpscr->cpscr_wave.cim_dn;
-  
-
-
 
 /*======================================================================*/
 /* 0) Check the forms                                                   */
 
-  if(numProcStates>1){
-    if((coefFormUp+forceCoefFormUp)!=2){
-     printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
-     printf("Up CP vectors are not in transposed form \n");
-     printf("on state processor %d in min_STD_cp \n",myidState);
-     printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
-     fflush(stdout);
-     exit(1);
-    }/*endif*/
-    if(cpLsda==1){
-     if((coefFormDn+forceCoefFormDn)!=2){
+   if(cp_norb>0){
+    if((*icoef_orth_up)!=0){
       printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
-      printf("Up CP vectors are not in transposed form \n");
-      printf("on state processor %d in min_STD_cp \n",myidState);
+      printf("Up Coefs must be in nonorthonormal form under norb \n");
+      printf("on state processor %d in cp_elec_energy_ctrl \n",myid_state);
+      printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(1);
+    }/*endif*/
+    if(cp_lsda==1){
+     if((*icoef_orth_dn)!=0){
+      printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+      printf("Dn Coefs must be in nonorthonormal form under norb \n");
+      printf("on state processor %d in cp_elec_energy_ctrl \n",myid_state);
       printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
       fflush(stdout);
       exit(1);
      }/*endif*/
     }/*endif*/
-  }/*endif*/
-  
+   }/*endif*/
 
 /*======================================================================*/
 /* 0.05) Check the approximations in the methods                        */
 
 
-  if((iperd<3||iperd==4)&&checkPerdSize==1){
-    cp_boundary_check(cell,clatoms_info,clatoms_pos,tolEdgeDist);
+  if( ((iperd<3) || (iperd==4)) && (icheck_perd_size==1) ){
+    cp_boundary_check(cell,clatoms_info,clatoms_pos,tol_edge_dist);
   }/*endif*/
-  if(cpDualGridOptOn>=1&&checkDualSize==1){
+  if( (cp_dual_grid_opt_on>=1) && (icheck_dual_size==1) ){
     cp_dual_check(cell,clatoms_info,clatoms_pos,
-                  atommaps->cp_atm_lst,tolEdgeDist);
+                  atommaps->cp_atm_lst,tol_edge_dist);
   }/*endif*/
 
 /*======================================================================*/
 /* I) Orthogonalize the coefs if norbing                                */
 
+
+  if(cp_norb>0){
+    (*max_diag)     = 0.0;
+    (*max_off_diag) = 0.0;
+#ifdef TIME_CP
+    if(np_states>1){Barrier(comm_states);}
+    cputime(&cpu1);
+#endif
+    cp_rotate_coef_ortho(cre_up,cim_up,*icoef_form_up,icoef_orth_up,
+                         norbmat_up,norbmati_up,ovmat_eigv_up,
+                         cpscr_cre_up,cpscr_cim_up,
+                         occ_up,ioff_upt,max_off_diag,max_diag,
+                         &(cp->cpscr.cpscr_ovmat),&(cp->cp_comm_state_pkg_up));
+    if((cp_lsda==1) && (nstate_dn > 0) ){
+     cp_rotate_coef_ortho(cre_dn,cim_dn,*icoef_form_dn,icoef_orth_dn,
+                         norbmat_dn,norbmati_dn,ovmat_eigv_dn,
+                         cpscr_cre_dn,cpscr_cim_dn,
+                         occ_dn,ioff_dnt,max_off_diag,max_diag,
+                         &(cp->cpscr.cpscr_ovmat),&(cp->cp_comm_state_pkg_dn));
+    }/*endif*/
+#ifdef TIME_CP
+    cputime(&cpu2);
+    par_cpu_vomit((cpu2-cpu1),comm_states,np_states,myid_state,
+                       "cp_rotate_coef_ortho");
+#endif
+  }/*endif*/
+
 /*======================================================================*/
 /* II) In parallel, transpose coefs back to normal form                 */
 
-  if(numProcStates>1){
-    cp_transpose_bck(coeffReUp,coeffImUp,coefFormUp,
+  if(np_states>1){
+
+#ifdef TIME_CP
+   if(np_states>1){Barrier(comm_states);}
+   cputime(&cpu1);
+#endif
+   cp_transpose_bck(cre_up,cim_up,icoef_form_up,
                     cpscr_cre_up,cpscr_cim_up,&(cp->cp_comm_state_pkg_up));
-    if(cpLsda==1&&numStateDn>0){
-      cp_transpose_bck(coeffReDn,coeffImDn,coefFormDn,
+   if((cp_lsda==1) && (nstate_dn > 0) ){
+    cp_transpose_bck(cre_dn,cim_dn,icoef_form_dn,
                      cpscr_cre_dn,cpscr_cim_dn,&(cp->cp_comm_state_pkg_dn));
-    }/*endif*/
+   }/*endif*/
+
+#ifdef TIME_CP
+   cputime(&cpu2);
+   par_cpu_vomit((cpu2-cpu1),comm_states,np_states,myid_state,
+                       "cp_transpose_bck");
+#endif
   }/*endif*/
 
 /*======================================================================*/
@@ -230,23 +224,6 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*     (or pick a closest one) and update the density			*/
 
   }//endfor iScf
-
-/*======================================================================*/
-/* VI) In parallel, transpose coefs and coef forces fwd                 */
-
-  if(np_states>1){
-    cp_transpose_fwd(cre_up,cim_up,icoef_form_up,
-                    cpscr_cre_up,cpscr_cim_up,&(cp->cp_comm_state_pkg_up));
-    cp_transpose_fwd(fcre_up,fcim_up,ifcoef_form_up,
-                    cpscr_cre_up,cpscr_cim_up,&(cp->cp_comm_state_pkg_up));
-    if( (cp_lsda==1) && (nstate_dn > 0) ){
-     cp_transpose_fwd(cre_dn,cim_dn,icoef_form_dn,
-                     cpscr_cre_dn,cpscr_cim_dn,&(cp->cp_comm_state_pkg_dn));
-     cp_transpose_fwd(fcre_dn,fcim_dn,ifcoef_form_dn,
-                     cpscr_cre_dn,cpscr_cim_dn,&(cp->cp_comm_state_pkg_dn));
-    }/*endif*/
-  }/*endif*/
-
 
 
 /*-----------------------------------------------------------------------*/

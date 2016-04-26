@@ -414,7 +414,7 @@ void genEnergyMax(CP *cp,CPCOEFFS_POS *cpcoeffs_pos,CPCOEFFS_INFO *cpcoeffs_info
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void genEnergyMinTry2(CP *cp,CPCOEFFS_POS *cpcoeffs_pos,CPCOEFFS_INFO *cpcoeffs_info,
+void genEnergyMin(CP *cp,CPCOEFFS_POS *cpcoeffs_pos,CPCOEFFS_INFO *cpcoeffs_info,
                  CELL *cell,CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
                  EWALD *ewald,EWD_SCR *ewd_scr,ATOMMAPS *atommaps,FOR_SCR *for_scr,
                  STAT_AVG *stat_avg,PTENS *ptens)

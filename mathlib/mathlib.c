@@ -640,7 +640,15 @@ double complex fermiExpComplex(double complex x,double mu,double beta){
 /*==========================================================================*/
 double fermiErfcReal(double x,double mu,double beta){
   return 0.5*erfc(beta*(x-mu));
+}
+/*===============================================================*/
 
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+double gaussianReal(double x,double mu,double beta){
+  return 0.3989422804014327*beta*exp(-beta*beta*(x-mu)*(x-mu));
 }
 /*===============================================================*/
 

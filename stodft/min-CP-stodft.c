@@ -5,9 +5,9 @@
 /*                         PI_MD:                                           */
 /*             The future of simulation technology                          */
 /*             ------------------------------------                         */
-/*                     Module: int_NVE                                      */
+/*                     Module: min-CP-stodft.c                              */
 /*                                                                          */
-/* This subprogram integrates the system using Vel Verlet                   */
+/* Subroutine for SCF calculation			                    */
 /*                                                                          */
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
@@ -57,7 +57,7 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
   int iperd            		= cell->iperd;
   int iScf,iCell;
-  int numScf			= stodftInfo=>numScf; //Need claim this in cp
+  int numScf			= stodftInfo->numScf; //Need claim this in cp
   int cpLsda 			= cpopts->cp_lsda;
   int checkPerdSize 		= cpopts->icheck_perd_size;
   int checkDualSize 		= cpopts->icheck_dual_size;

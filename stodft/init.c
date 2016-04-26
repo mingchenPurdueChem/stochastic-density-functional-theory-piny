@@ -39,6 +39,16 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
 
+  CLATOMS_INFO *clatoms_info = &(class->clatoms_info);
+  CLATOMS_POS  *clatoms_pos  = &(class->clatoms_pos[ip_now]);
+  ATOMMAPS     *atommaps     = &(class->atommaps);
+  CELL         *cell         = &(general_data->cell);
+  ATOMMAPS     *atommaps     = &(class->atommaps);
+  FOR_SCR      *for_scr      = &(class->for_scr);
+  EWD_SCR      *ewd_scr      = &(class->ewd_scr);
+
+
+
   CPOPTS *cpopts = &(cp->cpopts);
   CPCOEFFS_INFO *cpcoeffs_info = &(cp->cpcoeffs_info);
   STODFTINFO *stodftInfo       = cp->stodftInfo;
@@ -57,7 +67,8 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
   int numStateDnTot  = numStateDnProc*numCoeff;
   int totalPoly	     = polynormLength*numChemPot;
   int fermiFunType   = stodftInfo->fermiFunType;
-  
+  int cpDualGridOptOn = cpopts->cp_dual_grid_opt;
+ 
   int iChem,iSamp;
   
   double energyMax = stodftInfo->energyMax;
@@ -91,6 +102,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
 
   if(expanType==2&&fermiFunType==1)stodftInfo->fermiFunction = &fermiExpReal;
   if(expanType==2&&fermiFunType==2)stodftInfo->fermiFunction = &fermiErfcReal;
+  if(expanType==2&&fermiFunType==3)stodftInfo->fermiFunction = &gaussianReal;
   if(expanType==3&&fermiFunType==1)stodftInfo->fermiFunction = &fermiExpComplex;
   if(expanType==3&&fermiFunType==1){
     printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
@@ -146,14 +158,14 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
   general_data->stat_avg.count_diag_srot      = 0.0;
   general_data->stat_avg.fatm_mag = 10000.0;
   general_data->stat_avg.fatm_max = 10000.0;
- 
+
 
 /*==========================================================================*/
 /* V) Calculate the non-local pseudopotential list                          */
 
-  if(stodftInfo->vpsAtomListFlag==0||cp_dual_grid_opt_on >= 1){
+  if(stodftInfo->vpsAtomListFlag==0||cpDualGridOptOn>= 1){
     control_vps_atm_list(pseudo,cell,clatoms_pos,clatoms_info,
-                         atommaps,ewd_scr,for_scr,cp_dual_grid_opt_on,
+                         atommaps,ewd_scr,for_scr,cpDualGridOptOn,
                          stodftInfo->vpsAtomListFlag);
     stodftInfo->vpsAtomListFlag = 1;
   }

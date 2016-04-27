@@ -110,4 +110,6 @@ WEIGH_NODE    = $(CODE)/interface/lists/weights_nodes_128.h
 DAFED_LOC     = $(DCODE)/dafed/proto_dafed_local.h
 DAFED_ENT     = $(DCODE)/dafed/proto_dafed_entry.h
 DAFED_ENERGY  = $(DCODE)/energy/dafed/proto_dafed_energy.h
+STODFT_ENT    = $(DCODE)/stodft/proto_stodft_entry.h
+STODFT_LOC    = $(DCODE)/stodft/proto_stodft_local.h
 #-------------------------------------------------------

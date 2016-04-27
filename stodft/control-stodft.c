@@ -21,20 +21,10 @@
 #include "../typ_defs/typedefs_class.h"
 #include "../typ_defs/typedefs_bnd.h"
 #include "../typ_defs/typedefs_stat.h"
-#include "../proto_defs/proto_main_local.h"
-#include "../proto_defs/proto_main_cp_local.h"
 #include "../proto_defs/proto_math.h"
-#include "../proto_defs/proto_integrate_cpmin_entry.h"
-#include "../proto_defs/proto_energy_cpcon_entry.h"
-#include "../proto_defs/proto_energy_cpcon_local.h"
-#include "../proto_defs/proto_output_entry.h"
-#include "../proto_defs/proto_output_cp_entry.h"
-#include "../proto_defs/proto_output_cp_local.h"
-#include "../proto_defs/proto_analysis_md_entry.h"
-#include "../proto_defs/proto_analysis_cp_entry.h"
 #include "../proto_defs/proto_communicate_wrappers.h"
 #include "../proto_defs/proto_friend_lib_entry.h"
-#include "../proto_defs/proto_energy_ctrl_cp_entry.h"
+#include "../proto_defs/proto_stodft_local.h"
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/

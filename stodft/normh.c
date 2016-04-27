@@ -24,6 +24,7 @@
 #include "../proto_defs/proto_friend_lib_entry.h"
 #include "../proto_defs/proto_math.h"
 #include "../proto_defs/proto_communicate_wrappers.h"
+#include "../proto_defs/proto_stodft_local.h"
 
 #define TIME_CP_OFF
 

@@ -33,6 +33,8 @@
 #include "../proto_defs/proto_parse_entry.h"
 #include "../proto_defs/proto_communicate_wrappers.h"
 #include "../proto_defs/proto_communicate_entry.h"
+#include "../proto_defs/proto_stodft_entry.h"
+
 #ifdef FFTW3
  #include "fftw3.h"
 #endif

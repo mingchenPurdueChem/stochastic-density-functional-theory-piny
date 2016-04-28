@@ -9,7 +9,7 @@ main.o     :             $(STANDARD) $(DEFINES) \
                          $(TYP_STAT) \
                          $(TYP_CP) $(TYP_PAR) \
                          $(MAIN_ENT) $(MAIN_LOC) $(MAIN_CP_LOC) $(PARSE_ENT) \
-                         $(COMM_WRAP) $(COMM_ENT) \
+                         $(COMM_WRAP) $(COMM_ENT) $(STODFT_ENT)\
                          $(CODE)/main/main.c
 	$(ECHO) $@
 	$(COBJ) $(CODE)/main/main.c

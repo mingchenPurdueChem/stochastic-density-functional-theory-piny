@@ -2233,6 +2233,11 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
   strcpy((*dict)[6].keyword,"beta");
   strcpy((*dict)[6].keyarg,"-1.0");
 
+  strcpy((*dict)[7].error_mes,"Nonnegative integer: number of maximum SCF steps");
+  strcpy((*dict)[7].keyword,"num_scf");
+  strcpy((*dict)[7].keyarg,"0");
+
+
  /*========================================================================*/
  } /* end routine set_sim_dict_harmonic */
  /*========================================================================*/

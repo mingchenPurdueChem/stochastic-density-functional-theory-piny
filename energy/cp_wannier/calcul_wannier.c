@@ -223,7 +223,7 @@ void calcul_initial_wannier(GENERAL_DATA *general_data,CP *cp)
   double *elementA = cp->electronic_properties.elementA;
   double *U_final = cp->cpscr.cpscr_wannier.U_final;
 
-  int I=6;
+  //int I=6;
   double *W         = cp->electronic_properties.weight;
   double ***Z_real  = cp->electronic_properties.Z_real;
   double ***Z_imag  = cp->electronic_properties.Z_imag;
@@ -580,7 +580,7 @@ void  comp_wannier_center(GENERAL_DATA *general_data,CP *cp,
   int nstate_up=cp->cpcoeffs_info.nstate_up;
   int nstate_dn=cp->cpcoeffs_info.nstate_dn;
   int nstate=nstate_up;
-  int I=3;      /* maximum number of non-zero Miller indices: Changed from I=6!! */
+  //int I=3;      /* maximum number of non-zero Miller indices: Changed from I=6!! */
                 /* assumme cubic*/
   int choice_diag = cp->cp_wannier.wan_diag_typ;
 

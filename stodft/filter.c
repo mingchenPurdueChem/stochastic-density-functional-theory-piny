@@ -44,7 +44,6 @@ void filterNewtonPolyHerm(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
   CPCOEFFS_POS *cpcoeffs_pos    = &(cp->cpcoeffs_pos[ip_now]);
   CPEWALD *cpewald		= &(cp->cpewald);
   CPSCR *cpscr			= &(cp->cpscr);
-  CPOPTS *cpopts		= &(cp->cpopts);
   PSEUDO *pseudo		= &(cp->pseudo);
   COMMUNICATE *communicate	= &(cp->communicate);
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg); 
@@ -65,15 +64,15 @@ void filterNewtonPolyHerm(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
 
   double energyDiff  = stodftInfo->energyDiff;
   double polyCoeff;
-  double *sampPoint = (double*)newtonInfo->sampPointRe;
+  double *sampPoint = (double*)newtonInfo->sampPoint;
 
   double *expanCoeff = (double*)stodftCoefPos->expanCoeff;
   double complex *wfInUp   = stodftCoefPos->wfInUp;
   double complex *wfInDn   = stodftCoefPos->wfInDn;
   double complex *wfOutUp  = stodftCoefPos->wfOutUp;
   double complex *wfOutDn  = stodftCoefPos->wfOutDn;
-  double complex **stoWfUp = stodftCoefPos->stoWfReUp;
-  double complex **stoWfDn = stodftCoefPos->stoWfReDn;
+  double complex **stoWfUp = stodftCoefPos->stoWfUp;
+  double complex **stoWfDn = stodftCoefPos->stoWfDn;
   
 /*==========================================================================*/
 /* 0) Copy the initial stochastic orbital */
@@ -105,9 +104,9 @@ void filterNewtonPolyHerm(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
     }//endfor imu
   }//endfor iPoly
   if(cpLsda==1&&numStateDnProc!=0){
-    for(iPoly=0;iPoly<polynormLength;iPoly++){
+    for(iPoly=1;iPoly<polynormLength;iPoly++){
       normHNewtonHerm(cp,cpcoeffs_pos,cpcoeffs_info,cell,clatoms_info,clatoms_pos,
-		      ewald,ewd_scr,atommaps,for_scr,stat_avg,ptens,);
+	       ewald,ewd_scr,atommaps,for_scr,stat_avg,ptens,sampPoint[iPoly-1]);
       for(imu=0;imu<numChemPot;imu++){
 	polyCoeff = expanCoeff[iPoly*numChemPot+imu];
 	for(iCoeff=0;iCoeff<numCoeffUpTotal;iCoeff++){
@@ -142,7 +141,6 @@ void filterNewtonPolyNoHerm(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
   CPCOEFFS_POS *cpcoeffs_pos    = &(cp->cpcoeffs_pos[ip_now]);
   CPEWALD *cpewald	= &(cp->cpewald);
   CPSCR *cpscr		= &(cp->cpscr);
-  CPOPTS *cpopts	= &(cp->cpopts);
   PSEUDO *pseudo	= &(cp->pseudo);
   COMMUNICATE *communicate  = &(cp->communicate);
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg); 
@@ -194,7 +192,7 @@ void filterNewtonPolyNoHerm(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
   
   for(iPoly=1;iPoly<polynormLength;iPoly++){
     normHNewtonNoHerm(cp,cpcoeffs_pos,cpcoeffs_info,cell,clatoms_info,clatoms_pos,
-	    ewald,ewd_scr,atommaps,for_scr,stat_avg,ptens,sampPointRe[iPoly-1]);
+	    ewald,ewd_scr,atommaps,for_scr,stat_avg,ptens,sampPoint[iPoly-1]);
     for(imu=0;imu<numChemPot;imu++){
       polyCoeff = expanCoeff[iPoly*numChemPot+imu];
       for(iCoeff=0;iCoeff<numCoeffUpTotal;iCoeff++){
@@ -203,9 +201,9 @@ void filterNewtonPolyNoHerm(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
     }//endfor imu
   }//endfor iPoly
   if(cpLsda==1&&numStateDnProc!=0){
-    for(iPoly=0;iPoly<polynormLength;iPoly++){
+    for(iPoly=1;iPoly<polynormLength;iPoly++){
       normHNewtonNoHerm(cp,cpcoeffs_pos,cpcoeffs_info,cell,clatoms_info,clatoms_pos,
-	      ewald,ewd_scr,atommaps,for_scr,stat_avg,ptens,);
+	      ewald,ewd_scr,atommaps,for_scr,stat_avg,ptens,sampPoint[iPoly-1]);
       for(imu=0;imu<numChemPot;imu++){
 	polyCoeff = expanCoeff[iPoly*numChemPot+imu];
 	for(iCoeff=0;iCoeff<numCoeffUpTotal;iCoeff++){

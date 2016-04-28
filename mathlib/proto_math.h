@@ -300,3 +300,4 @@ void get_ind_rev(int*,int*,int,int);
 double fermiExpReal(double,double,double);
 double complex fermiExpComplex(double complex,double,double);
 double fermiErfcReal(double,double,double);
+double gaussianReal(double,double,double);

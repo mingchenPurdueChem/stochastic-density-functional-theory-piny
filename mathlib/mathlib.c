@@ -619,7 +619,7 @@ void get_ind_rev(int *index,int *n_bin,int i,int ndim){
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-double fermiExpReal(double complex x,double mu,double beta){
+double fermiExpReal(double x,double mu,double beta){
   double xre = (double)x;
   return 1.0/(1.0+exp(beta*(x-mu)));
 

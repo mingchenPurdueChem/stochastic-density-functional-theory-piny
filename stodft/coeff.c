@@ -56,7 +56,7 @@ void genCoeffNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   double beta = stodftInfo->beta;
   double funValue,sum,prod;
 
-  FERMIFUNC fermiFunction = stodftInfo->fermiFunction;
+  FERMIFUNR fermiFunction = stodftInfo->fermiFunctionReal;
 
   for(imu=0;imu<numChemPot;imu++){
     funValue = fermiFunction(sampPointUnscale[0],chemPot[imu],beta);
@@ -110,7 +110,7 @@ void genCoeffNewtonNoHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   double beta = stodftInfo->beta;
   double funValue,sum,prod;
 
-  FERMIFUNC fermiFunction = stodftInfo->fermiFunction;
+  FERMIFUNC fermiFunction = stodftInfo->fermiFunctionComplex;
 
   for(imu=0;imu<numChemPot;imu++){
     funValue = fermiFunction(sampPointUnscale[0],chemPot[imu],beta);
@@ -152,8 +152,8 @@ void genSampNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   int numSampCand	     = 32*polynormLength;
   int iPoly,jPoly,iCand;
   int objMaxIndex;
-  double Smin = stodftInfo->Smin;
-  double Smax = stodftInfo->Smax;
+  double Smin = newtonInfo->Smin;
+  double Smax = newtonInfo->Smax;
   double scale = 1.0/newtonInfo->scale;
   double energyMin = stodftInfo->energyMin;
   double delta = (Smax-Smin)/(double)(numSampCand-1);
@@ -172,7 +172,7 @@ void genSampNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
 
   sampPoint[0] = sampCand[0];
   for(iPoly=1;iPoly<polynormLength;iPoly++){
-    objMax = -100000.0
+    objMax = -100000.0;
     for(iCand=0;iCand<numSampCand;iCand++){
       obj = 0.0;
       for(jPoly=0;jPoly<iPoly;jPoly++){
@@ -202,10 +202,8 @@ void genSampNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void genEnergyMax(CP *cp,CPCOEFFS_POS *cpcoeffs_pos,CPCOEFFS_INFO *cpcoeffs_info,
-                 CELL *cell,CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
-                 EWALD *ewald,EWD_SCR *ewd_scr,ATOMMAPS *atommaps,FOR_SCR *for_scr,
-                 STAT_AVG *stat_avg,PTENS *ptens)
+void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
+		  CPCOEFFS_POS *cpcoeffs_pos,CLATOMS_POS *clatoms_pos)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
@@ -215,38 +213,53 @@ void genEnergyMax(CP *cp,CPCOEFFS_POS *cpcoeffs_pos,CPCOEFFS_INFO *cpcoeffs_info
 /*************************************************************************/
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
+
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  CELL *cell			= &(general_data->cell);
+  CLATOMS_INFO *clatoms_info    = &(class->clatoms_info);
+  EWALD *ewald		        = &(general_data->ewald);
+  EWD_SCR *ewd_scr		= &(class->ewd_scr);
+  ATOMMAPS *atommaps		= &(class->atommaps);
+  FOR_SCR *for_scr		= &(class->for_scr);
+  STAT_AVG *stat_avg		= &(general_data->stat_avg);
+  PTENS *ptens			= &(general_data->ptens);
+  SIMOPTS *simopts		= &(general_data->simopts);
+
   STODFTINFO *stodftInfo        = cp->stodftInfo;
   STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
   CPOPTS *cpopts                = &(cp->cpopts);
-  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
   CPEWALD *cpewald              = &(cp->cpewald);
   CPSCR *cpscr                  = &(cp->cpscr);
-  CPOPTS *cpopts                = &(cp->cpopts);
   PSEUDO *pseudo                = &(cp->pseudo);
   COMMUNICATE *communicate      = &(cp->communicate);
 
-  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm;            = &(cp->cp_sclr_fft_pkg3d_sm);
-  PARA_FFT_PKG3D *cp_para_fft_pkg3d_sm;            = &(cp->cp_para_fft_pkg3d_sm);
-  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_dens_cp_box;   = &(cp->cp_sclr_fft_pkg3d_dens_cp_box);
-  PARA_FFT_PKG3D *cp_para_fft_pkg3d_dens_cp_box;   = &(cp->cp_para_fft_pkg3d_dens_cp_box);
-  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_lg;            = &(cp->cp_sclr_fft_pkg3d_lg);
-  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg;            = &(cp->cp_para_fft_pkg3d_lg);
-  CP_COMM_STATE_PKG *cp_comm_state_pkg_up          = &(cp_comm_state_pkg_up);
-  CP_COMM_STATE_PKG *cp_comm_state_pkg_dn          = &(cp_comm_state_pkg_dn);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm            = &(cp->cp_sclr_fft_pkg3d_sm);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_sm            = &(cp->cp_para_fft_pkg3d_sm);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_dens_cp_box   = &(cp->cp_sclr_fft_pkg3d_dens_cp_box);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_dens_cp_box   = &(cp->cp_para_fft_pkg3d_dens_cp_box);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_lg             = &(cp->cp_sclr_fft_pkg3d_lg);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg             = &(cp->cp_para_fft_pkg3d_lg);
+  CP_COMM_STATE_PKG *cp_comm_state_pkg_up          = &(cp->cp_comm_state_pkg_up);
+  CP_COMM_STATE_PKG *cp_comm_state_pkg_dn          = &(cp->cp_comm_state_pkg_dn);
 
 
   double randMin	= -1.0;
   double randMax	= 1.0;
-  double length;	= 0.0;
+  double length		= 0.0;
   double energyConv     = 1.0e-6;
   double energy,energyOld;
 
-  int numStateUpProc = cpcoeffs_info->nstate_up_proc;
-  int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
-  int numCoeff       = cpcoeffs_info->ncoef;
-  int numIteration   = 100;
+  int numStateUpProc  = cpcoeffs_info->nstate_up_proc;
+  int numStateDnProc  = cpcoeffs_info->nstate_dn_proc;
+  int numCoeff        = cpcoeffs_info->ncoef;
+  int cpDualGridOptOn = cpopts->cp_dual_grid_opt;
+  int numIteration    = 100;
   int iIter;
   int iState,iCoeff,iCoeffStart,index1,index2;
+  int cpWaveMin     = simopts->cp_wave_min;
+  int cpMin         = simopts->cp_min;
+  int cpWaveMinPimd = simopts->cp_wave_min_pimd;
+  int cpMinOn = cpWaveMin + cpMin + cpWaveMinPimd;
 
   double *cre_up = cpcoeffs_pos->cre_up;
   double *cim_up = cpcoeffs_pos->cim_up;
@@ -289,9 +302,12 @@ void genEnergyMax(CP *cp,CPCOEFFS_POS *cpcoeffs_pos,CPCOEFFS_INFO *cpcoeffs_info
     cim_up[iCoeff] = randTrail[iCoeff-1+numCoeff];
   }
   cim_up[numCoeff] = 0.0;//Keep everything real
+#endif
 #ifndef MKL_RANDOM
   //whatever random number is good, I'm using Gaussian in this case
-  gaussran(2*numCoeff,1,1,(double)qseed,randTrail);
+  double seed = 1.0;
+  int iseed;
+  gaussran(2*numCoeff,&iseed,&iseed,&seed,randTrail);
   for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
     cre_up[iCoeff] = randTrail[iCoeff];
   }
@@ -333,16 +349,16 @@ void genEnergyMax(CP *cp,CPCOEFFS_POS *cpcoeffs_pos,CPCOEFFS_INFO *cpcoeffs_info
     control_cp_eext_recip(clatoms_info,clatoms_pos,cpcoeffs_info,
 			 cpcoeffs_pos,cpewald,cpscr,cpopts,pseudo,
 			 ewd_scr,atommaps,cell,ewald,ptens,&(stat_avg->vrecip),
-			 &(stat_avg->cp_enl),communicate,for_scr,cp_dual_grid_opt_on,
+			 &(stat_avg->cp_enl),communicate,for_scr,cpDualGridOptOn,
 			 cp_para_fft_pkg3d_lg);
 
     coef_force_control(cpopts,cpcoeffs_info,cpcoeffs_pos,cpscr,ewald,cpewald,
 		      cell,stat_avg,pseudo->vxc_typ,ptens->pvten_tmp,pseudo->gga_cut,
-		      pseudo->alpha_conv_dual,pseudo->n_interp_pme_dual,cp_min_on,
+		      pseudo->alpha_conv_dual,pseudo->n_interp_pme_dual,cpMinOn,
 		      communicate,cp_comm_state_pkg_up,
 		       cp_comm_state_pkg_dn,cp_para_fft_pkg3d_lg,cp_sclr_fft_pkg3d_lg,
 		       cp_para_fft_pkg3d_dens_cp_box,cp_sclr_fft_pkg3d_dens_cp_box,
-		       cp_para_fft_pkg3d_sm,cp_sclr_fft_pkg3d_sm,cp_dual_grid_opt_on);
+		       cp_para_fft_pkg3d_sm,cp_sclr_fft_pkg3d_sm,cpDualGridOptOn);
 
 /*--------------------------------------------------------------------------*/
 /* iii) Calcluate <phi|H|phi>	                                            */
@@ -413,10 +429,8 @@ void genEnergyMax(CP *cp,CPCOEFFS_POS *cpcoeffs_pos,CPCOEFFS_INFO *cpcoeffs_info
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void genEnergyMin(CP *cp,CPCOEFFS_POS *cpcoeffs_pos,CPCOEFFS_INFO *cpcoeffs_info,
-                 CELL *cell,CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
-                 EWALD *ewald,EWD_SCR *ewd_scr,ATOMMAPS *atommaps,FOR_SCR *for_scr,
-                 STAT_AVG *stat_avg,PTENS *ptens)
+void genEnergyMin(CP *cp,CLASS *class,GENERAL_DATA *general_data,
+                  CPCOEFFS_POS *cpcoeffs_pos,CLATOMS_POS *clatoms_pos)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
@@ -426,29 +440,39 @@ void genEnergyMin(CP *cp,CPCOEFFS_POS *cpcoeffs_pos,CPCOEFFS_INFO *cpcoeffs_info
 /*************************************************************************/
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
+
+  CELL *cell                    = &(general_data->cell);
+  CLATOMS_INFO *clatoms_info    = &(class->clatoms_info);
+  EWALD *ewald                  = &(general_data->ewald);
+  EWD_SCR *ewd_scr              = &(class->ewd_scr);
+  ATOMMAPS *atommaps            = &(class->atommaps);
+  FOR_SCR *for_scr              = &(class->for_scr);
+  STAT_AVG *stat_avg            = &(general_data->stat_avg);
+  PTENS *ptens                  = &(general_data->ptens);
+  SIMOPTS *simopts              = &(general_data->simopts);
+
   STODFTINFO *stodftInfo        = cp->stodftInfo;
   STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
   CPOPTS *cpopts                = &(cp->cpopts);
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
   CPEWALD *cpewald              = &(cp->cpewald);
   CPSCR *cpscr                  = &(cp->cpscr);
-  CPOPTS *cpopts                = &(cp->cpopts);
   PSEUDO *pseudo                = &(cp->pseudo);
   COMMUNICATE *communicate      = &(cp->communicate);
 
-  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm;            = &(cp->cp_sclr_fft_pkg3d_sm);
-  PARA_FFT_PKG3D *cp_para_fft_pkg3d_sm;            = &(cp->cp_para_fft_pkg3d_sm);
-  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_dens_cp_box;   = &(cp->cp_sclr_fft_pkg3d_dens_cp_box);
-  PARA_FFT_PKG3D *cp_para_fft_pkg3d_dens_cp_box;   = &(cp->cp_para_fft_pkg3d_dens_cp_box);
-  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_lg;            = &(cp->cp_sclr_fft_pkg3d_lg);
-  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg;            = &(cp->cp_para_fft_pkg3d_lg);
-  CP_COMM_STATE_PKG *cp_comm_state_pkg_up          = &(cp_comm_state_pkg_up);
-  CP_COMM_STATE_PKG *cp_comm_state_pkg_dn          = &(cp_comm_state_pkg_dn);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm            = &(cp->cp_sclr_fft_pkg3d_sm);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_sm            = &(cp->cp_para_fft_pkg3d_sm);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_dens_cp_box   = &(cp->cp_sclr_fft_pkg3d_dens_cp_box);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_dens_cp_box   = &(cp->cp_para_fft_pkg3d_dens_cp_box);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_lg            = &(cp->cp_sclr_fft_pkg3d_lg);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg            = &(cp->cp_para_fft_pkg3d_lg);
+  CP_COMM_STATE_PKG *cp_comm_state_pkg_up         = &(cp->cp_comm_state_pkg_up);
+  CP_COMM_STATE_PKG *cp_comm_state_pkg_dn         = &(cp->cp_comm_state_pkg_dn);
 
 
   double randMin        = -1.0;
   double randMax        = 1.0;
-  double length;        = 0.0;
+  double length         = 0.0;
   double energyConv     = 1.0e-6;
   double energyMax	= stodftInfo->energyMax;
   double energy,energyOld;
@@ -456,9 +480,14 @@ void genEnergyMin(CP *cp,CPCOEFFS_POS *cpcoeffs_pos,CPCOEFFS_INFO *cpcoeffs_info
   int numStateUpProc = cpcoeffs_info->nstate_up_proc;
   int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
   int numCoeff       = cpcoeffs_info->ncoef;
+  int cpDualGridOptOn = cpopts->cp_dual_grid_opt;
   int numIteration   = 100;
   int iIter;
   int iState,iCoeff,iCoeffStart,index1,index2;
+  int cpWaveMin     = simopts->cp_wave_min;
+  int cpMin         = simopts->cp_min;
+  int cpWaveMinPimd = simopts->cp_wave_min_pimd;
+  int cpMinOn = cpWaveMin + cpMin + cpWaveMinPimd;
 
   double *cre_up = cpcoeffs_pos->cre_up;
   double *cim_up = cpcoeffs_pos->cim_up;
@@ -501,9 +530,12 @@ void genEnergyMin(CP *cp,CPCOEFFS_POS *cpcoeffs_pos,CPCOEFFS_INFO *cpcoeffs_info
     cim_up[iCoeff] = randTrail[iCoeff-1+numCoeff];
   }
   cim_up[numCoeff] = 0.0;//Keep everything real
+#endif
 #ifndef MKL_RANDOM
   //whatever random number is good, I'm using Gaussian in this case
-  gaussran(2*numCoeff,1,1,(double)qseed,randTrail);
+  double seed = 1.0;
+  int iseed;
+  gaussran(2*numCoeff,&iseed,&iseed,&seed,randTrail);
   for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
     cre_up[iCoeff] = randTrail[iCoeff];
   }
@@ -545,16 +577,16 @@ void genEnergyMin(CP *cp,CPCOEFFS_POS *cpcoeffs_pos,CPCOEFFS_INFO *cpcoeffs_info
     control_cp_eext_recip(clatoms_info,clatoms_pos,cpcoeffs_info,
                          cpcoeffs_pos,cpewald,cpscr,cpopts,pseudo,
                          ewd_scr,atommaps,cell,ewald,ptens,&(stat_avg->vrecip),
-                         &(stat_avg->cp_enl),communicate,for_scr,cp_dual_grid_opt_on,
+                         &(stat_avg->cp_enl),communicate,for_scr,cpDualGridOptOn,
                          cp_para_fft_pkg3d_lg);
 
     coef_force_control(cpopts,cpcoeffs_info,cpcoeffs_pos,cpscr,ewald,cpewald,
                       cell,stat_avg,pseudo->vxc_typ,ptens->pvten_tmp,pseudo->gga_cut,
-                      pseudo->alpha_conv_dual,pseudo->n_interp_pme_dual,cp_min_on,
+                      pseudo->alpha_conv_dual,pseudo->n_interp_pme_dual,cpMinOn,
                       communicate,cp_comm_state_pkg_up,
                        cp_comm_state_pkg_dn,cp_para_fft_pkg3d_lg,cp_sclr_fft_pkg3d_lg,
                        cp_para_fft_pkg3d_dens_cp_box,cp_sclr_fft_pkg3d_dens_cp_box,
-                       cp_para_fft_pkg3d_sm,cp_sclr_fft_pkg3d_sm,cp_dual_grid_opt_on);
+                       cp_para_fft_pkg3d_sm,cp_sclr_fft_pkg3d_sm,cpDualGridOptOn);
 /*--------------------------------------------------------------------------*/
 /* iii) Calcluate <phi|H|phi>                                               */
 

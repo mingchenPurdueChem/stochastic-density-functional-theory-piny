@@ -30,7 +30,8 @@
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
+void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
+		int ip_now)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
@@ -44,13 +45,13 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
   CLATOMS_POS  *clatoms_pos  = &(class->clatoms_pos[ip_now]);
   ATOMMAPS     *atommaps     = &(class->atommaps);
   CELL         *cell         = &(general_data->cell);
-  ATOMMAPS     *atommaps     = &(class->atommaps);
   FOR_SCR      *for_scr      = &(class->for_scr);
   EWD_SCR      *ewd_scr      = &(class->ewd_scr);
 
 
 
   CPOPTS *cpopts = &(cp->cpopts);
+  PSEUDO *pseudo = &(cp->pseudo);
   CPCOEFFS_INFO *cpcoeffs_info = &(cp->cpcoeffs_info);
   STODFTINFO *stodftInfo       = cp->stodftInfo;
   STODFTCOEFPOS *stodftCoefPos = cp->stodftCoefPos;
@@ -67,7 +68,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
   int numStateUpTot  = numStateUpProc*numCoeff;
   int numStateDnTot  = numStateDnProc*numCoeff;
   int totalPoly	     = polynormLength*numChemPot;
-  int fermiFunType   = stodftInfo->fermiFunType;
+  int filterFunType   = stodftInfo->filterFunType;
   int cpDualGridOptOn = cpopts->cp_dual_grid_opt;
  
   int iChem,iSamp;
@@ -88,24 +89,24 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
 
   stodftCoefPos->wfInUp = (double complex*)cmalloc(numStateUpTot*sizeof(double complex));
   stodftCoefPos->wfOutUp = (double complex*)cmalloc(numStateUpTot*sizeof(double complex));
-  stodftCoefPos->stoWfUp = (double complex**)cmalloc(numChempot*sizeof(double complex*));
+  stodftCoefPos->stoWfUp = (double complex**)cmalloc(numChemPot*sizeof(double complex*));
   for(iChem=0;iChem<numChemPot;iChem++){
-    stodftCoefPos->stoWfUp[iChem] = (double complex*)cmalloc(numStateUpTot*sizeof(double complex))
+    stodftCoefPos->stoWfUp[iChem] = (double complex*)cmalloc(numStateUpTot*sizeof(double complex));
   }
   if(cpLsda==1&&numStateDnProc!=0){
     stodftCoefPos->wfInDn = (double complex*)cmalloc(numStateDnTot*sizeof(double complex));
     stodftCoefPos->wfOutDn = (double complex*)cmalloc(numStateDnTot*sizeof(double complex));
-    stodftCoefPos->stoWfDn = (double complex**)cmalloc(numChempot*sizeof(double complex*));
+    stodftCoefPos->stoWfDn = (double complex**)cmalloc(numChemPot*sizeof(double complex*));
     for(iChem=0;iChem<numChemPot;iChem++){
-      stodftCoefPos->stoWfDn[iChem] = (double complex*)cmalloc(numStateDnTot*sizeof(double complex))
+      stodftCoefPos->stoWfDn[iChem] = (double complex*)cmalloc(numStateDnTot*sizeof(double complex));
     }//endfor iChem
   }//endif
 
-  if(expanType==2&&fermiFunType==1)stodftInfo->fermiFunction = &fermiExpReal;
-  if(expanType==2&&fermiFunType==2)stodftInfo->fermiFunction = &fermiErfcReal;
-  if(expanType==2&&fermiFunType==3)stodftInfo->fermiFunction = &gaussianReal;
-  if(expanType==3&&fermiFunType==1)stodftInfo->fermiFunction = &fermiExpComplex;
-  if(expanType==3&&fermiFunType==1){
+  if(expanType==2&&filterFunType==1)stodftInfo->fermiFunctionReal = &fermiExpReal;
+  if(expanType==2&&filterFunType==2)stodftInfo->fermiFunctionReal = &fermiErfcReal;
+  if(expanType==2&&filterFunType==3)stodftInfo->fermiFunctionReal = &gaussianReal;
+  if(expanType==3&&filterFunType==1)stodftInfo->fermiFunctionComplex = &fermiExpComplex;
+  if(expanType==3&&filterFunType==2){
     printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
     printf("We haven't implement erfc type of Fermi function \n");
     printf("for non-Hermitian KS Hamiltonian. Please use the \n");
@@ -114,6 +115,16 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
     fflush(stdout);
     exit(0);
   }
+  if(expanType==3&&filterFunType==3){
+    printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+    printf("We haven't implement gaussian type of Fermi function \n");
+    printf("for non-Hermitian KS Hamiltonian. Please use the \n");
+    printf("exponential type in this case!\n");
+    printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+    fflush(stdout);
+    exit(0);
+  }
+
 
 
 /*==========================================================================*/
@@ -124,7 +135,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
       stodftCoefPos->expanCoeff = (double *)cmalloc(totalPoly*sizeof(double));
       stodftInfo->newtonInfo = (NEWTONINFO *)cmalloc(sizeof(NEWTONINFO));
       newtonInfo = stodftInfo->newtonInfo;
-      newtonInfo->samplePoint = (double *)cmalloc(polynormLength*sizeof(double));
+      newtonInfo->sampPoint = (double *)cmalloc(polynormLength*sizeof(double));
       newtonInfo->sampPointUnscale = (double *)cmalloc(polynormLength*sizeof(double));
       newtonInfo->Smin = Smin;
       newtonInfo->Smax = Smax;
@@ -135,7 +146,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
       stodftCoefPos->expanCoeff = (double complex*)cmalloc(totalPoly*sizeof(double));
       stodftInfo->newtonInfo = (NEWTONINFO *)cmalloc(sizeof(NEWTONINFO));
       newtonInfo = stodftInfo->newtonInfo;
-      newtonInfo->samplePoint = (double complex*)cmalloc(polynormLength*sizeof(double));
+      newtonInfo->sampPoint = (double complex*)cmalloc(polynormLength*sizeof(double));
       newtonInfo->sampPointUnscale = (double complex*)cmalloc(polynormLength*sizeof(double));
       newtonInfo->Smin = Smin;
       newtonInfo->Smax = Smax;

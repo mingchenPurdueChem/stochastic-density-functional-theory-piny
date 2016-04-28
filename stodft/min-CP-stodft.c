@@ -40,7 +40,7 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   PTENS *ptens			 = &(general_data->ptens);
   
   STODFTINFO *stodftInfo         = cp->stodftInfo;
-  STODFTCOEFFPOS *stodftCoeffPos = cp->stodftCoeffPos;
+  STODFTCOEFPOS *stodftCoeffPos = cp->stodftCoeffPos;
   CPOPTS *cpopts                = &(cp->cpopts);
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
   CPCOEFFS_POS *cpcoeffs_pos    = &(cp->cpcoeffs_pos[ip_now]);
@@ -71,6 +71,16 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int forceCoefOrthDn           = cpcoeffs_pos->ifcoef_orth_dn;
   int numStateUp		= cpcoeffs_info->nstate_up_proc;
   int numStateDn                = cpcoeffs_info->nstate_dn_proc;
+
+  int *pcoefFormUp		     = &(cpcoeffs_pos->icoef_form_up);
+  int *pcoefOrthUp		     = &(cpcoeffs_pos->icoef_orth_up);
+  int *pforceCoefFormUp              = &(cpcoeffs_pos->ifcoef_form_up);
+  int *pforceCoefOrthUp              = &(cpcoeffs_pos->ifcoef_orth_up);
+  int *pcoefFormDn		     = &(cpcoeffs_pos->icoef_form_dn);
+  int *pcoefOrthDn		     = &(cpcoeffs_pos->icoef_form_dn);
+  int *pforceCoefFormDn              = &(cpcoeffs_pos->icoef_form_dn);
+  int *pforceCoefOrthDn              = &(cpcoeffs_pos->icoef_form_dn);
+
 
   double tolEdgeDist 		= cpopts->tol_edge_dist;
 
@@ -160,6 +170,12 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   //debug only
   calcRhoDeterm(class,bonded,general_data,cp,cpcoeffs_pos);
 
+
+/*======================================================================*/
+/* V) Calculate Emin and Emax				                */
+/*       and necessary gradients of density for GGA calculations        */
+
+
   //debug only
   genStoOrbital(class,bonded,general_data,cp,ipNow);
 
@@ -243,11 +259,12 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   COMMUNICATE   *commCP	        = &(cp->communicate);
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
   CPCOEFFS_POS  *cpcoeffs_pos   = &(cp->cpcoeffs_pos[ip_now]);
+  MPI_Comm commStates = commCP->comm_states;
   
 
   int expanType = stodftInfo->expanType;
   int numProcStates = commCP->np_states;
-  int myidStates = commCP->myidStates;
+  int myidState = commCP->myid_state;
   int cpLsda = cpopts->cp_lsda;
   int cpGGA  = cpopts->cp_gga;
   int cpDualGridOptOn = cpopts->cp_dual_grid_opt;
@@ -344,6 +361,18 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   if(cpLsda==1&&numStateDnProc!=0){
     *forceFormDn = 0;
     cpcoeffs_pos->ifcoef_orth_dn = 1;
+  }
+
+/*======================================================================*/
+/* IV) Calculate Emax and Emin                                          */
+
+  if(myidState==1){
+    genEnergyMax(cp,class,general_data,cpcoeffs_pos,clatoms_pos);
+    genEnergyMin(cp,class,general_data,cpcoeffs_pos,clatoms_pos);
+  }
+  if(numProcStates>1){
+    Bcast(&(stodftInfo->Emin),1,MPI_DOUBLE,1,commStates);
+    Bcast(&(stodftInfo->Emax),1,MPI_DOUBLE,1,commStates);
   }
 
 /*======================================================================*/

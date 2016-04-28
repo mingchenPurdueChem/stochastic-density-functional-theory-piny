@@ -146,6 +146,8 @@ COMMUNICATE_FILES     = communicate_wrappers.o \
 DAFED_FILES           = control_dafed.o integrate_dafed.o dafed_io.o \
                         bias_update.o energy_control_dafed.o \
                         force_Phi.o force_bias.o force_dafed_final.o 
+STODFT_FILES	      = coeff.o control-stodft.o filters.o init.o \
+			min-CP-stodft.o normh.o
               
 
 
@@ -156,7 +158,8 @@ OBJS = $(ANALYSIS_FILES) $(ANALYSIS_CP_FILES) $(INTEGRATE_CPPIMD_FILES)\
        $(INTEGRATE_MD_FILES) $(INTEGRATE_PIMD_FILES) $(INTERFACE_FILES) \
        $(INTERFACE_CP_FILES) $(INTERFACE_INTRA_FILES) $(INTERFACE_MOL_FILES)\
        $(MAIN_FILES) $(MAIN_CP_FILES) $(MATH_FILES) $(OUTPUT_FILES) \
-       $(OUTPUT_CP_FILES) $(SPEC_FILES) $(COMMUNICATE_FILES) $(DAFED_FILES)
+       $(OUTPUT_CP_FILES) $(SPEC_FILES) $(COMMUNICATE_FILES) $(DAFED_FILES) \
+       $(STODFT_FILES)
 
 OBJS_CARE = make_lnk_lst.o make_lnk_map.o lnk_lst_dis.o parse.o \
             zero_bnd.o zero_par.o zero_class.o zero_cp.o interface_hand.o \

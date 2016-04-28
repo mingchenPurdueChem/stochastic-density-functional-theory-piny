@@ -49,13 +49,14 @@ void control_sim_params(CLASS *class,GENERAL_DATA *general_data,
   int num_dict_velo,num_dict_msqd,num_dict_iikt_iso,num_dict_ickt_iso;
   int num_dict_rdf,num_dict_harmonic; 
   int num_dict_dafed;
+  int num_dict_stodft;
                              /* Num: Number of words in the 
                                      dictionary of simulation
                                      key words                   */    
   DICT_WORD *dict_fun,*dict_list,*dict_cp,*dict_gen,*dict_vpot,*dict_run; 
   DICT_WORD *dict_nhc,*dict_vol,*dict_write,*dict_pimd; 
   DICT_WORD *dict_velo,*dict_msqd,*dict_iikt_iso,*dict_ickt_iso,*dict_rdf,*dict_harmonic;
-  DICT_WORD *dict_dafed *dict_stodft;
+  DICT_WORD *dict_dafed, *dict_stodft;
   DICT_WORD word;            
                              /* Str: Dictionary of key words
                                      key arguments, etc;

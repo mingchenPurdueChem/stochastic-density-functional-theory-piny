@@ -237,7 +237,7 @@ void calcul_initial_wannier_dvr(GENERAL_DATA *general_data,CP *cp)
   double *elementA = cp->electronic_properties.elementA;
   double *U_final = cp->cpscr.cpscr_wannier.U_final;
 
-  int I=6;
+  //int I=6;
   double *W         = cp->electronic_properties.weight;
   double ***Z_real  = cp->electronic_properties.Z_real;
   double ***Z_imag  = cp->electronic_properties.Z_imag;

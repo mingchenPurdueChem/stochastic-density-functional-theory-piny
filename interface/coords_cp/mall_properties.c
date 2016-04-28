@@ -124,11 +124,11 @@ void mall_wannier(CP *cp)
 
   int nstate_up = cp->cpcoeffs_info.nstate_up;
   int nstate= nstate_up;
-  int I=6, NDIM=nstate*nstate;
+  int Iindex=6, NDIM=nstate*nstate;
 
-  cp->electronic_properties.weight = (double *) cmalloc(I*sizeof(double))-1;
-  cp->electronic_properties.Z_real = cmall_tens3(1,I,1,nstate,1,nstate);
-  cp->electronic_properties.Z_imag = cmall_tens3(1,I,1,nstate,1,nstate);
+  cp->electronic_properties.weight = (double *) cmalloc(Iindex*sizeof(double))-1;
+  cp->electronic_properties.Z_real = cmall_tens3(1,Iindex,1,nstate,1,nstate);
+  cp->electronic_properties.Z_imag = cmall_tens3(1,Iindex,1,nstate,1,nstate);
   cp->electronic_properties.wannier_cent = cmall_mat(1,nstate,1,3);
   cp->electronic_properties.elementA = (double *) cmalloc(NDIM*sizeof(double))-1;
 

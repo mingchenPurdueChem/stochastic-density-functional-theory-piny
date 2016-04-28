@@ -4505,9 +4505,9 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
 /*=======================================================================*/
 /*             Local variable declarations                                */
   double rka;
-  int stodftOn;
   int missionType,stodftOn;
-  SIMOPTS *simopts = general_data->simopts;
+  SIMOPTS *simopts = &(general_data->simopts);
+  MINOPTS *minopts = &(general_data->minopts);
 
   STODFTINFO *stodftInfo = (STODFTINFO *)cmalloc(sizeof(STODFTINFO));;
   STODFTCOEFPOS *stodftCoeffPos = (STODFTCOEFPOS *)cmalloc(sizeof(STODFTCOEFPOS));
@@ -4518,7 +4518,7 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   if(strcasecmp(dict[1].keyarg,"sp")==0)stodftInfo->missionType = 1;
   if(strcasecmp(dict[1].keyarg,"geo_opt")==0)stodftInfo->missionType = 2;
   if(strcasecmp(dict[1].keyarg,"md")==0)stodftInfo->missionType = 3;
-  missiontype = stodftInfo->missionType;
+  missionType = stodftInfo->missionType;
   /*-----------------------------------------------------------------------*/
   /*  2)\poly_type{#} */
   if(strcasecmp(dict[2].keyarg,"chebyshev")==0)stodftInfo->expanType = 1;
@@ -4540,12 +4540,17 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   /*-----------------------------------------------------------------------*/
   /*  6)\beta{#} */
   sscanf(dict[6].keyarg,"%lg",&rka);
-  stodftInfo->beta = (int)(rka);
+  stodftInfo->beta = rka;
+  /*-----------------------------------------------------------------------*/
+  /*  7)\num_scf{#} */
+  sscanf(dict[7].keyarg,"%lg",&rka);
+  stodftInfo->numScf = (int)(rka);
+
 
 /*=======================================================================*/
 /* Check the conflicate options						 */
   
-  if(missiontype>0)stodftOn = 1;
+  if(missionType>0)stodftOn = 1;
   stodftInfo->stodftOn = stodftOn;
  
   if(stodftOn==1){
@@ -4571,29 +4576,34 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
     minopts->cp_min_diis = 0;
     
    
-    if(missiontype==1&&simopts->cp_wave_min==0){
+    if(missionType==1&&simopts->cp_wave_min==0){
       printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
       printf("You turn on the stochastic dft single point claculation ");
       printf("I'll reset the simulation type to cp_wave_min");
       printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
       simopts->cp_wave_min = 1;  
-      minopts->cp_min_sd = 1;
+      minopts->cp_min_std = 1;
     }
-    if(missiontype==2&&simopts->cp_min==0){
+    if(missionType==2&&simopts->cp_min==0){
       printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
       printf("You turn on the stochastic dft geometric optimization");
       printf("I'll reset the simulation type to cp_min");
       printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
       simopts->cp_min = 1;
-      simopts->min_std = 1; 
-      simopts->cp_min_std = 1;
+      minopts->min_std = 1; 
+      minopts->cp_min_std = 1;
     }
-    if(missiontype==3&&simopts->cp==0){
+    if(missionType==3&&simopts->cp==0){
       printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
       printf("You turn on the stochastic dft molecular dynamics ");
       printf("I'll reset the simulation type to cp");
       printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
       simopts->cp = 1;
+    }
+    if(stodftInfo->numScf<=0){
+      printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
+      printf("You will not perform scf calculation.\n");
+      printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
     }
   }//endif stodftOn
   

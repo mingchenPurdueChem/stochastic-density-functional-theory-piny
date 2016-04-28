@@ -4,77 +4,66 @@
 
 
 #=================================================================
-:        $(STANDARD) $(DEFINES) \
+coeff.o :                $(STANDARD) $(DEFINES) \
                          $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
                          $(TYP_STAT) \
                          $(TYP_CP) $(TYP_PAR) \
                          $(FRND_ENT) $(MATH) \
-                         $(DAFED_LOC) $(DAFED_ENT) \
-                         $(DCODE)/dafed/control_dafed.c
+			 $(STODFT_LOC) \
+                         $(DCODE)/stodft/coeff.c
 	$(ECHO) $@
-	$(COBJ) $(DCODE)/dafed/control_dafed.c
+	$(COBJ) $(DCODE)/stodft/coeff.c
 
-integrate_dafed.o :      $(STANDARD) $(DEFINES) \
+control-stodft.o :       $(STANDARD) $(DEFINES) \
                          $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
                          $(TYP_STAT) \
                          $(TYP_CP) $(TYP_PAR) \
                          $(FRND_ENT) $(MATH) \
-                         $(DAFED_LOC) $(DAFED_ENT) \
-                         $(DCODE)/dafed/integrate_dafed.c
+                         $(STODFT_LOC) \
+                         $(DCODE)/stodft/control-stodft.c
 	$(ECHO) $@
-	$(COBJ) $(DCODE)/dafed/integrate_dafed.c
+	$(COBJ) $(DCODE)/stodft/control-stodft.c
 
 
-dafed_io.o :             $(STANDARD) $(DEFINES) \
+filters.o :              $(STANDARD) $(DEFINES) \
                          $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
                          $(TYP_STAT) \
                          $(TYP_CP) $(TYP_PAR) \
                          $(FRND_ENT) $(MATH) \
-                         $(DAFED_LOC) $(DAFED_ENT) \
-                         $(DCODE)/dafed/dafed_io.c
+                         $(STODFT_LOC) \
+                         $(DCODE)/stodft/filter.c
 	$(ECHO) $@
-	$(COBJ) $(DCODE)/dafed/dafed_io.c
+	$(COBJ) $(DCODE)/stodft/filter.c
 
-bias_update.o :          $(STANDARD) $(DEFINES) \
+init.o :                 $(STANDARD) $(DEFINES) \
                          $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
                          $(TYP_STAT) \
                          $(TYP_CP) $(TYP_PAR) \
                          $(FRND_ENT) $(MATH) \
-                         $(DAFED_LOC) $(DAFED_ENT) \
-                         $(DCODE)/dafed/bias_update.c
+                         $(ENR_CP_LOC) $(STODFT_LOC) \
+                         $(DCODE)/stodft/init.c
 	$(ECHO) $@
-	$(COBJ) $(DCODE)/dafed/bias_update.c
+	$(COBJ) $(DCODE)/stodft/init.c
 
-energy_control_dafed.o : $(STANDARD) $(DEFINES) \
+min-CP-stodft.o :        $(STANDARD) $(DEFINES) \
                          $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
-                         $(MATH) \
-                         $(DAFED_ENERGY) \
-                         $(DCODE)/energy/control/energy_control_dafed.c
+			 $(TYP_STAT) \
+			 $(TYP_CP) $(TYP_PAR) \
+                         $(FRND_ENT) $(MATH) \
+                         $(ENR_CP_LOC) $(ENR_CPCON_ENT) $(ENR_CPCON_LOC)\
+			 $(STODFT_LOC) \
+                         $(DCODE)/stodft/min-CP-stodft.c
 	$(ECHO)	$@
-	$(COBJ)	$(DCODE)/energy/control/energy_control_dafed.c
+	$(COBJ)	$(DCODE)/stodft/min-CP-stodft.c
 
-force_Phi.o :            $(STANDARD) $(DEFINES) \
+normh.o :                $(STANDARD) $(DEFINES) \
                          $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
-                         $(MATH) \
-                         $(DAFED_ENERGY) \
-                         $(DCODE)/energy/dafed/force_Phi.c
+                         $(TYP_STAT) \
+                         $(TYP_CP) $(TYP_PAR) \
+                         $(FRND_ENT) $(MATH) \
+                         $(ENR_CP_LOC) $(ENR_CPCON_LOC) $(STODFT_LOC) \
+                         $(DCODE)/stodft/normh.c
 	$(ECHO) $@
-	$(COBJ) $(DCODE)/energy/dafed/force_Phi.c
-
-force_bias.o :           $(STANDARD) $(DEFINES) \
-                         $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
-                         $(MATH) \
-                         $(DAFED_ENERGY) \
-                         $(DCODE)/energy/dafed/force_bias.c
-	$(ECHO) $@
-	$(COBJ) $(DCODE)/energy/dafed/force_bias.c
-                         
-force_dafed_final.o :    $(STANDARD) $(DEFINES) \
-                         $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
-                         $(MATH) \
-                         $(DAFED_ENERGY) \
-                         $(DCODE)/energy/dafed/force_dafed_final.c
-	$(ECHO)	$@
-	$(COBJ)	$(DCODE)/energy/dafed/force_dafed_final.c
-                         
+	$(COBJ) $(DCODE)/stodft/normh.c
+                        
 #------------------------------------------------------------------

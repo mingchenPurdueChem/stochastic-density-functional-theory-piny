@@ -317,7 +317,7 @@ void comp_omega(GENERAL_DATA *general_data,CP *cp, double *X,
 
 /* declartion of local variable */
 
-  int I=6;
+  int Iindex=6;
   int i,j,k;
   int flag,incx,incy,mm,nn,kk,lda,ldb,ldc;
 
@@ -428,7 +428,7 @@ void comp_omega(GENERAL_DATA *general_data,CP *cp, double *X,
 
   fp_now=0.0;
 
-  for(i=1;i<=I;i++){
+  for(i=1;i<=Iindex;i++){
     if(W[i]!=0){
       /* first calculate the matrix Z*U. Do that by multiplying U*Z using a
          fortran routine. Next, calculate the inner product between the columns
@@ -507,7 +507,7 @@ void comp_domega(GENERAL_DATA *general_data,CP *cp, double *X,
   int i,j,k,l,m,n,s,t,mm,nn,kk;
   int ii,jj,iii,ioff,ioff2,istarti,istartj,istartn,count,flag;
   int lda,ldb,ldc,incx,incy;
-  int I=6;
+  int Iindex=6;
   static int first_time=1;
   char transa,transb;
   double alpha,beta;
@@ -613,7 +613,7 @@ void comp_domega(GENERAL_DATA *general_data,CP *cp, double *X,
 /*=============================================================================*/
 /* IV) Compute matrix M                                                        */
 
-  for (m=1;m<=I;m++) {
+  for (m=1;m<=Iindex;m++) {
     if (W[m]!=0.0){
       /* First, compute U*Z */
       /* Remember U is real at Gamma point. It should be the same for DVR.
@@ -781,7 +781,7 @@ void comp_domega_zero(int nstate_up, int nstate_dn, int choice_func, double *df,
 
   /*local variables*/
   int i,j,k;
-  int I=6;
+  int Iindex=6;
   double pi, fpisq, dOmega;
 
 /*============================================================================*/
@@ -799,7 +799,7 @@ void comp_domega_zero(int nstate_up, int nstate_dn, int choice_func, double *df,
 /* II) Compute dOmega in the limit of A=0                                     */
 /* See Eq. (B1) of JCP paper                                                  */
 
-  for (k=1;k<=I;k++) {
+  for (k=1;k<=Iindex;k++) {
     if (W[k]!=0.0) {
     for (i=1;i<=nstate;i++) {
       for (j=1;j<=nstate;j++) {
@@ -863,7 +863,7 @@ void comp_ddomega_zero(int nstate_up, int nstate_dn, int choice_func, double *dd
 
   int nstate=nstate_up;
   int i,j,k;
-  int I=6;
+  int Iindex=6;
 
   double pi, fpisq, ddOmega;
   double real_ii, real_ij, real_ji, real_jj;
@@ -885,7 +885,7 @@ void comp_ddomega_zero(int nstate_up, int nstate_dn, int choice_func, double *dd
 /* II) Compute ddOmega in the limit of A=0                                    */
 /* The expression in Berghold' paper is WRONG!                                */
 
-  for (k=1;k<=I;k++) {
+  for (k=1;k<=Iindex;k++) {
     if (W[k]!=0.0) {
     for (i=1;i<=nstate;i++) {
       for (j=1;j<=nstate;j++) {
@@ -1310,7 +1310,7 @@ void comp_tensor_z(GENERAL_DATA *general_data, CP *cp, double *W,
   static double ***creal_imag_f_b;
 
   int i,j,k,l,m,n,g1,g2,g3;
-  int I=6;
+  int Iindex=6;
   int count,pos,position,s1,s2,isend,iproc_send, iproc_recv,rounds;
 
   double *creal1,*creal2,*cimag1,*cimag2;
@@ -1357,7 +1357,7 @@ void comp_tensor_z(GENERAL_DATA *general_data, CP *cp, double *W,
 /*===========================================================================*/
 /* II) Initialization   */
 
-  for (k=1;k<=I;k++) {
+  for (k=1;k<=Iindex;k++) {
     for (i=0;i<nstate;i++) {
       for (j=0;j<nstate;j++) {
         Z_real[k][i+1][j+1]=Z_imag[k][i+1][j+1]=0.0;
@@ -1458,7 +1458,7 @@ void comp_tensor_z(GENERAL_DATA *general_data, CP *cp, double *W,
             count++;
             pos=IMIN(i,j)*nstate+IMAX(i,j);
             Pack(&pos,1,MPI_INT,buffer,max_buffer,&position,comm);
-            for (k=1;k<=I;k++) if (W[k]!=0.0) {
+            for (k=1;k<=Iindex;k++) if (W[k]!=0.0) {
               Pack(&Z_real[k][i+1][j+1],1,MPI_DOUBLE,buffer,max_buffer,&position,comm);
               Pack(&Z_imag[k][i+1][j+1],1,MPI_DOUBLE,buffer,max_buffer,&position,comm);
             } /* end for k */
@@ -1472,7 +1472,7 @@ void comp_tensor_z(GENERAL_DATA *general_data, CP *cp, double *W,
             count++;
             pos=IMIN(i,j)*nstate+IMAX(i,j);
             Pack(&pos,1,MPI_INT,buffer,max_buffer,&position,comm);
-            for (k=1;k<=I;k++) if (W[k]!=0.0) {
+            for (k=1;k<=Iindex;k++) if (W[k]!=0.0) {
               Pack(&Z_real[k][i+1][j+1],1,MPI_DOUBLE,buffer,max_buffer,&position,comm);
               Pack(&Z_imag[k][i+1][j+1],1,MPI_DOUBLE,buffer,max_buffer,&position,comm);
             } /* end for k */
@@ -1486,7 +1486,7 @@ void comp_tensor_z(GENERAL_DATA *general_data, CP *cp, double *W,
             count++;
             pos=IMIN(i,j)*nstate+IMAX(i,j);
             Pack(&pos,1,MPI_INT,buffer,max_buffer,&position,comm);
-            for (k=1;k<=I;k++) {
+            for (k=1;k<=Iindex;k++) {
               if (W[k]!=0.0) {
                 Pack(&Z_real[k][i+1][j+1],1,MPI_DOUBLE,buffer,max_buffer,&position,comm);
                 Pack(&Z_imag[k][i+1][j+1],1,MPI_DOUBLE,buffer,max_buffer,&position,comm);
@@ -1519,7 +1519,7 @@ void comp_tensor_z(GENERAL_DATA *general_data, CP *cp, double *W,
           Unpack(buffer,max_buffer,&position,&pos,1,MPI_INT,comm);
           m=pos/nstate;
           n=pos%nstate;
-          for (k=1;k<=I;k++) {
+          for (k=1;k<=Iindex;k++) {
             if (W[k]!=0.0) {
               Unpack(buffer,max_buffer,&position,&Z_real[k][n+1][m+1],1,MPI_DOUBLE,comm);
               Unpack(buffer,max_buffer,&position,&Z_imag[k][n+1][m+1],1,MPI_DOUBLE,comm);

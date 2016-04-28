@@ -273,7 +273,7 @@ typedef struct newtonInfo{
 				    /* Lth: polynormLength			*/
   void *sampPointUnscale;	    /* Lst: Interpolation sample points in energy space */
 				    /* Lth: polynormLength				*/
-}NWETONINFO;
+}NEWTONINFO;
 
 typedef double (*FERMIFUNR)(double,double,double);//x,mu,beta
 typedef double complex (*FERMIFUNC)(double complex,double,double);

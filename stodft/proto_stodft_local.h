@@ -6,13 +6,8 @@
 void genCoeffNewtonHermit(STODFTINFO *,STODFTCOEFPOS *);
 void genCoeffNewtonNoHermit(STODFTINFO *,STODFTCOEFPOS *);
 void genSampNewtonHermit(STODFTINFO *,STODFTCOEFPOS *);
-void genEnergyMax(CP *,CPCOEFFS_POS *,CPCOEFFS_INFO *,CELL *,CLATOMS_INFO *,
-		  CLATOMS_POS *,EWALD *,EWD_SCR *,ATOMMAPS *,FOR_SCR *,
-                  STAT_AVG *,PTENS *);
-
-void genEnergyMin(CP *,CPCOEFFS_POS *,CPCOEFFS_INFO *,CELL *,CLATOMS_INFO *,\
-		  CLATOMS_POS *,EWALD *,EWD_SCR *,ATOMMAPS *,FOR_SCR *,
-                  STAT_AVG *,PTENS *);
+void genEnergyMax(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,CLATOMS_POS *);
+void genEnergyMin(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,CLATOMS_POS *);
 
 /*-----------------------------------------------------------------*/
 /* filter.c                                                        */
@@ -27,7 +22,7 @@ void filterNewtonPolyNoHerm(CP *,int,EWALD *,EWD_SCR *,CELL *,CLATOMS_INFO *,
 /*-----------------------------------------------------------------*/
 /* init.c                                                          */
 
-void initStodft(CLASS *,BONDED *,GENERAL_DATA *,CP *);
+void initStodft(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 
 /*-----------------------------------------------------------------*/
 /* min-CP-stodft.c                                                 */

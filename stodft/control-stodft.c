@@ -5,7 +5,7 @@
 /*                         PI_MD:                                           */
 /*             The future of simulation technology                          */
 /*             ------------------------------------                         */
-/*                     Module: control_cp                                   */
+/*                     Module: control-stodft.c                             */
 /*                                                                          */
 /* This subprogram performs Stochastic DFT calculation and Geometric        */
 /* Minimization.		                                            */
@@ -48,6 +48,7 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int numProc = cp->communicate.np;
   int numTime = general_data->timeinfo.ntime;
   int iTime;
+  int ip_now = 1;
 
   double elecEnergy,elecEnergyOld,elecEnergyOldTemp,elecEnergyTemp;
   double deltaEnergy;
@@ -65,12 +66,12 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* II) Initialize the stochastic DFT                                    */
 
-  initStodft(class,bonded,general_data,cp);
+  initStodft(class,bonded,general_data,cp,ip_now);
 
 /*======================================================================*/
 /* III) Initial call to output_cp_min: need to open confp file          */
 
-  
+ 
 
 
 /*======================================================================*/

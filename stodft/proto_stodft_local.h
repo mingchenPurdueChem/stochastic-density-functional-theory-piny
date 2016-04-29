@@ -11,13 +11,8 @@ void genEnergyMin(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,CLATOMS_POS *);
 
 /*-----------------------------------------------------------------*/
 /* filter.c                                                        */
-
-void filterNewtonPolyHerm(CP *,int,EWALD *,EWD_SCR *,CELL *,CLATOMS_INFO *,
-                            CLATOMS_POS *,ATOMMAPS *,STAT_AVG *,PTENS *,SIMOPTS *,
-                            FOR_SCR *);
-void filterNewtonPolyNoHerm(CP *,int,EWALD *,EWD_SCR *,CELL *,CLATOMS_INFO *,
-                            CLATOMS_POS *,ATOMMAPS *,STAT_AVG *,PTENS *,SIMOPTS *,
-                            FOR_SCR *);
+void filterNewtonPolyHerm(CP *,CLASS *,GENERAL_DATA *,int);
+void filterNewtonPolyNoHerm(CP *,CLASS *,GENERAL_DATA *,int);
 
 /*-----------------------------------------------------------------*/
 /* init.c                                                          */
@@ -33,13 +28,10 @@ void genStoOrbital(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 /*-----------------------------------------------------------------*/
 /* normh.c                                                         */
 
-void normHNewtonHerm(CP *,CPCOEFFS_POS *,CPCOEFFS_INFO *,CELL *,CLATOMS_INFO *,
-		 CLATOMS_POS *,EWALD *,EWD_SCR *,ATOMMAPS *,FOR_SCR *,
-                 STAT_AVG *,PTENS *,double);
-
-void normHNewtonNoHerm(CP *,CPCOEFFS_POS *,CPCOEFFS_INFO *,CELL *,CLATOMS_INFO *,
-                 CLATOMS_POS *,EWALD *,EWD_SCR *,ATOMMAPS *,FOR_SCR *,
-                 STAT_AVG *,PTENS *,double complex);
+void normHNewtonHerm(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,
+		     CLATOMS_POS *,double);
+void normHNewtonNoHerm(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,
+		       CLATOMS_POS *,double complex);
 void calcRhoDeterm(CLASS *,BONDED *,GENERAL_DATA *,CP *,CPCOEFFS_POS *);
 void calcRhoSto(CLASS *,BONDED *,GENERAL_DATA *,CP *,CPCOEFFS_POS *);
 

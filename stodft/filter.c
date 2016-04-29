@@ -27,11 +27,8 @@
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void filterNewtonPolyHerm(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
-			    CELL *cell,CLATOMS_INFO *clatoms_info,
-			    CLATOMS_POS *clatoms_pos,ATOMMAPS *atommaps,
-			    STAT_AVG *stat_avg,PTENS *ptens,SIMOPTS *simopts,
-			    FOR_SCR *for_scr)
+void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
+			  int ip_now)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
@@ -42,11 +39,7 @@ void filterNewtonPolyHerm(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
   CPOPTS *cpopts                = &(cp->cpopts);
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
   CPCOEFFS_POS *cpcoeffs_pos    = &(cp->cpcoeffs_pos[ip_now]);
-  CPEWALD *cpewald		= &(cp->cpewald);
-  CPSCR *cpscr			= &(cp->cpscr);
-  PSEUDO *pseudo		= &(cp->pseudo);
-  COMMUNICATE *communicate	= &(cp->communicate);
-  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg); 
+  CLATOMS_POS*  clatoms_pos     = &(class->clatoms_pos[ip_now]);
 
   NEWTONINFO *newtonInfo = stodftInfo->newtonInfo;
 
@@ -81,40 +74,31 @@ void filterNewtonPolyHerm(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
     for(iCoeff=0;iCoeff<numCoeffUpTotal;iCoeff++){
       stoWfUp[imu][iCoeff] = expanCoeff[imu]*wfInUp[iCoeff];
     }//endfor iCoeff
-  }//endfor imu
-  if(cpLsda==1&&numStateDnProc!=0){
-    for(imu=0;imu<numChemPot;imu++){
+    if(cpLsda==1&&numStateDnProc!=0){
       for(iCoeff=0;iCoeff<numCoeffDnTotal;iCoeff++){
-	stoWfDn[imu][iCoeff] = expanCoeff[imu]*wfInDn[iCoeff];
-      }//endfor iCoeff
-    }//endfor imu
-  }//endif
+        stoWfDn[imu][iCoeff] = expanCoeff[imu]*wfInDn[iCoeff];
+      }//endfor iCoeff      
+    }//endif 
+  }//endfor imu
 
 /*==========================================================================*/
 /* 1) Loop over all polynomial terms (iPoly=0<=>polynomial order 1) */
   
   for(iPoly=1;iPoly<polynormLength;iPoly++){
-    normHNewtonHerm(cp,cpcoeffs_pos,cpcoeffs_info,cell,clatoms_info,clatoms_pos,
-	    ewald,ewd_scr,atommaps,for_scr,stat_avg,ptens,sampPoint[iPoly-1]);
+    normHNewtonNoHerm(cp,class,general_data,
+                 cpcoeffs_pos,clatoms_pos,sampPoint[iPoly-1]);
     for(imu=0;imu<numChemPot;imu++){
       polyCoeff = expanCoeff[iPoly*numChemPot+imu];
       for(iCoeff=0;iCoeff<numCoeffUpTotal;iCoeff++){
-	stoWfUp[imu][iCoeff] += polyCoeff*wfOutUp[iCoeff];
+	stoWfUp[imu][iCoeff] += polyCoeff*wfOutUp[iCoeff];	
       }//endfor iCoeff
+      if(cpLsda==1&&numStateDnProc!=0){
+        for(iCoeff=0;iCoeff<numCoeffUpTotal;iCoeff++){
+          stoWfDn[imu][iCoeff] += polyCoeff*wfOutDn[iCoeff];
+        }//endfor iCoeff        
+      }//endif 
     }//endfor imu
   }//endfor iPoly
-  if(cpLsda==1&&numStateDnProc!=0){
-    for(iPoly=1;iPoly<polynormLength;iPoly++){
-      normHNewtonHerm(cp,cpcoeffs_pos,cpcoeffs_info,cell,clatoms_info,clatoms_pos,
-	       ewald,ewd_scr,atommaps,for_scr,stat_avg,ptens,sampPoint[iPoly-1]);
-      for(imu=0;imu<numChemPot;imu++){
-	polyCoeff = expanCoeff[iPoly*numChemPot+imu];
-	for(iCoeff=0;iCoeff<numCoeffUpTotal;iCoeff++){
-	  stoWfDn[imu][iCoeff] += polyCoeff*wfOutDn[iCoeff];
-	}//endfor iCoeff
-      }//endfor imu
-    }//endfor iPoly
-  }//endif
 
 /*==========================================================================*/
 }/*end Routine*/
@@ -124,11 +108,8 @@ void filterNewtonPolyHerm(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void filterNewtonPolyNoHerm(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
-			    CELL *cell,CLATOMS_INFO *clatoms_info,
-			    CLATOMS_POS *clatoms_pos,ATOMMAPS *atommaps,
-			    STAT_AVG *stat_avg,PTENS *ptens,SIMOPTS *simopts,
-			    FOR_SCR *for_scr)
+void filterNewtonPolyNoHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
+                          int ip_now)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
@@ -139,11 +120,7 @@ void filterNewtonPolyNoHerm(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
   CPOPTS *cpopts                = &(cp->cpopts);
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
   CPCOEFFS_POS *cpcoeffs_pos    = &(cp->cpcoeffs_pos[ip_now]);
-  CPEWALD *cpewald	= &(cp->cpewald);
-  CPSCR *cpscr		= &(cp->cpscr);
-  PSEUDO *pseudo	= &(cp->pseudo);
-  COMMUNICATE *communicate  = &(cp->communicate);
-  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg); 
+  CLATOMS_POS*  clatoms_pos     = &(class->clatoms_pos[ip_now]);
 
   NEWTONINFO *newtonInfo = stodftInfo->newtonInfo;
 
@@ -178,40 +155,31 @@ void filterNewtonPolyNoHerm(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
     for(iCoeff=0;iCoeff<numCoeffUpTotal;iCoeff++){
       stoWfUp[imu][iCoeff] = expanCoeff[imu]*wfInUp[iCoeff];
     }//endfor iCoeff
-  }//endfor imu
-  if(cpLsda==1&&numStateDnProc!=0){
-    for(imu=0;imu<numChemPot;imu++){
+    if(cpLsda==1&&numStateDnProc!=0){
       for(iCoeff=0;iCoeff<numCoeffDnTotal;iCoeff++){
         stoWfDn[imu][iCoeff] = expanCoeff[imu]*wfInDn[iCoeff];
       }//endfor iCoeff
-    }//endfor imu
-  }//endif
+    }
+  }//endfor imu
 
 /*==========================================================================*/
 /* 1) Loop over all polynomial terms (iPoly=0<=>polynomial order 1) */
   
   for(iPoly=1;iPoly<polynormLength;iPoly++){
-    normHNewtonNoHerm(cp,cpcoeffs_pos,cpcoeffs_info,cell,clatoms_info,clatoms_pos,
-	    ewald,ewd_scr,atommaps,for_scr,stat_avg,ptens,sampPoint[iPoly-1]);
+    normHNewtonNoHerm(cp,class,general_data,
+                 cpcoeffs_pos,clatoms_pos,sampPoint[iPoly-1]);
     for(imu=0;imu<numChemPot;imu++){
       polyCoeff = expanCoeff[iPoly*numChemPot+imu];
       for(iCoeff=0;iCoeff<numCoeffUpTotal;iCoeff++){
         stoWfUp[imu][iCoeff] += polyCoeff*wfOutUp[iCoeff];
       }//endfor iCoeff
+      if(cpLsda==1&&numStateDnProc!=0){
+        for(iCoeff=0;iCoeff<numCoeffUpTotal;iCoeff++){
+          stoWfDn[imu][iCoeff] += polyCoeff*wfOutDn[iCoeff];
+        }//endfor iCoeff
+      }//endif
     }//endfor imu
   }//endfor iPoly
-  if(cpLsda==1&&numStateDnProc!=0){
-    for(iPoly=1;iPoly<polynormLength;iPoly++){
-      normHNewtonNoHerm(cp,cpcoeffs_pos,cpcoeffs_info,cell,clatoms_info,clatoms_pos,
-	      ewald,ewd_scr,atommaps,for_scr,stat_avg,ptens,sampPoint[iPoly-1]);
-      for(imu=0;imu<numChemPot;imu++){
-	polyCoeff = expanCoeff[iPoly*numChemPot+imu];
-	for(iCoeff=0;iCoeff<numCoeffUpTotal;iCoeff++){
-	  stoWfDn[imu][iCoeff] += polyCoeff*wfOutDn[iCoeff];
-	}//endfor iCoeff
-      }//endfor imu
-    }//endfor iPoly
-  }//endif
 
 /*==========================================================================*/
 }/*end Routine*/

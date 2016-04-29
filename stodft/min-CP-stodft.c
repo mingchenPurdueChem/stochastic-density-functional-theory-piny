@@ -40,7 +40,6 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   PTENS *ptens			 = &(general_data->ptens);
   
   STODFTINFO *stodftInfo         = cp->stodftInfo;
-  STODFTCOEFPOS *stodftCoeffPos = cp->stodftCoeffPos;
   CPOPTS *cpopts                = &(cp->cpopts);
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
   CPCOEFFS_POS *cpcoeffs_pos    = &(cp->cpcoeffs_pos[ip_now]);
@@ -77,25 +76,29 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int *pforceCoefFormUp              = &(cpcoeffs_pos->ifcoef_form_up);
   int *pforceCoefOrthUp              = &(cpcoeffs_pos->ifcoef_orth_up);
   int *pcoefFormDn		     = &(cpcoeffs_pos->icoef_form_dn);
-  int *pcoefOrthDn		     = &(cpcoeffs_pos->icoef_form_dn);
+  int *pcoefOrthDn		     = &(cpcoeffs_pos->icoef_orth_dn);
   int *pforceCoefFormDn              = &(cpcoeffs_pos->icoef_form_dn);
-  int *pforceCoefOrthDn              = &(cpcoeffs_pos->icoef_form_dn);
+  int *pforceCoefOrthDn              = &(cpcoeffs_pos->icoef_orth_dn);
 
 
   double tolEdgeDist 		= cpopts->tol_edge_dist;
+  double energyDiff		= -1.0;
+  double energyTol		= 1.0;
 
   double *coeffReUp        = cpcoeffs_pos->cre_up;
   double *coeffImUp        = cpcoeffs_pos->cim_up;
+  double *forceCoeffReUp   = cpcoeffs_pos->fcre_up;
+  double *forceCoeffImUp   = cpcoeffs_pos->fcre_up;
   double *coeffReDn        = cpcoeffs_pos->cre_dn;
   double *coeffImDn        = cpcoeffs_pos->cim_dn;
+  double *forceCoeffReDn   = cpcoeffs_pos->fcre_dn;
+  double *forceCoeffImDn   = cpcoeffs_pos->fcre_dn;
   double *cpScrCoeffReUp   = cpscr->cpscr_wave.cre_up;
   double *cpScrCoeffImUp   = cpscr->cpscr_wave.cim_up;
   double *cpScrCoeffReDn   = cpscr->cpscr_wave.cre_dn;
   double *cpScrCoeffImDn   = cpscr->cpscr_wave.cim_dn;
   double *ptensPvtenTmp    = ptens->pvten_tmp;
   
-
-
 
 /*======================================================================*/
 /* 0) Check the forms                                                   */
@@ -141,10 +144,10 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /* II) In parallel, transpose coefs back to normal form                 */
 
   if(numProcStates>1){
-    cp_transpose_bck(coeffReUp,coeffImUp,coefFormUp,
+    cp_transpose_bck(coeffReUp,coeffImUp,pcoefFormUp,
                     cpScrCoeffReUp,cpScrCoeffImUp,&(cp->cp_comm_state_pkg_up));
     if(cpLsda==1&&numStateDn>0){
-      cp_transpose_bck(coeffReDn,coeffImDn,coefFormDn,
+      cp_transpose_bck(coeffReDn,coeffImDn,pcoefFormDn,
                      cpScrCoeffReDn,cpScrCoeffImDn,&(cp->cp_comm_state_pkg_dn));
     }/*endif*/
   }/*endif*/
@@ -177,7 +180,7 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
 
   //debug only
-  genStoOrbital(class,bonded,general_data,cp,ipNow);
+  genStoOrbital(class,bonded,general_data,cp,ip_now);
 
   
   //exit(0);
@@ -188,12 +191,12 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
 /*----------------------------------------------------------------------*/
 /* i) converge chemical potential					*/
-    while (/* Chemical potential does not converge*/){
+    while (energyDiff>energyTol/* Chemical potential does not converge*/){
 
 /*----------------------------------------------------------------------*/
 /* 1) converge chemical potential                                       */
 
-      genStoOrbital(class,bonded,general_data,cp,ipNow);
+      genStoOrbital(class,bonded,general_data,cp,ip_now);
 
 /*----------------------------------------------------------------------*/
 /* 2)  Get the total density, for each chemical potential and get       */
@@ -213,16 +216,16 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* VI) In parallel, transpose coefs and coef forces fwd                 */
 
-  if(np_states>1){
-    cp_transpose_fwd(cre_up,cim_up,icoef_form_up,
-                    cpscr_cre_up,cpscr_cim_up,&(cp->cp_comm_state_pkg_up));
-    cp_transpose_fwd(fcre_up,fcim_up,ifcoef_form_up,
-                    cpscr_cre_up,cpscr_cim_up,&(cp->cp_comm_state_pkg_up));
-    if( (cp_lsda==1) && (nstate_dn > 0) ){
-     cp_transpose_fwd(cre_dn,cim_dn,icoef_form_dn,
-                     cpscr_cre_dn,cpscr_cim_dn,&(cp->cp_comm_state_pkg_dn));
-     cp_transpose_fwd(fcre_dn,fcim_dn,ifcoef_form_dn,
-                     cpscr_cre_dn,cpscr_cim_dn,&(cp->cp_comm_state_pkg_dn));
+  if(numProcStates>1){
+    cp_transpose_fwd(coeffReUp,coeffImUp,pcoefFormUp,
+                    cpScrCoeffReUp,cpScrCoeffImUp,&(cp->cp_comm_state_pkg_up));
+    cp_transpose_fwd(forceCoeffReUp,forceCoeffImUp,pforceCoefFormUp,
+                    cpScrCoeffReUp,cpScrCoeffImUp,&(cp->cp_comm_state_pkg_up));
+    if(cpLsda==1&&numStateDn>0){
+    cp_transpose_fwd(coeffReDn,coeffImDn,pcoefFormDn,
+                    cpScrCoeffReDn,cpScrCoeffImDn,&(cp->cp_comm_state_pkg_dn));
+    cp_transpose_fwd(forceCoeffReDn,forceCoeffImDn,pforceCoefFormDn,
+                    cpScrCoeffReDn,cpScrCoeffImDn,&(cp->cp_comm_state_pkg_dn));
     }/*endif*/
   }/*endif*/
 
@@ -241,21 +244,22 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 {/*begin routine*/
 /*========================================================================*/
 /*             Local variable declarations                                */
+#include "../typ_defs/typ_mask.h"
   CLATOMS_INFO *clatoms_info = &(class->clatoms_info);
   CLATOMS_POS  *clatoms_pos  = &(class->clatoms_pos[ip_now]);
-  ATOMMAPS     *atommaps     = &(class->atommaps); 
-  FOR_SCR      *for_scr      = &(class->for_scr);
-  EWD_SCR      *ewd_scr      = &(class->ewd_scr);
-  EWALD        *ewald        = &(general_data->ewald);
-  CELL         *cell         = &(general_data->cell);
-  STAT_AVG     *stat_avg     = &(general_data->stat_avg);
-  PTENS        *ptens        = &(general_data->ptens);
-  SIMOPTS      *simopts      = &(general_data->simopts);
+  //ATOMMAPS     *atommaps     = &(class->atommaps); 
+  //FOR_SCR      *for_scr      = &(class->for_scr);
+  //EWD_SCR      *ewd_scr      = &(class->ewd_scr);
+  //EWALD        *ewald        = &(general_data->ewald);
+  //CELL         *cell         = &(general_data->cell);
+  //STAT_AVG     *stat_avg     = &(general_data->stat_avg);
+  //PTENS        *ptens        = &(general_data->ptens);
+  //SIMOPTS      *simopts      = &(general_data->simopts);
   CPOPTS       *cpopts       = &(cp->cpopts);
-  PSEUDO       *pseudo       = &(cp->pseudo);
-  CPEWALD      *cpewald      = &(cp->cpewald)
+  CPSCR	       *cpscr	     = &(cp->cpscr);
+  //PSEUDO       *pseudo       = &(cp->pseudo);
+  //CPEWALD      *cpewald      = &(cp->cpewald);
   STODFTINFO   *stodftInfo   = cp->stodftInfo;
-  STODFTCOEFPOS *stodftCoeffPos = cp->stodftCoeffPos;
   COMMUNICATE   *commCP	        = &(cp->communicate);
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
   CPCOEFFS_POS  *cpcoeffs_pos   = &(cp->cpcoeffs_pos[ip_now]);
@@ -268,7 +272,6 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int cpLsda = cpopts->cp_lsda;
   int cpGGA  = cpopts->cp_gga;
   int cpDualGridOptOn = cpopts->cp_dual_grid_opt;
-  int numInterpPmeDual = pseudo->n_interp_pme_dual;
   int numStateUpProc = cpcoeffs_info->nstate_up_proc;
   int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
   int numCoeff       = cpcoeffs_info->ncoef;
@@ -280,9 +283,8 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int *forceOrthUp  = &(cpcoeffs_pos->ifcoef_orth_up);
   int *coefOrthDn   = &(cpcoeffs_pos->icoef_orth_dn);
   int *forceOrthDn  = &(cpcoeffs_pos->ifcoef_orth_dn);
-
-  char *ggaxType  = pseudo->ggax_typ;
-  char *ggacType  = pseudo->ggac_typ; 
+  
+  double energyMin,energyMax;
 
   double *coeffReUp = cpcoeffs_pos->cre_up;
   double *coeffImUp = cpcoeffs_pos->cim_up;
@@ -319,7 +321,7 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     if(*coefFormUp+*forceFormUp!=2){
      printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
      printf("Up CP vectors are not in transposed form \n");
-     printf("on state processor %d in min_CG_cp \n",myid_state);
+     printf("on state processor %d in min_CG_cp \n",myidState);
      printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
      fflush(stdout);
      exit(1);
@@ -328,7 +330,7 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
      if(*coefFormDn+*forceFormDn!=2){
       printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
       printf("Up CP vectors are not in transposed form \n");
-      printf("on state processor %d in min_CG_cp \n",myid_state);
+      printf("on state processor %d in min_CG_cp \n",myidState);
       printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
       fflush(stdout);
       exit(1);
@@ -371,23 +373,24 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     genEnergyMin(cp,class,general_data,cpcoeffs_pos,clatoms_pos);
   }
   if(numProcStates>1){
-    Bcast(&(stodftInfo->Emin),1,MPI_DOUBLE,1,commStates);
-    Bcast(&(stodftInfo->Emax),1,MPI_DOUBLE,1,commStates);
+    Bcast(&(stodftInfo->energyMin),1,MPI_DOUBLE,1,commStates);
+    Bcast(&(stodftInfo->energyMax),1,MPI_DOUBLE,1,commStates);
   }
+  energyMin = stodftInfo->energyMin;
+  energyMax = stodftInfo->energyMax;
+  stodftInfo->energyDiff = energyMax-energyMin;
+  stodftInfo->energyMean = 0.5*(energyMin+energyMax);
 
 /*======================================================================*/
 /* V) Filter the stochastic orbitals					*/
 
   switch(expanType){
     case 2:
-      filterNewtonPolyHerm(cp,ip_now,ewald,ewd_scr,cell,clatoms_info,
-		 clatoms_pos,atommaps,stat_avg,ptens,simopts,for_scr);
+      filterNewtonPolyHerm(cp,class,general_data,ip_now);
       break;
     case 3:
-      filterNewtonPolyNoHerm(cp,ip_now,ewald,ewd_scr,cell,clatoms_info,
-                 clatoms_pos,atommaps,stat_avg,ptens,simopts,for_scr);
-      break;
-      
+      filterNewtonPolyNoHerm(cp,class,general_data,ip_now);
+      break;      
   }
 
 

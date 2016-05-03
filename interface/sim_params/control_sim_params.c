@@ -107,7 +107,7 @@ void control_sim_params(CLASS *class,GENERAL_DATA *general_data,
   set_sim_dict_rdf(&num_dict_rdf,&dict_rdf);
   set_sim_dict_harmonic(&num_dict_harmonic,&dict_harmonic);
   set_sim_dict_dafed(&num_dict_dafed,&dict_dafed);
-  set_sim_dict_stodft(&num_dict_dafed,&dict_stodft);
+  set_sim_dict_stodft(&num_dict_stodft,&dict_stodft);
   //debug Ma
    if(myid==0){ 
   printf("b/f request mem \n");
@@ -119,7 +119,6 @@ void control_sim_params(CLASS *class,GENERAL_DATA *general_data,
   printf("after request mem 1 \n");
     fflush(stdout);
    }
-
 /*=======================================================================*/
 /*  III) Malloc some memory */
 
@@ -278,7 +277,7 @@ void control_sim_params(CLASS *class,GENERAL_DATA *general_data,
 
   set_sim_params_dafed(class,general_data,dict_dafed);
 
-  set_sim_params_dafed(class,general_data,dict_dafed);
+  set_sim_params_stodft(class,general_data,cp,dict_stodft);
  
   set_sim_params_finale(class,general_data,bonded,cp,class_parse,cp_parse,
                         filename_parse); /* Consistency checks */

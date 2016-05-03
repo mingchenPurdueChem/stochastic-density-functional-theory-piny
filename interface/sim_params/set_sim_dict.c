@@ -2200,7 +2200,7 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
  /*             Local variable declarations                                */
   
   unsigned int i;
-  *num_dict = 6;
+  *num_dict = 7;
   *dict = (DICT_WORD *)cmalloc(*num_dict*sizeof(DICT_WORD))-1;
 
   for (i=1;i<=*num_dict;i++) {
@@ -2210,7 +2210,7 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
   }
 
   strcpy((*dict)[1].error_mes,"Stochastic dft mission type sp/geo_opt/md");
-  strcpy((*dict)[1].keyword,"sto_dft_type");
+  strcpy((*dict)[1].keyword,"sto_dft_on");
   strcpy((*dict)[1].keyarg,"sp");
 
   strcpy((*dict)[2].error_mes,"Choose the polynomial type chebyshev/newton_hermit/newton_nohermit");

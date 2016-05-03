@@ -4510,7 +4510,9 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   MINOPTS *minopts = &(general_data->minopts);
 
   STODFTINFO *stodftInfo = (STODFTINFO *)cmalloc(sizeof(STODFTINFO));;
-  STODFTCOEFPOS *stodftCoeffPos = (STODFTCOEFPOS *)cmalloc(sizeof(STODFTCOEFPOS));
+  STODFTCOEFPOS *stodftCoefPos = (STODFTCOEFPOS *)cmalloc(sizeof(STODFTCOEFPOS));
+  cp->stodftInfo = stodftInfo;
+  cp->stodftCoefPos = stodftCoefPos;
 
   /*-----------------------------------------------------------------------*/
   /*  1)\sto_dft_on{#} */
@@ -4522,13 +4524,13 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   /*-----------------------------------------------------------------------*/
   /*  2)\poly_type{#} */
   if(strcasecmp(dict[2].keyarg,"chebyshev")==0)stodftInfo->expanType = 1;
-  if(strcasecmp(dict[2].keyarg,"newton_hermit")==0)stodftInfo->stodftOn = 2;
-  if(strcasecmp(dict[2].keyarg,"newton_hermit")==0)stodftInfo->stodftOn = 3;
+  if(strcasecmp(dict[2].keyarg,"newton_hermit")==0)stodftInfo->expanType = 2;
+  if(strcasecmp(dict[2].keyarg,"newton_nohermit")==0)stodftInfo->expanType = 3;
   /*-----------------------------------------------------------------------*/
   /*  3)\filter_type{#} */
-  if(strcasecmp(dict[3].keyarg,"fermi_exp")==0)stodftInfo->expanType = 1;
-  if(strcasecmp(dict[3].keyarg,"fermi_erfc")==0)stodftInfo->stodftOn = 2;
-  if(strcasecmp(dict[3].keyarg,"gauss")==0)stodftInfo->stodftOn = 3;
+  if(strcasecmp(dict[3].keyarg,"fermi_exp")==0)stodftInfo->filterFunType = 1;
+  if(strcasecmp(dict[3].keyarg,"fermi_erfc")==0)stodftInfo->filterFunType = 2;
+  if(strcasecmp(dict[3].keyarg,"gauss")==0)stodftInfo->filterFunType = 3;
   /*-----------------------------------------------------------------------*/
   /*  4)num_poly{#} */
   sscanf(dict[4].keyarg,"%lg",&rka);

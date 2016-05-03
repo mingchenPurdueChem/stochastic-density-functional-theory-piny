@@ -68,6 +68,9 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
   initStodft(class,bonded,general_data,cp,ip_now);
 
+
+  fflush(stdout);
+  exit(0);
 /*======================================================================*/
 /* III) Initial call to output_cp_min: need to open confp file          */
 

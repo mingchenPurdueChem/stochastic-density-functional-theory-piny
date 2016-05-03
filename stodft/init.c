@@ -58,6 +58,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   NEWTONINFO *newtonInfo;
 
   int cpLsda         = cpopts->cp_lsda;
+  int cpGga         = cpopts->cp_gga;
   int expanType      = stodftInfo->expanType;
   int numOrbital     = stodftInfo->numOrbital;
   int polynormLength = stodftInfo->polynormLength;
@@ -70,11 +71,11 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   int totalPoly	     = polynormLength*numChemPot;
   int filterFunType   = stodftInfo->filterFunType;
   int cpDualGridOptOn = cpopts->cp_dual_grid_opt;
- 
   int iChem,iSamp;
+
+  char *ggaxTyp     = pseudo->ggax_typ;
+  char *ggacTyp     = pseudo->ggac_typ;
   
-  double energyMax = stodftInfo->energyMax;
-  double energyMin = stodftInfo->energyMin;
   double Smin = -2.0;
   double Smax = 2.0;
   double energyDiff;
@@ -82,10 +83,9 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*==========================================================================*/
 /* I) General parameters and malloc					    */
   
-  stodftInfo->energyDiff = energyMax-energyMin;
-  energyDiff = stodftInfo->energyDiff;
-  stodftInfo->energyMean = (energyMax+energyMin)*0.5;
   stodftInfo->vpsAtomListFlag = 0;
+
+  stodftCoefPos->chemPot = (double*)cmalloc(numChemPot*sizeof(double));
 
   stodftCoefPos->wfInUp = (double complex*)cmalloc(numStateUpTot*sizeof(double complex));
   stodftCoefPos->wfOutUp = (double complex*)cmalloc(numStateUpTot*sizeof(double complex));
@@ -139,7 +139,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
       newtonInfo->sampPointUnscale = (double *)cmalloc(polynormLength*sizeof(double));
       newtonInfo->Smin = Smin;
       newtonInfo->Smax = Smax;
-      newtonInfo->scale = (Smax-Smin)/energyDiff;      
+      //newtonInfo->scale = (Smax-Smin)/energyDiff;      
       
       break;
     case 3:
@@ -150,9 +150,12 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
       newtonInfo->sampPointUnscale = (double complex*)cmalloc(polynormLength*sizeof(double));
       newtonInfo->Smin = Smin;
       newtonInfo->Smax = Smax;
-      newtonInfo->scale = (Smax-Smin)/energyDiff;
+      //newtonInfo->scale = (Smax-Smin)/energyDiff;
       break;
   }
+
+  //For debug only
+  stodftCoefPos->chemPot[0] = -0.17435045;
 
 /*==========================================================================*/
 /* III) Initialize utility data						    */
@@ -170,6 +173,43 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   general_data->stat_avg.count_diag_srot      = 0.0;
   general_data->stat_avg.fatm_mag = 10000.0;
   general_data->stat_avg.fatm_max = 10000.0;
+
+  cpopts->cp_becke=0;
+  cpopts->cp_pw91x=0;
+  cpopts->cp_fila_1x=0;
+  cpopts->cp_fila_2x=0;
+  cpopts->cp_pbe_x=0;
+  cpopts->cp_revpbe_x=0;
+  cpopts->cp_rpbe_x=0;
+  cpopts->cp_xpbe_x=0;
+  cpopts->cp_brx89=0;
+  cpopts->cp_brx2k=0;
+  cpopts->cp_lyp=0;
+  cpopts->cp_lypm1=0;
+  cpopts->cp_pw91c=0;
+  cpopts->cp_pbe_c=0;
+  cpopts->cp_xpbe_c=0;
+  cpopts->cp_tau1_c=0;
+  cpopts->cp_debug_xc=0;
+  if(cpGga==1){
+    if(strcasecmp(ggaxTyp,"becke"   )==0){cpopts->cp_becke=1;}
+    if(strcasecmp(ggaxTyp,"pw91x"   )==0){cpopts->cp_pw91x=1;}
+    if(strcasecmp(ggaxTyp,"fila_1x" )==0){cpopts->cp_fila_1x=1;}
+    if(strcasecmp(ggaxTyp,"fila_2x" )==0){cpopts->cp_fila_2x=1;}
+    if(strcasecmp(ggaxTyp,"pbe_x"   )==0){cpopts->cp_pbe_x=1;}
+    if(strcasecmp(ggaxTyp,"revpbe_x")==0){cpopts->cp_revpbe_x=1;}
+    if(strcasecmp(ggaxTyp,"rpbe_x"  )==0){cpopts->cp_rpbe_x=1;}
+    if(strcasecmp(ggaxTyp,"xpbe_x"  )==0){cpopts->cp_xpbe_x=1;}
+    if(strcasecmp(ggaxTyp,"brx89"   )==0){cpopts->cp_brx89=1;}
+    if(strcasecmp(ggaxTyp,"brx2k"   )==0){cpopts->cp_brx2k=1;}
+    if(strcasecmp(ggacTyp,"lyp"     )==0){cpopts->cp_lyp=1;  }
+    if(strcasecmp(ggacTyp,"lypm1"   )==0){cpopts->cp_lypm1=1;  }
+    if(strcasecmp(ggacTyp,"pw91c"   )==0){cpopts->cp_pw91c=1;}
+    if(strcasecmp(ggacTyp,"pbe_c"   )==0){cpopts->cp_pbe_c=1;}
+    if(strcasecmp(ggacTyp,"xpbe_c"  )==0){cpopts->cp_xpbe_c=1;}
+    if(strcasecmp(ggacTyp,"tau1_c"  )==0){cpopts->cp_tau1_c=1;}
+    if(strcasecmp(ggacTyp,"debug97x")==0){cpopts->cp_debug_xc=1;}
+  }/*endif*/
 
 
 /*==========================================================================*/

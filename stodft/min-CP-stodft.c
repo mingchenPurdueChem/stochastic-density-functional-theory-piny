@@ -247,19 +247,10 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 #include "../typ_defs/typ_mask.h"
   CLATOMS_INFO *clatoms_info = &(class->clatoms_info);
   CLATOMS_POS  *clatoms_pos  = &(class->clatoms_pos[ip_now]);
-  //ATOMMAPS     *atommaps     = &(class->atommaps); 
-  //FOR_SCR      *for_scr      = &(class->for_scr);
-  //EWD_SCR      *ewd_scr      = &(class->ewd_scr);
-  //EWALD        *ewald        = &(general_data->ewald);
-  //CELL         *cell         = &(general_data->cell);
-  //STAT_AVG     *stat_avg     = &(general_data->stat_avg);
-  //PTENS        *ptens        = &(general_data->ptens);
-  //SIMOPTS      *simopts      = &(general_data->simopts);
   CPOPTS       *cpopts       = &(cp->cpopts);
   CPSCR	       *cpscr	     = &(cp->cpscr);
-  //PSEUDO       *pseudo       = &(cp->pseudo);
-  //CPEWALD      *cpewald      = &(cp->cpewald);
   STODFTINFO   *stodftInfo   = cp->stodftInfo;
+  NEWTONINFO   *newtonInfo   = stodftInfo->newtonInfo;
   COMMUNICATE   *commCP	        = &(cp->communicate);
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
   CPCOEFFS_POS  *cpcoeffs_pos   = &(cp->cpcoeffs_pos[ip_now]);
@@ -285,6 +276,8 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int *forceOrthDn  = &(cpcoeffs_pos->ifcoef_orth_dn);
   
   double energyMin,energyMax;
+  double Smin,Smax; 
+  double energyDiff;
 
   double *coeffReUp = cpcoeffs_pos->cre_up;
   double *coeffImUp = cpcoeffs_pos->cim_up;
@@ -379,7 +372,14 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   energyMin = stodftInfo->energyMin;
   energyMax = stodftInfo->energyMax;
   stodftInfo->energyDiff = energyMax-energyMin;
+  energyDiff = stodftInfo->energyDiff;
   stodftInfo->energyMean = 0.5*(energyMin+energyMax);
+  
+  if(expanType==2||expanType==3){
+    Smin = newtonInfo->Smin;
+    Smax = newtonInfo->Smax;
+    newtonInfo->scale = (Smax-Smin)/energyDiff;
+  }
 
 /*======================================================================*/
 /* V) Filter the stochastic orbitals					*/

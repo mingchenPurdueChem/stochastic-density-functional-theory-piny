@@ -247,7 +247,8 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   double randMax	= 1.0;
   double length		= 0.0;
   double energyConv     = 1.0e-6;
-  double energy,energyOld;
+  double energy		= 0.0;
+  double energyOld;
 
   int numStateUpProc  = cpcoeffs_info->nstate_up_proc;
   int numStateDnProc  = cpcoeffs_info->nstate_dn_proc;
@@ -305,7 +306,7 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 #endif
 #ifndef MKL_RANDOM
   //whatever random number is good, I'm using Gaussian in this case
-  double seed = 1.0;
+  double seed = 2.0;
   int iseed;
   gaussran(2*numCoeff,&iseed,&iseed,&seed,randTrail);
   for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){

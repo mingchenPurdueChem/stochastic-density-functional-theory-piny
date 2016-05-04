@@ -173,7 +173,7 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   //debug only
   calcRhoDeterm(class,bonded,general_data,cp,cpcoeffs_pos);
 
-
+  printf("Finish generating density\n");
 /*======================================================================*/
 /* V) Calculate Emin and Emax				                */
 /*       and necessary gradients of density for GGA calculations        */
@@ -361,7 +361,8 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* IV) Calculate Emax and Emin                                          */
 
-  if(myidState==1){
+  printf("%i\n",myidState);
+  if(myidState==0){
     genEnergyMax(cp,class,general_data,cpcoeffs_pos,clatoms_pos);
     genEnergyMin(cp,class,general_data,cpcoeffs_pos,clatoms_pos);
   }
@@ -371,6 +372,7 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }
   energyMin = stodftInfo->energyMin;
   energyMax = stodftInfo->energyMax;
+  printf("energyMax %lg energyMin %lg\n",energyMax,energyMin);
   stodftInfo->energyDiff = energyMax-energyMin;
   energyDiff = stodftInfo->energyDiff;
   stodftInfo->energyMean = 0.5*(energyMin+energyMax);

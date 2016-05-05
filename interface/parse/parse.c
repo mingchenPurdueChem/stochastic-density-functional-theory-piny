@@ -662,7 +662,6 @@ void parse(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   fflush(stdout);
   fflush(stderr);
 
-
 /*------------------------------------------------------------------------*/
 }/*end routine*/ 
 /*==========================================================================*/

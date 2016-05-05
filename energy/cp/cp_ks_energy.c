@@ -434,6 +434,8 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
                       "cp_rho_calc");
 #endif
 
+  for(i=1;i<=10;i++)printf("i %i rhocr_up %lg rhoci_up %lg\n",i,rhocr_up[i],rhoci_up[i]);
+
 /*======================================================================*/
 /* V) If required get the kinetic energy density (similar to density)   */
 
@@ -544,7 +546,7 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
                             &(cp->cp_para_fft_pkg3d_sm),
                             &(cp->cp_sclr_fft_pkg3d_sm),
                             cp_dual_grid_opt_on);
-  /*
+  
   // We will try to construct and diag ks_mat. Then try to rotate the MO to eigenfunctions
   //test ksmat
   double *kseig_vals = (double*)cmalloc(nstate_up*sizeof(double))-1;
@@ -763,7 +765,7 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
   printf("kseig_sum2 %lg\n",kseig_sum);
  
   exit(0);
-  */
+  
 
 
 #ifdef TIME_CP

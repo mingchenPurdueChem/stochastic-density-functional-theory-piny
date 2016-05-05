@@ -47,6 +47,9 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   CPSCR *cpscr                  = &(cp->cpscr);
   PSEUDO *pseudo                = &(cp->pseudo);
   COMMUNICATE *communicate      = &(cp->communicate);
+
+  FOR_SCR      *for_scr         = &(class->for_scr);
+  EWD_SCR      *ewd_scr         = &(class->ewd_scr);
   CLATOMS_INFO *clatoms_info	= &(class->clatoms_info);
   CLATOMS_POS *clatoms_pos	= &(class->clatoms_pos[ip_now]);
   ATOMMAPS *atommaps		= &(class->atommaps);
@@ -174,6 +177,18 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   calcRhoDeterm(class,bonded,general_data,cp,cpcoeffs_pos);
 
   printf("Finish generating density\n");
+
+/*==========================================================================*/
+/* V) Calculate the non-local pseudopotential list                          */
+
+  if(stodftInfo->vpsAtomListFlag==0||cpDualGridOptOn>= 1){
+    control_vps_atm_list(pseudo,cell,clatoms_pos,clatoms_info,
+                         atommaps,ewd_scr,for_scr,cpDualGridOptOn,
+                         stodftInfo->vpsAtomListFlag);
+    stodftInfo->vpsAtomListFlag = 1;
+  }
+  printf("Finish generating Pseudopotential list.\n");
+
 /*======================================================================*/
 /* V) Calculate Emin and Emax				                */
 /*       and necessary gradients of density for GGA calculations        */

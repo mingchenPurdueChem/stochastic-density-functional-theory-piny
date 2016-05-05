@@ -4516,11 +4516,11 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
 
   /*-----------------------------------------------------------------------*/
   /*  1)\sto_dft_on{#} */
-  stodftInfo->missionType = 0;
-  if(strcasecmp(dict[1].keyarg,"sp")==0)stodftInfo->missionType = 1;
-  if(strcasecmp(dict[1].keyarg,"geo_opt")==0)stodftInfo->missionType = 2;
-  if(strcasecmp(dict[1].keyarg,"md")==0)stodftInfo->missionType = 3;
-  missionType = stodftInfo->missionType;
+  if(strcasecmp(dict[1].keyarg,"off")==0)missionType = 0;
+  if(strcasecmp(dict[1].keyarg,"sp")==0)missionType = 1;
+  if(strcasecmp(dict[1].keyarg,"geo_opt")==0)missionType = 2;
+  if(strcasecmp(dict[1].keyarg,"md")==0)missionType = 3; 
+  stodftInfo->missionType = missionType;
   /*-----------------------------------------------------------------------*/
   /*  2)\poly_type{#} */
   if(strcasecmp(dict[2].keyarg,"chebyshev")==0)stodftInfo->expanType = 1;
@@ -4553,7 +4553,10 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
 /* Check the conflicate options						 */
   
   if(missionType>0)stodftOn = 1;
+  else stodftOn = 0;
   stodftInfo->stodftOn = stodftOn;
+
+  printf("stodftOn %i\n",stodftOn);
  
   if(stodftOn==1){
     simopts->minimize = 0;

@@ -22,6 +22,8 @@
 #include "../proto_defs/proto_friend_lib_entry.h"
 #include "../proto_defs/proto_math.h"
 #include "../proto_defs/proto_communicate_wrappers.h"
+#include "../proto_defs/proto_energy_cp_local.h"
+#include "../proto_defs/proto_energy_cpcon_local.h"
 #include "../proto_defs/proto_stodft_local.h"
 
 #define TIME_CP_OFF
@@ -254,6 +256,10 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int numStateDnProc  = cpcoeffs_info->nstate_dn_proc;
   int numCoeff        = cpcoeffs_info->ncoef;
   int cpDualGridOptOn = cpopts->cp_dual_grid_opt;
+  int cpLsda          = cpopts->cp_lsda;
+  int numCoeffUpTot   = numStateUpProc*numCoeff;
+  int numCoeffDnTot   = numStateUpProc*numCoeff;
+
   int numIteration    = 100;
   int iIter;
   int iState,iCoeff,iCoeffStart,index1,index2;
@@ -273,23 +279,90 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*==========================================================================*/
 /* I) Set parameters and backup						    */
 
-  printf("==============================================");
+  printf("==============================================\n");
   printf("Estimate Largest Energy\n");
+
+  
+  //debug
+  /*
+  for(iCoeff=1;iCoeff<=numCoeffUpTot;iCoeff++){
+    fcre_up[iCoeff] = 0.0;
+    fcim_up[iCoeff] = 0.0;
+  }
+  control_cp_eext_recip(clatoms_info,clatoms_pos,cpcoeffs_info,
+		       cpcoeffs_pos,cpewald,cpscr,cpopts,pseudo,
+		       ewd_scr,atommaps,cell,ewald,ptens,&(stat_avg->vrecip),
+		       &(stat_avg->cp_enl),communicate,for_scr,cpDualGridOptOn,
+		       cp_para_fft_pkg3d_lg);
+
+  coef_force_control(cpopts,cpcoeffs_info,cpcoeffs_pos,cpscr,ewald,cpewald,
+		    cell,stat_avg,pseudo->vxc_typ,ptens->pvten_tmp,pseudo->gga_cut,
+		    pseudo->alpha_conv_dual,pseudo->n_interp_pme_dual,cpMinOn,
+		    communicate,cp_comm_state_pkg_up,
+		     cp_comm_state_pkg_dn,cp_para_fft_pkg3d_lg,cp_sclr_fft_pkg3d_lg,
+		     cp_para_fft_pkg3d_dens_cp_box,cp_sclr_fft_pkg3d_dens_cp_box,
+		     cp_para_fft_pkg3d_sm,cp_sclr_fft_pkg3d_sm,cpDualGridOptOn);
+
+  double *kseig_vals = (double*)cmalloc(numStateUpProc*sizeof(double))-1;
+  double *kseig_vecs = (double*)cmalloc(numStateUpProc*numStateUpProc*sizeof(double))-1;
+  double *ksmat_test = (double*)cmalloc(numStateUpProc*numStateUpProc*sizeof(double))-1;
+  double *ks_scr = (double*)cmalloc(numStateUpProc*numStateUpProc*sizeof(double))-1;
+  double *rs_scr1 = (double*)cmalloc(numStateUpProc*numStateUpProc*sizeof(double))-1;
+  double *rs_scr2 = (double*)cmalloc(numStateUpProc*numStateUpProc*sizeof(double))-1;
+  int *icoef_orth_up    = &(cpcoeffs_pos->icoef_orth_up);
+  int *icoef_form_up    = &(cpcoeffs_pos->icoef_form_up);
+  int *ifcoef_orth_up   = &(cpcoeffs_pos->ifcoef_orth_up);
+  int *ifcoef_form_up   = &(cpcoeffs_pos->ifcoef_form_up);
+  int *ioff_upt      = cpcoeffs_info->ioff_upt;
+  double kseig_sum;
+
+  cp_condiag_ksmat(cre_up,cim_up,*icoef_form_up,*icoef_orth_up,fcre_up,fcim_up,
+		 *ifcoef_form_up,*ifcoef_orth_up,kseig_vals,kseig_vecs,
+		  ksmat_test,ks_scr,rs_scr1,rs_scr2,ioff_upt,
+		  &(cp->cp_comm_state_pkg_up),&kseig_sum);
+
+  double *cre_temp = (double*)cmalloc(numCoeffUpTot*sizeof(double))-1;
+  double *cim_temp = (double*)cmalloc(numCoeffUpTot*sizeof(double))-1;
+  cp_rotate_vector(cre_up,cim_up,*icoef_form_up,
+                      kseig_vecs,ioff_upt,cre_temp,cim_temp,
+                      &(cp->cp_comm_state_pkg_up));
+
+  //exit(0);
+  */
 
   cpcoeffs_info->nstate_up_proc = 1;
   cpcoeffs_info->nstate_dn_proc = 1;
 
-  for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+  /*
+  for(iCoeff=1;iCoeff<=numCoeffUpTot;iCoeff++){
     fcre_up[iCoeff] = 0.0;
     fcim_up[iCoeff] = 0.0;
+  }
+  */
+
+  for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
     coeffReUpBackup[iCoeff] = cre_up[iCoeff];
     coeffImUpBackup[iCoeff] = cim_up[iCoeff];
   }//endfor iCoeff
+  /*
+  length = 0.0;
+  for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
+    length += cre_up[iCoeff]*cre_up[iCoeff]+cim_up[iCoeff]*cim_up[iCoeff];
+  }
+  length *= 2.0;
+  length += cre_up[numCoeff]*cre_up[numCoeff];
+  length = sqrt(length);
+  for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+    cre_up[iCoeff] /= length;
+    cim_up[iCoeff] /= length;
+  }
+  */ 
 
 /*==========================================================================*/
 /* II) Prepare a random initial wave function                               */
 /*     We can't use the readin coeff since it is an eigenfunction of H      */
 /*     Pick a random orbital and normalize it.			            */
+
 #ifdef MKL_RANDOM
   VSLStreamStatePtr stream;
   int errcode;
@@ -306,7 +379,7 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 #endif
 #ifndef MKL_RANDOM
   //whatever random number is good, I'm using Gaussian in this case
-  double seed = 2.0;
+  double seed = 15.0;
   int iseed;
   gaussran(2*numCoeff,&iseed,&iseed,&seed,randTrail);
   for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
@@ -329,8 +402,7 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     cre_up[iCoeff] /= length;
     cim_up[iCoeff] /= length;
   }
-  
-  
+
 /*==========================================================================*/
 /* III) Loop over iteration numbers                                           */
 
@@ -339,6 +411,12 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*--------------------------------------------------------------------------*/
 /* i) Reset force                                                           */
     
+    /*
+    for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+      fcre_up[iCoeff] = 0.0;
+      fcim_up[iCoeff] = 0.0;
+    }
+    */
     for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
       fcre_up[iCoeff] = 0.0;
       fcim_up[iCoeff] = 0.0;
@@ -373,7 +451,7 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     energyOld = energy;
     energy = 0.0;
     for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
-      energy += fcre_up[iCoeff]*cre_up[iCoeff]+fcim_up[iCoeff]+cim_up[iCoeff];
+      energy += fcre_up[iCoeff]*cre_up[iCoeff]+fcim_up[iCoeff]*cim_up[iCoeff];
     }
     energy *= 2.0;
     energy += fcre_up[numCoeff]*cre_up[numCoeff];
@@ -421,6 +499,8 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   free(coeffReUpBackup);
   free(coeffImUpBackup);
   free(randTrail);
+  //fflush(stdout);
+  //exit(0);
 
 /*==========================================================================*/
 }/*end Routine*/
@@ -482,7 +562,7 @@ void genEnergyMin(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
   int numCoeff       = cpcoeffs_info->ncoef;
   int cpDualGridOptOn = cpopts->cp_dual_grid_opt;
-  int numIteration   = 100;
+  int numIteration   = 1000;
   int iIter;
   int iState,iCoeff,iCoeffStart,index1,index2;
   int cpWaveMin     = simopts->cp_wave_min;
@@ -501,15 +581,13 @@ void genEnergyMin(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*==========================================================================*/
 /* I) Set parameters and backup                                             */
 
-  printf("==============================================");
-  printf("Estimate Largest Energy\n");
+  printf("==============================================\n");
+  printf("Estimate Smallest Energy\n");
 
   cpcoeffs_info->nstate_up_proc = 1;
   cpcoeffs_info->nstate_dn_proc = 1;
 
   for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
-    fcre_up[iCoeff] = 0.0;
-    fcim_up[iCoeff] = 0.0;
     coeffReUpBackup[iCoeff] = cre_up[iCoeff];
     coeffImUpBackup[iCoeff] = cim_up[iCoeff];
   }//endfor iCoeff
@@ -600,7 +678,7 @@ void genEnergyMin(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     energyOld = energy;
     energy = 0.0;
     for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
-      energy += fcre_up[iCoeff]*cre_up[iCoeff]+fcim_up[iCoeff]+cim_up[iCoeff];
+      energy += fcre_up[iCoeff]*cre_up[iCoeff]+fcim_up[iCoeff]*cim_up[iCoeff];
     }
     energy *= 2.0;
     energy += fcre_up[numCoeff]*cre_up[numCoeff];
@@ -651,6 +729,8 @@ void genEnergyMin(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   free(coeffImUpBackup);
   free(randTrail);
 
+  fflush(stdout);
+  exit(0);
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/

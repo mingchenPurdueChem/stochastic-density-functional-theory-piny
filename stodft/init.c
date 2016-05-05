@@ -214,14 +214,14 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
 /*==========================================================================*/
 /* V) Calculate the non-local pseudopotential list                          */
-
+  /*
   if(stodftInfo->vpsAtomListFlag==0||cpDualGridOptOn>= 1){
     control_vps_atm_list(pseudo,cell,clatoms_pos,clatoms_info,
                          atommaps,ewd_scr,for_scr,cpDualGridOptOn,
                          stodftInfo->vpsAtomListFlag);
     stodftInfo->vpsAtomListFlag = 1;
   }
-
+  */
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/

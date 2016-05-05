@@ -9,7 +9,7 @@ coeff.o :                $(STANDARD) $(DEFINES) \
                          $(TYP_STAT) \
                          $(TYP_CP) $(TYP_PAR) \
                          $(FRND_ENT) $(MATH) \
-			 $(STODFT_LOC) \
+			 $(ENR_CP_LOC) $(ENR_CPCON_LOC) $(STODFT_LOC) \
                          $(DCODE)/stodft/coeff.c
 	$(ECHO) $@
 	$(COBJ) $(DCODE)/stodft/coeff.c

@@ -447,6 +447,9 @@ void calcRhoDeterm(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     } /* endif */
   }/* endif */
 
+  for(iCoeff=1;iCoeff<=10;iCoeff++)printf("i %i rhocr_up %lg rhoci_up %lg\n",iCoeff,rhoCoeffReUp[iCoeff],rhoCoeffImUp[iCoeff]);
+  
+
 /*==========================================================================*/
 }/*end Routine*/
 /*=======================================================================*/

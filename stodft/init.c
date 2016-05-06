@@ -87,18 +87,19 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
   stodftCoefPos->chemPot = (double*)cmalloc(numChemPot*sizeof(double));
 
-  stodftCoefPos->wfInUp = (double complex*)cmalloc(numStateUpTot*sizeof(double complex));
-  stodftCoefPos->wfOutUp = (double complex*)cmalloc(numStateUpTot*sizeof(double complex));
-  stodftCoefPos->stoWfUp = (double complex**)cmalloc(numChemPot*sizeof(double complex*));
+  stodftCoefPos->stoWfUpRe = (double**)cmalloc(numChemPot*sizeof(double*));
+  stodftCoefPos->stoWfUpIm = (double**)cmalloc(numChemPot*sizeof(double*));
+
   for(iChem=0;iChem<numChemPot;iChem++){
-    stodftCoefPos->stoWfUp[iChem] = (double complex*)cmalloc(numStateUpTot*sizeof(double complex));
+    stodftCoefPos->stoWfUpRe[iChem] = (double*)cmalloc(numStateUpTot*sizeof(double))-1;
+    stodftCoefPos->stoWfUpIm[iChem] = (double*)cmalloc(numStateUpTot*sizeof(double))-1;
   }
   if(cpLsda==1&&numStateDnProc!=0){
-    stodftCoefPos->wfInDn = (double complex*)cmalloc(numStateDnTot*sizeof(double complex));
-    stodftCoefPos->wfOutDn = (double complex*)cmalloc(numStateDnTot*sizeof(double complex));
-    stodftCoefPos->stoWfDn = (double complex**)cmalloc(numChemPot*sizeof(double complex*));
+    stodftCoefPos->stoWfUpRe = (double**)cmalloc(numChemPot*sizeof(double*));
+    stodftCoefPos->stoWfUpIm = (double**)cmalloc(numChemPot*sizeof(double*));
     for(iChem=0;iChem<numChemPot;iChem++){
-      stodftCoefPos->stoWfDn[iChem] = (double complex*)cmalloc(numStateDnTot*sizeof(double complex));
+      stodftCoefPos->stoWfDnRe[iChem] = (double*)cmalloc(numStateUpTot*sizeof(double))-1;
+      stodftCoefPos->stoWfDnIm[iChem] = (double*)cmalloc(numStateUpTot*sizeof(double))-1;
     }//endfor iChem
   }//endif
 
@@ -141,16 +142,6 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
       newtonInfo->Smax = Smax;
       //newtonInfo->scale = (Smax-Smin)/energyDiff;      
       
-      break;
-    case 3:
-      stodftCoefPos->expanCoeff = (double complex*)cmalloc(totalPoly*sizeof(double));
-      stodftInfo->newtonInfo = (NEWTONINFO *)cmalloc(sizeof(NEWTONINFO));
-      newtonInfo = stodftInfo->newtonInfo;
-      newtonInfo->sampPoint = (double complex*)cmalloc(polynormLength*sizeof(double));
-      newtonInfo->sampPointUnscale = (double complex*)cmalloc(polynormLength*sizeof(double));
-      newtonInfo->Smin = Smin;
-      newtonInfo->Smax = Smax;
-      //newtonInfo->scale = (Smax-Smin)/energyDiff;
       break;
   }
 

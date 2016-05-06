@@ -415,9 +415,6 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     case 2:
       filterNewtonPolyHerm(cp,class,general_data,ip_now);
       break;
-    case 3:
-      filterNewtonPolyNoHerm(cp,class,general_data,ip_now);
-      break;      
   }
 
 

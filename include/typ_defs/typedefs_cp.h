@@ -328,9 +328,11 @@ typedef struct stodftCoeffPos{
 				    /* Lth: nstate_up_proc*ncoef		*/
   double complex *wfOutUp,*wfOutDn; /* Lst: output wave function(up/down spin)  */
 				    /* Lth: nstate_dn_proc*ncoef                */
-  double complex **stoWfUp;	    /* Lst: stochastic wave function on this	*/
-  double complex **stoWfDn;	    /*	    processor.				*/
-				    /* Lth: numChemPot*(nstate_up_proc*ncoef)	*/
+  double **stoWfUpRe;	            /* Lst: stochastic wave function on this	*/
+  double **stoWfUpIm;
+  double **stoWfDnRe;   	    /*	    processor.				*/
+  double **stoWfDnIm;		    /* Lth: numChemPot*(nstate_up_proc*ncoef)	*/
+  
   double *chemPot;		    /* Lst: chemical potentials			*/
 				    /* Lth: numChemPot				*/
 }STODFTCOEFPOS;

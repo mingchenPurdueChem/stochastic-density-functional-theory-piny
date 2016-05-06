@@ -26,6 +26,7 @@
 #include "../proto_defs/proto_communicate_wrappers.h"
 #include "../proto_defs/proto_stodft_local.h"
 
+#include "complex.h"
 #define TIME_CP_OFF
 
 /*==========================================================================*/
@@ -120,12 +121,12 @@ void normHNewtonHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /* 0) Copy the input wave function to CP coeff and zero the force */
  
   for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
-    wfInUp[iCoeff-1] = cre_up[iCoeff]+cim_up[iCoeff]*I;
+    //wfInUp[iCoeff-1] = cre_up[iCoeff]+cim_up[iCoeff]*I;
     fcre_up[iCoeff] = 0.0;
     fcim_up[iCoeff] = 0.0;
   }
   if(cpLsda==1&&numStateDnProc!=0){
-    wfInDn[iCoeff-1] = cre_dn[iCoeff]+cim_dn[iCoeff]*I;
+    //wfInDn[iCoeff-1] = cre_dn[iCoeff]+cim_dn[iCoeff]*I;
     for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
       fcre_dn[iCoeff] = 0.0;
       fcim_dn[iCoeff] = 0.0;
@@ -152,32 +153,53 @@ void normHNewtonHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 
   for(iState=0;iState<numStateUpProc;iState++){
     iCoeffStart = iState*numCoeff;
-    for(iCoeff=0;iCoeff<numCoeffM1;iCoeff++){
+    for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
       index1 = iCoeffStart+iCoeff;
-      wfOutUp[index1] = fcre_up[index1+1]*scale1+fcim_up[index1+1]*scale1*I;
+      fcre_up[index1] *= scale1;
+      fcim_up[index1] *= scale1;	
+      //wfOutUp[index1] = fcre_up[index1+1]*scale1+fcim_up[index1+1]*scale1*I;
     }//endfor iCoeff
-    index1 = iCoeffStart+numCoeffM1;
-    wfOutUp[index1] = fcre_up[index1+1]*scale2;
+    index1 = iCoeffStart+numCoeff;
+    fcre_up[index1] *= scale2;
+    //wfOutUp[index1] = fcre_up[index1+1]*scale2;
   }//endfor iState
   if(cpLsda==1&&numStateDnProc!=0){
     for(iState=0;iState<numStateDnProc;iState++){
       iCoeffStart = iState*numCoeff;
-      for(iCoeff=0;iCoeff<numCoeffM1;iCoeff++){
+      for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
 	index1 = iCoeffStart+iCoeff;
-	wfOutDn[index1] = fcre_dn[index1+1]*scale1+fcim_dn[index1+1]*scale1*I;
+	fcre_dn[index1] *= scale1;
+	fcim_dn[index1] *= scale1;
+	//wfOutDn[index1] = fcre_dn[index1+1]*scale1+fcim_dn[index1+1]*scale1*I;
       }//endfor iCoeff
-      index1 = iCoeffStart+numCoeffM1;
-      index2 = index1+1;
-      wfOutDn[index1] = fcre_dn[index1+1]*scale2+fcim_dn[index1+1]*scale2*I;
+      index1 = iCoeffStart+numCoeff;
+      fcim_dn[index1] *= scale2;
+      //wfOutDn[index1] = fcre_dn[index1+1]*scale2+fcim_dn[index1+1]*scale2*I;
     }//endfor iState
   }
 
 /*==========================================================================*/
-/* 2) Calculate P_(n+1)(H)|phi> */
+/* 2) Calculate P_(n+1)(H)|phi>. Everything store in fcre(im)_up(dn) */
 
-  ZAXPY(&numCoeffUpTotal,&prefact,wfInUp,&incx,wfOutUp,&incy);
+  DAXPY(&numCoeffUpTotal,&prefact,&cre_up[1],&incx,&fcre_up[1],&incy);
+  DAXPY(&numCoeffUpTotal,&prefact,&cim_up[1],&incx,&fcim_up[1],&incy);
   if(cpLsda==1&&numStateDnProc!=0){
-    ZAXPY(&numCoeffDnTotal,&prefact,wfInDn,&incx,wfOutDn,&incy);
+    DAXPY(&numCoeffDnTotal,&prefact,&cre_dn[1],&incx,&fcre_dn[1],&incy);
+    DAXPY(&numCoeffDnTotal,&prefact,&cim_dn[1],&incx,&fcim_dn[1],&incy);
+  }
+
+/*==========================================================================*/
+/* 3) Copy the force back to the coefficients */
+
+  for(iCoeff=1;iCoeff<numCoeffUpTotal;iCoeff++){
+    cre_up[iCoeff] = fcre_up[iCoeff];
+    cim_up[iCoeff] = fcim_up[iCoeff];
+  }
+  if(cpLsda==1&&numStateDnProc!=0){
+    for(iCoeff=1;iCoeff<numCoeffUpTotal;iCoeff++){
+      cre_dn[iCoeff] = fcre_dn[iCoeff];
+      cim_dn[iCoeff] = fcim_dn[iCoeff];
+    }
   }
   
 /*==========================================================================*/
@@ -334,6 +356,21 @@ void normHNewtonNoHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   if(cpLsda==1&&numStateDnProc!=0){
     ZAXPY(&numCoeffDnTotal,&prefact,wfInDn,&incx,wfOutDn,&incy);
   }
+
+/*==========================================================================*/
+/* 3) Copy the force back to the coefficients */
+
+  for(iCoeff=1;iCoeff<numCoeffUpTotal;iCoeff++){
+    cre_up[iCoeff] = creal(wfOutUp[iCoeff]);
+    cim_up[iCoeff] = cimag(wfOutUp[iCoeff]);
+  }
+  if(cpLsda==1&&numStateDnProc!=0){
+    for(iCoeff=1;iCoeff<numCoeffUpTotal;iCoeff++){
+      cre_dn[iCoeff] = creal(wfOutDn[iCoeff]);
+      cim_dn[iCoeff] = cimag(wfOutDn[iCoeff]);
+    }
+  }
+
   
 /*==========================================================================*/
 }/*end Routine*/

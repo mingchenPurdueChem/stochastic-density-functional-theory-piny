@@ -8,6 +8,7 @@ void genCoeffNewtonNoHermit(STODFTINFO *,STODFTCOEFPOS *);
 void genSampNewtonHermit(STODFTINFO *,STODFTCOEFPOS *);
 void genEnergyMax(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,CLATOMS_POS *);
 void genEnergyMin(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,CLATOMS_POS *);
+void genEigenOrb(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,CLATOMS_POS *);
 
 /*-----------------------------------------------------------------*/
 /* filter.c                                                        */

@@ -265,13 +265,16 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   CPOPTS       *cpopts       = &(cp->cpopts);
   CPSCR	       *cpscr	     = &(cp->cpscr);
   STODFTINFO   *stodftInfo   = cp->stodftInfo;
-  NEWTONINFO   *newtonInfo   = stodftInfo->newtonInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  NEWTONINFO   *newtonInfo      = stodftInfo->newtonInfo;
   COMMUNICATE   *commCP	        = &(cp->communicate);
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
   CPCOEFFS_POS  *cpcoeffs_pos   = &(cp->cpcoeffs_pos[ip_now]);
   MPI_Comm commStates = commCP->comm_states;
   
 
+  int iPoly;
+  int polynormLength = stodftInfo->polynormLength;
   int expanType = stodftInfo->expanType;
   int numProcStates = commCP->np_states;
   int myidState = commCP->myid_state;
@@ -293,7 +296,10 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   double energyMin,energyMax;
   double Smin,Smax; 
   double energyDiff;
+  double scale;
 
+  double *sampPoint = newtonInfo->sampPoint;
+  double *sampPointUnscale = newtonInfo->sampPointUnscale;
   double *coeffReUp = cpcoeffs_pos->cre_up;
   double *coeffImUp = cpcoeffs_pos->cim_up;
   double *coeffReDn = cpcoeffs_pos->cre_dn;
@@ -319,7 +325,7 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   double *divRhoxDn       = cpscr->cpscr_grho.d_rhox_dn;
   double *divRhoyDn       = cpscr->cpscr_grho.d_rhoy_dn;
   double *divRhozDn       = cpscr->cpscr_grho.d_rhoz_dn;
-  double *d2RhoDn        = cpscr->cpscr_grho.d2_rho_dn;
+  double *d2RhoDn         = cpscr->cpscr_grho.d2_rho_dn;
   
 /*==========================================================================*/
 /* 0) Check the forms							    */
@@ -353,7 +359,6 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /* II) In parallel, transpose coefs back to normal form                 */
 
   if(numProcStates>1){
-
    cp_transpose_bck(coeffReUp,coeffImUp,coefFormUp,
                     scrCoeffReUp,scrCoeffImUp,&(cp->cp_comm_state_pkg_up));
    if(cpLsda==1&&numStateDnProc>0){
@@ -376,7 +381,6 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* IV) Calculate Emax and Emin                                          */
 
-  printf("%i\n",myidState);
   if(myidState==0){
     genEnergyMax(cp,class,general_data,cpcoeffs_pos,clatoms_pos);
     genEnergyMin(cp,class,general_data,cpcoeffs_pos,clatoms_pos);
@@ -392,10 +396,16 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   energyDiff = stodftInfo->energyDiff;
   stodftInfo->energyMean = 0.5*(energyMin+energyMax);
   
-  if(expanType==2||expanType==3){
+  if(expanType==2){
     Smin = newtonInfo->Smin;
     Smax = newtonInfo->Smax;
-    newtonInfo->scale = (Smax-Smin)/energyDiff;
+    scale = (Smax-Smin)/energyDiff;
+    newtonInfo->scale = scale;
+    for(iPoly=0;iPoly<polynormLength;iPoly++){
+      sampPointUnscale[iPoly] = (sampPoint[iPoly]-Smin)/scale+energyMin;
+      //printf("sampunscale %lg\n",sampPointUnscale[iPoly]);
+    }
+    genCoeffNewtonHermit(stodftInfo,stodftCoefPos);
   }
 
 /*======================================================================*/

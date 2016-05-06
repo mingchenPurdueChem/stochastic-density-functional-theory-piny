@@ -59,14 +59,24 @@ void genCoeffNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   double funValue,sum,prod;
 
   FERMIFUNR fermiFunction = stodftInfo->fermiFunctionReal;
+ 
+  /*
+  for(iPoly=0;iPoly<polynormLength;iPoly++){
+    funValue = fermiFunction(sampPointUnscale[iPoly],chemPot[0],beta);
+    printf("funValue %lg %lg\n",sampPointUnscale[iPoly],funValue);
+  }
 
+  fflush(stdout);
+  exit(0);
+  */
+  
   for(imu=0;imu<numChemPot;imu++){
     funValue = fermiFunction(sampPointUnscale[0],chemPot[imu],beta);
     expanCoeff[imu] = funValue;
     funValue = fermiFunction(sampPointUnscale[1],chemPot[imu],beta);
     expanCoeff[numChemPot+imu] = (funValue-expanCoeff[imu])/(sampPoint[1]-sampPoint[0]);
     for(iPoly=2;iPoly<polynormLength;iPoly++){
-      funValue = fermiFunction(sampPointUnscale[1],chemPot[imu],beta);
+      funValue = fermiFunction(sampPointUnscale[iPoly],chemPot[imu],beta);
       sum = funValue-expanCoeff[imu];
       prod = 1.0;
       for(jPoly=1;jPoly<iPoly;jPoly++){
@@ -78,6 +88,14 @@ void genCoeffNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
     }//endfor iPoly
   }//endfor imu
 
+  //debug
+  /*
+  for(imu=0;imu<numChemPot;imu++){
+    for(iPoly=0;iPoly<polynormLength;iPoly++){
+      printf("mu %lg expanCoeff %lg\n",chemPot[imu],expanCoeff[iPoly]);
+    }
+  }
+  */
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/
@@ -167,7 +185,7 @@ void genSampNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
 /*==========================================================================*/
 /* 0) Generate sample candidates in range [Smin,Smax] */
   
-  for(iPoly=0;iPoly<polynormLength;iPoly++)sampCand[iPoly] = Smin+iPoly*delta;
+  for(iCand=0;iCand<numSampCand;iCand++)sampCand[iCand] = Smin+iCand*delta;
 
 /*==========================================================================*/
 /* 1) Select samples form sample candidates  */
@@ -179,7 +197,7 @@ void genSampNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
       obj = 0.0;
       for(jPoly=0;jPoly<iPoly;jPoly++){
 	diff = sampCand[iCand]-sampPoint[jPoly];
-	if(diff<1.0e-10)obj += -1.0e30;
+	if(fabs(diff)<1.0e-10)obj += -1.0e30;
 	else obj += log(diff*diff);
       }//endfor jPoly
       if(obj>objMax){
@@ -190,13 +208,13 @@ void genSampNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
     sampPoint[iPoly] = sampCand[objMaxIndex];
   }//endfor iPoly
 
-/*==========================================================================*/
-/* 2) Rescale the sample points to energy space  */
-  
+  //debug
+  /*
   for(iPoly=0;iPoly<polynormLength;iPoly++){
-    sampPointUnscale[iPoly] = (sampPoint[iPoly]-Smin)*scale+energyMin;
+    printf("iPoly %i samp %lg\n",iPoly,sampPoint[iPoly]);
   }
-  
+  */
+
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/
@@ -729,10 +747,119 @@ void genEnergyMin(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   free(coeffImUpBackup);
   free(randTrail);
 
-  fflush(stdout);
-  exit(0);
+  //fflush(stdout);
+  //exit(0);
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void genEigenOrb(CP *cp,CLASS *class,GENERAL_DATA *general_data,
+                 CPCOEFFS_POS *cpcoeffs_pos,CLATOMS_POS *clatoms_pos)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  CELL *cell                    = &(general_data->cell);
+  CLATOMS_INFO *clatoms_info    = &(class->clatoms_info);
+  EWALD *ewald                  = &(general_data->ewald);
+  EWD_SCR *ewd_scr              = &(class->ewd_scr);
+  ATOMMAPS *atommaps            = &(class->atommaps);
+  FOR_SCR *for_scr              = &(class->for_scr);
+  STAT_AVG *stat_avg            = &(general_data->stat_avg);
+  PTENS *ptens                  = &(general_data->ptens);
+  SIMOPTS *simopts              = &(general_data->simopts);
+
+  STODFTINFO *stodftInfo        = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  CPOPTS *cpopts                = &(cp->cpopts);
+  CPEWALD *cpewald              = &(cp->cpewald);
+  CPSCR *cpscr                  = &(cp->cpscr);
+  PSEUDO *pseudo                = &(cp->pseudo);
+  COMMUNICATE *communicate      = &(cp->communicate);
+
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm            = &(cp->cp_sclr_fft_pkg3d_sm);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_sm            = &(cp->cp_para_fft_pkg3d_sm);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_dens_cp_box   = &(cp->cp_sclr_fft_pkg3d_dens_cp_box);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_dens_cp_box   = &(cp->cp_para_fft_pkg3d_dens_cp_box);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_lg             = &(cp->cp_sclr_fft_pkg3d_lg);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg             = &(cp->cp_para_fft_pkg3d_lg);
+  CP_COMM_STATE_PKG *cp_comm_state_pkg_up          = &(cp->cp_comm_state_pkg_up);
+  CP_COMM_STATE_PKG *cp_comm_state_pkg_dn          = &(cp->cp_comm_state_pkg_dn);
+
+  int numStateUpProc  = cpcoeffs_info->nstate_up_proc;
+  int numStateDnProc  = cpcoeffs_info->nstate_dn_proc;
+  int numCoeff        = cpcoeffs_info->ncoef;
+  int cpDualGridOptOn = cpopts->cp_dual_grid_opt;
+  int cpLsda          = cpopts->cp_lsda;
+  int numCoeffUpTot   = numStateUpProc*numCoeff;
+  int numCoeffDnTot   = numStateUpProc*numCoeff;
+  int iCoeff;
+  int cpWaveMin     = simopts->cp_wave_min;
+  int cpMin         = simopts->cp_min;
+  int cpWaveMinPimd = simopts->cp_wave_min_pimd;
+  int cpMinOn = cpWaveMin + cpMin + cpWaveMinPimd;
+
+
+  double *kseig_vals = (double*)cmalloc(numStateUpProc*sizeof(double))-1;
+  double *kseig_vecs = (double*)cmalloc(numStateUpProc*numStateUpProc*sizeof(double))-1;
+  double *ksmat_test = (double*)cmalloc(numStateUpProc*numStateUpProc*sizeof(double))-1;
+  double *ks_scr = (double*)cmalloc(numStateUpProc*numStateUpProc*sizeof(double))-1;
+  double *rs_scr1 = (double*)cmalloc(numStateUpProc*numStateUpProc*sizeof(double))-1;
+  double *rs_scr2 = (double*)cmalloc(numStateUpProc*numStateUpProc*sizeof(double))-1;
+  int *icoef_orth_up    = &(cpcoeffs_pos->icoef_orth_up);
+  int *icoef_form_up    = &(cpcoeffs_pos->icoef_form_up);
+  int *ifcoef_orth_up   = &(cpcoeffs_pos->ifcoef_orth_up);
+  int *ifcoef_form_up   = &(cpcoeffs_pos->ifcoef_form_up);
+  int *ioff_upt      = cpcoeffs_info->ioff_upt;
+  double kseig_sum;
+
+  double *cre_up = cpcoeffs_pos->cre_up;
+  double *cim_up = cpcoeffs_pos->cim_up;
+  double *fcre_up = cpcoeffs_pos->fcre_up;
+  double *fcim_up = cpcoeffs_pos->fcim_up;
+  double *cre_temp = (double*)cmalloc(numCoeffUpTot*sizeof(double))-1;
+  double *cim_temp = (double*)cmalloc(numCoeffUpTot*sizeof(double))-1;
+
+  for(iCoeff=1;iCoeff<=numCoeffUpTot;iCoeff++){
+    fcre_up[iCoeff] = 0.0;
+    fcim_up[iCoeff] = 0.0;
+  }
+  control_cp_eext_recip(clatoms_info,clatoms_pos,cpcoeffs_info,
+                       cpcoeffs_pos,cpewald,cpscr,cpopts,pseudo,
+                       ewd_scr,atommaps,cell,ewald,ptens,&(stat_avg->vrecip),
+                       &(stat_avg->cp_enl),communicate,for_scr,cpDualGridOptOn,
+                       cp_para_fft_pkg3d_lg);
+
+  coef_force_control(cpopts,cpcoeffs_info,cpcoeffs_pos,cpscr,ewald,cpewald,
+                    cell,stat_avg,pseudo->vxc_typ,ptens->pvten_tmp,pseudo->gga_cut,
+                    pseudo->alpha_conv_dual,pseudo->n_interp_pme_dual,cpMinOn,
+                    communicate,cp_comm_state_pkg_up,
+                     cp_comm_state_pkg_dn,cp_para_fft_pkg3d_lg,cp_sclr_fft_pkg3d_lg,
+                     cp_para_fft_pkg3d_dens_cp_box,cp_sclr_fft_pkg3d_dens_cp_box,
+                     cp_para_fft_pkg3d_sm,cp_sclr_fft_pkg3d_sm,cpDualGridOptOn);
+
+  cp_condiag_ksmat(cre_up,cim_up,*icoef_form_up,*icoef_orth_up,fcre_up,fcim_up,
+                 *ifcoef_form_up,*ifcoef_orth_up,kseig_vals,kseig_vecs,
+                  ksmat_test,ks_scr,rs_scr1,rs_scr2,ioff_upt,
+                  &(cp->cp_comm_state_pkg_up),&kseig_sum);
+
+  cp_rotate_vector(cre_up,cim_up,*icoef_form_up,
+                      kseig_vecs,ioff_upt,cre_temp,cim_temp,
+                      &(cp->cp_comm_state_pkg_up));
+
+  free(&kseig_vals[1]);
+  free(&kseig_vecs[1]);
+  free(&ksmat_test[1]);
+  free(&ks_scr[1]);
+  free(&rs_scr1[1]);
+  free(&rs_scr2[1]);
+  free(&cre_temp[1]);
+  free(&cim_temp[1]);
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
 

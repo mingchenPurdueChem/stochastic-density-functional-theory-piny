@@ -20,6 +20,8 @@
 #include "../typ_defs/typedefs_cp.h"
 #include "../proto_defs/proto_math.h"
 #include "../proto_defs/proto_communicate_wrappers.h"
+#include "../proto_defs/proto_energy_cp_local.h"
+#include "../proto_defs/proto_energy_cpcon_local.h"
 #include "../proto_defs/proto_stodft_local.h"
 
 #define TIME_CP_OFF
@@ -56,8 +58,16 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int startIndex;
 
   double energyDiff  = stodftInfo->energyDiff;
+  double energyMin   = stodftInfo->energyMin;
+  double energyMax   = stodftInfo->energyMax;
+  double energyMean  = stodftInfo->energyMean;
+  double scale       = newtonInfo->scale;
   double polyCoeff;
   double *sampPoint = (double*)newtonInfo->sampPoint;
+  double *cre_up = cpcoeffs_pos->cre_up;
+  double *cim_up = cpcoeffs_pos->cim_up;
+  double *cre_dn = cpcoeffs_pos->cre_dn;
+  double *cim_dn = cpcoeffs_pos->cim_dn;
 
   double *expanCoeff = (double*)stodftCoefPos->expanCoeff;
   double complex *wfInUp   = stodftCoefPos->wfInUp;
@@ -66,10 +76,37 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   double complex *wfOutDn  = stodftCoefPos->wfOutDn;
   double complex **stoWfUp = stodftCoefPos->stoWfUp;
   double complex **stoWfDn = stodftCoefPos->stoWfDn;
-  
+ 
+//debug
+  /*
+  int numPointTest = 1000;
+  int iPoint;
+  double pointTest;
+  double deltPoint = energyDiff/numPointTest;
+  double pointScale;
+  double funValue,prod;
+  for(iPoint=0;iPoint<numPointTest;iPoint++){
+    pointTest = energyMin+(iPoint+0.5)*deltPoint;
+    pointScale = (pointTest-energyMean)*scale;
+    funValue = expanCoeff[0];
+    prod = 1.0;
+    for(iPoly=1;iPoly<polynormLength;iPoly++){
+      prod *= pointScale-sampPoint[iPoly-1];
+      funValue += expanCoeff[iPoly]*prod;
+    }
+    printf("TestFunExpan %lg %lg %lg\n",pointTest,pointScale,funValue);
+  }
+  */
+//debug
+  genEigenOrb(cp,class,general_data,cpcoeffs_pos,clatoms_pos);
+
+  for(iCoeff=0;iCoeff<numCoeffUpTotal;iCoeff++){
+//    
+  }
+ 
 /*==========================================================================*/
 /* 0) Copy the initial stochastic orbital */
-  
+ 
   for(imu=0;imu<numChemPot;imu++){
     for(iCoeff=0;iCoeff<numCoeffUpTotal;iCoeff++){
       stoWfUp[imu][iCoeff] = expanCoeff[imu]*wfInUp[iCoeff];

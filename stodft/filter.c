@@ -78,15 +78,17 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   
 
 //debug
-  /*
-  int numPointTest = 1000;
+/*  
+  int numPointTest = 100;
   int iPoint;
   double pointTest;
-  double deltPoint = energyDiff/numPointTest;
+  double energyMinTest = -0.1150735;
+  double energyMaxTest = 0.10104944;
+  double deltPoint = (energyMaxTest-energyMinTest)/numPointTest;
   double pointScale;
   double funValue,prod;
   for(iPoint=0;iPoint<numPointTest;iPoint++){
-    pointTest = energyMin+(iPoint+0.5)*deltPoint;
+    pointTest = energyMinTest+(iPoint+0.5)*deltPoint;
     pointScale = (pointTest-energyMean)*scale;
     funValue = expanCoeff[0];
     prod = 1.0;
@@ -96,16 +98,10 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     }
     printf("TestFunExpan %lg %lg %lg\n",pointTest,pointScale,funValue);
   }
-  */
+  fflush(stdout);
+  exit(0);
+*/
 //debug
-  double *coefReBack = (double*)cmalloc(numCoeffUpTotal*sizeof(double));
-  double *coefImBack = (double*)cmalloc(numCoeffUpTotal*sizeof(double));
-  genEigenOrb(cp,class,general_data,cpcoeffs_pos,clatoms_pos);
-
-  for(iCoeff=0;iCoeff<numCoeffUpTotal;iCoeff++){
-    coefReBack[iCoeff] = cre_up[iCoeff];
-    coefImBack[iCoeff] = cim_up[iCoeff];
-  }
  
 /*==========================================================================*/
 /* 0) Copy the initial stochastic orbital */
@@ -127,6 +123,7 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /* 1) Loop over all polynomial terms (iPoly=0<=>polynomial order 1) */
   
   for(iPoly=1;iPoly<polynormLength;iPoly++){
+    printf("iPoly %i\n",iPoly);
     normHNewtonHerm(cp,class,general_data,
                  cpcoeffs_pos,clatoms_pos,sampPoint[iPoly-1]);
     for(imu=0;imu<numChemPot;imu++){
@@ -206,7 +203,7 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int cpDualGridOptOn = cpopts->cp_dual_grid_opt;
   int cpLsda          = cpopts->cp_lsda;
   int numCoeffUpTot   = numStateUpProc*numCoeff;
-  int numCoeffDnTot   = numStateUpProc*numCoeff;
+  int numCoeffDnTot   = numStateDnProc*numCoeff;
 
   int numIteration    = 100;
   int iIter;

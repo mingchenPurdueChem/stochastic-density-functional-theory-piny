@@ -273,7 +273,7 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   MPI_Comm commStates = commCP->comm_states;
   
 
-  int iPoly;
+  int iPoly,iState,iState2,iCoeff;
   int polynormLength = stodftInfo->polynormLength;
   int expanType = stodftInfo->expanType;
   int numProcStates = commCP->np_states;
@@ -292,11 +292,14 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int *forceOrthUp  = &(cpcoeffs_pos->ifcoef_orth_up);
   int *coefOrthDn   = &(cpcoeffs_pos->icoef_orth_dn);
   int *forceOrthDn  = &(cpcoeffs_pos->ifcoef_orth_dn);
+  int numCoeffUpTot   = numStateUpProc*numCoeff;
+  int numCoeffDnTot   = numStateDnProc*numCoeff;
   
   double energyMin,energyMax;
   double Smin,Smax; 
   double energyDiff;
   double scale;
+  double length;
 
   double *sampPoint = newtonInfo->sampPoint;
   double *sampPointUnscale = newtonInfo->sampPointUnscale;
@@ -326,10 +329,86 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   double *divRhoyDn       = cpscr->cpscr_grho.d_rhoy_dn;
   double *divRhozDn       = cpscr->cpscr_grho.d_rhoz_dn;
   double *d2RhoDn         = cpscr->cpscr_grho.d2_rho_dn;
+
+  double **stoWfUpRe = stodftCoefPos->stoWfUpRe;
+  double **stoWfUpIm = stodftCoefPos->stoWfUpIm;
+  double **stoWfDnRe = stodftCoefPos->stoWfDnRe;
+  double **stoWfDnIm = stodftCoefPos->stoWfDnIm;
+
   
 /*==========================================================================*/
 /* 0) Check the forms							    */
 
+//debug
+  genEigenOrb(cp,class,general_data,cpcoeffs_pos,clatoms_pos);
+
+  double *coeffReUpBackup = (double*)cmalloc((numCoeffUpTot+1)*sizeof(double));
+  double *coeffImUpBackup = (double*)cmalloc((numCoeffUpTot+1)*sizeof(double));
+  double *randTrail = (double *)cmalloc((2*numCoeffUpTot+1)*sizeof(double));
+
+  for(iState=0;iState<numStateUpProc;iState++){
+    length = 0.0;
+    for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
+      length += coeffReUp[iState*numCoeff+iCoeff]*coeffReUp[iState*numCoeff+iCoeff]+
+		coeffImUp[iState*numCoeff+iCoeff]*coeffImUp[iState*numCoeff+iCoeff];
+    }
+    length *= 2.0;
+    length += coeffReUp[iState*numCoeff+numCoeff]*coeffReUp[iState*numCoeff+numCoeff];
+    length = sqrt(length);
+    for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+      coeffReUp[iState*numCoeff+iCoeff] /= length;
+      coeffImUp[iState*numCoeff+iCoeff] /= length;
+    }
+  }
+
+  for(iCoeff=1;iCoeff<=numCoeffUpTot;iCoeff++){
+    coeffReUpBackup[iCoeff] = coeffReUp[iCoeff];
+    coeffImUpBackup[iCoeff] = coeffImUp[iCoeff];
+  }
+#ifdef MKL_RANDOM
+  VSLStreamStatePtr stream;
+  int errcode;
+  int seed = 1;
+  errcode = vslNewStream(&stream,VSL_BRNG_MCG31,seed);
+  errcode = vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD,stream,2*numCoeffUpTot,randTrail,randMin,randMax);
+  for(iCoeff=1;iCoeff<=numCoeffTot;iCoeff++){
+    coeffReUp[iCoeff] = randTrail[iCoeff-1];
+  }
+  for(iCoeff=1;iCoeff<=numCoeffTot;iCoeff++){
+    coeffImUp[iCoeff] = randTrail[iCoeff-1+numCoeffUpTot];
+  }
+  for(iState=0;iState<numStateUpProc;iState++)coeffImUp[iState*numCoeff+numCoeff] = 0.0;//Keep everything real
+#endif
+#ifndef MKL_RANDOM
+  //whatever random number is good, I'm using Gaussian in this case
+  double seed = 54.1253;
+  int iseed;
+  gaussran(2*numCoeffUpTot,&iseed,&iseed,&seed,randTrail);
+  for(iCoeff=1;iCoeff<=numCoeffUpTot;iCoeff++){
+    coeffReUp[iCoeff] = randTrail[iCoeff-1];
+  }
+  for(iCoeff=1;iCoeff<=numCoeffUpTot;iCoeff++){
+    coeffImUp[iCoeff] = randTrail[iCoeff-1+numCoeffUpTot];
+  }
+  for(iState=0;iState<numStateUpProc;iState++)coeffImUp[iState*numCoeff+numCoeff] = 0.0;//Keep everything real
+#endif
+
+  //Normalize the trail wave function
+  for(iState=0;iState<numStateUpProc;iState++){
+    length = 0.0;
+    for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
+      length += coeffReUp[iState*numCoeff+iCoeff]*coeffReUp[iState*numCoeff+iCoeff]+
+		coeffImUp[iState*numCoeff+iCoeff]*coeffImUp[iState*numCoeff+iCoeff];
+    }
+    length *= 2.0;
+    length += coeffReUp[iState*numCoeff+numCoeff]*coeffReUp[iState*numCoeff+numCoeff];
+    length = sqrt(length);
+    for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+      coeffReUp[iState*numCoeff+iCoeff] /= length;
+      coeffImUp[iState*numCoeff+iCoeff] /= length;
+    }
+  }
+//enddebug
 
   if(numProcStates>1){
     if(*coefFormUp+*forceFormUp!=2){
@@ -411,11 +490,45 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* V) Filter the stochastic orbitals					*/
 
+  //debug 
+
   switch(expanType){
     case 2:
       filterNewtonPolyHerm(cp,class,general_data,ip_now);
       break;
   }
+
+//debug
+  for(iState=0;iState<numStateUpProc;iState++){
+    length = 0.0;
+    for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
+      length += stoWfUpRe[0][iState*numCoeff+iCoeff]*stoWfUpRe[0][iState*numCoeff+iCoeff]+
+                stoWfUpIm[0][iState*numCoeff+iCoeff]*stoWfUpIm[0][iState*numCoeff+iCoeff];
+    }
+    length *= 2.0;
+    length += stoWfUpRe[0][iState*numCoeff+numCoeff]*stoWfUpRe[0][iState*numCoeff+numCoeff];
+    length = sqrt(length);
+    for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+      stoWfUpRe[0][iState*numCoeff+iCoeff] /= length;
+      stoWfUpIm[0][iState*numCoeff+iCoeff] /= length;
+    }
+  }
+  double dot;
+  for(iState=0;iState<numStateUpProc;iState++){
+    printf("iState %i ",iState);
+    for(iState2=5;iState2<6;iState2++){
+      dot = 0.0;
+      for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
+	dot += stoWfUpRe[0][iState*numCoeff+iCoeff]*coeffReUpBackup[iState2*numCoeff+iCoeff]+
+	       stoWfUpIm[0][iState*numCoeff+iCoeff]*coeffImUpBackup[iState2*numCoeff+iCoeff];
+      }
+      dot *= 2.0;
+      dot += stoWfUpRe[0][iState*numCoeff+numCoeff]*coeffReUpBackup[iState2*numCoeff+numCoeff];
+      printf("%.10lg ",1.0-fabs(dot));
+    }
+    printf("\n");
+  }
+//enddebug
 
 
 /*-----------------------------------------------------------------------*/

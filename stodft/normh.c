@@ -112,6 +112,7 @@ void normHNewtonHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   double *fcim_up = cpcoeffs_pos->fcim_up;
   double *fcre_dn = cpcoeffs_pos->fcre_dn;
   double *fcim_dn = cpcoeffs_pos->fcim_dn;
+  double dot;
 
 /*==========================================================================*/
 /* 0) Copy the input wave function to CP coeff and zero the force */
@@ -186,7 +187,20 @@ void normHNewtonHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 
 /*==========================================================================*/
 /* 3) Copy the force back to the coefficients */
-
+  //debug
+  /*
+  for(iState=0;iState<numStateUpProc;iState++){
+    dot = 0.0;
+    for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
+      dot += cre_up[iState*numCoeff+iCoeff]*fcre_up[iState*numCoeff+iCoeff]+
+	    cim_up[iState*numCoeff+iCoeff]*fcim_up[iState*numCoeff+iCoeff];
+    }
+    dot *= 2.0;
+    dot += cre_up[iState*numCoeff+numCoeff]*fcre_up[iState*numCoeff+numCoeff];
+    dot *= 0.5;
+    printf("zn %lg dot %lg\n",zn,dot);
+  } 
+  */
   for(iCoeff=1;iCoeff<numCoeffUpTotal;iCoeff++){
     cre_up[iCoeff] = fcre_up[iCoeff];
     cim_up[iCoeff] = fcim_up[iCoeff];
@@ -197,7 +211,7 @@ void normHNewtonHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       cim_dn[iCoeff] = fcim_dn[iCoeff];
     }
   }
-  
+
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/

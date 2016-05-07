@@ -147,18 +147,25 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
   //For debug only
   //stodftCoefPos->chemPot[0] = -0.17435045;
-  stodftCoefPos->chemPot[0] = 6.0;
+  stodftCoefPos->chemPot[0] = 0.075726635;
+  
 
 /*==========================================================================*/
 /* III) Initialize utility data						    */
-  
+  FILE *fileSampPoint = fopen("samp-point","r");
+  double *sampLocal = (double*)(newtonInfo->sampPoint);
+
   switch(expanType){
     case 2:
-      genSampNewtonHermit(stodftInfo,stodftCoefPos);
+      for(iSamp=0;iSamp<polynormLength;iSamp++){
+	fscanf(fileSampPoint,"%lg",&(sampLocal[iSamp]));
+	printf("samp %lg\n",sampLocal[iSamp]);
+      }
+      //genSampNewtonHermit(stodftInfo,stodftCoefPos);
       break;
     // I'll do chebyshev and non-Hermitain Newtonian later    
   }
-
+  fclose(fileSampPoint);
 /*==========================================================================*/
 /* IV) Initialize Flags							    */
 

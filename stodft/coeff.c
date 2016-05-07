@@ -58,6 +58,8 @@ void genCoeffNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   double beta = stodftInfo->beta;
   double funValue,sum,prod;
 
+  double timeStart,timeEnd;
+  //FILE *fileCoeff = fopen("coeff","w");
   FERMIFUNR fermiFunction = stodftInfo->fermiFunctionReal;
  
   /*
@@ -69,7 +71,8 @@ void genCoeffNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   fflush(stdout);
   exit(0);
   */
-  
+  cputime(&timeStart);  
+ 
   for(imu=0;imu<numChemPot;imu++){
     funValue = fermiFunction(sampPointUnscale[0],chemPot[imu],beta);
     expanCoeff[imu] = funValue;
@@ -88,6 +91,9 @@ void genCoeffNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
     }//endfor iPoly
   }//endfor imu
 
+  cputime(&timeEnd);
+
+  printf("Coeff time %lg\n",timeEnd-timeStart);
   //debug
   /*
   for(imu=0;imu<numChemPot;imu++){
@@ -96,6 +102,15 @@ void genCoeffNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
     }
   }
   */
+  /*
+  for(imu=0;imu<numChemPot;imu++){
+    for(iPoly=0;iPoly<polynormLength;iPoly++){
+      fprintf(fileCoeff,"%.13lg\n",expanCoeff[iPoly*numChemPot+imu]);
+    }
+  }
+  fclose(fileCoeff); 
+  */
+
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/
@@ -127,9 +142,13 @@ void genSampNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   double *sampPointUnscale = (double*)newtonInfo->sampPointUnscale;
   double *sampCand = (double*)cmalloc(numSampCand*sizeof(double));
 
+  double timeStart,timeEnd;
+  FILE *fileSampPoint = fopen("samp-point","w");
+
 /*==========================================================================*/
 /* 0) Generate sample candidates in range [Smin,Smax] */
-  
+  cputime(&timeStart); 
+ 
   for(iCand=0;iCand<numSampCand;iCand++)sampCand[iCand] = Smin+iCand*delta;
 
 /*==========================================================================*/
@@ -159,6 +178,12 @@ void genSampNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
     printf("iPoly %i samp %lg\n",iPoly,sampPoint[iPoly]);
   }
   */
+  cputime(&timeEnd);
+  printf("Samp time %lg\n",timeEnd-timeStart);
+  for(iPoly=0;iPoly<polynormLength;iPoly++){
+    fprintf(fileSampPoint,"%.13lg\n",sampPoint[iPoly]);
+  }
+  fclose(fileSampPoint);
 
 /*==========================================================================*/
 }/*end Routine*/

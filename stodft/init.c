@@ -157,10 +157,12 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
   switch(expanType){
     case 2:
+      
       for(iSamp=0;iSamp<polynormLength;iSamp++){
 	fscanf(fileSampPoint,"%lg",&(sampLocal[iSamp]));
 	printf("samp %lg\n",sampLocal[iSamp]);
       }
+      
       //genSampNewtonHermit(stodftInfo,stodftCoefPos);
       break;
     // I'll do chebyshev and non-Hermitain Newtonian later    

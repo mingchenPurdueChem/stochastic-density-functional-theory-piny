@@ -201,12 +201,12 @@ void normHNewtonHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     printf("zn %lg dot %lg\n",zn,dot);
   } 
   */
-  for(iCoeff=1;iCoeff<numCoeffUpTotal;iCoeff++){
+  for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
     cre_up[iCoeff] = fcre_up[iCoeff];
     cim_up[iCoeff] = fcim_up[iCoeff];
   }
   if(cpLsda==1&&numStateDnProc!=0){
-    for(iCoeff=1;iCoeff<numCoeffUpTotal;iCoeff++){
+    for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
       cre_dn[iCoeff] = fcre_dn[iCoeff];
       cim_dn[iCoeff] = fcim_dn[iCoeff];
     }

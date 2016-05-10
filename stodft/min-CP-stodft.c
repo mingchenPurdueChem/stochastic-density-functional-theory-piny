@@ -381,7 +381,7 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 #endif
 #ifndef MKL_RANDOM
   //whatever random number is good, I'm using Gaussian in this case
-  double seed = 54.1253;
+  double seed = 45.154;
   int iseed;
   gaussran(2*numCoeffUpTot,&iseed,&iseed,&seed,randTrail);
   for(iCoeff=1;iCoeff<=numCoeffUpTot;iCoeff++){
@@ -532,6 +532,32 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
 
 /*-----------------------------------------------------------------------*/
+}/*end routine*/
+/*==========================================================================*/
+
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void genNoiseOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
+                    CP *cp,int ip_now)
+/*========================================================================*/
+{/*begin routine*/
+/*========================================================================*/
+/*             Local variable declarations                                */
+/*-----------------------------------------------------------------------*/
+  CPOPTS       *cpopts       = &(cp->cpopts);
+  CPSCR        *cpscr        = &(cp->cpscr);
+  STODFTINFO   *stodftInfo   = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+ 
+  double *zfft           =    cpscr->cpscr_wave.zfft;
+  double *zfft_tmp       =    cpscr->cpscr_wave.zfft_tmp;
+  
+  
+ 
+
+
 }/*end routine*/
 /*==========================================================================*/
 

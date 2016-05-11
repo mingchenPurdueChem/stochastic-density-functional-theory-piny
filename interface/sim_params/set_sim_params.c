@@ -4547,8 +4547,21 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   /*  7)\num_scf{#} */
   sscanf(dict[7].keyarg,"%lg",&rka);
   stodftInfo->numScf = (int)(rka);
+  /*-----------------------------------------------------------------------*/
+  /*  8)\read_coeff_opt{#} */
+  if(strcasecmp(dict[8].keyarg,"off")==0)stodftInfo->readCoeffFlag = 0;
+  if(strcasecmp(dict[8].keyarg,"sto")==0)stodftInfo->readCoeffFlag = 1;
+  if(strcasecmp(dict[8].keyarg,"det")==0)stodftInfo->readCoeffFlag = 2;
 
-
+  /*-----------------------------------------------------------------------*/
+  /*  9)\num_state_read_up{#} */
+  sscanf(dict[9].keyarg,"%lg",&rka);
+  stodftInfo->numCoeffDetUp = (int)(rka);
+  /*-----------------------------------------------------------------------*/
+  /*  10)\num_state_read_dn{#} */
+  sscanf(dict[10].keyarg,"%lg",&rka);
+  stodftInfo->numCoeffDetDn = (int)(rka);
+  
 /*=======================================================================*/
 /* Check the conflicate options						 */
   
@@ -4583,15 +4596,15 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
    
     if(missionType==1&&simopts->cp_wave_min==0){
       printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
-      printf("You turn on the stochastic dft single point claculation ");
-      printf("I'll reset the simulation type to cp_wave_min");
+      printf("You turn on the stochastic dft single point claculation\n");
+      printf("I'll reset the simulation type to cp_wave_min.\n");
       printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
       simopts->cp_wave_min = 1;  
       minopts->cp_min_std = 1;
     }
     if(missionType==2&&simopts->cp_min==0){
       printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
-      printf("You turn on the stochastic dft geometric optimization");
+      printf("You turn on the stochastic dft geometric optimization\n");
       printf("I'll reset the simulation type to cp_min");
       printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
       simopts->cp_min = 1;
@@ -4608,6 +4621,47 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
     if(stodftInfo->numScf<=0){
       printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
       printf("You will not perform scf calculation.\n");
+      printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
+    }
+    if(missionType<3&&cp_parse->istart_cp>2){
+      printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
+      printf("For SP and Geometric OPT, we do not support reading WF\n");
+      printf("posvel and all. I'll change the restart flag to pos only\n");
+      printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
+      cp_parse->istart_cp = 2;
+    }
+    if(cp_parse->istart_cp==1){
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      printf("What?! You can read the wave function from a initial file?\n");
+      printf("I've never heard that function and I don't know the format\n");
+      printf("of a initial file. I'll disable this function. Please\n");
+      printf("either put your wave function like a checkpoint file or \n");
+      printf("generate wave functions by this code with gen_wave option.\n");
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(0);
+    }
+    if(cp_parse->istart_cp==0&&stodftInfo->readCoeffFlag>0){
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      printf("You can't use gen_wave together with read-in wave function\n");
+      printf("If you want to use gen_wave in cp_restart_type, please turn\n");
+      printf("off read_coeff_opt. Otherwise, please use restart_pos in \n");
+      printf("cp_restart_type and choose the read-in wave function type.\n");
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(0);
+    }
+    if(cp_parse->istart_cp>0&&stodftInfo->readCoeffFlag==0){
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      printf("If you want to read in wave function, please choose the type.\n");
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(0);
+    }
+    if(stodftInfo->readCoeffFlag==2){
+      printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
+      printf("Read in stochastic wave function, numCoeffDetUp(Dn) will\n");
+      printf("not used.\n");
       printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
     }
   }//endif stodftOn

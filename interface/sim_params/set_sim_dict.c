@@ -2200,7 +2200,7 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
  /*             Local variable declarations                                */
   
   unsigned int i;
-  *num_dict = 7;
+  *num_dict = 10;
   *dict = (DICT_WORD *)cmalloc(*num_dict*sizeof(DICT_WORD))-1;
 
   for (i=1;i<=*num_dict;i++) {
@@ -2237,6 +2237,17 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
   strcpy((*dict)[7].keyword,"num_scf");
   strcpy((*dict)[7].keyarg,"0");
 
+  strcpy((*dict)[8].error_mes,"Choose type of wave function to read in det(deterministic)/sto(stochastic)");
+  strcpy((*dict)[8].keyword,"read_coeff_opt");
+  strcpy((*dict)[8].keyarg,"off");
+
+  strcpy((*dict)[9].error_mes,"Nonnegative integer: number of deterministic spin up wave functions");
+  strcpy((*dict)[9].keyword,"num_state_read_up");
+  strcpy((*dict)[9].keyarg,"0");
+
+  strcpy((*dict)[10].error_mes,"Nonnegative integer: number of deterministic spin down wave functions");
+  strcpy((*dict)[10].keyword,"num_state_read_dn");
+  strcpy((*dict)[10].keyarg,"0");
 
  /*========================================================================*/
  } /* end routine set_sim_dict_harmonic */

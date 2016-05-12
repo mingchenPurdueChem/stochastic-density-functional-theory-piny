@@ -48,9 +48,14 @@ void control_set_mol_params(ATOMMAPS *atommaps,CPOPTS *cpopts,
 
   DAFED *dafed = clatoms_info->dafed;
   DAFED_INFO *dinfo = &(clatoms_info->dinfo);
+  STODFTINFO *stodftInfo = cp->stodftInfo;
+  STODFTCOEFPOs *stodftCoefPos = cp->stodftCoefPos;
   int n_cv = dinfo->n_cv;
   int dafed_on = dinfo->dafed_on;
-  
+  int stodftOn = stodftInfo->stodftOn;
+  int readCoeffFlag = stodftInfo->readCoeffFlag;
+  int numStateStoUp = stodftInfo->numStateStoUp;
+  int numStateStoDn = stodftInfo->numStateStoDn;
 
   int nmol_typ            = atommaps->nmol_typ;
   int *nmol_jmol_typ      = atommaps->nmol_jmol_typ;
@@ -352,7 +357,22 @@ void control_set_mol_params(ATOMMAPS *atommaps,CPOPTS *cpopts,
   }/*endif*/ 
 
 /*=======================================================================*/
-/* VI) Free memory                                                       */
+/* VI) Check for stochastic DFT                                          */
+  
+  if(stodftOn==1&&readCoeffFlag==1){
+    if((numStateStoUp!=cpcoeffs_info->nstate_up)||
+	(numStateStoDn!=cpcoeffs_info->nstate_dn)){
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+      printf("You want to readin stochastic orbitals but the number of \n");
+      printf("orbitals is inconsistent! Please check the parameters!\n");
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(1);
+    }
+  }
+
+/*=======================================================================*/
+/* VII) Free memory                                                      */
 
   cfree(&mol_ind_chk[1]);
   cfree(&ifound[1]);

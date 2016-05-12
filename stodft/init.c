@@ -229,7 +229,96 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
 
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void calcRhoInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
+                   CP *cp,int ip_now)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* This is the routine to calculate the initial density			 */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+  STODFTINFO *stodftInfo       = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos = cp->stodftCoefPos;
+  CPCOEFFS_POS *cpcoeffs_pos    = &(cp->cpcoeffs_pos[ip_now]); 
+ 
+  int reInitFlag = cp->reInitFlag;
+  
+  if(reInitFlag==0) calcRhoSto(class,bonded,general_data,cp,cpcoeffs_pos); 
+  if(reInitFlag==1) calcRhoDet(class,bonded,general_data,cp,cpcoeffs_pos);
+  
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void reInitWaveFunMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
+                   CP *cp,int ip_now)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* This is the routine to reset number of wave functions after           */
+/* calculating the initial density. This is the sp/opt version.		 */
+/* check files:#coords_cp/mall_properties.c				 */
+/*	       #cp_ewald/control_set_cp_ewald.c				 */
+/*	       #parse/parse.c						 */
+/*	       parse/zero_cp.c						 */
+/*	       scratch/mall_scratch.c					 */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+  STODFTINFO *stodftInfo        = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  CPCOEFFS_POS *cpcoeffs_pos    = &(cp->cpcoeffs_pos[ip_now]);
+  COMMUNICATE  *communicate     = &(cp->communicate);
+  CPOPTS       *cpopts          = &(cp->cpopts);
+  CPSCR        *cpscr           = &(cp->cpscr);
+
+  int numStateStoUp = stodftInfo->numStateStoUp;
+  int numStateStoDn = stodftInfo->numStateStoDn;
+  int numProcstates = communicate->np_states;
+  int cpLsda = cpopts->cp_lsda;
+
+     
+  cpcoeffs_info->nstate_up = numStateStoUp;
+  cpcoeffs_info->nstate_dn = numStateStoDn;
+
+  if(cpLsda==0){
+    if(numStateStoUp<numProcstates){
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      printf("Number of states less than number of processors\n");
+      printf("If possible, reduce number of processors to be\n");
+      printf("less than the number of states or run a bigger system.\n");
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(1);
+    }//endif
+  }else{
+    if(numStateStoUp+numStateStoDn<numProcstates){
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      printf("Number of states less than number of processors\n");
+      printf("If possible, reduce number of processors to be\n");
+      printf("less than the number of states or run a bigger system.\n");
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(1);
+    }//endif
+  }//endif
+
+  
+
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
 
 
 

@@ -219,7 +219,7 @@ void normHNewtonHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void calcRhoDeterm(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
+void calcRhoDet(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 		   CP *cp,CPCOEFFS_POS  *cpcoeffs_pos)
 /*==========================================================================*/
 /*         Begin Routine                                                    */

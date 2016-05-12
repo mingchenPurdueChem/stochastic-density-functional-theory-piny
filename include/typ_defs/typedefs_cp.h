@@ -306,8 +306,11 @@ typedef struct stodftInfo{
 				    /*	    0 = off				*/
 				    /*	    1 = stochastic			*/
                                     /*      2 = deterministic                   */
-  int numCoeffDetUp;		    /* Num: number of deterministic WF. Only	*/
-  int numCoeffDetDn;		    /*	    effect if readCoeffFlag=0		*/
+  int reInitFlag;		    /* Opt: Flag to control realloc WF arraies  */
+				    /*	    0 = don't realloc (read sto)	*/
+				    /*	    1 = realloc (read det/gen wf)	*/
+  int numStateStoUp;		    /* Num: number of stochastic WF.		*/
+  int numStateStoDn;		    
   double energyMax,energyMin;       /* Num: Possible upper/lower bound of MO	*/
 				    /*	    energy.				*/ 
   double energyDiff;		    /* Num: energy range=energyMax-energyMin	*/

@@ -29,7 +29,7 @@ void genStoOrbital(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 
 void normHNewtonHerm(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,
 		     CLATOMS_POS *,double);
-void calcRhoDeterm(CLASS *,BONDED *,GENERAL_DATA *,CP *,CPCOEFFS_POS *);
+void calcRhoDet(CLASS *,BONDED *,GENERAL_DATA *,CP *,CPCOEFFS_POS *);
 void calcRhoSto(CLASS *,BONDED *,GENERAL_DATA *,CP *,CPCOEFFS_POS *);
 
 

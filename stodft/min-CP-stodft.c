@@ -174,7 +174,7 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*       and necessary gradients of density for GGA calculations        */
 
   //debug only
-  calcRhoDeterm(class,bonded,general_data,cp,cpcoeffs_pos);
+  //calcRhoDeterm(class,bonded,general_data,cp,cpcoeffs_pos);
 
   printf("Finish generating density\n");
 
@@ -195,7 +195,7 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
 
   //debug only
-  genStoOrbital(class,bonded,general_data,cp,ip_now);
+  //genStoOrbital(class,bonded,general_data,cp,ip_now);
 
   
   //exit(0);
@@ -205,25 +205,21 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   for(iScf=0;iScf<numScf;iScf++){
 
 /*----------------------------------------------------------------------*/
-/* i) converge chemical potential					*/
-    while (energyDiff>energyTol/* Chemical potential does not converge*/){
+/* i) Generate stochastic WF for different chemical potentials          */
 
-/*----------------------------------------------------------------------*/
-/* 1) converge chemical potential                                       */
-
-      genStoOrbital(class,bonded,general_data,cp,ip_now);
+    genStoOrbital(class,bonded,general_data,cp,ip_now);
 
 /*----------------------------------------------------------------------*/
 /* 2)  Get the total density, for each chemical potential and get       */
 /*     total electron number for each chemical potential	        */
+    calcRhoSto(class,bonded,general_data,cp,cpcoeffs_pos);
 
 /*----------------------------------------------------------------------*/
-/* 3)  Using interpolation, calculate the chemical potential w.r.t      */
+/* 3)  Interpolate the chemical potential w.r.t			        */
 /*     Correct electron number.						*/
 
-    }//endwhile
 /*----------------------------------------------------------------------*/
-/* ii) Generate stochastic orbital for the correct chemical potential   */
+/* ii) Use the interpolation results to generate correct density        */
 /*     (or pick a closest one) and update the density			*/
 
   }//endfor iScf

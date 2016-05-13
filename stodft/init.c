@@ -269,8 +269,9 @@ void reInitWaveFunMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /* check files:#coords_cp/mall_properties.c				 */
 /*	       #cp_ewald/control_set_cp_ewald.c				 */
 /*	       #parse/parse.c						 */
-/*	       parse/zero_cp.c						 */
+/*	       #parse/zero_cp.c						 */
 /*	       scratch/mall_scratch.c					 */
+/*	       				 */
 /*************************************************************************/
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
@@ -286,7 +287,12 @@ void reInitWaveFunMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int numStateStoDn = stodftInfo->numStateStoDn;
   int numProcstates = communicate->np_states;
   int cpLsda = cpopts->cp_lsda;
+  int piBeadsProc  = cpcoeffs_info->pi_beads_proc;
+  int iState;
 
+
+/*==========================================================================*/
+/* I) Initialize Check                                                      */
      
   cpcoeffs_info->nstate_up = numStateStoUp;
   cpcoeffs_info->nstate_dn = numStateStoDn;
@@ -313,7 +319,61 @@ void reInitWaveFunMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     }//endif
   }//endif
 
+/*==========================================================================*/
+/* II) Free old arrays, except scratch					    */
+/*     (//N means don't remalloc these arrays)				    */
+
+  free(&(cpcoeffs_pos->cre_up[1]));
+  free(&(cpcoeffs_pos->cim_up[1]));
+  free(&(cpcoeffs_pos->cre_dn[1]));
+  free(&(cpcoeffs_pos->cim_dn[1]));
+  free(&(cpcoeffs_pos->vcre_up[1]));//N
+  free(&(cpcoeffs_pos->vcim_up[1]));//N
+  free(&(cpcoeffs_pos->vcre_dn[1]));//N
+  free(&(cpcoeffs_pos->vcim_dn[1]));//N
+  free(&(cpcoeffs_pos->fcre_up[1]));
+  free(&(cpcoeffs_pos->fcim_up[1]));
+  free(&(cpcoeffs_pos->fcre_dn[1]));
+  free(&(cpcoeffs_pos->fcim_dn[1]));
+  free(&(cpcoeffs_pos->kfcre_up[1]));//N
+  free(&(cpcoeffs_pos->kfcim_up[1]));//N
+  free(&(cpcoeffs_pos->ksmat_up[1]));//N
+  free(&(cpcoeffs_pos->ksmat_dn[1]));//N
+  free(&(cpcoeffs_pos->ksmat_eig_up[1]));//N
+  free(&(cpcoeffs_pos->ksmat_eig_dn[1]));//N
+  free(&(cpcoeffs_pos->norbmat_up[1]));//N
+  free(&(cpcoeffs_pos->norbmat_dn[1]));//N
+  free(&(cpcoeffs_pos->norbmati_up[1]));//N
+  free(&(cpcoeffs_pos->norbmati_dn[1]));//N
+  free(&(cpcoeffs_pos->ovmat_eigv_up[1]));//N
+  free(&(cpcoeffs_pos->ovmat_eigv_dn[1]));//N
+
+  // cp_min_on>0 I need fake cp_min_on to cheat the code 
+  // when I call coef_force_control
+  free(&(cpcoeffs_pos->cp_hess_re_up[1]));//N
+  free(&(cpcoeffs_pos->cp_hess_im_up[1]));//N
+  free(&(cpcoeffs_pos->cp_hess_re_dn[1]));//N
+  free(&(cpcoeffs_pos->cp_hess_im_dn[1]));//N
+
+
+  free(&(cpcoeffs_info->ioff_up[1]));
+  free(&(cpcoeffs_info->ioff_dn[1]));
+  free(&(cpcoeffs_info->ioff_upt[1]));
+  free(&(cpcoeffs_info->ioff_dnt[1]));
+
+  free(&(cpopts->occ_up[1]));//N
+  free(&(cpopts->occ_dn[1]));//N
+  free(&(cpopts->rocc_sum_up[1]));//N
+  free(&(cpopts->rocc_sum_dn[1]));//N
+
+/*==========================================================================*/
+/* III) Reinit arrays, except scratch					    */
   
+  //need set up mpi first
+  stoRealloc(cp,cpcoeffs_pos);
+
+/*==========================================================================*/
+/* IV) Free all scratch		                                            */
 
 
 /*==========================================================================*/
@@ -321,4 +381,144 @@ void reInitWaveFunMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*==========================================================================*/
 
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void stoRealloc(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
+/*==========================================================================*/
+  {/*begin routine */
+/*==========================================================================*/
+/*    Local Variables   */
+#include "../typ_defs/typ_mask.h"
+  int myid = cp->communicate.myid;
+  int i,ip,nread,is;
+  int par_size_up,par_size_dn,ncoef_up_tot;
+  int nstate,nstate2,ncoef_dn_tot;
+  double *cre,*cim,*vcre,*vcim,*fcre,*fcim;
+  int *ioff_up,*ioff_upt,*ioff_dn,*ioff_dnt;
+  double mem_test;
+
+/*  Local Pointers */
+  int pi_beads       = cp->cpcoeffs_info.pi_beads;
+  int pi_beads_proc  = cp->cpcoeffs_info.pi_beads_proc;
+  int nstate_up_proc = cp->cpcoeffs_info.nstate_up_proc;
+  int nstate_dn_proc = cp->cpcoeffs_info.nstate_dn_proc;
+  int nstate_up      = cp->cpcoeffs_info.nstate_up;
+  int nstate_dn      = cp->cpcoeffs_info.nstate_dn;
+  int cp_lda         = cp->cpopts.cp_lda;
+  int cp_lsda        = cp->cpopts.cp_lsda;
+  int ncoef_up       = cp->cpcoeffs_info.ncoef;
+  int ncoef_dn       = cp->cpcoeffs_info.ncoef;
+  int cp_norb        = cp->cpopts.cp_norb;
+
+  int np_states               = cp->communicate.np_states;
+  int ncoef_up_proc           = cp->cp_comm_state_pkg_up.nstate_ncoef_proc_max;
+  int ncoef_dn_proc           = cp->cp_comm_state_pkg_dn.nstate_ncoef_proc_max;
+  int nstate_max_up           =cp->cp_comm_state_pkg_up.nstate_max;
+  int nstate_ncoef_proc_max_up=cp->cp_comm_state_pkg_up.nstate_ncoef_proc_max;
+  int nstate_max_dn           =cp->cp_comm_state_pkg_dn.nstate_max;
+  int nstate_ncoef_proc_max_dn=cp->cp_comm_state_pkg_dn.nstate_ncoef_proc_max;
+
+  if(cp_lda == 1){ncoef_dn = 0;}
+/*==========================================================================*/
+/* 0) Calculate the sizes */
+
+  par_size_up = nstate_max_up*(nstate_ncoef_proc_max_up);
+  ncoef_up_tot = nstate_up_proc*ncoef_up;
+  ncoef_up_tot = MAX(ncoef_up_tot,par_size_up);
+
+  par_size_dn = nstate_max_dn*(nstate_ncoef_proc_max_dn);
+  if(cp_lda ==1){par_size_dn = 0;}
+  ncoef_dn_tot = MAX(nstate_dn_proc*ncoef_dn,1);
+  ncoef_dn_tot = MAX(ncoef_dn_tot,par_size_dn);
+
+  nstate  = MAX(nstate_up,nstate_dn);
+  nstate2 = nstate*nstate;
+
+/*==========================================================================*/
+/* I) Malloc the variables */
+
+  for(i=1;i<=pi_beads_proc;i++){
+    cpcoeffs_pos->cre_up =(double *)cmalloc(ncoef_up_tot*sizeof(double))-1;
+    cpcoeffs_pos->cim_up =(double *)cmalloc(ncoef_up_tot*sizeof(double))-1;
+    cpcoeffs_pos->cre_dn =(double *)cmalloc(ncoef_dn_tot*sizeof(double))-1;
+    cpcoeffs_pos->cim_dn =(double *)cmalloc(ncoef_dn_tot*sizeof(double))-1;
+    cpcoeffs_pos->fcre_up=(double *)cmalloc(ncoef_up_tot*sizeof(double))-1;
+    cpcoeffs_pos->fcim_up=(double *)cmalloc(ncoef_up_tot*sizeof(double))-1;
+    cpcoeffs_pos->fcre_dn=(double *)cmalloc(ncoef_dn_tot*sizeof(double))-1;
+    cpcoeffs_pos->fcim_dn=(double *)cmalloc(ncoef_dn_tot*sizeof(double))-1;
+  }/*endfor*/
+
+  cp->cpcoeffs_info.ioff_up  = (int *)cmalloc(nstate*sizeof(int))-1;
+  cp->cpcoeffs_info.ioff_dn  = (int *)cmalloc(nstate*sizeof(int))-1;
+  cp->cpcoeffs_info.ioff_upt = (int *)cmalloc(nstate*sizeof(int))-1;
+  cp->cpcoeffs_info.ioff_dnt = (int *)cmalloc(nstate*sizeof(int))-1;
+
+/*==========================================================================*/
+/* II) Assign the offsets */
+
+  ioff_up  = cp->cpcoeffs_info.ioff_up;
+  ioff_upt = cp->cpcoeffs_info.ioff_upt;
+  ioff_dn  = cp->cpcoeffs_info.ioff_dn;
+  ioff_dnt = cp->cpcoeffs_info.ioff_dnt;
+
+  for(is=1;is<=nstate;is++){ioff_up[is]=(is-1)*ncoef_up;}
+  for(is=1;is<=nstate;is++){ioff_dn[is]=(is-1)*ncoef_dn;}
+
+  if(np_states==1){
+    for(is=1;is<=nstate;is++){ioff_upt[is]=(is-1)*ncoef_up;}
+    for(is=1;is<=nstate;is++){ioff_dnt[is]=(is-1)*ncoef_dn;}
+  }else{
+    for(is=1;is<=nstate;is++){ioff_upt[is]=(is-1)*ncoef_up_proc;}
+    for(is=1;is<=nstate;is++){ioff_dnt[is]=(is-1)*ncoef_dn_proc;}
+  }/*endif*/
+
+/*========================================================================*/
+/* III) Initialize coeficient arrays and form flags                       */
+
+
+  cpcoeffs_pos->icoef_form_up  = 0;
+  cpcoeffs_pos->ivcoef_form_up = 0;
+  cpcoeffs_pos->ifcoef_form_up = 1;
+  cpcoeffs_pos->icoef_orth_up  = 1;
+  if(cp_norb>0){cpcoeffs_pos->icoef_orth_up = 0;}
+  cpcoeffs_pos->ivcoef_orth_up  = 1;
+  if(cp_norb>0){cpcoeffs_pos->ivcoef_orth_up = 0;}
+  cre = cpcoeffs_pos->cre_up;
+  cim = cpcoeffs_pos->cim_up;
+  fcre = cpcoeffs_pos->fcre_up;
+  fcim = cpcoeffs_pos->fcim_up;
+  nread = ncoef_up_tot;
+  for(i=1;i<=nread;i++){
+    cre[i] = 0.0;
+    cim[i] = 0.0;
+    fcre[i] = 0.0;
+    fcim[i] = 0.0;
+  }/*endfor*/
+  if(cp_lsda==1){
+    cpcoeffs_pos->icoef_form_dn  = 0;
+    cpcoeffs_pos->ivcoef_form_dn = 0;
+    cpcoeffs_pos->ifcoef_form_dn = 1;
+    cpcoeffs_pos->icoef_orth_dn  = 1;
+    if(cp_norb>0)cpcoeffs_pos->icoef_orth_dn = 0;
+    cpcoeffs_pos->ivcoef_orth_dn  = 1;
+    if(cp_norb>0)cp->cpcoeffs_pos[ip].ivcoef_orth_dn = 0;
+
+    cre = cpcoeffs_pos->cre_dn;
+    cim = cpcoeffs_pos->cim_dn;
+    fcre = cp->cpcoeffs_pos[ip].fcre_dn;
+    fcim = cp->cpcoeffs_pos[ip].fcim_dn;
+    nread = ncoef_dn_tot;
+    for(i=1;i<=nread;i++){
+      cre[i] = 0.0;
+      cim[i] = 0.0;
+      fcre[i] = 0.0;
+      fcim[i] = 0.0;
+    }/*endfor*/
+  }/*endif:lsda*/
+
+
+/*-----------------------------------------------------------------------*/
+  }/* end routine */
+/*==========================================================================*/
 

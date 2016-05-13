@@ -491,14 +491,14 @@ void read_coef_alloc_init(CP *cp,int cp_min_on,double *tot_memory)
   cp->cpcoeffs_pos[i].cim_up =(double *)cmalloc(ncoef_up_tot*sizeof(double))-1;
   cp->cpcoeffs_pos[i].cre_dn =(double *)cmalloc(ncoef_dn_tot*sizeof(double))-1;
   cp->cpcoeffs_pos[i].cim_dn =(double *)cmalloc(ncoef_dn_tot*sizeof(double))-1;
-  cp->cpcoeffs_pos[i].vcre_up=(double *)cmalloc(ncoef_up_tot*sizeof(double))-1;
-  cp->cpcoeffs_pos[i].vcim_up=(double *)cmalloc(ncoef_up_tot*sizeof(double))-1;
-  cp->cpcoeffs_pos[i].vcre_dn=(double *)cmalloc(ncoef_dn_tot*sizeof(double))-1;
-  cp->cpcoeffs_pos[i].vcim_dn=(double *)cmalloc(ncoef_dn_tot*sizeof(double))-1;
   cp->cpcoeffs_pos[i].fcre_up=(double *)cmalloc(ncoef_up_tot*sizeof(double))-1;
   cp->cpcoeffs_pos[i].fcim_up=(double *)cmalloc(ncoef_up_tot*sizeof(double))-1;
   cp->cpcoeffs_pos[i].fcre_dn=(double *)cmalloc(ncoef_dn_tot*sizeof(double))-1;
   cp->cpcoeffs_pos[i].fcim_dn=(double *)cmalloc(ncoef_dn_tot*sizeof(double))-1;
+  cp->cpcoeffs_pos[i].vcre_up=(double *)cmalloc(ncoef_up_tot*sizeof(double))-1;
+  cp->cpcoeffs_pos[i].vcim_up=(double *)cmalloc(ncoef_up_tot*sizeof(double))-1;
+  cp->cpcoeffs_pos[i].vcre_dn=(double *)cmalloc(ncoef_dn_tot*sizeof(double))-1;
+  cp->cpcoeffs_pos[i].vcim_dn=(double *)cmalloc(ncoef_dn_tot*sizeof(double))-1;
   // Test only
   cp->cpcoeffs_pos[i].kfcre_up = (double *)cmalloc(ncoef_up_tot*sizeof(double))-1;
   cp->cpcoeffs_pos[i].kfcim_up = (double *)cmalloc(ncoef_up_tot*sizeof(double))-1;

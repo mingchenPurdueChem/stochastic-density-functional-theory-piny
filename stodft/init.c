@@ -48,8 +48,6 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   FOR_SCR      *for_scr      = &(class->for_scr);
   EWD_SCR      *ewd_scr      = &(class->ewd_scr);
 
-
-
   CPOPTS *cpopts = &(cp->cpopts);
   PSEUDO *pseudo = &(cp->pseudo);
   CPCOEFFS_INFO *cpcoeffs_info = &(cp->cpcoeffs_info);
@@ -323,15 +321,17 @@ void reInitWaveFunMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /* II) Reinit communication group for new number of wave function           */
 /*     (//N means don't remalloc these arrays)				    */
 
+  reInitComm(cp);
+
 /*==========================================================================*/
 /* III) Reinit arrays, except scratch					    */
   
-  //need set up mpi first
   stoRealloc(cp,cpcoeffs_pos);
 
 /*==========================================================================*/
-/* IV) Free all scratch		                                            */
+/* IV) Reinit scratch		                                            */
 
+  reallocScratch(cp);
 
 /*==========================================================================*/
 }/*end Routine*/
@@ -346,65 +346,83 @@ void reInitComm(CP *cp)
   {/*begin routine */
 /*==========================================================================*/
 /*    Local Variables   */
+  STODFTINFO *stodftInfo        = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  CPCOEFFS_INFO *cpCoeffsInfo  = &(cp->cpcoeffs_info);
+  CPCOEFFS_POS *cpCoeffsPos    = &(cp->cpcoeffs_pos[ip_now]);
+  COMMUNICATE  *communicate     = &(cp->communicate);
+  CPOPTS       *cpopts          = &(cp->cpopts);
+  CPSCR        *cpscr           = &(cp->cpscr);
+  COMMUNICATE  *communicate     = &(cp->communicate);
+  CP_COMM_STATE_PKG *cpCommStatePkgUp  = &(cp->cp_comm_state_pkg_up);
+  CP_COMM_STATE_PKG *cpCommStatePkgDn  = &(cp->cp_comm_state_pkg_up);
+
   int irem,idiv,iii;
+  int numStateUp = cpCoeffsInfo->nstate_up;
+  int numStateDn = cpCoeffsInfo->nstate_dn;
+  int numProcStates = communicate->np_states;
+  int myidState = communicate->myid_state;
+  int numStateUpProc,iStateUpSt;
+  int numStateDnProc,iStateDnSt;
 
 /*==========================================================================*/
 /* I) Up states, state per process                                          */
 
-  idiv = cp->cpcoeffs_info.nstate_up/cp->communicate.np_states;
-  irem = (cp->cpcoeffs_info.nstate_up % cp->communicate.np_states);
-  cp->cpcoeffs_info.nstate_up_proc = idiv;
-  if(cp->communicate.myid_state < irem) {
-     cp->cpcoeffs_info.nstate_up_proc = idiv+1;
-  }/*endif*/
-  if(cp->communicate.myid_state <= irem) {
-    cp->cpcoeffs_info.istate_up_st = cp->communicate.myid_state*(idiv+1)+1;
-  } else {
-    cp->cpcoeffs_info.istate_up_st = irem*(idiv+1)
-                                   + (cp->communicate.myid_state-irem)*idiv+1;
-  }/*endif*/
-  cp->cpcoeffs_info.istate_up_end = cp->cpcoeffs_info.istate_up_st +
-                                    cp->cpcoeffs_info.nstate_up_proc-1;
+  idiv = numStateUp/numProcStates;
+  irem = numStateUp%numProcStates;
+  numStateUpProc = idiv;
 
-  cp->cp_comm_state_pkg_up.nstate     = cp->cpcoeffs_info.nstate_up;
-  cp->cp_comm_state_pkg_up.nstate_proc= cp->cpcoeffs_info.nstate_up_proc;
+  if(myidState<irem)numStateUpProc = idiv+1;
+  if(myidState<=irem)iStateUpSt = myidState*(idiv+1)+1;
+  else iStateUpSt = irem*(idiv+1)+(myidState-irem)*idiv+1;
 
+  cpCoeffsInfo->nstate_up_proc = numStateUpProc;
+  cpCoeffsInfo->istate_up_st = iStateUpSt;
+  cpCoeffsInfo->istate_up_end = iStateUpSt+numStateUpProc-1;
 
-  irem             = (cp->cp_comm_state_pkg_up.nstate %
-                      cp->cp_comm_state_pkg_up.num_proc);
-  cp->cp_comm_state_pkg_up.nstate_proc_max  = (irem > 0 ? idiv+1 : idiv);
-  cp->cp_comm_state_pkg_up.nstate_max = (irem > 0 ?
-                          ((idiv+1)*cp->communicate.np_states) :
-                          (idiv*cp->communicate.np_states)) ;
+  cp->cp_comm_state_pkg_up.nstate      = numStateUp;
+  cp->cp_comm_state_pkg_up.nstate_proc = numStateUpProc;
+
+  // I have no idea what is this used for, since it is initialized in the 
+  // begining, I shall reinit this to be safe.
+
+  irem = numStateUp%numProcStates;
+  if(irem>0){
+    cp->cp_comm_state_pkg_up.nstate_proc_max = idiv+1;
+    cp->cp_comm_state_pkg_up.nstate_max = (idiv+1)*numProcStates;
+  }
+  else{
+    cp->cp_comm_state_pkg_up.nstate_proc_max = idiv;
+    cp->cp_comm_state_pkg_up.nstate_max = idiv*numProcStates;
+  }
 
 /*==========================================================================*/
 /* I) Down states, state per process                                        */
 
-  idiv = cp->cpcoeffs_info.nstate_dn/cp->communicate.np_states;
-  irem = (cp->cpcoeffs_info.nstate_dn % cp->communicate.np_states);
-  cp->cpcoeffs_info.nstate_dn_proc = idiv;
-  if(cp->communicate.myid_state < irem) {
-     cp->cpcoeffs_info.nstate_dn_proc = idiv+1;
-  }/*endif*/
-  if(cp->communicate.myid_state <= irem) {
-    cp->cpcoeffs_info.istate_dn_st = cp->communicate.myid_state*(idiv+1)+1;
-  } else {
-    cp->cpcoeffs_info.istate_dn_st = irem*(idiv+1)
-                                   + (cp->communicate.myid_state-irem)*idiv+1;
-  }/*endif*/
-  cp->cpcoeffs_info.istate_dn_end = cp->cpcoeffs_info.istate_dn_st +
-                                    cp->cpcoeffs_info.nstate_dn_proc-1;
+  idiv = numStateDn/numProcStates;
+  irem = numStateDn%numProcStates;
+  numStateDnProc = idiv;
 
-  cp->cp_comm_state_pkg_dn.nstate     = cp->cpcoeffs_info.nstate_dn;
-  cp->cp_comm_state_pkg_dn.nstate_proc= cp->cpcoeffs_info.nstate_dn_proc;
+  if(myidState<irem)numStateDnProc = idiv+1;
+  if(myidState<=irem)iStateDnSt = myidState*(idiv+1)+1;
+  else iStateDnSt = irem*(idiv+1)+(myidState-irem)*idiv+1;
 
-  irem             = (cp->cp_comm_state_pkg_dn.nstate %
-                      cp->cp_comm_state_pkg_dn.num_proc);
-  cp->cp_comm_state_pkg_dn.nstate_proc_max  = (irem > 0 ? idiv+1 : idiv);
-  cp->cp_comm_state_pkg_dn.nstate_max = (irem > 0 ?
-                          ((idiv+1)*cp->communicate.np_states) :
-                          (idiv*cp->communicate.np_states)) ;
+  cpCoeffsInfo->nstate_dn_proc = numStateDnProc;
+  cpCoeffsInfo->istate_dn_st = iStateDnSt;
+  cpCoeffsInfo->istate_dn_end = iStateDnSt+numStateDnProc-1;
 
+  cp->cp_comm_state_pkg_dn.nstate      = numStateDn;
+  cp->cp_comm_state_pkg_dn.nstate_proc = numStateDnProc;
+
+  irem = numStateDn%numProcStates;
+  if(irem>0){
+    cp->cp_comm_state_pkg_dn.nstate_proc_max = idiv+1;
+    cp->cp_comm_state_pkg_dn.nstate_max = (idiv+1)*numProcStates;
+  }
+  else{
+    cp->cp_comm_state_pkg_dn.nstate_proc_max = idiv;
+    cp->cp_comm_state_pkg_dn.nstate_max = idiv*numProcStates;
+  }
 
 /*==========================================================================*/
 }/*end Routine*/
@@ -621,39 +639,39 @@ void reallocScratch(CP *cp)
   CPSCR_ATOM_PME *cpscr_atom_pme = cpscr->cpscr_atom_pme;
   CPSCR_WANNIER *cpscr_wannier = cpscr->cpscr_wannier;
 
-  int nstate_up         = cpcoeffs_info->nstate_up_proc;
-  int nstate_dn         = cpcoeffs_info->nstate_dn_proc;
-  int nstate_up_tot     = cpcoeffs_info->nstate_up;
-  int nstate_dn_tot     = cpcoeffs_info->nstate_dn;
+  //int nstate_up         = cpcoeffs_info->nstate_up_proc;
+  //int nstate_dn         = cpcoeffs_info->nstate_dn_proc;
+  //int nstate_up_tot     = cpcoeffs_info->nstate_up;
+  //int nstate_dn_tot     = cpcoeffs_info->nstate_dn;
   int ncoef             = cpcoeffs_info->ncoef;
   int ncoef_l           = cpcoeffs_info->ncoef_l;
   int pi_beads          = cpcoeffs_info->pi_beads;
   int cp_laplacian_on   = cpcoeffs_info->cp_laplacian_on;
   int cp_tau_functional = cpcoeffs_info->cp_tau_functional;
-  int num_c_nhc_proc    = cptherm_info->num_c_nhc_proc;
+  //int num_c_nhc_proc    = cptherm_info->num_c_nhc_proc;
   int massiv_flag       = cptherm_info->massiv_flag;
-  int n_ang_max         = pseudo->n_ang_max;
-  int n_rad_max         = pseudo->n_rad_max;
-  int natm_nls_max      = cpscr->cpscr_nonloc.natm_nls_max;
-  int cp_lsda           = cpopts->cp_lsda;
+  //int n_ang_max         = pseudo->n_ang_max;
+  //int n_rad_max         = pseudo->n_rad_max;
+  //int natm_nls_max      = cpscr->cpscr_nonloc.natm_nls_max;
+  //int cp_lsda           = cpopts->cp_lsda;
   int cp_ptens_calc     = cpopts->cp_ptens_calc;
   int cp_hess_calc      = cpopts->cp_hess_calc;
   int cp_gga            = cpopts->cp_gga;
   int cp_ke_dens_on     = cpcoeffs_info->cp_ke_dens_on;
   int cp_elf_calc_frq   = cpcoeffs_info->cp_elf_calc_frq;
-  int cp_norb           = cpopts->cp_norb;
+  //int cp_norb           = cpopts->cp_norb;
   int cp_para_opt       = cpopts->cp_para_opt;
-  int np_states         = cp_comm_state_pkg_up->num_proc;
+  //int np_states         = cp_comm_state_pkg_up->num_proc;
   int nfft_up_proc      = cp_para_fft_pkg3d_lg->nfft_proc;
   int nfft_up           = cp_para_fft_pkg3d_lg->nfft;
-  int nstate_max_up     = cp_comm_state_pkg_up->nstate_max;
-  int nstate_ncoef_proc_max_up = cp_comm_state_pkg_up->nstate_ncoef_proc_max;
-  int nstate_max_dn     = cp_comm_state_pkg_up->nstate_max;
-  int nstate_ncoef_proc_max_dn = cp_comm_state_pkg_up->nstate_ncoef_proc_max;
+  //int nstate_max_up     = cp_comm_state_pkg_up->nstate_max;
+  //int nstate_ncoef_proc_max_up = cp_comm_state_pkg_up->nstate_ncoef_proc_max;
+  //int nstate_max_dn     = cp_comm_state_pkg_up->nstate_max;
+  //int nstate_ncoef_proc_max_dn = cp_comm_state_pkg_up->nstate_ncoef_proc_max;
   int num_c_nhc1        = num_c_nhc_proc+1;
 
-  int ncoef_l_pme_dual,ncoef_l_pme_dual_proc;
-  int ncoef_l_proc_max_mall;
+  //int ncoef_l_pme_dual,ncoef_l_pme_dual_proc;
+  //int ncoef_l_proc_max_mall;
   int ncoef_l_proc_max_mall_ke;
 
   int ncoef_l_dens_cp_box;
@@ -672,7 +690,7 @@ void reallocScratch(CP *cp)
 
   double now_memory;
   int i,iii;
-  int nlscr_up,nlscr_dn,nlscr_up_pv,nlscr_dn_pv,ncoef_l_pv,ncoef_l_proc_max;
+  //int nlscr_up,nlscr_dn,nlscr_up_pv,nlscr_dn_pv,ncoef_l_pv,ncoef_l_proc_max;
   int ncoef_l_proc_max_mall_cp_box,ncoef_l_proc_max_mall_cp_box_dn;
   int nfft2_mall_up,nfft2_mall_dn,nfft2_mall_up_proc,nfft2_mall_dn_proc;
   int nfft2_up,nfft2_dn,irem;
@@ -681,11 +699,11 @@ void reallocScratch(CP *cp)
   int nfft2_up_ke_dens,nfft2_dn_ke_dens;
   int nlap_dn_ptens,ngga_up,ngga_dn,nlap_g_up,nlap_g_dn;
   int nlap_g_up_ptens, nlap_g_dn_ptens;
-  int ncoef_up,ncoef_dn;
-  int par_size_up,par_size_dn;
-  int ncoef2_up_c,ncoef2_dn_c;
-  int ncoef2_up,ncoef2_dn,ncoef2_up_spec,ncoef2_dn_spec;
-  int ncoef2_up_par,nstate,nstate2,nstate_tot,nstate2_tot;
+  //int ncoef_up,ncoef_dn;
+  //int par_size_up,par_size_dn;
+  //int ncoef2_up_c,ncoef2_dn_c;
+  //int ncoef2_up,ncoef2_dn,ncoef2_up_spec,ncoef2_dn_spec;
+  //int ncoef2_up_par,nstate,nstate2,nstate_tot,nstate2_tot;
   int num=0;
   int zero=0;
   int ncoef_l_mall_proc_max_dual,ncoef_l_mall_proc_max_dual_dn;
@@ -808,50 +826,15 @@ void reallocScratch(CP *cp)
  /*-------------------------------------------------------------------------*/
  /* i) Dual grid CP : Define the small dense grid sizes */
 
-  if(cp_dual_grid_opt_on >= 1){
-
-    nfft_up_proc_dens_cp_box   = cp_para_fft_pkg3d_dens_cp_box->nfft_proc;
-    nfft_up_dens_cp_box        = cp_para_fft_pkg3d_dens_cp_box->nfft;
-    nfft2_up_dens_cp_box       = nfft_up_dens_cp_box/2;
-
-    nfft_dn_proc_dens_cp_box   = (cp_lsda == 1 ? nfft_up_proc_dens_cp_box : 0);
-    nfft_dn_dens_cp_box        = (cp_lsda == 1 ? nfft_up_dens_cp_box : 0);
-
-    ncoef_l_dens_cp_box          = cpcoeffs_info->ncoef_l_dens_cp_box;
-    ncoef_l_proc_max_dens_cp_box = ncoef_l_dens_cp_box/np_states;
-    irem                         = (ncoef_l_proc_max_dens_cp_box % np_states);
-    if(irem>0){ncoef_l_proc_max_dens_cp_box++;}
-
-  }/*endif cp_dual_grid_opt_on */
-
- if(cp_dual_grid_opt_on == 2){
-   ncoef_l_pme_dual = cp_para_fft_pkg3d_lg->ncoef;
- }/*endif cp_dual_grid_opt_on*/
 
  /*-------------------------------------------------------------------------*/
  /* ii) Normal CP : Define the grid size              */
  /*     Dual   CP : Define the large sparse grid size */
 
-  nfft2_up      = nfft_up/2;
-  nfft2_up_proc = nfft_up_proc/2;
-
-  nfft_dn       = (cp_lsda == 1 ? nfft_up : 0);
-  nfft2_dn      = (cp_lsda == 1 ? nfft2_up : 0);
-  nfft2_dn_proc = (cp_lsda == 1 ? nfft2_up_proc : 0);
 
  /*-------------------------------------------------------------------------*/
  /* iii) Choose the correct size for your application                       */
  /*      This is always the small dense grid                                */
-
-  nfft2_mall_up      = (cp_dual_grid_opt_on >= 1 ?
-                        nfft_up_dens_cp_box/2 : nfft2_up);
-  nfft2_mall_up_proc = (cp_dual_grid_opt_on >= 1 ?
-                        nfft_up_proc_dens_cp_box/2 : nfft2_up_proc);
-
-  nfft2_mall_dn      = (cp_dual_grid_opt_on >= 1 ?
-                        nfft_dn_dens_cp_box/2 : nfft2_dn);
-  nfft2_mall_dn_proc = (cp_dual_grid_opt_on >= 1 ?
-                        nfft_dn_proc_dens_cp_box/2 : nfft2_dn_proc);
 
  /*-------------------------------------------------------------------------*/
  /* iv) Wave function size (spherically cutoff small g-space for dense box) */
@@ -863,45 +846,21 @@ void reallocScratch(CP *cp)
  /* v) Normal CP: The sphere cut large g-space for the dense box            */
  /*    Dual CP  : The sphere cut large g-space for the large sparse box     */
 
-  ncoef_l_proc_max = ncoef_l/np_states;
-  irem = (ncoef_l % np_states);
-  if(irem>0){ncoef_l_proc_max++;}
-
  if(cp_dual_grid_opt_on == 2){
    ncoef_l_pme_dual_proc = ncoef_l_pme_dual/np_states;
    irem = (ncoef_l_pme_dual_proc % np_states);
    if(irem>0){ncoef_l_pme_dual_proc++;}
   }/*endif cp_dual_grid_opt_on */
 
-  ncoef_l_proc_max_mall = (cp_dual_grid_opt_on == 2 ? ncoef_l_pme_dual_proc
-                                                    : ncoef_l_proc_max);
-  ncoef_l_proc_max_mall_ke = (cp_ke_dens_on == 1 ? ncoef_l_proc_max_mall:0);
-  ncoef_l_proc_max_dn      = (cp_lsda == 1 ? ncoef_l_proc_max_mall : 0);
+  ncoef_l_proc_max_mall = (cp_dual_grid_opt_on==2?ncoef_l_pme_dual_proc
+                                                    :ncoef_l_proc_max);
+
 
  /*-------------------------------------------------------------------------*/
  /* vi) Choose the large g-space malloc size based on the dual or normal opt*/
  /*     The malloc size is the always the dense grid.                       */
  /*     Set special dual malloc sizes to zero to avoid mallocing extra      */
  /*     memory during normal CP.                                            */
-
-  if(cp_dual_grid_opt_on==0){
-
-    ncoef_l_proc_max_mall_cp_box = ncoef_l_proc_max;
-
-  }else{
-
-    ncoef_l_proc_max_mall_cp_box = ncoef_l_dens_cp_box/np_states;
-    irem = (ncoef_l_dens_cp_box % np_states);
-    if(irem>0){ncoef_l_proc_max_mall_cp_box++;}
-    ncoef_l_proc_max_mall_cp_box_dn =
-                   (cp_lsda == 1 ? ncoef_l_proc_max_mall_cp_box : 0);
-
-  }/*endif cp_dual_grid_opt_on*/
-
-  ncoef_l_mall_proc_max_dual    = (cp_dual_grid_opt_on >= 1 ?
-                                   ncoef_l_proc_max_mall_cp_box : 0);
-  ncoef_l_mall_proc_max_dual_dn = (cp_dual_grid_opt_on >= 1 ?
-                                   ncoef_l_proc_max_mall_cp_box_dn : 0);
 
  /*-------------------------------------------------------------------*/
  /* vii) Wavefunction scratch sizes : always on small dense grid     */

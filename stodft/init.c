@@ -320,51 +320,8 @@ void reInitWaveFunMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }//endif
 
 /*==========================================================================*/
-/* II) Free old arrays, except scratch					    */
+/* II) Reinit communication group for new number of wave function           */
 /*     (//N means don't remalloc these arrays)				    */
-
-  free(&(cpcoeffs_pos->cre_up[1]));
-  free(&(cpcoeffs_pos->cim_up[1]));
-  free(&(cpcoeffs_pos->cre_dn[1]));
-  free(&(cpcoeffs_pos->cim_dn[1]));
-  free(&(cpcoeffs_pos->vcre_up[1]));//N
-  free(&(cpcoeffs_pos->vcim_up[1]));//N
-  free(&(cpcoeffs_pos->vcre_dn[1]));//N
-  free(&(cpcoeffs_pos->vcim_dn[1]));//N
-  free(&(cpcoeffs_pos->fcre_up[1]));
-  free(&(cpcoeffs_pos->fcim_up[1]));
-  free(&(cpcoeffs_pos->fcre_dn[1]));
-  free(&(cpcoeffs_pos->fcim_dn[1]));
-  free(&(cpcoeffs_pos->kfcre_up[1]));//N
-  free(&(cpcoeffs_pos->kfcim_up[1]));//N
-  free(&(cpcoeffs_pos->ksmat_up[1]));//N
-  free(&(cpcoeffs_pos->ksmat_dn[1]));//N
-  free(&(cpcoeffs_pos->ksmat_eig_up[1]));//N
-  free(&(cpcoeffs_pos->ksmat_eig_dn[1]));//N
-  free(&(cpcoeffs_pos->norbmat_up[1]));//N
-  free(&(cpcoeffs_pos->norbmat_dn[1]));//N
-  free(&(cpcoeffs_pos->norbmati_up[1]));//N
-  free(&(cpcoeffs_pos->norbmati_dn[1]));//N
-  free(&(cpcoeffs_pos->ovmat_eigv_up[1]));//N
-  free(&(cpcoeffs_pos->ovmat_eigv_dn[1]));//N
-
-  // cp_min_on>0 I need fake cp_min_on to cheat the code 
-  // when I call coef_force_control
-  free(&(cpcoeffs_pos->cp_hess_re_up[1]));//N
-  free(&(cpcoeffs_pos->cp_hess_im_up[1]));//N
-  free(&(cpcoeffs_pos->cp_hess_re_dn[1]));//N
-  free(&(cpcoeffs_pos->cp_hess_im_dn[1]));//N
-
-
-  free(&(cpcoeffs_info->ioff_up[1]));
-  free(&(cpcoeffs_info->ioff_dn[1]));
-  free(&(cpcoeffs_info->ioff_upt[1]));
-  free(&(cpcoeffs_info->ioff_dnt[1]));
-
-  free(&(cpopts->occ_up[1]));//N
-  free(&(cpopts->occ_dn[1]));//N
-  free(&(cpopts->rocc_sum_up[1]));//N
-  free(&(cpopts->rocc_sum_dn[1]));//N
 
 /*==========================================================================*/
 /* III) Reinit arrays, except scratch					    */
@@ -374,6 +331,79 @@ void reInitWaveFunMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
 /*==========================================================================*/
 /* IV) Free all scratch		                                            */
+
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void reInitComm(CP *cp)
+/*==========================================================================*/
+  {/*begin routine */
+/*==========================================================================*/
+/*    Local Variables   */
+  int irem,idiv,iii;
+
+/*==========================================================================*/
+/* I) Up states, state per process                                          */
+
+  idiv = cp->cpcoeffs_info.nstate_up/cp->communicate.np_states;
+  irem = (cp->cpcoeffs_info.nstate_up % cp->communicate.np_states);
+  cp->cpcoeffs_info.nstate_up_proc = idiv;
+  if(cp->communicate.myid_state < irem) {
+     cp->cpcoeffs_info.nstate_up_proc = idiv+1;
+  }/*endif*/
+  if(cp->communicate.myid_state <= irem) {
+    cp->cpcoeffs_info.istate_up_st = cp->communicate.myid_state*(idiv+1)+1;
+  } else {
+    cp->cpcoeffs_info.istate_up_st = irem*(idiv+1)
+                                   + (cp->communicate.myid_state-irem)*idiv+1;
+  }/*endif*/
+  cp->cpcoeffs_info.istate_up_end = cp->cpcoeffs_info.istate_up_st +
+                                    cp->cpcoeffs_info.nstate_up_proc-1;
+
+  cp->cp_comm_state_pkg_up.nstate     = cp->cpcoeffs_info.nstate_up;
+  cp->cp_comm_state_pkg_up.nstate_proc= cp->cpcoeffs_info.nstate_up_proc;
+
+
+  irem             = (cp->cp_comm_state_pkg_up.nstate %
+                      cp->cp_comm_state_pkg_up.num_proc);
+  cp->cp_comm_state_pkg_up.nstate_proc_max  = (irem > 0 ? idiv+1 : idiv);
+  cp->cp_comm_state_pkg_up.nstate_max = (irem > 0 ?
+                          ((idiv+1)*cp->communicate.np_states) :
+                          (idiv*cp->communicate.np_states)) ;
+
+/*==========================================================================*/
+/* I) Down states, state per process                                        */
+
+  idiv = cp->cpcoeffs_info.nstate_dn/cp->communicate.np_states;
+  irem = (cp->cpcoeffs_info.nstate_dn % cp->communicate.np_states);
+  cp->cpcoeffs_info.nstate_dn_proc = idiv;
+  if(cp->communicate.myid_state < irem) {
+     cp->cpcoeffs_info.nstate_dn_proc = idiv+1;
+  }/*endif*/
+  if(cp->communicate.myid_state <= irem) {
+    cp->cpcoeffs_info.istate_dn_st = cp->communicate.myid_state*(idiv+1)+1;
+  } else {
+    cp->cpcoeffs_info.istate_dn_st = irem*(idiv+1)
+                                   + (cp->communicate.myid_state-irem)*idiv+1;
+  }/*endif*/
+  cp->cpcoeffs_info.istate_dn_end = cp->cpcoeffs_info.istate_dn_st +
+                                    cp->cpcoeffs_info.nstate_dn_proc-1;
+
+  cp->cp_comm_state_pkg_dn.nstate     = cp->cpcoeffs_info.nstate_dn;
+  cp->cp_comm_state_pkg_dn.nstate_proc= cp->cpcoeffs_info.nstate_dn_proc;
+
+  irem             = (cp->cp_comm_state_pkg_dn.nstate %
+                      cp->cp_comm_state_pkg_dn.num_proc);
+  cp->cp_comm_state_pkg_dn.nstate_proc_max  = (irem > 0 ? idiv+1 : idiv);
+  cp->cp_comm_state_pkg_dn.nstate_max = (irem > 0 ?
+                          ((idiv+1)*cp->communicate.np_states) :
+                          (idiv*cp->communicate.np_states)) ;
 
 
 /*==========================================================================*/

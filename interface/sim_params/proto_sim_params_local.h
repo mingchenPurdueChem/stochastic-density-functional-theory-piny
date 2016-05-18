@@ -46,7 +46,7 @@ void set_sim_params_harmonic(CLASS *,GENERAL_DATA *,BONDED *,CP *,ANALYSIS *,
                              CLASS_PARSE *,
                              CP_PARSE *,FILENAME_PARSE *,DICT_WORD *,char *);
 void set_sim_params_dafed(CLASS *, GENERAL_DATA *, DICT_WORD *);
-void set_sim_params_stodft(CLASS *, GENERAL_DATA *, CP *,DICT_WORD *);
+void set_sim_params_stodft(CLASS *, GENERAL_DATA *, CP *,CP_PARSE *,DICT_WORD *);
 void set_sim_params_finale(CLASS *,GENERAL_DATA *,BONDED *,CP *,CLASS_PARSE *,
                     CP_PARSE *,FILENAME_PARSE *);
 

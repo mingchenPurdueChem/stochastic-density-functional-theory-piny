@@ -85,22 +85,6 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
   stodftCoefPos->chemPot = (double*)cmalloc(numChemPot*sizeof(double));
 
-  stodftCoefPos->stoWfUpRe = (double**)cmalloc(numChemPot*sizeof(double*));
-  stodftCoefPos->stoWfUpIm = (double**)cmalloc(numChemPot*sizeof(double*));
-
-  for(iChem=0;iChem<numChemPot;iChem++){
-    stodftCoefPos->stoWfUpRe[iChem] = (double*)cmalloc(numStateUpTot*sizeof(double))-1;
-    stodftCoefPos->stoWfUpIm[iChem] = (double*)cmalloc(numStateUpTot*sizeof(double))-1;
-  }
-  if(cpLsda==1&&numStateDnProc!=0){
-    stodftCoefPos->stoWfUpRe = (double**)cmalloc(numChemPot*sizeof(double*));
-    stodftCoefPos->stoWfUpIm = (double**)cmalloc(numChemPot*sizeof(double*));
-    for(iChem=0;iChem<numChemPot;iChem++){
-      stodftCoefPos->stoWfDnRe[iChem] = (double*)cmalloc(numStateUpTot*sizeof(double))-1;
-      stodftCoefPos->stoWfDnIm[iChem] = (double*)cmalloc(numStateUpTot*sizeof(double))-1;
-    }//endfor iChem
-  }//endif
-
   if(expanType==2&&filterFunType==1)stodftInfo->fermiFunctionReal = &fermiExpReal;
   if(expanType==2&&filterFunType==2)stodftInfo->fermiFunctionReal = &fermiErfcReal;
   if(expanType==2&&filterFunType==3)stodftInfo->fermiFunctionReal = &gaussianReal;
@@ -244,7 +228,7 @@ void calcRhoInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   STODFTCOEFPOS *stodftCoefPos = cp->stodftCoefPos;
   CPCOEFFS_POS *cpcoeffs_pos    = &(cp->cpcoeffs_pos[ip_now]); 
  
-  int reInitFlag = cp->reInitFlag;
+  int reInitFlag = stodftInfo->reInitFlag;
   
   if(reInitFlag==0) calcRhoSto(class,bonded,general_data,cp,cpcoeffs_pos); 
   if(reInitFlag==1) calcRhoDet(class,bonded,general_data,cp,cpcoeffs_pos);
@@ -283,11 +267,15 @@ void reInitWaveFunMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
   int numStateStoUp = stodftInfo->numStateStoUp;
   int numStateStoDn = stodftInfo->numStateStoDn;
+  int numCoeff       = cpcoeffs_info->ncoef;
+  int numStateUpProc,numStateDnProc;
+  int numStateUpTot,numStateDnTot;
   int numProcstates = communicate->np_states;
   int cpLsda = cpopts->cp_lsda;
   int piBeadsProc  = cpcoeffs_info->pi_beads_proc;
-  int iState;
-
+  int hessCalc = class->clatoms_info.hess_calc;
+  int numChemPot = stodftInfo->numChemPot;
+  int iState,iChem;
 
 /*==========================================================================*/
 /* I) Initialize Check                                                      */
@@ -321,7 +309,12 @@ void reInitWaveFunMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /* II) Reinit communication group for new number of wave function           */
 /*     (//N means don't remalloc these arrays)				    */
 
-  reInitComm(cp);
+  reInitComm(cp,cpcoeffs_pos);
+
+  numStateUpProc = cpcoeffs_info->nstate_up_proc;
+  numStateDnProc = cpcoeffs_info->nstate_dn_proc;
+  numStateUpTot  = numStateDnProc*numCoeff;
+  numStateDnTot  = numStateDnProc*numCoeff;
 
 /*==========================================================================*/
 /* III) Reinit arrays, except scratch					    */
@@ -331,8 +324,28 @@ void reInitWaveFunMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*==========================================================================*/
 /* IV) Reinit scratch		                                            */
 
-  reallocScratch(cp);
+  reallocScratch(cp,hessCalc);
 
+
+/*==========================================================================*/
+/* V) Malloc stochastic wave function                                       */
+
+  stodftCoefPos->stoWfUpRe = (double**)cmalloc(numChemPot*sizeof(double*));
+  stodftCoefPos->stoWfUpIm = (double**)cmalloc(numChemPot*sizeof(double*));
+
+  for(iChem=0;iChem<numChemPot;iChem++){
+    stodftCoefPos->stoWfUpRe[iChem] = (double*)cmalloc(numStateUpTot*sizeof(double))-1;
+    stodftCoefPos->stoWfUpIm[iChem] = (double*)cmalloc(numStateUpTot*sizeof(double))-1;
+  }
+  if(cpLsda==1&&numStateDnProc!=0){
+    stodftCoefPos->stoWfUpRe = (double**)cmalloc(numChemPot*sizeof(double*));
+    stodftCoefPos->stoWfUpIm = (double**)cmalloc(numChemPot*sizeof(double*));
+    for(iChem=0;iChem<numChemPot;iChem++){
+      stodftCoefPos->stoWfDnRe[iChem] = (double*)cmalloc(numStateUpTot*sizeof(double))-1;
+      stodftCoefPos->stoWfDnIm[iChem] = (double*)cmalloc(numStateUpTot*sizeof(double))-1;
+    }//endfor iChem
+  }//endif
+  
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/
@@ -341,7 +354,7 @@ void reInitWaveFunMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void reInitComm(CP *cp)
+void reInitComm(CP *cp,CPCOEFFS_POS *cpCoeffsPos)
 /*==========================================================================*/
   {/*begin routine */
 /*==========================================================================*/
@@ -349,11 +362,9 @@ void reInitComm(CP *cp)
   STODFTINFO *stodftInfo        = cp->stodftInfo;
   STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
   CPCOEFFS_INFO *cpCoeffsInfo  = &(cp->cpcoeffs_info);
-  CPCOEFFS_POS *cpCoeffsPos    = &(cp->cpcoeffs_pos[ip_now]);
   COMMUNICATE  *communicate     = &(cp->communicate);
   CPOPTS       *cpopts          = &(cp->cpopts);
   CPSCR        *cpscr           = &(cp->cpscr);
-  COMMUNICATE  *communicate     = &(cp->communicate);
   CP_COMM_STATE_PKG *cpCommStatePkgUp  = &(cp->cp_comm_state_pkg_up);
   CP_COMM_STATE_PKG *cpCommStatePkgDn  = &(cp->cp_comm_state_pkg_up);
 
@@ -438,17 +449,16 @@ void stoRealloc(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
 /*==========================================================================*/
 /*    Local Variables   */
 #include "../typ_defs/typ_mask.h"
-  int myid = cp->communicate.myid;
-  int i,ip,nread,is;
+  CPOPTS *cpopts = &(cp->cpopts);
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+
+  int is,i;
   int par_size_up,par_size_dn,ncoef_up_tot;
   int nstate,nstate2,ncoef_dn_tot;
   double *cre,*cim,*vcre,*vcim,*fcre,*fcim;
   int *ioff_up,*ioff_upt,*ioff_dn,*ioff_dnt;
-  double mem_test;
 
 /*  Local Pointers */
-  int pi_beads       = cp->cpcoeffs_info.pi_beads;
-  int pi_beads_proc  = cp->cpcoeffs_info.pi_beads_proc;
   int nstate_up_proc = cp->cpcoeffs_info.nstate_up_proc;
   int nstate_dn_proc = cp->cpcoeffs_info.nstate_dn_proc;
   int nstate_up      = cp->cpcoeffs_info.nstate_up;
@@ -518,7 +528,6 @@ void stoRealloc(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
   free(&(cpcoeffs_pos->cp_hess_re_dn[1]));//N
   free(&(cpcoeffs_pos->cp_hess_im_dn[1]));//N
 
-
   free(&(cpcoeffs_info->ioff_up[1]));
   free(&(cpcoeffs_info->ioff_dn[1]));
   free(&(cpcoeffs_info->ioff_upt[1]));
@@ -534,16 +543,14 @@ void stoRealloc(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
 /*==========================================================================*/
 /* III) Malloc the variables */
 
-  for(i=1;i<=pi_beads_proc;i++){
-    cpcoeffs_pos->cre_up =(double *)cmalloc(ncoef_up_tot*sizeof(double))-1;
-    cpcoeffs_pos->cim_up =(double *)cmalloc(ncoef_up_tot*sizeof(double))-1;
-    cpcoeffs_pos->cre_dn =(double *)cmalloc(ncoef_dn_tot*sizeof(double))-1;
-    cpcoeffs_pos->cim_dn =(double *)cmalloc(ncoef_dn_tot*sizeof(double))-1;
-    cpcoeffs_pos->fcre_up=(double *)cmalloc(ncoef_up_tot*sizeof(double))-1;
-    cpcoeffs_pos->fcim_up=(double *)cmalloc(ncoef_up_tot*sizeof(double))-1;
-    cpcoeffs_pos->fcre_dn=(double *)cmalloc(ncoef_dn_tot*sizeof(double))-1;
-    cpcoeffs_pos->fcim_dn=(double *)cmalloc(ncoef_dn_tot*sizeof(double))-1;
-  }/*endfor*/
+  cpcoeffs_pos->cre_up =(double *)cmalloc(ncoef_up_tot*sizeof(double))-1;
+  cpcoeffs_pos->cim_up =(double *)cmalloc(ncoef_up_tot*sizeof(double))-1;
+  cpcoeffs_pos->cre_dn =(double *)cmalloc(ncoef_dn_tot*sizeof(double))-1;
+  cpcoeffs_pos->cim_dn =(double *)cmalloc(ncoef_dn_tot*sizeof(double))-1;
+  cpcoeffs_pos->fcre_up=(double *)cmalloc(ncoef_up_tot*sizeof(double))-1;
+  cpcoeffs_pos->fcim_up=(double *)cmalloc(ncoef_up_tot*sizeof(double))-1;
+  cpcoeffs_pos->fcre_dn=(double *)cmalloc(ncoef_dn_tot*sizeof(double))-1;
+  cpcoeffs_pos->fcim_dn=(double *)cmalloc(ncoef_dn_tot*sizeof(double))-1;
 
   cp->cpcoeffs_info.ioff_up  = (int *)cmalloc(nstate*sizeof(int))-1;
   cp->cpcoeffs_info.ioff_dn  = (int *)cmalloc(nstate*sizeof(int))-1;
@@ -584,8 +591,7 @@ void stoRealloc(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
   cim = cpcoeffs_pos->cim_up;
   fcre = cpcoeffs_pos->fcre_up;
   fcim = cpcoeffs_pos->fcim_up;
-  nread = ncoef_up_tot;
-  for(i=1;i<=nread;i++){
+  for(i=1;i<=ncoef_up_tot;i++){
     cre[i] = 0.0;
     cim[i] = 0.0;
     fcre[i] = 0.0;
@@ -598,14 +604,13 @@ void stoRealloc(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
     cpcoeffs_pos->icoef_orth_dn  = 1;
     if(cp_norb>0)cpcoeffs_pos->icoef_orth_dn = 0;
     cpcoeffs_pos->ivcoef_orth_dn  = 1;
-    if(cp_norb>0)cp->cpcoeffs_pos[ip].ivcoef_orth_dn = 0;
+    if(cp_norb>0)cpcoeffs_pos->ivcoef_orth_dn = 0;
 
     cre = cpcoeffs_pos->cre_dn;
     cim = cpcoeffs_pos->cim_dn;
-    fcre = cp->cpcoeffs_pos[ip].fcre_dn;
-    fcim = cp->cpcoeffs_pos[ip].fcim_dn;
-    nread = ncoef_dn_tot;
-    for(i=1;i<=nread;i++){
+    fcre = cpcoeffs_pos->fcre_dn;
+    fcim = cpcoeffs_pos->fcim_dn;
+    for(i=1;i<=ncoef_dn_tot;i++){
       cre[i] = 0.0;
       cim[i] = 0.0;
       fcre[i] = 0.0;
@@ -622,101 +627,72 @@ void stoRealloc(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void reallocScratch(CP *cp)
+void reallocScratch(CP *cp,int hess_calc)
 /*==========================================================================*/
   {/*begin routine */
 /*==========================================================================*/
 /*    Local Variables   */
-  CPSCR *cpscr = cp->cpscr;
-  CPSCR_LOC    *cpscr_loc = cpscr->cpscr_loc;
-  CPSCR_NONLOC *cpscr_nonloc = cpscr->cpscr_nonloc;
-  CPSCR_RHO    *cpscr_rho = cpscr->cpscr_rho;
-  CPSCR_GRHO   *cpscr_grho = cpscr->cpscr_grho;
-  CPSCR_OVMAT  *cpscr_ovmat = cpscr->cpscr_ovmat;
-  CPSCR_WAVE   *cpscr_wave = cpscr->cpscr_wave;
-  CPSCR_THERM  *cpscr_therm = cpscr->cpscr_therm;
-  CPSCR_DUAL_PME *cpscr_dual_pme = cpscr->cpscr_dual_pme;
-  CPSCR_ATOM_PME *cpscr_atom_pme = cpscr->cpscr_atom_pme;
-  CPSCR_WANNIER *cpscr_wannier = cpscr->cpscr_wannier;
+  CPOPTS *cpopts = &(cp->cpopts);
+  CPSCR *cpscr = &(cp->cpscr);
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  CPTHERM_INFO *cptherm_info = &(cp->cptherm_info);
+  PSEUDO *pseudo = &(cp->pseudo);
+  CP_COMM_STATE_PKG *cp_comm_state_pkg_up = &(cp->cp_comm_state_pkg_up);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
+ 
+  CPSCR_LOC    *cpscr_loc = &(cpscr->cpscr_loc);
+  CPSCR_NONLOC *cpscr_nonloc = &(cpscr->cpscr_nonloc);
+  CPSCR_RHO    *cpscr_rho = &(cpscr->cpscr_rho);
+  CPSCR_GRHO   *cpscr_grho = &(cpscr->cpscr_grho);
+  CPSCR_OVMAT  *cpscr_ovmat = &(cpscr->cpscr_ovmat);
+  CPSCR_WAVE   *cpscr_wave = &(cpscr->cpscr_wave);
+  CPSCR_THERM  *cpscr_therm = &(cpscr->cpscr_therm);
+  CPSCR_DUAL_PME *cpscr_dual_pme = &(cpscr->cpscr_dual_pme);
+  CPSCR_ATOM_PME *cpscr_atom_pme = &(cpscr->cpscr_atom_pme);
+  CPSCR_WANNIER *cpscr_wannier = &(cpscr->cpscr_wannier);
 
-  //int nstate_up         = cpcoeffs_info->nstate_up_proc;
-  //int nstate_dn         = cpcoeffs_info->nstate_dn_proc;
-  //int nstate_up_tot     = cpcoeffs_info->nstate_up;
-  //int nstate_dn_tot     = cpcoeffs_info->nstate_dn;
+  int cp_ptens_calc     = cpopts->cp_ptens_calc;
+  int cp_dual_grid_opt_on = cpopts->cp_dual_grid_opt;
+  int nstate_up         = cpcoeffs_info->nstate_up_proc;
+  int nstate_dn         = cpcoeffs_info->nstate_dn_proc;
+  int nstate_up_tot     = cpcoeffs_info->nstate_up;
+  int nstate_dn_tot     = cpcoeffs_info->nstate_dn;
   int ncoef             = cpcoeffs_info->ncoef;
   int ncoef_l           = cpcoeffs_info->ncoef_l;
-  int pi_beads          = cpcoeffs_info->pi_beads;
-  int cp_laplacian_on   = cpcoeffs_info->cp_laplacian_on;
-  int cp_tau_functional = cpcoeffs_info->cp_tau_functional;
-  //int num_c_nhc_proc    = cptherm_info->num_c_nhc_proc;
+  int num_c_nhc_proc    = cptherm_info->num_c_nhc_proc;
   int massiv_flag       = cptherm_info->massiv_flag;
-  //int n_ang_max         = pseudo->n_ang_max;
-  //int n_rad_max         = pseudo->n_rad_max;
-  //int natm_nls_max      = cpscr->cpscr_nonloc.natm_nls_max;
-  //int cp_lsda           = cpopts->cp_lsda;
-  int cp_ptens_calc     = cpopts->cp_ptens_calc;
-  int cp_hess_calc      = cpopts->cp_hess_calc;
-  int cp_gga            = cpopts->cp_gga;
-  int cp_ke_dens_on     = cpcoeffs_info->cp_ke_dens_on;
-  int cp_elf_calc_frq   = cpcoeffs_info->cp_elf_calc_frq;
-  //int cp_norb           = cpopts->cp_norb;
-  int cp_para_opt       = cpopts->cp_para_opt;
-  //int np_states         = cp_comm_state_pkg_up->num_proc;
-  int nfft_up_proc      = cp_para_fft_pkg3d_lg->nfft_proc;
-  int nfft_up           = cp_para_fft_pkg3d_lg->nfft;
-  //int nstate_max_up     = cp_comm_state_pkg_up->nstate_max;
-  //int nstate_ncoef_proc_max_up = cp_comm_state_pkg_up->nstate_ncoef_proc_max;
-  //int nstate_max_dn     = cp_comm_state_pkg_up->nstate_max;
-  //int nstate_ncoef_proc_max_dn = cp_comm_state_pkg_up->nstate_ncoef_proc_max;
-  int num_c_nhc1        = num_c_nhc_proc+1;
+  int n_ang_max         = pseudo->n_ang_max;
+  int n_rad_max         = pseudo->n_rad_max;
+  int natm_nls_max      = cpscr_nonloc->natm_nls_max;
+  int cp_lsda           = cpopts->cp_lsda;
+  int cp_norb           = cpopts->cp_norb;
+  int np_states         = cp_comm_state_pkg_up->num_proc;
+  int nstate_max_up     = cp_comm_state_pkg_up->nstate_max;
+  int nstate_ncoef_proc_max_up = cp_comm_state_pkg_up->nstate_ncoef_proc_max;
+  int nstate_max_dn     = cp_comm_state_pkg_up->nstate_max;
+  int nstate_ncoef_proc_max_dn = cp_comm_state_pkg_up->nstate_ncoef_proc_max;
 
-  //int ncoef_l_pme_dual,ncoef_l_pme_dual_proc;
-  //int ncoef_l_proc_max_mall;
-  int ncoef_l_proc_max_mall_ke;
-
-  int ncoef_l_dens_cp_box;
-  int ncoef_l_proc_max_dens_cp_box;
-  int nfft_up_proc_dens_cp_box,nfft_up_dens_cp_box,nfft2_up_dens_cp_box;
-  int nfft_dn_proc_dens_cp_box,nfft_dn_dens_cp_box ;
-  int ncoef_l_proc_max_dn;
-
-  int nkf1_cp_box = cp_para_fft_pkg3d_dens_cp_box->nkf1;
-  int nkf2_cp_box = cp_para_fft_pkg3d_dens_cp_box->nkf2;
-  int nkf3_cp_box = cp_para_fft_pkg3d_dens_cp_box->nkf3;
-  int n_interp_pme_dual = pseudo->n_interp_pme_dual;
+  int ncoef_l_pme_dual,ncoef_l_pme_dual_proc;
+  int ncoef_l_proc_max_mall;
 
 /*--------------------------------------------------------------------------*/
 /*         Local variable declarations                                      */
 
-  double now_memory;
-  int i,iii;
-  //int nlscr_up,nlscr_dn,nlscr_up_pv,nlscr_dn_pv,ncoef_l_pv,ncoef_l_proc_max;
-  int ncoef_l_proc_max_mall_cp_box,ncoef_l_proc_max_mall_cp_box_dn;
-  int nfft2_mall_up,nfft2_mall_dn,nfft2_mall_up_proc,nfft2_mall_dn_proc;
-  int nfft2_up,nfft2_dn,irem;
-  int nfft2_up_proc,nfft2_dn_proc,nfft_dn;
-  int nfft2_up_gga,nfft2_dn_gga,nlap_up,nlap_dn,nlap_up_ptens;
-  int nfft2_up_ke_dens,nfft2_dn_ke_dens;
-  int nlap_dn_ptens,ngga_up,ngga_dn,nlap_g_up,nlap_g_dn;
-  int nlap_g_up_ptens, nlap_g_dn_ptens;
-  //int ncoef_up,ncoef_dn;
-  //int par_size_up,par_size_dn;
-  //int ncoef2_up_c,ncoef2_dn_c;
-  //int ncoef2_up,ncoef2_dn,ncoef2_up_spec,ncoef2_dn_spec;
-  //int ncoef2_up_par,nstate,nstate2,nstate_tot,nstate2_tot;
-  int num=0;
-  int zero=0;
-  int ncoef_l_mall_proc_max_dual,ncoef_l_mall_proc_max_dual_dn;
-  int map_count;
-  int mtemp;
-  int nlen_pme,pme_nkf3,ninterp_pme,nmall;
-  int mall_size;
+  int i,iii,irem;
+  int nlscr_up,nlscr_dn,nlscr_up_pv,nlscr_dn_pv,ncoef_l_pv,ncoef_l_proc_max;
+  int ncoef_up,ncoef_dn;
+  int par_size_up,par_size_dn;
+  int ncoef2_up_c,ncoef2_dn_c;
+  int ncoef2_up,ncoef2_dn,ncoef2_up_spec,ncoef2_dn_spec;
+  int ncoef2_up_par,nstate,nstate2,nstate_tot,nstate2_tot;
 
   int cp_wan_opt        = cpopts->cp_wan_opt;
   int cp_wan_min_opt    = cpopts->cp_wan_min_opt;
   int cp_wan_init_opt   = cpopts->cp_wan_init_opt;
   int ndim_wannier;
   int mm=5;
+
+
 
 /*==========================================================================*/
 /* Free everything*/
@@ -826,6 +802,9 @@ void reallocScratch(CP *cp)
  /*-------------------------------------------------------------------------*/
  /* i) Dual grid CP : Define the small dense grid sizes */
 
+ if(cp_dual_grid_opt_on == 2){
+   ncoef_l_pme_dual = cp_para_fft_pkg3d_lg->ncoef;
+ }/*endif cp_dual_grid_opt_on*/
 
  /*-------------------------------------------------------------------------*/
  /* ii) Normal CP : Define the grid size              */
@@ -846,15 +825,18 @@ void reallocScratch(CP *cp)
  /* v) Normal CP: The sphere cut large g-space for the dense box            */
  /*    Dual CP  : The sphere cut large g-space for the large sparse box     */
 
- if(cp_dual_grid_opt_on == 2){
-   ncoef_l_pme_dual_proc = ncoef_l_pme_dual/np_states;
-   irem = (ncoef_l_pme_dual_proc % np_states);
-   if(irem>0){ncoef_l_pme_dual_proc++;}
+  ncoef_l_proc_max = ncoef_l/np_states;
+  irem = (ncoef_l % np_states);
+  if(irem>0){ncoef_l_proc_max++;}
+
+  if(cp_dual_grid_opt_on == 2){
+    ncoef_l_pme_dual_proc = ncoef_l_pme_dual/np_states;
+    irem = (ncoef_l_pme_dual_proc % np_states);
+    if(irem>0){ncoef_l_pme_dual_proc++;}
   }/*endif cp_dual_grid_opt_on */
 
   ncoef_l_proc_max_mall = (cp_dual_grid_opt_on==2?ncoef_l_pme_dual_proc
                                                     :ncoef_l_proc_max);
-
 
  /*-------------------------------------------------------------------------*/
  /* vi) Choose the large g-space malloc size based on the dual or normal opt*/
@@ -893,7 +875,7 @@ void reallocScratch(CP *cp)
  /*-------------------------------------------------------------------*/
  /* viii) Nonlocal sizes : always on small dense grid */
 
-   nlscr_up  = nstate_up*(n_ang_max+1)*(n_ang_max+1)
+  nlscr_up  = nstate_up*(n_ang_max+1)*(n_ang_max+1)
                         *(n_rad_max)*natm_nls_max;
   nlscr_dn  = 0;
   if(cp_lsda==1){
@@ -908,7 +890,7 @@ void reallocScratch(CP *cp)
     nlscr_dn_pv = nlscr_dn;
     ncoef_l_pv  = ncoef_l_proc_max_mall;
   }/* endif */
-  if(atm_hess_calc == 3){
+  if(hess_calc == 3){
     nlscr_up_pv = nlscr_up;
     nlscr_dn_pv = nlscr_dn;
   }/* endif */
@@ -916,41 +898,18 @@ void reallocScratch(CP *cp)
  /*-------------------------------------------------------------------*/
  /* ix) GGA sizes : Always the small dense grid                       */
 
-  nfft2_up_gga  = ((cp_gga == 1 || cp_elf_calc_frq > 0) ? nfft2_mall_up_proc:0);
-  nfft2_dn_gga  = (((cp_gga == 1 || cp_elf_calc_frq > 0) && cp_lsda == 1)
-                ? nfft2_mall_dn_proc:0);
-  nfft2_up_ke_dens = (cp_ke_dens_on == 1 ? nfft2_mall_up_proc:0);
-  nfft2_dn_ke_dens = ((cp_ke_dens_on == 1 && cp_lsda == 1) ? nfft2_mall_dn_proc:0);
-  nlap_up       = (cp_laplacian_on == 1 ? nfft2_up_gga : 1);
-  nlap_dn       = (cp_laplacian_on == 1 ? nfft2_dn_gga : 1);
-  nlap_up_ptens = (cp_laplacian_on == 1&&cp_ptens_calc == 1?nfft2_up_gga : 1);
-  nlap_dn_ptens = (cp_laplacian_on == 1&&cp_ptens_calc == 1?nfft2_dn_gga : 1);
-
-  nlap_up       = ( cp_laplacian_on == 1 ? nfft2_up_gga : 1);
-  nlap_dn       = ( cp_laplacian_on == 1 ? nfft2_dn_gga : 1);
-  nlap_up_ptens = ((cp_laplacian_on == 1 && cp_ptens_calc == 1) ?
-                                           nfft2_up_gga : 1);
-  nlap_dn_ptens = ((cp_laplacian_on == 1 && cp_ptens_calc == 1) ?
-                                           nfft2_dn_gga : 1);
-
-  ngga_up         = ((cp_gga == 1 || cp_elf_calc_frq > 0)
-                  ? ncoef_l_proc_max_mall_cp_box:0);
-  ngga_dn         = (cp_lsda == 1 ? ngga_up:0);
-  nlap_g_up       = (cp_laplacian_on == 1 ? ngga_up : 1);
-  nlap_g_dn       = (cp_laplacian_on == 1 ? ngga_dn : 1);
-  nlap_g_up_ptens = (cp_laplacian_on == 1 && cp_ptens_calc == 1 ? ngga_up : 1);
-  nlap_g_dn_ptens = (cp_laplacian_on == 1 && cp_ptens_calc == 1 ? ngga_dn : 1);
 
   /*------------------------------------------------------------------------*/
   /* x) Wannier scratch size   */
 
   if(cp_wan_opt ==1 || cp_wan_min_opt==1 || cp_wan_init_opt==1){
-    cpscr->cpscr_wannier.cp_wannier_on=1;
+    cpscr_wannier->cp_wannier_on=1;
     ndim_wannier=nstate_up_tot*nstate_up_tot;
   }else{
-    cpscr->cpscr_wannier.cp_wannier_on=0;
+    cpscr_wannier->cp_wannier_on=0;
     ndim_wannier=0;
   }
+
 
 /*===========================================================================*/
 /* II) Malloc the vectors  */
@@ -958,190 +917,172 @@ void reallocScratch(CP *cp)
 /*------------------------------------------------------------------*/
 /* Non_local  : Always small dense grid                             */
 
-  cpscr->cpscr_nonloc.vnlre_up
+  cpscr_nonloc->vnlre_up
                    = (double *)cmalloc(nlscr_up*sizeof(double))-1;
-  cpscr->cpscr_nonloc.vnlim_up
-                   = (double *)cmalloc(nlscr_up*sizeof(double))-1;
-
-  cpscr->cpscr_nonloc.vnlre_dn
-                   = (double *)cmalloc(nlscr_dn*sizeof(double))-1;
-  cpscr->cpscr_nonloc.vnlim_dn
-                   = (double *)cmalloc(nlscr_dn*sizeof(double))-1;
-
-  cpscr->cpscr_nonloc.dvnlre_x_up
-                   = (double *)cmalloc(nlscr_up*sizeof(double))-1;
-  cpscr->cpscr_nonloc.dvnlre_y_up
-                   = (double *)cmalloc(nlscr_up*sizeof(double))-1;
-  cpscr->cpscr_nonloc.dvnlre_z_up
-                   = (double *)cmalloc(nlscr_up*sizeof(double))-1;
-  cpscr->cpscr_nonloc.dvnlim_x_up
-                   = (double *)cmalloc(nlscr_up*sizeof(double))-1;
-  cpscr->cpscr_nonloc.dvnlim_y_up
-                   = (double *)cmalloc(nlscr_up*sizeof(double))-1;
-  cpscr->cpscr_nonloc.dvnlim_z_up
+  cpscr_nonloc->vnlim_up
                    = (double *)cmalloc(nlscr_up*sizeof(double))-1;
 
-  num += 10*nlscr_up;
-
-  cpscr->cpscr_nonloc.dvnlre_x_dn
+  cpscr_nonloc->vnlre_dn
                    = (double *)cmalloc(nlscr_dn*sizeof(double))-1;
-  cpscr->cpscr_nonloc.dvnlre_y_dn
-                   = (double *)cmalloc(nlscr_dn*sizeof(double))-1;
-  cpscr->cpscr_nonloc.dvnlre_z_dn
-                   = (double *)cmalloc(nlscr_dn*sizeof(double))-1;
-  cpscr->cpscr_nonloc.dvnlim_x_dn
-                   = (double *)cmalloc(nlscr_dn*sizeof(double))-1;
-  cpscr->cpscr_nonloc.dvnlim_y_dn
-                   = (double *)cmalloc(nlscr_dn*sizeof(double))-1;
-  cpscr->cpscr_nonloc.dvnlim_z_dn
+  cpscr_nonloc->vnlim_dn
                    = (double *)cmalloc(nlscr_dn*sizeof(double))-1;
 
-  num += 6*nlscr_dn;
+  cpscr_nonloc->dvnlre_x_up
+                   = (double *)cmalloc(nlscr_up*sizeof(double))-1;
+  cpscr_nonloc->dvnlre_y_up
+                   = (double *)cmalloc(nlscr_up*sizeof(double))-1;
+  cpscr_nonloc->dvnlre_z_up
+                   = (double *)cmalloc(nlscr_up*sizeof(double))-1;
+  cpscr_nonloc->dvnlim_x_up
+                   = (double *)cmalloc(nlscr_up*sizeof(double))-1;
+  cpscr_nonloc->dvnlim_y_up
+                   = (double *)cmalloc(nlscr_up*sizeof(double))-1;
+  cpscr_nonloc->dvnlim_z_up
+                   = (double *)cmalloc(nlscr_up*sizeof(double))-1;
 
-  cpscr->cpscr_nonloc.dvnlre_gxgx_up
+  cpscr_nonloc->dvnlre_x_dn
+                   = (double *)cmalloc(nlscr_dn*sizeof(double))-1;
+  cpscr_nonloc->dvnlre_y_dn
+                   = (double *)cmalloc(nlscr_dn*sizeof(double))-1;
+  cpscr_nonloc->dvnlre_z_dn
+                   = (double *)cmalloc(nlscr_dn*sizeof(double))-1;
+  cpscr_nonloc->dvnlim_x_dn
+                   = (double *)cmalloc(nlscr_dn*sizeof(double))-1;
+  cpscr_nonloc->dvnlim_y_dn
+                   = (double *)cmalloc(nlscr_dn*sizeof(double))-1;
+  cpscr_nonloc->dvnlim_z_dn
+                   = (double *)cmalloc(nlscr_dn*sizeof(double))-1;
+
+  cpscr_nonloc->dvnlre_gxgx_up
                    = (double *)cmalloc(nlscr_up_pv*sizeof(double))-1;
-  cpscr->cpscr_nonloc.dvnlre_gygy_up
+  cpscr_nonloc->dvnlre_gygy_up
                    = (double *)cmalloc(nlscr_up_pv*sizeof(double))-1;
-  cpscr->cpscr_nonloc.dvnlre_gzgz_up
+  cpscr_nonloc->dvnlre_gzgz_up
                    = (double *)cmalloc(nlscr_up_pv*sizeof(double))-1;
-  cpscr->cpscr_nonloc.dvnlre_gxgy_up
+  cpscr_nonloc->dvnlre_gxgy_up
                    = (double *)cmalloc(nlscr_up_pv*sizeof(double))-1;
-  cpscr->cpscr_nonloc.dvnlre_gygz_up
+  cpscr_nonloc->dvnlre_gygz_up
                    = (double *)cmalloc(nlscr_up_pv*sizeof(double))-1;
-  cpscr->cpscr_nonloc.dvnlre_gxgz_up
+  cpscr_nonloc->dvnlre_gxgz_up
                    = (double *)cmalloc(nlscr_up_pv*sizeof(double))-1;
-  cpscr->cpscr_nonloc.dvnlim_gxgx_up
+  cpscr_nonloc->dvnlim_gxgx_up
                    = (double *)cmalloc(nlscr_up_pv*sizeof(double))-1;
-  cpscr->cpscr_nonloc.dvnlim_gygy_up
+  cpscr_nonloc->dvnlim_gygy_up
                    = (double *)cmalloc(nlscr_up_pv*sizeof(double))-1;
-  cpscr->cpscr_nonloc.dvnlim_gzgz_up
+  cpscr_nonloc->dvnlim_gzgz_up
                    = (double *)cmalloc(nlscr_up_pv*sizeof(double))-1;
-  cpscr->cpscr_nonloc.dvnlim_gxgy_up
+  cpscr_nonloc->dvnlim_gxgy_up
                    = (double *)cmalloc(nlscr_up_pv*sizeof(double))-1;
-  cpscr->cpscr_nonloc.dvnlim_gygz_up
+  cpscr_nonloc->dvnlim_gygz_up
                    = (double *)cmalloc(nlscr_up_pv*sizeof(double))-1;
-  cpscr->cpscr_nonloc.dvnlim_gxgz_up
+  cpscr_nonloc->dvnlim_gxgz_up
                    = (double *)cmalloc(nlscr_up_pv*sizeof(double))-1;
 
-  num += 12*nlscr_up_pv;
 
-  cpscr->cpscr_nonloc.dvnlre_gxgx_dn
+  cpscr_nonloc->dvnlre_gxgx_dn
                    = (double *)cmalloc(nlscr_dn_pv*sizeof(double))-1;
-  cpscr->cpscr_nonloc.dvnlre_gygy_dn
+  cpscr_nonloc->dvnlre_gygy_dn
                    = (double *)cmalloc(nlscr_dn_pv*sizeof(double))-1;
-  cpscr->cpscr_nonloc.dvnlre_gzgz_dn
+  cpscr_nonloc->dvnlre_gzgz_dn
                    = (double *)cmalloc(nlscr_dn_pv*sizeof(double))-1;
-  cpscr->cpscr_nonloc.dvnlre_gxgy_dn
+  cpscr_nonloc->dvnlre_gxgy_dn
                    = (double *)cmalloc(nlscr_dn_pv*sizeof(double))-1;
-  cpscr->cpscr_nonloc.dvnlre_gygz_dn
+  cpscr_nonloc->dvnlre_gygz_dn
                    = (double *)cmalloc(nlscr_dn_pv*sizeof(double))-1;
-  cpscr->cpscr_nonloc.dvnlre_gxgz_dn
-                   = (double *)cmalloc(nlscr_dn_pv*sizeof(double))-1;
-
-  cpscr->cpscr_nonloc.dvnlim_gxgx_dn
-                   = (double *)cmalloc(nlscr_dn_pv*sizeof(double))-1;
-  cpscr->cpscr_nonloc.dvnlim_gygy_dn
-                   = (double *)cmalloc(nlscr_dn_pv*sizeof(double))-1;
-  cpscr->cpscr_nonloc.dvnlim_gzgz_dn
-                   = (double *)cmalloc(nlscr_dn_pv*sizeof(double))-1;
-  cpscr->cpscr_nonloc.dvnlim_gxgy_dn
-                   = (double *)cmalloc(nlscr_dn_pv*sizeof(double))-1;
-  cpscr->cpscr_nonloc.dvnlim_gygz_dn
-                   = (double *)cmalloc(nlscr_dn_pv*sizeof(double))-1;
-  cpscr->cpscr_nonloc.dvnlim_gxgz_dn
+  cpscr_nonloc->dvnlre_gxgz_dn
                    = (double *)cmalloc(nlscr_dn_pv*sizeof(double))-1;
 
-  num += 12*nlscr_dn_pv;
+  cpscr_nonloc->dvnlim_gxgx_dn
+                   = (double *)cmalloc(nlscr_dn_pv*sizeof(double))-1;
+  cpscr_nonloc->dvnlim_gygy_dn
+                   = (double *)cmalloc(nlscr_dn_pv*sizeof(double))-1;
+  cpscr_nonloc->dvnlim_gzgz_dn
+                   = (double *)cmalloc(nlscr_dn_pv*sizeof(double))-1;
+  cpscr_nonloc->dvnlim_gxgy_dn
+                   = (double *)cmalloc(nlscr_dn_pv*sizeof(double))-1;
+  cpscr_nonloc->dvnlim_gygz_dn
+                   = (double *)cmalloc(nlscr_dn_pv*sizeof(double))-1;
+  cpscr_nonloc->dvnlim_gxgz_dn
+                   = (double *)cmalloc(nlscr_dn_pv*sizeof(double))-1;
 
 /*------------------------------------------------------------------*/
 /* wave */
-  cpscr->cpscr_wave.cre_up
+  cpscr_wave->cre_up
                     = (double *)cmalloc(ncoef2_up_c*sizeof(double))-1;
-  cpscr->cpscr_wave.cim_up
+  cpscr_wave->cim_up
                     = (double *)cmalloc(ncoef2_up*sizeof(double))-1;
-  cpscr->cpscr_wave.cre_dn
+  cpscr_wave->cre_dn
                     = (double *)cmalloc(ncoef2_dn*sizeof(double))-1;
-  cpscr->cpscr_wave.cim_dn
+  cpscr_wave->cim_dn
                     = (double *)cmalloc(ncoef2_dn*sizeof(double))-1;
 
 
 /*------------------------------------------------------------------*/
 /* ovmat */
-  cpscr->cpscr_ovmat.ovlap1
+  cpscr_ovmat->ovlap1
                     = (double *)cmalloc(nstate2_tot*sizeof(double))-1;
-  cpscr->cpscr_ovmat.ovlap2
+  cpscr_ovmat->ovlap2
                     = (double *)cmalloc(nstate2_tot*sizeof(double))-1;
-  cpscr->cpscr_ovmat.ovlap3
+  cpscr_ovmat->ovlap3
                     = (double *)cmalloc(nstate2_tot*sizeof(double))-1;
-  cpscr->cpscr_ovmat.ovlap4
+  cpscr_ovmat->ovlap4
                     = (double *)cmalloc(nstate2_tot*sizeof(double))-1;
-  cpscr->cpscr_ovmat.ovlap5
+  cpscr_ovmat->ovlap5
                     = (double *)cmalloc(nstate2_tot*sizeof(double))-1;
-  cpscr->cpscr_ovmat.ovlap6
+  cpscr_ovmat->ovlap6
                     = (double *)cmalloc(nstate2_tot*sizeof(double))-1;
-  cpscr->cpscr_ovmat.ovlap7
+  cpscr_ovmat->ovlap7
                     = (double *)cmalloc(nstate2_tot*sizeof(double))-1;
-  cpscr->cpscr_ovmat.ovlap8
+  cpscr_ovmat->ovlap8
                     = (double *)cmalloc(nstate2_tot*sizeof(double))-1;
 
-  num += 8*nstate2_tot;
-
-  cpscr->cpscr_ovmat.state_vec1
+  cpscr_ovmat->state_vec1
                     = (double *)cmalloc(nstate_tot*sizeof(double))-1;
-  cpscr->cpscr_ovmat.state_vec2
+  cpscr_ovmat->state_vec2
                     = (double *)cmalloc(nstate_tot*sizeof(double))-1;
-  cpscr->cpscr_ovmat.state_vec3
+  cpscr_ovmat->state_vec3
                     = (double *)cmalloc(nstate_tot*sizeof(double))-1;
-  cpscr->cpscr_ovmat.state_vec4
+  cpscr_ovmat->state_vec4
                     = (double *)cmalloc(nstate_tot*sizeof(double))-1;
-  cpscr->cpscr_ovmat.state_vec5
+  cpscr_ovmat->state_vec5
                     = (double *)cmalloc(nstate_tot*sizeof(double))-1;
-  cpscr->cpscr_ovmat.state_vec6
+  cpscr_ovmat->state_vec6
                     = (double *)cmalloc(nstate_tot*sizeof(double))-1;
-  cpscr->cpscr_ovmat.state_vec7
+  cpscr_ovmat->state_vec7
                     = (double *)cmalloc(nstate_tot*sizeof(double))-1;
-
-  num += 7*nstate_tot;
 
 /*-----------------------------------------------------------------------*/
 /* Wannier scratch                                                       */
 
-  if(cpscr->cpscr_wannier.cp_wannier_on==1){
-    cpscr->cpscr_wannier.U_final = (double *) cmalloc(ndim_wannier*sizeof(double))-1;
-    cpscr->cpscr_wannier.g       = (double *) cmalloc(ndim_wannier*sizeof(double))-1;
-    cpscr->cpscr_wannier.gg      = (double *) cmalloc(ndim_wannier*sizeof(double))-1;
-    cpscr->cpscr_wannier.diag    = (double *) cmalloc(ndim_wannier*sizeof(double))-1;
-    cpscr->cpscr_wannier.scr     =
+  if(cpscr_wannier->cp_wannier_on==1){
+    cpscr_wannier->U_final = (double *) cmalloc(ndim_wannier*sizeof(double))-1;
+    cpscr_wannier->g       = (double *) cmalloc(ndim_wannier*sizeof(double))-1;
+    cpscr_wannier->gg      = (double *) cmalloc(ndim_wannier*sizeof(double))-1;
+    cpscr_wannier->diag    = (double *) cmalloc(ndim_wannier*sizeof(double))-1;
+    cpscr_wannier->scr     =
                    (double *) cmalloc((ndim_wannier*(2*mm+1)+2*mm)*sizeof(double))-1;
-    cpscr->cpscr_wannier.iprint  = (int *)cmalloc(2*sizeof(int))-1;
+    cpscr_wannier->iprint  = (int *)cmalloc(2*sizeof(int))-1;
 
+    cpscr_wannier->A       = cmall_mat(1,nstate_up_tot,1,nstate_up_tot);
+    cpscr_wannier->R_real  = cmall_mat(1,nstate_up_tot,1,nstate_up_tot);
+    cpscr_wannier->R_imag  = cmall_mat(1,nstate_up_tot,1,nstate_up_tot);
+    cpscr_wannier->U_real  = cmall_mat(1,nstate_up_tot,1,nstate_up_tot);
+    cpscr_wannier->U_imag  = cmall_mat(1,nstate_up_tot,1,nstate_up_tot);
+    cpscr_wannier->U_tmp1  = cmall_mat(1,nstate_up_tot,1,nstate_up_tot);
+    cpscr_wannier->U_tmp2  = cmall_mat(1,nstate_up_tot,1,nstate_up_tot);
+    cpscr_wannier->U_tmp3  = cmall_mat(1,nstate_up_tot,1,nstate_up_tot);
+    cpscr_wannier->U_tmp4  = cmall_mat(1,nstate_up_tot,1,nstate_up_tot);
+    cpscr_wannier->Bt_real = cmall_mat(1,nstate_up_tot,1,nstate_up_tot);
+    cpscr_wannier->Bt_imag = cmall_mat(1,nstate_up_tot,1,nstate_up_tot);
+    cpscr_wannier->M_real  = cmall_mat(1,nstate_up_tot,1,nstate_up_tot);
 
-    num += 4*ndim_wannier+ndim_wannier*(2*mm+1)+2*mm;
-
-    cpscr->cpscr_wannier.A       = cmall_mat(1,nstate_up_tot,1,nstate_up_tot);
-    cpscr->cpscr_wannier.R_real  = cmall_mat(1,nstate_up_tot,1,nstate_up_tot);
-    cpscr->cpscr_wannier.R_imag  = cmall_mat(1,nstate_up_tot,1,nstate_up_tot);
-    cpscr->cpscr_wannier.U_real  = cmall_mat(1,nstate_up_tot,1,nstate_up_tot);
-    cpscr->cpscr_wannier.U_imag  = cmall_mat(1,nstate_up_tot,1,nstate_up_tot);
-    cpscr->cpscr_wannier.U_tmp1  = cmall_mat(1,nstate_up_tot,1,nstate_up_tot);
-    cpscr->cpscr_wannier.U_tmp2  = cmall_mat(1,nstate_up_tot,1,nstate_up_tot);
-    cpscr->cpscr_wannier.U_tmp3  = cmall_mat(1,nstate_up_tot,1,nstate_up_tot);
-    cpscr->cpscr_wannier.U_tmp4  = cmall_mat(1,nstate_up_tot,1,nstate_up_tot);
-    cpscr->cpscr_wannier.Bt_real = cmall_mat(1,nstate_up_tot,1,nstate_up_tot);
-    cpscr->cpscr_wannier.Bt_imag = cmall_mat(1,nstate_up_tot,1,nstate_up_tot);
-    cpscr->cpscr_wannier.M_real  = cmall_mat(1,nstate_up_tot,1,nstate_up_tot);
-
-    num += 12*ndim_wannier;
-
-    cpscr->cpscr_wannier.real    = (double *)cmalloc(nstate_up_tot*sizeof(double))-1;
-    cpscr->cpscr_wannier.imag    = (double *)cmalloc(nstate_up_tot*sizeof(double))-1;
-    cpscr->cpscr_wannier.D       = (double *)cmalloc(nstate_up_tot*sizeof(double))-1;
-    cpscr->cpscr_wannier.norm    = (double *)cmalloc(nstate_up_tot*sizeof(double))-1;
-    cpscr->cpscr_wannier.phi     = cmall_mat(1,nstate_up_tot,1,3);
-    cpscr->cpscr_wannier.HMatrix = cmall_mat(1,3,1,3);
+    cpscr_wannier->real    = (double *)cmalloc(nstate_up_tot*sizeof(double))-1;
+    cpscr_wannier->imag    = (double *)cmalloc(nstate_up_tot*sizeof(double))-1;
+    cpscr_wannier->D       = (double *)cmalloc(nstate_up_tot*sizeof(double))-1;
+    cpscr_wannier->norm    = (double *)cmalloc(nstate_up_tot*sizeof(double))-1;
+    cpscr_wannier->phi     = cmall_mat(1,nstate_up_tot,1,3);
+    cpscr_wannier->HMatrix = cmall_mat(1,3,1,3);
     printf("CP_WANNIER memory allocation \n");
-    
-    num += 7*nstate_up_tot;
   } 
 
   

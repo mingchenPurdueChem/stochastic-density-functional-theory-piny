@@ -2242,11 +2242,11 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
   strcpy((*dict)[8].keyarg,"off");
 
   strcpy((*dict)[9].error_mes,"Nonnegative integer: number of deterministic spin up wave functions");
-  strcpy((*dict)[9].keyword,"num_state_read_up");
+  strcpy((*dict)[9].keyword,"num_sto_state_up");
   strcpy((*dict)[9].keyarg,"0");
 
   strcpy((*dict)[10].error_mes,"Nonnegative integer: number of deterministic spin down wave functions");
-  strcpy((*dict)[10].keyword,"num_state_read_dn");
+  strcpy((*dict)[10].keyword,"num_sto_state_dn");
   strcpy((*dict)[10].keyarg,"0");
 
  /*========================================================================*/

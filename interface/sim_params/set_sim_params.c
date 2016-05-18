@@ -4498,7 +4498,7 @@ void set_sim_params_dafed(CLASS *class, GENERAL_DATA *general_data, DICT_WORD *d
 /*==========================================================================*/
 
 void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp, 
-			   DICT_WORD *dict)
+			   CP_PARSE *cp_parse,DICT_WORD *dict)
 /*=======================================================================*/
 /*             Begin routine                                              */
 {/*begin routine */
@@ -4511,6 +4511,7 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
 
   STODFTINFO *stodftInfo = (STODFTINFO *)cmalloc(sizeof(STODFTINFO));;
   STODFTCOEFPOS *stodftCoefPos = (STODFTCOEFPOS *)cmalloc(sizeof(STODFTCOEFPOS));
+  
   cp->stodftInfo = stodftInfo;
   cp->stodftCoefPos = stodftCoefPos;
 
@@ -4554,13 +4555,13 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   if(strcasecmp(dict[8].keyarg,"det")==0)stodftInfo->readCoeffFlag = 2;
 
   /*-----------------------------------------------------------------------*/
-  /*  9)\num_state_read_up{#} */
+  /*  9)\num_sto_state_up{#} */
   sscanf(dict[9].keyarg,"%lg",&rka);
-  stodftInfo->numCoeffDetUp = (int)(rka);
+  stodftInfo->numStateStoUp = (int)(rka);
   /*-----------------------------------------------------------------------*/
-  /*  10)\num_state_read_dn{#} */
+  /*  10)\num_sto_state_dn{#} */
   sscanf(dict[10].keyarg,"%lg",&rka);
-  stodftInfo->numCoeffDetDn = (int)(rka);
+  stodftInfo->numStateStoDn = (int)(rka);
   
 /*=======================================================================*/
 /* Check the conflicate options						 */
@@ -4660,8 +4661,8 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
     }
     if(stodftInfo->readCoeffFlag==2){
       printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
-      printf("Read in stochastic wave function, numCoeffDetUp(Dn) will\n");
-      printf("not used.\n");
+      printf("Read in stochastic wave function, NSTATE_UP(DN) in the set file\n");
+      printf("will not be used.\n");
       printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
     }
   }//endif stodftOn

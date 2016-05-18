@@ -195,10 +195,10 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
 
   //debug only
-  //genStoOrbital(class,bonded,general_data,cp,ip_now);
+  genStoOrbital(class,bonded,general_data,cp,ip_now);
 
   
-  //exit(0);
+  exit(0);
 /*======================================================================*/
 /* V) SCF loop						                */
 

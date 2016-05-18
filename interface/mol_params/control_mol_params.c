@@ -48,6 +48,12 @@ void control_mol_params(CLASS *class,GENERAL_DATA *general_data,
   int dafed_atom_num;
   CLATOMS_INFO *clatoms_info = &(class->clatoms_info);
   DAFED_INFO *dinfo = &(clatoms_info->dinfo);
+  STODFTINFO *stodftInfo = cp->stodftInfo;
+  CPCOEFFS_INFO *cpcoeffs_info = &(cp->cpcoeffs_info);
+  int stodftOn = stodftInfo->stodftOn;
+  int readCoeffFlag = stodftInfo->readCoeffFlag;
+  int numStateStoUp = stodftInfo->numStateStoUp;
+  int numStateStoDn = stodftInfo->numStateStoDn;   
   int n_cv = dinfo->n_cv;
   double now_memory;
   char *fun_key;
@@ -266,6 +272,18 @@ void control_mol_params(CLASS *class,GENERAL_DATA *general_data,
   for(i=1; i<= nmol_typ; i++){
     text_mol[i] = text_nhc_mol[i];   
   }/*endfor*/
+
+  if(stodftOn==1&&readCoeffFlag==1){
+    if((numStateStoUp!=cpcoeffs_info->nstate_up)||
+        (numStateStoDn!=cpcoeffs_info->nstate_dn)){
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+      printf("You want to readin stochastic orbitals but the number of \n");
+      printf("orbitals is inconsistent! Please check the parameters!\n");
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(1);
+    }
+  }
 
 /*========================================================================*/
 /* V) Free some memory and malloc some other                              */

@@ -277,7 +277,7 @@ void control_sim_params(CLASS *class,GENERAL_DATA *general_data,
 
   set_sim_params_dafed(class,general_data,dict_dafed);
 
-  set_sim_params_stodft(class,general_data,cp,dict_stodft);
+  set_sim_params_stodft(class,general_data,cp,cp_parse,dict_stodft);
  
   set_sim_params_finale(class,general_data,bonded,cp,class_parse,cp_parse,
                         filename_parse); /* Consistency checks */

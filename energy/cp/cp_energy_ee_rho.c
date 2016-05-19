@@ -885,6 +885,7 @@ void coef_force_control(CPOPTS *cpopts,CPCOEFFS_INFO *cpcoeffs_info,
                           cp_sclr_fft_pkg3d_sm); 
   *cp_eke_ret += cp_eke;
 
+  /*
   int istest,icoeftest;
   int ncoef = cpcoeffs_info->ncoef;
   int ncoef1 = ncoef-1;
@@ -894,10 +895,11 @@ void coef_force_control(CPOPTS *cpopts,CPCOEFFS_INFO *cpcoeffs_info,
       indextest = istest*ncoef+icoeftest+1;
       kfcre_up[indextest] = -2.0*ak2_sm[icoeftest+1]*creal_up[indextest];
       kfcim_up[indextest] = -2.0*ak2_sm[icoeftest+1]*cimag_up[indextest];
-    }/*endfor i*/
+    }//endfor i
    kfcre_up[istest*ncoef+ncoef] = 0.0;
    kfcim_up[istest*ncoef+ncoef] = 0.0;
-  }/*endfor*/
+  }//endfor istest
+  */
 
 
  /*--------------------------------------------*/

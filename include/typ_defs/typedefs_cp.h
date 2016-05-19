@@ -344,6 +344,9 @@ typedef struct stodftCoeffPos{
   
   double *chemPot;		    /* Lst: chemical potentials			*/
 				    /* Lth: numChemPot				*/
+  //debug only
+  double *coeffReUpBackup;
+  double *coeffImUpBackup;
 }STODFTCOEFPOS;
 
 

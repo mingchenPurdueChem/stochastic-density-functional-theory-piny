@@ -36,6 +36,7 @@ void normHNewtonHerm(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,
 		     CLATOMS_POS *,double);
 void calcRhoDet(CLASS *,BONDED *,GENERAL_DATA *,CP *,CPCOEFFS_POS *);
 void calcRhoSto(CLASS *,BONDED *,GENERAL_DATA *,CP *,CPCOEFFS_POS *);
+void calcCoefForceWrap(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);
 
 
 

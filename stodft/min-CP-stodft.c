@@ -55,7 +55,7 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   ATOMMAPS *atommaps		= &(class->atommaps);
 
   int iperd            		= cell->iperd;
-  int iScf,iCell;
+  int iScf,iCell,iCoeff;
   int numScf			= stodftInfo->numScf; //Need claim this in cp
   int cpLsda 			= cpopts->cp_lsda;
   int checkPerdSize 		= cpopts->icheck_perd_size;
@@ -168,26 +168,6 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   for(iCell=1;iCell<=9;iCell++){ptensPvtenTmp[iCell] = 0.0;}
   gethinv(cell->hmat_cp,cell->hmati_cp,&(cell->vol_cp),iperd);
   gethinv(cell->hmat,cell->hmati,&(cell->vol),iperd);
-
-/*======================================================================*/
-/* IV) Get the total density, (spin densities too if lsda)              */
-/*       and necessary gradients of density for GGA calculations        */
-
-  //debug only
-  //calcRhoDeterm(class,bonded,general_data,cp,cpcoeffs_pos);
-
-  printf("Finish generating density\n");
-
-/*==========================================================================*/
-/* V) Calculate the non-local pseudopotential list                          */
-
-  if(stodftInfo->vpsAtomListFlag==0||cpDualGridOptOn>= 1){
-    control_vps_atm_list(pseudo,cell,clatoms_pos,clatoms_info,
-                         atommaps,ewd_scr,for_scr,cpDualGridOptOn,
-                         stodftInfo->vpsAtomListFlag);
-    stodftInfo->vpsAtomListFlag = 1;
-  }
-  printf("Finish generating Pseudopotential list.\n");
 
 /*======================================================================*/
 /* V) Calculate Emin and Emax				                */
@@ -331,11 +311,14 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   double **stoWfDnRe = stodftCoefPos->stoWfDnRe;
   double **stoWfDnIm = stodftCoefPos->stoWfDnIm;
 
+  double *coeffReUpBackup = stodftCoefPos->coeffReUpBackup;
+  double *coeffImUpBackup = stodftCoefPos->coeffImUpBackup;
   
 /*==========================================================================*/
 /* 0) Check the forms							    */
 
 //debug
+  /*
   genEigenOrb(cp,class,general_data,cpcoeffs_pos,clatoms_pos);
 
   double *coeffReUpBackup = (double*)cmalloc((numCoeffUpTot+1)*sizeof(double));
@@ -361,6 +344,8 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     coeffReUpBackup[iCoeff] = coeffReUp[iCoeff];
     coeffImUpBackup[iCoeff] = coeffImUp[iCoeff];
   }
+  */
+  double *randTrail = (double *)cmalloc((2*numCoeffUpTot+1)*sizeof(double));
 #ifdef MKL_RANDOM
   VSLStreamStatePtr stream;
   int errcode;
@@ -377,7 +362,7 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 #endif
 #ifndef MKL_RANDOM
   //whatever random number is good, I'm using Gaussian in this case
-  double seed = 45.154;
+  double seed = 8.3;
   int iseed;
   gaussran(2*numCoeffUpTot,&iseed,&iseed,&seed,randTrail);
   for(iCoeff=1;iCoeff<=numCoeffUpTot;iCoeff++){

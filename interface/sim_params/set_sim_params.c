@@ -4570,7 +4570,7 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   else stodftOn = 0;
   stodftInfo->stodftOn = stodftOn;
 
-  printf("stodftOn %i\n",stodftOn);
+  //printf("stodftOn %i\n",stodftOn);
  
   if(stodftOn==1){
     simopts->minimize = 0;

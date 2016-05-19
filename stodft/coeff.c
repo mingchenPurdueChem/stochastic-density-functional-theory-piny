@@ -259,23 +259,7 @@ void genEigenOrb(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   double *cre_temp = (double*)cmalloc(numCoeffUpTot*sizeof(double))-1;
   double *cim_temp = (double*)cmalloc(numCoeffUpTot*sizeof(double))-1;
 
-  for(iCoeff=1;iCoeff<=numCoeffUpTot;iCoeff++){
-    fcre_up[iCoeff] = 0.0;
-    fcim_up[iCoeff] = 0.0;
-  }
-  control_cp_eext_recip(clatoms_info,clatoms_pos,cpcoeffs_info,
-                       cpcoeffs_pos,cpewald,cpscr,cpopts,pseudo,
-                       ewd_scr,atommaps,cell,ewald,ptens,&(stat_avg->vrecip),
-                       &(stat_avg->cp_enl),communicate,for_scr,cpDualGridOptOn,
-                       cp_para_fft_pkg3d_lg);
-
-  coef_force_control(cpopts,cpcoeffs_info,cpcoeffs_pos,cpscr,ewald,cpewald,
-                    cell,stat_avg,pseudo->vxc_typ,ptens->pvten_tmp,pseudo->gga_cut,
-                    pseudo->alpha_conv_dual,pseudo->n_interp_pme_dual,cpMinOn,
-                    communicate,cp_comm_state_pkg_up,
-                     cp_comm_state_pkg_dn,cp_para_fft_pkg3d_lg,cp_sclr_fft_pkg3d_lg,
-                     cp_para_fft_pkg3d_dens_cp_box,cp_sclr_fft_pkg3d_dens_cp_box,
-                     cp_para_fft_pkg3d_sm,cp_sclr_fft_pkg3d_sm,cpDualGridOptOn);
+  calcCoefForceWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
 
   cp_condiag_ksmat(cre_up,cim_up,*icoef_form_up,*icoef_orth_up,fcre_up,fcim_up,
                  *ifcoef_form_up,*ifcoef_orth_up,kseig_vals,kseig_vecs,

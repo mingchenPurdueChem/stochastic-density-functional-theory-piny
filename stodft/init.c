@@ -18,6 +18,8 @@
 #include "../typ_defs/typedefs_class.h"
 #include "../typ_defs/typedefs_bnd.h"
 #include "../typ_defs/typedefs_cp.h"
+#include "../proto_defs/proto_energy_cpcon_entry.h"
+#include "../proto_defs/proto_energy_cpcon_local.h"
 #include "../proto_defs/proto_energy_cp_local.h"
 #include "../proto_defs/proto_friend_lib_entry.h"
 #include "../proto_defs/proto_math.h"
@@ -47,20 +49,26 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   CELL         *cell         = &(general_data->cell);
   FOR_SCR      *for_scr      = &(class->for_scr);
   EWD_SCR      *ewd_scr      = &(class->ewd_scr);
+  PTENS        *ptens        = &(general_data->ptens);
 
-  CPOPTS *cpopts = &(cp->cpopts);
-  PSEUDO *pseudo = &(cp->pseudo);
-  CPCOEFFS_INFO *cpcoeffs_info = &(cp->cpcoeffs_info);
-  STODFTINFO *stodftInfo       = cp->stodftInfo;
-  STODFTCOEFPOS *stodftCoefPos = cp->stodftCoefPos;
-  NEWTONINFO *newtonInfo;
+  CPOPTS        *cpopts           = &(cp->cpopts);
+  PSEUDO        *pseudo           = &(cp->pseudo);
+  CPCOEFFS_INFO *cpcoeffs_info    = &(cp->cpcoeffs_info);
+  COMMUNICATE   *communicate      = &(cp->communicate);
+  CPCOEFFS_POS  *cpcoeffs_pos     = &(cp->cpcoeffs_pos[ip_now]);
+  STODFTINFO    *stodftInfo       = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos    = cp->stodftCoefPos;
+  CPSCR         *cpscr            = &(cp->cpscr);  
+  NEWTONINFO    *newtonInfo;
 
+  int iperd          = cell->iperd;
   int cpLsda         = cpopts->cp_lsda;
-  int cpGga         = cpopts->cp_gga;
+  int cpGga          = cpopts->cp_gga;
   int expanType      = stodftInfo->expanType;
   int numOrbital     = stodftInfo->numOrbital;
   int polynormLength = stodftInfo->polynormLength;
   int numChemPot     = stodftInfo->numChemPot;
+  int readCoeffFlag  = stodftInfo->readCoeffFlag;
   int numCoeff       = cpcoeffs_info->ncoef;
   int numStateUpProc = cpcoeffs_info->nstate_up_proc;
   int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
@@ -69,7 +77,28 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   int totalPoly	     = polynormLength*numChemPot;
   int filterFunType   = stodftInfo->filterFunType;
   int cpDualGridOptOn = cpopts->cp_dual_grid_opt;
-  int iChem,iSamp;
+  int checkPerdSize             = cpopts->icheck_perd_size;
+  int checkDualSize             = cpopts->icheck_dual_size;
+  int coefFormUp                = cpcoeffs_pos->icoef_form_up;
+  int coefOrthUp                = cpcoeffs_pos->icoef_orth_up;
+  int forceCoefFormUp           = cpcoeffs_pos->ifcoef_form_up;
+  int forceCoefOrthUp           = cpcoeffs_pos->ifcoef_orth_up;
+  int coefFormDn                = cpcoeffs_pos->icoef_form_dn;
+  int coefOrthDn                = cpcoeffs_pos->icoef_orth_dn;
+  int forceCoefFormDn           = cpcoeffs_pos->ifcoef_form_dn;
+  int forceCoefOrthDn           = cpcoeffs_pos->ifcoef_orth_dn;
+  int numProcStates             = communicate->np_states;
+  int myidState                 = communicate->myid_state;
+  int iChem,iSamp,iCell;
+
+  int *pcoefFormUp                   = &(cpcoeffs_pos->icoef_form_up);
+  int *pcoefOrthUp                   = &(cpcoeffs_pos->icoef_orth_up);
+  int *pforceCoefFormUp              = &(cpcoeffs_pos->ifcoef_form_up);
+  int *pforceCoefOrthUp              = &(cpcoeffs_pos->ifcoef_orth_up);
+  int *pcoefFormDn                   = &(cpcoeffs_pos->icoef_form_dn);
+  int *pcoefOrthDn                   = &(cpcoeffs_pos->icoef_orth_dn);
+  int *pforceCoefFormDn              = &(cpcoeffs_pos->icoef_form_dn);
+  int *pforceCoefOrthDn              = &(cpcoeffs_pos->icoef_orth_dn);
 
   char *ggaxTyp     = pseudo->ggax_typ;
   char *ggacTyp     = pseudo->ggac_typ;
@@ -77,6 +106,19 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   double Smin = -2.0;
   double Smax = 2.0;
   double energyDiff;
+  double tolEdgeDist            = cpopts->tol_edge_dist;
+
+  double *coeffReUp        = cpcoeffs_pos->cre_up;
+  double *coeffImUp        = cpcoeffs_pos->cim_up;
+  double *forceCoeffReUp   = cpcoeffs_pos->fcre_up;
+  double *forceCoeffImUp   = cpcoeffs_pos->fcre_up;
+  double *coeffReDn        = cpcoeffs_pos->cre_dn;
+  double *coeffImDn        = cpcoeffs_pos->cim_dn;
+  double *cpScrCoeffReUp   = cpscr->cpscr_wave.cre_up;
+  double *cpScrCoeffImUp   = cpscr->cpscr_wave.cim_up;
+  double *cpScrCoeffReDn   = cpscr->cpscr_wave.cre_dn;
+  double *cpScrCoeffImDn   = cpscr->cpscr_wave.cim_dn;
+  double *ptensPvtenTmp    = ptens->pvten_tmp;
 
 /*==========================================================================*/
 /* I) General parameters and malloc					    */
@@ -108,8 +150,6 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     exit(0);
   }
 
-
-
 /*==========================================================================*/
 /* II) Malloc by expension type						    */
 
@@ -131,7 +171,6 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   //stodftCoefPos->chemPot[0] = -0.17435045;
   stodftCoefPos->chemPot[0] = 0.075726635;
   
-
 /*==========================================================================*/
 /* III) Initialize utility data						    */
   FILE *fileSampPoint = fopen("samp-point","r");
@@ -142,7 +181,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
       
       for(iSamp=0;iSamp<polynormLength;iSamp++){
 	fscanf(fileSampPoint,"%lg",&(sampLocal[iSamp]));
-	printf("samp %lg\n",sampLocal[iSamp]);
+	//printf("samp %lg\n",sampLocal[iSamp]);
       }
       
       //genSampNewtonHermit(stodftInfo,stodftCoefPos);
@@ -194,6 +233,10 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     if(strcasecmp(ggacTyp,"debug97x")==0){cpopts->cp_debug_xc=1;}
   }/*endif*/
 
+  if(readCoeffFlag==1)stodftInfo->reInitFlag = 0;
+  else stodftInfo->reInitFlag = 1;
+  printf("readCoeffFlag %i reInitFlag %i\n",readCoeffFlag,stodftInfo->reInitFlag);
+
 
 /*==========================================================================*/
 /* V) Calculate the non-local pseudopotential list                          */
@@ -205,6 +248,59 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     stodftInfo->vpsAtomListFlag = 1;
   }
   */
+
+/*==========================================================================*/
+/* V) Initialize for the density calculation                          */
+
+  if(numProcStates>1){
+    if((coefFormUp+forceCoefFormUp)!=2){
+     printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+     printf("Up CP vectors are not in transposed form \n");
+     printf("on state processor %d in min_STD_cp \n",myidState);
+     printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+     fflush(stdout);
+     exit(1);
+    }/*endif*/
+    if(cpLsda==1){
+     if((coefFormDn+forceCoefFormDn)!=2){
+      printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+      printf("Up CP vectors are not in transposed form \n");
+      printf("on state processor %d in min_STD_cp \n",myidState);
+      printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(1);
+     }/*endif*/
+    }/*endif*/
+  }/*endif*/
+
+  if((iperd<3||iperd==4)&&checkPerdSize==1){
+    cp_boundary_check(cell,clatoms_info,clatoms_pos,tolEdgeDist);
+  }/*endif*/
+  if(cpDualGridOptOn>=1&&checkDualSize==1){
+    cp_dual_check(cell,clatoms_info,clatoms_pos,
+                  atommaps->cp_atm_lst,tolEdgeDist);
+  }/*endif*/
+
+  if(numProcStates>1){
+    cp_transpose_bck(coeffReUp,coeffImUp,pcoefFormUp,
+                    cpScrCoeffReUp,cpScrCoeffImUp,&(cp->cp_comm_state_pkg_up));
+    if(cpLsda==1&&numStateDnProc>0){
+      cp_transpose_bck(coeffReDn,coeffImDn,pcoefFormDn,
+                     cpScrCoeffReDn,cpScrCoeffImDn,&(cp->cp_comm_state_pkg_dn));
+    }/*endif*/
+  }/*endif*/
+
+  cpcoeffs_pos->ifcoef_form_up = 0;
+  cpcoeffs_pos->ifcoef_orth_up = 1;
+  if(cpLsda==1&&numStateDnProc>0){
+    cpcoeffs_pos->ifcoef_form_dn = 0;
+    cpcoeffs_pos->ifcoef_orth_dn = 1;
+  }/*endif*/
+
+  for(iCell=1;iCell<=9;iCell++){ptensPvtenTmp[iCell] = 0.0;}
+  gethinv(cell->hmat_cp,cell->hmati_cp,&(cell->vol_cp),iperd);
+  gethinv(cell->hmat,cell->hmati,&(cell->vol),iperd);
+
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/
@@ -224,15 +320,42 @@ void calcRhoInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*************************************************************************/
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
+  CELL *cell                     = &(general_data->cell);
+  CLATOMS_POS *clatoms_pos      = &(class->clatoms_pos[ip_now]);
+  CLATOMS_INFO *clatoms_info    = &(class->clatoms_info);
+  ATOMMAPS *atommaps            = &(class->atommaps);
+  EWD_SCR      *ewd_scr         = &(class->ewd_scr);
+  FOR_SCR      *for_scr         = &(class->for_scr);
+
   STODFTINFO *stodftInfo       = cp->stodftInfo;
   STODFTCOEFPOS *stodftCoefPos = cp->stodftCoefPos;
-  CPCOEFFS_POS *cpcoeffs_pos    = &(cp->cpcoeffs_pos[ip_now]); 
+  CPCOEFFS_POS *cpcoeffs_pos    = &(cp->cpcoeffs_pos[ip_now]);
+  CPOPTS *cpopts                = &(cp->cpopts);  
+  PSEUDO *pseudo                = &(cp->pseudo);
+
  
   int reInitFlag = stodftInfo->reInitFlag;
+  int vpsAtomListFlag = stodftInfo->vpsAtomListFlag;
+  int cpDualGridOptOn           = cpopts->cp_dual_grid_opt;
   
+
+/*==========================================================================*/
+/* I) Generate initial density                                              */
+
   if(reInitFlag==0) calcRhoSto(class,bonded,general_data,cp,cpcoeffs_pos); 
   if(reInitFlag==1) calcRhoDet(class,bonded,general_data,cp,cpcoeffs_pos);
-  
+
+/*==========================================================================*/
+/* II) Calculate the non-local pseudopotential list                          */
+
+  if(stodftInfo->vpsAtomListFlag==0||cpDualGridOptOn>= 1){
+    control_vps_atm_list(pseudo,cell,clatoms_pos,clatoms_info,
+                         atommaps,ewd_scr,for_scr,cpDualGridOptOn,
+                         stodftInfo->vpsAtomListFlag);
+    stodftInfo->vpsAtomListFlag = 1;
+  }
+  printf("Finish generating Pseudopotential list.\n");
+ 
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/
@@ -523,6 +646,7 @@ void stoRealloc(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
 
   // cp_min_on>0 I need fake cp_min_on to cheat the code 
   // when I call coef_force_control
+  // I still need to realloc cp_hess to avoid segfault
   free(&(cpcoeffs_pos->cp_hess_re_up[1]));//N
   free(&(cpcoeffs_pos->cp_hess_im_up[1]));//N
   free(&(cpcoeffs_pos->cp_hess_re_dn[1]));//N

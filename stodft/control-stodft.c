@@ -56,18 +56,26 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   MPI_Comm world       = class->communicate.world;
 
   STAT_AVG *stat_avg = &(general_data->stat_avg);
-  STODFTINFO *stodftInfo = cp->stodftInfo;
 
   int myid = class->communicate.myid;
   int numProc = cp->communicate.np;
   int numTime = general_data->timeinfo.ntime;
   int iTime;
   int ip_now = 1;
-  int reInitFlag = stodftInfo->reInitFlag;
+  int reInitFlag;
 
   double elecEnergy,elecEnergyOld,elecEnergyOldTemp,elecEnergyTemp;
   double deltaEnergy;
 
+
+  // debug
+  STODFTINFO *stodftInfo = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  CPCOEFFS_POS  *cpcoeffs_pos   = &(cp->cpcoeffs_pos[ip_now]);
+  CLATOMS_POS  *clatoms_pos  = &(class->clatoms_pos[ip_now]);
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  //end debug
+  
 
 /*======================================================================*/
 /* I) Write to Screen                                                   */
@@ -82,7 +90,7 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /* II) Initialize the stochastic DFT                                    */
 
   initStodft(class,bonded,general_data,cp,ip_now);
-
+  reInitFlag = stodftInfo->reInitFlag;
 
   //fflush(stdout);
   //exit(0);
@@ -91,17 +99,72 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
   calcRhoInit(class,bonded,general_data,cp,ip_now);
 
+  if(myid==0){
+    PRINT_LINE_STAR;
+    printf("Finish calculating initial density\n");
+    PRINT_LINE_DASH;
+  } 
+
+  //debug only
+  double *coeffReUpBackup;
+  double *coeffImUpBackup;
+  double *coeffReUp = cpcoeffs_pos->cre_up;
+  double *coeffImUp = cpcoeffs_pos->cim_up;
+  double length;
+  int iState,iCoeff;
+  int numStateUpProc = cpcoeffs_info->nstate_up_proc;
+  int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
+  int numCoeff       = cpcoeffs_info->ncoef;
+  int numCoeffUpTot   = numStateUpProc*numCoeff;
+  int numCoeffDnTot   = numStateDnProc*numCoeff;
+
+  genEigenOrb(cp,class,general_data,cpcoeffs_pos,clatoms_pos);
+
+  stodftCoefPos->coeffReUpBackup = (double*)cmalloc((numCoeffUpTot+1)*sizeof(double));
+  stodftCoefPos->coeffImUpBackup = (double*)cmalloc((numCoeffUpTot+1)*sizeof(double));
+  coeffReUpBackup = stodftCoefPos->coeffReUpBackup;
+  coeffImUpBackup = stodftCoefPos->coeffImUpBackup;
+
+  for(iState=0;iState<numStateUpProc;iState++){
+    length = 0.0;
+    for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
+      length += coeffReUp[iState*numCoeff+iCoeff]*coeffReUp[iState*numCoeff+iCoeff]+
+                coeffImUp[iState*numCoeff+iCoeff]*coeffImUp[iState*numCoeff+iCoeff];
+    }
+    length *= 2.0;
+    length += coeffReUp[iState*numCoeff+numCoeff]*coeffReUp[iState*numCoeff+numCoeff];
+    length = sqrt(length);
+    for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+      coeffReUp[iState*numCoeff+iCoeff] /= length;
+      coeffImUp[iState*numCoeff+iCoeff] /= length;
+    }
+  }
+
+  for(iCoeff=1;iCoeff<=numCoeffUpTot;iCoeff++){
+    coeffReUpBackup[iCoeff] = coeffReUp[iCoeff];
+    coeffImUpBackup[iCoeff] = coeffImUp[iCoeff];
+  }
+  //end debug
+
 
 /*======================================================================*/
 /* IV) Realloc wave function arrays if necessary		        */
   
   if(reInitFlag==1){
+    if(myid==0){
+      PRINT_LINE_STAR;
+      printf("Reinit wave function\n");
+      PRINT_LINE_DASH;
+    }
     reInitWaveFunMin(class,bonded,general_data,cp,ip_now);
   }
 
+  //exit(0);
 /*======================================================================*/
 /* IV) Electronic Structure calculation for initial configuration       */
 
+  // After we move initial density calculation above, this function is 
+  // no longer needed.
   scfStodft(class,bonded,general_data,cp,ip_now);
    
 /*======================================================================*/

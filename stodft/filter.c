@@ -162,33 +162,10 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*         Local Variable declarations                                   */
 
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
-  CELL *cell		= &(general_data->cell);
-  CLATOMS_INFO *clatoms_info    = &(class->clatoms_info);
-  EWALD *ewald	            = &(general_data->ewald);
-  EWD_SCR *ewd_scr	= &(class->ewd_scr);
-  ATOMMAPS *atommaps	    = &(class->atommaps);
-  FOR_SCR *for_scr	= &(class->for_scr);
-  STAT_AVG *stat_avg	    = &(general_data->stat_avg);
-  PTENS *ptens		= &(general_data->ptens);
-  SIMOPTS *simopts	= &(general_data->simopts);
-
   STODFTINFO *stodftInfo        = cp->stodftInfo;
   STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
   CPOPTS *cpopts                = &(cp->cpopts);
-  CPEWALD *cpewald              = &(cp->cpewald);
-  CPSCR *cpscr                  = &(cp->cpscr);
-  PSEUDO *pseudo                = &(cp->pseudo);
   COMMUNICATE *communicate      = &(cp->communicate);
-
-  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm            = &(cp->cp_sclr_fft_pkg3d_sm);
-  PARA_FFT_PKG3D *cp_para_fft_pkg3d_sm            = &(cp->cp_para_fft_pkg3d_sm);
-  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_dens_cp_box   = &(cp->cp_sclr_fft_pkg3d_dens_cp_box);
-  PARA_FFT_PKG3D *cp_para_fft_pkg3d_dens_cp_box   = &(cp->cp_para_fft_pkg3d_dens_cp_box);
-  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_lg             = &(cp->cp_sclr_fft_pkg3d_lg);
-  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg             = &(cp->cp_para_fft_pkg3d_lg);
-  CP_COMM_STATE_PKG *cp_comm_state_pkg_up          = &(cp->cp_comm_state_pkg_up);
-  CP_COMM_STATE_PKG *cp_comm_state_pkg_dn          = &(cp->cp_comm_state_pkg_dn);
-
 
   double randMin    = -1.0;
   double randMax    = 1.0;
@@ -208,10 +185,6 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int numIteration    = 100;
   int iIter;
   int iState,iCoeff,iCoeffStart,index1,index2;
-  int cpWaveMin     = simopts->cp_wave_min;
-  int cpMin         = simopts->cp_min;
-  int cpWaveMinPimd = simopts->cp_wave_min_pimd;
-  int cpMinOn = cpWaveMin + cpMin + cpWaveMinPimd;
 
   double *cre_up = cpcoeffs_pos->cre_up;
   double *cim_up = cpcoeffs_pos->cim_up;
@@ -306,35 +279,9 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   for(iIter=0;iIter<numIteration;iIter++){
 
 /*--------------------------------------------------------------------------*/
-/* i) Reset force                                                           */
-    
-    /*
-    for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
-      fcre_up[iCoeff] = 0.0;
-      fcim_up[iCoeff] = 0.0;
-    }
-    */
-    for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
-      fcre_up[iCoeff] = 0.0;
-      fcim_up[iCoeff] = 0.0;
-    }
-
-/*--------------------------------------------------------------------------*/
 /* ii) Calcualte H|phi>				    */
 
-    control_cp_eext_recip(clatoms_info,clatoms_pos,cpcoeffs_info,
-	     cpcoeffs_pos,cpewald,cpscr,cpopts,pseudo,
-	     ewd_scr,atommaps,cell,ewald,ptens,&(stat_avg->vrecip),
-	     &(stat_avg->cp_enl),communicate,for_scr,cpDualGridOptOn,
-	     cp_para_fft_pkg3d_lg);
-
-    coef_force_control(cpopts,cpcoeffs_info,cpcoeffs_pos,cpscr,ewald,cpewald,
-	      cell,stat_avg,pseudo->vxc_typ,ptens->pvten_tmp,pseudo->gga_cut,
-	      pseudo->alpha_conv_dual,pseudo->n_interp_pme_dual,cpMinOn,
-	      communicate,cp_comm_state_pkg_up,
-	       cp_comm_state_pkg_dn,cp_para_fft_pkg3d_lg,cp_sclr_fft_pkg3d_lg,
-	       cp_para_fft_pkg3d_dens_cp_box,cp_sclr_fft_pkg3d_dens_cp_box,
-	       cp_para_fft_pkg3d_sm,cp_sclr_fft_pkg3d_sm,cpDualGridOptOn);
+    calcCoefForceWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
 
 /*--------------------------------------------------------------------------*/
 /* iii) Calcluate <phi|H|phi>	                                            */
@@ -419,34 +366,11 @@ void genEnergyMin(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
 
-  CELL *cell                    = &(general_data->cell);
-  CLATOMS_INFO *clatoms_info    = &(class->clatoms_info);
-  EWALD *ewald                  = &(general_data->ewald);
-  EWD_SCR *ewd_scr              = &(class->ewd_scr);
-  ATOMMAPS *atommaps            = &(class->atommaps);
-  FOR_SCR *for_scr              = &(class->for_scr);
-  STAT_AVG *stat_avg            = &(general_data->stat_avg);
-  PTENS *ptens                  = &(general_data->ptens);
-  SIMOPTS *simopts              = &(general_data->simopts);
-
   STODFTINFO *stodftInfo        = cp->stodftInfo;
   STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
   CPOPTS *cpopts                = &(cp->cpopts);
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
-  CPEWALD *cpewald              = &(cp->cpewald);
-  CPSCR *cpscr                  = &(cp->cpscr);
-  PSEUDO *pseudo                = &(cp->pseudo);
   COMMUNICATE *communicate      = &(cp->communicate);
-
-  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm            = &(cp->cp_sclr_fft_pkg3d_sm);
-  PARA_FFT_PKG3D *cp_para_fft_pkg3d_sm            = &(cp->cp_para_fft_pkg3d_sm);
-  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_dens_cp_box   = &(cp->cp_sclr_fft_pkg3d_dens_cp_box);
-  PARA_FFT_PKG3D *cp_para_fft_pkg3d_dens_cp_box   = &(cp->cp_para_fft_pkg3d_dens_cp_box);
-  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_lg            = &(cp->cp_sclr_fft_pkg3d_lg);
-  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg            = &(cp->cp_para_fft_pkg3d_lg);
-  CP_COMM_STATE_PKG *cp_comm_state_pkg_up         = &(cp->cp_comm_state_pkg_up);
-  CP_COMM_STATE_PKG *cp_comm_state_pkg_dn         = &(cp->cp_comm_state_pkg_dn);
-
 
   double randMin        = -1.0;
   double randMax        = 1.0;
@@ -462,10 +386,6 @@ void genEnergyMin(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int numIteration   = 1000;
   int iIter;
   int iState,iCoeff,iCoeffStart,index1,index2;
-  int cpWaveMin     = simopts->cp_wave_min;
-  int cpMin         = simopts->cp_min;
-  int cpWaveMinPimd = simopts->cp_wave_min_pimd;
-  int cpMinOn = cpWaveMin + cpMin + cpWaveMinPimd;
 
   double *cre_up = cpcoeffs_pos->cre_up;
   double *cim_up = cpcoeffs_pos->cim_up;
@@ -540,29 +460,10 @@ void genEnergyMin(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   for(iIter=0;iIter<numIteration;iIter++){
 
 /*--------------------------------------------------------------------------*/
-/* i) Reset force                                                           */
-
-    for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
-      fcre_up[iCoeff] = 0.0;
-      fcim_up[iCoeff] = 0.0;
-    }
-
-/*--------------------------------------------------------------------------*/
 /* ii) Calcualte H|phi>                                                     */
 
-    control_cp_eext_recip(clatoms_info,clatoms_pos,cpcoeffs_info,
-                         cpcoeffs_pos,cpewald,cpscr,cpopts,pseudo,
-                         ewd_scr,atommaps,cell,ewald,ptens,&(stat_avg->vrecip),
-                         &(stat_avg->cp_enl),communicate,for_scr,cpDualGridOptOn,
-                         cp_para_fft_pkg3d_lg);
+    calcCoefForceWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
 
-    coef_force_control(cpopts,cpcoeffs_info,cpcoeffs_pos,cpscr,ewald,cpewald,
-                      cell,stat_avg,pseudo->vxc_typ,ptens->pvten_tmp,pseudo->gga_cut,
-                      pseudo->alpha_conv_dual,pseudo->n_interp_pme_dual,cpMinOn,
-                      communicate,cp_comm_state_pkg_up,
-                       cp_comm_state_pkg_dn,cp_para_fft_pkg3d_lg,cp_sclr_fft_pkg3d_lg,
-                       cp_para_fft_pkg3d_dens_cp_box,cp_sclr_fft_pkg3d_dens_cp_box,
-                       cp_para_fft_pkg3d_sm,cp_sclr_fft_pkg3d_sm,cpDualGridOptOn);
 /*--------------------------------------------------------------------------*/
 /* iii) Calcluate <phi|H|phi>                                               */
 

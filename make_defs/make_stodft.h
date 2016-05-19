@@ -40,6 +40,7 @@ init.o :                 $(STANDARD) $(DEFINES) \
                          $(TYP_STAT) \
                          $(TYP_CP) $(TYP_PAR) \
                          $(FRND_ENT) $(MATH) \
+			 $(ENR_CPCON_ENT) $(ENR_CPCON_LOC) \
                          $(ENR_CP_LOC) $(STODFT_LOC) \
                          $(DCODE)/stodft/init.c
 	$(ECHO) $@

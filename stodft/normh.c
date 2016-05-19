@@ -46,34 +46,11 @@ void normHNewtonHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
 
-  CELL *cell                    = &(general_data->cell);
-  CLATOMS_INFO *clatoms_info    = &(class->clatoms_info);
-  EWALD *ewald                  = &(general_data->ewald);
-  EWD_SCR *ewd_scr              = &(class->ewd_scr);
-  ATOMMAPS *atommaps            = &(class->atommaps);
-  FOR_SCR *for_scr              = &(class->for_scr);
-  STAT_AVG *stat_avg            = &(general_data->stat_avg);
-  PTENS *ptens                  = &(general_data->ptens);
-  SIMOPTS *simopts              = &(general_data->simopts);
-  
-
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
   STODFTINFO *stodftInfo        = cp->stodftInfo;
   STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
   CPOPTS *cpopts                = &(cp->cpopts);
-  CPEWALD *cpewald              = &(cp->cpewald);
-  CPSCR *cpscr                  = &(cp->cpscr);
-  PSEUDO *pseudo                = &(cp->pseudo);
   COMMUNICATE *communicate      = &(cp->communicate);
-
-  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm             = &(cp->cp_sclr_fft_pkg3d_sm);
-  PARA_FFT_PKG3D *cp_para_fft_pkg3d_sm		   = &(cp->cp_para_fft_pkg3d_sm);
-  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_dens_cp_box    = &(cp->cp_sclr_fft_pkg3d_dens_cp_box);
-  PARA_FFT_PKG3D *cp_para_fft_pkg3d_dens_cp_box    = &(cp->cp_para_fft_pkg3d_dens_cp_box);
-  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_lg		   = &(cp->cp_sclr_fft_pkg3d_lg);
-  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg		   = &(cp->cp_para_fft_pkg3d_lg);
-  CP_COMM_STATE_PKG *cp_comm_state_pkg_up          = &(cp->cp_comm_state_pkg_up);
-  CP_COMM_STATE_PKG *cp_comm_state_pkg_dn          = &(cp->cp_comm_state_pkg_dn);
 
   NEWTONINFO *newtonInfo = stodftInfo->newtonInfo;
   double Smin		= newtonInfo->Smin;
@@ -96,11 +73,6 @@ void normHNewtonHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int incx = 1;
   int incy = 1;
   int iState,iCoeff,iCoeffStart,index1,index2;
-  int cpWaveMin     = simopts->cp_wave_min;
-  int cpMin         = simopts->cp_min;
-  int cpWaveMinPimd = simopts->cp_wave_min_pimd;
-  int cpMinOn = cpWaveMin + cpMin + cpWaveMinPimd;
-
   
   double *expanCoeff = (double*)stodftCoefPos->expanCoeff;
   
@@ -114,39 +86,12 @@ void normHNewtonHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   double *fcim_dn = cpcoeffs_pos->fcim_dn;
   double dot;
 
-/*==========================================================================*/
-/* 0) Copy the input wave function to CP coeff and zero the force */
- 
-  for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
-    //wfInUp[iCoeff-1] = cre_up[iCoeff]+cim_up[iCoeff]*I;
-    fcre_up[iCoeff] = 0.0;
-    fcim_up[iCoeff] = 0.0;
-  }
-  if(cpLsda==1&&numStateDnProc!=0){
-    //wfInDn[iCoeff-1] = cre_dn[iCoeff]+cim_dn[iCoeff]*I;
-    for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
-      fcre_dn[iCoeff] = 0.0;
-      fcim_dn[iCoeff] = 0.0;
-    }
-  }
   
 /*==========================================================================*/
 /* 1) Calculate the H/sigma|phi> */
   //control_vps_atm_list will be done somewhere else (perhaps in density calculation?)
 
-  control_cp_eext_recip(clatoms_info,clatoms_pos,cpcoeffs_info,
-                       cpcoeffs_pos,cpewald,cpscr,cpopts,pseudo,
-		       ewd_scr,atommaps,cell,ewald,ptens,&(stat_avg->vrecip),
-		       &(stat_avg->cp_enl),communicate,for_scr,cpDualGridOptOn,
-                       cp_para_fft_pkg3d_lg);
-
-  coef_force_control(cpopts,cpcoeffs_info,cpcoeffs_pos,cpscr,ewald,cpewald,
-		    cell,stat_avg,pseudo->vxc_typ,ptens->pvten_tmp,pseudo->gga_cut,
-		    pseudo->alpha_conv_dual,pseudo->n_interp_pme_dual,cpMinOn,
-		    communicate,cp_comm_state_pkg_up,
-                     cp_comm_state_pkg_dn,cp_para_fft_pkg3d_lg,cp_sclr_fft_pkg3d_lg,
-                     cp_para_fft_pkg3d_dens_cp_box,cp_sclr_fft_pkg3d_dens_cp_box,
-		     cp_para_fft_pkg3d_sm,cp_sclr_fft_pkg3d_sm,cpDualGridOptOn);
+  calcCoefForceWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
 
   for(iState=0;iState<numStateUpProc;iState++){
     iCoeffStart = iState*numCoeff;
@@ -154,11 +99,9 @@ void normHNewtonHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       index1 = iCoeffStart+iCoeff;
       fcre_up[index1] *= scale1;
       fcim_up[index1] *= scale1;	
-      //wfOutUp[index1] = fcre_up[index1+1]*scale1+fcim_up[index1+1]*scale1*I;
     }//endfor iCoeff
     index1 = iCoeffStart+numCoeff;
     fcre_up[index1] *= scale2;
-    //wfOutUp[index1] = fcre_up[index1+1]*scale2;
   }//endfor iState
   if(cpLsda==1&&numStateDnProc!=0){
     for(iState=0;iState<numStateDnProc;iState++){
@@ -167,11 +110,9 @@ void normHNewtonHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 	index1 = iCoeffStart+iCoeff;
 	fcre_dn[index1] *= scale1;
 	fcim_dn[index1] *= scale1;
-	//wfOutDn[index1] = fcre_dn[index1+1]*scale1+fcim_dn[index1+1]*scale1*I;
       }//endfor iCoeff
       index1 = iCoeffStart+numCoeff;
       fcim_dn[index1] *= scale2;
-      //wfOutDn[index1] = fcre_dn[index1+1]*scale2+fcim_dn[index1+1]*scale2*I;
     }//endfor iState
   }
 
@@ -434,6 +375,104 @@ void calcRhoSto(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       }/* endfor */
     } /* endif */
   }/* endif */
+
+/*==========================================================================*/
+}/*end Routine*/
+/*=======================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void calcCoefForceWrap(CLASS *class,GENERAL_DATA *general_data,
+                   CP *cp,CPCOEFFS_POS  *cpcoeffs_pos,CLATOMS_POS *clatoms_pos)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* This is the wrapper to calculate H|phi> given |phi>			 */
+/* |phi> are stored in cre(im)_up(dn) and H|phi> are stored in		 */
+/* fcre(im)_up(dn), for correct H|phi>, you need to scale all coeff	 */
+/* with k!=0 by -0.5, and k=0 term by -1. Since this step can be	 */
+/* combined with some other scalings, I just output the raw force.	 */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+
+  CELL *cell                    = &(general_data->cell);
+  CLATOMS_INFO *clatoms_info    = &(class->clatoms_info);
+  EWALD *ewald                  = &(general_data->ewald);
+  EWD_SCR *ewd_scr              = &(class->ewd_scr);
+  ATOMMAPS *atommaps            = &(class->atommaps);
+  FOR_SCR *for_scr              = &(class->for_scr);
+  STAT_AVG *stat_avg            = &(general_data->stat_avg);
+  PTENS *ptens                  = &(general_data->ptens);
+  SIMOPTS *simopts              = &(general_data->simopts);
+
+
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  STODFTINFO *stodftInfo        = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  CPOPTS *cpopts                = &(cp->cpopts);
+  CPEWALD *cpewald              = &(cp->cpewald);
+  CPSCR *cpscr                  = &(cp->cpscr);
+  PSEUDO *pseudo                = &(cp->pseudo);
+  COMMUNICATE *communicate      = &(cp->communicate);
+
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm             = &(cp->cp_sclr_fft_pkg3d_sm);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_sm             = &(cp->cp_para_fft_pkg3d_sm);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_dens_cp_box    = &(cp->cp_sclr_fft_pkg3d_dens_cp_box);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_dens_cp_box    = &(cp->cp_para_fft_pkg3d_dens_cp_box);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_lg             = &(cp->cp_sclr_fft_pkg3d_lg);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg             = &(cp->cp_para_fft_pkg3d_lg);
+  CP_COMM_STATE_PKG *cp_comm_state_pkg_up          = &(cp->cp_comm_state_pkg_up);
+  CP_COMM_STATE_PKG *cp_comm_state_pkg_dn          = &(cp->cp_comm_state_pkg_dn);
+
+  int cpLsda         = cpopts->cp_lsda;
+  int numStateUpProc = cpcoeffs_info->nstate_up_proc;
+  int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
+  int numCoeff       = cpcoeffs_info->ncoef;
+  int numCoeffUpTotal = numStateUpProc*numCoeff;
+  int numCoeffDnTotal = numStateDnProc*numCoeff;
+  int cpDualGridOptOn  = cpopts->cp_dual_grid_opt;
+  int iState,iCoeff,iCoeffStart,index1,index2;
+  int cpMinOn = 0; //I don't want to calculate cp_hess
+
+  double *fcre_up = cpcoeffs_pos->fcre_up;
+  double *fcim_up = cpcoeffs_pos->fcim_up;
+  double *fcre_dn = cpcoeffs_pos->fcre_dn;
+  double *fcim_dn = cpcoeffs_pos->fcim_dn;
+
+/*==========================================================================*/
+/* 0) Copy the input wave function to CP coeff and zero the force */
+
+  for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
+    fcre_up[iCoeff] = 0.0;
+    fcim_up[iCoeff] = 0.0;
+  }
+  if(cpLsda==1&&numStateDnProc!=0){
+    for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
+      fcre_dn[iCoeff] = 0.0;
+      fcim_dn[iCoeff] = 0.0;
+    }
+  }
+
+/*==========================================================================*/
+/* 1) Calculate the H/sigma|phi> */
+  //control_vps_atm_list will be done somewhere else (perhaps in density calculation?)
+
+  control_cp_eext_recip(clatoms_info,clatoms_pos,cpcoeffs_info,
+                       cpcoeffs_pos,cpewald,cpscr,cpopts,pseudo,
+                       ewd_scr,atommaps,cell,ewald,ptens,&(stat_avg->vrecip),
+                       &(stat_avg->cp_enl),communicate,for_scr,cpDualGridOptOn,
+                       cp_para_fft_pkg3d_lg);
+
+  coef_force_control(cpopts,cpcoeffs_info,cpcoeffs_pos,cpscr,ewald,cpewald,
+                    cell,stat_avg,pseudo->vxc_typ,ptens->pvten_tmp,pseudo->gga_cut,
+                    pseudo->alpha_conv_dual,pseudo->n_interp_pme_dual,cpMinOn,
+                    communicate,cp_comm_state_pkg_up,
+                     cp_comm_state_pkg_dn,cp_para_fft_pkg3d_lg,cp_sclr_fft_pkg3d_lg,
+                     cp_para_fft_pkg3d_dens_cp_box,cp_sclr_fft_pkg3d_dens_cp_box,
+                     cp_para_fft_pkg3d_sm,cp_sclr_fft_pkg3d_sm,cpDualGridOptOn);
 
 /*==========================================================================*/
 }/*end Routine*/

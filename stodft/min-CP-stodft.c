@@ -532,10 +532,15 @@ void genNoiseOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   STODFTINFO   *stodftInfo   = cp->stodftInfo;
   STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
  
+  int numStatUpProc = cpcoeffs_info->nstate_up_proc;
+  int numStatDnProc = cpcoeffs_info->nstate_dn_proc;
+
   double *zfft           =    cpscr->cpscr_wave.zfft;
   double *zfft_tmp       =    cpscr->cpscr_wave.zfft_tmp;
-  
-  
+
+  double *test_
+
+  //Let's do some test 
  
 
 

@@ -4533,9 +4533,9 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   if(strcasecmp(dict[3].keyarg,"fermi_erfc")==0)stodftInfo->filterFunType = 2;
   if(strcasecmp(dict[3].keyarg,"gauss")==0)stodftInfo->filterFunType = 3;
   /*-----------------------------------------------------------------------*/
-  /*  4)num_poly{#} */
+  /*  4)poly_fit_error{#} */
   sscanf(dict[4].keyarg,"%lg",&rka);
-  stodftInfo->polynormLength = (int)(rka);
+  stodftInfo->fitErr = rka;
   /*-----------------------------------------------------------------------*/
   /*  5)num_chem_pot{#} */
   sscanf(dict[5].keyarg,"%lg",&rka);

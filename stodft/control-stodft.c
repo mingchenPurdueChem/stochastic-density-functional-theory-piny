@@ -69,8 +69,6 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
 
   // debug
-  STODFTINFO *stodftInfo = cp->stodftInfo;
-  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
   CPCOEFFS_POS  *cpcoeffs_pos   = &(cp->cpcoeffs_pos[ip_now]);
   CLATOMS_POS  *clatoms_pos  = &(class->clatoms_pos[ip_now]);
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
@@ -89,8 +87,10 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* II) Initialize the stochastic DFT                                    */
 
+  if(numProc>1)commStodft(class,bonded,general_data,cp);
+
   initStodft(class,bonded,general_data,cp,ip_now);
-  reInitFlag = stodftInfo->reInitFlag;
+  reInitFlag = cp->stodftInfo->reInitFlag;
 
   //fflush(stdout);
   //exit(0);
@@ -106,6 +106,8 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   } 
 
   //debug only
+  STODFTINFO *stodftInfo = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
   double *coeffReUpBackup;
   double *coeffImUpBackup;
   double *coeffReUp = cpcoeffs_pos->cre_up;

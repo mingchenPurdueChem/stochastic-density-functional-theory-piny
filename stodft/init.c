@@ -28,6 +28,54 @@
 
 
 #define TIME_CP_OFF
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void commStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* Calculate expanCoeff for different chemical potentials                */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+  COMMUNICATE   *communicate      = &(cp->communicate);
+  STODFTINFO    *stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos;
+
+  int numProcStates             = communicate->np_states;
+  int myidState                 = communicate->myid_state;
+  int myid			= communicate->myid;
+  MPI_Comm world		= communicate->world;
+  
+  if(myid==0){
+    stodftInfo = cp->stodftInfo;
+    stodftCoefPos = cp->stodftCoefPos;
+  else{
+    cp->stodftInfo = (STODFTINFO*)cmalloc(sizeof(STODFTINFO));
+    cp->stodftCoefPos = (STODFTCOEFPOS*)cmalloc(sizeof(STODFTCOEFPOS));
+    stodftInfo = cp->stodftInfo;
+    stodftCoefPos = cp->stodftCoefPos;
+  }
+  
+  Bcast(&(stodftInfo->stodftOn),1,MPI_INT,0,world);
+  Bcast(&(stodftInfo->missionType),1,MPI_INT,0,world);
+  Bcast(&(stodftInfo->numScf),1,MPI_INT,0,world);
+  Bcast(&(stodftInfo->expanType),1,MPI_INT,0,world);
+  Bcast(&(stodftInfo->filterFunType),1,MPI_INT,0,world);
+  Bcast(&(stodftInfo->numOrbital),1,MPI_INT,0,world);
+  Bcast(&(stodftInfo->numChemPot),1,MPI_INT,0,world);
+  Bcast(&(stodftInfo->readCoeffFlag),1,MPI_INT,0,world);
+  Bcast(&(stodftInfo->numStateStoUp),1,MPI_INT,0,world);
+  Bcast(&(stodftInfo->numStateStoDn),1,MPI_INT,0,world);
+  Bcast(&(stodftInfo->fitErr),1,MPI_DOUBLE,0,world);
+  Bcast(&(stodftInfo->beta),1,MPI_DOUBLE,0,world);
+
+}/*end Routine*/
+/*==========================================================================*/
+
+
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/

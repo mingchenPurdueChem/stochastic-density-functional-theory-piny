@@ -521,9 +521,17 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 void genNoiseOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
-                    CP *cp,int ip_now)
+                    CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
 /*========================================================================*/
 {/*begin routine*/
+/**************************************************************************/
+/* We shall direct work on reciprocal space, instead of generating noise  */
+/* on real space since the high frequency(could be important) part will   */
+/* discard when reduce the reciprocal lattice from a cubic to a ball.     */
+/* To satisfies the completeness the coeffecients are required to be	  */
+/* a equally random choice between 1/sqrt(2) and -1/sqrt(2) except k=0    */
+/* k=0 term should be a random number of +/-1.				  */
+/**************************************************************************/
 /*========================================================================*/
 /*             Local variable declarations                                */
 /*-----------------------------------------------------------------------*/
@@ -532,18 +540,58 @@ void genNoiseOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   STODFTINFO   *stodftInfo   = cp->stodftInfo;
   STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
  
+  int iStat,iCoeff,iOff;
+  int cpLsda = cpopts->cp_lsda;
   int numStatUpProc = cpcoeffs_info->nstate_up_proc;
   int numStatDnProc = cpcoeffs_info->nstate_dn_proc;
+  int numCoeff = cpcoeffs_info->ncoef;
+  int numStatUpTot = numStatUpProc*numCoeff;
+  int numStatDnTot = numStatDnProc*numCoeff;
+  int numRand;
 
-  double *zfft           =    cpscr->cpscr_wave.zfft;
-  double *zfft_tmp       =    cpscr->cpscr_wave.zfft_tmp;
+  double ranValue = 1.0/sqrt(2.0);
+  double *randNum;
+  double *coeffReUp = cpcoeffs_pos->cre_up;
+  double *coeffImUp = cpcoeffs_pos->cim_up;
+  double *coeffReDn = cpcoeffs_pos->cre_dn;
+  double *coeffImDn = cpcoeffs_pos->cim_dn;
 
-  double *test_
+  numRand = 2*numStatUpTot;
+  if(cpLsda==1&&numStateDnProc!=0){
+    numRand += 2*numStatDnTot;
+  }
 
-  //Let's do some test 
- 
+  randNum = (double*)cmalloc(numRand*sizeof(double));
+  
+#ifdef MKL_RANDOM
+  VSLStreamStatePtr stream;
+  int errcode;
+  int seed = 1;
+  errcode = vslNewStream(&stream,VSL_BRNG_MCG31,seed);
+  errcode = vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD,stream,numRand,randNum,-1.0,1.0);
+#endif
+#ifndef MKL_RANDOM
+  //whatever random number is good, I'm using Gaussian in this case
+  double seed = 8.3;
+  int iseed;
+  gaussran(numRand,&iseed,&iseed,&seed,randNum);
+#endif
 
-
+  for(iStat=0;iStat<numStatUpProc;iStat++){
+    iOff = iStat*numCoeff;
+    for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
+      if(randNum[2*(iOff+iCoeff-1)]>0)coeffReUp[iOff+iCoeff] = ranValue;
+      else coeffReUp[iOff+iCoeff] = -ranValue;
+      if(randNum[2*(iOff+iCoeff-1)+1]>0)coeffImUp[iOff+iCoeff] = ranValue;
+      else coeffImUp[iOff+iCoeff] = -ranValue
+    }
+    if(randNum[2*(iStat*numCoeff+numCoeff-1)]>0)coeffReUp[iStat*numCoeff+numCoeff] = 1.0;
+    else coeffReUp[iStat*numCoeff+numCoeff] = -1.0;
+    coeffImUp[iStat*numCoeff+numCoeff] = 0.0;
+  }
+  
+  free(randNum);
+  
 }/*end routine*/
 /*==========================================================================*/
 

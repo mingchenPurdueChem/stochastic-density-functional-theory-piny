@@ -311,6 +311,8 @@ typedef struct stodftInfo{
 				    /*	    1 = realloc (read det/gen wf)	*/
   int numStateStoUp;		    /* Num: number of stochastic WF.		*/
   int numStateStoDn;		    
+  double fitErr;		    /* Num: Polynormial fitting error used to   */
+				    /*	    determine polynormLength.		*/
   double energyMax,energyMin;       /* Num: Possible upper/lower bound of MO	*/
 				    /*	    energy.				*/ 
   double energyDiff;		    /* Num: energy range=energyMax-energyMin	*/

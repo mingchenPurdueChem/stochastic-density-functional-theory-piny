@@ -143,6 +143,7 @@ void genSampNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   double *sampCand = (double*)cmalloc(numSampCand*sizeof(double));
 
   double timeStart,timeEnd;
+  double prod;
   FILE *fileSampPoint = fopen("samp-point","w");
 
 /*==========================================================================*/
@@ -159,11 +160,28 @@ void genSampNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
     objMax = -100000.0;
     for(iCand=0;iCand<numSampCand;iCand++){
       obj = 0.0;
+      prod = 1.0;
+      for(jPoly=0;jPoly<iPoly;jPoly++){
+	diff = sampCand[iCand]-sampPoint[jPoly];
+	if(fabs(diff)<1.0e-10){
+	  obj = -1.0e30;
+	  prod = 1.0
+	  break;
+	}
+	else prod *= diff*diff;
+        if(jPoly%10==9){
+	  obj += log(prod);
+	  prod = 1.0;
+	}
+      }
+      obj += log(prod);
+      /*
       for(jPoly=0;jPoly<iPoly;jPoly++){
 	diff = sampCand[iCand]-sampPoint[jPoly];
 	if(fabs(diff)<1.0e-10)obj += -1.0e30;
 	else obj += log(diff*diff);
       }//endfor jPoly
+      */
       if(obj>objMax){
 	objMax = obj;
 	objMaxIndex = iCand;

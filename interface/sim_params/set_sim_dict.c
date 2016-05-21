@@ -2222,8 +2222,8 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
   strcpy((*dict)[3].keyarg,"fermi_exp");
 
   strcpy((*dict)[4].error_mes,"Positive integer:Number of polynomials used in filter expansion");
-  strcpy((*dict)[4].keyword,"num_poly");
-  strcpy((*dict)[4].keyarg,"0");
+  strcpy((*dict)[4].keyword,"poly_fit_error");
+  strcpy((*dict)[4].keyarg,"1e-9");
 
   strcpy((*dict)[5].error_mes,"Positive integer:Number of chemical potentials in interpolation");
   strcpy((*dict)[5].keyword,"num_chem_pot");

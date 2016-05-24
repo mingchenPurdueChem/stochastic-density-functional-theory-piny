@@ -31,6 +31,76 @@
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
+void genNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* This routine first guess a polynormial chain by an emperical formular */
+/* The chain length is then increased to satisfied the fitting error for */
+/* ALL different chemical potentials					 */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+
+  NEWTONINFO *newtonInfo  = stodftInfo->newtonInfo;
+
+  double fitErrTol = stodftInfo->fitErrTol;
+  double fitErr;
+  double beta = stodftInfo->beta;
+  double energyDiff = stodftInfo->energyDiff;
+  double *chemPot          = stodftCoefPos->chemPot;
+  double *sampPoint;
+  double *expanCoeff;
+  double *sampPointUnscale;
+  double *chemPot;
+
+  int polynormLength = (int)(4.0*beta*energyDiff); //initial chain length
+  int totalPoly      = polynormLength*numChemPot;  //iniital total polynormial
+
+  FERMIFUNR fermiFunction = stodftInfo->fermiFunctionReal;
+  
+/*==========================================================================*/
+/* I) Generate coeffcients for initial chain length  */
+  
+  stodftCoefPos->expanCoeff = (double *)cmalloc(totalPoly*sizeof(double));
+  newtonInfo->sampPoint = (double *)cmalloc(polynormLength*sizeof(double));
+  newtonInfo->sampPointUnscale = (double *)cmalloc(polynormLength*sizeof(double));
+ 
+  genSampNewtonHermit(stodftInfo,stodftCoefPos);  
+  
+  genCoeffNewtonHermit(stodftInfo,stodftCoefPos);
+  
+  fitErr = calcFitError(stodftInfo,stodftCoefPos);
+
+/*==========================================================================*/
+/* II) Increase chain length if polynomial expansion doesn't reach error    */
+/*     torlerance */
+
+  while(fitErr>fitErrTol){
+    free(stodftCoefPos->expanCoeff);
+    free(newtonInfo->sampPoint);
+    free(newtonInfo->sampPointUnscale);
+    polynormLength += 1000;
+    totalPoly = polynormLength*numChemPot;
+    stodftCoefPos->expanCoeff = (double *)cmalloc(totalPoly*sizeof(double));
+    newtonInfo->sampPoint = (double *)cmalloc(polynormLength*sizeof(double));
+    newtonInfo->sampPointUnscale = (double *)cmalloc(polynormLength*sizeof(double));
+    
+    genSampNewtonHermit(stodftInfo,stodftCoefPos);
+    genCoeffNewtonHermit(stodftInfo,stodftCoefPos);
+    fitErr = calcFitError(stodftInfo,stodftCoefPos);  
+  }
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
+
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
 void genCoeffNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
@@ -169,7 +239,7 @@ void genSampNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
 	  break;
 	}
 	else prod *= diff*diff;
-        if(jPoly%10==9){
+        if(prod<1.0e-300||prod>1.0e300){
 	  obj += log(prod);
 	  prod = 1.0;
 	}
@@ -297,6 +367,20 @@ void genEigenOrb(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   free(&cre_temp[1]);
   free(&cim_temp[1]);
 
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+double calcFitError(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/

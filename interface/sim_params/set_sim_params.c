@@ -4535,7 +4535,7 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   /*-----------------------------------------------------------------------*/
   /*  4)poly_fit_error{#} */
   sscanf(dict[4].keyarg,"%lg",&rka);
-  stodftInfo->fitErr = rka;
+  stodftInfo->fitErrTol = rka;
   /*-----------------------------------------------------------------------*/
   /*  5)num_chem_pot{#} */
   sscanf(dict[5].keyarg,"%lg",&rka);

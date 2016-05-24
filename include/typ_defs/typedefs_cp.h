@@ -311,7 +311,7 @@ typedef struct stodftInfo{
 				    /*	    1 = realloc (read det/gen wf)	*/
   int numStateStoUp;		    /* Num: number of stochastic WF.		*/
   int numStateStoDn;		    
-  double fitErr;		    /* Num: Polynormial fitting error used to   */
+  double fitErrTol;		    /* Num: Polynormial fitting error used to   */
 				    /*	    determine polynormLength.		*/
   double energyMax,energyMin;       /* Num: Possible upper/lower bound of MO	*/
 				    /*	    energy.				*/ 
@@ -325,7 +325,7 @@ typedef struct stodftInfo{
   NEWTONINFO *newtonInfo;
 }STODFTINFO;
 
-typedef struct stodftCoeffPos{
+typedef struct stodftCoefPos{
   /***********************************************************************/
   /* We'll only save |phi> and H|phi> and accumulate the contribution to */
   /* the stochastic orbitals. We will cheate the CP code to replace	 */

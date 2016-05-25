@@ -469,6 +469,12 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }
 
 /*======================================================================*/
+/* IV) Generate Coeffcients for Polynormial interpolation               */
+  
+  genNewtonHermit(stodftInfo,stodftCoefPos);
+
+
+/*======================================================================*/
 /* V) Filter the stochastic orbitals					*/
 
   //debug 

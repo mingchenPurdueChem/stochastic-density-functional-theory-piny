@@ -381,6 +381,50 @@ double calcFitError(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
    {/*Begin Routine*/
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
+   
+  NEWTONINFO *newtonInfo  = stodftInfo->newtonInfo;
+
+  int numPointTest = 100;
+  int numChemPot = stodftInfo->numChemPot;
+  int iPoint,iChem;
+  double pointTest;
+  double energyMin = stodftInfo->energyMin;
+  double energyMax = stodftInfo->energyMax;
+  double energyMean = stodftInfo->energyMean;
+  double deltPoint = (energyMax-energyMin)/numPointTest;
+  double pointScale;
+  double funValue,prod,funBM;
+  double fitErr = -1.0e30;
+  double diff;
+
+  double *chemPot          = stodftCoefPos->chemPot;
+  double *sampPoint = newtonInfo->sampPoint;
+  double *expanCoeff = stodftCoefPos->expanCoeff;
+  double *sampPointUnscale = newtonInfo->sampPointUnscale;
+
+
+  FERMIFUNR fermiFunction = stodftInfo->fermiFunctionReal;
+
+
+  for(iChem=0;iChem<numChemPot;iChem++){
+    for(iPoint=0;iPoint<numPointTest;iPoint++){
+      pointTest = energyMinTest+(iPoint+0.5)*deltPoint;
+      pointScale = (pointTest-energyMean)*scale;
+      funValue = expanCoeff[0];
+      prod = 1.0;
+      for(iPoly=1;iPoly<polynormLength;iPoly++){
+	prod *= pointScale-sampPoint[iPoly-1];
+	funValue += expanCoeff[iPoly]*prod;
+      }
+      funBM = fermiFunction(pointScale,chemPot[imu],beta);
+      diff = fabs(funValue-funBM);
+      if(diff>fitErr)fitErr = diff;
+      printf("TestFunExpan %lg %lg %lg\n",pointTest,pointScale,funValue);
+    }
+  }
+
+  return fitErr;
+
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/

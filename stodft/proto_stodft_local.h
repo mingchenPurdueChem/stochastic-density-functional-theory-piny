@@ -2,10 +2,11 @@
 /* Local functions for stochastic dft                              */
 /*-----------------------------------------------------------------*/
 /* coeff.c			                                   */
-
+void genNewtonHermit(STODFTINFO *,STODFTCOEFPOS *);
 void genCoeffNewtonHermit(STODFTINFO *,STODFTCOEFPOS *);
 void genSampNewtonHermit(STODFTINFO *,STODFTCOEFPOS *);
 void genEigenOrb(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,CLATOMS_POS *);
+double calcFitError(STODFTINFO *,STODFTCOEFPOS *);
 
 /*-----------------------------------------------------------------*/
 /* filter.c                                                        */

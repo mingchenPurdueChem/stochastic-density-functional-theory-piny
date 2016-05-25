@@ -203,11 +203,11 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
   switch(expanType){
     case 2:
-      stodftCoefPos->expanCoeff = (double *)cmalloc(totalPoly*sizeof(double));
+      //stodftCoefPos->expanCoeff = (double *)cmalloc(totalPoly*sizeof(double));
       stodftInfo->newtonInfo = (NEWTONINFO *)cmalloc(sizeof(NEWTONINFO));
       newtonInfo = stodftInfo->newtonInfo;
-      newtonInfo->sampPoint = (double *)cmalloc(polynormLength*sizeof(double));
-      newtonInfo->sampPointUnscale = (double *)cmalloc(polynormLength*sizeof(double));
+      //newtonInfo->sampPoint = (double *)cmalloc(polynormLength*sizeof(double));
+      //newtonInfo->sampPointUnscale = (double *)cmalloc(polynormLength*sizeof(double));
       newtonInfo->Smin = Smin;
       newtonInfo->Smax = Smax;
       //newtonInfo->scale = (Smax-Smin)/energyDiff;      
@@ -221,6 +221,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   
 /*==========================================================================*/
 /* III) Initialize utility data						    */
+  /*
   FILE *fileSampPoint = fopen("samp-point","r");
   double *sampLocal = (double*)(newtonInfo->sampPoint);
 
@@ -237,6 +238,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     // I'll do chebyshev and non-Hermitain Newtonian later    
   }
   fclose(fileSampPoint);
+  */
 /*==========================================================================*/
 /* IV) Initialize Flags							    */
 

@@ -310,7 +310,18 @@ typedef struct stodftInfo{
 				    /*	    0 = don't realloc (read sto)	*/
 				    /*	    1 = realloc (read det/gen wf)	*/
   int numStateStoUp;		    /* Num: number of stochastic WF.		*/
-  int numStateStoDn;		    
+  int numStateStoDn;
+  int occNumber;		    /* Num: Occupation number of orbitals	*/
+				    /*	    If cp_lsda=1, this number should    */
+				    /*	    always be 1. If cp_lsda=0 and you   */
+				    /*	    are reading deterministic PINY	*/
+				    /*	    coeff file, this number is 1 since	*/
+				    /*	    orbitals are normalized to 2. In	*/
+				    /*	    the case of				*/
+				    /*	    calculating density during scf or	*/
+				    /*	    reading stochastic orbitals,	*/
+				    /*	    this number is 2.			*/
+   
   double fitErrTol;		    /* Num: Polynormial fitting error used to   */
 				    /*	    determine polynormLength.		*/
   double energyMax,energyMin;       /* Num: Possible upper/lower bound of MO	*/

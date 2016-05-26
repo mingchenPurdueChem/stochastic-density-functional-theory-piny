@@ -351,6 +351,10 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   gethinv(cell->hmat_cp,cell->hmati_cp,&(cell->vol_cp),iperd);
   gethinv(cell->hmat,cell->hmati,&(cell->vol),iperd);
 
+  stodftInfo->occNumber = 1;
+  if(readCoeffFlag==1&&cpLsda==0)stodftInfo->occNumber = 2;
+
+
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/
@@ -383,17 +387,17 @@ void calcRhoInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   CPOPTS *cpopts                = &(cp->cpopts);  
   PSEUDO *pseudo                = &(cp->pseudo);
 
- 
+  
   int reInitFlag = stodftInfo->reInitFlag;
   int vpsAtomListFlag = stodftInfo->vpsAtomListFlag;
   int cpDualGridOptOn           = cpopts->cp_dual_grid_opt;
   
 
 /*==========================================================================*/
-/* I) Generate initial density                                              */
+/* I) Generate initial density, stochastic Case				    */
 
-  if(reInitFlag==0) calcRhoSto(class,bonded,general_data,cp,cpcoeffs_pos); 
-  if(reInitFlag==1) calcRhoDet(class,bonded,general_data,cp,cpcoeffs_pos);
+  if(reInitFlag==0) calcRhoStoInit(class,bonded,general_data,cp,cpcoeffs_pos); 
+  if(reInitFlag==1) calcRhoDetInit(class,bonded,general_data,cp,cpcoeffs_pos);
 
 /*==========================================================================*/
 /* II) Calculate the non-local pseudopotential list                          */
@@ -404,7 +408,16 @@ void calcRhoInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
                          stodftInfo->vpsAtomListFlag);
     stodftInfo->vpsAtomListFlag = 1;
   }
+
+/*==========================================================================*/
+/* III) Change the occupation number after reading initial deisity          */
+/*	density calculation						    */
+
+  if(cpLsda==1)stodftInfo->occNumber = 1;
+  else stodftInfo->occNumber = 2;
+
   printf("Finish generating Pseudopotential list.\n");
+  
  
 /*==========================================================================*/
 }/*end Routine*/

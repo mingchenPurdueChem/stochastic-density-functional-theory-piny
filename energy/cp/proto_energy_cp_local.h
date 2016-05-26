@@ -320,6 +320,15 @@ void cp_rho_calc_hybrid(CPEWALD *,CPSCR *, CPCOEFFS_INFO *,EWALD *,
                         PARA_FFT_PKG3D *, PARA_FFT_PKG3D *,
                         PARA_FFT_PKG3D *, PARA_FFT_PKG3D *, PARA_FFT_PKG3D *);
 
+void cp_rho_calc_sto_hybrid(CPEWALD *,CPSCR *, CPCOEFFS_INFO *,EWALD *,
+                        CELL *,STODFTINFO *,double *, double *,
+                        int ,int , double *, double *,double *,
+                        double *, double *,double *, double *,double *,
+                        double *,int ,int ,int ,int ,int ,int ,COMMUNICATE *,
+                        PARA_FFT_PKG3D *, PARA_FFT_PKG3D *,
+                        PARA_FFT_PKG3D *, PARA_FFT_PKG3D *, PARA_FFT_PKG3D *);
+
+
 void cp_ke_dens_calc_hybrid(CPEWALD *,CPSCR *,CELL *,double *, double *,
                             int ,int ,double *,int ,int ,int ,
                             COMMUNICATE *,
@@ -346,6 +355,13 @@ void cp_rho_calc_full_g(CPEWALD *,CPSCR *, CPCOEFFS_INFO *,EWALD *,
                         int ,int , double *, double *,double *,
                         double *, double *,double *, double *,double *,
                         double *,int ,int ,int ,int ,int ,COMMUNICATE *, 
+                        PARA_FFT_PKG3D *, PARA_FFT_PKG3D *, PARA_FFT_PKG3D *);
+
+void cp_rho_calc_full_g(CPEWALD *,CPSCR *, CPCOEFFS_INFO *,EWALD *,
+                        CELL *,STODFTINFO *,double *, double *,
+                        int ,int , double *, double *,double *,
+                        double *, double *,double *, double *,double *,
+                        double *,int ,int ,int ,int ,int ,int ,COMMUNICATE *,
                         PARA_FFT_PKG3D *, PARA_FFT_PKG3D *, PARA_FFT_PKG3D *);
       
 void coef_force_control(CPOPTS *,CPCOEFFS_INFO *,CPCOEFFS_POS *,

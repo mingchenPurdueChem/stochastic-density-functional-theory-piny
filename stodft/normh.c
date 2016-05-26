@@ -160,7 +160,7 @@ void normHNewtonHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void calcRhoDet(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
+void calcRhoDetInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 		   CP *cp,CPCOEFFS_POS  *cpcoeffs_pos)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
@@ -182,7 +182,7 @@ void calcRhoDet(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   COMMUNICATE   *commCP         = &(cp->communicate);
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
 
-
+  int cpParaOpt = cpopts->cp_para_opt;
   int cpLsda = cpopts->cp_lsda;
   int cpGGA  = cpopts->cp_gga;
   int numCoeffLarge       = cpcoeffs_info->ncoef_l;
@@ -229,19 +229,32 @@ void calcRhoDet(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
 
   //Debug Flag: we temp do this for debug
-  cp_rho_calc_hybrid(cpewald,cpscr,cpcoeffs_info,
-                     ewald,cell,coeffReUp,coeffImUp,*coefFormUp,*coefOrthUp,
-                     rhoCoeffReUp,rhoCoeffImUp,rhoUp,rhoCoeffReUpDensCpBox,
-                     rhoCoeffImUpDensCpBox,divRhoxUp,divRhoyUp,
-                     divRhozUp,d2RhoUp,numStateUpProc,numCoeff,
-                     cpGGA,cpDualGridOptOn,numInterpPmeDual,commCP,
-                     &(cp->cp_para_fft_pkg3d_lg),&(cp->cp_sclr_fft_pkg3d_lg),
-                     &(cp->cp_para_fft_pkg3d_dens_cp_box),
-                     &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
-                     &(cp->cp_sclr_fft_pkg3d_sm));
-
+  if(cpParaOpt==0){
+    cp_rho_calc_hybrid(cpewald,cpscr,cpcoeffs_info,
+		       ewald,cell,coeffReUp,coeffImUp,*coefFormUp,*coefOrthUp,
+		       rhoCoeffReUp,rhoCoeffImUp,rhoUp,rhoCoeffReUpDensCpBox,
+		       rhoCoeffImUpDensCpBox,divRhoxUp,divRhoyUp,
+		       divRhozUp,d2RhoUp,numStateUpProc,numCoeff,
+		       cpGGA,cpDualGridOptOn,numInterpPmeDual,commCP,
+		       &(cp->cp_para_fft_pkg3d_lg),&(cp->cp_sclr_fft_pkg3d_lg),
+		       &(cp->cp_para_fft_pkg3d_dens_cp_box),
+		       &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
+		       &(cp->cp_sclr_fft_pkg3d_sm));
+  }
+  if(cpParaOpt==1){
+    cp_rho_calc_full_g(cpewald,cpscr,cpcoeffs_info,
+                       ewald,cell,coeffReUp,coeffImUp,*coefFormUp,*coefOrthUp,
+                       rhoCoeffReUp,rhoCoeffImUp,rhoUp,rhoCoeffReUpDensCpBox,
+                       rhoCoeffImUpDensCpBox,divRhoxUp,divRhoyUp,
+                       divRhozUp,d2RhoUp,numStateUpProc,numCoeff,
+                       cpGGA,cpDualGridOptOn,numInterpPmeDual,commCP,
+                       &(cp->cp_para_fft_pkg3d_lg),
+                       &(cp->cp_para_fft_pkg3d_dens_cp_box),
+                       &(cp->cp_para_fft_pkg3d_sm));
+  }
   if(cpLsda==1&&numStateDnProc>0){
-  cp_rho_calc_hybrid(cpewald,cpscr,cpcoeffs_info,
+    if(cpParaOpt==0){
+      cp_rho_calc_hybrid(cpewald,cpscr,cpcoeffs_info,
                      ewald,cell,coeffReDn,coeffImUp,*coefFormDn,*coefOrthDn,
                      rhoCoeffReDn,rhoCoeffImDn,rhoDn,rhoCoeffReUpDensCpBox,
                      rhoCoeffImDnDensCpBox,divRhoxDn,divRhoyDn,
@@ -252,6 +265,18 @@ void calcRhoDet(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
                      &(cp->cp_para_fft_pkg3d_dens_cp_box),
                      &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
                      &(cp->cp_sclr_fft_pkg3d_sm));
+    }
+    if(cpParaOpt==1){
+      cp_rho_calc_full_g(cpewald,cpscr,cpcoeffs_info,
+		       ewald,cell,coeffReDn,coeffImUp,*coefFormDn,*coefOrthDn,
+		       rhoCoeffReDn,rhoCoeffImDn,rhoDn,rhoCoeffReUpDensCpBox,
+		       rhoCoeffImDnDensCpBox,divRhoxDn,divRhoyDn,
+		       divRhozDn,d2RhoDn,numStateDnProc,numCoeff,
+		       cpGGA,cpDualGridOptOn,numInterpPmeDual,commCP,
+                       &(cp->cp_para_fft_pkg3d_lg),
+                       &(cp->cp_para_fft_pkg3d_dens_cp_box),
+                       &(cp->cp_para_fft_pkg3d_sm));
+    }
     for(iCoeff=1;iCoeff<=numCoeffLargeProc;iCoeff++){
       rhoCoeffReUp[iCoeff] += rhoCoeffReDn[iCoeff];
       rhoCoeffImUp[iCoeff] += rhoCoeffImDn[iCoeff];
@@ -274,7 +299,7 @@ void calcRhoDet(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void calcRhoSto(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
+void calcRhoStoInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
                    CP *cp,CPCOEFFS_POS  *cpcoeffs_pos)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
@@ -296,6 +321,7 @@ void calcRhoSto(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
   PSEUDO       *pseudo       = &(cp->pseudo);
 
+  int cpParaOpt = cpopts->cp_para_opt;
   int cpLsda = cpopts->cp_lsda;
   int cpGGA  = cpopts->cp_gga;
   int numCoeffLarge       = cpcoeffs_info->ncoef_l;
@@ -341,29 +367,58 @@ void calcRhoSto(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
 
   //Debug Flag: we temp do this for debug
-  cp_rho_calc_hybrid(cpewald,cpscr,cpcoeffs_info,
-                     ewald,cell,coeffReUp,coeffImUp,*coefFormUp,*coefOrthUp,
-                     rhoCoeffReUp,rhoCoeffImUp,rhoUp,rhoCoeffReUpDensCpBox,
-                     rhoCoeffImUpDensCpBox,divRhoxUp,divRhoyUp,
-                     divRhozUp,d2RhoUp,numStateUpProc,numCoeff,
-                     cpGGA,cpDualGridOptOn,numInterpPmeDual,commCP,
-                     &(cp->cp_para_fft_pkg3d_lg),&(cp->cp_sclr_fft_pkg3d_lg),
-                     &(cp->cp_para_fft_pkg3d_dens_cp_box),
-                     &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
-                     &(cp->cp_sclr_fft_pkg3d_sm));
-
+  if(cpParaOpt==0){
+    cp_rho_calc_sto_hybrid(cpewald,cpscr,cpcoeffs_info,
+			 ewald,cell,stodftInfo,coeffReUp,
+			 coeffImUp,*coefFormUp,*coefOrthUp,
+			 rhoCoeffReUp,rhoCoeffImUp,rhoUp,rhoCoeffReUpDensCpBox,
+			 rhoCoeffImUpDensCpBox,divRhoxUp,divRhoyUp,
+			 divRhozUp,d2RhoUp,numStateUpProc,numCoeff,
+			 cpGGA,cpDualGridOptOn,numInterpPmeDual,commCP,
+			 &(cp->cp_para_fft_pkg3d_lg),&(cp->cp_sclr_fft_pkg3d_lg),
+			 &(cp->cp_para_fft_pkg3d_dens_cp_box),
+			 &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
+			 &(cp->cp_sclr_fft_pkg3d_sm));
+  }
+  if(cpParaOpt==1){
+    cp_rho_calc_sto_full_g(cpewald,cpscr,cpcoeffs_info,
+                         ewald,cell,stodftInfo,coeffReUp,
+                         coeffImUp,*coefFormUp,*coefOrthUp,
+                         rhoCoeffReUp,rhoCoeffImUp,rhoUp,rhoCoeffReUpDensCpBox,
+                         rhoCoeffImUpDensCpBox,divRhoxUp,divRhoyUp,
+                         divRhozUp,d2RhoUp,numStateUpProc,numCoeff,
+                         cpGGA,cpDualGridOptOn,numInterpPmeDual,commCP,
+                         &(cp->cp_para_fft_pkg3d_lg),
+                         &(cp->cp_para_fft_pkg3d_dens_cp_box),
+                         &(cp->cp_para_fft_pkg3d_sm));
+  }
   if(cpLsda==1&&numStateDnProc>0){
-  cp_rho_calc_hybrid(cpewald,cpscr,cpcoeffs_info,
-                     ewald,cell,coeffReDn,coeffImUp,*coefFormDn,*coefOrthDn,
-                     rhoCoeffReDn,rhoCoeffImDn,rhoDn,rhoCoeffReUpDensCpBox,
-                     rhoCoeffImDnDensCpBox,divRhoxDn,divRhoyDn,
-                     divRhozDn,d2RhoDn,numStateDnProc,numCoeff,
-                     cpGGA,cpDualGridOptOn,numInterpPmeDual,commCP,
-                     &(cp->cp_para_fft_pkg3d_lg),
-                     &(cp->cp_sclr_fft_pkg3d_lg),
-                     &(cp->cp_para_fft_pkg3d_dens_cp_box),
-                     &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
-                     &(cp->cp_sclr_fft_pkg3d_sm));
+    if(cpParaOpt==0){
+      cp_rho_calc_sto_hybrid(cpewald,cpscr,cpcoeffs_info,
+			   ewald,cell,stodftInfo,coeffReDn,
+			   coeffImUp,*coefFormDn,*coefOrthDn,
+			   rhoCoeffReDn,rhoCoeffImDn,rhoDn,rhoCoeffReUpDensCpBox,
+			   rhoCoeffImDnDensCpBox,divRhoxDn,divRhoyDn,
+			   divRhozDn,d2RhoDn,numStateDnProc,numCoeff,
+			   cpGGA,cpDualGridOptOn,numInterpPmeDual,commCP,
+			   &(cp->cp_para_fft_pkg3d_lg),
+			   &(cp->cp_sclr_fft_pkg3d_lg),
+			   &(cp->cp_para_fft_pkg3d_dens_cp_box),
+			   &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
+			   &(cp->cp_sclr_fft_pkg3d_sm));
+    }
+    if(cpParaOpt==1){
+      cp_rho_calc_sto_full_g(cpewald,cpscr,cpcoeffs_info,
+                           ewald,cell,stodftInfo,coeffReDn,
+                           coeffImUp,*coefFormDn,*coefOrthDn,
+                           rhoCoeffReDn,rhoCoeffImDn,rhoDn,rhoCoeffReUpDensCpBox,
+                           rhoCoeffImDnDensCpBox,divRhoxDn,divRhoyDn,
+                           divRhozDn,d2RhoDn,numStateDnProc,numCoeff,
+                           cpGGA,cpDualGridOptOn,numInterpPmeDual,commCP,
+                           &(cp->cp_para_fft_pkg3d_lg),
+                           &(cp->cp_para_fft_pkg3d_dens_cp_box),
+                           &(cp->cp_para_fft_pkg3d_sm));
+    }
     for(iCoeff=1;iCoeff<=numCoeffLargeProc;iCoeff++){
       rhoCoeffReUp[iCoeff] += rhoCoeffReDn[iCoeff];
       rhoCoeffImUp[iCoeff] += rhoCoeffImDn[iCoeff];

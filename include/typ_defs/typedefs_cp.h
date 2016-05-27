@@ -360,6 +360,12 @@ typedef struct stodftCoefPos{
   //debug only
   double *coeffReUpBackup;
   double *coeffImUpBackup;
+
+  //density 
+  double **rhoReUp;		    /* Lst: Density of different chemical	*/
+  double **rhoReDn;		    /*	    potential				*/
+				    /* Lth: */
+  
 }STODFTCOEFPOS;
 
 

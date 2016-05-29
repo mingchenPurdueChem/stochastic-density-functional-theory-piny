@@ -321,6 +321,8 @@ typedef struct stodftInfo{
 				    /*	    calculating density during scf or	*/
 				    /*	    reading stochastic orbitals,	*/
 				    /*	    this number is 2.			*/
+  int rhoRealGridNum;		    /* Num: Number of real space grid point on  */
+				    /*	    this process, =nfft2_proc		*/
    
   double fitErrTol;		    /* Num: Polynormial fitting error used to   */
 				    /*	    determine polynormLength.		*/
@@ -363,9 +365,11 @@ typedef struct stodftCoefPos{
 
   //density 
   double **rhoReUp;		    /* Lst: Density of different chemical	*/
-  double **rhoReDn;		    /*	    potential				*/
-				    /* Lth: */
-  
+  double **rhoReDn;		    /*	    potential (spin up/down)		*/
+				    /* Lth:numChemPot*rhoRealGridNum		*/
+ 
+  double *numElectron;		    /* Lst: Number of electron for each chem	*/
+				    /*	    potential.				*/ 
 }STODFTCOEFPOS;
 
 

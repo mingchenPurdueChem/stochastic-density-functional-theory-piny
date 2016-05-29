@@ -94,9 +94,185 @@ void calcRhoInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
+/*  rhoCalcRealSto:                                                         */
+/*      calculates the real space density (up,down or total)                */
+/*      using the stochastic orbitals. Double packing of ffts and other     */
+/*      goodies (most studdly coding)                                       */
+/*      Even the option to do full g space (cp_rho_calc_full_g)             */
+/*      or the studdly hybrid option in (cp_rho_calc_hybrid)                */
+/*==========================================================================*/
+
+void rhoCalcRealStoHybrid(CPSCR *cpscr,
+                        CPCOEFFS_INFO *cpcoeffs_info,
+                        CELL *cell,STODFTINFO *stodftInfo,
+			double *creal, double *cimag,
+                        int icoef_form,int icoef_orth,
+                        double *rho_scr,
+                        int nstate,int ncoef,int nstate_tot,
+                        int cp_dual_grid_opt,
+                        COMMUNICATE *communicate,
+                        PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg,
+                        PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_lg,
+                        PARA_FFT_PKG3D *cp_para_fft_pkg3d_dens_cp_box,
+                        PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_dens_cp_box,
+                        PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm)
+
+/*==========================================================================*/
+{/*begin routine*/
+/*==========================================================================*/
+#include "../typ_defs/typ_mask.h"
+
+/* local variables                                                  */
+
+  int iii,ioff,ioff2;
+  int is,i,iupper;
+  double vol_cp,rvol_cp;
+  double temp_r,temp_i;
+
+/*  Assign local pointers                                           */
+  double *zfft           =    cpscr->cpscr_wave.zfft;
+  double *zfft_tmp       =    cpscr->cpscr_wave.zfft_tmp;
+
+  double *hmati_cp       =    cell->hmati_cp;
+  double *hmat_cp        =    cell->hmat_cp;
+
+  int   myid_state       =    communicate->myid_state;
+  int   np_states        =    communicate->np_states;
+
+  int   ncoef_l          =    cp_para_fft_pkg3d_lg->ncoef;
+  int   ncoef_l_use      =    cp_para_fft_pkg3d_lg->ncoef_use;
+  int   ncoef_l_proc     =    cp_para_fft_pkg3d_lg->ncoef_proc;
+  int   nfft_proc        =    cp_para_fft_pkg3d_lg->nfft_proc;
+  int   nfft             =    cp_para_fft_pkg3d_lg->nfft;
+  int   nfft2            =    nfft/2;
+  int   nfft2_proc       =    nfft_proc/2;
+
+  int   nfft_dens_cp_box,nfft2_dens_cp_box;
+  int   nfft_proc_dens_cp_box,nfft2_proc_dens_cp_box;
+  int   ncoef_l_dens_cp_box;
+
+  MPI_Comm comm_states   =    communicate->comm_states;
+
+  if(cp_dual_grid_opt >= 1){
+    nfft_dens_cp_box       =  cp_para_fft_pkg3d_dens_cp_box->nfft;
+    nfft2_dens_cp_box      =  nfft_dens_cp_box/2;
+    ncoef_l_dens_cp_box    =  cp_para_fft_pkg3d_dens_cp_box->ncoef;
+
+  }/*endif cp_dual_grid_opt*/
+
+  /*
+  if(np_states > 1){
+    rho_scr = cpscr->cpscr_rho.v_ks_up; 
+  }else{
+    rho_scr = rho;
+  }
+  */
+/* ================================================================= */
+/*0) Check the form of the coefficients                              */
+
+  if(icoef_orth!=1){
+    printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+    printf("The coefficients must be in orthogonal form    \n");
+    printf("on state processor %d in cp_rho_calc_hybrid   \n",myid_state);
+    printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+    fflush(stdout);exit(1);
+  }/*endif*/
+
+  if(np_states>1 && icoef_form == 1){
+    printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+    printf("The coefficients must be in normal (not transposed) \n");
+    printf("form on state processor %d in cp_rho_calc_hybrid  \n",myid_state);
+    printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+    fflush(stdout);exit(1);
+  }/*endif*/
+
+
+/* ================================================================= */
+/*1) zero density and gradients if necessary                         */
+
+  if(cp_dual_grid_opt >= 1){
+   for(i=1; i<= nfft2_dens_cp_box ; i++){
+     rho_scr[i] = 0.0;
+   }/*endfor*/
+  }else{
+   for(i=1; i<= nfft2 ; i++){
+     rho_scr[i] = 0.0;
+   }/*endfor*/
+  }/*endif cp_dual_grid_opt*/
+
+/*==========================================================================*/
+/*==========================================================================*/
+/*2)sum the density in real space two states at a time                      */
+/*  This is done at state level and uses the scalar packages!               */
+
+  iupper = nstate;
+  if((nstate % 2) != 0){ 
+    iupper = nstate-1; 
+  }/* endif */
+
+  for(is = 1; is <= iupper; is = is + 2){
+    ioff   = (is-1)*ncoef;
+    ioff2 = (is)*ncoef;
+/*--------------------------------------------------------------------------*/
+/*I) pack the complex zfft array with two wavefunctions (real) 
+    the wavefunctions are reperesented in spherically cuttof 
+    half g space                                                            */
+
+    dble_pack_coef(&creal[ioff],&cimag[ioff],&creal[ioff2],&cimag[ioff2],
+                   zfft,cp_sclr_fft_pkg3d_sm);
+/*--------------------------------------------------------------------------*/
+/*II) fourier transform the two wavefunctions to real space
+     convention exp(-igr)                                                   */
+
+    para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+  
+/*--------------------------------------------------------------------------*/
+/* III) add the square of the two wave functions to the density(real space) */
+
+    if(cp_dual_grid_opt >= 1){
+      sum_rho(zfft,rho_scr,cp_sclr_fft_pkg3d_dens_cp_box); 
+    }else{
+      sum_rho(zfft,rho_scr,cp_sclr_fft_pkg3d_lg);
+    }/*endif cp_dual_grid_opt*/
+
+  }/*endfor is*/
+
+/*--------------------------------------------------------------------------*/
+/*IV) if there is an odd number of states, use single pack
+      for the last state (i caen't be chaengin' the laws of physics
+      captn, i've got to be usin the single pack!!!!!!)                     */
+
+  if((nstate%2)!=0){
+    ioff = (nstate-1)*ncoef;
+    sngl_pack_coef(&creal[ioff],&cimag[ioff],zfft,cp_sclr_fft_pkg3d_sm);
+
+/*--------------------------------------------------------------------------*/
+/* V) fourier transform the last wavefunction to real space
+       convention exp(-igr)                                                 */
+
+    para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+
+/*--------------------------------------------------------------------------*/
+/*VI) add the square of the last wave function to the density(real space)   */
+
+    if(cp_dual_grid_opt >= 1){ 
+      sum_rho(zfft,rho_scr,cp_sclr_fft_pkg3d_dens_cp_box); 
+    }else{
+      sum_rho(zfft,rho_scr,cp_sclr_fft_pkg3d_lg);
+    }/*endif cp_dual_grid_opt*/
+  }/*endif*/
+
+/*==============================================================*/
+}/*end routine*/
+/*==============================================================*/
+
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
 /*  cp_rho_calc_sto:                                                        */ 
-/*      calculates the density (up,down or total)	        */
-/*      using the stochastic orbitals. Double packing of ffts and other      */
+/*      calculates the density (up,down or total)			    */
+/*      using the stochastic orbitals. Double packing of ffts and other     */
 /*      goodies (most studdly coding)                                       */
 /*      Even the option to do full g space (cp_rho_calc_full_g)             */
 /*      or the studdly hybrid option in (cp_rho_calc_hybrid)                */
@@ -105,7 +281,7 @@ void calcRhoInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 void cp_rho_calc_sto_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
                         CPCOEFFS_INFO *cpcoeffs_info,EWALD *ewald,
                         CELL *cell,STODFTINFO *stodftInfo,
-	    double *creal, double *cimag,
+			double *creal, double *cimag,
                         int icoef_form,int icoef_orth,
                         double *rhocr ,double *rhoci,double *rho,
                         double *rhocr_dens_cp_box,double *rhoci_dens_cp_box,
@@ -476,7 +652,7 @@ void cp_rho_calc_sto_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
 void cp_rho_calc_sto_full_g(CPEWALD *cpewald,CPSCR *cpscr,
                         CPCOEFFS_INFO *cpcoeffs_info,EWALD *ewald,
                         CELL *cell,STODFTINFO *stodftInfo,
-	    double *creal, double *cimag,
+			double *creal, double *cimag,
                         int icoef_form,int icoef_orth,
                         double *rhocr ,double *rhoci,double *rho,
                         double *rhocr_dens_cp_box,double *rhoci_dens_cp_box,
@@ -803,4 +979,115 @@ void cp_rho_calc_sto_full_g(CPEWALD *cpewald,CPSCR *cpscr,
 /*==============================================================*/
 }/*end routine*/
 /*==============================================================*/
+
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void calcRhoSto(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
+                   CP *cp,int ip_now)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* This is the routine to calculate the initial density                  */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+
+  EWALD        *ewald        = &(general_data->ewald);
+  CELL         *cell         = &(general_data->cell);
+  CPOPTS       *cpopts       = &(cp->cpopts);
+  CPSCR        *cpscr        = &(cp->cpscr);
+  CPEWALD      *cpewald      = &(cp->cpewald);
+  STODFTINFO   *stodftInfo   = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  COMMUNICATE   *commCP         = &(cp->communicate);
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  PSEUDO       *pseudo       = &(cp->pseudo);
+
+  int cpParaOpt = cpopts->cp_para_opt;
+  int cpLsda = cpopts->cp_lsda;
+  int cpGGA  = cpopts->cp_gga;
+  int numCoeffLarge       = cpcoeffs_info->ncoef_l;
+  int numCoeffLargeProc   = cp->cp_para_fft_pkg3d_lg.ncoef_proc;
+  int numCoeffLargeProcDensCpBox = cp->cp_para_fft_pkg3d_dens_cp_box.ncoef_proc;
+  int cpDualGridOptOn = cpopts->cp_dual_grid_opt;
+  int numInterpPmeDual = pseudo->n_interp_pme_dual;
+  int numStateUpProc = cpcoeffs_info->nstate_up_proc;
+  int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
+  int numCoeff       = cpcoeffs_info->ncoef;
+  int iCoeff;
+  int *coefFormUp   = &(cpcoeffs_pos->icoef_form_up);
+  int *coefFormDn   = &(cpcoeffs_pos->icoef_form_dn);
+  int *coefOrthUp   = &(cpcoeffs_pos->icoef_orth_up);
+  int *coefOrthDn   = &(cpcoeffs_pos->icoef_orth_dn);
+
+  double *coeffReUp = cpcoeffs_pos->cre_up;
+  double *coeffImUp = cpcoeffs_pos->cim_up;
+  double *coeffReDn = cpcoeffs_pos->cre_dn;
+  double *coeffImDn = cpcoeffs_pos->cim_dn;
+  double *rhoCoeffReUp   = cpscr->cpscr_rho.rhocr_up;
+  double *rhoCoeffImUp   = cpscr->cpscr_rho.rhoci_up;
+  double *rhoUp          = cpscr->cpscr_rho.rho_up;
+  double *rhoCoeffReUpDensCpBox = cpscr->cpscr_rho.rhocr_up_dens_cp_box;
+  double *rhoCoeffImUpDensCpBox = cpscr->cpscr_rho.rhoci_up_dens_cp_box;
+  double *divRhoxUp       = cpscr->cpscr_grho.d_rhox_up;
+  double *divRhoyUp       = cpscr->cpscr_grho.d_rhoy_up;
+  double *divRhozUp       = cpscr->cpscr_grho.d_rhoz_up;
+  double *d2RhoUp        = cpscr->cpscr_grho.d2_rho_up;
+  double *rhoCoeffReDn   = cpscr->cpscr_rho.rhocr_dn;
+  double *rhoCoeffImDn   = cpscr->cpscr_rho.rhoci_dn;
+  double *rhoDn          = cpscr->cpscr_rho.rho_dn;
+  double *rhoCoeffReDnDensCpBox = cpscr->cpscr_rho.rhocr_dn_dens_cp_box;
+  double *rhoCoeffImDnDensCpBox = cpscr->cpscr_rho.rhoci_dn_dens_cp_box;
+  double *divRhoxDn       = cpscr->cpscr_grho.d_rhox_dn;
+  double *divRhoyDn       = cpscr->cpscr_grho.d_rhoy_dn;
+  double *divRhozDn       = cpscr->cpscr_grho.d_rhoz_dn;
+  double *d2RhoDn        = cpscr->cpscr_grho.d2_rho_dn;
+
+
+  double *rhotemp;
+
+/*==========================================================================*/
+/* I) Generate density in real space for all chem potentials		    */
+
+  rhoCalcRealSto(cpewald,cpscr,cpcoeffs_info,
+                         ewald,cell,stodftInfo,coeffReUp,
+                         coeffImUp,*coefFormUp,*coefOrthUp,
+                         rhoCoeffReUp,rhoCoeffImUp,rhoUp,rhoCoeffReUpDensCpBox,
+                         rhoCoeffImUpDensCpBox,divRhoxUp,divRhoyUp,
+                         divRhozUp,d2RhoUp,numStateUpProc,numCoeff,
+                         cpGGA,cpDualGridOptOn,numInterpPmeDual,commCP,
+                         &(cp->cp_para_fft_pkg3d_lg),&(cp->cp_sclr_fft_pkg3d_lg),
+                         &(cp->cp_para_fft_pkg3d_dens_cp_box),
+                         &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
+                         &(cp->cp_sclr_fft_pkg3d_sm));
+ 
+
+
+
+/*==========================================================================*/
+/* II) Calculate the non-local pseudopotential list                          */
+
+  if(stodftInfo->vpsAtomListFlag==0||cpDualGridOptOn>= 1){
+    control_vps_atm_list(pseudo,cell,clatoms_pos,clatoms_info,
+                         atommaps,ewd_scr,for_scr,cpDualGridOptOn,
+                         stodftInfo->vpsAtomListFlag);
+    stodftInfo->vpsAtomListFlag = 1;
+  }
+
+/*==========================================================================*/
+/* III) Change the occupation number after reading initial deisity          */
+/*      density calculation                                                 */
+
+  if(cpLsda==1)stodftInfo->occNumber = 1;
+  else stodftInfo->occNumber = 2;
+
+  printf("Finish generating Pseudopotential list.\n");
+
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
 

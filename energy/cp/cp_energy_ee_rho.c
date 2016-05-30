@@ -354,7 +354,7 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
      }/*endif cp_dual_grid_opt*/
 
 /*==============================================================*/
-/* VII) if doing gradient corrections, get gradient of density    */
+/* VII) if doing gradient corrections, get gradient of density  */
 
   if((cp_gga == 1 || cp_elf_calc_frq > 0)) {
    if(cp_dual_grid_opt >= 1){

@@ -321,8 +321,29 @@ typedef struct stodftInfo{
 				    /*	    calculating density during scf or	*/
 				    /*	    reading stochastic orbitals,	*/
 				    /*	    this number is 2.			*/
+
   int rhoRealGridNum;		    /* Num: Number of real space grid point on  */
-				    /*	    this process, =nfft2_proc		*/
+				    /*	    this process, =nfft2 for hybrid	*/
+				    /*	    = nfft2_proc for full_g		*/
+				    /*	    = nfft2_proc_dens_cp_box for dual   */
+				    /*        grid				*/
+  int rhoRealGridTot;		    /* Num: Total number of real space density  */
+				    /*	    grid = nfft2			*/
+
+  int *densityMap;		    /* Lst: Map the density to different proc	*/
+				    /*	    We store the density for different  */
+				    /*	    chemical potential on different	*/
+				    /*	    processes.				*/
+				    /* Lth: numChemPot				*/
+
+  int numChemProc;		    /* Num: Number of densities stored on this  */
+				    /*	    proc. (full_g=numChemPot)		*/
+
+  int *indexChemProc;		    /* Lst: the i'th element is the i'th chem	*/
+				    /*	    pot's index on its proc		*/
+				    /* Lth: numChemPot				*/
+  int *chemProcIndexInv;	    /* Lst: Inverse map of chem pot index	*/
+				    /* Lth: numChemProc[myid_state]		*/
    
   double fitErrTol;		    /* Num: Polynormial fitting error used to   */
 				    /*	    determine polynormLength.		*/
@@ -366,7 +387,7 @@ typedef struct stodftCoefPos{
   //density 
   double **rhoReUp;		    /* Lst: Density of different chemical	*/
   double **rhoReDn;		    /*	    potential (spin up/down)		*/
-				    /* Lth:numChemPot*rhoRealGridNum		*/
+				    /* Lth: numChemProc[myid_state]*rhoRealGridNum  */
  
   double *numElectron;		    /* Lst: Number of electron for each chem	*/
 				    /*	    potential.				*/ 

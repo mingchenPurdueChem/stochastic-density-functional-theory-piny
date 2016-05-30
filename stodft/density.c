@@ -111,9 +111,7 @@ void rhoCalcRealStoHybrid(CPSCR *cpscr,
                         int nstate,int ncoef,int nstate_tot,
                         int cp_dual_grid_opt,
                         COMMUNICATE *communicate,
-                        PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg,
                         PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_lg,
-                        PARA_FFT_PKG3D *cp_para_fft_pkg3d_dens_cp_box,
                         PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_dens_cp_box,
                         PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm)
 
@@ -124,8 +122,7 @@ void rhoCalcRealStoHybrid(CPSCR *cpscr,
 
 /* local variables                                                  */
 
-  int iii,ioff,ioff2;
-  int is,i,iupper;
+  int i,ioff,ioff2,is,iupper;
   double vol_cp,rvol_cp;
   double temp_r,temp_i;
 
@@ -984,13 +981,16 @@ void cp_rho_calc_sto_full_g(CPEWALD *cpewald,CPSCR *cpscr,
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void calcRhoSto(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
+void calcRhoStoHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
                    CP *cp,int ip_now)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
 /*************************************************************************/
-/* This is the routine to calculate the initial density                  */
+/* This is the routine to calculate the  density from stochastic WF.     */
+/* This version is used in scf loop for different chemical potential.    */
+/* We shall calculate the real space density for all chem pot and the    */
+/* number of electrons. This routine follow the hybrid parallel scheme.  */
 /*************************************************************************/
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
@@ -1004,7 +1004,8 @@ void calcRhoSto(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
   COMMUNICATE   *commCP         = &(cp->communicate);
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
-  PSEUDO       *pseudo       = &(cp->pseudo);
+  PSEUDO        *pseudo         = &(cp->pseudo);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
 
   int cpParaOpt = cpopts->cp_para_opt;
   int cpLsda = cpopts->cp_lsda;
@@ -1017,12 +1018,38 @@ void calcRhoSto(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int numStateUpProc = cpcoeffs_info->nstate_up_proc;
   int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
   int numCoeff       = cpcoeffs_info->ncoef;
-  int iCoeff;
+  int numChemPot     = stodftInfo->numChemPot;
+  /*
+  int numFFTProc        = cp_para_fft_pkg3d_lg->nfft_proc;
+  int numFFT            = cp_para_fft_pkg3d_lg->nfft;
+  int numFFT2           = numFFT/2;
+  int numFFT2Proc       = numFFTProc/2;
+  */
+  int rhoRealGridNum    = stodftInfo->rhoRealGridNum;
+  int rhoRealGridTot    = stodftInfo->rhoRealGridTot;
+  int numChemProc       = stodftInfo->numChemProc;
+  int numStateStoUp	= stodftInfo->numStateStoUp;
+  int numStateStoDn	= stodftInfo->numStateStoDn;
+  int occNumber		= stodftInfo->occNumber;
+  int myidState		= commCP->myid_state;
+
+  int iCoeff,iChem,iGrid;
+  int index;
+
   int *coefFormUp   = &(cpcoeffs_pos->icoef_form_up);
   int *coefFormDn   = &(cpcoeffs_pos->icoef_form_dn);
   int *coefOrthUp   = &(cpcoeffs_pos->icoef_orth_up);
   int *coefOrthDn   = &(cpcoeffs_pos->icoef_orth_dn);
+  int *densityMap   = stodftInfo->densityMap;
+  int *indexChemProc = stodftInfo->indexChemProc;
+  int *chemProcIndexInv = stodftInfo->chemProcIndexInv;
 
+  double volCP,rvolCP;
+  double numGridTotInv = 1.0/rhoRealGridTot;
+  double aveFactUp = occNumber/numStateStoUp;
+  double aveFactDn;
+
+  double *hmatCP    = cell->hmat_cp;
   double *coeffReUp = cpcoeffs_pos->cre_up;
   double *coeffImUp = cpcoeffs_pos->cim_up;
   double *coeffReDn = cpcoeffs_pos->cre_dn;
@@ -1045,48 +1072,99 @@ void calcRhoSto(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   double *divRhoyDn       = cpscr->cpscr_grho.d_rhoy_dn;
   double *divRhozDn       = cpscr->cpscr_grho.d_rhoz_dn;
   double *d2RhoDn        = cpscr->cpscr_grho.d2_rho_dn;
+  double *numElectron = stodftCoefPos->numElectron;
+  double *numElectronTemp = (double*)cmalloc(numChemPot*sizeof(double));
 
+  double **stoWfUpRe = stodftCoefPos->stoWfUpRe;
+  double **stoWfUpIm = stodftCoefPos->stoWfUpIm;
+  double **stoWfDnRe = stodftCoefPos->stoWfDnRe;
+  double **stoWfDnRe = stodftCoefPos->stoWfDnRe;
 
-  double *rhotemp;
+  double **rhoReUp = stodftCoefPos->rhoReUp;
+  double **rhoReDn = stodftCoefPos->rhoReDn;
+
+  double *rhoTemp  = (double*)cmalloc(numFFT2*sizeof(double))-1;
+
+  MPI_Comm commStates   =    commCP->comm_states;
 
 /*==========================================================================*/
 /* I) Generate density in real space for all chem potentials		    */
 
-  rhoCalcRealSto(cpewald,cpscr,cpcoeffs_info,
-                         ewald,cell,stodftInfo,coeffReUp,
-                         coeffImUp,*coefFormUp,*coefOrthUp,
-                         rhoCoeffReUp,rhoCoeffImUp,rhoUp,rhoCoeffReUpDensCpBox,
-                         rhoCoeffImUpDensCpBox,divRhoxUp,divRhoyUp,
-                         divRhozUp,d2RhoUp,numStateUpProc,numCoeff,
-                         cpGGA,cpDualGridOptOn,numInterpPmeDual,commCP,
-                         &(cp->cp_para_fft_pkg3d_lg),&(cp->cp_sclr_fft_pkg3d_lg),
-                         &(cp->cp_para_fft_pkg3d_dens_cp_box),
-                         &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
-                         &(cp->cp_sclr_fft_pkg3d_sm));
- 
+  vol_cp  = getdeth(hmat_cp);
+  rvol_cp = 1.0/vol_cp;
+  
+  if(cpLsda==1&&numStateDnProc!=0)aveFactDn = occNumber/numStateStoDn;
 
+  for(iChem=0;iChem<numChemPot;iChem++){
+    rhoCalcRealStoHybrid(cpscr,cpcoeffs_info,
+		   cell,stodftInfo,stoWfUpRe[iChem],
+		   stoWfUpIm[iChem],*coefFormUp,*coefOrthUp,rhoTemp,
+		   numStateUpProc,numCoeff,cpDualGridOptOn,commCP,
+		   &(cp->cp_sclr_fft_pkg3d_lg),
+		   &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
+		   &(cp->cp_sclr_fft_pkg3d_sm));
 
-
-/*==========================================================================*/
-/* II) Calculate the non-local pseudopotential list                          */
-
-  if(stodftInfo->vpsAtomListFlag==0||cpDualGridOptOn>= 1){
-    control_vps_atm_list(pseudo,cell,clatoms_pos,clatoms_info,
-                         atommaps,ewd_scr,for_scr,cpDualGridOptOn,
-                         stodftInfo->vpsAtomListFlag);
-    stodftInfo->vpsAtomListFlag = 1;
+    Reduce(&rhoTemp[1],rhoReUp[iChem],rhoRealGridNum,MPI_DOUBLE,
+	   MPI_SUM,densityMap[iChem],commStates);
+    // Calculate the average density, haven't scale by 1/volume
+    for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)rhoReUp[iChem][iGrid] *= aveFactUp;
+  }
+  if(cpLsda==1&&numStateDnProc!=0){
+    for(iChem=0;iChem<numChemPot;iChem++){
+      rhoCalcRealStoHybrid(cpscr,cpcoeffs_info,
+                   cell,stodftInfo,stoWfDnRe[iChem],
+                   stoWfDnIm[iChem],*coefFormDn,*coefOrthDn,rhoTemp,
+                   numStateDnProc,numCoeff,cpDualGridOptOn,commCP,
+                   &(cp->cp_sclr_fft_pkg3d_lg),
+                   &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
+                   &(cp->cp_sclr_fft_pkg3d_sm));
+      Reduce(&rhoTemp[1],rhoReDn[iChem],rhoRealGridNum,MPI_DOUBLE,
+	     MPI_SUM,densityMap[iChem],commStates);
+      // Calculate the average density, haven't scale by 1/volume
+      for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)rhoReDn[iChem][iGrid] *= aveFactDn;
+    }  
   }
 
+  //free(&rhoTemp[1]);
+
 /*==========================================================================*/
-/* III) Change the occupation number after reading initial deisity          */
-/*      density calculation                                                 */
+/* II) Calculate number of electrons.					    */
 
-  if(cpLsda==1)stodftInfo->occNumber = 1;
-  else stodftInfo->occNumber = 2;
+  for(iChem=0;iChem<numChemPot;iChem++){
+    numElectron[iChem] = 0.0;
+    numElectronTemp[iChem] = 0.0;
+  }
+  
+  for(iChem=0;iChem<numChemProc;iChem++){
+    index = chemProcIndexInv[iChem];
+    for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+      numElectronTemp[index] += rhoReUp[iChem][iGrid];     
+    }
+    if(cpLsda==1&&numStateDnProc!=0){
+      for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+	numElectronTemp[index] += rhoReDn[iChem][iGrid];
+      }
+    }
+    numElectronTemp[index] *= numGridTotInv;
+  }
+  AllReduce(numElectronTemp,numElectron,numChemPot,MPI_DOUBLE,MPI_SUM,commStates);
 
-  printf("Finish generating Pseudopotential list.\n");
+  free(numElectronTemp);
 
+/*==========================================================================*/
+/* III) Interpolate the correct # of electron			            */
+  
+  
+/*==========================================================================*/
+/* IV) Interpolate the correct density		                            */
+ 
+/*==========================================================================*/
+/* IV) Generate the reciprocal part and all the other things                */
 
+  //We store it in the rhoTemp
+  calcRhoStoRecip();
+ 
+  
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/

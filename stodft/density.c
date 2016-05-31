@@ -263,6 +263,274 @@ void rhoCalcRealStoHybrid(CPSCR *cpscr,
 }/*end routine*/
 /*==============================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void calcRhoStoRecipHybrid(CPEWALD *cpewald,CPSCR *cpscr,
+                        CPCOEFFS_INFO *cpcoeffs_info,EWALD *ewald,
+                        CELL *cell,STODFTINFO *stodftInfo,
+                        double *creal, double *cimag,
+                        int icoef_form,int icoef_orth,
+                        double *rhocr ,double *rhoci,double *rhotemp,
+                        double *rhocr_dens_cp_box,double *rhoci_dens_cp_box,
+                        double *del_rho_x, double *del_rho_y,
+                        double *del_rho_z,
+                        double *del2_rho,int nstate,int ncoef,int nstate_tot,
+                        int cp_gga,int cp_dual_grid_opt,
+                        int n_interp_pme_dual,
+                        COMMUNICATE *communicate,
+                        PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg,
+                        PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_lg,
+                        PARA_FFT_PKG3D *cp_para_fft_pkg3d_dens_cp_box,
+                        PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_dens_cp_box,
+                        PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* Now we have real space average density and I want to transfer it to   */
+/* reciprocal space and also generate gradient for gga                   */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+
+ int iii,ioff,ioff2;
+ int is,i,iupper;
+ double vol_cp,rvol_cp;
+ double temp_r,temp_i;
+
+/*  Assign local pointers                                           */
+ double *zfft           =    cpscr->cpscr_wave.zfft;
+ double *zfft_tmp       =    cpscr->cpscr_wave.zfft_tmp;
+ double *rho_scr;
+
+ double *hmati_cp       =    cell->hmati_cp;
+ double *hmat_cp        =    cell->hmat_cp;
+
+ double dbox_rat        =    cpewald->dbox_rat;
+ double *bw_r           =    cpscr->cpscr_dual_pme.bw_r;
+ double *bw_i           =    cpscr->cpscr_dual_pme.bw_i;
+
+ int cp_elf_calc_frq    =    cpcoeffs_info->cp_elf_calc_frq;
+
+ int   myid_state       =    communicate->myid_state;
+ int   np_states        =    communicate->np_states;
+ int   laplacian_on     =    cpcoeffs_info->cp_laplacian_on;
+
+ int  *recv_counts_coef =    cp_para_fft_pkg3d_lg->recv_counts_coef;
+ int   ncoef_l          =    cp_para_fft_pkg3d_lg->ncoef;
+ int   ncoef_l_use      =    cp_para_fft_pkg3d_lg->ncoef_use;
+ int   ncoef_l_proc     =    cp_para_fft_pkg3d_lg->ncoef_proc;
+ int   nfft_proc        =    cp_para_fft_pkg3d_lg->nfft_proc;
+ int   nfft             =    cp_para_fft_pkg3d_lg->nfft;
+ int   nfft2            =    nfft/2;
+ int   nfft2_proc       =    nfft_proc/2;
+
+ int   nfft_dens_cp_box,nfft2_dens_cp_box;
+ int   nfft_proc_dens_cp_box,nfft2_proc_dens_cp_box;
+ int   ncoef_l_dens_cp_box;
+#ifdef DEBUG_LSDA
+ double *rhocr_dens_cp_box;
+ double *rhoci_dens_cp_box;
+#endif
+
+ double integral,int_tmp;
+ int    *recv_counts_coef_dens_cp_box;
+
+ MPI_Comm comm_states   =    communicate->comm_states;
+
+ if(cp_dual_grid_opt >= 1){
+   nfft_dens_cp_box       =  cp_para_fft_pkg3d_dens_cp_box->nfft;
+   nfft_proc_dens_cp_box  =  cp_para_fft_pkg3d_dens_cp_box->nfft_proc;
+   nfft2_dens_cp_box      =  nfft_dens_cp_box/2;
+   nfft2_proc_dens_cp_box =  nfft_proc_dens_cp_box/2;
+
+
+   ncoef_l_dens_cp_box  =  cp_para_fft_pkg3d_dens_cp_box->ncoef;
+
+#ifdef DEBUG_LSDA
+   rhocr_dens_cp_box = cpscr->cpscr_rho.rhocr_up_dens_cp_box;
+   rhoci_dens_cp_box = cpscr->cpscr_rho.rhoci_up_dens_cp_box;
+#endif
+
+   recv_counts_coef_dens_cp_box =
+             cp_para_fft_pkg3d_dens_cp_box->recv_counts_coef;
+
+ }/*endif cp_dual_grid_opt*/
+
+ if(np_states > 1){
+   rho_scr = cpscr->cpscr_rho.v_ks_up;
+ } else {
+   rho_scr = rho;
+ }
+
+
+/*=========================================================================*/
+/*=========================================================================*/
+/*  3) get density in g space (on the master process                       */
+/*  I)  pack it up                                                         */
+/*  rho_scr = rho in scalar                                                */
+
+  if(myid_state==0){
+    if(cp_dual_grid_opt >= 1){
+      sngl_pack_rho(zfft,rhotemp,cp_sclr_fft_pkg3d_dens_cp_box);
+    }else{
+      sngl_pack_rho(zfft,rhotemp,cp_sclr_fft_pkg3d_lg);
+    }/*endif cp_dual_grid_opt*/
+
+
+/*--------------------------------------------------------------------------*/
+/*  II) back transform to g-space  convention exp(igr)                      */
+
+    if(cp_dual_grid_opt >= 1){
+      para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_dens_cp_box);
+    }else{
+      para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_lg);
+    }/*endif cp_dual_grid_opt*/
+
+/*==========================================================================*/
+/*  III) unpack the density                                                 */
+
+    if(cp_dual_grid_opt == 0){
+      if(np_states == 1){
+        sngl_upack_coef(rhocr,rhoci,zfft,cp_sclr_fft_pkg3d_lg);
+      }else{
+        sngl_upack_coef(zfft_tmp,&zfft_tmp[ncoef_l],zfft,cp_sclr_fft_pkg3d_lg);
+    }/*endif*/
+    }else{
+      if(np_states == 1){
+        sngl_upack_coef(rhocr_dens_cp_box,rhoci_dens_cp_box,zfft,
+	  	        cp_sclr_fft_pkg3d_dens_cp_box);
+      }else{
+        sngl_upack_coef(zfft_tmp,&zfft_tmp[ncoef_l_dens_cp_box],zfft,
+		        cp_sclr_fft_pkg3d_dens_cp_box);
+      }/*endif*/
+    }/*endif cp_dual_grid_opt*/
+  }//endif
+
+/*==========================================================================*/
+/* VII) Scatter rho in g space and real space		                    */
+/*      Now in g-level parallel and need parallel packages                  */
+
+  if(np_states > 1){
+    if(cp_dual_grid_opt == 0){
+      //Since we already reduce the density in real space, we only need to scatter
+      //We need to generate recvDispls 
+      Scatterv(&zfft_temp[1],&recv_counts_coef[1],recvDispls,MPI_DOUBLE,
+	       &rhocr[1],recv_counts_coef[myid_state+1],MPI_DOUBLE,0,comm_states);
+      Scatterv(&zfft_temp[ncoef_l+1],&recv_counts_coef[1],recvDispls,MPI_DOUBLE,
+	       &rhoci[1],recv_counts_coef[myid_state+1],MPI_DOUBLE,0,comm_states);
+
+      /*
+      sngl_pack_coef(rhocr,rhoci,zfft,cp_para_fft_pkg3d_lg);
+
+      para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_para_fft_pkg3d_lg);
+
+      sngl_upack_rho(zfft,rho,cp_para_fft_pkg3d_lg);
+
+      Barrier(comm_states);
+      */
+    }else{
+      Scatterv(&zfft_temp[1],&recv_counts_coef_dens_cp_box[1],
+	       recvDisplsDens,MPI_DOUBLE,&rhocr[1],
+	       recv_counts_coef_dens_cp_box[myid_state+1],
+	       MPI_DOUBLE,0,comm_states);
+      Scatterv(&zfft_temp[ncoef_l_dens_cp_box+1],&recv_counts_coef_dens_cp_box[1],
+	       recvDisplsDens,MPI_DOUBLE,&rhoci[1],
+	       recv_counts_coef_dens_cp_box[myid_state+1],
+	       MPI_DOUBLE,0,comm_states);
+      /*
+      sngl_pack_coef(rhocr_dens_cp_box,rhoci_dens_cp_box,zfft,
+                     cp_para_fft_pkg3d_dens_cp_box);
+
+      para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_para_fft_pkg3d_dens_cp_box);
+
+      sngl_upack_rho(zfft,rho,cp_para_fft_pkg3d_dens_cp_box);
+      */
+    }/*endif cp_dual_grid_opt*/
+  }/*endif np_states*/
+
+  if(np_states>1){
+    printf("myid %i rho[1] %lg\n",myid_state,rho[1]);
+    if(myid_state==0){
+      for(i=1;i<=np_states;i++)printf("i %i recv_counts_coeff %i\n",i,recv_counts_coef[i]);
+    }
+  }
+
+/*===========================================================================*/
+/* IF DUALED put rho real space onto the large grid and fft it to g space    */
+
+ if(cp_dual_grid_opt >= 1){
+/* sending density*vol_cp on small grid  */
+     control_spread_rho(cpscr,rho,cell,dbox_rat,np_states,
+                        n_interp_pme_dual,
+                        cp_para_fft_pkg3d_dens_cp_box,
+                        cp_para_fft_pkg3d_lg,cp_dual_grid_opt);
+
+  if(np_states == 1){
+    para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_lg);
+    sngl_upack_coef(rhocr,rhoci,zfft,cp_sclr_fft_pkg3d_lg);
+  }else{
+    para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_para_fft_pkg3d_lg);
+    sngl_upack_coef(rhocr,rhoci,zfft,cp_para_fft_pkg3d_lg);
+  }/*endif np_states*/
+ }/*endif cp_dual_grid_opt*/
+
+
+/*--------------------------------------------------------------------*/
+/*  Post-processing for pme grid need to multiply by complex weight factor */
+
+  if((n_interp_pme_dual > 1) && (cp_dual_grid_opt == 2)){
+    for(i=1; i<= ncoef_l_use; i++){
+     temp_r   =  (rhocr[i]*bw_r[i] - rhoci[i]*bw_i[i]);
+     temp_i   =  (rhocr[i]*bw_i[i] + rhoci[i]*bw_r[i]);
+     rhocr[i] =  temp_r;
+     rhoci[i] =  temp_i;
+    }/*endfor*/
+
+    if((myid_state+1) == np_states){rhocr[ncoef_l_proc]*=bw_r[ncoef_l_proc];}
+
+   }/*endif pme grid */
+
+/*===========================================================================*/
+/* IV) finish the density in real space by dividing by the volume           */
+/* DUALED SYSTEMS only keep the real space density on the cp_grid            */
+
+     vol_cp  = getdeth(hmat_cp);
+     rvol_cp = 1.0/vol_cp;
+
+     if(cp_dual_grid_opt >= 1){
+      for(i=1 ; i<= nfft2_proc_dens_cp_box;i++){
+         rho[i] *= rvol_cp;
+      }/*endfor*/
+     }else{
+      for(i=1 ; i<= nfft2_proc;i++){
+         rho[i] *= rvol_cp;
+      }/*endfor*/
+     }/*endif cp_dual_grid_opt*/
+
+/*==============================================================*/
+/* VII) if doing gradient corrections, get gradient of density    */
+
+  if((cp_gga == 1 || cp_elf_calc_frq > 0)) {
+   if(cp_dual_grid_opt >= 1){
+    control_grad_rho(cpewald,cpscr,ewald,rhocr_dens_cp_box,rhoci_dens_cp_box,
+                     del_rho_x,del_rho_y,del_rho_z,del2_rho,
+                     hmati_cp,vol_cp,laplacian_on,cp_dual_grid_opt,
+                     cp_para_fft_pkg3d_dens_cp_box);
+   }else{
+    control_grad_rho(cpewald,cpscr,ewald,rhocr,rhoci,
+                     del_rho_x,del_rho_y,del_rho_z,del2_rho,
+                     hmati_cp,vol_cp,laplacian_on,cp_dual_grid_opt,
+                     cp_para_fft_pkg3d_lg);
+   }/*endif cp_dual_grid_opt*/
+  }/*endif*/
+
+/*==============================================================*/
+}/*end routine*/
+/*==============================================================*/
+
+
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/

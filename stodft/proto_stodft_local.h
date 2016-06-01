@@ -18,7 +18,6 @@ void genEnergyMin(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,CLATOMS_POS *);
 /* init.c                                                          */
 
 void initStodft(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
-void calcRhoInit(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 void reInitWaveFunMin(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 void reInitComm(CP *,CPCOEFFS_POS *);
 void stoRealloc(CP *,CPCOEFFS_POS *);
@@ -35,12 +34,17 @@ void genStoOrbital(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 
 void normHNewtonHerm(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,
 		     CLATOMS_POS *,double);
-void calcRhoDet(CLASS *,BONDED *,GENERAL_DATA *,CP *,CPCOEFFS_POS *);
-void calcRhoSto(CLASS *,BONDED *,GENERAL_DATA *,CP *,CPCOEFFS_POS *);
 void calcCoefForceWrap(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);
 
+/*-----------------------------------------------------------------*/
+/* density-init.c                                                  */
 
+void calcRhoInit(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
+void calcRhoDet(CLASS *,BONDED *,GENERAL_DATA *,CP *,CPCOEFFS_POS *);
+void calcRhoSto(CLASS *,BONDED *,GENERAL_DATA *,CP *,CPCOEFFS_POS *);
 
+/*-----------------------------------------------------------------*/
+/* density.c                                                       */
 
 
 

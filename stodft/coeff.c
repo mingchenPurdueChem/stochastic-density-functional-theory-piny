@@ -211,6 +211,7 @@ void genSampNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   double *sampPoint = (double*)newtonInfo->sampPoint;
   double *sampPointUnscale = (double*)newtonInfo->sampPointUnscale;
   double *sampCand = (double*)cmalloc(numSampCand*sizeof(double));
+  double objValueArray = (double*)cmalloc(numSampCand*sizeof(double));
 
   double timeStart,timeEnd;
   double prod;
@@ -226,38 +227,28 @@ void genSampNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
 /* 1) Select samples form sample candidates  */
 
   sampPoint[0] = sampCand[0];
+
+  for(iCand=0;iCand<numSampCand;iCand++){
+    diff = sampCand[iCand]-sampPoint[0];
+    diff = diff*diff;
+    if(diff<1.0e-20) objValueArray[iCand] = -1.0e30;
+    else objValueArray[iCand] = log(diff);
+  }
+
   for(iPoly=1;iPoly<polynormLength;iPoly++){
     objMax = -100000.0;
     for(iCand=0;iCand<numSampCand;iCand++){
-      obj = 0.0;
-      prod = 1.0;
-      for(jPoly=0;jPoly<iPoly;jPoly++){
-	diff = sampCand[iCand]-sampPoint[jPoly];
-	if(fabs(diff)<1.0e-10){
-	  obj = -1.0e30;
-	  prod = 1.0
-	  break;
-	}
-	else prod *= diff*diff;
-        if(prod<1.0e-300||prod>1.0e300){
-	  obj += log(prod);
-	  prod = 1.0;
-	}
-      }
-      obj += log(prod);
-      /*
-      for(jPoly=0;jPoly<iPoly;jPoly++){
-	diff = sampCand[iCand]-sampPoint[jPoly];
-	if(fabs(diff)<1.0e-10)obj += -1.0e30;
-	else obj += log(diff*diff);
-      }//endfor jPoly
-      */
-      if(obj>objMax){
-	objMax = obj;
+      if(objValueArray[iCand]>objMax){
+	objMax = objValueArray[iCand];
 	objMaxIndex = iCand;
-      }//endif
     }//endfor iCand
     sampPoint[iPoly] = sampCand[objMaxIndex];
+    for(iCand=0;iCand<numSampCand;iCand++){
+      diff = sampCand[iCand]-sampPoint[iPoly];
+      diff = diff*diff;
+      if(diff<1.0e-20) objValueArray[iCand] = -1.0e30;
+      else objValueArray[iCand] = log(diff);
+    }//endfor iCand
   }//endfor iPoly
 
   //debug

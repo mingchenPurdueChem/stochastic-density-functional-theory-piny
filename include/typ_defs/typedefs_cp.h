@@ -336,6 +336,15 @@ typedef struct stodftInfo{
 				    /*	    processes.				*/
 				    /* Lth: numChemPot				*/
 
+  int *recvDispls;		    /* Lst: displs for scattering rho in g space*/
+				    /* Lth: np_states				*/
+  int *rhoRealSendCounts;	    /* Lst: send counts for scattering rho in	*/
+				    /*	    real space.				*/
+				    /* Lth: np_states				*/
+  int *rhoRealDispls;		    /* Lst: displs for scattering rho in real	*/
+				    /*	    space.				*/
+				    /* Lth: np_states				*/
+
   int numChemProc;		    /* Num: Number of densities stored on this  */
 				    /*	    proc. (full_g=numChemPot)		*/
 

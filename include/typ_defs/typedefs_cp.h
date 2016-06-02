@@ -338,6 +338,9 @@ typedef struct stodftInfo{
 
   int *recvDispls;		    /* Lst: displs for scattering rho in g space*/
 				    /* Lth: np_states				*/
+  int *recvDisplsDens;              /* Lst: displs for scattering rho in g space*/
+                                    /* Lth: np_states                           */
+
   int *rhoRealSendCounts;	    /* Lst: send counts for scattering rho in	*/
 				    /*	    real space.				*/
 				    /* Lth: np_states				*/
@@ -452,7 +455,6 @@ typedef struct cpcoeffs_pos_dvr {
   int ivcoef_orth_up,ivcoef_orth_dn;/* Opt: PW fcoefs ortho(1)/nonortho(0) */
   int ifcoef_orth_up,ifcoef_orth_dn;/* Opt: PW fcoefs ortho(1)/nonortho(0) */
   double max_diag,max_off_diag;     /* Num: max elements of ovlap matrix   */
-
 
 } CPCOEFFS_POS_DVR;
 

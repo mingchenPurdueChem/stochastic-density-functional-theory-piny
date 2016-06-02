@@ -147,7 +147,7 @@ DAFED_FILES           = control_dafed.o integrate_dafed.o dafed_io.o \
                         bias_update.o energy_control_dafed.o \
                         force_Phi.o force_bias.o force_dafed_final.o 
 STODFT_FILES	      = coeff.o control-stodft.o filters.o init.o \
-			min-CP-stodft.o normh.o
+			min-CP-stodft.o normh.o density.o density-init.o
               
 
 

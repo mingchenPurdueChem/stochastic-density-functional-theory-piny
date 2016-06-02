@@ -59,6 +59,7 @@ void calcRhoInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int reInitFlag = stodftInfo->reInitFlag;
   int vpsAtomListFlag = stodftInfo->vpsAtomListFlag;
   int cpDualGridOptOn           = cpopts->cp_dual_grid_opt;
+  int cpLsda			= cpopts->cp_lsda;
 
 
 /*==========================================================================*/
@@ -258,6 +259,7 @@ void calcRhoStoInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int cpParaOpt = cpopts->cp_para_opt;
   int cpLsda = cpopts->cp_lsda;
   int cpGGA  = cpopts->cp_gga;
+  int numProcStates = commCP->np_states;
   int numCoeffLarge       = cpcoeffs_info->ncoef_l;
   int numCoeffLargeProc   = cp->cp_para_fft_pkg3d_lg.ncoef_proc;
   int numCoeffLargeProcDensCpBox = cp->cp_para_fft_pkg3d_dens_cp_box.ncoef_proc;
@@ -265,6 +267,8 @@ void calcRhoStoInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int numInterpPmeDual = pseudo->n_interp_pme_dual;
   int numStateUpProc = cpcoeffs_info->nstate_up_proc;
   int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
+  int numStateStoUp  = stodftInfo->numStateStoUp;
+  int numStateStoDn  = stodftInfo->numStateStoDn;
   int numCoeff       = cpcoeffs_info->ncoef;
   int rhoRealGridNum    = stodftInfo->rhoRealGridNum;
   int rhoRealGridTot    = stodftInfo->rhoRealGridTot;
@@ -302,7 +306,7 @@ void calcRhoStoInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   double *divRhozDn       = cpscr->cpscr_grho.d_rhoz_dn;
   double *d2RhoDn        = cpscr->cpscr_grho.d2_rho_dn;
   double *rhoScr;
-  double *rhoTemp = (double*)cmalloc();
+  double *rhoTemp = (double*)cmalloc(rhoRealGridNum*sizeof(double));
 
 
 /*======================================================================*/
@@ -310,9 +314,10 @@ void calcRhoStoInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
 
   //Debug Flag: we temp do this for debug
+  /*
   if(cpParaOpt==0){
-    if(np_states>1)rhoScr = cpscr->cpscr_rho.v_ks_up;
-    else rhoScr = rho;
+    if(numProcStates>1)rhoScr = cpscr->cpscr_rho.v_ks_up;
+    else rhoScr = rhoUp;
 
     rhoCalcRealStoHybrid(cpscr,cpcoeffs_info,
                    cell,stodftInfo,stoWfUpRe[iChem],
@@ -321,49 +326,12 @@ void calcRhoStoInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
                    &(cp->cp_sclr_fft_pkg3d_lg),
                    &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
                    &(cp->cp_sclr_fft_pkg3d_sm));
-    Reduce(&rhoScr[1],rhoRealGridNum,rhoTemp,);
-    calcRhoStoRecipHybrid()
+    //Reduce(&rhoScr[1],rhoRealGridNum,rhoTemp,);
+    //calcRhoStoRecipHybrid()
+    
 
   }
-  if(cpLsda==1&&numStateDnProc>0){
-    if(cpParaOpt==0){
-      cp_rho_calc_sto_hybrid(cpewald,cpscr,cpcoeffs_info,
-	       ewald,cell,stodftInfo,coeffReDn,
-	       coeffImUp,*coefFormDn,*coefOrthDn,
-	       rhoCoeffReDn,rhoCoeffImDn,rhoDn,rhoCoeffReUpDensCpBox,
-	       rhoCoeffImDnDensCpBox,divRhoxDn,divRhoyDn,
-	       divRhozDn,d2RhoDn,numStateDnProc,numCoeff,
-	       cpGGA,cpDualGridOptOn,numInterpPmeDual,commCP,
-	       &(cp->cp_para_fft_pkg3d_lg),
-	       &(cp->cp_sclr_fft_pkg3d_lg),
-	       &(cp->cp_para_fft_pkg3d_dens_cp_box),
-	       &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
-	       &(cp->cp_sclr_fft_pkg3d_sm));
-    }
-    if(cpParaOpt==1){
-      cp_rho_calc_sto_full_g(cpewald,cpscr,cpcoeffs_info,
-                           ewald,cell,stodftInfo,coeffReDn,
-                           coeffImUp,*coefFormDn,*coefOrthDn,
-                           rhoCoeffReDn,rhoCoeffImDn,rhoDn,rhoCoeffReUpDensCpBox,
-                           rhoCoeffImDnDensCpBox,divRhoxDn,divRhoyDn,
-                           divRhozDn,d2RhoDn,numStateDnProc,numCoeff,
-                           cpGGA,cpDualGridOptOn,numInterpPmeDual,commCP,
-                           &(cp->cp_para_fft_pkg3d_lg),
-                           &(cp->cp_para_fft_pkg3d_dens_cp_box),
-                           &(cp->cp_para_fft_pkg3d_sm));
-    }
-    for(iCoeff=1;iCoeff<=numCoeffLargeProc;iCoeff++){
-      rhoCoeffReUp[iCoeff] += rhoCoeffReDn[iCoeff];
-      rhoCoeffImUp[iCoeff] += rhoCoeffImDn[iCoeff];
-    }/* endfor */
-    if(cpDualGridOptOn>=1){
-      for(iCoeff=1;iCoeff<=numCoeffLargeProcDensCpBox;iCoeff++){
-        rhoCoeffReUpDensCpBox[iCoeff] += rhoCoeffReDnDensCpBox[iCoeff];
-        rhoCoeffImUpDensCpBox[iCoeff] += rhoCoeffImDnDensCpBox[iCoeff];
-      }/* endfor */
-    } /* endif */
-  }/* endif */
-
+  */
 /*==========================================================================*/
 }/*end Routine*/
 /*=======================================================================*/

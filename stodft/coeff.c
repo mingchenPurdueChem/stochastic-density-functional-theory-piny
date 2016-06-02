@@ -53,8 +53,8 @@ void genNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   double *sampPoint;
   double *expanCoeff;
   double *sampPointUnscale;
-  double *chemPot;
 
+  int numChemPot     = stodftInfo->numChemPot;
   int polynormLength = (int)(4.0*beta*energyDiff); //initial chain length
   int totalPoly      = polynormLength*numChemPot;  //iniital total polynormial
 
@@ -211,7 +211,7 @@ void genSampNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   double *sampPoint = (double*)newtonInfo->sampPoint;
   double *sampPointUnscale = (double*)newtonInfo->sampPointUnscale;
   double *sampCand = (double*)cmalloc(numSampCand*sizeof(double));
-  double objValueArray = (double*)cmalloc(numSampCand*sizeof(double));
+  double *objValueArray = (double*)cmalloc(numSampCand*sizeof(double));
 
   double timeStart,timeEnd;
   double prod;
@@ -241,6 +241,7 @@ void genSampNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
       if(objValueArray[iCand]>objMax){
 	objMax = objValueArray[iCand];
 	objMaxIndex = iCand;
+      }
     }//endfor iCand
     sampPoint[iPoly] = sampCand[objMaxIndex];
     for(iCand=0;iCand<numSampCand;iCand++){
@@ -377,12 +378,15 @@ double calcFitError(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
 
   int numPointTest = 100;
   int numChemPot = stodftInfo->numChemPot;
-  int iPoint,iChem;
+  int polynormLength = stodftInfo->polynormLength;
+  int iPoint,iChem,iPoly,imu;
   double pointTest;
-  double energyMin = stodftInfo->energyMin;
-  double energyMax = stodftInfo->energyMax;
+  double beta       = stodftInfo->beta;
+  double energyMin  = stodftInfo->energyMin;
+  double energyMax  = stodftInfo->energyMax;
   double energyMean = stodftInfo->energyMean;
-  double deltPoint = (energyMax-energyMin)/numPointTest;
+  double deltPoint  = (energyMax-energyMin)/numPointTest;
+  double scale	    = newtonInfo->scale;
   double pointScale;
   double funValue,prod,funBM;
   double fitErr = -1.0e30;
@@ -399,7 +403,7 @@ double calcFitError(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
 
   for(iChem=0;iChem<numChemPot;iChem++){
     for(iPoint=0;iPoint<numPointTest;iPoint++){
-      pointTest = energyMinTest+(iPoint+0.5)*deltPoint;
+      pointTest = energyMin+(iPoint+0.5)*deltPoint;
       pointScale = (pointTest-energyMean)*scale;
       funValue = expanCoeff[0];
       prod = 1.0;

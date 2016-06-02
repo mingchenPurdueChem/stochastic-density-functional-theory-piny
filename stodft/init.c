@@ -26,7 +26,6 @@
 #include "../proto_defs/proto_communicate_wrappers.h"
 #include "../proto_defs/proto_stodft_local.h"
 
-
 #define TIME_CP_OFF
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
@@ -40,6 +39,8 @@ void commStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
 /*************************************************************************/
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
+#include "../typ_defs/typ_mask.h"
+
   COMMUNICATE   *communicate      = &(cp->communicate);
   STODFTINFO    *stodftInfo;
   STODFTCOEFPOS *stodftCoefPos;
@@ -52,6 +53,7 @@ void commStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
   if(myid==0){
     stodftInfo = cp->stodftInfo;
     stodftCoefPos = cp->stodftCoefPos;
+  }
   else{
     cp->stodftInfo = (STODFTINFO*)cmalloc(sizeof(STODFTINFO));
     cp->stodftCoefPos = (STODFTCOEFPOS*)cmalloc(sizeof(STODFTCOEFPOS));
@@ -69,7 +71,7 @@ void commStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
   Bcast(&(stodftInfo->readCoeffFlag),1,MPI_INT,0,world);
   Bcast(&(stodftInfo->numStateStoUp),1,MPI_INT,0,world);
   Bcast(&(stodftInfo->numStateStoDn),1,MPI_INT,0,world);
-  Bcast(&(stodftInfo->fitErr),1,MPI_DOUBLE,0,world);
+  Bcast(&(stodftInfo->fitErrTol),1,MPI_DOUBLE,0,world);
   Bcast(&(stodftInfo->beta),1,MPI_DOUBLE,0,world);
 
 }/*end Routine*/

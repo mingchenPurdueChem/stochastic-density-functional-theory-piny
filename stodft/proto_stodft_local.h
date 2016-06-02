@@ -40,11 +40,30 @@ void calcCoefForceWrap(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *)
 /* density-init.c                                                  */
 
 void calcRhoInit(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
-void calcRhoDet(CLASS *,BONDED *,GENERAL_DATA *,CP *,CPCOEFFS_POS *);
-void calcRhoSto(CLASS *,BONDED *,GENERAL_DATA *,CP *,CPCOEFFS_POS *);
+void calcRhoDetInit(CLASS *,BONDED *,GENERAL_DATA *,CP *,CPCOEFFS_POS *);
+void calcRhoStoInit(CLASS *,BONDED *,GENERAL_DATA *,CP *,CPCOEFFS_POS *);
 
 /*-----------------------------------------------------------------*/
 /* density.c                                                       */
+
+void rhoCalcRealStoHybrid(CPSCR *,CPCOEFFS_INFO *,CELL *,STODFTINFO *,
+        double *, double *,double *,int ,int ,int ,int ,int ,COMMUNICATE *,
+        PARA_FFT_PKG3D *,PARA_FFT_PKG3D *,PARA_FFT_PKG3D *,PARA_FFT_PKG3D *,PARA_FFT_PKG3D *);
+
+void calcRhoStoRecipHybrid(CPEWALD *,CPSCR *,CPCOEFFS_INFO *,EWALD *,CELL *,
+	STODFTINFO *,double *, double *,int ,int ,double *,double *,double *,double *,
+        double *,double *,double *, double *,double *,double *,int ,int ,int ,
+        int ,int ,int ,COMMUNICATE *,PARA_FFT_PKG3D *,PARA_FFT_PKG3D *,
+        PARA_FFT_PKG3D *,PARA_FFT_PKG3D *,PARA_FFT_PKG3D *);
+
+void rhoCalcRealStoFullg(CPSCR *,CPCOEFFS_INFO *,CELL *,STODFTINFO *,double *, 
+	double *,double *,int ,int ,int ,int ,int ,COMMUNICATE *,
+        PARA_FFT_PKG3D *,PARA_FFT_PKG3D *,PARA_FFT_PKG3D *);
+
+void calcRhoStoHybrid(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
+
+
+
 
 
 

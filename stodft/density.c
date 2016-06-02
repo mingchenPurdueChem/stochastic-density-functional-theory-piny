@@ -43,13 +43,13 @@
 void rhoCalcRealStoHybrid(CPSCR *cpscr,
                         CPCOEFFS_INFO *cpcoeffs_info,
                         CELL *cell,STODFTINFO *stodftInfo,
-			double *creal, double *cimag,
-                        int icoef_form,int icoef_orth,
-                        double *rho_scr,
-                        int nstate,int ncoef,int nstate_tot,
+			double *creal, double *cimag,double *rho_scr,
+                        int icoef_form,int icoef_orth,int nstate,int ncoef,
                         int cp_dual_grid_opt,
                         COMMUNICATE *communicate,
+                        PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg,
                         PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_lg,
+                        PARA_FFT_PKG3D *cp_para_fft_pkg3d_dens_cp_box,
                         PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_dens_cp_box,
                         PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm)
 
@@ -199,7 +199,7 @@ void calcRhoStoRecipHybrid(CPEWALD *cpewald,CPSCR *cpscr,
                         CELL *cell,STODFTINFO *stodftInfo,
                         double *creal, double *cimag,
                         int icoef_form,int icoef_orth,
-                        double *rhocr ,double *rhoci,double *rhotemp,
+                        double *rhocr ,double *rhoci,double *rhotemp,double *rho,
                         double *rhocr_dens_cp_box,double *rhoci_dens_cp_box,
                         double *del_rho_x, double *del_rho_y,
                         double *del_rho_z,
@@ -221,6 +221,7 @@ void calcRhoStoRecipHybrid(CPEWALD *cpewald,CPSCR *cpscr,
 /*************************************************************************/
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
+  #include "../typ_defs/typ_mask.h"
 
   int iii,ioff,ioff2;
   int is,i,iupper;
@@ -262,7 +263,8 @@ void calcRhoStoRecipHybrid(CPEWALD *cpewald,CPSCR *cpscr,
   int    *recv_counts_coef_dens_cp_box;
   int *recvDispls = stodftInfo->recvDispls;
   int *rhoRealSendCounts = stodftInfo->rhoRealSendCounts;
-  int *rhoRealDispls = stodftInfo->rhoRealDispls;
+  int *rhoRealDispls  = stodftInfo->rhoRealDispls;
+  int *recvDisplsDens = stodftInfo->recvDisplsDens;
 
  MPI_Comm comm_states   =    communicate->comm_states;
 
@@ -279,12 +281,6 @@ void calcRhoStoRecipHybrid(CPEWALD *cpewald,CPSCR *cpscr,
              cp_para_fft_pkg3d_dens_cp_box->recv_counts_coef;
 
  }/*endif cp_dual_grid_opt*/
-
- if(np_states > 1){
-   rho_scr = cpscr->cpscr_rho.v_ks_up;
- } else {
-   rho_scr = rho;
- }
 
 
 /*=========================================================================*/
@@ -337,9 +333,9 @@ void calcRhoStoRecipHybrid(CPEWALD *cpewald,CPSCR *cpscr,
     if(cp_dual_grid_opt == 0){
       //Since we already reduce the density in real space, we only need to scatter
       //We need to generate recvDispls 
-      Scatterv(&zfft_temp[1],&recv_counts_coef[1],recvDispls,MPI_DOUBLE,
+      Scatterv(&zfft_tmp[1],&recv_counts_coef[1],recvDispls,MPI_DOUBLE,
 	       &rhocr[1],recv_counts_coef[myid_state+1],MPI_DOUBLE,0,comm_states);
-      Scatterv(&zfft_temp[ncoef_l+1],&recv_counts_coef[1],recvDispls,MPI_DOUBLE,
+      Scatterv(&zfft_tmp[ncoef_l+1],&recv_counts_coef[1],recvDispls,MPI_DOUBLE,
 	       &rhoci[1],recv_counts_coef[myid_state+1],MPI_DOUBLE,0,comm_states);
 
       /*
@@ -356,11 +352,11 @@ void calcRhoStoRecipHybrid(CPEWALD *cpewald,CPSCR *cpscr,
                &rho[1],nfft2_proc,MPI_DOUBLE,0,comm_states);
 
     }else{
-      Scatterv(&zfft_temp[1],&recv_counts_coef_dens_cp_box[1],
+      Scatterv(&zfft_tmp[1],&recv_counts_coef_dens_cp_box[1],
 	       recvDisplsDens,MPI_DOUBLE,&rhocr[1],
 	       recv_counts_coef_dens_cp_box[myid_state+1],
 	       MPI_DOUBLE,0,comm_states);
-      Scatterv(&zfft_temp[ncoef_l_dens_cp_box+1],&recv_counts_coef_dens_cp_box[1],
+      Scatterv(&zfft_tmp[ncoef_l_dens_cp_box+1],&recv_counts_coef_dens_cp_box[1],
 	       recvDisplsDens,MPI_DOUBLE,&rhoci[1],
 	       recv_counts_coef_dens_cp_box[myid_state+1],
 	       MPI_DOUBLE,0,comm_states);
@@ -474,15 +470,14 @@ void calcRhoStoRecipHybrid(CPEWALD *cpewald,CPSCR *cpscr,
 void rhoCalcRealStoFullg(CPSCR *cpscr,
                         CPCOEFFS_INFO *cpcoeffs_info,
                         CELL *cell,STODFTINFO *stodftInfo,
-                        double *creal, double *cimag,
+                        double *creal, double *cimag,double *rho_scr,
                         int icoef_form,int icoef_orth,
-                        double *rho_scr,
-                        int nstate,int ncoef,int nstate_tot,
+                        int nstate,int ncoef,
                         int cp_dual_grid_opt,
                         COMMUNICATE *communicate,
-                        PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_lg,
-                        PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_dens_cp_box,
-                        PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm)
+                        PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg,
+                        PARA_FFT_PKG3D *cp_para_fft_pkg3d_dens_cp_box,
+                        PARA_FFT_PKG3D *cp_para_fft_pkg3d_sm)
 
 /*==========================================================================*/
 {/*begin routine*/
@@ -543,9 +538,9 @@ void rhoCalcRealStoFullg(CPSCR *cpscr,
 /*1) zero density and gradients if necessary                         */
 
   if(cp_dual_grid_opt>=1){
-    for(i=1;i<=nfft2_proc_dens_cp_box;i++)rho[i] = 0.0;
+    for(i=1;i<=nfft2_proc_dens_cp_box;i++)rho_scr[i] = 0.0;
   }else{
-    for(i=1;i<=nfft2_proc;i++)rho[i] = 0.0;
+    for(i=1;i<=nfft2_proc;i++)rho_scr[i] = 0.0;
   }/*endif cp_dual_grid_opt*/
 
 
@@ -580,9 +575,9 @@ void rhoCalcRealStoFullg(CPSCR *cpscr,
 /*--------------------------------------------------------------------------*/
 /* III) add the square of the two wave functions to the density  */
     if(cp_dual_grid_opt >= 1){
-      sum_rho(zfft,rho,cp_para_fft_pkg3d_dens_cp_box);
+      sum_rho(zfft,rho_scr,cp_para_fft_pkg3d_dens_cp_box);
     }else{
-      sum_rho(zfft,rho,cp_para_fft_pkg3d_lg);
+      sum_rho(zfft,rho_scr,cp_para_fft_pkg3d_lg);
     }/*endif cp_dual_grid_opt */
   }/*endfor is*/
 /*--------------------------------------------------------------------------*/
@@ -604,9 +599,9 @@ void rhoCalcRealStoFullg(CPSCR *cpscr,
 /*VI) add the square of the last wave function to the density  */
 
     if(cp_dual_grid_opt >= 1){
-      sum_rho(zfft,rho,cp_para_fft_pkg3d_dens_cp_box);
+      sum_rho(zfft,rho_scr,cp_para_fft_pkg3d_dens_cp_box);
     }else{ 
-      sum_rho(zfft,rho,cp_para_fft_pkg3d_lg);
+      sum_rho(zfft,rho_scr,cp_para_fft_pkg3d_lg);
     }/*endif cp_dual_grid_opt*/
   }/*endif*/
 
@@ -630,6 +625,7 @@ void calcRhoStoHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*************************************************************************/
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
+  #include "../typ_defs/typ_mask.h"
 
   EWALD        *ewald        = &(general_data->ewald);
   CELL         *cell         = &(general_data->cell);
@@ -640,6 +636,7 @@ void calcRhoStoHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
   COMMUNICATE   *commCP         = &(cp->communicate);
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  CPCOEFFS_POS  *cpcoeffs_pos   = &(cp->cpcoeffs_pos[ip_now]);
   PSEUDO        *pseudo         = &(cp->pseudo);
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
 
@@ -655,12 +652,11 @@ void calcRhoStoHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
   int numCoeff       = cpcoeffs_info->ncoef;
   int numChemPot     = stodftInfo->numChemPot;
-  /*
   int numFFTProc        = cp_para_fft_pkg3d_lg->nfft_proc;
   int numFFT            = cp_para_fft_pkg3d_lg->nfft;
   int numFFT2           = numFFT/2;
   int numFFT2Proc       = numFFTProc/2;
-  */
+
   int rhoRealGridNum    = stodftInfo->rhoRealGridNum;
   int rhoRealGridTot    = stodftInfo->rhoRealGridTot;
   int numChemProc       = stodftInfo->numChemProc;
@@ -714,7 +710,7 @@ void calcRhoStoHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   double **stoWfUpRe = stodftCoefPos->stoWfUpRe;
   double **stoWfUpIm = stodftCoefPos->stoWfUpIm;
   double **stoWfDnRe = stodftCoefPos->stoWfDnRe;
-  double **stoWfDnRe = stodftCoefPos->stoWfDnRe;
+  double **stoWfDnIm = stodftCoefPos->stoWfDnIm;
 
   double **rhoReUp = stodftCoefPos->rhoReUp;
   double **rhoReDn = stodftCoefPos->rhoReDn;
@@ -726,39 +722,44 @@ void calcRhoStoHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*==========================================================================*/
 /* I) Generate density in real space for all chem potentials		    */
 
-  vol_cp  = getdeth(hmat_cp);
-  rvol_cp = 1.0/vol_cp;
+  //vol_cp  = getdeth(hmat_cp);
+  //rvol_cp = 1.0/vol_cp;
   
   if(cpLsda==1&&numStateDnProc!=0)aveFactDn = occNumber/numStateStoDn;
 
-  for(iChem=0;iChem<numChemPot;iChem++){
-    rhoCalcRealStoHybrid(cpscr,cpcoeffs_info,
-		   cell,stodftInfo,stoWfUpRe[iChem],
-		   stoWfUpIm[iChem],*coefFormUp,*coefOrthUp,rhoTemp,
-		   numStateUpProc,numCoeff,cpDualGridOptOn,commCP,
-		   &(cp->cp_sclr_fft_pkg3d_lg),
-		   &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
-		   &(cp->cp_sclr_fft_pkg3d_sm));
-
-    Reduce(&rhoTemp[1],rhoReUp[iChem],rhoRealGridNum,MPI_DOUBLE,
-	   MPI_SUM,densityMap[iChem],commStates);
-    // Calculate the average density, haven't scale by 1/volume
-    for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)rhoReUp[iChem][iGrid] *= aveFactUp;
-  }
-  if(cpLsda==1&&numStateDnProc!=0){
+  if(cpParaOpt==0){
     for(iChem=0;iChem<numChemPot;iChem++){
       rhoCalcRealStoHybrid(cpscr,cpcoeffs_info,
-                   cell,stodftInfo,stoWfDnRe[iChem],
-                   stoWfDnIm[iChem],*coefFormDn,*coefOrthDn,rhoTemp,
-                   numStateDnProc,numCoeff,cpDualGridOptOn,commCP,
-                   &(cp->cp_sclr_fft_pkg3d_lg),
-                   &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
-                   &(cp->cp_sclr_fft_pkg3d_sm));
-      Reduce(&rhoTemp[1],rhoReDn[iChem],rhoRealGridNum,MPI_DOUBLE,
+		     cell,stodftInfo,stoWfUpRe[iChem],
+		     stoWfUpIm[iChem],rhoTemp,*coefFormUp,*coefOrthUp,
+		     numStateUpProc,numCoeff,cpDualGridOptOn,commCP,
+		     &(cp->cp_para_fft_pkg3d_lg),
+		     &(cp->cp_sclr_fft_pkg3d_lg),
+		     &(cp->cp_para_fft_pkg3d_dens_cp_box),
+		     &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
+		     &(cp->cp_sclr_fft_pkg3d_sm));
+      Reduce(&rhoTemp[1],rhoReUp[iChem],rhoRealGridNum,MPI_DOUBLE,
 	     MPI_SUM,densityMap[iChem],commStates);
       // Calculate the average density, haven't scale by 1/volume
-      for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)rhoReDn[iChem][iGrid] *= aveFactDn;
-    }  
+      for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)rhoReUp[iChem][iGrid] *= aveFactUp;
+    }
+    if(cpLsda==1&&numStateDnProc!=0){
+      for(iChem=0;iChem<numChemPot;iChem++){
+	rhoCalcRealStoHybrid(cpscr,cpcoeffs_info,
+		     cell,stodftInfo,stoWfDnRe[iChem],
+		     stoWfDnIm[iChem],rhoTemp,*coefFormDn,*coefOrthDn,
+		     numStateDnProc,numCoeff,cpDualGridOptOn,commCP,
+		     &(cp->cp_para_fft_pkg3d_lg),
+		     &(cp->cp_sclr_fft_pkg3d_lg),
+		     &(cp->cp_para_fft_pkg3d_dens_cp_box),
+		     &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
+		     &(cp->cp_sclr_fft_pkg3d_sm));
+	Reduce(&rhoTemp[1],rhoReDn[iChem],rhoRealGridNum,MPI_DOUBLE,
+	       MPI_SUM,densityMap[iChem],commStates);
+	// Calculate the average density, haven't scale by 1/volume
+	for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)rhoReDn[iChem][iGrid] *= aveFactDn;
+      }  
+    }
   }
 
   //free(&rhoTemp[1]);
@@ -783,7 +784,7 @@ void calcRhoStoHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     }
     numElectronTemp[index] *= numGridTotInv;
   }
-  AllReduce(numElectronTemp,numElectron,numChemPot,MPI_DOUBLE,MPI_SUM,commStates);
+  Allreduce(numElectronTemp,numElectron,numChemPot,MPI_DOUBLE,MPI_SUM,0,commStates);
 
   free(numElectronTemp);
 
@@ -798,7 +799,7 @@ void calcRhoStoHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /* IV) Generate the reciprocal part and all the other things                */
 
   //We store it in the rhoTemp
-  calcRhoStoRecip();
+  //calcRhoStoRecip();
  
   
 /*==========================================================================*/

@@ -58,6 +58,9 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int iScf,iCell,iCoeff;
   int numScf			= stodftInfo->numScf; //Need claim this in cp
   int cpLsda 			= cpopts->cp_lsda;
+  int cpParaOpt			= cpopts->cp_para_opt;
+
+
   int checkPerdSize 		= cpopts->icheck_perd_size;
   int checkDualSize 		= cpopts->icheck_dual_size;
   int cpDualGridOptOn 	 	= cpopts->cp_dual_grid_opt;
@@ -175,10 +178,10 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
 
   //debug only
-  genStoOrbital(class,bonded,general_data,cp,ip_now);
+  //genStoOrbital(class,bonded,general_data,cp,ip_now);
 
   
-  exit(0);
+  //exit(0);
 /*======================================================================*/
 /* V) SCF loop						                */
 
@@ -192,7 +195,8 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*----------------------------------------------------------------------*/
 /* 2)  Get the total density, for each chemical potential and get       */
 /*     total electron number for each chemical potential	        */
-    calcRhoSto(class,bonded,general_data,cp,cpcoeffs_pos);
+
+    if(cpParaOpt==0) calcRhoStoHybrid(class,bonded,general_data,cp,ip_now);
 
 /*----------------------------------------------------------------------*/
 /* 3)  Interpolate the chemical potential w.r.t			        */
@@ -543,6 +547,7 @@ void genNoiseOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*-----------------------------------------------------------------------*/
   CPOPTS       *cpopts       = &(cp->cpopts);
   CPSCR        *cpscr        = &(cp->cpscr);
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
   STODFTINFO   *stodftInfo   = cp->stodftInfo;
   STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
  
@@ -563,7 +568,7 @@ void genNoiseOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   double *coeffImDn = cpcoeffs_pos->cim_dn;
 
   numRand = 2*numStatUpTot;
-  if(cpLsda==1&&numStateDnProc!=0){
+  if(cpLsda==1&&numStatDnProc!=0){
     numRand += 2*numStatDnTot;
   }
 
@@ -589,7 +594,7 @@ void genNoiseOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       if(randNum[2*(iOff+iCoeff-1)]>0)coeffReUp[iOff+iCoeff] = ranValue;
       else coeffReUp[iOff+iCoeff] = -ranValue;
       if(randNum[2*(iOff+iCoeff-1)+1]>0)coeffImUp[iOff+iCoeff] = ranValue;
-      else coeffImUp[iOff+iCoeff] = -ranValue
+      else coeffImUp[iOff+iCoeff] = -ranValue;
     }
     if(randNum[2*(iStat*numCoeff+numCoeff-1)]>0)coeffReUp[iStat*numCoeff+numCoeff] = 1.0;
     else coeffReUp[iStat*numCoeff+numCoeff] = -1.0;

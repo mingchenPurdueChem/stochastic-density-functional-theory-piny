@@ -66,5 +66,25 @@ normh.o :                $(STANDARD) $(DEFINES) \
                          $(DCODE)/stodft/normh.c
 	$(ECHO) $@
 	$(COBJ) $(DCODE)/stodft/normh.c
+
+density.o :		 $(STANDARD) $(DEFINES) \
+                         $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
+                         $(TYP_STAT) \
+                         $(TYP_CP) $(TYP_PAR) \
+                         $(FRND_ENT) $(MATH) \
+                         $(ENR_CP_LOC) $(ENR_CPCON_LOC) $(STODFT_LOC) \
+                         $(DCODE)/stodft/density.c
+	$(ECHO) $@
+	$(COBJ) $(DCODE)/stodft/density.c
+
+density-init.o :         $(STANDARD) $(DEFINES) \
+                         $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
+                         $(TYP_STAT) \
+                         $(TYP_CP) $(TYP_PAR) \
+                         $(FRND_ENT) $(MATH) \
+                         $(ENR_CP_LOC) $(ENR_CPCON_LOC) $(STODFT_LOC) \
+                         $(DCODE)/stodft/density-init.c
+	$(ECHO) $@
+	$(COBJ) $(DCODE)/stodft/density-init.c	
                         
 #------------------------------------------------------------------

@@ -62,7 +62,9 @@ void genNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   
 /*==========================================================================*/
 /* I) Generate coeffcients for initial chain length  */
-  
+ 
+  printf("polynormLength %i\n",polynormLength); 
+  stodftInfo->polynormLength = polynormLength;
   stodftCoefPos->expanCoeff = (double *)cmalloc(totalPoly*sizeof(double));
   newtonInfo->sampPoint = (double *)cmalloc(polynormLength*sizeof(double));
   newtonInfo->sampPointUnscale = (double *)cmalloc(polynormLength*sizeof(double));
@@ -82,6 +84,7 @@ void genNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
     free(newtonInfo->sampPoint);
     free(newtonInfo->sampPointUnscale);
     polynormLength += 1000;
+    stodftInfo->polynormLength = polynormLength;
     totalPoly = polynormLength*numChemPot;
     stodftCoefPos->expanCoeff = (double *)cmalloc(totalPoly*sizeof(double));
     newtonInfo->sampPoint = (double *)cmalloc(polynormLength*sizeof(double));
@@ -236,6 +239,7 @@ void genSampNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   }
 
   for(iPoly=1;iPoly<polynormLength;iPoly++){
+    if(iPoly%1000==0)printf("iPoly %i\n",iPoly);
     objMax = -100000.0;
     for(iCand=0;iCand<numSampCand;iCand++){
       if(objValueArray[iCand]>objMax){
@@ -379,7 +383,7 @@ double calcFitError(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   int numPointTest = 100;
   int numChemPot = stodftInfo->numChemPot;
   int polynormLength = stodftInfo->polynormLength;
-  int iPoint,iChem,iPoly,imu;
+  int iPoint,iChem,iPoly;
   double pointTest;
   double beta       = stodftInfo->beta;
   double energyMin  = stodftInfo->energyMin;
@@ -411,7 +415,7 @@ double calcFitError(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
 	prod *= pointScale-sampPoint[iPoly-1];
 	funValue += expanCoeff[iPoly]*prod;
       }
-      funBM = fermiFunction(pointScale,chemPot[imu],beta);
+      funBM = fermiFunction(pointScale,chemPot[iChem],beta);
       diff = fabs(funValue-funBM);
       if(diff>fitErr)fitErr = diff;
       printf("TestFunExpan %lg %lg %lg\n",pointTest,pointScale,funValue);

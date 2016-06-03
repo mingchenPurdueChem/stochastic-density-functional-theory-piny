@@ -465,11 +465,14 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     Smax = newtonInfo->Smax;
     scale = (Smax-Smin)/energyDiff;
     newtonInfo->scale = scale;
+    genNewtonHermit(stodftInfo,stodftCoefPos);
+    /*
     for(iPoly=0;iPoly<polynormLength;iPoly++){
       sampPointUnscale[iPoly] = (sampPoint[iPoly]-Smin)/scale+energyMin;
       //printf("sampunscale %lg\n",sampPointUnscale[iPoly]);
     }
     genCoeffNewtonHermit(stodftInfo,stodftCoefPos);
+    */
   }
 
 /*======================================================================*/

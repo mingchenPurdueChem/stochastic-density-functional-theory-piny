@@ -55,7 +55,7 @@ void genNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   double *sampPointUnscale;
 
   int numChemPot     = stodftInfo->numChemPot;
-  int polynormLength = (int)(4.0*beta*energyDiff); //initial chain length
+  int polynormLength = (int)(2.0*beta*energyDiff); //initial chain length, try drop the mutiplier 4.0
   int totalPoly      = polynormLength*numChemPot;  //iniital total polynormial
 
   FERMIFUNR fermiFunction = stodftInfo->fermiFunctionReal;
@@ -63,7 +63,8 @@ void genNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
 /*==========================================================================*/
 /* I) Generate coeffcients for initial chain length  */
  
-  printf("polynormLength %i\n",polynormLength); 
+  printf("==============================================\n");
+  printf("Start Calculating Polynormial Chain Length:\n");
   stodftInfo->polynormLength = polynormLength;
   stodftCoefPos->expanCoeff = (double *)cmalloc(totalPoly*sizeof(double));
   newtonInfo->sampPoint = (double *)cmalloc(polynormLength*sizeof(double));
@@ -74,6 +75,11 @@ void genNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   genCoeffNewtonHermit(stodftInfo,stodftCoefPos);
   
   fitErr = calcFitError(stodftInfo,stodftCoefPos);
+  
+  printf("-----------------------------------------------\n");
+  printf("Polynormial Length %i\n",polynormLength);
+  printf("Fitting Error %lg Tolerance %lg\n",fitErr,fitErrTol);
+  fflush(stdout);
 
 /*==========================================================================*/
 /* II) Increase chain length if polynomial expansion doesn't reach error    */
@@ -93,7 +99,16 @@ void genNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
     genSampNewtonHermit(stodftInfo,stodftCoefPos);
     genCoeffNewtonHermit(stodftInfo,stodftCoefPos);
     fitErr = calcFitError(stodftInfo,stodftCoefPos);  
+    printf("-----------------------------------------------\n");
+    printf("Polynormial Length %i\n",polynormLength);
+    printf("Fitting Error %lg Tolerance %lg\n",fitErr,fitErrTol);
+    fflush(stdout);
   }
+  printf("Finish Calculating Polynormial Chain Length.\n");
+  printf("The final Polynormial Chain Length is %i.\n",polynormLength);
+  printf("==============================================\n");
+  fflush(stdout);
+  exit(0);
 
 /*==========================================================================*/
 }/*end Routine*/
@@ -168,13 +183,13 @@ void genCoeffNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
 
   printf("Coeff time %lg\n",timeEnd-timeStart);
   //debug
-  /*
-  for(imu=0;imu<numChemPot;imu++){
-    for(iPoly=0;iPoly<polynormLength;iPoly++){
-      printf("mu %lg expanCoeff %lg\n",chemPot[imu],expanCoeff[iPoly]);
-    }
+  
+  FILE *filecoeff = fopen("coeff-out","w");
+  for(iPoly=0;iPoly<polynormLength;iPoly++){
+    fprintf(filecoeff,"%i %lg\n",iPoly,log(fabs(expanCoeff[iPoly*numChemPot])));
   }
-  */
+  fclose(filecoeff);
+  
   /*
   for(imu=0;imu<numChemPot;imu++){
     for(iPoly=0;iPoly<polynormLength;iPoly++){
@@ -218,7 +233,6 @@ void genSampNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
 
   double timeStart,timeEnd;
   double prod;
-  FILE *fileSampPoint = fopen("samp-point","w");
 
 /*==========================================================================*/
 /* 0) Generate sample candidates in range [Smin,Smax] */
@@ -239,7 +253,7 @@ void genSampNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   }
 
   for(iPoly=1;iPoly<polynormLength;iPoly++){
-    if(iPoly%1000==0)printf("iPoly %i\n",iPoly);
+    //if(iPoly%1000==0)printf("iPoly %i\n",iPoly);
     objMax = -100000.0;
     for(iCand=0;iCand<numSampCand;iCand++){
       if(objValueArray[iCand]>objMax){
@@ -251,23 +265,26 @@ void genSampNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
     for(iCand=0;iCand<numSampCand;iCand++){
       diff = sampCand[iCand]-sampPoint[iPoly];
       diff = diff*diff;
-      if(diff<1.0e-20) objValueArray[iCand] = -1.0e30;
-      else objValueArray[iCand] = log(diff);
+      if(diff<1.0e-20) objValueArray[iCand] += -1.0e30;
+      else objValueArray[iCand] += log(diff);
     }//endfor iCand
   }//endfor iPoly
 
-  //debug
-  /*
   for(iPoly=0;iPoly<polynormLength;iPoly++){
-    printf("iPoly %i samp %lg\n",iPoly,sampPoint[iPoly]);
+    sampPointUnscale[iPoly] = (sampPoint[iPoly]-Smin)*scale+energyMin;
   }
-  */
+
+  //debug
+  
   cputime(&timeEnd);
   printf("Samp time %lg\n",timeEnd-timeStart);
+  /*
+  FILE *fileSampPoint = fopen("samp-point","w");
   for(iPoly=0;iPoly<polynormLength;iPoly++){
     fprintf(fileSampPoint,"%.13lg\n",sampPoint[iPoly]);
   }
   fclose(fileSampPoint);
+  */
 
 /*==========================================================================*/
 }/*end Routine*/
@@ -380,7 +397,7 @@ double calcFitError(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
    
   NEWTONINFO *newtonInfo  = stodftInfo->newtonInfo;
 
-  int numPointTest = 100;
+  int numPointTest = 1000;
   int numChemPot = stodftInfo->numChemPot;
   int polynormLength = stodftInfo->polynormLength;
   int iPoint,iChem,iPoly;
@@ -409,16 +426,16 @@ double calcFitError(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
     for(iPoint=0;iPoint<numPointTest;iPoint++){
       pointTest = energyMin+(iPoint+0.5)*deltPoint;
       pointScale = (pointTest-energyMean)*scale;
-      funValue = expanCoeff[0];
+      funValue = expanCoeff[iChem];
       prod = 1.0;
       for(iPoly=1;iPoly<polynormLength;iPoly++){
 	prod *= pointScale-sampPoint[iPoly-1];
-	funValue += expanCoeff[iPoly]*prod;
+	funValue += expanCoeff[iPoly*numChemPot+iChem]*prod;
       }
-      funBM = fermiFunction(pointScale,chemPot[iChem],beta);
+      funBM = fermiFunction(pointTest,chemPot[iChem],beta);
       diff = fabs(funValue-funBM);
       if(diff>fitErr)fitErr = diff;
-      printf("TestFunExpan %lg %lg %lg\n",pointTest,pointScale,funValue);
+      //printf("TestFunExpan %lg %lg %lg %lg\n",pointTest,pointScale,funValue,funBM);
     }
   }
 

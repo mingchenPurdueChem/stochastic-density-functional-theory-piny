@@ -198,7 +198,8 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /* I) Set parameters and backup			        */
 
   printf("==============================================\n");
-  printf("Estimate Largest Energy\n");
+  printf("Estimate Energy Upperbound: \n");
+  fflush(stdout);
 
   cpcoeffs_info->nstate_up_proc = 1;
   cpcoeffs_info->nstate_dn_proc = 1;
@@ -300,7 +301,10 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     energy *= 2.0;
     energy += fcre_up[numCoeff]*cre_up[numCoeff];
     // We already normalize wf to 1.0, so we don't have scaling 0.5 here
-    printf("iStep %i Energy %lg\n",iIter,energy);
+    if(iIter%100==0){
+      printf("iStep %i Energy %lg\n",iIter,energy);
+      fflush(stdout);
+    }
 
 /*--------------------------------------------------------------------------*/
 /* iv) Copy H|phi> to |phi> and normalize it                                */
@@ -345,6 +349,12 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   free(randTrail);
   //fflush(stdout);
   //exit(0);
+
+  printf("Finish estimating energy upperbound.\n");
+  printf("The energy upperbound is %lg.\n",stodftInfo->energyMax);
+  printf("==============================================\n");
+  fflush(stdout);
+
 
 /*==========================================================================*/
 }/*end Routine*/
@@ -399,7 +409,7 @@ void genEnergyMin(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /* I) Set parameters and backup                                             */
 
   printf("==============================================\n");
-  printf("Estimate Smallest Energy\n");
+  printf("Estimate Energy Lowerbound:\n");
 
   cpcoeffs_info->nstate_up_proc = 1;
   cpcoeffs_info->nstate_dn_proc = 1;
@@ -481,7 +491,10 @@ void genEnergyMin(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     energy *= 2.0;
     energy += fcre_up[numCoeff]*cre_up[numCoeff];
     // We already normalize wf to 1.0, so we don't have scaling 0.5 here
-    printf("iStep %i Energy %lg\n",iIter,energy);
+    if(iIter%100==0){
+      printf("iStep %i Energy %lg\n",iIter,energy);
+      fflush(stdout);
+    }
 
 /*--------------------------------------------------------------------------*/
 /* iv) Calculate (Emax-H)|phi> and normalize it                             */
@@ -527,7 +540,11 @@ void genEnergyMin(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   free(coeffImUpBackup);
   free(randTrail);
 
-  //fflush(stdout);
+
+  printf("Finish estimating energy lowerbound.\n");
+  printf("The energy lowerbound is %lg.\n",stodftInfo->energyMin);
+  printf("==============================================\n");
+  fflush(stdout);
   //exit(0);
 /*==========================================================================*/
 }/*end Routine*/

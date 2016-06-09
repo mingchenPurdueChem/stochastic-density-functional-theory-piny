@@ -123,7 +123,10 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /* 1) Loop over all polynomial terms (iPoly=0<=>polynomial order 1) */
   
   for(iPoly=1;iPoly<polynormLength;iPoly++){
-    printf("iPoly %i\n",iPoly);
+    if(iPoly%100==0){
+      printf("iPoly %i\n",iPoly);
+      fflush(stdout);
+    }  
     normHNewtonHerm(cp,class,general_data,
                  cpcoeffs_pos,clatoms_pos,sampPoint[iPoly-1]);
     for(imu=0;imu<numChemPot;imu++){

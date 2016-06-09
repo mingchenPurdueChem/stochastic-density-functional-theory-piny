@@ -108,7 +108,7 @@ void genNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   printf("The final Polynormial Chain Length is %i.\n",polynormLength);
   printf("==============================================\n");
   fflush(stdout);
-  exit(0);
+  //exit(0);
 
 /*==========================================================================*/
 }/*end Routine*/
@@ -418,6 +418,7 @@ double calcFitError(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   double *expanCoeff = stodftCoefPos->expanCoeff;
   double *sampPointUnscale = newtonInfo->sampPointUnscale;
 
+  //FILE *fileTestFun = fopen("fermi-fun","w");
 
   FERMIFUNR fermiFunction = stodftInfo->fermiFunctionReal;
 
@@ -436,9 +437,11 @@ double calcFitError(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
       diff = fabs(funValue-funBM);
       if(diff>fitErr)fitErr = diff;
       //printf("TestFunExpan %lg %lg %lg %lg\n",pointTest,pointScale,funValue,funBM);
+      //fprintf(fileTestFun,"%lg %lg %lg\n",pointTest,funValue,funBM);
     }
   }
 
+  //fclose(fileTestFun);
   return fitErr;
 
 /*==========================================================================*/

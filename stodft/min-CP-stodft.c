@@ -192,6 +192,7 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
     genStoOrbital(class,bonded,general_data,cp,ip_now);
 
+    exit(0);
 /*----------------------------------------------------------------------*/
 /* 2)  Get the total density, for each chemical potential and get       */
 /*     total electron number for each chemical potential	        */
@@ -508,20 +509,34 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     }
   }
   double dot;
+  double *residueRe = (double*)cmalloc(numCoeff*sizeof(double))-1;
+  double *residueIm = (double*)cmalloc(numCoeff*sizeof(double))-1;
+  double maxResidue,normResidue;
   for(iState=0;iState<numStateUpProc;iState++){
-    printf("iState %i ",iState);
-    for(iState2=5;iState2<6;iState2++){
+    maxResidue = -1.0e30;
+    for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+      residueRe[iCoeff] = stoWfUpRe[0][iState*numCoeff+iCoeff];
+      residueIm[iCoeff] = stoWfUpIm[0][iState*numCoeff+iCoeff];
+    }
+    for(iState2=0;iState2<16;iState2++){
       dot = 0.0;
       for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
 	dot += stoWfUpRe[0][iState*numCoeff+iCoeff]*coeffReUpBackup[iState2*numCoeff+iCoeff]+
 	       stoWfUpIm[0][iState*numCoeff+iCoeff]*coeffImUpBackup[iState2*numCoeff+iCoeff];
       }
       dot *= 2.0;
-      dot += stoWfUpRe[0][iState*numCoeff+numCoeff]*coeffReUpBackup[iState2*numCoeff+numCoeff];
-      printf("%.10lg ",1.0-fabs(dot));
+      dot += stoWfUpRe[0][iState*numCoeff+numCoeff]*coeffReUpBackup[iState2*numCoeff+numCoeff];      
+      for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+	residueRe[iCoeff] -= coeffReUpBackup[iState2*numCoeff+iCoeff]*dot;
+	residueIm[iCoeff] -= coeffImUpBackup[iState2*numCoeff+iCoeff]*dot;
+      } 
+    }//endfor iState2
+    for(iCoeff=0;iCoeff<numCoeff;iCoeff++){
+      normResidue = sqrt(residueRe[iCoeff]*residueRe[iCoeff]+residueIm[iCoeff]*residueIm[iCoeff]);
+      if(normResidue>maxResidue)maxResidue = normResidue;
     }
-    printf("\n");
-  }
+    printf("iState %i maxResidue %lg\n",iState,maxResidue);
+  }//endfor iState
 //enddebug
 
 

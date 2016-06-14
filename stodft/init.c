@@ -110,10 +110,13 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   STODFTCOEFPOS *stodftCoefPos    = cp->stodftCoefPos;
   CPSCR         *cpscr            = &(cp->cpscr);  
   NEWTONINFO    *newtonInfo;
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
+
 
   int iperd          = cell->iperd;
   int cpLsda         = cpopts->cp_lsda;
   int cpGga          = cpopts->cp_gga;
+  int cpParaOpt      = cpopts->cp_para_opt;
   int expanType      = stodftInfo->expanType;
   int numOrbital     = stodftInfo->numOrbital;
   int polynormLength = stodftInfo->polynormLength;
@@ -139,7 +142,13 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   int forceCoefOrthDn           = cpcoeffs_pos->ifcoef_orth_dn;
   int numProcStates             = communicate->np_states;
   int myidState                 = communicate->myid_state;
+  int numFFTProc        = cp_para_fft_pkg3d_lg->nfft_proc;
+  int numFFT            = cp_para_fft_pkg3d_lg->nfft;
+  int numFFT2           = numFFT/2;
+  int numFFT2Proc       = numFFTProc/2;
   int iChem,iSamp,iCell;
+  int div,res;
+  int count,numChemProc,rhoRealGridNum;
 
   int *pcoefFormUp                   = &(cpcoeffs_pos->icoef_form_up);
   int *pcoefOrthUp                   = &(cpcoeffs_pos->icoef_orth_up);
@@ -302,7 +311,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   */
 
 /*==========================================================================*/
-/* V) Initialize for the density calculation                          */
+/* V) Initialize for the density calculation				    */
 
   if(numProcStates>1){
     if((coefFormUp+forceCoefFormUp)!=2){
@@ -355,7 +364,48 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
   stodftInfo->occNumber = 1;
   if(readCoeffFlag==1&&cpLsda==0)stodftInfo->occNumber = 2;
+  
+  printf("1111111111111111\n");
+  if(cpParaOpt==0)stodftInfo->rhoRealGridNum = numFFT2;
+  else stodftInfo->rhoRealGridNum = numFFT2Proc;
+  rhoRealGridNum = stodftInfo->rhoRealGridNum;
+  stodftInfo->rhoRealGridTot = numFFT2;
+  div = numChemPot/numProcStates;
+  res = numChemPot%numProcStates;
+  if(myidState<res)stodftInfo->numChemProc = div+1;
+  else stodftInfo->numChemProc = div;
+  numChemProc = stodftInfo->numChemProc;
+  stodftInfo->densityMap = (int*)cmalloc(numChemPot*sizeof(int));
+  stodftInfo->indexChemProc = (int*)cmalloc(numChemPot*sizeof(int));
+  stodftInfo->chemProcIndexInv = (int*)cmalloc(numChemProc*sizeof(int));
+  for(iChem=0;iChem<numChemPot;iChem++){
+    if(iChem<(div+1)*res){
+      stodftInfo->densityMap[iChem] = iChem/(div+1);
+      stodftInfo->indexChemProc[iChem] = iChem%(div+1);
+    }
+    else{
+      stodftInfo->densityMap[iChem] = (iChem-(div+1)*res)/div+res;
+      stodftInfo->densityMap[iChem] = (iChem-(div+1)*res)%div;
+    }
+  }
+  if(myidState<res)count = myidState*(div+1);
+  else count = (div+1)*res+(myidState-res)*div;
+  for(iChem=0;iChem<numChemProc;iChem++){
+    stodftInfo->chemProcIndexInv[iChem] = count+iChem;
+  }
 
+  printf("numChemProc %i\n",numChemProc);
+  stodftCoefPos->rhoReUp = (double**)cmalloc(numChemProc*sizeof(double*));
+  for(iChem=0;iChem<numChemProc;iChem++){
+    stodftCoefPos->rhoReUp[iChem] = (double*)cmalloc(rhoRealGridNum*sizeof(double));
+  }
+  if(cpLsda==1&&numStateDnProc>0){
+    stodftCoefPos->rhoReDn = (double**)cmalloc(numChemProc*sizeof(double*));
+    for(iChem=0;iChem<numChemProc;iChem++){
+      stodftCoefPos->rhoReDn[iChem] = (double*)cmalloc(rhoRealGridNum*sizeof(double));
+    }    
+  }
+  stodftCoefPos->numElectron = (double*)cmalloc(numChemPot*sizeof(double));
 
 /*==========================================================================*/
 }/*end Routine*/

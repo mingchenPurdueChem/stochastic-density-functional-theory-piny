@@ -664,9 +664,11 @@ void calcRhoStoHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int numStateStoDn	= stodftInfo->numStateStoDn;
   int occNumber		= stodftInfo->occNumber;
   int myidState		= commCP->myid_state;
+  int numProcStates     = commCP->np_states;
 
   int iCoeff,iChem,iGrid;
   int index;
+  int i,j,k;
 
   int *coefFormUp   = &(cpcoeffs_pos->icoef_form_up);
   int *coefFormDn   = &(cpcoeffs_pos->icoef_form_dn);
@@ -678,7 +680,7 @@ void calcRhoStoHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
   double volCP,rvolCP;
   double numGridTotInv = 1.0/rhoRealGridTot;
-  double aveFactUp = occNumber/numStateStoUp;
+  double aveFactUp = occNumber/(double)(numStateStoUp);
   double aveFactDn;
 
   double *hmatCP    = cell->hmat_cp;
@@ -725,44 +727,67 @@ void calcRhoStoHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   //vol_cp  = getdeth(hmat_cp);
   //rvol_cp = 1.0/vol_cp;
   
-  if(cpLsda==1&&numStateDnProc!=0)aveFactDn = occNumber/numStateStoDn;
-
-  if(cpParaOpt==0){
-    for(iChem=0;iChem<numChemPot;iChem++){
-      rhoCalcRealStoHybrid(cpscr,cpcoeffs_info,
-		     cell,stodftInfo,stoWfUpRe[iChem],
-		     stoWfUpIm[iChem],rhoTemp,*coefFormUp,*coefOrthUp,
-		     numStateUpProc,numCoeff,cpDualGridOptOn,commCP,
-		     &(cp->cp_para_fft_pkg3d_lg),
-		     &(cp->cp_sclr_fft_pkg3d_lg),
-		     &(cp->cp_para_fft_pkg3d_dens_cp_box),
-		     &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
-		     &(cp->cp_sclr_fft_pkg3d_sm));
-      Reduce(&rhoTemp[1],rhoReUp[iChem],rhoRealGridNum,MPI_DOUBLE,
-	     MPI_SUM,densityMap[iChem],commStates);
-      // Calculate the average density, haven't scale by 1/volume
-      for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)rhoReUp[iChem][iGrid] *= aveFactUp;
-    }
-    if(cpLsda==1&&numStateDnProc!=0){
-      for(iChem=0;iChem<numChemPot;iChem++){
-	rhoCalcRealStoHybrid(cpscr,cpcoeffs_info,
-		     cell,stodftInfo,stoWfDnRe[iChem],
-		     stoWfDnIm[iChem],rhoTemp,*coefFormDn,*coefOrthDn,
-		     numStateDnProc,numCoeff,cpDualGridOptOn,commCP,
-		     &(cp->cp_para_fft_pkg3d_lg),
-		     &(cp->cp_sclr_fft_pkg3d_lg),
-		     &(cp->cp_para_fft_pkg3d_dens_cp_box),
-		     &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
-		     &(cp->cp_sclr_fft_pkg3d_sm));
-	Reduce(&rhoTemp[1],rhoReDn[iChem],rhoRealGridNum,MPI_DOUBLE,
-	       MPI_SUM,densityMap[iChem],commStates);
-	// Calculate the average density, haven't scale by 1/volume
-	for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)rhoReDn[iChem][iGrid] *= aveFactDn;
-      }  
+  for(iChem=0;iChem<numChemProc;iChem++){
+    for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)rhoReUp[iChem][iGrid] = 0.0;
+  }
+  if(cpLsda==1&&numStateDnProc!=0){
+    for(iChem=0;iChem<numChemProc;iChem++){
+      for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)rhoReDn[iChem][iGrid] = 0.0;
     }
   }
 
-  //free(&rhoTemp[1]);
+  if(cpLsda==1&&numStateDnProc!=0)aveFactDn = occNumber/(double)(numStateStoDn);
+
+  for(iChem=0;iChem<numChemPot;iChem++){
+    rhoCalcRealStoHybrid(cpscr,cpcoeffs_info,
+		   cell,stodftInfo,stoWfUpRe[iChem],
+		   stoWfUpIm[iChem],rhoTemp,*coefFormUp,*coefOrthUp,
+		   numStateUpProc,numCoeff,cpDualGridOptOn,commCP,
+		   &(cp->cp_para_fft_pkg3d_lg),
+		   &(cp->cp_sclr_fft_pkg3d_lg),
+		   &(cp->cp_para_fft_pkg3d_dens_cp_box),
+		   &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
+		   &(cp->cp_sclr_fft_pkg3d_sm));
+    if(numProcStates>1){
+      Reduce(&rhoTemp[1],rhoReUp[indexChemProc[iChem]],rhoRealGridNum,MPI_DOUBLE,
+  	     MPI_SUM,densityMap[iChem],commStates);
+    }
+    else memcpy(rhoReUp[iChem],&rhoTemp[1],rhoRealGridNum);
+    //debug
+    for(i=0;i<10;i++)printf("iChem %i i %i rhoReUp %lg\n",iChem,i,rhoReUp[iChem][i]);
+    // Calculate the average density, haven't scale by 1/volume
+  }
+  for(i=0;i<10;i++)printf("iChem %i i %i rhoReUp %lg\n",iChem,i,rhoReUp[iChem][i]);
+  if(cpLsda==1&&numStateDnProc!=0){
+    for(iChem=0;iChem<numChemPot;iChem++){
+      rhoCalcRealStoHybrid(cpscr,cpcoeffs_info,
+		   cell,stodftInfo,stoWfDnRe[iChem],
+		   stoWfDnIm[iChem],rhoTemp,*coefFormDn,*coefOrthDn,
+		   numStateDnProc,numCoeff,cpDualGridOptOn,commCP,
+		   &(cp->cp_para_fft_pkg3d_lg),
+		   &(cp->cp_sclr_fft_pkg3d_lg),
+		   &(cp->cp_para_fft_pkg3d_dens_cp_box),
+		   &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
+		   &(cp->cp_sclr_fft_pkg3d_sm));
+      if(numProcStates>1){
+      Reduce(&rhoTemp[1],rhoReDn[indexChemProc[iChem]],rhoRealGridNum,MPI_DOUBLE,
+	     MPI_SUM,densityMap[iChem],commStates);
+      }
+      else memcpy(rhoReDn[iChem],&rhoTemp[1],rhoRealGridNum);
+    }  
+  }
+  // Calculate the average density, haven't scale by 1/volume
+  for(i=0;i<10;i++)printf("iChem %i i %i rhoReUp %lg\n",iChem,i,rhoReUp[iChem][i]);
+  printf("aveFactUp %lg occNumber %i\n",aveFactUp,occNumber);
+  for(iChem=0;iChem<numChemProc;iChem++){
+    for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)rhoReUp[iChem][iGrid] *= aveFactUp;
+  }
+  if(cpLsda==1&&numStateDnProc!=0){
+    for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)rhoReDn[iChem][iGrid] *= aveFactDn;
+  }
+  for(i=0;i<10;i++)printf("iChem %i i %i rhoReUp %lg\n",iChem,i,rhoReUp[iChem][i]);
+
+  free(&rhoTemp[1]);
 
 /*==========================================================================*/
 /* II) Calculate number of electrons.					    */
@@ -774,6 +799,7 @@ void calcRhoStoHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   
   for(iChem=0;iChem<numChemProc;iChem++){
     index = chemProcIndexInv[iChem];
+    printf("index %i\n",index);
     for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
       numElectronTemp[index] += rhoReUp[iChem][iGrid];     
     }
@@ -784,9 +810,18 @@ void calcRhoStoHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     }
     numElectronTemp[index] *= numGridTotInv;
   }
-  Allreduce(numElectronTemp,numElectron,numChemPot,MPI_DOUBLE,MPI_SUM,0,commStates);
+  printf("numElectronTemp[0] %lg\n",numElectronTemp[0]);
+  if(numProcStates>1){
+    Allreduce(numElectronTemp,numElectron,numChemPot,MPI_DOUBLE,MPI_SUM,0,commStates);
+  }
+  else memcpy(numElectron,numElectronTemp,numChemPot);
 
   free(numElectronTemp);
+
+//debug
+  if(myidState==0){
+    for(iChem=0;iChem<numChemPot;iChem++)printf("iChem %i numElec %lg\n",iChem,numElectron[iChem]);
+  }
 
 /*==========================================================================*/
 /* III) Interpolate the correct # of electron			            */

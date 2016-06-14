@@ -333,7 +333,7 @@ typedef struct stodftInfo{
   int *densityMap;		    /* Lst: Map the density to different proc	*/
 				    /*	    We store the density for different  */
 				    /*	    chemical potential on different	*/
-				    /*	    processes.				*/
+				    /*	    processes. Only use in hybrid.	1*/
 				    /* Lth: numChemPot				*/
 
   int *recvDispls;		    /* Lst: displs for scattering rho in g space*/

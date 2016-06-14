@@ -40,6 +40,7 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   PTENS *ptens			 = &(general_data->ptens);
   
   STODFTINFO *stodftInfo         = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos   = cp->stodftCoefPos;
   CPOPTS *cpopts                = &(cp->cpopts);
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
   CPCOEFFS_POS *cpcoeffs_pos    = &(cp->cpcoeffs_pos[ip_now]);
@@ -55,7 +56,7 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   ATOMMAPS *atommaps		= &(class->atommaps);
 
   int iperd            		= cell->iperd;
-  int iScf,iCell,iCoeff;
+  int iScf,iCell,iCoeff,iState;
   int numScf			= stodftInfo->numScf; //Need claim this in cp
   int cpLsda 			= cpopts->cp_lsda;
   int cpParaOpt			= cpopts->cp_para_opt;
@@ -76,6 +77,7 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int forceCoefOrthDn           = cpcoeffs_pos->ifcoef_orth_dn;
   int numStateUp		= cpcoeffs_info->nstate_up_proc;
   int numStateDn                = cpcoeffs_info->nstate_dn_proc;
+  int numCoeff       = cpcoeffs_info->ncoef;
 
   int *pcoefFormUp		     = &(cpcoeffs_pos->icoef_form_up);
   int *pcoefOrthUp		     = &(cpcoeffs_pos->icoef_orth_up);
@@ -104,6 +106,12 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   double *cpScrCoeffReDn   = cpscr->cpscr_wave.cre_dn;
   double *cpScrCoeffImDn   = cpscr->cpscr_wave.cim_dn;
   double *ptensPvtenTmp    = ptens->pvten_tmp;
+
+  double **stoWfUpRe = stodftCoefPos->stoWfUpRe;
+  double **stoWfUpIm = stodftCoefPos->stoWfUpIm;
+  double **stoWfDnRe = stodftCoefPos->stoWfDnRe;
+  double **stoWfDnIm = stodftCoefPos->stoWfDnIm;
+
   
 
 /*======================================================================*/
@@ -190,14 +198,23 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*----------------------------------------------------------------------*/
 /* i) Generate stochastic WF for different chemical potentials          */
 
-    genStoOrbital(class,bonded,general_data,cp,ip_now);
-
-    exit(0);
+    //genStoOrbital(class,bonded,general_data,cp,ip_now);
+    
+    FILE *filePrintWF = fopen("sto-wf-save","r");
+    for(iState=0;iState<numStateUp;iState++){
+      for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+        fscanf(filePrintWF,"%lg",&stoWfUpRe[0][iState*numCoeff+iCoeff]);
+        fscanf(filePrintWF,"%lg",&stoWfUpIm[0][iState*numCoeff+iCoeff]);
+      }
+    }
+    fclose(filePrintWF);
+    
 /*----------------------------------------------------------------------*/
 /* 2)  Get the total density, for each chemical potential and get       */
 /*     total electron number for each chemical potential	        */
 
     if(cpParaOpt==0) calcRhoStoHybrid(class,bonded,general_data,cp,ip_now);
+    exit(0);
 
 /*----------------------------------------------------------------------*/
 /* 3)  Interpolate the chemical potential w.r.t			        */
@@ -485,13 +502,21 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* V) Filter the stochastic orbitals					*/
 
-  //debug 
-
   switch(expanType){
     case 2:
       filterNewtonPolyHerm(cp,class,general_data,ip_now);
       break;
   }
+
+//debug print wave function
+  FILE *filePrintWF = fopen("sto-wf-save","w");
+  for(iState=0;iState<numStateUpProc;iState++){
+    for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+      fprintf(filePrintWF,"%.16lg %.16lg\n",
+	stoWfUpRe[0][iState*numCoeff+iCoeff],stoWfUpIm[0][iState*numCoeff+iCoeff]);
+    }
+  }
+  fclose(filePrintWF);
 
 //debug
   for(iState=0;iState<numStateUpProc;iState++){

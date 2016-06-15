@@ -128,6 +128,7 @@ void calcRhoDetInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int numStateUpProc = cpcoeffs_info->nstate_up_proc;
   int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
   int numCoeff       = cpcoeffs_info->ncoef;
+  int rhoRealGridNum = stodftInfo->rhoRealGridNum;
   int iCoeff;
   int *coefFormUp   = &(cpcoeffs_pos->icoef_form_up);
   int *coefFormDn   = &(cpcoeffs_pos->icoef_form_dn);
@@ -225,6 +226,10 @@ void calcRhoDetInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }/* endif */
 
   for(iCoeff=1;iCoeff<=10;iCoeff++)printf("i %i rhocr_up %lg rhoci_up %lg\n",iCoeff,rhoCoeffReUp[iCoeff],rhoCoeffImUp[iCoeff]);
+  FILE *fileRhoInit = fopen("density-init","w");
+  int iGrid;
+  for(iGrid=1;iGrid<=rhoRealGridNum;iGrid++)fprintf(fileRhoInit,"%lg\n",rhoUp[iGrid]);
+  fclose(fileRhoInit);
   
 
 /*==========================================================================*/

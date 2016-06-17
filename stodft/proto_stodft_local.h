@@ -28,6 +28,7 @@ void reallocScratch(CP *,int);
 
 void scfStodft(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 void genStoOrbital(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
+void genNoiseOrbital(CP *,CPCOEFFS_POS *);
 
 /*-----------------------------------------------------------------*/
 /* normh.c                                                         */

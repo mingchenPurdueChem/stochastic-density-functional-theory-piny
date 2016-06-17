@@ -200,6 +200,7 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
     //genStoOrbital(class,bonded,general_data,cp,ip_now);
     
+    
     FILE *filePrintWF = fopen("sto-wf-save","r");
     for(iState=0;iState<numStateUp;iState++){
       for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
@@ -208,6 +209,21 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       }
     }
     fclose(filePrintWF);
+    
+//debug 
+    double norm;    
+    double repart,impart;
+    for(iState=0;iState<numStateUp;iState++){
+      norm = 0.0;
+      for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
+	repart = stoWfUpRe[0][iState*numCoeff+iCoeff];
+	impart = stoWfUpIm[0][iState*numCoeff+iCoeff];
+	norm += repart*repart+impart*impart;
+      }
+      norm *= 2.0;
+      norm += stoWfUpRe[0][iState*numCoeff+numCoeff]*stoWfUpRe[0][iState*numCoeff+numCoeff];
+      printf("iState %i norm %lg\n",iState,norm);
+    }
     
 /*----------------------------------------------------------------------*/
 /* 2)  Get the total density, for each chemical potential and get       */
@@ -367,6 +383,7 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     coeffImUpBackup[iCoeff] = coeffImUp[iCoeff];
   }
   */
+  /*
   double *randTrail = (double *)cmalloc((2*numCoeffUpTot+1)*sizeof(double));
 #ifdef MKL_RANDOM
   VSLStreamStatePtr stream;
@@ -411,6 +428,7 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       coeffImUp[iState*numCoeff+iCoeff] /= length;
     }
   }
+  */
 //enddebug
 
   if(numProcStates>1){
@@ -498,6 +516,11 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   
   genNewtonHermit(stodftInfo,stodftCoefPos);
 
+/*======================================================================*/
+/* IV) Generate random orbital                                          */
+
+  genNoiseOrbital(cp,cpcoeffs_pos);
+
 
 /*======================================================================*/
 /* V) Filter the stochastic orbitals					*/
@@ -573,8 +596,7 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void genNoiseOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
-                    CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
+void genNoiseOrbital(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
 /*========================================================================*/
 {/*begin routine*/
 /**************************************************************************/

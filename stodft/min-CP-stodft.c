@@ -210,6 +210,7 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     }
     fclose(filePrintWF);
     
+    
 //debug 
     double norm;    
     double repart,impart;
@@ -542,6 +543,7 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   fclose(filePrintWF);
 
 //debug
+  /*
   for(iState=0;iState<numStateUpProc;iState++){
     length = 0.0;
     for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
@@ -586,7 +588,7 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     printf("iState %i maxResidue %lg\n",iState,maxResidue);
   }//endfor iState
 //enddebug
-
+*/
 
 /*-----------------------------------------------------------------------*/
 }/*end routine*/

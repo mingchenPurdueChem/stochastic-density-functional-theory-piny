@@ -229,7 +229,8 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   //For debug only
   //stodftCoefPos->chemPot[0] = -0.17435045;
   stodftCoefPos->chemPot[0] = 0.5045818049407941;
-  
+  stodftCoefPos->chemPot[1] = 0.5045818049407941;
+ 
 /*==========================================================================*/
 /* III) Initialize utility data						    */
   /*
@@ -365,7 +366,6 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   stodftInfo->occNumber = 1;
   if(readCoeffFlag==1&&cpLsda==0)stodftInfo->occNumber = 2;
   
-  printf("1111111111111111\n");
   if(cpParaOpt==0)stodftInfo->rhoRealGridNum = numFFT2;
   else stodftInfo->rhoRealGridNum = numFFT2Proc;
   rhoRealGridNum = stodftInfo->rhoRealGridNum;

@@ -333,7 +333,7 @@ typedef struct stodftInfo{
   int *densityMap;		    /* Lst: Map the density to different proc	*/
 				    /*	    We store the density for different  */
 				    /*	    chemical potential on different	*/
-				    /*	    processes. Only use in hybrid.	1*/
+				    /*	    processes. Only use in hybrid.	*/
 				    /* Lth: numChemPot				*/
 
   int *recvDispls;		    /* Lst: displs for scattering rho in g space*/
@@ -364,6 +364,8 @@ typedef struct stodftInfo{
   double energyDiff;		    /* Num: energy range=energyMax-energyMin	*/
   double energyMean;		    /* Num: mean energy=(energyMax+energyMin)/2 */
   double beta;			    /* Num: 1/kT				*/
+  double numElecTrue		    /* Num: True number of electron you want to */
+				    /*	    have in the system.			*/
   
   FERMIFUNR fermiFunctionReal;
   FERMIFUNC fermiFunctionComplex;
@@ -403,6 +405,11 @@ typedef struct stodftCoefPos{
  
   double *numElectron;		    /* Lst: Number of electron for each chem	*/
 				    /*	    potential.				*/ 
+
+  double *rhoReUpCorrect;	    /* Lst: Density of correct chempot		*/
+  double *rhoReDnCorrect;	    /*	    (spin up/down)			*/
+				    /* Lth: rhoRealGridNum			*/
+
 }STODFTCOEFPOS;
 
 

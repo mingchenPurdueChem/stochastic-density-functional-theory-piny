@@ -1,0 +1,121 @@
+/*==========================================================================*/
+/*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*/
+/*==========================================================================*/
+/*                                                                          */
+/*                         Stochastic DFT:                                  */
+/*             The future of density functional theory                      */
+/*             ------------------------------------                         */
+/*                   Module: calc-chempot.c                                 */
+/*                                                                          */
+/*  This routine calculate the correct chemical potential, either from	    */
+/*  interpolation or from half polynomial expension(Chebshev only)	    */
+/*                                                                          */
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+
+#include "standard_include.h"
+#include "../typ_defs/typedefs_gen.h"
+#include "../typ_defs/typedefs_class.h"
+#include "../typ_defs/typedefs_bnd.h"
+#include "../typ_defs/typedefs_cp.h"
+#include "../proto_defs/proto_friend_lib_entry.h"
+#include "../proto_defs/proto_math.h"
+#include "../proto_defs/proto_communicate_wrappers.h"
+#include "../proto_defs/proto_energy_cp_local.h"
+#include "../proto_defs/proto_energy_cpcon_local.h"
+#include "../proto_defs/proto_stodft_local.h"
+
+#define TIME_CP_OFF
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void calcChemPotInterp(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,CPOPT *cpopt)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* I decide to use Lagrange polynormial for interpolation b/c it is easy */
+/* to get the linear coeffcients for density. The Lagrange polynormial   */
+/* interpolation shares the formular : f(x)=\sum a_i l_i(x). and l_i(x)  */
+/* =\Pi_{j\neq i}(x-x_j)/(x_i-x_j). We need to evaluate l_i' for         */
+/* optimization. l_i'=l_i*g_i where g_i=(\sum_{k\neq i}1/(x-x_k)).	 */
+/* First we will interpolate Ne(mu). Then we will solve Ne(mu*)=tot # of */
+/* electrons. Then we shall get rhoUp(mu*) and rhoDn(mu*) if necessary.  */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+  int numChemPot = stodftInfo->numChemPot;
+  int polyOrder = numChemPot-1;
+
+  double numElecTrue = stodftInfo->numElecTrue;
+  double chemPotTrue;
+  double *numElectron = stodftCoefPos->numElectron;
+  double *chemPot = stodftCoefPos->chemPot;
+  double *interpCoef = (double*)cmalloc(numChemPot*sizeof(double)); //Interpolation Coeffcients
+
+  printf("==============================================\n");
+  printf("Start interpolating number of electrons.\n");
+  chemPotTrue = solveLagrangePolyInterp(numChemPot,chemPot,numElectron,numElecTrue);
+  
+
+  free(interpCoef);
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+double solveLagrangePolyInterp(int numSamp,double *x, double *y,double target)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* This function solve \sum a_i l_i(x)=target, given {x} and {y} as	 */
+/* interpolating points. x is in ascent order and y[x] should be 	 */
+/* monotonic.								 */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+  int iSamp;
+
+  double ymin = y[0];
+  double ymax = y[iSamp-1];
+  double xopt;
+  double *lagFunValue = (double*)cmalloc(numSamp*sizeof(double));
+  double *lagFunDeriv = (double*)cmalloc(numSamp*sizeof(double));
+
+/*=======================================================================*/
+/* I. Find ymin and ymax, make sure ymin<target<ymax			 */
+  
+  if(target<=ymin||target>=ymax){
+    printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+    printf("You are choosing chemical potential range that is\n");
+    printf("far from true number of electron. The interpolation\n");
+    printf("could be very unstable. I'm gonna to kill the process.\n");
+    printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+    fflush(stdout);
+    exit(0);
+  }
+/*=======================================================================*/
+/* II. Get the initial guess of chemical potential.                      */
+  
+  iSamp = 0;
+  while(y[iSamp]<target)iSamp += 1;
+  xopt = x[iSamp-1]+(target-y[iSamp-1])*(x[iSamp]-x[iSamp-1])/(y[iSamp]-y[iSamp-1]);
+
+  while
+
+
+
+  free(lagFunValue);
+  free(lagFunDeriv);
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
+
+
+

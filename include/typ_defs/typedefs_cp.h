@@ -329,6 +329,8 @@ typedef struct stodftInfo{
 				    /*        grid				*/
   int rhoRealGridTot;		    /* Num: Total number of real space density  */
 				    /*	    grid = nfft2			*/
+  int rhoRealGridProc;		    /* Num: number of real space density grid   */
+				    /*	    on thid proc =nfft2_proc		*/
 
   int *densityMap;		    /* Lst: Map the density to different proc	*/
 				    /*	    We store the density for different  */
@@ -399,16 +401,16 @@ typedef struct stodftCoefPos{
   double *coeffImUpBackup;
 
   //density 
-  double **rhoReUp;		    /* Lst: Density of different chemical	*/
-  double **rhoReDn;		    /*	    potential (spin up/down)		*/
+  double **rhoUp;		    /* Lst: Density of different chemical	*/
+  double **rhoDn;		    /*	    potential (spin up/down)		*/
 				    /* Lth: numChemProc[myid_state]*rhoRealGridNum  */
  
   double *numElectron;		    /* Lst: Number of electron for each chem	*/
 				    /*	    potential.				*/ 
 
-  double *rhoReUpCorrect;	    /* Lst: Density of correct chempot		*/
-  double *rhoReDnCorrect;	    /*	    (spin up/down)			*/
-				    /* Lth: rhoRealGridNum			*/
+  double *rhoUpCorrect;		    /* Lst: Density of correct chempot		*/
+  double *rhoDnCorrect;		    /*	    (spin up/down)			*/
+				    /* Lth: rhoRealGridProc			*/
 
 }STODFTCOEFPOS;
 

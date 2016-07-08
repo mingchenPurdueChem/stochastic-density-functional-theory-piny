@@ -31,7 +31,7 @@
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void calcChemPotInterp(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,CPOPT *cpopt)
+void calcChemPotInterp(CP *cp)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
@@ -46,19 +46,62 @@ void calcChemPotInterp(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,CPOPT
 /*************************************************************************/
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
-  int numChemPot = stodftInfo->numChemPot;
-  int polyOrder = numChemPot-1;
+  STODFTINFO *stodftInfo = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos = cp->stodftCoefPos;
+  CPOPTS *cpOpts = &(cp->cpopts);
+  COMMUNICATE *commCP = &(cp->communicate);
 
+  int iChem,iGrid;
+  int chemPotIndex;
+  int numChemPot = stodftInfo->numChemPot;
+  int cpLsda = cpopts->cp_lsda;
+  int numFFTProc = cp_para_fft_pkg3d_lg->nfft_proc;
+  int numFFT2Proc = numFFTProc/2; 
+  int myidState = commCP->myid_state;
+  int numProcStates = commCP->np_states;
+  MPI_Comm comm_states = commCP->comm_states;
+  
+  int *densityMap = stodftInfo->densityMap;
+  int *indexChemProc = stodftInfo->indexChemProc;
+  int *chemProcIndexInv = stodftInfo->chemProcIndexInv;
+  int *rhoRealSendCounts = stodftInfo->rhoRealSendCounts;
+  int *rhoRealDispls = stodftInfo->rhoRealDispls;
+  
   double numElecTrue = stodftInfo->numElecTrue;
   double chemPotTrue;
   double *numElectron = stodftCoefPos->numElectron;
   double *chemPot = stodftCoefPos->chemPot;
   double *interpCoef = (double*)cmalloc(numChemPot*sizeof(double)); //Interpolation Coeffcients
+  double *rhoTemp = (double*)cmalloc(numChemPot*numFFT2Proc);
+  double **rhoUp = stodftCoefPos->rhoUp;
+  double **rhoDn = stodftCoefPos->rhoDn;
+  double *rhoUpCorrect = stodftCoefPos->rhoUpCorrect;
+  double *rhoDnCorrect = stodftCoefPos->rhoDnCorrect;
 
-  printf("==============================================\n");
-  printf("Start interpolating number of electrons.\n");
-  chemPotTrue = solveLagrangePolyInterp(numChemPot,chemPot,numElectron,numElecTrue);
+  if(myidState==0){
+    printf("==============================================\n");
+    printf("Start interpolating number of electrons.\n");
+    chemPotTrue = solveLagrangePolyInterp(numChemPot,chemPot,numElectron,numElecTrue,interpCoef);
+  }
+  Bcast(&chemPotTrue,1,MPI_DOUBLE,0,commCP);
+  Bcast(interpCoef,numChemPot,MPI_DOUBLE,0,commCP);
+
+  for(iChem=0;iChem<numChemProc;iChem++){
+    chemPotIndex = chemProcIndexInv[iChem];
+    Scatterv(rhoUp[iChem],rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
+	    &rhoTemp[chemPotIndex*numFFT2Proc],numFFT2Proc,MPI_DOUBLE,myidState,comm_states);
+    
+  }
+  for(iGrid=0;iGrid<numFFT2Proc;iGrid++){
+    for(iChem=0;iChem<numChemPot;iChem++){
+      rhoUpCorrect
+    }
+  }  
+
   
+
+  
+
 
   free(interpCoef);
 /*==========================================================================*/
@@ -68,14 +111,16 @@ void calcChemPotInterp(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,CPOPT
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-double solveLagrangePolyInterp(int numSamp,double *x, double *y,double target)
+double solveLagrangePolyInterp(int numSamp,double *x, double *y,double target,
+				double *interpCoef)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
 /*************************************************************************/
 /* This function solve \sum a_i l_i(x)=target, given {x} and {y} as	 */
 /* interpolating points. x is in ascent order and y[x] should be 	 */
-/* monotonic.								 */
+/* monotonic. The interpolation coefficients are actually Lagrange	 */
+/* polynormial values.							 */
 /*************************************************************************/
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
@@ -87,8 +132,6 @@ double solveLagrangePolyInterp(int numSamp,double *x, double *y,double target)
   double tol = 1.0e-7;
   double tolnow = 1.0;
   double deriv;
-  double *lagFunValue = (double*)cmalloc(numSamp*sizeof(double));
-  double *lagFunDeriv = (double*)cmalloc(numSamp*sizeof(double));
 
 /*=======================================================================*/
 /* I. Find ymin and ymax, make sure ymin<target<ymax			 */
@@ -114,12 +157,9 @@ double solveLagrangePolyInterp(int numSamp,double *x, double *y,double target)
 
   while(torlnow>torl){
     xopt -= tolnow/deriv;
-    tolnow = calcLagrangeInterpFun(numSamp,xopt,x,y,target,lagFunValue);
-    deriv = calcLagrangeInterpDrv(numSamp,xopt,x,y,target,lagFunValue);
+    tolnow = calcLagrangeInterpFun(numSamp,xopt,x,y,target,interpCoef);
+    deriv = calcLagrangeInterpDrv(numSamp,xopt,x,y,target,interpCoef);
   }
-
-  free(lagFunValue);
-  free(lagFunDeriv);
 
   return xopt;
 /*==========================================================================*/
@@ -135,9 +175,7 @@ double calcLagrangeInterpFun(int numSamp,double xopt,double *x,double *y,
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
 /*************************************************************************/
-/* This function solve \sum a_i l_i(x)=target, given {x} and {y} as      */
-/* interpolating points. x is in ascent order and y[x] should be         */
-/* monotonic.                                                            */
+/* This function calculate Lagrange interpolation value at xopt          */
 /*************************************************************************/
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
@@ -195,5 +233,40 @@ double calcLagrangeInterpDrv(int numSamp,double xopt,double *x,double *y,
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void genInterpCoef(double xtrue,int numSamp,double x, double y,double *interpCoef)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* This function solve \sum a_i l_i(x)=target, given {x} and {y} as      */
+/* interpolating points. x is in ascent order and y[x] should be         */
+/* monotonic.                                                            */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+  int iTerm,jTerm;
+  double prod,prod2;
+  
+  for(iTerm=0;iTerm<numSamp;iTerm++){
+    prod = 1.0;
+    prod2 = 1.0;
+    for(jTerm=0;jTerm<numSamp;jTerm++){
+      if(jTerm!=iTerm){
+	prod *= xtrue-x[jTerm];
+	prod2 *= x[iTerm]-x[jTerm];
+      }
+    }
+    interpCoef = prod/prod2;
+  }
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
+
 
 

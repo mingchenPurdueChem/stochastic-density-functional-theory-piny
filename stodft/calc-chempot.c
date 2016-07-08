@@ -84,6 +84,9 @@ double solveLagrangePolyInterp(int numSamp,double *x, double *y,double target)
   double ymin = y[0];
   double ymax = y[iSamp-1];
   double xopt;
+  double tol = 1.0e-7;
+  double tolnow = 1.0;
+  double deriv;
   double *lagFunValue = (double*)cmalloc(numSamp*sizeof(double));
   double *lagFunDeriv = (double*)cmalloc(numSamp*sizeof(double));
 
@@ -106,16 +109,91 @@ double solveLagrangePolyInterp(int numSamp,double *x, double *y,double target)
   while(y[iSamp]<target)iSamp += 1;
   xopt = x[iSamp-1]+(target-y[iSamp-1])*(x[iSamp]-x[iSamp-1])/(y[iSamp]-y[iSamp-1]);
 
-  while
+  tolnow = calcLagrangeInterpFun(numSamp,xopt,x,y,target,lagFunValue);
+  deriv  = calcLagrangeInterpDrv(numSamp,xopt,x,y,target,lagFunValue);
 
-
+  while(torlnow>torl){
+    xopt -= tolnow/deriv;
+    tolnow = calcLagrangeInterpFun(numSamp,xopt,x,y,target,lagFunValue);
+    deriv = calcLagrangeInterpDrv(numSamp,xopt,x,y,target,lagFunValue);
+  }
 
   free(lagFunValue);
   free(lagFunDeriv);
+
+  return xopt;
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+double calcLagrangeInterpFun(int numSamp,double xopt,double *x,double *y,
+			     double target,double *lagFunValue)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* This function solve \sum a_i l_i(x)=target, given {x} and {y} as      */
+/* interpolating points. x is in ascent order and y[x] should be         */
+/* monotonic.                                                            */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+  int iTerm,jTerm;
+  
+  double sum = 0.0;
+  double prod,prod2;
 
+  for(iTerm=0;iTerm<numSamp;iTerm++){
+    prod = 1.0;
+    prod2 = 1.0;
+    for(jTerm=0;jTerm<numSamp;jTerm++){
+      if(jTerm!=iTerm){
+	prod *= xopt-x[jTerm];
+	prod2 *= x[iTerm]-x[jTerm];
+      }
+    }
+    lagFunValue[iTerm] = prod/prod2;
+    sum += y[iTerm]*lagFunValue[iTerm];
+  }
+  return sum;
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+double calcLagrangeInterpDrv(int numSamp,double xopt,double *x,double *y,
+                             double target,double *lagFunValue)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* This function solve \sum a_i l_i(x)=target, given {x} and {y} as      */
+/* interpolating points. x is in ascent order and y[x] should be         */
+/* monotonic.                                                            */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+  int iTerm,jTerm;
+  double sum;
+  double drv = 0.0;
+  
+  for(iTerm=0;iTerm<numSamp;iTerm++){
+    sum = 0.0;
+    for(jTerm=0;jTerm<numSamp;jTerm++){
+      if(jTerm!=iTerm)sum += 1.0/(xopt-x[jTerm]);
+    }
+    drv += sum*lagFunValue[iTerm]*y[iTerm];
+  }
+  return drv;
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
 
 

@@ -122,21 +122,41 @@ void calcChemPotInterp(CP *cp)
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void genChemPotInterpPoints()
+void genChemPotInterpPoints(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
 /*************************************************************************/
-/* This function solve \sum a_i l_i(x)=target, given {x} and {y} as      */
-/* interpolating points. x is in ascent order and y[x] should be         */
-/* monotonic. The interpolation coefficients are actually Lagrange       */
-/* polynormial values.                                                   */
+/* This function generate initial chemical potential The initial chem	 */
+/* potential and the band gap is provided by the user. This is a easy    */
+/* version with static chemical potential and static gap (I may need to  */
+/* up date this in the future for dynamic chem pot and gap.)             */
 /*************************************************************************/
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
+  int numChemPot = stodftInfo->numChemPot;
+  int iNode;
+  double chemPotInit = stodftInfo->chemPotInit;
+  double gapInit = stodftInfo->gapInput;
+  double factor = M_PI*0.5/numChemPot;
+  double *chemPot = stodftCoefPos->chemPot;
+  double *chebyNode = (double*)cmalloc(numChemPot*sizeof(double));
+  
+  // Generate Chebyshev nodes
+  for(iNode=0;iNode<numChemPot;iNode++){
+    chebyNode[iNode] = cos(2.0*iNode+1*factor);
+  }
+  // Scale the nodes to correct chem pot and gap
+  
+  for(iNode=0;iNode<numChemPot;iNode++){
+    chemPot[iNode] = chebyNode[iNode]*0.5*gapInit+chemPotInit;
+  }
+  
+  free(chebyNode);
 
-
-
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/

@@ -235,11 +235,13 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
 /*----------------------------------------------------------------------*/
 /* 3)  Interpolate the chemical potential w.r.t			        */
-/*     Correct electron number.						*/
+/*     Correct electron number and use the interpolation coefficients	*/
+/*     to generate the density w.r.t. correct number of electrons.      */
+
+    calcChemPotInterp(cp);
 
 /*----------------------------------------------------------------------*/
-/* ii) Use the interpolation results to generate correct density        */
-/*     (or pick a closest one) and update the density			*/
+/* 4)  Calcluate the density in reciprocal space.		        */
 
   }//endfor iScf
 

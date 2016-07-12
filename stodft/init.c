@@ -73,6 +73,10 @@ void commStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
   Bcast(&(stodftInfo->numStateStoDn),1,MPI_INT,0,world);
   Bcast(&(stodftInfo->fitErrTol),1,MPI_DOUBLE,0,world);
   Bcast(&(stodftInfo->beta),1,MPI_DOUBLE,0,world);
+  Bcast(&(stodftInfo->numElecTrue),1,MPI_DOUBLE,0,world);
+  Bcast(&(stodftInfo->chemPotInit),1,MPI_DOUBLE,0,world);
+  Bcast(&(stodftInfo->gapInit),1,MPI_DOUBLE,0,world);
+
 
 }/*end Routine*/
 /*==========================================================================*/
@@ -406,6 +410,11 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     }    
   }
   stodftCoefPos->numElectron = (double*)cmalloc(numChemPot*sizeof(double));
+
+/*==========================================================================*/
+/* VI) Initialize chemical potential	                                    */
+  
+  genChemPotInterpPoints(stodftInfo,stodftCoefPos);
 
 /*==========================================================================*/
 }/*end Routine*/

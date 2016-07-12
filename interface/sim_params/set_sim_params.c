@@ -4480,9 +4480,6 @@ void set_sim_params_dafed(CLASS *class, GENERAL_DATA *general_data, DICT_WORD *d
   sscanf(dict[12].keyarg,"%lg",&rka);
   dinfo->nres_daf = (int)(rka);
 
-
-
-
   /*preinitial,for read in set file*/
   if(n_cv>0){
     dinfo->dafed_on = 1;
@@ -4562,7 +4559,19 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   /*  10)\num_sto_state_dn{#} */
   sscanf(dict[10].keyarg,"%lg",&rka);
   stodftInfo->numStateStoDn = (int)(rka);
-  
+  /*-----------------------------------------------------------------------*/
+  /*  11)\num_electron{#} */
+  sscanf(dict[11].keyarg,"%lg",&rka);
+  stodftInfo->numElecTrue = rka;
+  /*-----------------------------------------------------------------------*/
+  /*  12)\chem_pot_init{#} */
+  sscanf(dict[12].keyarg,"%lg",&rka);
+  stodftInfo->chemPotInit = rka;
+  /*-----------------------------------------------------------------------*/
+  /*  13)\gapInit{#} */
+  sscanf(dict[13].keyarg,"%lg",&rka);
+  stodftInfo->gapInit = rka;
+ 
 /*=======================================================================*/
 /* Check the conflicate options						 */
   
@@ -4664,6 +4673,20 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
       printf("Read in stochastic wave function, NSTATE_UP(DN) in the set file\n");
       printf("will not be used.\n");
       printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
+    }
+    if(stodftInfo->numElecTrue<=0.0){
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      printf("The system must have postive number electrons!\n");
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(0);
+    }
+    if(stodftInfo->gapInit<=0.0){
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      printf("Band gap has to be positive. Metal is not implemented here!\n");
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(0);
     }
   }//endif stodftOn
   

@@ -366,8 +366,11 @@ typedef struct stodftInfo{
   double energyDiff;		    /* Num: energy range=energyMax-energyMin	*/
   double energyMean;		    /* Num: mean energy=(energyMax+energyMin)/2 */
   double beta;			    /* Num: 1/kT				*/
-  double numElecTrue		    /* Num: True number of electron you want to */
+  double numElecTrue;		    /* Num: True number of electron you want to */
 				    /*	    have in the system.			*/
+  double chemPotInit;		    /* Num: Input initial guess of chem pot     */
+  double gapInit;		    /* Num: Input initial guess of HOMO-LUMO    */
+				    /*      gap or band gap.			*/
   
   FERMIFUNR fermiFunctionReal;
   FERMIFUNC fermiFunctionComplex;

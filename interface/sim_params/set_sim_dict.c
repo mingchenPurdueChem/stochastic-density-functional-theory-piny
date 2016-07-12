@@ -2200,7 +2200,7 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
  /*             Local variable declarations                                */
   
   unsigned int i;
-  *num_dict = 10;
+  *num_dict = 13;
   *dict = (DICT_WORD *)cmalloc(*num_dict*sizeof(DICT_WORD))-1;
 
   for (i=1;i<=*num_dict;i++) {
@@ -2248,6 +2248,18 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
   strcpy((*dict)[10].error_mes,"Nonnegative integer: number of deterministic spin down wave functions");
   strcpy((*dict)[10].keyword,"num_sto_state_dn");
   strcpy((*dict)[10].keyarg,"0");
+
+  strcpy((*dict)[11].error_mes,"Nonnegative integer: number of electron in the sysem");
+  strcpy((*dict)[11].keyword,"num_electron");
+  strcpy((*dict)[11].keyarg,"0");
+
+  strcpy((*dict)[12].error_mes,"Real number for initial chemical potential");
+  strcpy((*dict)[12].keyword,"chem_pot_init");
+  strcpy((*dict)[12].keyarg,"0.0");
+
+  strcpy((*dict)[13].error_mes,"Positive real number for initial band gap");
+  strcpy((*dict)[13].keyword,"band_gap_init");
+  strcpy((*dict)[13].keyarg,"-1.0");
 
  /*========================================================================*/
  } /* end routine set_sim_dict_harmonic */

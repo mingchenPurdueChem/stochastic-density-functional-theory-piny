@@ -63,6 +63,17 @@ void rhoCalcRealStoFullg(CPSCR *,CPCOEFFS_INFO *,CELL *,STODFTINFO *,double *,
 
 void calcRhoStoHybrid(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 
+/*-----------------------------------------------------------------*/
+/* calc-chempot.c                                                  */
+
+void calcChemPotInterp(CP *);
+void genChemPotInterpPoints(STODFTINFO *,STODFTCOEFPOS *);
+double solveLagrangePolyInterp(int ,double *, double *, double, double *);
+double calcLagrangeInterpFun(int ,double ,double * ,double * ,double ,double *);
+double calcLagrangeInterpDrv(int ,double ,double * ,double * ,double ,double *);
+void genInterpCoef(double ,int ,double ,double ,double *);
+
+
 
 
 

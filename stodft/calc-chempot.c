@@ -93,20 +93,50 @@ void calcChemPotInterp(CP *cp)
     
   }
   for(iGrid=0;iGrid<numFFT2Proc;iGrid++){
+    rhoUpCorrect[iGrid] = 0.0;
     for(iChem=0;iChem<numChemPot;iChem++){
-      rhoUpCorrect
+      rhoUpCorrect[iGrid] += interpCoef[iChem]*rhoUp[iChem*numFFT2Proc+iGrid];
+    }//endfor iChem
+  }//endfor iGrid  
+  if(cpLsda==1){
+    for(iChem=0;iChem<numChemProc;iChem++){
+      chemPotIndex = chemProcIndexInv[iChem];
+      Scatterv(rhoDn[iChem],rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
+	      &rhoTemp[chemPotIndex*numFFT2Proc],numFFT2Proc,MPI_DOUBLE,myidState,comm_states);
+
     }
-  }  
+    for(iGrid=0;iGrid<numFFT2Proc;iGrid++){
+      rhoDnCorrect[iGrid] = 0.0;
+      for(iChem=0;iChem<numChemPot;iChem++){
+	rhoDnCorrect[iGrid] += interpCoef[iChem]*rhoDn[iChem*numFFT2Proc+iGrid];
+      }//endfor iChem
+    }//endfor iGrid  
+  }
 
   
-
-  
-
-
   free(interpCoef);
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void genChemPotInterpPoints()
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* This function solve \sum a_i l_i(x)=target, given {x} and {y} as      */
+/* interpolating points. x is in ascent order and y[x] should be         */
+/* monotonic. The interpolation coefficients are actually Lagrange       */
+/* polynormial values.                                                   */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+
+
+
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/

@@ -371,7 +371,7 @@ typedef struct stodftInfo{
   double chemPotInit;		    /* Num: Input initial guess of chem pot     */
   double gapInit;		    /* Num: Input initial guess of HOMO-LUMO    */
 				    /*      gap or band gap.			*/
-  
+
   FERMIFUNR fermiFunctionReal;
   FERMIFUNC fermiFunctionComplex;
   
@@ -404,8 +404,8 @@ typedef struct stodftCoefPos{
   double *coeffImUpBackup;
 
   //density 
-  double **rhoUp;		    /* Lst: Density of different chemical	*/
-  double **rhoDn;		    /*	    potential (spin up/down)		*/
+  double **rhoUpChemPot;	    /* Lst: Density of different chemical	*/
+  double **rhoDnChemPot;	    /*	    potential (spin up/down)		*/
 				    /* Lth: numChemProc[myid_state]*rhoRealGridNum  */
  
   double *numElectron;		    /* Lst: Number of electron for each chem	*/

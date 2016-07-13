@@ -86,5 +86,15 @@ density-init.o :         $(STANDARD) $(DEFINES) \
                          $(DCODE)/stodft/density-init.c
 	$(ECHO) $@
 	$(COBJ) $(DCODE)/stodft/density-init.c	
+
+calc-chempot.o :	 $(STANDARD) $(DEFINES) \
+                         $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
+                         $(TYP_STAT) \
+                         $(TYP_CP) $(TYP_PAR) \
+                         $(FRND_ENT) $(MATH) \
+                         $(ENR_CP_LOC) $(ENR_CPCON_LOC) $(STODFT_LOC) \
+                         $(DCODE)/stodft/calc-chempot.c
+	$(ECHO) $@
+	$(COBJ) $(DCODE)/stodft/calc-chempot.c
                         
 #------------------------------------------------------------------

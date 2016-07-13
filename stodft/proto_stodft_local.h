@@ -71,7 +71,6 @@ void genChemPotInterpPoints(STODFTINFO *,STODFTCOEFPOS *);
 double solveLagrangePolyInterp(int ,double *, double *, double, double *);
 double calcLagrangeInterpFun(int ,double ,double * ,double * ,double ,double *);
 double calcLagrangeInterpDrv(int ,double ,double * ,double * ,double ,double *);
-void genInterpCoef(double ,int ,double ,double ,double *);
 
 
 

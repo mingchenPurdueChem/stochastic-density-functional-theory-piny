@@ -46,14 +46,18 @@ void calcChemPotInterp(CP *cp)
 /*************************************************************************/
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
+#include "../typ_defs/typ_mask.h"
+
   STODFTINFO *stodftInfo = cp->stodftInfo;
   STODFTCOEFPOS *stodftCoefPos = cp->stodftCoefPos;
-  CPOPTS *cpOpts = &(cp->cpopts);
+  CPOPTS *cpopts = &(cp->cpopts);
   COMMUNICATE *commCP = &(cp->communicate);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
 
   int iChem,iGrid;
   int chemPotIndex;
   int numChemPot = stodftInfo->numChemPot;
+  int numChemProc = stodftInfo->numChemProc;
   int cpLsda = cpopts->cp_lsda;
   int numFFTProc = cp_para_fft_pkg3d_lg->nfft_proc;
   int numFFT2Proc = numFFTProc/2; 
@@ -73,8 +77,8 @@ void calcChemPotInterp(CP *cp)
   double *chemPot = stodftCoefPos->chemPot;
   double *interpCoef = (double*)cmalloc(numChemPot*sizeof(double)); //Interpolation Coeffcients
   double *rhoTemp = (double*)cmalloc(numChemPot*numFFT2Proc);
-  double **rhoUp = stodftCoefPos->rhoUp;
-  double **rhoDn = stodftCoefPos->rhoDn;
+  double **rhoUpChemPot = stodftCoefPos->rhoUpChemPot;
+  double **rhoDnChemPot = stodftCoefPos->rhoDnChemPot;
   double *rhoUpCorrect = stodftCoefPos->rhoUpCorrect;
   double *rhoDnCorrect = stodftCoefPos->rhoDnCorrect;
 
@@ -83,32 +87,32 @@ void calcChemPotInterp(CP *cp)
     printf("Start interpolating number of electrons.\n");
     chemPotTrue = solveLagrangePolyInterp(numChemPot,chemPot,numElectron,numElecTrue,interpCoef);
   }
-  Bcast(&chemPotTrue,1,MPI_DOUBLE,0,commCP);
-  Bcast(interpCoef,numChemPot,MPI_DOUBLE,0,commCP);
+  Bcast(&chemPotTrue,1,MPI_DOUBLE,0,comm_states);
+  Bcast(interpCoef,numChemPot,MPI_DOUBLE,0,comm_states);
 
   for(iChem=0;iChem<numChemProc;iChem++){
     chemPotIndex = chemProcIndexInv[iChem];
-    Scatterv(rhoUp[iChem],rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
+    Scatterv(rhoUpChemPot[iChem],rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
 	    &rhoTemp[chemPotIndex*numFFT2Proc],numFFT2Proc,MPI_DOUBLE,myidState,comm_states);
     
   }
   for(iGrid=0;iGrid<numFFT2Proc;iGrid++){
     rhoUpCorrect[iGrid] = 0.0;
     for(iChem=0;iChem<numChemPot;iChem++){
-      rhoUpCorrect[iGrid] += interpCoef[iChem]*rhoUp[iChem*numFFT2Proc+iGrid];
+      rhoUpCorrect[iGrid] += interpCoef[iChem]*rhoUpChemPot[iChem][iGrid];
     }//endfor iChem
   }//endfor iGrid  
   if(cpLsda==1){
     for(iChem=0;iChem<numChemProc;iChem++){
       chemPotIndex = chemProcIndexInv[iChem];
-      Scatterv(rhoDn[iChem],rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
+      Scatterv(rhoDnChemPot[iChem],rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
 	      &rhoTemp[chemPotIndex*numFFT2Proc],numFFT2Proc,MPI_DOUBLE,myidState,comm_states);
 
     }
     for(iGrid=0;iGrid<numFFT2Proc;iGrid++){
       rhoDnCorrect[iGrid] = 0.0;
       for(iChem=0;iChem<numChemPot;iChem++){
-	rhoDnCorrect[iGrid] += interpCoef[iChem]*rhoDn[iChem*numFFT2Proc+iGrid];
+	rhoDnCorrect[iGrid] += interpCoef[iChem]*rhoDnChemPot[iChem][iGrid];
       }//endfor iChem
     }//endfor iGrid  
   }
@@ -137,7 +141,7 @@ void genChemPotInterpPoints(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   int numChemPot = stodftInfo->numChemPot;
   int iNode;
   double chemPotInit = stodftInfo->chemPotInit;
-  double gapInit = stodftInfo->gapInput;
+  double gapInit = stodftInfo->gapInit;
   double factor = M_PI*0.5/numChemPot;
   double *chemPot = stodftCoefPos->chemPot;
   double *chebyNode = (double*)cmalloc(numChemPot*sizeof(double));
@@ -202,10 +206,10 @@ double solveLagrangePolyInterp(int numSamp,double *x, double *y,double target,
   while(y[iSamp]<target)iSamp += 1;
   xopt = x[iSamp-1]+(target-y[iSamp-1])*(x[iSamp]-x[iSamp-1])/(y[iSamp]-y[iSamp-1]);
 
-  tolnow = calcLagrangeInterpFun(numSamp,xopt,x,y,target,lagFunValue);
-  deriv  = calcLagrangeInterpDrv(numSamp,xopt,x,y,target,lagFunValue);
+  tolnow = calcLagrangeInterpFun(numSamp,xopt,x,y,target,interpCoef);
+  deriv  = calcLagrangeInterpDrv(numSamp,xopt,x,y,target,interpCoef);
 
-  while(torlnow>torl){
+  while(tolnow>tol){
     xopt -= tolnow/deriv;
     tolnow = calcLagrangeInterpFun(numSamp,xopt,x,y,target,interpCoef);
     deriv = calcLagrangeInterpDrv(numSamp,xopt,x,y,target,interpCoef);
@@ -279,39 +283,6 @@ double calcLagrangeInterpDrv(int numSamp,double xopt,double *x,double *y,
     drv += sum*lagFunValue[iTerm]*y[iTerm];
   }
   return drv;
-
-/*==========================================================================*/
-}/*end Routine*/
-/*==========================================================================*/
-
-/*==========================================================================*/
-/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
-/*==========================================================================*/
-void genInterpCoef(double xtrue,int numSamp,double x, double y,double *interpCoef)
-/*==========================================================================*/
-/*         Begin Routine                                                    */
-   {/*Begin Routine*/
-/*************************************************************************/
-/* This function solve \sum a_i l_i(x)=target, given {x} and {y} as      */
-/* interpolating points. x is in ascent order and y[x] should be         */
-/* monotonic.                                                            */
-/*************************************************************************/
-/*=======================================================================*/
-/*         Local Variable declarations                                   */
-  int iTerm,jTerm;
-  double prod,prod2;
-  
-  for(iTerm=0;iTerm<numSamp;iTerm++){
-    prod = 1.0;
-    prod2 = 1.0;
-    for(jTerm=0;jTerm<numSamp;jTerm++){
-      if(jTerm!=iTerm){
-	prod *= xtrue-x[jTerm];
-	prod2 *= x[iTerm]-x[jTerm];
-      }
-    }
-    interpCoef = prod/prod2;
-  }
 
 /*==========================================================================*/
 }/*end Routine*/

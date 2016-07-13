@@ -399,14 +399,14 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   }
 
   printf("numChemProc %i\n",numChemProc);
-  stodftCoefPos->rhoReUp = (double**)cmalloc(numChemProc*sizeof(double*));
+  stodftCoefPos->rhoUpChemPot = (double**)cmalloc(numChemProc*sizeof(double*));
   for(iChem=0;iChem<numChemProc;iChem++){
-    stodftCoefPos->rhoReUp[iChem] = (double*)cmalloc(rhoRealGridNum*sizeof(double));
+    stodftCoefPos->rhoUpChemPot[iChem] = (double*)cmalloc(rhoRealGridNum*sizeof(double));
   }
   if(cpLsda==1&&numStateDnProc>0){
-    stodftCoefPos->rhoReDn = (double**)cmalloc(numChemProc*sizeof(double*));
+    stodftCoefPos->rhoDnChemPot = (double**)cmalloc(numChemProc*sizeof(double*));
     for(iChem=0;iChem<numChemProc;iChem++){
-      stodftCoefPos->rhoReDn[iChem] = (double*)cmalloc(rhoRealGridNum*sizeof(double));
+      stodftCoefPos->rhoDnChemPot[iChem] = (double*)cmalloc(rhoRealGridNum*sizeof(double));
     }    
   }
   stodftCoefPos->numElectron = (double*)cmalloc(numChemPot*sizeof(double));

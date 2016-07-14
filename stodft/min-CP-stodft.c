@@ -198,9 +198,9 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*----------------------------------------------------------------------*/
 /* i) Generate stochastic WF for different chemical potentials          */
 
-    //genStoOrbital(class,bonded,general_data,cp,ip_now);
+    genStoOrbital(class,bonded,general_data,cp,ip_now);
     
-    
+    /*
     FILE *filePrintWF = fopen("sto-wf-save","r");
     for(iState=0;iState<numStateUp;iState++){
       for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
@@ -225,6 +225,7 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       norm += stoWfUpRe[0][iState*numCoeff+numCoeff]*stoWfUpRe[0][iState*numCoeff+numCoeff];
       printf("iState %i norm %lg\n",iState,norm);
     }
+    */
     
 /*----------------------------------------------------------------------*/
 /* 2)  Get the total density, for each chemical potential and get       */
@@ -290,7 +291,8 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   MPI_Comm commStates = commCP->comm_states;
   
 
-  int iPoly,iState,iState2,iCoeff;
+  int iPoly,iState,iState2,iCoeff,iChem;
+  int numChemPot = stodftInfo->numChemPot;
   int polynormLength = stodftInfo->polynormLength;
   int expanType = stodftInfo->expanType;
   int numProcStates = commCP->np_states;
@@ -536,12 +538,14 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
 //debug print wave function
   FILE *filePrintWF = fopen("sto-wf-save","w");
-  for(iState=0;iState<numStateUpProc;iState++){
-    for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
-      fprintf(filePrintWF,"%.16lg %.16lg\n",
-	stoWfUpRe[0][iState*numCoeff+iCoeff],stoWfUpIm[0][iState*numCoeff+iCoeff]);
-    }
-  }
+  for(iChem=0;iChem<numChemPot;iChem++){
+    for(iState=0;iState<numStateUpProc;iState++){
+      for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+	fprintf(filePrintWF,"%.16lg %.16lg\n",
+	  stoWfUpRe[0][iState*numCoeff+iCoeff],stoWfUpIm[iChem][iState*numCoeff+iCoeff]);
+      }//endfor iCoeff
+    }//endfor iState
+  }//endfor iChem
   fclose(filePrintWF);
 
 //debug

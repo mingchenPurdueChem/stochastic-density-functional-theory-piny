@@ -148,15 +148,17 @@ void genChemPotInterpPoints(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   
   // Generate Chebyshev nodes
   for(iNode=0;iNode<numChemPot;iNode++){
-    chebyNode[iNode] = cos(2.0*iNode+1*factor);
+    chebyNode[numChemPot-iNode-1] = cos((2.0*iNode+1.0)*factor);
   }
   // Scale the nodes to correct chem pot and gap
   
   for(iNode=0;iNode<numChemPot;iNode++){
     chemPot[iNode] = chebyNode[iNode]*0.5*gapInit+chemPotInit;
+    printf("iNode %i chemPot %lg\n",iNode,chemPot[iNode]);
   }
   
   free(chebyNode);
+  //exit(0);
 
 /*==========================================================================*/
 }/*end Routine*/
@@ -181,7 +183,7 @@ double solveLagrangePolyInterp(int numSamp,double *x, double *y,double target,
   int iSamp;
 
   double ymin = y[0];
-  double ymax = y[iSamp-1];
+  double ymax = y[numSamp-1];
   double xopt;
   double tol = 1.0e-7;
   double tolnow = 1.0;

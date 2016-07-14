@@ -75,8 +75,8 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 
 
   double *expanCoeff = (double*)stodftCoefPos->expanCoeff;
-  
-
+  double timeStart,timeEnd; 
+ 
 //debug
 /*  
   int numPointTest = 100;
@@ -121,7 +121,9 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 
 /*==========================================================================*/
 /* 1) Loop over all polynomial terms (iPoly=0<=>polynomial order 1) */
-  
+
+  cputime(&timeStart);  
+
   for(iPoly=1;iPoly<polynormLength;iPoly++){
     if(iPoly%100==0){
       printf("iPoly %i\n",iPoly);
@@ -144,6 +146,9 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       }//endif 
     }//endfor imu
   }//endfor iPoly
+  
+  cputime(&timeEnd);
+  printf("Filter time is %lg\n",timeEnd-timeStart);
 
 /*==========================================================================*/
 }/*end Routine*/

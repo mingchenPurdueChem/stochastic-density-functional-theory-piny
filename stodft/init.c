@@ -232,8 +232,8 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
   //For debug only
   //stodftCoefPos->chemPot[0] = -0.17435045;
-  stodftCoefPos->chemPot[0] = 0.5045818049407941;
-  stodftCoefPos->chemPot[1] = 0.5045818049407941;
+  //stodftCoefPos->chemPot[0] = 0.5045818049407941;
+  //stodftCoefPos->chemPot[1] = 0.5045818049407941;
  
 /*==========================================================================*/
 /* III) Initialize utility data						    */

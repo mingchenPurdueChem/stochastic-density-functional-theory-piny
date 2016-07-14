@@ -4568,7 +4568,7 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   sscanf(dict[12].keyarg,"%lg",&rka);
   stodftInfo->chemPotInit = rka;
   /*-----------------------------------------------------------------------*/
-  /*  13)\gapInit{#} */
+  /*  13)\band_gap_init{#} */
   sscanf(dict[13].keyarg,"%lg",&rka);
   stodftInfo->gapInit = rka;
  

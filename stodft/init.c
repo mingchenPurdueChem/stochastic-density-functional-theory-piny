@@ -398,7 +398,6 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     stodftInfo->chemProcIndexInv[iChem] = count+iChem;
   }
 
-  printf("numChemProc %i\n",numChemProc);
   stodftCoefPos->rhoUpChemPot = (double**)cmalloc(numChemProc*sizeof(double*));
   for(iChem=0;iChem<numChemProc;iChem++){
     stodftCoefPos->rhoUpChemPot[iChem] = (double*)cmalloc(rhoRealGridNum*sizeof(double));
@@ -415,6 +414,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /* VI) Initialize chemical potential	                                    */
   
   genChemPotInterpPoints(stodftInfo,stodftCoefPos);
+  //stodftCoefPos->chemPot[0] = 0.5045818049407941;
 
 /*==========================================================================*/
 }/*end Routine*/

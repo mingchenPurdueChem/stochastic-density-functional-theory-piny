@@ -59,8 +59,11 @@ void calcChemPotInterp(CP *cp)
   int numChemPot = stodftInfo->numChemPot;
   int numChemProc = stodftInfo->numChemProc;
   int cpLsda = cpopts->cp_lsda;
+  int rhoRealGridNum = 
   int numFFTProc = cp_para_fft_pkg3d_lg->nfft_proc;
   int numFFT2Proc = numFFTProc/2; 
+  int numFFT = cp_para_fft_pkg3d_lg->nfft;
+  int numFFT2 = numFFT/2;
   int myidState = commCP->myid_state;
   int numProcStates = commCP->np_states;
   MPI_Comm comm_states = commCP->comm_states;
@@ -86,14 +89,23 @@ void calcChemPotInterp(CP *cp)
     printf("==============================================\n");
     printf("Start interpolating number of electrons.\n");
     chemPotTrue = solveLagrangePolyInterp(numChemPot,chemPot,numElectron,numElecTrue,interpCoef);
+    printf("The chemical potential with correct # of electron is %lg\n",chemPotTrue);
+    printf("==============================================\n");
   }
-  Bcast(&chemPotTrue,1,MPI_DOUBLE,0,comm_states);
-  Bcast(interpCoef,numChemPot,MPI_DOUBLE,0,comm_states);
+  if(numProcStates>1){
+    Bcast(&chemPotTrue,1,MPI_DOUBLE,0,comm_states);
+    Bcast(interpCoef,numChemPot,MPI_DOUBLE,0,comm_states);
+  }
 
   for(iChem=0;iChem<numChemProc;iChem++){
     chemPotIndex = chemProcIndexInv[iChem];
-    Scatterv(rhoUpChemPot[iChem],rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
-	    &rhoTemp[chemPotIndex*numFFT2Proc],numFFT2Proc,MPI_DOUBLE,myidState,comm_states);
+    if(numProcStates>1){
+      Scatterv(rhoUpChemPot[iChem],rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
+  	      &rhoTemp[chemPotIndex*numFFT2Proc],numFFT2Proc,MPI_DOUBLE,myidState,comm_states);
+    }
+    else{
+      memcpy(rhoUpChemPot[iChem],&rhoTemp[chemPotIndex*numFFT2Proc],numFFT2Proc*sizeof(double));
+    }
     
   }
   for(iGrid=0;iGrid<numFFT2Proc;iGrid++){
@@ -105,8 +117,10 @@ void calcChemPotInterp(CP *cp)
   if(cpLsda==1){
     for(iChem=0;iChem<numChemProc;iChem++){
       chemPotIndex = chemProcIndexInv[iChem];
-      Scatterv(rhoDnChemPot[iChem],rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
-	      &rhoTemp[chemPotIndex*numFFT2Proc],numFFT2Proc,MPI_DOUBLE,myidState,comm_states);
+      if(numProcStates>1){
+        Scatterv(rhoDnChemPot[iChem],rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
+	        &rhoTemp[chemPotIndex*numFFT2Proc],numFFT2Proc,MPI_DOUBLE,myidState,comm_states);
+      }
 
     }
     for(iGrid=0;iGrid<numFFT2Proc;iGrid++){
@@ -187,6 +201,7 @@ double solveLagrangePolyInterp(int numSamp,double *x, double *y,double target,
   double xopt;
   double tol = 1.0e-7;
   double tolnow = 1.0;
+  double value;
   double deriv;
 
 /*=======================================================================*/
@@ -208,13 +223,15 @@ double solveLagrangePolyInterp(int numSamp,double *x, double *y,double target,
   while(y[iSamp]<target)iSamp += 1;
   xopt = x[iSamp-1]+(target-y[iSamp-1])*(x[iSamp]-x[iSamp-1])/(y[iSamp]-y[iSamp-1]);
 
-  tolnow = calcLagrangeInterpFun(numSamp,xopt,x,y,target,interpCoef);
+  value = calcLagrangeInterpFun(numSamp,xopt,x,y,target,interpCoef)-target;
   deriv  = calcLagrangeInterpDrv(numSamp,xopt,x,y,target,interpCoef);
-
+  tolnow = fabs(value);
+ 
   while(tolnow>tol){
-    xopt -= tolnow/deriv;
-    tolnow = calcLagrangeInterpFun(numSamp,xopt,x,y,target,interpCoef);
+    xopt -= value/deriv;
+    value = calcLagrangeInterpFun(numSamp,xopt,x,y,target,interpCoef)-target;
     deriv = calcLagrangeInterpDrv(numSamp,xopt,x,y,target,interpCoef);
+    tolnow = fabs(value);
   }
 
   return xopt;

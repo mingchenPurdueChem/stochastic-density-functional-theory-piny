@@ -206,8 +206,8 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     for(iChem=0;iChem<numChemPot;iChem++){
       for(iState=0;iState<numStateUp;iState++){
 	for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
-	  fscanf(filePrintWF,"%lg",&stoWfUpRe[0][iState*numCoeff+iCoeff]);
-	  fscanf(filePrintWF,"%lg",&stoWfUpIm[0][iState*numCoeff+iCoeff]);
+	  fscanf(filePrintWF,"%lg",&stoWfUpRe[iChem][iState*numCoeff+iCoeff]);
+	  fscanf(filePrintWF,"%lg",&stoWfUpIm[iChem][iState*numCoeff+iCoeff]);
 	}//endfor iCoeff
       }//endfor iState
     }//endfor iChem
@@ -235,7 +235,7 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*     total electron number for each chemical potential	        */
 
     if(cpParaOpt==0) calcRhoStoHybrid(class,bonded,general_data,cp,ip_now);
-    exit(0);
+
 
 /*----------------------------------------------------------------------*/
 /* 3)  Interpolate the chemical potential w.r.t			        */
@@ -243,6 +243,7 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*     to generate the density w.r.t. correct number of electrons.      */
 
     calcChemPotInterp(cp);
+    exit(0);   
 
 /*----------------------------------------------------------------------*/
 /* 4)  Calcluate the density in reciprocal space.		        */
@@ -545,7 +546,7 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     for(iState=0;iState<numStateUpProc;iState++){
       for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
 	fprintf(filePrintWF,"%.16lg %.16lg\n",
-	  stoWfUpRe[0][iState*numCoeff+iCoeff],stoWfUpIm[iChem][iState*numCoeff+iCoeff]);
+	  stoWfUpRe[iChem][iState*numCoeff+iCoeff],stoWfUpIm[iChem][iState*numCoeff+iCoeff]);
       }//endfor iCoeff
     }//endfor iState
   }//endfor iChem

@@ -801,6 +801,7 @@ void calcRhoStoHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     numElectronTemp[iChem] = 0.0;
   }
   
+  printf("numChemProc %i\n",numChemProc); 
   for(iChem=0;iChem<numChemProc;iChem++){
     index = chemProcIndexInv[iChem];
     printf("index %i\n",index);
@@ -813,18 +814,19 @@ void calcRhoStoHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       }
     }
     numElectronTemp[index] *= numGridTotInv;
+    printf("numElectronTemp %lg\n",numElectronTemp[index]);
   }
-  printf("numElectronTemp[0] %lg\n",numElectronTemp[0]);
   if(numProcStates>1){
     Allreduce(numElectronTemp,numElectron,numChemPot,MPI_DOUBLE,MPI_SUM,0,commStates);
   }
-  else memcpy(numElectron,numElectronTemp,numChemPot);
+  else memcpy(numElectron,numElectronTemp,numChemPot*sizeof(double));
 
   free(numElectronTemp);
 
 //debug
   if(myidState==0){
-    for(iChem=0;iChem<numChemPot;iChem++)printf("iChem %i numElec %lg\n",iChem,numElectron[iChem]);
+    double *chemPot = stodftCoefPos->chemPot;
+    for(iChem=0;iChem<numChemPot;iChem++)printf("chemPot-numElec %lg %lg\n",chemPot[iChem],numElectron[iChem]);
   }
 
 /*==========================================================================*/

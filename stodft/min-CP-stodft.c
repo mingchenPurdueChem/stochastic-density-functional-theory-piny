@@ -56,8 +56,9 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   ATOMMAPS *atommaps		= &(class->atommaps);
 
   int iperd            		= cell->iperd;
-  int iScf,iCell,iCoeff,iState;
+  int iScf,iCell,iCoeff,iState,iChem;
   int numScf			= stodftInfo->numScf; //Need claim this in cp
+  int numChemPot		= stodftInfo->numChemPot;
   int cpLsda 			= cpopts->cp_lsda;
   int cpParaOpt			= cpopts->cp_para_opt;
 
@@ -198,16 +199,18 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*----------------------------------------------------------------------*/
 /* i) Generate stochastic WF for different chemical potentials          */
 
-    genStoOrbital(class,bonded,general_data,cp,ip_now);
+    //genStoOrbital(class,bonded,general_data,cp,ip_now);
     
-    /*
+    
     FILE *filePrintWF = fopen("sto-wf-save","r");
-    for(iState=0;iState<numStateUp;iState++){
-      for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
-        fscanf(filePrintWF,"%lg",&stoWfUpRe[0][iState*numCoeff+iCoeff]);
-        fscanf(filePrintWF,"%lg",&stoWfUpIm[0][iState*numCoeff+iCoeff]);
-      }
-    }
+    for(iChem=0;iChem<numChemPot;iChem++){
+      for(iState=0;iState<numStateUp;iState++){
+	for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+	  fscanf(filePrintWF,"%lg",&stoWfUpRe[0][iState*numCoeff+iCoeff]);
+	  fscanf(filePrintWF,"%lg",&stoWfUpIm[0][iState*numCoeff+iCoeff]);
+	}//endfor iCoeff
+      }//endfor iState
+    }//endfor iChem
     fclose(filePrintWF);
     
     
@@ -225,7 +228,7 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       norm += stoWfUpRe[0][iState*numCoeff+numCoeff]*stoWfUpRe[0][iState*numCoeff+numCoeff];
       printf("iState %i norm %lg\n",iState,norm);
     }
-    */
+    
     
 /*----------------------------------------------------------------------*/
 /* 2)  Get the total density, for each chemical potential and get       */

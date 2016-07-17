@@ -59,7 +59,9 @@ void calcChemPotInterp(CP *cp)
   int numChemPot = stodftInfo->numChemPot;
   int numChemProc = stodftInfo->numChemProc;
   int cpLsda = cpopts->cp_lsda;
-  int rhoRealGridNum = 
+  int cpParaOpt      = cpopts->cp_para_opt;
+  int rhoRealGridNum = stodftInfo->rhoRealGridNum;
+  int rhoRealGridTot = stodftInfo->rhoRealGridTot;
   int numFFTProc = cp_para_fft_pkg3d_lg->nfft_proc;
   int numFFT2Proc = numFFTProc/2; 
   int numFFT = cp_para_fft_pkg3d_lg->nfft;
@@ -79,7 +81,7 @@ void calcChemPotInterp(CP *cp)
   double *numElectron = stodftCoefPos->numElectron;
   double *chemPot = stodftCoefPos->chemPot;
   double *interpCoef = (double*)cmalloc(numChemPot*sizeof(double)); //Interpolation Coeffcients
-  double *rhoTemp = (double*)cmalloc(numChemPot*numFFT2Proc);
+  double *rhoTemp = (double*)cmalloc(numChemPot*rhoRealGridNum*sizeof(double));
   double **rhoUpChemPot = stodftCoefPos->rhoUpChemPot;
   double **rhoDnChemPot = stodftCoefPos->rhoDnChemPot;
   double *rhoUpCorrect = stodftCoefPos->rhoUpCorrect;
@@ -96,40 +98,59 @@ void calcChemPotInterp(CP *cp)
     Bcast(&chemPotTrue,1,MPI_DOUBLE,0,comm_states);
     Bcast(interpCoef,numChemPot,MPI_DOUBLE,0,comm_states);
   }
-
-  for(iChem=0;iChem<numChemProc;iChem++){
-    chemPotIndex = chemProcIndexInv[iChem];
-    if(numProcStates>1){
-      Scatterv(rhoUpChemPot[iChem],rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
-  	      &rhoTemp[chemPotIndex*numFFT2Proc],numFFT2Proc,MPI_DOUBLE,myidState,comm_states);
-    }
-    else{
-      memcpy(rhoUpChemPot[iChem],&rhoTemp[chemPotIndex*numFFT2Proc],numFFT2Proc*sizeof(double));
-    }
-    
-  }
-  for(iGrid=0;iGrid<numFFT2Proc;iGrid++){
-    rhoUpCorrect[iGrid] = 0.0;
-    for(iChem=0;iChem<numChemPot;iChem++){
-      rhoUpCorrect[iGrid] += interpCoef[iChem]*rhoUpChemPot[iChem][iGrid];
-    }//endfor iChem
-  }//endfor iGrid  
-  if(cpLsda==1){
+  
+  if(cpParaOpt==0){
     for(iChem=0;iChem<numChemProc;iChem++){
       chemPotIndex = chemProcIndexInv[iChem];
       if(numProcStates>1){
-        Scatterv(rhoDnChemPot[iChem],rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
-	        &rhoTemp[chemPotIndex*numFFT2Proc],numFFT2Proc,MPI_DOUBLE,myidState,comm_states);
+	Scatterv(rhoUpChemPot[iChem],rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
+		&rhoTemp[chemPotIndex*rhoRealGridNum],rhoRealGridNum,MPI_DOUBLE,myidState,comm_states);
       }
+      else{
+	memcpy(&rhoTemp[chemPotIndex*rhoRealGridNum],rhoUpChemPot[iChem],rhoRealGridNum*sizeof(double));
+	//memcpy(rhoUpChemPot[iChem],&rhoTemp[chemPotIndex*rhoRealGridNum],rhoRealGridNum*sizeof(double));
+	//for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)rhoTemp[chemPotIndex*rhoRealGridNum+iGrid] = rhoUpChemPot[iChem][iGrid];
+      }//endif       
+    }//endfor iChem
+  }
 
-    }
-    for(iGrid=0;iGrid<numFFT2Proc;iGrid++){
+  printf("coef %lg\n",interpCoef[0]);
+
+  for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+    rhoUpCorrect[iGrid] = 0.0;
+    for(iChem=0;iChem<numChemPot;iChem++){
+      rhoUpCorrect[iGrid] += interpCoef[iChem]*rhoTemp[iChem*rhoRealGridNum+iGrid];
+    }//endfor iChem
+    printf("iGrid %i rhoCorrect %lg\n",iGrid,rhoUpCorrect[iGrid]*0.0009250463018013585);
+  }//endfor iGrid  
+  if(cpLsda==1){
+    if(cpParaOpt==0){
+      for(iChem=0;iChem<numChemProc;iChem++){
+	chemPotIndex = chemProcIndexInv[iChem];
+	if(numProcStates>1){
+	  Scatterv(rhoDnChemPot[iChem],rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
+		  &rhoTemp[chemPotIndex*rhoRealGridNum],rhoRealGridNum,MPI_DOUBLE,myidState,comm_states);
+	}
+	else{
+	  memcpy(&rhoTemp[chemPotIndex*rhoRealGridNum],rhoDnChemPot[iChem],rhoRealGridNum*sizeof(double));
+	}//endif numProcStates
+      }//endfor iChem
+    }//endif cpParaOpt
+    for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
       rhoDnCorrect[iGrid] = 0.0;
       for(iChem=0;iChem<numChemPot;iChem++){
-	rhoDnCorrect[iGrid] += interpCoef[iChem]*rhoDnChemPot[iChem][iGrid];
+	rhoDnCorrect[iGrid] += interpCoef[iChem]*rhoTemp[iChem*rhoRealGridNum+iGrid];
       }//endfor iChem
     }//endfor iGrid  
   }
+
+  //debug
+  double testNumElec = 0.0;
+  for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+    testNumElec += rhoUpCorrect[iGrid];
+  }
+  testNumElec /= rhoRealGridTot;
+  printf("tot number of electron after interp %.16lg\n",testNumElec);
 
   
   free(interpCoef);

@@ -367,46 +367,56 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   gethinv(cell->hmat_cp,cell->hmati_cp,&(cell->vol_cp),iperd);
   gethinv(cell->hmat,cell->hmati,&(cell->vol),iperd);
 
+  //Set occupitation number
   stodftInfo->occNumber = 1;
   if(readCoeffFlag==1&&cpLsda==0)stodftInfo->occNumber = 2;
   
+  //set real space density grid number and chemical potential map
   if(cpParaOpt==0)stodftInfo->rhoRealGridNum = numFFT2;
   else stodftInfo->rhoRealGridNum = numFFT2Proc;
   rhoRealGridNum = stodftInfo->rhoRealGridNum;
   stodftInfo->rhoRealGridTot = numFFT2;
-  div = numChemPot/numProcStates;
-  res = numChemPot%numProcStates;
-  if(myidState<res)stodftInfo->numChemProc = div+1;
-  else stodftInfo->numChemProc = div;
-  numChemProc = stodftInfo->numChemProc;
-  stodftInfo->densityMap = (int*)cmalloc(numChemPot*sizeof(int));
-  stodftInfo->indexChemProc = (int*)cmalloc(numChemPot*sizeof(int));
-  stodftInfo->chemProcIndexInv = (int*)cmalloc(numChemProc*sizeof(int));
-  for(iChem=0;iChem<numChemPot;iChem++){
-    if(iChem<(div+1)*res){
-      stodftInfo->densityMap[iChem] = iChem/(div+1);
-      stodftInfo->indexChemProc[iChem] = iChem%(div+1);
+  if(cpParaOpt==0){//hybrid case
+    div = numChemPot/numProcStates;
+    res = numChemPot%numProcStates;
+    if(myidState<res)stodftInfo->numChemProc = div+1;
+    else stodftInfo->numChemProc = div;
+    numChemProc = stodftInfo->numChemProc;
+    stodftInfo->densityMap = (int*)cmalloc(numChemPot*sizeof(int));
+    stodftInfo->indexChemProc = (int*)cmalloc(numChemPot*sizeof(int));
+    stodftInfo->chemProcIndexInv = (int*)cmalloc(numChemProc*sizeof(int));
+    for(iChem=0;iChem<numChemPot;iChem++){
+      if(iChem<(div+1)*res){
+	stodftInfo->densityMap[iChem] = iChem/(div+1);
+	stodftInfo->indexChemProc[iChem] = iChem%(div+1);
+      }
+      else{
+	stodftInfo->densityMap[iChem] = (iChem-(div+1)*res)/div+res;
+	stodftInfo->densityMap[iChem] = (iChem-(div+1)*res)%div;
+      }
     }
-    else{
-      stodftInfo->densityMap[iChem] = (iChem-(div+1)*res)/div+res;
-      stodftInfo->densityMap[iChem] = (iChem-(div+1)*res)%div;
+    if(myidState<res)count = myidState*(div+1);
+    else count = (div+1)*res+(myidState-res)*div;
+    for(iChem=0;iChem<numChemProc;iChem++){
+      stodftInfo->chemProcIndexInv[iChem] = count+iChem;
     }
   }
-  if(myidState<res)count = myidState*(div+1);
-  else count = (div+1)*res+(myidState-res)*div;
-  for(iChem=0;iChem<numChemProc;iChem++){
-    stodftInfo->chemProcIndexInv[iChem] = count+iChem;
+  else{//full g case
+    stodftInfo->numChemProc = numChemPot;
+    numChemProc = stodftInfo->numChemProc;
   }
 
   stodftCoefPos->rhoUpChemPot = (double**)cmalloc(numChemProc*sizeof(double*));
   for(iChem=0;iChem<numChemProc;iChem++){
     stodftCoefPos->rhoUpChemPot[iChem] = (double*)cmalloc(rhoRealGridNum*sizeof(double));
   }
+  stodftCoefPos->rhoUpCorrect = (double*)cmalloc(rhoRealGridNum*sizeof(double));
   if(cpLsda==1&&numStateDnProc>0){
     stodftCoefPos->rhoDnChemPot = (double**)cmalloc(numChemProc*sizeof(double*));
     for(iChem=0;iChem<numChemProc;iChem++){
       stodftCoefPos->rhoDnChemPot[iChem] = (double*)cmalloc(rhoRealGridNum*sizeof(double));
-    }    
+    }
+    stodftCoefPos->rhoDnCorrect = (double*)cmalloc(rhoRealGridNum*sizeof(double));    
   }
   stodftCoefPos->numElectron = (double*)cmalloc(numChemPot*sizeof(double));
 

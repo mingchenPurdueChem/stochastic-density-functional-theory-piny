@@ -609,6 +609,205 @@ void rhoCalcRealStoFullg(CPSCR *cpscr,
 }/*end routine*/
 /*==============================================================*/
 
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void calcRhoStoRecipFullg(CPEWALD *cpewald,CPSCR *cpscr,
+                        CPCOEFFS_INFO *cpcoeffs_info,EWALD *ewald,
+                        CELL *cell,STODFTINFO *stodftInfo,
+                        double *creal, double *cimag,
+                        int icoef_form,int icoef_orth,
+                        double *rhocr ,double *rhoci,double *rhotemp,double *rho,
+                        double *rhocr_dens_cp_box,double *rhoci_dens_cp_box,
+                        double *del_rho_x, double *del_rho_y,
+                        double *del_rho_z,
+                        double *del2_rho,int nstate,int ncoef,int nstate_tot,
+                        int cp_gga,int cp_dual_grid_opt,
+                        int n_interp_pme_dual,
+                        COMMUNICATE *communicate,
+                        PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg,
+                        PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_lg,
+                        PARA_FFT_PKG3D *cp_para_fft_pkg3d_dens_cp_box,
+                        PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_dens_cp_box,
+                        PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* Now we have real space average density and I want to transfer it to   */
+/* reciprocal space and also generate gradient for gga                   */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+#include "../typ_defs/typ_mask.h"
+
+/* local variables                                                  */
+
+ int iii,ioff,ioff2;
+ int is,i,iupper;
+ double vol_cp,rvol_cp;
+ double temp_r,temp_i;
+
+/*  Assign local pointers                                           */
+ int cp_elf_calc_frq    =    cpcoeffs_info->cp_elf_calc_frq;
+ double *zfft           =    cpscr->cpscr_wave.zfft;
+ double *zfft_tmp       =    cpscr->cpscr_wave.zfft_tmp;
+ double *hmati_cp       =    cell->hmati_cp;
+ double *hmat_cp        =    cell->hmat_cp;
+
+ double dbox_rat        =    cpewald->dbox_rat;
+ double *bw_r           =    cpscr->cpscr_dual_pme.bw_r;
+ double *bw_i           =    cpscr->cpscr_dual_pme.bw_i;
+
+ int   myid_state       =    communicate->myid_state;
+ int   np_states        =    communicate->np_states;
+ int   laplacian_on     =    cpcoeffs_info->cp_laplacian_on;
+
+ int   ncoef_l          =    cp_para_fft_pkg3d_lg->ncoef;
+ int   ncoef_l_use      =    cp_para_fft_pkg3d_lg->ncoef_use;
+ int   ncoef_l_proc     =    cp_para_fft_pkg3d_lg->ncoef_proc;
+ int   nfft_proc        =    cp_para_fft_pkg3d_lg->nfft_proc;
+ int   nfft             =    cp_para_fft_pkg3d_lg->nfft;
+
+ int   nfft2_proc       =    nfft_proc/2;
+ int   nfft2            =    nfft/2;
+
+ int   nfft_proc_dens_cp_box,nfft2_proc_dens_cp_box;
+
+#ifdef WRITE_DENSITY
+#include "../proto_defs/proto_friend_lib_entry.h"
+  int nkf1,nkf2,nkf3;
+  int index,ka,kb,kc;
+  FILE *fp_rho;
+#endif
+
+#ifdef DEBUG_LSDA
+ double *rhocr_dens_cp_box;
+ double *rhoci_dens_cp_box;
+#endif
+
+ double integral,int_tmp;
+
+ MPI_Comm comm_states   =    communicate->comm_states;
+
+ if(cp_dual_grid_opt >= 1){
+   nfft_proc_dens_cp_box   =  cp_para_fft_pkg3d_dens_cp_box->nfft_proc;
+   nfft2_proc_dens_cp_box  =  nfft_proc_dens_cp_box/2;
+
+#ifdef DEBUG_LSDA
+  if((cp_gga == 1)|| (cp_dual_grid_opt > 1)){
+     /*holds the density in g space on cp_box grid*/
+   rhocr_dens_cp_box    = cpscr->cpscr_rho.rhocr_up_dens_cp_box;
+   rhoci_dens_cp_box    = cpscr->cpscr_rho.rhoci_up_dens_cp_box;
+  }/* endif cp_gga */
+#endif
+
+
+ }/*endif cp_dual_grid_opt*/
+
+/*=========================================================================*/
+/*=========================================================================*/
+/*  3) get density in g space                                              */
+/*  I)  pack it up                                                         */
+
+ if(cp_dual_grid_opt >= 1){
+/* sending density*vol_cp on small grid */
+  control_spread_rho(cpscr,rho,cell,dbox_rat,np_states,n_interp_pme_dual,
+                     cp_para_fft_pkg3d_dens_cp_box,
+                     cp_para_fft_pkg3d_lg,cp_dual_grid_opt);
+ }else{
+  sngl_pack_rho(zfft,rho,cp_para_fft_pkg3d_lg);
+ }/*endif cp_dual_grid_opt*/
+
+
+/*--------------------------------------------------------------------------*/
+/*  II) back transform to g-space  convention exp(igr)   */
+
+  para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_para_fft_pkg3d_lg);
+
+/*--------------------------------------------------------------------------*/
+/*  III) unpack the density                                    */
+
+   sngl_upack_coef(rhocr,rhoci,zfft,cp_para_fft_pkg3d_lg);
+
+/*--------------------------------------------------------------------*/
+/*  Post-processing for pme grid need to multiply by complex weight factor */
+
+  if((n_interp_pme_dual > 1) && (cp_dual_grid_opt == 2)){
+    for(i=1; i<= ncoef_l_use; i++){
+      temp_r   =  (rhocr[i]*bw_r[i] - rhoci[i]*bw_i[i]);
+      temp_i   =  (rhocr[i]*bw_i[i] + rhoci[i]*bw_r[i]);
+
+      rhocr[i] =  temp_r;
+      rhoci[i] =  temp_i;
+    }/*endfor*/
+
+    if((myid_state+1) == np_states){rhocr[ncoef_l_proc]*=bw_r[ncoef_l_proc];}
+  }
+
+/*=========================================================================*/
+/* IF CP_DUAL_GRID_OPT and doing GRADIENT CORRECTIONS you need the density in*/
+/*   g-space on the mid size grid corresponding to the CP_BOX              */
+/*  3.5) get density in G SPACE for CP_BOX                                 */
+
+ if((cp_dual_grid_opt == 1 && cp_gga == 1) || (cp_dual_grid_opt > 1)){
+/*  I)  pack it up                                                         */
+
+  sngl_pack_rho(zfft,rho,cp_para_fft_pkg3d_dens_cp_box);
+
+/*--------------------------------------------------------------------------*/
+/*  II) back transform to g-space  convention exp(igr)   */
+
+  para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_para_fft_pkg3d_dens_cp_box);
+
+/*--------------------------------------------------------------------------*/
+/*  III) unpack the density                                                 */
+
+  sngl_upack_coef(rhocr_dens_cp_box,rhoci_dens_cp_box,
+                  zfft,cp_para_fft_pkg3d_dens_cp_box);
+
+ }/*endif cp_dual_grid_opt and cp_gga*/
+
+/*--------------------------------------------------------------------------*/
+/* IV) finish the density in real space by dividing by the volume */
+
+     vol_cp  = getdeth(hmat_cp);
+     rvol_cp = 1.0/vol_cp;
+    if(cp_dual_grid_opt >= 1){
+     for(i=1 ; i<= nfft2_proc_dens_cp_box;i++){
+        rho[i] *= rvol_cp;
+     }/*endfor*/
+    }else{
+     for(i=1 ; i<= nfft2_proc;i++){
+        rho[i] *= rvol_cp;
+     }/*endfor*/
+    }/*endif cp_dual_grid_opt*/
+
+ Barrier(comm_states);
+/*==============================================================*/
+/* VII) if doing gradient corrections, get gradient of density    */
+
+  if((cp_gga == 1 || cp_elf_calc_frq > 0)) {
+   if(cp_dual_grid_opt >= 1){
+    control_grad_rho(cpewald,cpscr,ewald,rhocr_dens_cp_box,rhoci_dens_cp_box,
+                     del_rho_x,del_rho_y,del_rho_z,del2_rho,
+                     hmati_cp,vol_cp,laplacian_on,cp_dual_grid_opt,
+                     cp_para_fft_pkg3d_dens_cp_box);
+   }else{
+    control_grad_rho(cpewald,cpscr,ewald,rhocr,rhoci,
+                     del_rho_x,del_rho_y,del_rho_z,del2_rho,
+                     hmati_cp,vol_cp,laplacian_on,cp_dual_grid_opt,
+                     cp_para_fft_pkg3d_lg);
+   }/*endif cp_dual_grid_opt*/
+  }/*endif*/
+
+/*==============================================================*/
+}/*end routine*/
+/*==============================================================*/
+
+
+
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/

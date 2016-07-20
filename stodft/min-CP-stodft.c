@@ -233,20 +233,14 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*----------------------------------------------------------------------*/
 /* 2)  Get the total density, for each chemical potential and get       */
 /*     total electron number for each chemical potential	        */
-
-    if(cpParaOpt==0) calcRhoStoHybrid(class,bonded,general_data,cp,ip_now);
-
-
-/*----------------------------------------------------------------------*/
-/* 3)  Interpolate the chemical potential w.r.t			        */
-/*     Correct electron number and use the interpolation coefficients	*/
+/*     Interpolate the chemical potential w.r.t                         */
+/*     Correct electron number and use the interpolation coefficients   */
 /*     to generate the density w.r.t. correct number of electrons.      */
 
-    calcChemPotInterp(cp);
+
+    if(cpParaOpt==0) calcRhoStoHybrid(class,bonded,general_data,cp,ip_now);
     exit(0);   
 
-/*----------------------------------------------------------------------*/
-/* 4)  Calcluate the density in reciprocal space.		        */
 
   }//endfor iScf
 

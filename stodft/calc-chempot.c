@@ -51,6 +51,7 @@ void calcChemPotInterp(CP *cp)
   STODFTINFO *stodftInfo = cp->stodftInfo;
   STODFTCOEFPOS *stodftCoefPos = cp->stodftCoefPos;
   CPOPTS *cpopts = &(cp->cpopts);
+  CPSCR *cpscr = &(cp->cpscr);  
   COMMUNICATE *commCP = &(cp->communicate);
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
 
@@ -84,8 +85,10 @@ void calcChemPotInterp(CP *cp)
   double *rhoTemp = (double*)cmalloc(numChemPot*rhoRealGridNum*sizeof(double));
   double **rhoUpChemPot = stodftCoefPos->rhoUpChemPot;
   double **rhoDnChemPot = stodftCoefPos->rhoDnChemPot;
-  double *rhoUpCorrect = stodftCoefPos->rhoUpCorrect;
-  double *rhoDnCorrect = stodftCoefPos->rhoDnCorrect;
+  //double *rhoUpCorrect = stodftCoefPos->rhoUpCorrect;
+  //double *rhoDnCorrect = stodftCoefPos->rhoDnCorrect;
+  double *rhoUp = cpscr->cpscr_rho.rho_up;
+  double *rhoDn = cpscr->cpscr_rho.rho_dn;
 
   if(myidState==0){
     printf("==============================================\n");
@@ -117,9 +120,9 @@ void calcChemPotInterp(CP *cp)
   printf("coef %lg\n",interpCoef[0]);
 
   for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
-    rhoUpCorrect[iGrid] = 0.0;
+    rhoUp[iGrid+1] = 0.0;
     for(iChem=0;iChem<numChemPot;iChem++){
-      rhoUpCorrect[iGrid] += interpCoef[iChem]*rhoTemp[iChem*rhoRealGridNum+iGrid];
+      rhoUp[iGrid+1] += interpCoef[iChem]*rhoTemp[iChem*rhoRealGridNum+iGrid];
     }//endfor iChem
     printf("iGrid %i rhoCorrect %lg\n",iGrid,rhoUpCorrect[iGrid]*0.0009250463018013585);
   }//endfor iGrid  
@@ -137,20 +140,22 @@ void calcChemPotInterp(CP *cp)
       }//endfor iChem
     }//endif cpParaOpt
     for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
-      rhoDnCorrect[iGrid] = 0.0;
+      rhoDn[iGrid+1] = 0.0;
       for(iChem=0;iChem<numChemPot;iChem++){
-	rhoDnCorrect[iGrid] += interpCoef[iChem]*rhoTemp[iChem*rhoRealGridNum+iGrid];
+	rhoDn[iGrid+1] += interpCoef[iChem]*rhoTemp[iChem*rhoRealGridNum+iGrid];
       }//endfor iChem
     }//endfor iGrid  
   }
 
   //debug
+  /*
   double testNumElec = 0.0;
   for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
     testNumElec += rhoUpCorrect[iGrid];
   }
   testNumElec /= rhoRealGridTot;
   printf("tot number of electron after interp %.16lg\n",testNumElec);
+  */
 
   
   free(interpCoef);

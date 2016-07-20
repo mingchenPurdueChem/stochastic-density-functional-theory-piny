@@ -61,6 +61,12 @@ void rhoCalcRealStoFullg(CPSCR *,CPCOEFFS_INFO *,CELL *,STODFTINFO *,double *,
 	double *,double *,int ,int ,int ,int ,int ,COMMUNICATE *,
         PARA_FFT_PKG3D *,PARA_FFT_PKG3D *,PARA_FFT_PKG3D *);
 
+void calcRhoStoRecipFullg(CPEWALD *,CPSCR *,CPCOEFFS_INFO *,EWALD *,CELL *,
+                        double *,double *,double *,double *,double *,
+                        double *, double *,double *,double *,int ,int ,
+                        int ,COMMUNICATE *,PARA_FFT_PKG3D *,PARA_FFT_PKG3D *);
+
+
 void calcRhoStoHybrid(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 
 /*-----------------------------------------------------------------*/

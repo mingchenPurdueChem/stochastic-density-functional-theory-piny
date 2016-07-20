@@ -614,10 +614,7 @@ void rhoCalcRealStoFullg(CPSCR *cpscr,
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 void calcRhoStoRecipFullg(CPEWALD *cpewald,CPSCR *cpscr,
-                        CPCOEFFS_INFO *cpcoeffs_info,EWALD *ewald,
-                        CELL *cell,STODFTINFO *stodftInfo,
-			STODFTCOEFPOS *stodftCoefPos,
-                        int icoef_form,int icoef_orth,
+                        CPCOEFFS_INFO *cpcoeffs_info,EWALD *ewald,CELL *cell,
                         double *rhocr ,double *rhoci,double *rho,
                         double *rhocr_dens_cp_box,double *rhoci_dens_cp_box,
                         double *del_rho_x, double *del_rho_y,
@@ -1018,14 +1015,14 @@ void calcRhoStoHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*==========================================================================*/
 /* IV) Generate the reciprocal part and all the other things                */
   
-  calcRhoStoRecipFullg(cpewald,cpscr,cpcoeffs_info,ewald,ewald,cell,
+  calcRhoStoRecipFullg(cpewald,cpscr,cpcoeffs_info,ewald,cell,
                      rhoCoeffReUp,rhoCoeffImUp,rhoUp,rhoCoeffReUpDensCpBox,rhoCoeffImUpDensCpBox,
-                     divRhoxUp,divRhoyUp,divRhozUpd2RhoUp,cpGGA,cpDualGridOptOn,numInterpPmeDual,
+                     divRhoxUp,divRhoyUp,divRhozUp,d2RhoUp,cpGGA,cpDualGridOptOn,numInterpPmeDual,
 		     commCP,&(cp->cp_para_fft_pkg3d_lg),&(cp->cp_para_fft_pkg3d_dens_cp_box));
   if(cpLsda==1&&numStateDnProc!=0){
-    calcRhoStoRecipFullg(cpewald,cpscr,cpcoeffs_info,ewald,ewald,cell,
+    calcRhoStoRecipFullg(cpewald,cpscr,cpcoeffs_info,ewald,cell,
 		       rhoCoeffReDn,rhoCoeffImDn,rhoDn,rhoCoeffReDnDensCpBox,rhoCoeffImDnDensCpBox,
-		       divRhoxDn,divRhoyDn,divRhozUpd2RhoDn,cpGGA,cpDualGridOptOn,numInterpPmeDual,
+		       divRhoxDn,divRhoyDn,divRhozDn,d2RhoDn,cpGGA,cpDualGridOptOn,numInterpPmeDual,
 		       commCP,&(cp->cp_para_fft_pkg3d_lg),&(cp->cp_para_fft_pkg3d_dens_cp_box));
     for(iCoeff=1;iCoeff<=numCoeffLargeProc;iCoeff++) {
       rhoCoeffReUp[iCoeff] += rhoCoeffReDn[iCoeff];
@@ -1038,6 +1035,7 @@ void calcRhoStoHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       }/* endfor */
     } /* endif */
   }/* endif */
+  exit(0);
   
 /*==========================================================================*/
 }/*end Routine*/

@@ -124,7 +124,7 @@ void calcChemPotInterp(CP *cp)
     for(iChem=0;iChem<numChemPot;iChem++){
       rhoUp[iGrid+1] += interpCoef[iChem]*rhoTemp[iChem*rhoRealGridNum+iGrid];
     }//endfor iChem
-    printf("iGrid %i rhoCorrect %lg\n",iGrid,rhoUpCorrect[iGrid]*0.0009250463018013585);
+    //printf("iGrid %i rhoCorrect %lg\n",iGrid,rhoUpCorrect[iGrid]*0.0009250463018013585);
   }//endfor iGrid  
   if(cpLsda==1){
     if(cpParaOpt==0){

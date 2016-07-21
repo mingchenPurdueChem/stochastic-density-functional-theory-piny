@@ -1014,7 +1014,13 @@ void calcRhoStoHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
  
 /*==========================================================================*/
 /* IV) Generate the reciprocal part and all the other things                */
-  
+  /*
+  FILE *fileRhoReal = fopen("density-init","r");
+  FILE *fileRhoRecip = fopen("density-recip-test","w");
+  for(iGrid=1;iGrid<=rhoRealGridNum;iGrid++)fscanf(fileRhoReal,"%lg",&rhoUp[iGrid]);
+  for(iGrid=1;iGrid<=rhoRealGridNum;iGrid++)rhoUp[iGrid] /= 0.0009250463018013585;
+  */
+
   calcRhoStoRecipFullg(cpewald,cpscr,cpcoeffs_info,ewald,cell,
                      rhoCoeffReUp,rhoCoeffImUp,rhoUp,rhoCoeffReUpDensCpBox,rhoCoeffImUpDensCpBox,
                      divRhoxUp,divRhoyUp,divRhozUp,d2RhoUp,cpGGA,cpDualGridOptOn,numInterpPmeDual,
@@ -1035,6 +1041,15 @@ void calcRhoStoHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       }/* endfor */
     } /* endif */
   }/* endif */
+
+  /*
+  for(iCoeff=1;iCoeff<=numCoeffLargeProc;iCoeff++){
+    fprintf(fileRhoRecip,"%.10lg %.10lg\n",rhoCoeffReUp[iCoeff],rhoCoeffImUp[iCoeff]);
+  }
+  fclose(fileRhoReal);
+  fclose(fileRhoRecip);  
+  */
+
   exit(0);
   
 /*==========================================================================*/

@@ -249,14 +249,14 @@ double solveLagrangePolyInterp(int numSamp,double *x, double *y,double target,
   while(y[iSamp]<target)iSamp += 1;
   xopt = x[iSamp-1]+(target-y[iSamp-1])*(x[iSamp]-x[iSamp-1])/(y[iSamp]-y[iSamp-1]);
 
-  value = calcLagrangeInterpFun(numSamp,xopt,x,y,target,interpCoef)-target;
-  deriv  = calcLagrangeInterpDrv(numSamp,xopt,x,y,target,interpCoef);
+  value = calcLagrangeInterpFun(numSamp,xopt,x,y,interpCoef)-target;
+  deriv  = calcLagrangeInterpDrv(numSamp,xopt,x,y,interpCoef);
   tolnow = fabs(value);
  
   while(tolnow>tol){
     xopt -= value/deriv;
-    value = calcLagrangeInterpFun(numSamp,xopt,x,y,target,interpCoef)-target;
-    deriv = calcLagrangeInterpDrv(numSamp,xopt,x,y,target,interpCoef);
+    value = calcLagrangeInterpFun(numSamp,xopt,x,y,interpCoef)-target;
+    deriv = calcLagrangeInterpDrv(numSamp,xopt,x,y,interpCoef);
     tolnow = fabs(value);
   }
 
@@ -269,7 +269,7 @@ double solveLagrangePolyInterp(int numSamp,double *x, double *y,double target,
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 double calcLagrangeInterpFun(int numSamp,double xopt,double *x,double *y,
-			     double target,double *lagFunValue)
+			     double *lagFunValue)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
@@ -305,7 +305,7 @@ double calcLagrangeInterpFun(int numSamp,double xopt,double *x,double *y,
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 double calcLagrangeInterpDrv(int numSamp,double xopt,double *x,double *y,
-                             double target,double *lagFunValue)
+                             double *lagFunValue)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/

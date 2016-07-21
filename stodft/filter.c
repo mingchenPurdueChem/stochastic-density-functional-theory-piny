@@ -558,3 +558,62 @@ void genEnergyMin(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 }/*end Routine*/
 /*==========================================================================*/
 
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void calcEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
+                  CPCOEFFS_POS *cpcoeffs_pos,CLATOMS_POS *clatoms_pos)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* Calculate average energy for each chemical potential, then            */
+/* Interpolate the energy for the correct chemical potential		 */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+  STODFTINFO *stodftInfo        = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  CPOPTS *cpopts                = &(cp->cpopts);
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  COMMUNICATE *communicate      = &(cp->communicate);
+
+  int numStateUpProc = cpcoeffs_info->nstate_up_proc;
+  int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
+  int numCoeff       = cpcoeffs_info->ncoef;
+  int cpDualGridOptOn = cpopts->cp_dual_grid_opt;
+  int numIteration   = 1000;
+  int numChemPot = stodftInfo->numChemPot;
+  int iIter;
+  int iState,iCoeff,iCoeffStart,index1,index2;
+
+  double *chemPot = stodftCoefPos->chemPot;
+  double *cre_up = cpcoeffs_pos->cre_up;
+  double *cim_up = cpcoeffs_pos->cim_up;
+  double *fcre_up = cpcoeffs_pos->fcre_up;
+  double *fcim_up = cpcoeffs_pos->fcim_up;
+  double **stoWfUpRe = stodftCoefPos->stoWfUpRe;
+  double **stoWfUpIm = stodftCoefPos->stoWfUpIm;
+  double **stoWfDnRe = stodftCoefPos->stoWfDnRe;
+  double **stoWfDnIm = stodftCoefPos->stoWfDnIm;
+
+/*--------------------------------------------------------------------------*/
+/* I) Generate energy for each stochastic orbital                           */
+
+
+  for(iChem=0;iChem<numChemPot;iChem++){
+    for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+      cre_up[iCoeff] = stoWfUpRe[iChem][iCoeff];
+      cim_up[iCoeff] = stoWfUpIm[iChem][iCoeff];
+    }
+  } 
+  
+  
+
+
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+

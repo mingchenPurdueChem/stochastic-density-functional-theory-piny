@@ -601,14 +601,14 @@ void calcEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*--------------------------------------------------------------------------*/
 /* I) Generate energy for each stochastic orbital                           */
 
-
+  /*
   for(iChem=0;iChem<numChemPot;iChem++){
     for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
       cre_up[iCoeff] = stoWfUpRe[iChem][iCoeff];
       cim_up[iCoeff] = stoWfUpIm[iChem][iCoeff];
     }
   } 
-  
+  */
   
 
 

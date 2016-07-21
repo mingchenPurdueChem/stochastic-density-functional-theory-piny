@@ -197,7 +197,13 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   for(iScf=0;iScf<numScf;iScf++){
 
 /*----------------------------------------------------------------------*/
-/* i) Generate stochastic WF for different chemical potentials          */
+/* i) Generate KS potential                                             */
+
+    calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+    calcKSForceControlWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+
+/*----------------------------------------------------------------------*/
+/* ii) Generate stochastic WF for different chemical potentials         */
 
     //genStoOrbital(class,bonded,general_data,cp,ip_now);
     
@@ -228,10 +234,11 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       norm += stoWfUpRe[0][iState*numCoeff+numCoeff]*stoWfUpRe[0][iState*numCoeff+numCoeff];
       printf("iState %i norm %lg\n",iState,norm);
     }
+
     
     
 /*----------------------------------------------------------------------*/
-/* 2)  Get the total density, for each chemical potential and get       */
+/* iii)  Get the total density, for each chemical potential and get     */
 /*     total electron number for each chemical potential	        */
 /*     Interpolate the chemical potential w.r.t                         */
 /*     Correct electron number and use the interpolation coefficients   */

@@ -36,6 +36,11 @@ void genNoiseOrbital(CP *,CPCOEFFS_POS *);
 void normHNewtonHerm(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,
 		     CLATOMS_POS *,double);
 void calcCoefForceWrap(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);
+void calcKSPotExtRecipWrap(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS  *,CLATOMS_POS *);
+void calcCoefForceExtRecipWrap(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS  *,CLATOMS_POS *);
+void calcKSForceControlWrap(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS  *,CLATOMS_POS *);
+void calcCoefForceForceControlWrap(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS  *,CLATOMS_POS *);
+void calcCoefForceWrapReduce(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);
 
 /*-----------------------------------------------------------------*/
 /* density-init.c                                                  */

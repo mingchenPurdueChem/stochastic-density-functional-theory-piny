@@ -371,6 +371,11 @@ typedef struct stodftInfo{
   double chemPotInit;		    /* Num: Input initial guess of chem pot     */
   double gapInit;		    /* Num: Input initial guess of HOMO-LUMO    */
 				    /*      gap or band gap.			*/
+  double chemPotTrue;		    /* Num: Interpolated chemical potential     */
+				    /*	    for correct number of electrons	*/
+  double *energyKNL;		    /* Num: Sum of kinetic and nonlocal pseudo- */
+				    /*	    potential energy for different      */
+				    /*	    chem pot.				*/
 
   FERMIFUNR fermiFunctionReal;
   FERMIFUNC fermiFunctionComplex;

@@ -290,7 +290,9 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*--------------------------------------------------------------------------*/
 /* ii) Calcualte H|phi>				    */
 
-    calcCoefForceWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+    //calcCoefForceWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+    calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+    calcCoefForceWrapReduce(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
 
 /*--------------------------------------------------------------------------*/
 /* iii) Calcluate <phi|H|phi>	                                            */
@@ -480,7 +482,9 @@ void genEnergyMin(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*--------------------------------------------------------------------------*/
 /* ii) Calcualte H|phi>                                                     */
 
-    calcCoefForceWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+    //calcCoefForceWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+    calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+    calcCoefForceWrapReduce(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
 
 /*--------------------------------------------------------------------------*/
 /* iii) Calcluate <phi|H|phi>                                               */
@@ -578,37 +582,95 @@ void calcEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   CPOPTS *cpopts                = &(cp->cpopts);
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
   COMMUNICATE *communicate      = &(cp->communicate);
+  STAT_AVG *stat_avg            = &(general_data->stat_avg);
+  CPEWALD *cpewald              = &(cp->cpewald);
 
+  int cpLsda         = cpopts->cp_lsda;
   int numStateUpProc = cpcoeffs_info->nstate_up_proc;
   int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
   int numCoeff       = cpcoeffs_info->ncoef;
+  int numCoeffUpTotal = numStateUpProc*numCoeff;
+  int numCoeffDnTotal = numStateDnProc*numCoeff;
   int cpDualGridOptOn = cpopts->cp_dual_grid_opt;
   int numIteration   = 1000;
   int numChemPot = stodftInfo->numChemPot;
-  int iIter;
-  int iState,iCoeff,iCoeffStart,index1,index2;
+  int occNumber = stodftInfo->occNumber;
+  int iState,iCoeff,iChem;
+  int ioff,iis;
+
+  double tpi = 2.0*M_PI;
+  double eke,ekeDn;
+  double chemPotTrue = stodftInfo->chemPotTrue;
 
   double *chemPot = stodftCoefPos->chemPot;
+  double *energyKNL = stodftInfo->energyKNL;
   double *cre_up = cpcoeffs_pos->cre_up;
   double *cim_up = cpcoeffs_pos->cim_up;
+  double *cre_dn = cpcoeffs_pos->cre_dn;
+  double *cim_dn = cpcoeffs_pos->cim_dn;
   double *fcre_up = cpcoeffs_pos->fcre_up;
   double *fcim_up = cpcoeffs_pos->fcim_up;
+  double *fcre_dn = cpcoeffs_pos->fcre_dn;
+  double *fcim_dn = cpcoeffs_pos->fcim_dn;
+  double *ak2_sm  =  cpewald->ak2_sm;
+
   double **stoWfUpRe = stodftCoefPos->stoWfUpRe;
   double **stoWfUpIm = stodftCoefPos->stoWfUpIm;
   double **stoWfDnRe = stodftCoefPos->stoWfDnRe;
   double **stoWfDnIm = stodftCoefPos->stoWfDnIm;
 
-/*--------------------------------------------------------------------------*/
-/* I) Generate energy for each stochastic orbital                           */
+  
 
-  /*
+/*--------------------------------------------------------------------------*/
+/* I) Generate kinetic energy and nonlocal pseudopotential energy for	    */
+/*    each chemical potential.						    */
+
+  
   for(iChem=0;iChem<numChemPot;iChem++){
-    for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+    stat_avg->vinterp = 0.0;
+    stat_avg->cp_enl = 0.0;
+    for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
       cre_up[iCoeff] = stoWfUpRe[iChem][iCoeff];
       cim_up[iCoeff] = stoWfUpIm[iChem][iCoeff];
-    }
-  } 
-  */
+      fcre_up[iCoeff] = 0.0;
+      fcim_up[iCoeff] = 0.0;
+    }//endfor iCoeff
+    if(cpLsda==1&&numStateDnProc!=0){
+      for(iCoeff=1;iCoeff<=numCoeffDnTotal;iCoeff++){
+	cre_dn[iCoeff] = stoWfDnRe[iChem][iCoeff];
+	cim_dn[iCoeff] = stoWfDnIm[iChem][iCoeff];
+	fcre_dn[iCoeff] = 0.0;
+	fcim_dn[iCoeff] = 0.0;
+      }//endfor iCoeff
+    }//endif cpLsda
+
+    calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+    calcCoefForceExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+
+    eke = 0.0;
+    for(iState=0;iState<numStateUpProc;iState++){
+      ioff = iState*numCoeff;
+      for(iCoeff=1;iCoeff<=numCoeff-1;iCoeff++){
+	iis = ioff+iCoeff;
+	eke += 2.0*ak2_sm[iCoeff]*(cre_up[iis]*cre_up[iis] + cim_up[iis]*cim_up[iis]);
+      }//endfor iCoeff
+    }//endfor iState
+    eke *= occNumber*0.5;
+    if(cpLsda==1&&numStateDnProc!=0){
+      ekeDn = 0.0
+      for(iState=0;iState<numStateDnProc;iState++){
+	ioff = iState*numCoeff;
+	for(iCoeff=1;iCoeff<=numCoeff-1;iCoeff++){
+	  iis = ioff+iCoeff;
+	  ekeDn += 2.0*ak2_sm[iCoeff]*(cre_dn[iis]*cre_dn[iis] + cim_dn[iis]*cim_dn[iis]);
+	}//endfor iCoeff
+      }//endfor iState
+      eke += ekeDn*occNumber*0.5;
+    }//endif cpLsda
+    stat_avg->cp_enl += eke;
+
+
+  }//endfor iChem
   
 
 

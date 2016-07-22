@@ -1,6 +1,7 @@
 #define DEC_ALPHA
 #define NO_PRAGMA
 #define SIMP_NINT
+#define FFTW3
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>

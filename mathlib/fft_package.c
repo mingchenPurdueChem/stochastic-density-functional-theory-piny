@@ -1470,7 +1470,6 @@ void fft_gen1d(double *zfft,int nfft,int incl,int num,int incn,
  int ier_for;
  int isys;
 
-
 /*==========================================================================*/
 /* Machine Specific FFT */
 

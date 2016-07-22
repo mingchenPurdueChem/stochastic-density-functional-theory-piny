@@ -91,7 +91,9 @@ void normHNewtonHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /* 1) Calculate the H/sigma|phi> */
   //control_vps_atm_list will be done somewhere else (perhaps in density calculation?)
 
-  calcCoefForceWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+  //calcCoefForceWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+  calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+  calcCoefForceWrapReduce(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
 
   for(iState=0;iState<numStateUpProc;iState++){
     iCoeffStart = iState*numCoeff;
@@ -328,6 +330,7 @@ void calcKSPotExtRecipWrap(CLASS *class,GENERAL_DATA *general_data,
 
 
   double vrecip;
+  double *vrecip_ret = &(stat_avg->vrecip);
 
   double *vnlreal_up    = cpscr->cpscr_nonloc.vnlre_up;
   double *vnlimag_up    = cpscr->cpscr_nonloc.vnlim_up;
@@ -541,6 +544,7 @@ void calcKSPotExtRecipWrap(CLASS *class,GENERAL_DATA *general_data,
                    for_scr,cp_dual_grid_opt,idual_switch);
   }/*endif cp_dual_grid_opt*/
 
+  *vrecip_ret += vrecip;
 
 /*==========================================================================*/
 }/*end Routine*/
@@ -680,8 +684,7 @@ void calcCoefForceExtRecipWrap(CLASS *class,GENERAL_DATA *general_data,
   double *fcre_dn = cpcoeffs_pos->fcre_dn;
   double *fcim_dn = cpcoeffs_pos->fcim_dn;
 
-  double cp_enl_ret;
-  double vrecip_ret;
+  double *cp_enl_ret = &(stat_avg->cp_enl);
 
 /*======================================================================*/
 /* II) Malloc a hessian scratch vector if necessary                     */
@@ -733,8 +736,8 @@ void calcCoefForceExtRecipWrap(CLASS *class,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* VII) Get the nl pe, pvten and particle forces then the coef forces   */
 
-   cp_enl    = 0.00000000;
-   cp_enl_gh = 0.00000000;
+   cp_enl    = 0.0;
+   cp_enl_gh = 0.0;
 
  if((nl_max_all >= 0) && (n_rad_max>1)){
       non_loc_chng_ord(clatoms_pos,clatoms_info,
@@ -776,7 +779,7 @@ void calcCoefForceExtRecipWrap(CLASS *class,GENERAL_DATA *general_data,
 
  for(igh=1;igh<=pseudo->ngh;igh++){
 
-  cp_enl_gh = 0.00000;
+  cp_enl_gh = 0.0;
 
   if(nl_max_all >= 0){
    for(i=1;i<=ntot_up;i++){
@@ -876,8 +879,7 @@ void calcCoefForceExtRecipWrap(CLASS *class,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* VIII) Assign the potential energy                                    */
 
-  vrecip_ret += vrecip;
-  cp_enl_ret += cp_enl;
+  *cp_enl_ret += cp_enl;
 
 /*======================================================================*/
 /* IX) Reduce particle forces if necessary                              */
@@ -1275,7 +1277,6 @@ void calcCoefForceWrapReduce(CLASS *class,GENERAL_DATA *general_data,
   double *fcre_dn = cpcoeffs_pos->fcre_dn;
   double *fcim_dn = cpcoeffs_pos->fcim_dn;
 
-  printf("Reduce energy calc\n");
 /*==========================================================================*/
 /* 0) Copy the input wave function to CP coeff and zero the force */
 
@@ -1284,7 +1285,7 @@ void calcCoefForceWrapReduce(CLASS *class,GENERAL_DATA *general_data,
     fcim_up[iCoeff] = 0.0;
   }
   if(cpLsda==1&&numStateDnProc!=0){
-    for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
+    for(iCoeff=1;iCoeff<=numCoeffDnTotal;iCoeff++){
       fcre_dn[iCoeff] = 0.0;
       fcim_dn[iCoeff] = 0.0;
     }

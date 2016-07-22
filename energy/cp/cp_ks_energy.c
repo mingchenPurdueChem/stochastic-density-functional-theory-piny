@@ -434,7 +434,7 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
                       "cp_rho_calc");
 #endif
 
-  for(i=1;i<=10;i++)printf("i %i rhocr_up %lg rhoci_up %lg\n",i,rhocr_up[i],rhoci_up[i]);
+  //for(i=1;i<=10;i++)printf("i %i rhocr_up %lg rhoci_up %lg\n",i,rhocr_up[i],rhoci_up[i]);
 
 /*======================================================================*/
 /* V) If required get the kinetic energy density (similar to density)   */
@@ -486,7 +486,7 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
   } /* endif construct elf */
 
 /*======================================================================*/
-/*   VII) Calculate the non-local pseudopotential list                    */
+/*   VII) Calculate the non-local pseudopotential list                  */
 /*      Make sure that particles are not too far apart for clusters     */
 /*      Calculate the external potential in g space.                    */
 /*      Calculate the non-local pseudopotential energy                  */
@@ -520,10 +520,10 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
 #endif
 
 /*======================================================================*/
-/* VIII) Calculate the Hartree and exchange correlation energy             */
-/*     Calculate the local external potential energy                     */
-/*     Calculate the electronic kinetic energy                           */
-/*     Calculate the rest of the coef forces                             */
+/* VIII) Calculate the Hartree and exchange correlation energy          */
+/*     Calculate the local external potential energy                    */
+/*     Calculate the electronic kinetic energy                          */
+/*     Calculate the rest of the coef forces                            */
 
 
 #ifdef TIME_CP

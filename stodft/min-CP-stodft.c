@@ -205,9 +205,11 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*----------------------------------------------------------------------*/
 /* ii) Generate stochastic WF for different chemical potentials         */
 
-    //genStoOrbital(class,bonded,general_data,cp,ip_now);
+    genStoOrbital(class,bonded,general_data,cp,ip_now);
     
+    exit(0);   
     
+    /*
     FILE *filePrintWF = fopen("sto-wf-save","r");
     for(iChem=0;iChem<numChemPot;iChem++){
       for(iState=0;iState<numStateUp;iState++){
@@ -234,7 +236,7 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       norm += stoWfUpRe[0][iState*numCoeff+numCoeff]*stoWfUpRe[0][iState*numCoeff+numCoeff];
       printf("iState %i norm %lg\n",iState,norm);
     }
-
+    */
     
     
 /*----------------------------------------------------------------------*/
@@ -505,6 +507,9 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   stodftInfo->energyDiff = energyMax-energyMin;
   energyDiff = stodftInfo->energyDiff;
   stodftInfo->energyMean = 0.5*(energyMin+energyMax);
+
+/*======================================================================*/
+/* IV) Generate Coeffcients for Polynormial interpolation               */
   
   if(expanType==2){
     Smin = newtonInfo->Smin;
@@ -522,11 +527,6 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }
 
 /*======================================================================*/
-/* IV) Generate Coeffcients for Polynormial interpolation               */
-  
-  genNewtonHermit(stodftInfo,stodftCoefPos);
-
-/*======================================================================*/
 /* IV) Generate random orbital                                          */
 
   genNoiseOrbital(cp,cpcoeffs_pos);
@@ -542,7 +542,7 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }
 
 //debug print wave function
-  FILE *filePrintWF = fopen("sto-wf-save","w");
+  FILE *filePrintWF = fopen("sto-wf-save-test","w");
   for(iChem=0;iChem<numChemPot;iChem++){
     for(iState=0;iState<numStateUpProc;iState++){
       for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){

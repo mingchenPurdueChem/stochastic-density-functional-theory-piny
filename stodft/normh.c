@@ -159,7 +159,6 @@ void normHNewtonHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 }/*end Routine*/
 /*==========================================================================*/
 
-
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
@@ -866,7 +865,7 @@ void calcCoefForceExtRecipWrap(CLASS *class,GENERAL_DATA *general_data,
                       cell,np_nlmax_gh,pvten,for_scr,
                       pseudo->rgh[igh],pseudo->wgh,igh);
 
-        cp_enl_ret += cp_enl_gh;
+        *cp_enl_ret += cp_enl_gh;
       }/*endfor igh gauss-hermite integration points */
 
     }/*endif gauss-hermit*/

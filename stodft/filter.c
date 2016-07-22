@@ -125,7 +125,7 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   cputime(&timeStart);  
 
   for(iPoly=1;iPoly<polynormLength;iPoly++){
-    if(iPoly%100==0){
+    if(iPoly%1000==0){
       printf("iPoly %i\n",iPoly);
       fflush(stdout);
     }  
@@ -577,6 +577,7 @@ void calcEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*************************************************************************/
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
+#include "../typ_defs/typ_mask.h"
   STODFTINFO *stodftInfo        = cp->stodftInfo;
   STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
   CPOPTS *cpopts                = &(cp->cpopts);
@@ -592,15 +593,20 @@ void calcEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int numCoeffUpTotal = numStateUpProc*numCoeff;
   int numCoeffDnTotal = numStateDnProc*numCoeff;
   int cpDualGridOptOn = cpopts->cp_dual_grid_opt;
-  int numIteration   = 1000;
   int numChemPot = stodftInfo->numChemPot;
   int occNumber = stodftInfo->occNumber;
+  int myidState         = communicate->myid_state;
+  int numProcStates = communicate->np_states;
   int iState,iCoeff,iChem;
   int ioff,iis;
 
   double tpi = 2.0*M_PI;
   double eke,ekeDn;
   double chemPotTrue = stodftInfo->chemPotTrue;
+  double energyKineticTemp,energyNLTemp;
+  double energyHartTemp,energyExtTemp,energyExcTemp;
+  double energyTrue,energyTotElec;
+  
 
   double *chemPot = stodftCoefPos->chemPot;
   double *energyKNL = stodftInfo->energyKNL;
@@ -613,21 +619,21 @@ void calcEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   double *fcre_dn = cpcoeffs_pos->fcre_dn;
   double *fcim_dn = cpcoeffs_pos->fcim_dn;
   double *ak2_sm  =  cpewald->ak2_sm;
+  double *lagFunValue = (double*)cmalloc(numChemPot*sizeof(double));
 
   double **stoWfUpRe = stodftCoefPos->stoWfUpRe;
   double **stoWfUpIm = stodftCoefPos->stoWfUpIm;
   double **stoWfDnRe = stodftCoefPos->stoWfDnRe;
   double **stoWfDnIm = stodftCoefPos->stoWfDnIm;
 
+  MPI_Comm commStates = communicate->comm_states; 
   
-
 /*--------------------------------------------------------------------------*/
 /* I) Generate kinetic energy and nonlocal pseudopotential energy for	    */
 /*    each chemical potential.						    */
-
   
   for(iChem=0;iChem<numChemPot;iChem++){
-    stat_avg->vinterp = 0.0;
+    stat_avg->vrecip = 0.0;
     stat_avg->cp_enl = 0.0;
     for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
       cre_up[iCoeff] = stoWfUpRe[iChem][iCoeff];
@@ -652,28 +658,68 @@ void calcEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       ioff = iState*numCoeff;
       for(iCoeff=1;iCoeff<=numCoeff-1;iCoeff++){
 	iis = ioff+iCoeff;
-	eke += 2.0*ak2_sm[iCoeff]*(cre_up[iis]*cre_up[iis] + cim_up[iis]*cim_up[iis]);
+	eke += 2.0*ak2_sm[iCoeff]*(cre_up[iis]*cre_up[iis]+cim_up[iis]*cim_up[iis]);
       }//endfor iCoeff
     }//endfor iState
     eke *= occNumber*0.5;
     if(cpLsda==1&&numStateDnProc!=0){
-      ekeDn = 0.0
+      ekeDn = 0.0;
       for(iState=0;iState<numStateDnProc;iState++){
 	ioff = iState*numCoeff;
 	for(iCoeff=1;iCoeff<=numCoeff-1;iCoeff++){
 	  iis = ioff+iCoeff;
-	  ekeDn += 2.0*ak2_sm[iCoeff]*(cre_dn[iis]*cre_dn[iis] + cim_dn[iis]*cim_dn[iis]);
+	  ekeDn += 2.0*ak2_sm[iCoeff]*(cre_dn[iis]*cre_dn[iis]+cim_dn[iis]*cim_dn[iis]);
 	}//endfor iCoeff
       }//endfor iState
       eke += ekeDn*occNumber*0.5;
     }//endif cpLsda
-    stat_avg->cp_enl += eke;
+    stat_avg->cp_eke = eke;
+    if(numProcStates>1){
+      Reduce(&(stat_avg->cp_enl),&energyNLTemp,1,MPI_DOUBLE,MPI_SUM,0,commStates);
+      Reduce(&(stat_avg->cp_eke),&energyKineticTemp,1,MPI_DOUBLE,MPI_SUM,0,commStates);
+    }
+    else{
+      energyNLTemp = stat_avg->cp_enl;
+      energyKineticTemp = stat_avg->cp_eke;
+    }
 
-
+    if(myidState==0)energyKNL[iChem] = energyNLTemp+energyKineticTemp;
   }//endfor iChem
+
+/*--------------------------------------------------------------------------*/
+/* II) Interpolate the correct energy				            */
+    
+  if(myidState==0){
+    energyTrue = calcLagrangeInterpFun(numChemPot,chemPotTrue,chemPot,energyKNL,lagFunValue);
+  }
   
+/*--------------------------------------------------------------------------*/
+/* III) Reduce all the other energy terms calculated from density           */
+ 
+  if(numProcStates>1){
+    Reduce(&(stat_avg->cp_ehart),&energyHartTemp,1,MPI_DOUBLE,MPI_SUM,0,commStates);   
+    Reduce(&(stat_avg->cp_eext),&energyExtTemp,1,MPI_DOUBLE,MPI_SUM,0,commStates);
+    Reduce(&(stat_avg->cp_exc),&energyExcTemp,1,MPI_DOUBLE,MPI_SUM,0,commStates);
+  }
+  else{
+    energyHartTemp = stat_avg->cp_ehart;
+    energyExtTemp = stat_avg->cp_eext;
+    energyExcTemp = stat_avg->cp_exc;
+  }
 
+/*--------------------------------------------------------------------------*/
+/* IV) Output the energy Term					            */
 
+  if(myidState==0){
+    energyTotElec = energyTrue+energyHartTemp+energyExtTemp+energyExcTemp;
+    printf("==============================================\n");
+    printf("Output Energy:\n");
+    printf("Kinetic Energy+Nonlocal Pseudopotential: %.6lg\n",energyTrue);
+    printf("Hartree Energy: %.6lg\n",energyHartTemp);
+    printf("External Potential Energy(Local Pseudopotential): %.6lg\n",energyExtTemp); 
+    printf("Exchange-Correlation Energy: %.6lg\n",energyExcTemp); 
+    printf("==============================================\n");
+  }
 
 /*==========================================================================*/
 }/*end Routine*/

@@ -189,6 +189,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   stodftInfo->vpsAtomListFlag = 0;
 
   stodftCoefPos->chemPot = (double*)cmalloc(numChemPot*sizeof(double));
+  stodftInfo->energyKNL = (double*)cmalloc(numChemPot*sizeof(double));
 
   if(expanType==2&&filterFunType==1)stodftInfo->fermiFunctionReal = &fermiExpReal;
   if(expanType==2&&filterFunType==2)stodftInfo->fermiFunctionReal = &fermiErfcReal;
@@ -393,14 +394,14 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
       else{
 	stodftInfo->densityMap[iChem] = (iChem-(div+1)*res)/div+res;
 	stodftInfo->densityMap[iChem] = (iChem-(div+1)*res)%div;
-      }
-    }
+      }//endif
+    }//endfor iChem
     if(myidState<res)count = myidState*(div+1);
     else count = (div+1)*res+(myidState-res)*div;
     for(iChem=0;iChem<numChemProc;iChem++){
       stodftInfo->chemProcIndexInv[iChem] = count+iChem;
-    }
-  }
+    }//endfor iChem
+  }//endfor cpParaOpt
   else{//full g case
     stodftInfo->numChemProc = numChemPot;
     numChemProc = stodftInfo->numChemProc;

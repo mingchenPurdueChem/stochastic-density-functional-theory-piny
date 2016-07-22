@@ -101,6 +101,7 @@ void calcChemPotInterp(CP *cp)
     Bcast(&chemPotTrue,1,MPI_DOUBLE,0,comm_states);
     Bcast(interpCoef,numChemPot,MPI_DOUBLE,0,comm_states);
   }
+  stodftInfo->chemPotTrue;
   
   if(cpParaOpt==0){
     for(iChem=0;iChem<numChemProc;iChem++){

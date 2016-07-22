@@ -207,7 +207,7 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
     genStoOrbital(class,bonded,general_data,cp,ip_now);
     
-    exit(0);   
+    //exit(0);   
     
     /*
     FILE *filePrintWF = fopen("sto-wf-save","r");
@@ -238,7 +238,7 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     }
     */
     
-    
+
 /*----------------------------------------------------------------------*/
 /* iii)  Get the total density, for each chemical potential and get     */
 /*     total electron number for each chemical potential	        */
@@ -552,6 +552,11 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     }//endfor iState
   }//endfor iChem
   fclose(filePrintWF);
+
+/*======================================================================*/
+/* VI) Calculate Energy		                                        */
+
+  calcEnergy(cp,class,general_data,cpcoeffs_pos,clatoms_pos);
 
 //debug
   /*

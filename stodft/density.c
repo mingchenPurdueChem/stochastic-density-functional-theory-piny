@@ -932,11 +932,10 @@ void calcRhoStoHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     }
     else memcpy(rhoUpChemPot[iChem],&rhoTemp[1],rhoRealGridNum*sizeof(double));
     //debug
-    printf("iChem %i rhoTemp %lg rhoUp %lg\n",iChem,rhoTemp[4001],rhoUpChemPot[iChem][4000]);
+    //printf("iChem %i rhoTemp %lg rhoUp %lg\n",iChem,rhoTemp[4001],rhoUpChemPot[iChem][4000]);
     // Calculate the average density, haven't scale by 1/volume
   }
-  printf("11111111111111111\n");
-  printf("rhoUp %lg\n",rhoUpChemPot[0][4000]);
+  //printf("rhoUp %lg\n",rhoUpChemPot[0][4000]);
   if(cpLsda==1&&numStateDnProc!=0){
     for(iChem=0;iChem<numChemPot;iChem++){
       rhoCalcRealStoHybrid(cpscr,cpcoeffs_info,
@@ -956,18 +955,23 @@ void calcRhoStoHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     }  
   }
   // Calculate the average density, haven't scale by 1/volume
-  for(i=0;i<10;i++)printf("i %i rhoUp %lg\n",i,rhoUpChemPot[0][i]);
-  printf("aveFactUp %lg occNumber %i\n",aveFactUp,occNumber);
-  printf("rhoRealGridNum %i rhoRealGridTot %i\n",rhoRealGridNum,rhoRealGridTot);
+  
+  //for(i=0;i<10;i++)printf("i %i rhoUp %lg\n",i,rhoUpChemPot[0][i]);
+  //printf("aveFactUp %lg occNumber %i\n",aveFactUp,occNumber);
+  //printf("rhoRealGridNum %i rhoRealGridTot %i\n",rhoRealGridNum,rhoRealGridTot);
   for(iChem=0;iChem<numChemProc;iChem++){
     for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)rhoUpChemPot[iChem][iGrid] *= aveFactUp;
   }
   if(cpLsda==1&&numStateDnProc!=0){
     for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)rhoDnChemPot[iChem][iGrid] *= aveFactDn;
   }
+  /*
+  // debug
   FILE *fileDensityTest = fopen("density-test","w");
   for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)fprintf(fileDensityTest,"%lg\n",rhoUpChemPot[0][iGrid]);
   fclose(fileDensityTest);
+  */
+  
 
   free(&rhoTemp[1]);
 
@@ -979,10 +983,10 @@ void calcRhoStoHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     numElectronTemp[iChem] = 0.0;
   }
   
-  printf("numChemProc %i\n",numChemProc); 
+  //printf("numChemProc %i\n",numChemProc); 
   for(iChem=0;iChem<numChemProc;iChem++){
     index = chemProcIndexInv[iChem];
-    printf("index %i\n",index);
+    //printf("index %i\n",index);
     for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
       numElectronTemp[index] += rhoUpChemPot[iChem][iGrid];     
     }
@@ -992,7 +996,7 @@ void calcRhoStoHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       }
     }
     numElectronTemp[index] *= numGridTotInv;
-    printf("numElectronTemp %lg\n",numElectronTemp[index]);
+    //printf("numElectronTemp %lg\n",numElectronTemp[index]);
   }
   if(numProcStates>1){
     Allreduce(numElectronTemp,numElectron,numChemPot,MPI_DOUBLE,MPI_SUM,0,commStates);
@@ -1002,10 +1006,12 @@ void calcRhoStoHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   free(numElectronTemp);
 
 //debug
+  
   if(myidState==0){
     double *chemPot = stodftCoefPos->chemPot;
     for(iChem=0;iChem<numChemPot;iChem++)printf("chemPot-numElec %lg %lg\n",chemPot[iChem],numElectron[iChem]);
   }
+  
 
 /*==========================================================================*/
 /* III) Interpolate the correct # of electron and the correct density       */
@@ -1049,8 +1055,6 @@ void calcRhoStoHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   fclose(fileRhoReal);
   fclose(fileRhoRecip);  
   */
-
-  exit(0);
   
 /*==========================================================================*/
 }/*end Routine*/

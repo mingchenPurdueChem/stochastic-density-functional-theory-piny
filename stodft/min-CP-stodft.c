@@ -38,6 +38,7 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
   CELL *cell			 = &(general_data->cell);  
   PTENS *ptens			 = &(general_data->ptens);
+  STAT_AVG *stat_avg            = &(general_data->stat_avg);
   
   STODFTINFO *stodftInfo         = cp->stodftInfo;
   STODFTCOEFPOS *stodftCoefPos   = cp->stodftCoefPos;
@@ -61,7 +62,6 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int numChemPot		= stodftInfo->numChemPot;
   int cpLsda 			= cpopts->cp_lsda;
   int cpParaOpt			= cpopts->cp_para_opt;
-
 
   int checkPerdSize 		= cpopts->icheck_perd_size;
   int checkDualSize 		= cpopts->icheck_dual_size;
@@ -194,19 +194,44 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* V) SCF loop						                */
 
+  if(myidState==0){
+    printf("===============================================================================\n");
+    printf("Runing SCF Calculation\n");
+    printf("-------------------------------------------------------------------------------\n");
+  }
   for(iScf=0;iScf<numScf;iScf++){
+    if(myidState==0){
+      printf("********************************************************\n");
+      printf("SCF Step %i\n",iScf+1);
+      printf("--------------------------------------------------------\n");
+    }
 
 /*----------------------------------------------------------------------*/
-/* i) Generate KS potential                                             */
+/* i) Generate KS potential                                             */    
 
+    stat_avg->cp_ehart = 0.0;
+    stat_avg->cp_eext = 0.0;
+    stat_avg->cp_exc = 0.0;
     calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     calcKSForceControlWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+
+    if(myidState==0){
+      printf("==============================================\n");
+      printf("Finish Calculating Kohn-Sham Potential\n");
+      printf("----------------------------------------------\n");
+    }
 
 /*----------------------------------------------------------------------*/
 /* ii) Generate stochastic WF for different chemical potentials         */
 
     genStoOrbital(class,bonded,general_data,cp,ip_now);
     
+    if(myidState==0){
+      printf("==============================================\n");
+      printf("Finish Filtering Stochastic Orbitals\n");
+      printf("----------------------------------------------\n");
+    }
+
     //exit(0);   
     
     /*
@@ -220,9 +245,13 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       }//endfor iState
     }//endfor iChem
     fclose(filePrintWF);
+    */
     
+    calcEnergyChemPot(cp,class,general_data,cpcoeffs_pos,clatoms_pos);   
+
     
 //debug 
+    /*
     double norm;    
     double repart,impart;
     for(iState=0;iState<numStateUp;iState++){
@@ -247,9 +276,25 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*     to generate the density w.r.t. correct number of electrons.      */
 
 
-    if(cpParaOpt==0) calcRhoStoHybrid(class,bonded,general_data,cp,ip_now);
-    exit(0);   
+    if(cpParaOpt==0) calcRhoStoHybrid(class,bonded,general_data,cp,ip_now); 
 
+    if(myidState==0){
+      printf("==============================================\n");
+      printf("Finish Generating New Density\n");
+      printf("----------------------------------------------\n");
+    }
+
+    calcTotEnergy(cp,class,general_data,cpcoeffs_pos,clatoms_pos);
+
+    //exit(0);   
+
+    if(myidState==0){
+      printf("--------------------------------------------------------\n");
+      printf("Finish SCF Step %i\n",iScf+1);
+      printf("********************************************************\n");
+      printf("\n");
+    }
+    //exit(0);
 
   }//endfor iScf
 
@@ -531,7 +576,6 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
   genNoiseOrbital(cp,cpcoeffs_pos);
 
-
 /*======================================================================*/
 /* V) Filter the stochastic orbitals					*/
 
@@ -556,7 +600,7 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* VI) Calculate Energy		                                        */
 
-  calcEnergy(cp,class,general_data,cpcoeffs_pos,clatoms_pos);
+  //calcEnergy(cp,class,general_data,cpcoeffs_pos,clatoms_pos);
 
 //debug
   /*

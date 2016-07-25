@@ -13,6 +13,9 @@ double calcFitError(STODFTINFO *,STODFTCOEFPOS *);
 void filterNewtonPolyHerm(CP *,CLASS *,GENERAL_DATA *,int);
 void genEnergyMax(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,CLATOMS_POS *);
 void genEnergyMin(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,CLATOMS_POS *);
+void calcEnergyChemPot(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,CLATOMS_POS *);
+void calcTotEnergy(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,CLATOMS_POS *);
+
 
 /*-----------------------------------------------------------------*/
 /* init.c                                                          */
@@ -41,7 +44,6 @@ void calcCoefForceExtRecipWrap(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS  *,CLATO
 void calcKSForceControlWrap(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS  *,CLATOMS_POS *);
 void calcCoefForceForceControlWrap(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS  *,CLATOMS_POS *);
 void calcCoefForceWrapReduce(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);
-void calcEnergy(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,CLATOMS_POS *);
 
 
 /*-----------------------------------------------------------------*/

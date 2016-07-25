@@ -101,7 +101,7 @@ void calcChemPotInterp(CP *cp)
     Bcast(&chemPotTrue,1,MPI_DOUBLE,0,comm_states);
     Bcast(interpCoef,numChemPot,MPI_DOUBLE,0,comm_states);
   }
-  stodftInfo->chemPotTrue;
+  stodftInfo->chemPotTrue = chemPotTrue;
   
   if(cpParaOpt==0){
     for(iChem=0;iChem<numChemProc;iChem++){
@@ -118,7 +118,7 @@ void calcChemPotInterp(CP *cp)
     }//endfor iChem
   }
 
-  printf("coef %lg\n",interpCoef[0]);
+  //printf("coef %lg\n",interpCoef[0]);
 
   for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
     rhoUp[iGrid+1] = 0.0;
@@ -195,7 +195,7 @@ void genChemPotInterpPoints(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   
   for(iNode=0;iNode<numChemPot;iNode++){
     chemPot[iNode] = chebyNode[iNode]*0.5*gapInit+chemPotInit;
-    printf("iNode %i chemPot %lg\n",iNode,chemPot[iNode]);
+    //printf("iNode %i chemPot %lg\n",iNode,chemPot[iNode]);
   }
   
   free(chebyNode);

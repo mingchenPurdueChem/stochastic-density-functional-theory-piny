@@ -7,8 +7,8 @@
 /*             ------------------------------------                         */
 /*                   Module: density-init.c                                 */
 /*                                                                          */
-/* This routine costruct P_N(H)|phi> where P_N is some                      */
-/* polynomial.                                                              */
+/* This routine calculate initial density from either deterministic or      */
+/* random wave functions.                                                   */
 /*                                                                          */
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
@@ -27,7 +27,6 @@
 #include "../proto_defs/proto_stodft_local.h"
 
 #include "complex.h"
-#define TIME_CP_OFF
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/

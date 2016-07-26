@@ -53,10 +53,14 @@ void calcChemPotInterp(CP *cp)
   CPOPTS *cpopts = &(cp->cpopts);
   CPSCR *cpscr = &(cp->cpscr);  
   COMMUNICATE *commCP = &(cp->communicate);
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
 
   int iChem,iGrid;
   int chemPotIndex;
+  int numStateUpProc = cpcoeffs_info->nstate_up_proc;
+  int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
   int numChemPot = stodftInfo->numChemPot;
   int numChemProc = stodftInfo->numChemProc;
   int cpLsda = cpopts->cp_lsda;
@@ -125,7 +129,7 @@ void calcChemPotInterp(CP *cp)
     }//endfor iChem
     //printf("iGrid %i rhoCorrect %lg\n",iGrid,rhoUpCorrect[iGrid]*0.0009250463018013585);
   }//endfor iGrid  
-  if(cpLsda==1){
+  if(cpLsda==1&&numStateDnProc>0){
     if(cpParaOpt==0){
       for(iChem=0;iChem<numChemProc;iChem++){
 	chemPotIndex = chemProcIndexInv[iChem];

@@ -331,7 +331,6 @@ typedef struct stodftInfo{
 				    /*	    grid = nfft2			*/
   int rhoRealGridProc;		    /* Num: number of real space density grid   */
 				    /*	    on thid proc =nfft2_proc		*/
-
   int *densityMap;		    /* Lst: Map the density to different proc	*/
 				    /*	    We store the density for different  */
 				    /*	    chemical potential on different	*/
@@ -376,6 +375,14 @@ typedef struct stodftInfo{
   double *energyKNL;		    /* Num: Sum of kinetic and nonlocal pseudo- */
 				    /*	    potential energy for different      */
 				    /*	    chem pot.				*/
+  /* DIIS parameters */
+
+  int numDiis;                      /* Num: number of diis linear combination   */
+                                    /*      terms                               */
+  int numStepMix;                   /* Num: You may want to mix the densities   */
+                                    /*      at the begining of the SCF          */
+  double mixRatio;		    /* Num: What is the best ratio for mixing?  */
+
 
   FERMIFUNR fermiFunctionReal;
   FERMIFUNC fermiFunctionComplex;
@@ -411,7 +418,8 @@ typedef struct stodftCoefPos{
   //density 
   double **rhoUpChemPot;	    /* Lst: Density of different chemical	*/
   double **rhoDnChemPot;	    /*	    potential (spin up/down)		*/
-				    /* Lth: numChemProc[myid_state]*rhoRealGridNum  */
+				    /* Lth: numChemProc[myid_state]*		*/
+				    /*	    rhoRealGridNum			*/
  
   double *numElectron;		    /* Lst: Number of electron for each chem	*/
 				    /*	    potential.				*/ 
@@ -419,7 +427,11 @@ typedef struct stodftCoefPos{
   double *rhoUpCorrect;		    /* Lst: Density of correct chempot		*/
   double *rhoDnCorrect;		    /*	    (spin up/down)			*/
 				    /* Lth: rhoRealGridProc			*/
-
+  double **rhoBank;		    /* Lst: Stack stores densities for diis	*/
+				    /* Lth: numDiis*rhoRealGridNum		*/
+  double **rhoErr;		    /* Lst: Stack stores density difference	*/
+				    /*	    this step and last step		*/
+				    /* Lth: numDiis*rhoRealGridNum		*/
 }STODFTCOEFPOS;
 
 

@@ -1019,6 +1019,10 @@ void calcRhoStoHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /* III) Interpolate the correct # of electron and the correct density       */
 
   calcChemPotInterp(cp);
+
+/*==========================================================================*/
+/* IV) Generate the diis density				            */
+
  
 /*==========================================================================*/
 /* IV) Generate the reciprocal part and all the other things                */

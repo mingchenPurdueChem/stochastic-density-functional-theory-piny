@@ -199,7 +199,7 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     printf("Runing SCF Calculation\n");
     printf("-------------------------------------------------------------------------------\n");
   }
-  for(iScf=0;iScf<numScf;iScf++){
+  for(iScf=1;iScf<=numScf;iScf++){
     if(myidState==0){
       printf("********************************************************\n");
       printf("SCF Step %i\n",iScf+1);

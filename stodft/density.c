@@ -885,6 +885,7 @@ void calcRhoStoHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   double *divRhozDn       = cpscr->cpscr_grho.d_rhoz_dn;
   double *d2RhoDn        = cpscr->cpscr_grho.d2_rho_dn;
   double *numElectron = stodftCoefPos->numElectron;
+  double *chemPot = stodftCoefPos->chemPot;
   double *numElectronTemp = (double*)cmalloc(numChemPot*sizeof(double));
 
   double **stoWfUpRe = stodftCoefPos->stoWfUpRe;
@@ -1004,13 +1005,14 @@ void calcRhoStoHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   else memcpy(numElectron,numElectronTemp,numChemPot*sizeof(double));
 
   free(numElectronTemp);
-
-//debug
-  
+   
   if(myidState==0){
-    double *chemPot = stodftCoefPos->chemPot;
-    for(iChem=0;iChem<numChemPot;iChem++)printf("chemPot-numElec %lg %lg\n",chemPot[iChem],numElectron[iChem]);
+    printf("Min Chem Pot %.6lg # Electron %.6lg\n",chemPot[0],numElectron[0]);
+    printf("Max Chem Pot %.6lg # Electron %.6lg\n",chemPot[numChemPot-1],numElectron[numChemPot-1]);
+
+    //for(iChem=0;iChem<numChemPot;iChem++)printf("chemPot-numElec %lg %lg\n",chemPot[iChem],numElectron[iChem]);
   }
+  
   
 
 /*==========================================================================*/

@@ -212,25 +212,19 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     stat_avg->cp_ehart = 0.0;
     stat_avg->cp_eext = 0.0;
     stat_avg->cp_exc = 0.0;
+    if(myidState==0)printf("**Calculating Kohn-Sham Potential...\n");
     calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     calcKSForceControlWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
 
-    if(myidState==0){
-      printf("==============================================\n");
-      printf("Finish Calculating Kohn-Sham Potential\n");
-      printf("----------------------------------------------\n");
-    }
+    if(myidState==0)printf("**Finish Calculating Kohn-Sham Potential\n");
 
 /*----------------------------------------------------------------------*/
 /* ii) Generate stochastic WF for different chemical potentials         */
 
+    printf("**Generating Stochastic Orbitals...\n");
     genStoOrbital(class,bonded,general_data,cp,ip_now);
     
-    if(myidState==0){
-      printf("==============================================\n");
-      printf("Finish Filtering Stochastic Orbitals\n");
-      printf("----------------------------------------------\n");
-    }
+    if(myidState==0)printf("**Finish Generating Stochastic Orbitals\n");
 
     //exit(0);   
     
@@ -247,7 +241,9 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     fclose(filePrintWF);
     */
     
+    if(myidState==0)printf("**Calculating KE and NLPPE...\n");
     calcEnergyChemPot(cp,class,general_data,cpcoeffs_pos,clatoms_pos);   
+    if(myidState==0)printf("**Finish Calculating KE and NLP E\n");
 
     
 //debug 
@@ -275,16 +271,13 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*     Correct electron number and use the interpolation coefficients   */
 /*     to generate the density w.r.t. correct number of electrons.      */
 
-
+    if(myidState==0)printf("**Calculating Density...\n");
     if(cpParaOpt==0) calcRhoStoHybrid(class,bonded,general_data,cp,ip_now); 
+    if(myidState==0)printf("**Finish Calculating Density\n");
 
-    if(myidState==0){
-      printf("==============================================\n");
-      printf("Finish Generating New Density\n");
-      printf("----------------------------------------------\n");
-    }
-
+    if(myidState==0)printf("**Calculating Total Energy...\n");
     calcTotEnergy(cp,class,general_data,cpcoeffs_pos,clatoms_pos);
+    if(myidState==0)printf("**Finish Calculating Total Energy\n");
 
     //exit(0);   
 

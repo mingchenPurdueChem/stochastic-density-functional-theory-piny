@@ -83,7 +83,7 @@ void calcRhoStoHybrid(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 
 void calcChemPotInterp(CP *);
 void genChemPotInterpPoints(STODFTINFO *,STODFTCOEFPOS *);
-double solveLagrangePolyInterp(int ,double *, double *, double, double *);
+double solveLagrangePolyInterp(int ,double *, double *, double, double *,double *);
 double calcLagrangeInterpFun(int ,double ,double * ,double * ,double *);
 double calcLagrangeInterpDrv(int ,double ,double * ,double * ,double *);
 

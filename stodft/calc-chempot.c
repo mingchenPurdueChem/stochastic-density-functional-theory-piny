@@ -79,6 +79,7 @@ void calcChemPotInterp(CP *cp)
   
   double numElecTrue = stodftInfo->numElecTrue;
   double chemPotTrue;
+  double numElecDiff;
   double *numElectron = stodftCoefPos->numElectron;
   double *chemPot = stodftCoefPos->chemPot;
   double *interpCoef = (double*)cmalloc(numChemPot*sizeof(double)); //Interpolation Coeffcients
@@ -91,11 +92,8 @@ void calcChemPotInterp(CP *cp)
   double *rhoDn = cpscr->cpscr_rho.rho_dn;
 
   if(myidState==0){
-    printf("==============================================\n");
-    printf("Start interpolating number of electrons.\n");
-    chemPotTrue = solveLagrangePolyInterp(numChemPot,chemPot,numElectron,numElecTrue,interpCoef);
-    printf("The chemical potential with correct # of electron is %lg\n",chemPotTrue);
-    printf("==============================================\n");
+    chemPotTrue = solveLagrangePolyInterp(numChemPot,chemPot,numElectron,numElecTrue,interpCoef,&numElecDiff);
+    printf("Chem Pot %.6lg DNe %.6lg\n",chemPotTrue,numElecDiff);
   }
   if(numProcStates>1){
     Bcast(&chemPotTrue,1,MPI_DOUBLE,0,comm_states);
@@ -209,7 +207,7 @@ void genChemPotInterpPoints(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 double solveLagrangePolyInterp(int numSamp,double *x, double *y,double target,
-				double *interpCoef)
+				double *interpCoef,double *numElecDiff)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
@@ -260,7 +258,8 @@ double solveLagrangePolyInterp(int numSamp,double *x, double *y,double target,
     deriv = calcLagrangeInterpDrv(numSamp,xopt,x,y,interpCoef);
     tolnow = fabs(value);
   }
-
+  *numElecDiff = tolnow;
+  
   return xopt;
 /*==========================================================================*/
 }/*end Routine*/
@@ -281,19 +280,31 @@ double calcLagrangeInterpFun(int numSamp,double xopt,double *x,double *y,
 /*         Local Variable declarations                                   */
   int iTerm,jTerm;
   
+  int sign1,sign2;
   double sum = 0.0;
   double prod,prod2;
+  double diff1,diff2;
 
   for(iTerm=0;iTerm<numSamp;iTerm++){
-    prod = 1.0;
-    prod2 = 1.0;
+    prod = 0.0;
+    prod2 = 0.0;
+    sign1 = 1;
+    sign2 = 1;    
     for(jTerm=0;jTerm<numSamp;jTerm++){
       if(jTerm!=iTerm){
-	prod *= xopt-x[jTerm];
-	prod2 *= x[iTerm]-x[jTerm];
+	diff1 = xopt-x[jTerm];
+	diff2 = x[iTerm]-x[jTerm];
+	if(diff1<0)sign1 *= -1;
+	if(diff2<0)sign2 *= -1;
+	prod += 0.5*log(diff1*diff1);
+	prod2 += 0.5*log(diff2*diff2);
+	//prod *= xopt-x[jTerm];
+	//prod2 *= x[iTerm]-x[jTerm];
       }
     }
-    lagFunValue[iTerm] = prod/prod2;
+    if(fabs(prod2)<1e-50)printf("iTerm %i prod2 %lg\n",iTerm,prod2);
+    //lagFunValue[iTerm] = prod/prod2;
+    lagFunValue[iTerm] = sign1*sign2*exp(prod-prod2);
     sum += y[iTerm]*lagFunValue[iTerm];
   }
   return sum;

@@ -127,7 +127,7 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 
   for(iPoly=1;iPoly<polynormLength;iPoly++){
     if(iPoly%1000==0){
-      printf("iPoly %i\n",iPoly);
+      printf("%lg%% ",iPoly*100.0/polynormLength);
       fflush(stdout);
     }  
     normHNewtonHerm(cp,class,general_data,
@@ -147,8 +147,8 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       }//endif 
     }//endfor imu
   }//endfor iPoly
-  
   cputime(&timeEnd);
+  printf("\n");
   printf("Filter time is %lg\n",timeEnd-timeStart);
 
 /*==========================================================================*/
@@ -743,6 +743,13 @@ void calcTotEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /* II) Interpolate the correct energy				            */
     
   if(myidState==0){
+    //debug
+    /*
+    printf("chemPotTrue %lg\n",chemPotTrue);
+    for(iChem=0;iChem<numChemPot;iChem++){
+      printf("%lg %lg\n",chemPot[iChem],energyKNL[iChem]);
+    }
+    */
     energyTrue = calcLagrangeInterpFun(numChemPot,chemPotTrue,chemPot,energyKNL,lagFunValue);
   }
   
@@ -768,11 +775,11 @@ void calcTotEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     printf("==============================================\n");
     printf("Output Energy\n");
     printf("==============================================\n");
-    printf("Kinetic Energy+PNL: %.6lg\n",energyTrue);
-    printf("Hartree Energy:     %.6lg\n",energyHartTemp);
-    printf("Ext Energy:         %.6lg\n",energyExtTemp); 
-    printf("Ex-Cor Energy:      %.6lg\n",energyExcTemp); 
-    printf("Total Elec Energy   %.6lg\n",energyTotElec);
+    printf("Kinetic Energy+NLPP: %.6lg\n",energyTrue);
+    printf("Hartree Energy:      %.6lg\n",energyHartTemp);
+    printf("Ext Energy:          %.6lg\n",energyExtTemp); 
+    printf("Ex-Cor Energy:       %.6lg\n",energyExcTemp); 
+    printf("Total Elec Energy    %.6lg\n",energyTotElec);
     printf("==============================================\n");
   }
 

@@ -381,7 +381,10 @@ typedef struct stodftInfo{
                                     /*      terms                               */
   int numStepMix;                   /* Num: You may want to mix the densities   */
                                     /*      at the begining of the SCF          */
+  int diisMatrixCalcFullFlag;	    /* Num: Flag to calculate full diis matrix  */
+				    /*	    0=no, 1=yes				*/
   double mixRatio;		    /* Num: What is the best ratio for mixing?  */
+  double lambdaDiis;		    /* Num: Lagrange Multiplier for Diis	*/
 
 
   FERMIFUNR fermiFunctionReal;
@@ -432,6 +435,11 @@ typedef struct stodftCoefPos{
   double **rhoErr;		    /* Lst: Stack stores density difference	*/
 				    /*	    this step and last step		*/
 				    /* Lth: numDiis*rhoRealGridNum		*/
+  double *diisMatrix;		    /* Lst: matrix to calculate diis coeff	*/
+				    /*	    Only on root proc			*/
+				    /* Lth: (numDiis+1)*(numDiis+1)		*/
+  double *diisCoeff;		    /* Lst: diis coeffcient			*/
+				    /* Lth: numDiis				*/
 }STODFTCOEFPOS;
 
 

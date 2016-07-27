@@ -202,6 +202,10 @@ void calcDensityDiis(CP *cp,double **rhoBank,double **rhoErr)
   double *svdLinSol = (double*)cmalloc((numDiis+1)*sizeof(double));
   double *b = (double*)cmalloc((numDiis+1)*sizeof(double));
   double *diisCoeff = stodftCoefPos->diisCoeff;
+  double *rhoUp = cpscr->cpscr_rho.rho_up;
+  double *rhoDn = cpscr->cpscr_rho.rho_dn;
+  double *rhoUpCorrect = stodftCoefPos->rhoUpCorrect;
+  double *rhoDnCorrect = stodftCoefPos->rhoDnCorrect;
 
   MPI_Comm commStates = communicate->comm_states;
 
@@ -273,15 +277,32 @@ void calcDensityDiis(CP *cp,double **rhoBank,double **rhoErr)
 /*==========================================================================*/
 /* III) Safely reverse the diisMatrix with SVD				    */
 
-  for(iDiis=0;iDiis<numDiis;iDiis++)b[iDiis] = 0.0;
-  b[numDiis] = -1.0;
+  if(myidState==0){
+    for(iDiis=0;iDiis<numDiis;iDiis++)b[iDiis] = 0.0;
+    b[numDiis] = -1.0;
 
-  matrixInvSVD(diisMatrix,b,svdLinSol,numDiis+1);       
-
-  for(iDiis=0;iDiis<numDiis;iDiis++){
-    
+    matrixInvSVD(diisMatrix,b,svdLinSol,numDiis+1);       
   }
 
+  if(numProcStates>1){
+    Bcast(svdLinSol,numDiis+1,MPI_DOUBLE,0,commStates);
+  }
+
+  for(iDiis=0;iDiis<numDiis;iDiis++){
+    diisCoeff[iDiis] = svdLinSol[iDiis];    
+  }
+  stodftInfo->lambdaDiis = svdLinSol[numDiis];
+
+/*==========================================================================*/
+/* IV) Linear Combinination of all densities                                */
+  
+  // I may change this 
+  for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+    rhoUp[iGrid+1] = diisCoeff[0]*rhoUpCorrect[iGrid];
+    for(iDiis=1;iDiis<numDiis;iDiis++){
+      rhoUp[iGrid+1] = diisCoeff[iDiis]*rhoBank[iDiis-1][iGrid];
+    }
+  } 
 
   free(diisMatrixTemp);
   free(svdLinSol);
@@ -304,6 +325,7 @@ void matrixInvSVD(double *mat,double *b,double *x,int ndim)
 /*         Local Variable declarations                                   */
   char jobu = 'A';
   char jobvt = 'A';
+  char trans;
   int m = ndim;
   int n = ndim;
   int lda = ndim;
@@ -311,19 +333,46 @@ void matrixInvSVD(double *mat,double *b,double *x,int ndim)
   int ldvt = ndim;
   int lwork = 10*ndim;
   int info;
+  int incx,incy;
+  int i,j,k;
+  double alpha;
+  double beta;
 
   double *A = (double*)cmalloc(ndim*ndim*sizeof(double));
   double *s = (double*)cmalloc(ndim*sizeof(double));
   double *u = (double*)cmalloc(ndim*ndim*sizeof(double));
   double *vt = (double*)cmalloc(ndim*ndim*sizeof(double));
   double *work = (double*)cmalloc(lwork*sizeof(double));
+  double *u_b = (double*)cmalloc(ndim*sizeof(double));
+
   
   memcpy(A,mat,ndim*ndim*sizeof(double));
 
   DGESVD(&jobu,&jobvt,&m,&n,A,&lda,s,u,&ldu,vt,&ldvt,work,&lwork,&info);
-
   
- 
+  if(info==0){
+    trans = 't';
+    alpha = 1.0;
+    beta = 0.0;
+    incx = 1;
+    incy = 1;
+    DGEMV(&trans,&ndim,&ndim,&alpha,u,&lda,b,&incx,&beta,u_b,&incy);
+    for(i=0;i<ndim;i++)u_b[i] /= s[i];
+    DGEMV(&trans,&ndim,&ndim,&alpha,vt,&lda,u_b,&incx,&beta,x,&incy);
+  }
+  else if(info<0){
+    printf("The %ith parameter is illegal.\n",info);
+  }
+  else{
+    printf("Bidiagonal form B fails to converge.\n");
+  }
+  free(A);
+  free(s);
+  free(u);
+  free(vt);
+  free(work); 
+  free(u_b);
+  
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/

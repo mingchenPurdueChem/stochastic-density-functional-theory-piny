@@ -580,6 +580,7 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }
 
 //debug print wave function
+  /*
   FILE *filePrintWF = fopen("sto-wf-save-test","w");
   for(iChem=0;iChem<numChemPot;iChem++){
     for(iState=0;iState<numStateUpProc;iState++){
@@ -590,6 +591,7 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     }//endfor iState
   }//endfor iChem
   fclose(filePrintWF);
+  */
 
 /*======================================================================*/
 /* VI) Calculate Energy		                                        */

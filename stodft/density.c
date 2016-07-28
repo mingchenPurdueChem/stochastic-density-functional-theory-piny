@@ -841,6 +841,7 @@ void calcRhoStoHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int numStateStoUp	= stodftInfo->numStateStoUp;
   int numStateStoDn	= stodftInfo->numStateStoDn;
   int occNumber		= stodftInfo->occNumber;
+  int densityMixFlag	= stodftInfo->densityMixFlag;
   int iScf		= stodftInfo->iScf;
   int myidState		= commCP->myid_state;
   int numProcStates     = commCP->np_states;
@@ -1024,7 +1025,7 @@ void calcRhoStoHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*==========================================================================*/
 /* IV) Generate the diis density				            */
 
-  genDensityMix(cp,iScf);
+  if(densityMixFlag>0)genDensityMix(cp,iScf);
  
 /*==========================================================================*/
 /* IV) Generate the reciprocal part and all the other things                */

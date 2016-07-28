@@ -48,7 +48,7 @@ void genDensityMix(CP *cp,int iScf)
   COMMUNICATE *communicate      = &(cp->communicate);
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
   
-  int iGrid;
+  int iGrid,iDiis;
   int rhoRealGridNum = stodftInfo->rhoRealGridNum;
   int numDiis = stodftInfo->numDiis;
   int numStepMix = stodftInfo->numStepMix;
@@ -71,9 +71,10 @@ void genDensityMix(CP *cp,int iScf)
 
   //updateBank(rhoUpCorrect,rhoUpBank,iScf);
   //updateErr(rhoUpBank,rhoUpErr,iScf);
+  printf("111111111111111\n");
 
   if(iScf==0){//Initial Step
-    updateBank(todftInfo,stodftCoefPos,rhoUpCorrect,rhoUpBank);
+    updateBank(stodftInfo,stodftCoefPos,rhoUpCorrect,rhoUpBank);
   }
   else if(iScf<=numStepMix){//Mixing Step
     for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
@@ -133,7 +134,7 @@ void updateBank(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
   if(rhoBank[numDiis-1]!=NULL)free(rhoBank[numDiis-1]);
   for(iDiis=numDiis-2;iDiis>-1;iDiis--)rhoBank[iDiis+1] = rhoBank[iDiis];
   rhoBank[0] = (double*)cmalloc(rhoRealGridNum*sizeof(double));
-  mencpy(rhoBank[0],rho,rhoRealGridNum*sizeof(double));
+  memcpy(rhoBank[0],rho,rhoRealGridNum*sizeof(double));
 
 /*==========================================================================*/
 }/*end Routine*/
@@ -194,6 +195,7 @@ void calcDensityDiis(CP *cp,double **rhoBank,double **rhoErr)
   int rhoRealGridNum = stodftInfo->rhoRealGridNum;
   int diisMatrixCalcFullFlag = stodftInfo->diisMatrixCalcFullFlag;
   int iDiis,jDiis,index1,index2;
+  int iGrid;
   int incx = 1;
   int incy = 1;
 
@@ -257,7 +259,7 @@ void calcDensityDiis(CP *cp,double **rhoBank,double **rhoErr)
       for(iDiis=0;iDiis<numDiis-1;iDiis++){
 	for(jDiis=0;jDiis<numDiis-1;jDiis++){
 	  index1 = iDiis*(numDiis-1)+jDiis; //index in diisMatrixTemp
-	  index2 = (iDiis+1)*(numDiis+1)+jDiis+1 //index in new diisMatrix
+	  index2 = (iDiis+1)*(numDiis+1)+jDiis+1; //index in new diisMatrix
 	  diisMatrix[index2] = diisMatrixTemp[index1];
 	}//endfor jDiis
       }//endfor iDiis
@@ -276,6 +278,15 @@ void calcDensityDiis(CP *cp,double **rhoBank,double **rhoErr)
       }//endif myidState
     }//endfor iDiis
   }//endif diisMatrixCalcFullFlag
+
+  for(iDiis=0;iDiis<numDiis+1;iDiis++){
+    for(jDiis=0;jDiis<numDiis+1;jDiis++){
+      index1 = iDiis*(numDiis+1)+jDiis;
+      printf("%.16lg,",diisMatrix[index1]);
+    }
+    printf("\n");
+  }
+
 /*==========================================================================*/
 /* III) Safely reverse the diisMatrix with SVD				    */
 
@@ -290,6 +301,10 @@ void calcDensityDiis(CP *cp,double **rhoBank,double **rhoErr)
     Bcast(svdLinSol,numDiis+1,MPI_DOUBLE,0,commStates);
   }
 
+  for(iDiis=0;iDiis<numDiis+1;iDiis++){
+    printf("%.16lg ",svdLinSol[iDiis]);
+  }
+  printf("\n");
   for(iDiis=0;iDiis<numDiis;iDiis++){
     diisCoeff[iDiis] = svdLinSol[iDiis];    
   }

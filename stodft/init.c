@@ -451,6 +451,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     if(densityMixFlag==2){
       stodftCoefPos->diisMatrix = (double*)cmalloc((numDiis+1)*(numDiis+1)*sizeof(double));
       stodftCoefPos->diisCoeff  = (double*)cmalloc((numDiis+1)*sizeof(double));
+      stodftInfo->diisMatrixCalcFullFlag = 1;
     }
   }
 

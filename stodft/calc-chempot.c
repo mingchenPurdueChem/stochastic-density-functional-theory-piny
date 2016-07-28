@@ -90,8 +90,8 @@ void calcChemPotInterp(CP *cp)
   double *rhoTemp = (double*)cmalloc(numChemPot*rhoRealGridNum*sizeof(double));
   double **rhoUpChemPot = stodftCoefPos->rhoUpChemPot;
   double **rhoDnChemPot = stodftCoefPos->rhoDnChemPot;
-  //double *rhoUpCorrect = stodftCoefPos->rhoUpCorrect;
-  //double *rhoDnCorrect = stodftCoefPos->rhoDnCorrect;
+  double *rhoUpCorrect = stodftCoefPos->rhoUpCorrect;
+  double *rhoDnCorrect = stodftCoefPos->rhoDnCorrect;
   double *rhoUp = cpscr->cpscr_rho.rho_up;
   double *rhoDn = cpscr->cpscr_rho.rho_dn;
 
@@ -123,9 +123,9 @@ void calcChemPotInterp(CP *cp)
   //printf("coef %lg\n",interpCoef[0]);
 
   for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
-    rhoUp[iGrid+1] = 0.0;
+    rhoUpCorrect[iGrid] = 0.0;
     for(iChem=0;iChem<numChemPot;iChem++){
-      rhoUp[iGrid+1] += interpCoef[iChem]*rhoTemp[iChem*rhoRealGridNum+iGrid];
+      rhoUpCorrect[iGrid] += interpCoef[iChem]*rhoTemp[iChem*rhoRealGridNum+iGrid];
     }//endfor iChem
     //printf("iGrid %i rhoCorrect %lg\n",iGrid,rhoUpCorrect[iGrid]*0.0009250463018013585);
   }//endfor iGrid  
@@ -143,9 +143,9 @@ void calcChemPotInterp(CP *cp)
       }//endfor iChem
     }//endif cpParaOpt
     for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
-      rhoDn[iGrid+1] = 0.0;
+      rhoDnCorrect[iGrid] = 0.0;
       for(iChem=0;iChem<numChemPot;iChem++){
-	rhoDn[iGrid+1] += interpCoef[iChem]*rhoTemp[iChem*rhoRealGridNum+iGrid];
+	rhoDnCorrect[iGrid] += interpCoef[iChem]*rhoTemp[iChem*rhoRealGridNum+iGrid];
       }//endfor iChem
     }//endfor iGrid  
   }

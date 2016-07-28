@@ -160,6 +160,8 @@ void calcRhoDetInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   double *divRhozDn       = cpscr->cpscr_grho.d_rhoz_dn;
   double *d2RhoDn        = cpscr->cpscr_grho.d2_rho_dn;
   double *hmatCP	 = cell->hmat_cp;
+  double *rhoUpCorrect   = stodftCoefPos->rhoUpCorrect;
+  double *rhoDnCorrect   = stodftCoefPos->rhoDnCorrect;
 
 
 /*======================================================================*/
@@ -229,7 +231,8 @@ void calcRhoDetInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
 /*======================================================================*/
 /* II) Store the density for mixing			                */
-
+  
+  printf("densityMixFlag %i\n",densityMixFlag);
   if(densityMixFlag>0){
     volCP  = getdeth(hmatCP);
     for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
@@ -240,8 +243,17 @@ void calcRhoDetInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 	rhoDnCorrect[iGrid] = rhoDn[iGrid+1]*volCP;
       }
     }
+    //debug
     genDensityMix(cp,0);
+    /*
+    int itest;
+    for(itest=0;itest<100;itest++){
+      genDensityMix(cp,itest);
+      rhoUpCorrect[0] += 0.1/(itest+1);
+    }
+    */
   }
+  //exit(0);
   /*
   //debug
   FILE *fileRhoInit = fopen("density-init","w");

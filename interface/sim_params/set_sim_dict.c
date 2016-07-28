@@ -2261,6 +2261,18 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
   strcpy((*dict)[13].keyword,"band_gap_init");
   strcpy((*dict)[13].keyarg,"-1.0");
 
+  strcpy((*dict)[14].error_mes,"Flag for density mixing:off;mix;mix-diis");
+  strcpy((*dict)[14].keyword,"rho_mix_flag");
+  strcpy((*dict)[14].keyarg,"off");
+
+  strcpy((*dict)[15].error_mes,"For mixing-diis, how many mixing steps do you want before diis?");
+  strcpy((*dict)[15].keyword,"mix_steps");
+  strcpy((*dict)[15].keyarg,"0");
+
+  strcpy((*dict)[16].error_mes,"For mixing-diis, how many densities do you want to mix for diis?");
+  strcpy((*dict)[16].keyword,"num_diis");
+  strcpy((*dict)[16].keyarg,"0");
+
  /*========================================================================*/
  } /* end routine set_sim_dict_harmonic */
  /*========================================================================*/

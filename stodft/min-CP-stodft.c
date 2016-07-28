@@ -205,6 +205,7 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       printf("SCF Step %i\n",iScf+1);
       printf("--------------------------------------------------------\n");
     }
+    stodftInfo->iScf = iScf;
 
 /*----------------------------------------------------------------------*/
 /* i) Generate KS potential                                             */    

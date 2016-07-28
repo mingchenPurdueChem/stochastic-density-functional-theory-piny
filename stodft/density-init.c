@@ -116,6 +116,7 @@ void calcRhoDetInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   COMMUNICATE   *commCP         = &(cp->communicate);
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
 
+  int densityMixFlag = stodftInfo->densityMixFlag;
   int cpParaOpt = cpopts->cp_para_opt;
   int cpLsda = cpopts->cp_lsda;
   int cpGGA  = cpopts->cp_gga;
@@ -128,12 +129,13 @@ void calcRhoDetInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
   int numCoeff       = cpcoeffs_info->ncoef;
   int rhoRealGridNum = stodftInfo->rhoRealGridNum;
-  int iCoeff;
+  int iCoeff,iGrid;
   int *coefFormUp   = &(cpcoeffs_pos->icoef_form_up);
   int *coefFormDn   = &(cpcoeffs_pos->icoef_form_dn);
   int *coefOrthUp   = &(cpcoeffs_pos->icoef_orth_up);
   int *coefOrthDn   = &(cpcoeffs_pos->icoef_orth_dn);
 
+  double volCP;
 
   double *coeffReUp = cpcoeffs_pos->cre_up;
   double *coeffImUp = cpcoeffs_pos->cim_up;
@@ -157,10 +159,11 @@ void calcRhoDetInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   double *divRhoyDn       = cpscr->cpscr_grho.d_rhoy_dn;
   double *divRhozDn       = cpscr->cpscr_grho.d_rhoz_dn;
   double *d2RhoDn        = cpscr->cpscr_grho.d2_rho_dn;
+  double *hmatCP	 = cell->hmat_cp;
 
 
 /*======================================================================*/
-/* III) Calculate the density		                        */
+/* I) Calculate the density			                        */
 
 
   //Debug Flag: we temp do this for debug
@@ -224,6 +227,23 @@ void calcRhoDetInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     } /* endif */
   }/* endif */
 
+/*======================================================================*/
+/* II) Store the density for mixing			                */
+
+  if(densityMixFlag>0){
+    volCP  = getdeth(hmatCP);
+    for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+      rhoUpCorrect[iGrid] = rhoUp[iGrid+1]*volCP;
+    }
+    if(cpLsda==1&&numStateDnProc>0){
+      for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+	rhoDnCorrect[iGrid] = rhoDn[iGrid+1]*volCP;
+      }
+    }
+    genDensityMix(cp,0);
+  }
+  /*
+  //debug
   FILE *fileRhoInit = fopen("density-init","w");
   FILE *fileRhoInitRecip = fopen("density-recip","w");
   int iGrid;
@@ -231,6 +251,7 @@ void calcRhoDetInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   for(iCoeff=1;iCoeff<=numCoeffLargeProc;iCoeff++)fprintf(fileRhoInitRecip,"%.10lg %.10lg\n",rhoCoeffReUp[iCoeff],rhoCoeffImUp[iCoeff]);
   fclose(fileRhoInit);
   fclose(fileRhoInitRecip);
+  */
   
 
 /*==========================================================================*/

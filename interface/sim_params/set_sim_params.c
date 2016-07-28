@@ -4571,6 +4571,19 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   /*  13)\band_gap_init{#} */
   sscanf(dict[13].keyarg,"%lg",&rka);
   stodftInfo->gapInit = rka;
+  /*-----------------------------------------------------------------------*/
+  /*  14)\rho_mix_flag{#} */
+  if(strcasecmp(dict[14].keyarg,"off")==0)stodftInfo->densityMixFlag = 0;
+  if(strcasecmp(dict[14].keyarg,"mix")==0)stodftInfo->densityMixFlag = 1;
+  if(strcasecmp(dict[14].keyarg,"mix-diis")==0)stodftInfo->densityMixFlag = 2;
+  /*-----------------------------------------------------------------------*/
+  /*  15)\mix_steps{#} */
+  sscanf(dict[15].keyarg,"%lg",&rka);
+  stodftInfo->numStepMix = (int)(rka);
+  /*-----------------------------------------------------------------------*/
+  /*  16)\num_diis{#} */
+  sscanf(dict[16].keyarg,"%lg",&rka);
+  stodftInfo->numDiis = (int)(rka);
  
 /*=======================================================================*/
 /* Check the conflicate options						 */
@@ -4684,6 +4697,13 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
     if(stodftInfo->gapInit<=0.0){
       printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
       printf("Band gap has to be positive. Metal is not implemented here!\n");
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(0);
+    }
+    if(stodftInfo->densityMixFlag==2&&stodftInfo->numStepMix<stodftInfo->numDiis){
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      printf("You need to put enough densities to bank before diis!\n");
       printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
       fflush(stdout);
       exit(0);

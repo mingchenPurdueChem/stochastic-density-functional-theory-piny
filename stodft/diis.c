@@ -73,36 +73,38 @@ void genDensityMix(CP *cp,int iScf)
   //updateErr(rhoUpBank,rhoUpErr,iScf);
 
   if(iScf==0){//Initial Step
+    updateBank(todftInfo,stodftCoefPos,rhoUpCorrect,rhoUpBank);
   }
   else if(iScf<=numStepMix){//Mixing Step
     for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
-      rhoUp[iGrid+1] = rhoUpBank[0][iGrid]*mixRatio1+rhoUpBank[1][iGrid]*mixRatio2;
+      rhoUp[iGrid+1] = rhoUpCorrect[iGrid]*mixRatio1+rhoUpBank[0][iGrid]*mixRatio2;
     }
-    updateBank(rhoUpCorrect,rhoUpBank,iScf);
-    updateErr(rhoUpBank,rhoUpErr,iScf);
+    updateErr(stodftInfo,stodftCoefPos,rhoUpCorrect,rhoUpErr,rhoUpBank);
+    updateBank(stodftInfo,stodftCoefPos,rhoUpCorrect,rhoUpBank);
   }
   else{//diis
-    updateErr(rhoUpBank,rhoUpErr,iScf);
+    updateErr(stodftInfo,stodftCoefPos,rhoUpCorrect,rhoUpErr,rhoUpBank);
     calcDensityDiis(cp,rhoUpBank,rhoUpErr);   
-    updateBank(rhoUpCorrect,rhoUpBank,iScf);
+    updateBank(stodftInfo,stodftCoefPos,rhoUpCorrect,rhoUpBank);
   }
   if(cpLsda==1&&numStateDnProc>0){
     //updateBank(rhoDnCorrect,rhoDnBank,iScf);
     //updateErr(rhoDnBank,rhoDnErr,iScf);
 
     if(iScf==0){//Initial Step
+      updateBank(stodftInfo,stodftCoefPos,rhoDnCorrect,rhoDnBank);
     }
     else if(iScf<=numStepMix){//Mixing Step
       for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
 	rhoDn[iGrid+1] = rhoDnBank[0][iGrid]*mixRatio1+rhoDnBank[1][iGrid]*mixRatio2;
       }
-      updateBank(rhoDnCorrect,rhoDnBank,iScf);
-      updateErr(rhoDnBank,rhoDnErr,iScf);
+      updateErr(stodftInfo,stodftCoefPos,rhoDnCorrect,rhoDnErr,rhoDnBank);
+      updateBank(stodftInfo,stodftCoefPos,rhoDnCorrect,rhoDnBank);
     }
     else{//diis
-      updateBank(rhoDnCorrect,rhoDnBank,iScf);
+      updateErr(stodftInfo,stodftCoefPos,rhoDnCorrect,rhoDnErr,rhoDnBank);
       calcDensityDiis(cp,rhoDnBank,rhoDnErr);      
-      updateBank(rhoDnCorrect,rhoDnBank,iScf);
+      updateBank(stodftInfo,stodftCoefPos,rhoDnCorrect,rhoDnBank);
     }
   }
 
@@ -114,7 +116,7 @@ void genDensityMix(CP *cp,int iScf)
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 void updateBank(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
-		double *rho,double **rhoBank,int iScf)
+		double *rho,double **rhoBank)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
@@ -141,7 +143,7 @@ void updateBank(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 void updateErr(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
-                double *rho,double **rhoErr,double **rhoBank,int iScf)
+                double *rho,double **rhoErr,double **rhoBank)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/

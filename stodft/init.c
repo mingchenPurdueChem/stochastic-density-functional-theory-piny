@@ -76,7 +76,9 @@ void commStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
   Bcast(&(stodftInfo->numElecTrue),1,MPI_DOUBLE,0,world);
   Bcast(&(stodftInfo->chemPotInit),1,MPI_DOUBLE,0,world);
   Bcast(&(stodftInfo->gapInit),1,MPI_DOUBLE,0,world);
-
+  Bcast(&(stodftInfo->densityMixFlag),1,MPI_DOUBLE,0,world);
+  Bcast(&(stodftInfo->numDiis),1,MPI_DOUBLE,0,world);
+  Bcast(&(stodftInfo->numStepMix),1,MPI_DOUBLE,0,world);
 
 }/*end Routine*/
 /*==========================================================================*/
@@ -126,6 +128,10 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   int polynormLength = stodftInfo->polynormLength;
   int numChemPot     = stodftInfo->numChemPot;
   int readCoeffFlag  = stodftInfo->readCoeffFlag;
+  int densityMixFlag = stodftInfo->densityMixFlag;
+  int numDiis	     = stodftInfo->numDiis;
+  int numStepMix     = stodftInfo->numStepMix;
+  int numScf	     = stodftInfo->numScf;
   int numCoeff       = cpcoeffs_info->ncoef;
   int numStateUpProc = cpcoeffs_info->nstate_up_proc;
   int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
@@ -368,13 +374,18 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   gethinv(cell->hmat_cp,cell->hmati_cp,&(cell->vol_cp),iperd);
   gethinv(cell->hmat,cell->hmati,&(cell->vol),iperd);
 
+
+/*==========================================================================*/
+/* VI) Initialize density interpolation                                     */
+
   //Set occupitation number
   stodftInfo->occNumber = 1;
   if(readCoeffFlag==1&&cpLsda==0)stodftInfo->occNumber = 2;
   
   //set real space density grid number and chemical potential map
-  if(cpParaOpt==0)stodftInfo->rhoRealGridNum = numFFT2;
-  else stodftInfo->rhoRealGridNum = numFFT2Proc;
+  //if(cpParaOpt==0)stodftInfo->rhoRealGridNum = numFFT2;
+  //else stodftInfo->rhoRealGridNum = numFFT2Proc;
+  stodftInfo->rhoRealGridNum = numFFT2Proc;
   rhoRealGridNum = stodftInfo->rhoRealGridNum;
   stodftInfo->rhoRealGridTot = numFFT2;
   if(cpParaOpt==0){//hybrid case
@@ -420,12 +431,28 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     stodftCoefPos->rhoDnCorrect = (double*)cmalloc(rhoRealGridNum*sizeof(double));    
   }
   stodftCoefPos->numElectron = (double*)cmalloc(numChemPot*sizeof(double));
-
-/*==========================================================================*/
-/* VI) Initialize chemical potential	                                    */
   
   genChemPotInterpPoints(stodftInfo,stodftCoefPos);
   //stodftCoefPos->chemPot[0] = 0.5045818049407941;
+
+/*==========================================================================*/
+/* VII) Initialize density mixing                                           */
+   
+  if(densityMixFlag==1){//mixing only, overwirte some parameters
+    numStepMix = numScf+1;
+    numDiis = 1;
+  }
+  
+  if(densityMixFlag>0){//do mix
+    stodftCoefPos->rhoUpBank = (double**)cmalloc(numDiis*sizeof(double*));
+    stodftCoefPos->rhoDnBank = (double**)cmalloc(numDiis*sizeof(double*));
+    stodftCoefPos->rhoUpErr = (double**)cmalloc(numDiis*sizeof(double*));
+    stodftCoefPos->rhoDnErr = (double**)cmalloc(numDiis*sizeof(double*));
+    if(densityMixFlag==2){
+      stodftCoefPos->diisMatrix = (double*)cmalloc((numDiis+1)*(numDiis+1)*sizeof(double));
+      stodftCoefPos->diisCoeff  = (double*)cmalloc((numDiis+1)*sizeof(double));
+    }
+  }
 
 /*==========================================================================*/
 }/*end Routine*/

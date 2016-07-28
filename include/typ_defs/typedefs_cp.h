@@ -286,6 +286,7 @@ typedef struct stodftInfo{
 				    /*	    2 = Geometric optimization          */
 				    /*	    3 = MD				*/
   int numScf;			    /* Num: Maximum SCF loop			*/
+  int iScf;			    /* Num: SCF loop index			*/
   int expanType;                    /* Opt: Method of Fermi function expension. */
 				    /*      1 = Chebyshev Poly	                */
 				    /*	    2 = Newtonian Poly (Hermitian)	*/
@@ -376,6 +377,10 @@ typedef struct stodftInfo{
 				    /*	    potential energy for different      */
 				    /*	    chem pot.				*/
   /* DIIS parameters */
+  int densityMixFlag;		    /* Num: Flag to control mixing density      */
+				    /*	    0 = no mixing			*/
+				    /*	    1 = simple mixing			*/
+				    /*	    2 = mixing+diis			*/
 
   int numDiis;                      /* Num: number of diis linear combination   */
                                     /*      terms                               */
@@ -430,9 +435,9 @@ typedef struct stodftCoefPos{
   double *rhoUpCorrect;		    /* Lst: Density of correct chempot		*/
   double *rhoDnCorrect;		    /*	    (spin up/down)			*/
 				    /* Lth: rhoRealGridProc			*/
-  double **rhoBank;		    /* Lst: Stack stores densities for diis	*/
+  double **rhoUpBank,**rhoDnBank;   /* Lst: Stack stores densities for diis	*/
 				    /* Lth: numDiis*rhoRealGridNum		*/
-  double **rhoErr;		    /* Lst: Stack stores density difference	*/
+  double **rhoUpErr,**rhoDnErr;     /* Lst: Stack stores density difference	*/
 				    /*	    this step and last step		*/
 				    /* Lth: numDiis*rhoRealGridNum		*/
   double *diisMatrix;		    /* Lst: matrix to calculate diis coeff	*/

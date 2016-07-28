@@ -87,10 +87,13 @@ double solveLagrangePolyInterp(int ,double *, double *, double, double *,double 
 double calcLagrangeInterpFun(int ,double ,double * ,double * ,double *);
 double calcLagrangeInterpDrv(int ,double ,double * ,double * ,double *);
 
+/*-----------------------------------------------------------------*/
+/* diis.c	                                                   */
 
-
-
-
-
+void genDensityMix(CP *,int);
+void updateBank(STODFTINFO *,STODFTCOEFPOS *,double *,double **);
+void updateErr(STODFTINFO *,STODFTCOEFPOS *,double *,double **,double **);
+void calcDensityDiis(CP *,double **,double **);
+void matrixInvSVD(double *,double *,double *,int);
 
 

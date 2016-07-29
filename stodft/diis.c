@@ -51,12 +51,13 @@ void genDensityMix(CP *cp,int iScf)
   int iGrid,iDiis;
   int rhoRealGridNum = stodftInfo->rhoRealGridNum;
   int numDiis = stodftInfo->numDiis;
+  int numDiisNow = MIN(iScf,numDiis);
   int numStepMix = stodftInfo->numStepMix;
   int cpLsda = cpopts->cp_lsda;
   int numStateUpProc = cpcoeffs_info->nstate_up_proc;
   int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
 
-  double mixRatio1 = stodftInfo->mixRatio;
+  double mixRatio1 = stodftInfo->mixRatioBig;
   double mixRatio2 = 1.0-mixRatio1;
 
   double *rhoUpCorrect = stodftCoefPos->rhoUpCorrect;
@@ -72,21 +73,23 @@ void genDensityMix(CP *cp,int iScf)
   //updateBank(rhoUpCorrect,rhoUpBank,iScf);
   //updateErr(rhoUpBank,rhoUpErr,iScf);
   printf("111111111111111\n");
+  stodftInfo->numDiisNow = numDiisNow;
+  printf("numStepMix %i\n",numStepMix);
 
   if(iScf==0){//Initial Step
     updateBank(stodftInfo,stodftCoefPos,rhoUpCorrect,rhoUpBank);
   }
   else if(iScf<=numStepMix){//Mixing Step
     for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
-      rhoUp[iGrid+1] = rhoUpCorrect[iGrid]*mixRatio1+rhoUpBank[0][iGrid]*mixRatio2;
+      rhoUp[iGrid+1] = rhoUpCorrect[iGrid]*mixRatio2+rhoUpBank[0][iGrid]*mixRatio1;
     }
-    updateErr(stodftInfo,stodftCoefPos,rhoUpCorrect,rhoUpErr,rhoUpBank);
-    updateBank(stodftInfo,stodftCoefPos,rhoUpCorrect,rhoUpBank);
+    //updateErr(stodftInfo,stodftCoefPos,&rhoUp[1],rhoUpErr,rhoUpBank);
+    updateBank(stodftInfo,stodftCoefPos,&rhoUp[1],rhoUpBank);
   }
   else{//diis
     updateErr(stodftInfo,stodftCoefPos,rhoUpCorrect,rhoUpErr,rhoUpBank);
     calcDensityDiis(cp,rhoUpBank,rhoUpErr);   
-    updateBank(stodftInfo,stodftCoefPos,rhoUpCorrect,rhoUpBank);
+    updateBank(stodftInfo,stodftCoefPos,&rhoUp[1],rhoUpBank);
   }
   if(cpLsda==1&&numStateDnProc>0){
     //updateBank(rhoDnCorrect,rhoDnBank,iScf);
@@ -97,15 +100,15 @@ void genDensityMix(CP *cp,int iScf)
     }
     else if(iScf<=numStepMix){//Mixing Step
       for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
-	rhoDn[iGrid+1] = rhoDnBank[0][iGrid]*mixRatio1+rhoDnBank[1][iGrid]*mixRatio2;
+	rhoDn[iGrid+1] = rhoDnCorrect[iGrid]*mixRatio2+rhoDnBank[0][iGrid]*mixRatio1;
       }
-      updateErr(stodftInfo,stodftCoefPos,rhoDnCorrect,rhoDnErr,rhoDnBank);
-      updateBank(stodftInfo,stodftCoefPos,rhoDnCorrect,rhoDnBank);
+      //updateErr(stodftInfo,stodftCoefPos,&rhoDn[1],rhoDnErr,rhoDnBank);
+      updateBank(stodftInfo,stodftCoefPos,&rhoDn[1],rhoDnBank);
     }
     else{//diis
       updateErr(stodftInfo,stodftCoefPos,rhoDnCorrect,rhoDnErr,rhoDnBank);
       calcDensityDiis(cp,rhoDnBank,rhoDnErr);      
-      updateBank(stodftInfo,stodftCoefPos,rhoDnCorrect,rhoDnBank);
+      updateBank(stodftInfo,stodftCoefPos,&rhoDn[1],rhoDnBank);
     }
   }
 
@@ -190,6 +193,7 @@ void calcDensityDiis(CP *cp,double **rhoBank,double **rhoErr)
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
 
   int numDiis = stodftInfo->numDiis;
+  int numDiisNow = stodftInfo->numDiisNow;
   int myidState = communicate->myid_state;
   int numProcStates = communicate->np_states;
   int rhoRealGridNum = stodftInfo->rhoRealGridNum;
@@ -201,10 +205,9 @@ void calcDensityDiis(CP *cp,double **rhoBank,double **rhoErr)
 
   double dotProc;
   double dotTot;   
-  double *diisMatrixTemp = (double*)cmalloc((numDiis-1)*(numDiis-1)*sizeof(double));
-  double *diisMatrix = stodftCoefPos->diisMatrix;
-  double *svdLinSol = (double*)cmalloc((numDiis+1)*sizeof(double));
-  double *b = (double*)cmalloc((numDiis+1)*sizeof(double));
+  double *diisMatrix = (double*)cmalloc((numDiisNow+1)*(numDiisNow+1)*sizeof(double));
+  double *svdLinSol = (double*)cmalloc((numDiisNow+1)*sizeof(double));
+  double *b = (double*)cmalloc((numDiisNow+1)*sizeof(double));
   double *diisCoeff = stodftCoefPos->diisCoeff;
   double *rhoUp = cpscr->cpscr_rho.rho_up;
   double *rhoDn = cpscr->cpscr_rho.rho_dn;
@@ -216,113 +219,75 @@ void calcDensityDiis(CP *cp,double **rhoBank,double **rhoErr)
 /*==========================================================================*/
 /* I) For the first time, calculate the whole diisMatrix		    */
 
-  if(diisMatrixCalcFullFlag==1){
-    // Calculate the dot prod part
-    for(iDiis=0;iDiis<numDiis;iDiis++){
-      for(jDiis=iDiis;jDiis<numDiis;jDiis++){
-	dotProc = DDOT(&rhoRealGridNum,rhoErr[iDiis],&incx,rhoErr[jDiis],&incy);
-	if(numProcStates>1)Reduce(&dotProc,&dotTot,1,MPI_DOUBLE,MPI_SUM,0,commStates);
-	else dotTot = dotProc;
-	if(myidState==0){
-	  index1 = iDiis*(numDiis+1)+jDiis;
-	  index2 = jDiis*(numDiis+1)+iDiis;
-	  diisMatrix[index1] = dotTot;
-	  diisMatrix[index2] = dotTot;
-	}//endif myidState
-      }//endfor jDiis
-    }//endfor iDiis
-    // Calculate the Lagrange Multiplier part
-    for(iDiis=0;iDiis<numDiis;iDiis++){
-      diisMatrix[numDiis*(numDiis+1)+iDiis] = -1.0;
-      diisMatrix[iDiis*(numDiis+1)+numDiis] = -1.0;
-    }
-    diisMatrix[numDiis*(numDiis+1)+numDiis] = 0.0;
-    // reset the flag so that we don't do it again
-    stodftInfo->diisMatrixCalcFullFlag = 0;
-  }
-/*==========================================================================*/
-/* II) Update partially the diisMatrix		                            */
-  else{
-/*--------------------------------------------------------------------------*/
-/* i) Transfer the [0,numDiis-2]*[0,numDiis-2] block to			    */
-/*    to [1,numDiis-1]*[i,numDiis-1] block				    */
+  // Calculate the dot prod part
+  printf("numDiis %i numDiisNow %i\n",numDiis,numDiisNow);
+  for(iDiis=0;iDiis<numDiis;iDiis++)printf("%p\n",rhoErr[iDiis]);
 
-    if(myidState==0){
-      for(iDiis=0;iDiis<numDiis-1;iDiis++){
-	for(jDiis=0;jDiis<numDiis-1;jDiis++){
-	  index1 = iDiis*(numDiis+1)+jDiis; //index in diisMatrix
-	  index2 = iDiis*(numDiis-1)+jDiis; //index in diisMatrixTemp
-	  diisMatrixTemp[index2] = diisMatrix[index1];
-	}//endfor jDiis
-      }//endfor iDiis
-
-      for(iDiis=0;iDiis<numDiis-1;iDiis++){
-	for(jDiis=0;jDiis<numDiis-1;jDiis++){
-	  index1 = iDiis*(numDiis-1)+jDiis; //index in diisMatrixTemp
-	  index2 = (iDiis+1)*(numDiis+1)+jDiis+1; //index in new diisMatrix
-	  diisMatrix[index2] = diisMatrixTemp[index1];
-	}//endfor jDiis
-      }//endfor iDiis
-    }//endif myidState
-
-/*--------------------------------------------------------------------------*/
-/* ii) Calculate the dot product of rhoErr[0] with rhoErr[i], 0<=i<numDiis  */
-  
-    for(iDiis=0;iDiis<numDiis;iDiis++){
-      dotProc = DDOT(&rhoRealGridNum,rhoErr[0],&incx,rhoErr[iDiis],&incy);
+  for(iDiis=0;iDiis<numDiisNow;iDiis++){
+    for(jDiis=iDiis;jDiis<numDiisNow;jDiis++){
+      dotProc = DDOT(&rhoRealGridNum,rhoErr[iDiis],&incx,rhoErr[jDiis],&incy);
       if(numProcStates>1)Reduce(&dotProc,&dotTot,1,MPI_DOUBLE,MPI_SUM,0,commStates);
       else dotTot = dotProc;
       if(myidState==0){
-	diisMatrix[iDiis] = dotTot;
-	diisMatrix[iDiis*(numDiis+1)] = dotTot;
+	index1 = iDiis*(numDiisNow+1)+jDiis;
+	index2 = jDiis*(numDiisNow+1)+iDiis;
+	diisMatrix[index1] = dotTot;
+	diisMatrix[index2] = dotTot;
       }//endif myidState
-    }//endfor iDiis
-  }//endif diisMatrixCalcFullFlag
+    }//endfor jDiis
+  }//endfor iDiis
+  // Calculate the Lagrange Multiplier part
+  for(iDiis=0;iDiis<numDiisNow;iDiis++){
+    diisMatrix[numDiisNow*(numDiisNow+1)+iDiis] = -1.0;
+    diisMatrix[iDiis*(numDiisNow+1)+numDiisNow] = -1.0;
+  }
+  diisMatrix[numDiisNow*(numDiisNow+1)+numDiisNow] = 0.0;
 
-  for(iDiis=0;iDiis<numDiis+1;iDiis++){
-    for(jDiis=0;jDiis<numDiis+1;jDiis++){
-      index1 = iDiis*(numDiis+1)+jDiis;
-      printf("%.16lg,",diisMatrix[index1]);
+  //debug
+  for(iDiis=0;iDiis<numDiisNow+1;iDiis++){
+    for(jDiis=0;jDiis<numDiisNow+1;jDiis++){
+      printf("%.16lg,",diisMatrix[iDiis*(numDiisNow+1)+jDiis]);
     }
     printf("\n");
   }
-
+  // reset the flag so that we don't do it again
 /*==========================================================================*/
-/* III) Safely reverse the diisMatrix with SVD				    */
+/* II) Safely reverse the diisMatrix with SVD				    */
 
   if(myidState==0){
-    for(iDiis=0;iDiis<numDiis;iDiis++)b[iDiis] = 0.0;
-    b[numDiis] = -1.0;
+    for(iDiis=0;iDiis<numDiisNow;iDiis++)b[iDiis] = 0.0;
+    b[numDiisNow] = -1.0;
 
-    matrixInvSVD(diisMatrix,b,svdLinSol,numDiis+1);       
+    matrixInvSVD(diisMatrix,b,svdLinSol,numDiisNow+1);       
   }
 
   if(numProcStates>1){
-    Bcast(svdLinSol,numDiis+1,MPI_DOUBLE,0,commStates);
+    Bcast(svdLinSol,numDiisNow+1,MPI_DOUBLE,0,commStates);
   }
 
-  for(iDiis=0;iDiis<numDiis+1;iDiis++){
+  for(iDiis=0;iDiis<numDiisNow+1;iDiis++){
     printf("%.16lg ",svdLinSol[iDiis]);
   }
   printf("\n");
-  for(iDiis=0;iDiis<numDiis;iDiis++){
+  for(iDiis=0;iDiis<numDiisNow;iDiis++){
     diisCoeff[iDiis] = svdLinSol[iDiis];    
   }
-  stodftInfo->lambdaDiis = svdLinSol[numDiis];
+  stodftInfo->lambdaDiis = svdLinSol[numDiisNow];
 
 /*==========================================================================*/
-/* IV) Linear Combinination of all densities                                */
+/* III) Linear Combinination of all densities                               */
   
   // I may change this 
   for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
     rhoUp[iGrid+1] = diisCoeff[0]*rhoUpCorrect[iGrid];
-    for(iDiis=1;iDiis<numDiis;iDiis++){
-      rhoUp[iGrid+1] = diisCoeff[iDiis]*rhoBank[iDiis-1][iGrid];
+    for(iDiis=1;iDiis<numDiisNow;iDiis++){
+      rhoUp[iGrid+1] += diisCoeff[iDiis]*rhoBank[iDiis-1][iGrid];
     }
   } 
 
-  free(diisMatrixTemp);
   free(svdLinSol);
+  free(diisMatrix);
+  free(b);
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/

@@ -2261,7 +2261,7 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
   strcpy((*dict)[13].keyword,"band_gap_init");
   strcpy((*dict)[13].keyarg,"-1.0");
 
-  strcpy((*dict)[14].error_mes,"Flag for density mixing:off;mix;mix-diis");
+  strcpy((*dict)[14].error_mes,"Flag for density mixing:off;mix;diis,mix-diis");
   strcpy((*dict)[14].keyword,"rho_mix_flag");
   strcpy((*dict)[14].keyarg,"off");
 

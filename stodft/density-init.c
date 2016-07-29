@@ -252,6 +252,7 @@ void calcRhoDetInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       rhoUpCorrect[0] += 0.1/(itest+1);
     }
     */
+    
   }
   //exit(0);
   /*

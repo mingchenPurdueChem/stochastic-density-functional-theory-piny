@@ -202,7 +202,7 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   for(iScf=1;iScf<=numScf;iScf++){
     if(myidState==0){
       printf("********************************************************\n");
-      printf("SCF Step %i\n",iScf+1);
+      printf("SCF Step %i\n",iScf);
       printf("--------------------------------------------------------\n");
     }
     stodftInfo->iScf = iScf;

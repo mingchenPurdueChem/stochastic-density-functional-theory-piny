@@ -380,15 +380,19 @@ typedef struct stodftInfo{
   int densityMixFlag;		    /* Num: Flag to control mixing density      */
 				    /*	    0 = no mixing			*/
 				    /*	    1 = simple mixing			*/
-				    /*	    2 = mixing+diis			*/
+				    /*	    2 = diis				*/
+                                    /*      3 = mix+diis                        */
+
 
   int numDiis;                      /* Num: number of diis linear combination   */
                                     /*      terms                               */
+  int numDiisNow;		    /* Num: number of diis terms in this step   */
+				    /*	    =MIN(iScf,numDiis)			*/
   int numStepMix;                   /* Num: You may want to mix the densities   */
                                     /*      at the begining of the SCF          */
   int diisMatrixCalcFullFlag;	    /* Num: Flag to calculate full diis matrix  */
 				    /*	    0=no, 1=yes				*/
-  double mixRatio;		    /* Num: What is the best ratio for mixing?  */
+  double mixRatioBig;		    /* Num: What is the best ratio for mixing?  */
   double lambdaDiis;		    /* Num: Lagrange Multiplier for Diis	*/
 
 

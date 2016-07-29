@@ -439,8 +439,11 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /* VII) Initialize density mixing                                           */
    
   if(densityMixFlag==1){//mixing only, overwirte some parameters
-    numStepMix = numScf+1;
-    numDiis = 1;
+    stodftInfo->numStepMix = numScf+1;
+    stodftInfo->numDiis = 1;
+  }
+  if(densityMixFlag==2){//diis only
+    stodftInfo->numStepMix = 0;
   }
   
   if(densityMixFlag>0){//do mix
@@ -448,7 +451,8 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     stodftCoefPos->rhoDnBank = (double**)cmalloc(numDiis*sizeof(double*));
     stodftCoefPos->rhoUpErr = (double**)cmalloc(numDiis*sizeof(double*));
     stodftCoefPos->rhoDnErr = (double**)cmalloc(numDiis*sizeof(double*));
-    if(densityMixFlag==2){
+    stodftInfo->mixRatioBig = 0.9; // Can tune this parameter
+    if(densityMixFlag>1){
       stodftCoefPos->diisMatrix = (double*)cmalloc((numDiis+1)*(numDiis+1)*sizeof(double));
       stodftCoefPos->diisCoeff  = (double*)cmalloc((numDiis+1)*sizeof(double));
       stodftInfo->diisMatrixCalcFullFlag = 1;

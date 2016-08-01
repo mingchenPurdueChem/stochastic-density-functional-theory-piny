@@ -238,8 +238,8 @@ void calcDensityDiis(CP *cp,double **rhoBank,double **rhoErr)
   }//endfor iDiis
   // Calculate the Lagrange Multiplier part
   for(iDiis=0;iDiis<numDiisNow;iDiis++){
-    diisMatrix[numDiisNow*(numDiisNow+1)+iDiis] = -1.0;
-    diisMatrix[iDiis*(numDiisNow+1)+numDiisNow] = -1.0;
+    diisMatrix[numDiisNow*(numDiisNow+1)+iDiis] = -10000.0;
+    diisMatrix[iDiis*(numDiisNow+1)+numDiisNow] = -10000.0;
   }
   diisMatrix[numDiisNow*(numDiisNow+1)+numDiisNow] = 0.0;
 
@@ -256,7 +256,7 @@ void calcDensityDiis(CP *cp,double **rhoBank,double **rhoErr)
 
   if(myidState==0){
     for(iDiis=0;iDiis<numDiisNow;iDiis++)b[iDiis] = 0.0;
-    b[numDiisNow] = -1.0;
+    b[numDiisNow] = -10000.0;
 
     matrixInvSVD(diisMatrix,b,svdLinSol,numDiisNow+1);       
   }
@@ -319,9 +319,13 @@ void matrixInvSVD(double *mat,double *b,double *x,int ndim)
   int i,j,k;
   double alpha;
   double beta;
+  double smax = -1.0e30;
+  double smin = 1.0e30;
+  double sratio;
 
   double *A = (double*)cmalloc(ndim*ndim*sizeof(double));
   double *s = (double*)cmalloc(ndim*sizeof(double));
+  double *sinv = (double*)cmalloc(ndim*sizeof(double));
   double *u = (double*)cmalloc(ndim*ndim*sizeof(double));
   double *vt = (double*)cmalloc(ndim*ndim*sizeof(double));
   double *work = (double*)cmalloc(lwork*sizeof(double));
@@ -331,6 +335,18 @@ void matrixInvSVD(double *mat,double *b,double *x,int ndim)
   memcpy(A,mat,ndim*ndim*sizeof(double));
 
   DGESVD(&jobu,&jobvt,&m,&n,A,&lda,s,u,&ldu,vt,&ldvt,work,&lwork,&info);
+
+  for(i=0;i<ndim;i++){
+    if(s[i]>smax)smax = s[i];
+    if(s[i]<smin)smin = s[i];
+  }
+  if(smin>0.0)sratio = smax/smin;
+  else sratio = 1.0e30;
+  printf("Singular Value range is from %.6lg to %.6lg\n",smin,smax);
+  for(i=0;i<ndim;i++){
+    if(s[i]/smax>1.0e-10)sinv[i] = 1.0/s[i];
+    else sinv[i] = 0.0;
+  }
   
   if(info==0){
     trans = 't';
@@ -339,7 +355,9 @@ void matrixInvSVD(double *mat,double *b,double *x,int ndim)
     incx = 1;
     incy = 1;
     DGEMV(&trans,&ndim,&ndim,&alpha,u,&lda,b,&incx,&beta,u_b,&incy);
-    for(i=0;i<ndim;i++)u_b[i] /= s[i];
+    
+    //for(i=0;i<ndim;i++)u_b[i] /= s[i];
+    for(i=0;i<ndim;i++)u_b[i] *= sinv[i];
     DGEMV(&trans,&ndim,&ndim,&alpha,vt,&lda,u_b,&incx,&beta,x,&incy);
   }
   else if(info<0){
@@ -354,6 +372,7 @@ void matrixInvSVD(double *mat,double *b,double *x,int ndim)
   free(vt);
   free(work); 
   free(u_b);
+  free(sinv);
   
 /*==========================================================================*/
 }/*end Routine*/

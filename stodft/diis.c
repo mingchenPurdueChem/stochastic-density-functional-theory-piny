@@ -279,18 +279,20 @@ void calcDensityDiis(CP *cp,double **rhoBank,double **rhoErr)
 /* III) Linear Combinination of all densities                               */
   
   // I may change this 
-  /*
+  
   //mix density then push stack
   for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
     rhoUp[iGrid+1] = diisCoeff[0]*rhoUpCorrect[iGrid];
     for(iDiis=1;iDiis<numDiisNow;iDiis++){
       rhoUp[iGrid+1] += diisCoeff[iDiis]*rhoBank[iDiis-1][iGrid];
     }
-  }*/
+  }
+  /*
   // push stack then mix density
   for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
     for(iDiis=0;iDiis<numDiisNow;iDiis++)rhoUp[iGrid+1] = diisCoeff[iDiis]*rhoBank[iDiis][iGrid];
-  } 
+  }
+  */ 
 
   free(svdLinSol);
   free(diisMatrix);

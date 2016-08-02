@@ -83,11 +83,12 @@ void genDensityMix(CP *cp,int iScf)
     for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
       rhoUp[iGrid+1] = rhoUpCorrect[iGrid]*mixRatio2+rhoUpBank[0][iGrid]*mixRatio1;
     }
-    //updateErr(stodftInfo,stodftCoefPos,&rhoUp[1],rhoUpErr,rhoUpBank);
+    updateErr(stodftInfo,stodftCoefPos,&rhoUp[1],rhoUpErr,rhoUpBank);
     updateBank(stodftInfo,stodftCoefPos,&rhoUp[1],rhoUpBank);
   }
   else{//diis
     updateErr(stodftInfo,stodftCoefPos,rhoUpCorrect,rhoUpErr,rhoUpBank);
+    //updateBank(stodftInfo,stodftCoefPos,rhoUpCorrect,rhoUpBank);
     calcDensityDiis(cp,rhoUpBank,rhoUpErr);   
     updateBank(stodftInfo,stodftCoefPos,&rhoUp[1],rhoUpBank);
   }
@@ -278,11 +279,17 @@ void calcDensityDiis(CP *cp,double **rhoBank,double **rhoErr)
 /* III) Linear Combinination of all densities                               */
   
   // I may change this 
+  /*
+  //mix density then push stack
   for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
     rhoUp[iGrid+1] = diisCoeff[0]*rhoUpCorrect[iGrid];
     for(iDiis=1;iDiis<numDiisNow;iDiis++){
       rhoUp[iGrid+1] += diisCoeff[iDiis]*rhoBank[iDiis-1][iGrid];
     }
+  }*/
+  // push stack then mix density
+  for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+    for(iDiis=0;iDiis<numDiisNow;iDiis++)rhoUp[iGrid+1] = diisCoeff[iDiis]*rhoBank[iDiis][iGrid];
   } 
 
   free(svdLinSol);

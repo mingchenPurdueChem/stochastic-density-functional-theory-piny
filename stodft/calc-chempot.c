@@ -227,7 +227,7 @@ double solveLagrangePolyInterp(int numSamp,double *x, double *y,double target,
 
   double ymin = y[0];
   double ymax = y[numSamp-1];
-  double xopt;
+  double xopt,x1,x2,x1old,x2old,y1,y2,y1old,y2old;
   double tol = 1.0e-7;
   double tolnow = 1.0;
   double value;
@@ -247,20 +247,55 @@ double solveLagrangePolyInterp(int numSamp,double *x, double *y,double target,
   }
 /*=======================================================================*/
 /* II. Get the initial guess of chemical potential.                      */
-  
+
   iSamp = 0;
   while(y[iSamp]<target)iSamp += 1;
   xopt = x[iSamp-1]+(target-y[iSamp-1])*(x[iSamp]-x[iSamp-1])/(y[iSamp]-y[iSamp-1]);
 
-  value = calcLagrangeInterpFun(numSamp,xopt,x,y,interpCoef)-target;
-  deriv  = calcLagrangeInterpDrv(numSamp,xopt,x,y,interpCoef);
-  tolnow = fabs(value);
- 
+  value = calcLagrangeInterpFun(numSamp,xopt,x,y,interpCoef);
+  //deriv  = calcLagrangeInterpDrv(numSamp,xopt,x,y,interpCoef);
+  tolnow = fabs(value-target);
+  //printf("initial %.6lg\n",xopt);
+  if(value>target){
+    x1 = x[iSamp-1];
+    x2 = xopt;
+    y1 = y[iSamp-1];
+    y2 = value;
+  }
+  else{
+    x1 = xopt;
+    x2 = x[iSamp];
+    y1 = value;
+    y2 = y[iSamp];
+  }
+
   while(tolnow>tol){
+    x1old = x1;
+    x2old = x2;
+    y1old = y1;
+    y2old = y2;
+    xopt = x1+(target-y1)*(x2-x1)/(y2-y1);
+    value = calcLagrangeInterpFun(numSamp,xopt,x,y,interpCoef);
+    if(value<target){
+      x1 = x1old;
+      x2 = xopt;
+      y1 = y1old;
+      y2 = value;
+    }
+    else{
+      x1 = xopt;
+      x2 = x2old;
+      y1 = value;
+      y2 = y2old;
+    }
+    tolnow = fabs(value-target);
+    /*
     xopt -= value/deriv;
     value = calcLagrangeInterpFun(numSamp,xopt,x,y,interpCoef)-target;
     deriv = calcLagrangeInterpDrv(numSamp,xopt,x,y,interpCoef);
     tolnow = fabs(value);
+    */
+    //printf("opt-tol %.6lg %.6lg %.6lg %.6lg %.6lg\n",x1,x2,xopt,value,tolnow);
   }
   *numElecDiff = tolnow;
   
@@ -283,33 +318,46 @@ double calcLagrangeInterpFun(int numSamp,double xopt,double *x,double *y,
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
   int iTerm,jTerm;
-  
+
   int sign1,sign2;
+  int sampflag = 0;
+  int sampIndex;
   double sum = 0.0;
   double prod,prod2;
   double diff1,diff2;
 
   for(iTerm=0;iTerm<numSamp;iTerm++){
-    prod = 0.0;
-    prod2 = 0.0;
-    sign1 = 1;
-    sign2 = 1;    
-    for(jTerm=0;jTerm<numSamp;jTerm++){
-      if(jTerm!=iTerm){
-	diff1 = xopt-x[jTerm];
-	diff2 = x[iTerm]-x[jTerm];
-	if(diff1<0)sign1 *= -1;
-	if(diff2<0)sign2 *= -1;
-	prod += 0.5*log(diff1*diff1);
-	prod2 += 0.5*log(diff2*diff2);
-	//prod *= xopt-x[jTerm];
-	//prod2 *= x[iTerm]-x[jTerm];
-      }
+    diff1 = fabs(xopt-x[iTerm]);
+    if(diff1<1.0e-16){
+      sampflag += 1;
+      sampIndex = iTerm;
     }
-    if(fabs(prod2)<1e-50)printf("iTerm %i prod2 %lg\n",iTerm,prod2);
-    //lagFunValue[iTerm] = prod/prod2;
-    lagFunValue[iTerm] = sign1*sign2*exp(prod-prod2);
-    sum += y[iTerm]*lagFunValue[iTerm];
+  }
+
+  if(sampflag>0)sum = y[sampIndex];
+  else{
+    for(iTerm=0;iTerm<numSamp;iTerm++){
+      prod = 0.0;
+      prod2 = 0.0;
+      sign1 = 1;
+      sign2 = 1;
+      for(jTerm=0;jTerm<numSamp;jTerm++){
+        if(jTerm!=iTerm){
+          diff1 = xopt-x[jTerm];
+          diff2 = x[iTerm]-x[jTerm];
+          if(diff1<0)sign1 *= -1;
+          if(diff2<0)sign2 *= -1;
+          prod += 0.5*log(diff1*diff1);
+          prod2 += 0.5*log(diff2*diff2);
+          //prod *= xopt-x[jTerm];
+          //prod2 *= x[iTerm]-x[jTerm];
+        }
+      }
+      if(fabs(prod2)<1e-50)printf("iTerm %i prod2 %lg\n",iTerm,prod2);
+      //lagFunValue[iTerm] = prod/prod2;
+      lagFunValue[iTerm] = sign1*sign2*exp(prod-prod2);
+      sum += y[iTerm]*lagFunValue[iTerm];
+    }
   }
   return sum;
 

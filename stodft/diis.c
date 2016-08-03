@@ -64,6 +64,8 @@ void genDensityMix(CP *cp,int iScf)
   double *rhoDnCorrect = stodftCoefPos->rhoDnCorrect;
   double *rhoUp = cpscr->cpscr_rho.rho_up;
   double *rhoDn = cpscr->cpscr_rho.rho_dn;
+  double *rhoUpOld = stodftCoefPos->rhoUpOld;
+  double *rhoDnOld = stodftCoefPos->rhoDnOld;
 
   double **rhoUpBank = stodftCoefPos->rhoUpBank;
   double **rhoDnBank = stodftCoefPos->rhoDnBank;
@@ -78,19 +80,24 @@ void genDensityMix(CP *cp,int iScf)
 
   if(iScf==0){//Initial Step
     updateBank(stodftInfo,stodftCoefPos,rhoUpCorrect,rhoUpBank);
+    memcpy(rhoUpOld,rhoUpCorrect,rhoRealGridNum*sizeof(double));
   }
   else if(iScf<=numStepMix){//Mixing Step
+    updateErr(stodftInfo,stodftCoefPos,rhoUpCorrect,rhoUpOld,rhoUpErr);
+    updateBank(stodftInfo,stodftCoefPos,rhoUpCorrect,rhoUpBank);
     for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
       rhoUp[iGrid+1] = rhoUpCorrect[iGrid]*mixRatio2+rhoUpBank[0][iGrid]*mixRatio1;
     }
-    updateErr(stodftInfo,stodftCoefPos,&rhoUp[1],rhoUpErr,rhoUpBank);
-    updateBank(stodftInfo,stodftCoefPos,&rhoUp[1],rhoUpBank);
+    //updateErr(stodftInfo,stodftCoefPos,&rhoUp[1],rhoUpErr,rhoUpBank);
+    //updateBank(stodftInfo,stodftCoefPos,&rhoUp[1],rhoUpBank);
+    memcpy(rhoUpOld,&rhoUp[1],rhoRealGridNum*sizeof(double));
   }
   else{//diis
-    updateErr(stodftInfo,stodftCoefPos,rhoUpCorrect,rhoUpErr,rhoUpBank);
-    //updateBank(stodftInfo,stodftCoefPos,rhoUpCorrect,rhoUpBank);
+    updateErr(stodftInfo,stodftCoefPos,rhoUpCorrect,rhoUpOld,rhoUpErr);
+    updateBank(stodftInfo,stodftCoefPos,rhoUpCorrect,rhoUpBank);
     calcDensityDiis(cp,rhoUpBank,rhoUpErr);   
-    updateBank(stodftInfo,stodftCoefPos,&rhoUp[1],rhoUpBank);
+    //updateBank(stodftInfo,stodftCoefPos,&rhoUp[1],rhoUpBank);
+    memcpy(rhoUpOld,&rhoUp[1],rhoRealGridNum*sizeof(double));
   }
   if(cpLsda==1&&numStateDnProc>0){
     //updateBank(rhoDnCorrect,rhoDnBank,iScf);
@@ -98,18 +105,24 @@ void genDensityMix(CP *cp,int iScf)
 
     if(iScf==0){//Initial Step
       updateBank(stodftInfo,stodftCoefPos,rhoDnCorrect,rhoDnBank);
+      memcpy(rhoDnOld,rhoDnCorrect,rhoRealGridNum*sizeof(double));
     }
     else if(iScf<=numStepMix){//Mixing Step
+      updateErr(stodftInfo,stodftCoefPos,rhoDnCorrect,rhoDnOld,rhoDnErr);
+      updateBank(stodftInfo,stodftCoefPos,rhoDnCorrect,rhoDnBank);
       for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
 	rhoDn[iGrid+1] = rhoDnCorrect[iGrid]*mixRatio2+rhoDnBank[0][iGrid]*mixRatio1;
       }
       //updateErr(stodftInfo,stodftCoefPos,&rhoDn[1],rhoDnErr,rhoDnBank);
-      updateBank(stodftInfo,stodftCoefPos,&rhoDn[1],rhoDnBank);
+      //updateBank(stodftInfo,stodftCoefPos,&rhoDn[1],rhoDnBank);
+      memcpy(rhoDnOld,&rhoDn[1],rhoRealGridNum*sizeof(double));
     }
     else{//diis
-      updateErr(stodftInfo,stodftCoefPos,rhoDnCorrect,rhoDnErr,rhoDnBank);
+      updateErr(stodftInfo,stodftCoefPos,rhoDnCorrect,rhoDnOld,rhoDnErr);
+      updateBank(stodftInfo,stodftCoefPos,rhoDnCorrect,rhoDnBank);
       calcDensityDiis(cp,rhoDnBank,rhoDnErr);      
-      updateBank(stodftInfo,stodftCoefPos,&rhoDn[1],rhoDnBank);
+      //updateBank(stodftInfo,stodftCoefPos,&rhoDn[1],rhoDnBank);
+      memcpy(rhoDnOld,&rhoDn[1],rhoRealGridNum*sizeof(double));
     }
   }
 
@@ -148,7 +161,7 @@ void updateBank(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 void updateErr(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
-                double *rho,double **rhoErr,double **rhoBank)
+                double *rho,double *rhoOld,double **rhoErr)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
@@ -166,7 +179,7 @@ void updateErr(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
   rhoErr[0] = (double*)cmalloc(rhoRealGridNum*sizeof(double));
   memcpy(rhoErr[0],rho,rhoRealGridNum*sizeof(double));
   
-  for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)rhoErr[0][iGrid] -= rhoBank[0][iGrid];
+  for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)rhoErr[0][iGrid] -= rhoOld[iGrid];
   
 /*==========================================================================*/
 }/*end Routine*/
@@ -279,7 +292,7 @@ void calcDensityDiis(CP *cp,double **rhoBank,double **rhoErr)
 /* III) Linear Combinination of all densities                               */
   
   // I may change this 
-  
+  /*
   //mix density then push stack
   for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
     rhoUp[iGrid+1] = diisCoeff[0]*rhoUpCorrect[iGrid];
@@ -287,12 +300,14 @@ void calcDensityDiis(CP *cp,double **rhoBank,double **rhoErr)
       rhoUp[iGrid+1] += diisCoeff[iDiis]*rhoBank[iDiis-1][iGrid];
     }
   }
-  /*
+  */
+  
   // push stack then mix density
   for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
-    for(iDiis=0;iDiis<numDiisNow;iDiis++)rhoUp[iGrid+1] = diisCoeff[iDiis]*rhoBank[iDiis][iGrid];
+    rhoUp[iGrid+1] = 0.0;
+    for(iDiis=0;iDiis<numDiisNow;iDiis++)rhoUp[iGrid+1] += diisCoeff[iDiis]*rhoBank[iDiis][iGrid];
   }
-  */ 
+  
 
   free(svdLinSol);
   free(diisMatrix);

@@ -439,6 +439,9 @@ typedef struct stodftCoefPos{
   double *rhoUpCorrect;		    /* Lst: Density of correct chempot		*/
   double *rhoDnCorrect;		    /*	    (spin up/down)			*/
 				    /* Lth: rhoRealGridProc			*/
+  double *rhoUpOld,*rhoDnOld;       /* Lst: Initial density of THIS step, used  */
+				    /*	    for diis.				*/
+				    /* Lth: rhoRealGridNum			*/
   double **rhoUpBank,**rhoDnBank;   /* Lst: Stack stores densities for diis	*/
 				    /* Lth: numDiis*rhoRealGridNum		*/
   double **rhoUpErr,**rhoDnErr;     /* Lst: Stack stores density difference	*/

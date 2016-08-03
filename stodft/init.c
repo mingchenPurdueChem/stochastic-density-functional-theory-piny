@@ -451,6 +451,9 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     stodftCoefPos->rhoDnBank = (double**)cmalloc(numDiis*sizeof(double*));
     stodftCoefPos->rhoUpErr = (double**)cmalloc(numDiis*sizeof(double*));
     stodftCoefPos->rhoDnErr = (double**)cmalloc(numDiis*sizeof(double*));
+    stodftCoefPos->rhoUpOld = (double*)cmalloc(rhoRealGridNum*sizeof(double));
+    stodftCoefPos->rhoDnOld = (double*)cmalloc(rhoRealGridNum*sizeof(double));
+
     stodftInfo->mixRatioBig = 0.9; // Can tune this parameter
     if(densityMixFlag>1){
       stodftCoefPos->diisMatrix = (double*)cmalloc((numDiis+1)*(numDiis+1)*sizeof(double));

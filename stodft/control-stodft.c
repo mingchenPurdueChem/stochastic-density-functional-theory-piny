@@ -106,6 +106,7 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   } 
 
   //debug only
+  /*
   STODFTINFO *stodftInfo = cp->stodftInfo;
   STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
   double *coeffReUpBackup;
@@ -146,6 +147,7 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     coeffReUpBackup[iCoeff] = coeffReUp[iCoeff];
     coeffImUpBackup[iCoeff] = coeffImUp[iCoeff];
   }
+  */
   //end debug
 
 
@@ -167,6 +169,11 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
   // After we move initial density calculation above, this function is 
   // no longer needed.
+  if(myid==0){
+    PRINT_LINE_STAR;
+    printf("Initial SP\n");
+    PRINT_LINE_DASH;
+  }  
   scfStodft(class,bonded,general_data,cp,ip_now);
    
 /*======================================================================*/

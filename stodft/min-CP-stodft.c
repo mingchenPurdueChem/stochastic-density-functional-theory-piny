@@ -113,32 +113,6 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   double **stoWfDnRe = stodftCoefPos->stoWfDnRe;
   double **stoWfDnIm = stodftCoefPos->stoWfDnIm;
 
-  
-
-/*======================================================================*/
-/* 0) Check the forms                                                   */
-
-  if(numProcStates>1){
-    if((coefFormUp+forceCoefFormUp)!=2){
-     printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
-     printf("Up CP vectors are not in transposed form \n");
-     printf("on state processor %d in min_STD_cp \n",myidState);
-     printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
-     fflush(stdout);
-     exit(1);
-    }/*endif*/
-    if(cpLsda==1){
-     if((coefFormDn+forceCoefFormDn)!=2){
-      printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
-      printf("Up CP vectors are not in transposed form \n");
-      printf("on state processor %d in min_STD_cp \n",myidState);
-      printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
-      fflush(stdout);
-      exit(1);
-     }/*endif*/
-    }/*endif*/
-  }/*endif*/
-  
 
 /*======================================================================*/
 /* 0.05) Check the approximations in the methods                        */
@@ -158,14 +132,24 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* II) In parallel, transpose coefs back to normal form                 */
 
+  /*
+  // I do this once in init.c, in case we read in deterministic wf. For 
+  // stochastic wf, we don't need this
   if(numProcStates>1){
     cp_transpose_bck(coeffReUp,coeffImUp,pcoefFormUp,
                     cpScrCoeffReUp,cpScrCoeffImUp,&(cp->cp_comm_state_pkg_up));
     if(cpLsda==1&&numStateDn>0){
       cp_transpose_bck(coeffReDn,coeffImDn,pcoefFormDn,
                      cpScrCoeffReDn,cpScrCoeffImDn,&(cp->cp_comm_state_pkg_dn));
-    }/*endif*/
-  }/*endif*/
+    }//endif
+  }//endif
+  */
+  coefFormUp = 1;
+  cpcoeffs_pos->icoef_form_up = 1;
+  if(cpLsda==1&&numStateDn>0){
+    coefFormDn = 1;
+    cpcoeffs_pos->icoef_form_dn = 1;
+  }
 
 /*======================================================================*/
 /* III) Initialize forces, pressure tensor, inverse hmat                */
@@ -180,6 +164,9 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   for(iCell=1;iCell<=9;iCell++){ptensPvtenTmp[iCell] = 0.0;}
   gethinv(cell->hmat_cp,cell->hmati_cp,&(cell->vol_cp),iperd);
   gethinv(cell->hmat,cell->hmati,&(cell->vol),iperd);
+
+/*======================================================================*/
+/* IV) Check the forms                                                   */
 
 /*======================================================================*/
 /* V) Calculate Emin and Emax				                */

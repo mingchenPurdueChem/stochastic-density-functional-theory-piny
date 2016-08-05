@@ -408,7 +408,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
       }
       else{
 	stodftInfo->densityMap[iChem] = (iChem-(div+1)*res)/div+res;
-	stodftInfo->densityMap[iChem] = (iChem-(div+1)*res)%div;
+	stodftInfo->indexChemProc[iChem] = (iChem-(div+1)*res)%div;
       }//endif
     }//endfor iChem
     if(myidState<res)count = myidState*(div+1);
@@ -421,6 +421,17 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     stodftInfo->numChemProc = numChemPot;
     numChemProc = stodftInfo->numChemProc;
   }
+ 
+  //debug
+  /*
+  if(myidState==1){
+    for(iChem=0;iChem<numChemPot;iChem++){
+      printf("iChem %i densityMap %i indexchemproc %i\n",
+	iChem,stodftInfo->densityMap[iChem],stodftInfo->indexChemProc[iChem]);
+    }
+  }
+  exit(0);
+  */
 
   stodftCoefPos->rhoUpChemPot = (double**)cmalloc(numChemProc*sizeof(double*));
   for(iChem=0;iChem<numChemProc;iChem++){
@@ -578,6 +589,19 @@ void reInitWaveFunMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       stodftCoefPos->stoWfDnIm[iChem] = (double*)cmalloc(numStateUpTot*sizeof(double))-1;
     }//endfor iChem
   }//endif
+
+/*==========================================================================*/
+/* VI) Reset some flags so that the program will not crash                  */
+
+  cpcoeffs_pos->icoef_orth_up = 1;
+  if(cpLsda==0)cpcoeffs_pos->icoef_orth_dn = 1;
+
+  cpcoeffs_pos->icoef_form_up = 0;
+  cpcoeffs_pos->ifcoef_form_up = 0;
+  if(cpLsda==0){
+    cpcoeffs_pos->icoef_form_dn = 0;
+    cpcoeffs_pos->ifcoef_form_dn = 0;    
+  }
   
 /*==========================================================================*/
 }/*end Routine*/

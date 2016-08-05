@@ -190,6 +190,7 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int cpLsda          = cpopts->cp_lsda;
   int numCoeffUpTot   = numStateUpProc*numCoeff;
   int numCoeffDnTot   = numStateDnProc*numCoeff;
+  int myidState = communicate->myid_state;
 
   int numIteration    = 100;
   int iIter;
@@ -206,9 +207,11 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*==========================================================================*/
 /* I) Set parameters and backup			        */
 
-  printf("==============================================\n");
-  printf("Estimate Energy Upperbound: \n");
-  fflush(stdout);
+  if(myidState==0){
+    printf("==============================================\n");
+    printf("Estimate Energy Upperbound: \n");
+    fflush(stdout);
+  }
 
   cpcoeffs_info->nstate_up_proc = 1;
   cpcoeffs_info->nstate_dn_proc = 1;
@@ -312,9 +315,11 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     energy *= 2.0;
     energy += fcre_up[numCoeff]*cre_up[numCoeff];
     // We already normalize wf to 1.0, so we don't have scaling 0.5 here
-    if(iIter%100==0){
-      printf("iStep %i Energy %lg\n",iIter,energy);
-      fflush(stdout);
+    if(myidState==0){
+      if(iIter%100==0){
+	printf("iStep %i Energy %lg\n",iIter,energy);
+	fflush(stdout);
+      }
     }
 
 /*--------------------------------------------------------------------------*/
@@ -361,10 +366,12 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   //fflush(stdout);
   //exit(0);
 
-  printf("Finish estimating energy upperbound.\n");
-  printf("The energy upperbound is %lg.\n",stodftInfo->energyMax);
-  printf("==============================================\n");
-  fflush(stdout);
+  if(myidState==0){
+    printf("Finish estimating energy upperbound.\n");
+    printf("The energy upperbound is %lg.\n",stodftInfo->energyMax);
+    printf("==============================================\n");
+    fflush(stdout);
+  }
 
 
 /*==========================================================================*/
@@ -404,6 +411,7 @@ void genEnergyMin(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
   int numCoeff       = cpcoeffs_info->ncoef;
   int cpDualGridOptOn = cpopts->cp_dual_grid_opt;
+  int myidState = communicate->myid_state;
   int numIteration   = 1000;
   int iIter;
   int iState,iCoeff,iCoeffStart,index1,index2;
@@ -419,8 +427,10 @@ void genEnergyMin(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*==========================================================================*/
 /* I) Set parameters and backup                                             */
 
-  printf("==============================================\n");
-  printf("Estimate Energy Lowerbound:\n");
+  if(myidState==0){
+    printf("==============================================\n");
+    printf("Estimate Energy Lowerbound:\n");
+  }
 
   cpcoeffs_info->nstate_up_proc = 1;
   cpcoeffs_info->nstate_dn_proc = 1;
@@ -504,9 +514,11 @@ void genEnergyMin(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     energy *= 2.0;
     energy += fcre_up[numCoeff]*cre_up[numCoeff];
     // We already normalize wf to 1.0, so we don't have scaling 0.5 here
-    if(iIter%100==0){
-      printf("iStep %i Energy %lg\n",iIter,energy);
-      fflush(stdout);
+    if(myidState==0){
+      if(iIter%100==0){
+	printf("iStep %i Energy %lg\n",iIter,energy);
+	fflush(stdout);
+      }
     }
 
 /*--------------------------------------------------------------------------*/
@@ -553,11 +565,12 @@ void genEnergyMin(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   free(coeffImUpBackup);
   free(randTrail);
 
-
-  printf("Finish estimating energy lowerbound.\n");
-  printf("The energy lowerbound is %lg.\n",stodftInfo->energyMin);
-  printf("==============================================\n");
-  fflush(stdout);
+  if(myidState==0){
+    printf("Finish estimating energy lowerbound.\n");
+    printf("The energy lowerbound is %lg.\n",stodftInfo->energyMin);
+    printf("==============================================\n");
+    fflush(stdout);
+  }
   //exit(0);
 /*==========================================================================*/
 }/*end Routine*/

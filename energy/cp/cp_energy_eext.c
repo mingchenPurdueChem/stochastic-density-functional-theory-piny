@@ -190,6 +190,7 @@ void control_cp_eext_recip(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 
   if(np_states>1){
    if((icoef_form_up+ifcoef_form_up)!=0){
+    //printf("icoef_form_up %i ifcoef_form_up %i\n",icoef_form_up,ifcoef_form_up);
     printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
     printf("The up coefs and coef forces must not be in transposed form\n");
     printf("on state processor %d in control_cp_pe_recip   \n",myid_state);

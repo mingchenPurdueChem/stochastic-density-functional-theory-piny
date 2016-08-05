@@ -144,12 +144,6 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     }//endif
   }//endif
   */
-  coefFormUp = 1;
-  cpcoeffs_pos->icoef_form_up = 1;
-  if(cpLsda==1&&numStateDn>0){
-    coefFormDn = 1;
-    cpcoeffs_pos->icoef_form_dn = 1;
-  }
 
 /*======================================================================*/
 /* III) Initialize forces, pressure tensor, inverse hmat                */
@@ -336,6 +330,10 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int numStateUpProc = cpcoeffs_info->nstate_up_proc;
   int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
   int numCoeff       = cpcoeffs_info->ncoef;
+  int totalPoly;
+  int numCoeffUpTot   = numStateUpProc*numCoeff;
+  int numCoeffDnTot   = numStateDnProc*numCoeff;
+
   int *coefFormUp   = &(cpcoeffs_pos->icoef_form_up);
   int *forceFormUp  = &(cpcoeffs_pos->ifcoef_form_up);
   int *coefFormDn   = &(cpcoeffs_pos->icoef_form_dn);
@@ -344,8 +342,6 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int *forceOrthUp  = &(cpcoeffs_pos->ifcoef_orth_up);
   int *coefOrthDn   = &(cpcoeffs_pos->icoef_orth_dn);
   int *forceOrthDn  = &(cpcoeffs_pos->ifcoef_orth_dn);
-  int numCoeffUpTot   = numStateUpProc*numCoeff;
-  int numCoeffDnTot   = numStateDnProc*numCoeff;
   
   double energyMin,energyMax;
   double Smin,Smax; 
@@ -412,17 +408,19 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* IV) Calculate Emax and Emin                                          */
 
-  if(myidState==0){
-    genEnergyMax(cp,class,general_data,cpcoeffs_pos,clatoms_pos);
-    genEnergyMin(cp,class,general_data,cpcoeffs_pos,clatoms_pos);
-  }
+  //if(myidState==0){
+  genEnergyMax(cp,class,general_data,cpcoeffs_pos,clatoms_pos);
+  genEnergyMin(cp,class,general_data,cpcoeffs_pos,clatoms_pos);
+  //}
   if(numProcStates>1){
-    Bcast(&(stodftInfo->energyMin),1,MPI_DOUBLE,1,commStates);
-    Bcast(&(stodftInfo->energyMax),1,MPI_DOUBLE,1,commStates);
+    Barrier(commStates);
+    Bcast(&(stodftInfo->energyMin),1,MPI_DOUBLE,0,commStates);
+    Bcast(&(stodftInfo->energyMax),1,MPI_DOUBLE,0,commStates);
   }
   energyMin = stodftInfo->energyMin;
   energyMax = stodftInfo->energyMax;
-  printf("energyMax %lg energyMin %lg\n",energyMax,energyMin);
+  //printf("energyMax %lg energyMin %lg\n",energyMax,energyMin);
+  Barrier(commStates);
   stodftInfo->energyDiff = energyMax-energyMin;
   energyDiff = stodftInfo->energyDiff;
   stodftInfo->energyMean = 0.5*(energyMin+energyMax);
@@ -435,7 +433,22 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     Smax = newtonInfo->Smax;
     scale = (Smax-Smin)/energyDiff;
     newtonInfo->scale = scale;
-    genNewtonHermit(stodftInfo,stodftCoefPos);
+    if(myidState==0)genNewtonHermit(stodftInfo,stodftCoefPos);
+    if(numProcStates>1){
+      Barrier(commStates);
+      Bcast(&(stodftInfo->polynormLength),1,MPI_INT,0,commStates);
+      polynormLength = stodftInfo->polynormLength;
+      totalPoly = polynormLength*numChemPot;
+      if(myidState!=0){
+	stodftCoefPos->expanCoeff = (double*)cmalloc(totalPoly*sizeof(double));
+	newtonInfo->sampPoint = (double*)cmalloc(polynormLength*sizeof(double));
+	newtonInfo->sampPointUnscale = (double*)cmalloc(polynormLength*sizeof(double));
+      }
+      Barrier(commStates);
+      Bcast(stodftCoefPos->expanCoeff,totalPoly,MPI_DOUBLE,0,commStates);
+      Bcast(newtonInfo->sampPoint,polynormLength,MPI_DOUBLE,0,commStates);
+      Bcast(newtonInfo->sampPointUnscale,polynormLength,MPI_DOUBLE,0,commStates);
+    }
     /*
     for(iPoly=0;iPoly<polynormLength;iPoly++){
       sampPointUnscale[iPoly] = (sampPoint[iPoly]-Smin)/scale+energyMin;
@@ -460,8 +473,9 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }
 
 //debug print wave function
-  /*
-  FILE *filePrintWF = fopen("sto-wf-save-test","w");
+  char wfname[100];
+  sprintf(wfname,"sto-wf-save-%i",myidState);
+  FILE *filePrintWF = fopen(wfname,"w");
   for(iChem=0;iChem<numChemPot;iChem++){
     for(iState=0;iState<numStateUpProc;iState++){
       for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
@@ -471,7 +485,7 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     }//endfor iState
   }//endfor iChem
   fclose(filePrintWF);
-  */
+  
 
 /*======================================================================*/
 /* VI) Calculate Energy		                                        */

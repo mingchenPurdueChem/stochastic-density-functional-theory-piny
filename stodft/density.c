@@ -919,6 +919,10 @@ void calcRhoStoHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
   if(cpLsda==1&&numStateDnProc!=0)aveFactDn = occNumber/(double)(numStateStoDn);
 
+  //debug
+  for(iChem=0;iChem<numChemPot;iChem++)printf("myid %i densityMap %i\n",myidState,densityMap[iChem]);
+  fflush(stdout);
+
   for(iChem=0;iChem<numChemPot;iChem++){
     rhoCalcRealStoHybrid(cpscr,cpcoeffs_info,
 		   cell,stodftInfo,stoWfUpRe[iChem],

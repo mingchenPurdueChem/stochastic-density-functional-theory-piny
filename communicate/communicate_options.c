@@ -186,7 +186,7 @@ void comm_cpopts(CPOPTS *cpopts,MPI_Comm world)
 /*             Local variable declarations                                */
 
 #include "../typ_defs/typ_mask.h"
-  int cpopts_num = 50;
+  int cpopts_num = 51;
   MPI_Datatype cpopts_comm;
   MPI_Datatype types[1];
   MPI_Aint displs[1];

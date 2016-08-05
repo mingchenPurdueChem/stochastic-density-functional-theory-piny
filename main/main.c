@@ -126,7 +126,7 @@
    control_min(&class,&bonded,&general_data,&analysis);  
   }
   if((general_data.simopts.cp_wave_min+general_data.simopts.cp_min) ==1 ){
-    if(cp.stodftInfo->stodftOn==0){
+    if(cp.cpopts.stodftOn==0){
       //Regular DFT scheme
       control_cp_min(&class,&bonded,&general_data,&cp,&analysis);
     }

@@ -342,7 +342,7 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
 
      vol_cp  = getdeth(hmat_cp);
      rvol_cp = 1.0/vol_cp;
-     printf("rvol_cp %.16lg\n",rvol_cp);
+     //printf("rvol_cp %.16lg\n",rvol_cp);
 
      if(cp_dual_grid_opt >= 1){
       for(i=1 ; i<= nfft2_proc_dens_cp_box;i++){

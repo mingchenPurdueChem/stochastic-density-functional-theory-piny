@@ -393,118 +393,11 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*==========================================================================*/
 /* 0) Check the forms							    */
 
-//debug
-  /*
-  genEigenOrb(cp,class,general_data,cpcoeffs_pos,clatoms_pos);
-
-  double *coeffReUpBackup = (double*)cmalloc((numCoeffUpTot+1)*sizeof(double));
-  double *coeffImUpBackup = (double*)cmalloc((numCoeffUpTot+1)*sizeof(double));
-  double *randTrail = (double *)cmalloc((2*numCoeffUpTot+1)*sizeof(double));
-
-  for(iState=0;iState<numStateUpProc;iState++){
-    length = 0.0;
-    for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
-      length += coeffReUp[iState*numCoeff+iCoeff]*coeffReUp[iState*numCoeff+iCoeff]+
-		coeffImUp[iState*numCoeff+iCoeff]*coeffImUp[iState*numCoeff+iCoeff];
-    }
-    length *= 2.0;
-    length += coeffReUp[iState*numCoeff+numCoeff]*coeffReUp[iState*numCoeff+numCoeff];
-    length = sqrt(length);
-    for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
-      coeffReUp[iState*numCoeff+iCoeff] /= length;
-      coeffImUp[iState*numCoeff+iCoeff] /= length;
-    }
-  }
-
-  for(iCoeff=1;iCoeff<=numCoeffUpTot;iCoeff++){
-    coeffReUpBackup[iCoeff] = coeffReUp[iCoeff];
-    coeffImUpBackup[iCoeff] = coeffImUp[iCoeff];
-  }
-  */
-  /*
-  double *randTrail = (double *)cmalloc((2*numCoeffUpTot+1)*sizeof(double));
-#ifdef MKL_RANDOM
-  VSLStreamStatePtr stream;
-  int errcode;
-  int seed = 1;
-  errcode = vslNewStream(&stream,VSL_BRNG_MCG31,seed);
-  errcode = vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD,stream,2*numCoeffUpTot,randTrail,randMin,randMax);
-  for(iCoeff=1;iCoeff<=numCoeffTot;iCoeff++){
-    coeffReUp[iCoeff] = randTrail[iCoeff-1];
-  }
-  for(iCoeff=1;iCoeff<=numCoeffTot;iCoeff++){
-    coeffImUp[iCoeff] = randTrail[iCoeff-1+numCoeffUpTot];
-  }
-  for(iState=0;iState<numStateUpProc;iState++)coeffImUp[iState*numCoeff+numCoeff] = 0.0;//Keep everything real
-#endif
-#ifndef MKL_RANDOM
-  //whatever random number is good, I'm using Gaussian in this case
-  double seed = 8.3;
-  int iseed;
-  gaussran(2*numCoeffUpTot,&iseed,&iseed,&seed,randTrail);
-  for(iCoeff=1;iCoeff<=numCoeffUpTot;iCoeff++){
-    coeffReUp[iCoeff] = randTrail[iCoeff-1];
-  }
-  for(iCoeff=1;iCoeff<=numCoeffUpTot;iCoeff++){
-    coeffImUp[iCoeff] = randTrail[iCoeff-1+numCoeffUpTot];
-  }
-  for(iState=0;iState<numStateUpProc;iState++)coeffImUp[iState*numCoeff+numCoeff] = 0.0;//Keep everything real
-#endif
-
-  //Normalize the trail wave function
-  for(iState=0;iState<numStateUpProc;iState++){
-    length = 0.0;
-    for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
-      length += coeffReUp[iState*numCoeff+iCoeff]*coeffReUp[iState*numCoeff+iCoeff]+
-		coeffImUp[iState*numCoeff+iCoeff]*coeffImUp[iState*numCoeff+iCoeff];
-    }
-    length *= 2.0;
-    length += coeffReUp[iState*numCoeff+numCoeff]*coeffReUp[iState*numCoeff+numCoeff];
-    length = sqrt(length);
-    for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
-      coeffReUp[iState*numCoeff+iCoeff] /= length;
-      coeffImUp[iState*numCoeff+iCoeff] /= length;
-    }
-  }
-  */
-//enddebug
-
-  if(numProcStates>1){
-    if(*coefFormUp+*forceFormUp!=2){
-     printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
-     printf("Up CP vectors are not in transposed form \n");
-     printf("on state processor %d in min_CG_cp \n",myidState);
-     printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
-     fflush(stdout);
-     exit(1);
-    }/*endif*/
-    if(cpLsda==1){
-     if(*coefFormDn+*forceFormDn!=2){
-      printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
-      printf("Up CP vectors are not in transposed form \n");
-      printf("on state processor %d in min_CG_cp \n",myidState);
-      printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
-      fflush(stdout);
-      exit(1);
-     }/*endif*/
-    }/*endif*/
-  }/*endif*/
-
 /*======================================================================*/
 /* 0.05) Check the approximations in the methods                        */
 
 /*======================================================================*/
 /* II) In parallel, transpose coefs back to normal form                 */
-
-  if(numProcStates>1){
-   cp_transpose_bck(coeffReUp,coeffImUp,coefFormUp,
-                    scrCoeffReUp,scrCoeffImUp,&(cp->cp_comm_state_pkg_up));
-   if(cpLsda==1&&numStateDnProc>0){
-    cp_transpose_bck(coeffReDn,coeffImDn,coefFormDn,
-                     scrCoeffReDn,scrCoeffImDn,&(cp->cp_comm_state_pkg_dn));
-   }/*endif*/
-
-  }/*endif*/
 
 /*======================================================================*/
 /* III) Set flags							*/

@@ -47,6 +47,7 @@ void calcRhoInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   ATOMMAPS *atommaps            = &(class->atommaps);
   EWD_SCR      *ewd_scr         = &(class->ewd_scr);
   FOR_SCR      *for_scr         = &(class->for_scr);
+  COMMUNICATE  *communicate	= &(class->communicate);
 
   STODFTINFO *stodftInfo       = cp->stodftInfo;
   STODFTCOEFPOS *stodftCoefPos = cp->stodftCoefPos;
@@ -59,16 +60,35 @@ void calcRhoInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int vpsAtomListFlag = stodftInfo->vpsAtomListFlag;
   int cpDualGridOptOn           = cpopts->cp_dual_grid_opt;
   int cpLsda			= cpopts->cp_lsda;
+  int myid			= communicate->myid;
 
 
 /*==========================================================================*/
 /* I) Generate initial density, stochastic Case                             */
 
+  if(myid==0){
+    PRINT_LINE_STAR;
+    printf("Start Calculating Initial Density\n");
+    PRINT_LINE_DASH;
+  }
+
   if(reInitFlag==0) calcRhoStoInit(class,bonded,general_data,cp,cpcoeffs_pos);
   if(reInitFlag==1) calcRhoDetInit(class,bonded,general_data,cp,cpcoeffs_pos);
 
+  if(myid==0){
+    PRINT_LINE_DASH;
+    printf("Finish Calculating Initial Density\n");
+    PRINT_LINE_STAR;
+  }
+
 /*==========================================================================*/
 /* II) Calculate the non-local pseudopotential list                          */
+
+  if(myid==0){
+    PRINT_LINE_STAR;
+    printf("Start Generating Pseudopotential List\n");
+    PRINT_LINE_DASH;
+  }
 
   if(stodftInfo->vpsAtomListFlag==0||cpDualGridOptOn>= 1){
     control_vps_atm_list(pseudo,cell,clatoms_pos,clatoms_info,
@@ -77,14 +97,18 @@ void calcRhoInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     stodftInfo->vpsAtomListFlag = 1;
   }
 
+  if(myid==0){
+    PRINT_LINE_DASH;
+    printf("Finish Generating Pseudopotential List\n");
+    PRINT_LINE_STAR;
+  }
+
 /*==========================================================================*/
 /* III) Change the occupation number after reading initial deisity          */
 /*      density calculation                                                 */
 
   if(cpLsda==1)stodftInfo->occNumber = 1;
   else stodftInfo->occNumber = 2;
-
-  printf("Finish generating Pseudopotential list.\n");
 
 
 /*==========================================================================*/
@@ -232,7 +256,7 @@ void calcRhoDetInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* II) Store the density for mixing			                */
   
-  printf("densityMixFlag %i\n",densityMixFlag);
+  //printf("densityMixFlag %i\n",densityMixFlag);
   if(densityMixFlag>0){
     volCP  = getdeth(hmatCP);
     for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){

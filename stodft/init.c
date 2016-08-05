@@ -159,6 +159,8 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   int iChem,iSamp,iCell;
   int div,res;
   int count,numChemProc,rhoRealGridNum;
+  MPI_Comm comm_states   =    communicate->comm_states;
+  
 
   int *pcoefFormUp                   = &(cpcoeffs_pos->icoef_form_up);
   int *pcoefOrthUp                   = &(cpcoeffs_pos->icoef_orth_up);
@@ -191,7 +193,6 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
 /*==========================================================================*/
 /* I) General parameters and malloc					    */
-  
   stodftInfo->vpsAtomListFlag = 0;
 
   stodftCoefPos->chemPot = (double*)cmalloc(numChemPot*sizeof(double));
@@ -308,7 +309,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
   if(readCoeffFlag==1)stodftInfo->reInitFlag = 0;
   else stodftInfo->reInitFlag = 1;
-  printf("readCoeffFlag %i reInitFlag %i\n",readCoeffFlag,stodftInfo->reInitFlag);
+  //printf("readCoeffFlag %i reInitFlag %i\n",readCoeffFlag,stodftInfo->reInitFlag);
 
 
 /*==========================================================================*/
@@ -325,26 +326,29 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*==========================================================================*/
 /* V) Initialize for the density calculation				    */
 
+  // I need to do this for both deterministic/stochastic density calculation since
+  // I use similiar functions
   if(numProcStates>1){
     if((coefFormUp+forceCoefFormUp)!=2){
-     printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
-     printf("Up CP vectors are not in transposed form \n");
-     printf("on state processor %d in min_STD_cp \n",myidState);
-     printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
-     fflush(stdout);
-     exit(1);
-    }/*endif*/
-    if(cpLsda==1){
-     if((coefFormDn+forceCoefFormDn)!=2){
       printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
       printf("Up CP vectors are not in transposed form \n");
       printf("on state processor %d in min_STD_cp \n",myidState);
       printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
       fflush(stdout);
       exit(1);
-     }/*endif*/
+    }/*endif*/
+    if(cpLsda==1){
+      if((coefFormDn+forceCoefFormDn)!=2){
+        printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+        printf("Up CP vectors are not in transposed form \n");
+        printf("on state processor %d in min_STD_cp \n",myidState);
+        printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+        fflush(stdout);
+        exit(1);
+      }/*endif*/
     }/*endif*/
   }/*endif*/
+  Barrier(comm_states);
 
   if((iperd<3||iperd==4)&&checkPerdSize==1){
     cp_boundary_check(cell,clatoms_info,clatoms_pos,tolEdgeDist);

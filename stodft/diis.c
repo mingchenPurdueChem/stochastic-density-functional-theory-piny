@@ -74,9 +74,7 @@ void genDensityMix(CP *cp,int iScf)
 
   //updateBank(rhoUpCorrect,rhoUpBank,iScf);
   //updateErr(rhoUpBank,rhoUpErr,iScf);
-  printf("111111111111111\n");
   stodftInfo->numDiisNow = numDiisNow;
-  printf("numStepMix %i\n",numStepMix);
 
   if(iScf==0){//Initial Step
     updateBank(stodftInfo,stodftCoefPos,rhoUpCorrect,rhoUpBank);

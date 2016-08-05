@@ -100,6 +100,7 @@ typedef struct cpopts{
   int cp_nloc_wan_opt;
   int cp_kinet_wan_opt;
   int cp_wan_init_opt;
+  int stodftOn;		       /* Num: a copy from stodftInfo */
 
   double te_ext;               /* Num: Temperature of PW coef         */ 
   double tol_edge_dist;       /*  Num: Tolerance on max atom dist under CBC*/

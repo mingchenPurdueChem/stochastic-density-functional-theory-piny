@@ -99,12 +99,6 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
   calcRhoInit(class,bonded,general_data,cp,ip_now);
 
-  if(myid==0){
-    PRINT_LINE_STAR;
-    printf("Finish calculating initial density\n");
-    PRINT_LINE_DASH;
-  } 
-
   //debug only
   /*
   STODFTINFO *stodftInfo = cp->stodftInfo;

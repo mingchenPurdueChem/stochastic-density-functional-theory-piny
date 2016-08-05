@@ -378,43 +378,7 @@ void calcKSPotExtRecipWrap(CLASS *class,GENERAL_DATA *general_data,
 /* The following part comes from control_cp_eext_recip			*/
 /*======================================================================*/
 /* 0) Check the forms                                                   */
-
-  if(icoef_orth_up!=1){
-    printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
-    printf("The Up coefficients must be in orthogonal form    \n");
-    printf("on state processor %d in control_cp_pe_recip   \n",myid_state);
-    printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
-    fflush(stdout);exit(1);
-  }/*endif*/
-  if(cp_lsda==1 && nstate_dn != 0){
-   if(icoef_orth_dn!=1){
-    printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
-    printf("The dn coefficients must be in orthogonal form    \n");
-    printf("on state processor %d in control_cp_pe_recip   \n",myid_state);
-    printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
-    fflush(stdout);exit(1);
-   }/*endif*/
-  }/*endif*/
-
-  if(np_states>1){
-   if((icoef_form_up+ifcoef_form_up)!=0){
-    printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
-    printf("The up coefs and coef forces must not be in transposed form\n");
-    printf("on state processor %d in control_cp_pe_recip   \n",myid_state);
-    printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
-    fflush(stdout);exit(1);
-   }/*endif*/
-   if(cp_lsda==1 && nstate_dn != 0){
-    if((icoef_form_dn+ifcoef_form_dn)!=0){
-     printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
-     printf("The dn coefs and coef forces must not be in transposed form\n");
-     printf("on state processor %d in control_cp_pe_recip   \n",myid_state);
-     printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
-     fflush(stdout);exit(1);
-    }/*endif*/
-   }/*endif*/
-  }/*endif*/
-    
+   
 /*======================================================================*/
 /* III) Determine the maximum open non-local angular momentum channel   */
 /*      for Kleinman-Bylander and Goedecker pseudo potentials           */

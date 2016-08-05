@@ -4505,6 +4505,7 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   int missionType,stodftOn;
   SIMOPTS *simopts = &(general_data->simopts);
   MINOPTS *minopts = &(general_data->minopts);
+  CPOPTS  *cpopts  = &(cp->cpopts);
 
   STODFTINFO *stodftInfo = (STODFTINFO *)cmalloc(sizeof(STODFTINFO));;
   STODFTCOEFPOS *stodftCoefPos = (STODFTCOEFPOS *)cmalloc(sizeof(STODFTCOEFPOS));
@@ -4592,6 +4593,8 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   if(missionType>0)stodftOn = 1;
   else stodftOn = 0;
   stodftInfo->stodftOn = stodftOn;
+  //I need a copy of this before initialize stochastic dft
+  cpopts->stodftOn = stodftOn;
 
   //printf("stodftOn %i\n",stodftOn);
  

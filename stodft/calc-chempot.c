@@ -57,6 +57,7 @@ void calcChemPotInterp(CP *cp)
 
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
 
+  int i,j,k;
   int iChem,iGrid;
   int chemPotIndex;
   int numStateUpProc = cpcoeffs_info->nstate_up_proc;
@@ -104,6 +105,11 @@ void calcChemPotInterp(CP *cp)
     Bcast(interpCoef,numChemPot,MPI_DOUBLE,0,comm_states);
   }
   stodftInfo->chemPotTrue = chemPotTrue;
+  printf("%p %p\n",rhoRealSendCounts,rhoRealDispls);
+
+  if(myidState==0){
+    for(i=0;i<4;i++)printf("rhoRealSendCounts %i rhoRealDispls %i\n",rhoRealSendCounts[i],rhoRealDispls[i]);
+  }
   
   if(cpParaOpt==0){
     for(iChem=0;iChem<numChemProc;iChem++){
@@ -120,7 +126,7 @@ void calcChemPotInterp(CP *cp)
     }//endfor iChem
   }
 
-  //printf("coef %lg\n",interpCoef[0]);
+  printf("coef %lg\n",interpCoef[0]);
 
   for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
     rhoUpCorrect[iGrid] = 0.0;

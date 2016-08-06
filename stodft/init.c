@@ -158,7 +158,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   int numFFT2Proc       = numFFTProc/2;
   int iChem,iSamp,iCell;
   int div,res;
-  int count,numChemProc,rhoRealGridNum;
+  int count,numChemProc,rhoRealGridNum,rhoRealGridTot;
   MPI_Comm comm_states   =    communicate->comm_states;
   
 
@@ -387,11 +387,18 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   if(readCoeffFlag==1&&cpLsda==0)stodftInfo->occNumber = 2;
   
   //set real space density grid number and chemical potential map
+  //Now we just use hybrid before interpolation and fullg afterward
+  //This will make life easier.
+  //For very big system, we may have few stochastic orbitals and 
+  //may need to use fullg all the time. That's sounds like a future 
+  //implementation
+
   //if(cpParaOpt==0)stodftInfo->rhoRealGridNum = numFFT2;
   //else stodftInfo->rhoRealGridNum = numFFT2Proc;
   stodftInfo->rhoRealGridNum = numFFT2Proc;
   rhoRealGridNum = stodftInfo->rhoRealGridNum;
   stodftInfo->rhoRealGridTot = numFFT2;
+  rhoRealGridTot = numFFT2;
   if(cpParaOpt==0){//hybrid case
     div = numChemPot/numProcStates;
     res = numChemPot%numProcStates;
@@ -435,13 +442,13 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
   stodftCoefPos->rhoUpChemPot = (double**)cmalloc(numChemProc*sizeof(double*));
   for(iChem=0;iChem<numChemProc;iChem++){
-    stodftCoefPos->rhoUpChemPot[iChem] = (double*)cmalloc(rhoRealGridNum*sizeof(double));
+    stodftCoefPos->rhoUpChemPot[iChem] = (double*)cmalloc(rhoRealGridTot*sizeof(double));
   }
   stodftCoefPos->rhoUpCorrect = (double*)cmalloc(rhoRealGridNum*sizeof(double));
   if(cpLsda==1&&numStateDnProc>0){
     stodftCoefPos->rhoDnChemPot = (double**)cmalloc(numChemProc*sizeof(double*));
     for(iChem=0;iChem<numChemProc;iChem++){
-      stodftCoefPos->rhoDnChemPot[iChem] = (double*)cmalloc(rhoRealGridNum*sizeof(double));
+      stodftCoefPos->rhoDnChemPot[iChem] = (double*)cmalloc(rhoRealGridTot*sizeof(double));
     }
     stodftCoefPos->rhoDnCorrect = (double*)cmalloc(rhoRealGridNum*sizeof(double));    
   }

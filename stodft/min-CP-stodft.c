@@ -203,15 +203,18 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*----------------------------------------------------------------------*/
 /* ii) Generate stochastic WF for different chemical potentials         */
 
-    printf("**Generating Stochastic Orbitals...\n");
-    genStoOrbital(class,bonded,general_data,cp,ip_now);
+    if(myidState==0)printf("**Generating Stochastic Orbitals...\n");
+    //genStoOrbital(class,bonded,general_data,cp,ip_now);
     
     if(myidState==0)printf("**Finish Generating Stochastic Orbitals\n");
 
     //exit(0);   
     
-    /*
-    FILE *filePrintWF = fopen("sto-wf-save","r");
+    
+    char wfname[100];
+    sprintf(wfname,"sto-wf-save-%i",myidState);
+
+    FILE *filePrintWF = fopen(wfname,"r");
     for(iChem=0;iChem<numChemPot;iChem++){
       for(iState=0;iState<numStateUp;iState++){
 	for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
@@ -221,7 +224,7 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       }//endfor iState
     }//endfor iChem
     fclose(filePrintWF);
-    */
+    
     
     if(myidState==0)printf("**Calculating KE and NLPPE...\n");
     calcEnergyChemPot(cp,class,general_data,cpcoeffs_pos,clatoms_pos);   

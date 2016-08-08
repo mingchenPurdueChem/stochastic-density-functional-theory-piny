@@ -313,6 +313,8 @@ typedef struct stodftInfo{
 				    /*	    1 = realloc (read det/gen wf)	*/
   int numStateStoUp;		    /* Num: number of stochastic WF.		*/
   int numStateStoDn;
+  int numRandTot;		    /* Num: number of sto WF coeff of all	*/
+				    /*	    process				*/
   int occNumber;		    /* Num: Occupation number of orbitals	*/
 				    /*	    If cp_lsda=1, this number should    */
 				    /*	    always be 1. If cp_lsda=0 and you   */
@@ -349,6 +351,12 @@ typedef struct stodftInfo{
 				    /* Lth: np_states				*/
   int *rhoRealDispls;		    /* Lst: displs for scattering rho in real	*/
 				    /*	    space.				*/
+				    /* Lth: np_states				*/
+  int *noiseSendCounts;		    /* Lst: We will scatter the noise orbital   */
+				    /*	    from the master proc to all. This 	*/
+				    /*	    is the scatter count		*/
+				    /* Lth: np_states				*/
+  int *noiseDispls;		    /* Lst: noise orbital displs for scatter	*/
 				    /* Lth: np_states				*/
 
   int numChemProc;		    /* Num: Number of densities stored on this  */

@@ -58,8 +58,8 @@ void calcChemPotInterp(CP *cp)
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
 
   int i,j,k;
-  int iChem,iGrid;
-  int chemPotIndex;
+  int iChem,iGrid,iProc;
+  int chemPotIndex,chemPotIndexProc;
   int numStateUpProc = cpcoeffs_info->nstate_up_proc;
   int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
   int numChemPot = stodftInfo->numChemPot;
@@ -105,18 +105,24 @@ void calcChemPotInterp(CP *cp)
     Bcast(interpCoef,numChemPot,MPI_DOUBLE,0,comm_states);
   }
   stodftInfo->chemPotTrue = chemPotTrue;
-  printf("%p %p\n",rhoRealSendCounts,rhoRealDispls);
 
-  if(myidState==0){
+  /*
+  if(myidState==3){
     for(i=0;i<4;i++)printf("rhoRealSendCounts %i rhoRealDispls %i\n",rhoRealSendCounts[i],rhoRealDispls[i]);
   }
+  */
   
   if(cpParaOpt==0){
     for(iChem=0;iChem<numChemProc;iChem++){
       chemPotIndex = chemProcIndexInv[iChem];
+      //printf("iChem %i chemPotIndex %i\n",iChem,chemPotIndex);
       if(numProcStates>1){
-	Scatterv(rhoUpChemPot[iChem],rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
-		&rhoTemp[chemPotIndex*rhoRealGridNum],rhoRealGridNum,MPI_DOUBLE,myidState,comm_states);
+	for(iProc=0;iProc<numProcStates;iProc++){
+	  if(myidState==iProc)chemPotIndexProc = chemPotIndex;
+	  Bcast(&chemPotIndexProc,1,MPI_INT,iProc,comm_states);
+	  Scatterv(rhoUpChemPot[iChem],rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
+		   &rhoTemp[chemPotIndexProc*rhoRealGridNum],rhoRealGridNum,MPI_DOUBLE,iProc,comm_states);
+	}
       }
       else{
 	memcpy(&rhoTemp[chemPotIndex*rhoRealGridNum],rhoUpChemPot[iChem],rhoRealGridNum*sizeof(double));
@@ -126,7 +132,7 @@ void calcChemPotInterp(CP *cp)
     }//endfor iChem
   }
 
-  printf("coef %lg\n",interpCoef[0]);
+  //printf("coef %lg\n",interpCoef[0]);
 
   for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
     rhoUpCorrect[iGrid] = 0.0;

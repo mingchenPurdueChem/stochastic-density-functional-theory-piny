@@ -98,7 +98,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*************************************************************************/
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
-
+#include "../typ_defs/typ_mask.h"
   CLATOMS_INFO *clatoms_info = &(class->clatoms_info);
   CLATOMS_POS  *clatoms_pos  = &(class->clatoms_pos[ip_now]);
   ATOMMAPS     *atommaps     = &(class->atommaps);
@@ -156,11 +156,11 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   int numFFT            = cp_para_fft_pkg3d_lg->nfft;
   int numFFT2           = numFFT/2;
   int numFFT2Proc       = numFFTProc/2;
-  int iChem,iSamp,iCell;
+  int iChem,iSamp,iCell,iProc,iCoeff;
   int div,res;
   int count,numChemProc,rhoRealGridNum,rhoRealGridTot;
+  int numSendNoise;
   MPI_Comm comm_states   =    communicate->comm_states;
-  
 
   int *pcoefFormUp                   = &(cpcoeffs_pos->icoef_form_up);
   int *pcoefOrthUp                   = &(cpcoeffs_pos->icoef_orth_up);
@@ -170,6 +170,10 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   int *pcoefOrthDn                   = &(cpcoeffs_pos->icoef_orth_dn);
   int *pforceCoefFormDn              = &(cpcoeffs_pos->icoef_form_dn);
   int *pforceCoefOrthDn              = &(cpcoeffs_pos->icoef_orth_dn);
+  int *rhoRealSendCounts;
+  int *rhoRealDispls;
+  int *noiseSendCounts;
+  int *noiseDispls;
 
   char *ggaxTyp     = pseudo->ggax_typ;
   char *ggacTyp     = pseudo->ggac_typ;
@@ -324,6 +328,51 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   */
 
 /*==========================================================================*/
+/* VI) Initialize noise orbital scattering	                            */
+
+  stodftInfo->noiseSendCounts = (int*)cmalloc(numProcStates*sizeof(int));
+  stodftInfo->noiseDispls     = (int*)cmalloc(numProcStates*sizeof(int));
+  noiseSendCounts = stodftInfo->noiseSendCounts;
+  noiseDispls = stodftInfo->noiseDispls;
+
+  if(numProcStates>1){
+    if(myidState==0){
+      if(cpLsda==0)noiseSendCounts[0] = numStateUpTot;
+      else noiseSendCounts[0] = numStateUpTot+numStateDnTot;
+      for(iProc=1;iProc<numProcStates;iProc++){
+	Recv(&noiseSendCounts[iProc],1,MPI_INT,iProc,iProc,comm_states);
+      }//endfor iProc
+    }//endif
+    else{
+      if(cpLsda==0){
+	numSendNoise = numStateUpTot*2;
+	Send(&numStateUpTot,1,MPI_INT,0,myidState,comm_states);
+      }
+      else{
+	numSendNoise = (numStateUpTot+numStateDnTot)*2;
+	Send(&numSendNoise,1,MPI_INT,0,myidState,comm_states);
+      } 
+    }
+    Barrier(comm_states);
+    Bcast(noiseSendCounts,numProcStates,MPI_INT,0,comm_states);
+    Barrier(comm_states);
+    noiseDispls[0] = 0;
+    for(iProc=1;iProc<numProcStates;iProc++){
+      noiseDispls[iProc] = rhoRealDispls[iProc-1]+rhoRealSendCounts[iProc-1];
+    }
+    stodftInfo->numRandTot = 0;
+    for(iProc=0;iProc<numProcStates;iProc++){
+      stodftInfo->numRandTot += noiseSendCounts[iProc];
+    }
+  }//endif 
+  else{
+    stodftInfo->numRandTot = numStateUpTot*2;
+    if(cpLsda==1)stodftInfo->numRandTot += numStateDnTot*2;
+   }
+  
+
+
+/*==========================================================================*/
 /* V) Initialize for the density calculation				    */
 
   // I need to do this for both deterministic/stochastic density calculation since
@@ -428,6 +477,31 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     stodftInfo->numChemProc = numChemPot;
     numChemProc = stodftInfo->numChemProc;
   }
+  
+  stodftInfo->rhoRealSendCounts = (int*)cmalloc(numProcStates*sizeof(int));
+  stodftInfo->rhoRealDispls     = (int*)cmalloc(numProcStates*sizeof(int));
+  rhoRealSendCounts = stodftInfo->rhoRealSendCounts;
+  rhoRealDispls = stodftInfo->rhoRealDispls;
+
+  if(numProcStates>1){
+    if(myidState==0){
+      rhoRealSendCounts[0] = numFFT2Proc;
+      for(iProc=1;iProc<numProcStates;iProc++){
+        Recv(&rhoRealSendCounts[iProc],1,MPI_INT,iProc,iProc,comm_states);
+      }//endfor iProc
+    }//endif
+    else{
+      Send(&numFFT2Proc,1,MPI_INT,0,myidState,comm_states);
+    }
+    Barrier(comm_states);
+    Bcast(rhoRealSendCounts,numProcStates,MPI_INT,0,comm_states);
+    Barrier(comm_states);
+    rhoRealDispls[0] = 0;
+    for(iProc=1;iProc<numProcStates;iProc++){
+      rhoRealDispls[iProc] = rhoRealDispls[iProc-1]+rhoRealSendCounts[iProc-1];
+    }
+  }//endif
+  
  
   //debug
   /*

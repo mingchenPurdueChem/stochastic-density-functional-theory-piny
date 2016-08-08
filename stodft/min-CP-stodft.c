@@ -204,13 +204,13 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /* ii) Generate stochastic WF for different chemical potentials         */
 
     if(myidState==0)printf("**Generating Stochastic Orbitals...\n");
-    //genStoOrbital(class,bonded,general_data,cp,ip_now);
+    genStoOrbital(class,bonded,general_data,cp,ip_now);
     
     if(myidState==0)printf("**Finish Generating Stochastic Orbitals\n");
 
     //exit(0);   
     
-    
+    /*
     char wfname[100];
     sprintf(wfname,"sto-wf-save-%i",myidState);
 
@@ -224,6 +224,7 @@ void scfStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       }//endfor iState
     }//endfor iChem
     fclose(filePrintWF);
+    */
     
     
     if(myidState==0)printf("**Calculating KE and NLPPE...\n");
@@ -476,6 +477,7 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }
 
 //debug print wave function
+  /*
   char wfname[100];
   sprintf(wfname,"sto-wf-save-%i",myidState);
   FILE *filePrintWF = fopen(wfname,"w");
@@ -488,6 +490,7 @@ void genStoOrbital(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     }//endfor iState
   }//endfor iChem
   fclose(filePrintWF);
+  */
   
 
 /*======================================================================*/
@@ -570,6 +573,7 @@ void genNoiseOrbital(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
   STODFTINFO   *stodftInfo   = cp->stodftInfo;
   STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  COMMUNICATE   *communicate      = &(cp->communicate);
  
   int iStat,iCoeff,iOff;
   int cpLsda = cpopts->cp_lsda;
@@ -578,36 +582,50 @@ void genNoiseOrbital(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
   int numCoeff = cpcoeffs_info->ncoef;
   int numStatUpTot = numStatUpProc*numCoeff;
   int numStatDnTot = numStatDnProc*numCoeff;
-  int numRand;
-
+  int numProcStates             = communicate->np_states;
+  int myidState                 = communicate->myid_state;
+  int numRandTot = stodftInfo->numRandTot;
+  int *noiseSendCounts = stodftInfo->noiseSendCounts;
+  int *noiseDispls = stodftInfo->noiseDispls;
+  MPI_Comm comm_states   =    communicate->comm_states;
+  
   double ranValue = 1.0/sqrt(2.0);
-  double *randNum;
+  double *randNumTot,*randNum;
   double *coeffReUp = cpcoeffs_pos->cre_up;
   double *coeffImUp = cpcoeffs_pos->cim_up;
   double *coeffReDn = cpcoeffs_pos->cre_dn;
   double *coeffImDn = cpcoeffs_pos->cim_dn;
 
-  numRand = 2*numStatUpTot;
-  if(cpLsda==1&&numStatDnProc!=0){
-    numRand += 2*numStatDnTot;
+  if(myidState==0)randNumTot = (double*)cmalloc(numRandTot*sizeof(double));
+  if(numProcStates>1){
+    randNum = (double*)cmalloc(noiseSendCounts[myidState]*sizeof(double));
+  }
+  else{
+    randNum = randNumTot;
   }
 
-  randNum = (double*)cmalloc(numRand*sizeof(double));
-  
+  if(myidState==0){  
 #ifdef MKL_RANDOM
-  VSLStreamStatePtr stream;
-  int errcode;
-  int seed = 1;
-  errcode = vslNewStream(&stream,VSL_BRNG_MCG31,seed);
-  errcode = vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD,stream,numRand,randNum,-1.0,1.0);
+    VSLStreamStatePtr stream;
+    int errcode;
+    int seed = 1;
+    errcode = vslNewStream(&stream,VSL_BRNG_MCG31,seed);
+    errcode = vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD,stream,numRandTot,randNumTot,-1.0,1.0);
 #endif
 #ifndef MKL_RANDOM
-  //whatever random number is good, I'm using Gaussian in this case
-  double seed = 8.3;
-  //double seed = 2.5;
-  int iseed;
-  gaussran(numRand,&iseed,&iseed,&seed,randNum);
+    //whatever random number is good, I'm using Gaussian in this case
+    double seed = 8.3;
+    //double seed = 2.5;
+    int iseed;
+    gaussran(numRandTot,&iseed,&iseed,&seed,randNumTot);
 #endif
+  }
+  if(numProcStates>1){
+    Scatterv(randNumTot,noiseSendCounts,noiseDispls,MPI_DOUBLE,
+             randNum,noiseSendCounts[myidState],MPI_DOUBLE,0,comm_states);
+    Barrier(comm_states);
+    if(myidState==0)free(randNumTot);
+  }
 
   for(iStat=0;iStat<numStatUpProc;iStat++){
     iOff = iStat*numCoeff;

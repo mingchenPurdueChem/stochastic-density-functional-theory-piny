@@ -617,6 +617,8 @@ void genNoiseOrbital(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
     double seed = 8.3;
     //double seed = 2.5;
     int iseed;
+    printf("numRandTot %i numStateUpTot %i numCoeff %i\n",numRandTot,numStatUpTot,numCoeff);
+    fflush(stdout);
     gaussran(numRandTot,&iseed,&iseed,&seed,randNumTot);
 #endif
   }

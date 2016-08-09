@@ -330,6 +330,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*==========================================================================*/
 /* VI) Initialize noise orbital scattering	                            */
 
+  /*
   stodftInfo->noiseSendCounts = (int*)cmalloc(numProcStates*sizeof(int));
   stodftInfo->noiseDispls     = (int*)cmalloc(numProcStates*sizeof(int));
   noiseSendCounts = stodftInfo->noiseSendCounts;
@@ -337,8 +338,8 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
   if(numProcStates>1){
     if(myidState==0){
-      if(cpLsda==0)noiseSendCounts[0] = numStateUpTot;
-      else noiseSendCounts[0] = numStateUpTot+numStateDnTot;
+      if(cpLsda==0)noiseSendCounts[0] = numStateUpTot*2;
+      else noiseSendCounts[0] = (numStateUpTot+numStateDnTot)*2;
       for(iProc=1;iProc<numProcStates;iProc++){
 	Recv(&noiseSendCounts[iProc],1,MPI_INT,iProc,iProc,comm_states);
       }//endfor iProc
@@ -356,9 +357,10 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     Barrier(comm_states);
     Bcast(noiseSendCounts,numProcStates,MPI_INT,0,comm_states);
     Barrier(comm_states);
+    printf("0 %i 1 %i 2 %i 3 %i\n",noiseSendCounts[0],noiseSendCounts[1],noiseSendCounts[2],noiseSendCounts[3]);
     noiseDispls[0] = 0;
     for(iProc=1;iProc<numProcStates;iProc++){
-      noiseDispls[iProc] = rhoRealDispls[iProc-1]+rhoRealSendCounts[iProc-1];
+      noiseDispls[iProc] = noiseDispls[iProc-1]+noiseSendCounts[iProc-1];
     }
     stodftInfo->numRandTot = 0;
     for(iProc=0;iProc<numProcStates;iProc++){
@@ -368,7 +370,8 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   else{
     stodftInfo->numRandTot = numStateUpTot*2;
     if(cpLsda==1)stodftInfo->numRandTot += numStateDnTot*2;
-   }
+  }
+  */
   
 
 
@@ -582,6 +585,8 @@ void reInitWaveFunMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*************************************************************************/
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
+  #include "../typ_defs/typ_mask.h"
+
   STODFTINFO *stodftInfo        = cp->stodftInfo;
   STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
@@ -595,12 +600,18 @@ void reInitWaveFunMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int numCoeff       = cpcoeffs_info->ncoef;
   int numStateUpProc,numStateDnProc;
   int numStateUpTot,numStateDnTot;
-  int numProcstates = communicate->np_states;
+  int numProcStates = communicate->np_states;
+  int myidState	    = communicate->myid;
   int cpLsda = cpopts->cp_lsda;
   int piBeadsProc  = cpcoeffs_info->pi_beads_proc;
   int hessCalc = class->clatoms_info.hess_calc;
   int numChemPot = stodftInfo->numChemPot;
-  int iState,iChem;
+  int numSendNoise;
+  int iState,iChem,iProc;
+  MPI_Comm comm_states   =    communicate->comm_states;
+
+  int *noiseSendCounts;
+  int *noiseDispls;
 
 /*==========================================================================*/
 /* I) Initialize Check                                                      */
@@ -609,7 +620,7 @@ void reInitWaveFunMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   cpcoeffs_info->nstate_dn = numStateStoDn;
 
   if(cpLsda==0){
-    if(numStateStoUp<numProcstates){
+    if(numStateStoUp<numProcStates){
       printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@\n");
       printf("Number of states less than number of processors\n");
       printf("If possible, reduce number of processors to be\n");
@@ -619,7 +630,7 @@ void reInitWaveFunMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       exit(1);
     }//endif
   }else{
-    if(numStateStoUp+numStateStoDn<numProcstates){
+    if(numStateStoUp+numStateStoDn<numProcStates){
       printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@\n");
       printf("Number of states less than number of processors\n");
       printf("If possible, reduce number of processors to be\n");
@@ -670,6 +681,50 @@ void reInitWaveFunMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       stodftCoefPos->stoWfDnIm[iChem] = (double*)cmalloc(numStateUpTot*sizeof(double))-1;
     }//endfor iChem
   }//endif
+
+/*==========================================================================*/
+/* VI) Initialize noise orbital scattering                                  */
+
+  stodftInfo->noiseSendCounts = (int*)cmalloc(numProcStates*sizeof(int));
+  stodftInfo->noiseDispls     = (int*)cmalloc(numProcStates*sizeof(int));
+  noiseSendCounts = stodftInfo->noiseSendCounts;
+  noiseDispls = stodftInfo->noiseDispls;
+
+  if(numProcStates>1){
+    if(myidState==0){
+      if(cpLsda==0)noiseSendCounts[0] = numStateUpTot*2;
+      else noiseSendCounts[0] = (numStateUpTot+numStateDnTot)*2;
+      for(iProc=1;iProc<numProcStates;iProc++){
+        Recv(&noiseSendCounts[iProc],1,MPI_INT,iProc,iProc,comm_states);
+      }//endfor iProc
+    }//endif
+    else{
+      if(cpLsda==0){ 
+        numSendNoise = numStateUpTot*2;
+        Send(&numSendNoise,1,MPI_INT,0,myidState,comm_states);
+      }
+      else{
+        numSendNoise = (numStateUpTot+numStateDnTot)*2;
+        Send(&numSendNoise,1,MPI_INT,0,myidState,comm_states);
+      }
+    }
+    Barrier(comm_states);
+    Bcast(noiseSendCounts,numProcStates,MPI_INT,0,comm_states);
+    Barrier(comm_states);
+    printf("0 %i 1 %i 2 %i 3 %i\n",noiseSendCounts[0],noiseSendCounts[1],noiseSendCounts[2],noiseSendCounts[3]); 
+    noiseDispls[0] = 0;
+    for(iProc=1;iProc<numProcStates;iProc++){
+      noiseDispls[iProc] = noiseDispls[iProc-1]+noiseSendCounts[iProc-1];
+    }
+    stodftInfo->numRandTot = 0;
+    for(iProc=0;iProc<numProcStates;iProc++){
+      stodftInfo->numRandTot += noiseSendCounts[iProc];
+    }
+  }//endif 
+  else{
+    stodftInfo->numRandTot = numStateUpTot*2;
+    if(cpLsda==1)stodftInfo->numRandTot += numStateDnTot*2;
+  }
 
 /*==========================================================================*/
 /* VI) Reset some flags so that the program will not crash                  */

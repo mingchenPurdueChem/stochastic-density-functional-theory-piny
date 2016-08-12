@@ -71,14 +71,20 @@ void commStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
   Bcast(&(stodftInfo->readCoeffFlag),1,MPI_INT,0,world);
   Bcast(&(stodftInfo->numStateStoUp),1,MPI_INT,0,world);
   Bcast(&(stodftInfo->numStateStoDn),1,MPI_INT,0,world);
+  //diis
+  Bcast(&(stodftInfo->densityMixFlag),1,MPI_INT,0,world);
+  Bcast(&(stodftInfo->numDiis),1,MPI_INT,0,world);
+  Bcast(&(stodftInfo->numStepMix),1,MPI_INT,0,world);
+  //frag
+  Bcast(&(stodftInfo->calcFragFlag),1,MPI_INT,0,world);
+  Bcast(&(stodftInfo->fragOpt),1,MPI_INT,0,world);
+  Bcast(&(stodftInfo->fragCellOpt),1,MPI_INT,0,world);
+
   Bcast(&(stodftInfo->fitErrTol),1,MPI_DOUBLE,0,world);
   Bcast(&(stodftInfo->beta),1,MPI_DOUBLE,0,world);
   Bcast(&(stodftInfo->numElecTrue),1,MPI_DOUBLE,0,world);
   Bcast(&(stodftInfo->chemPotInit),1,MPI_DOUBLE,0,world);
   Bcast(&(stodftInfo->gapInit),1,MPI_DOUBLE,0,world);
-  Bcast(&(stodftInfo->densityMixFlag),1,MPI_DOUBLE,0,world);
-  Bcast(&(stodftInfo->numDiis),1,MPI_DOUBLE,0,world);
-  Bcast(&(stodftInfo->numStepMix),1,MPI_DOUBLE,0,world);
 
 }/*end Routine*/
 /*==========================================================================*/
@@ -116,6 +122,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   STODFTCOEFPOS *stodftCoefPos    = cp->stodftCoefPos;
   CPSCR         *cpscr            = &(cp->cpscr);  
   NEWTONINFO    *newtonInfo;
+  FRAGINFO	*fragInfo
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
 
 
@@ -132,6 +139,9 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   int numDiis	     = stodftInfo->numDiis;
   int numStepMix     = stodftInfo->numStepMix;
   int numScf	     = stodftInfo->numScf;
+  int calcFragFlag   = stodftInfo->calcFragFlag;
+  int fragOpt	     = stodftInfo->fragOpt;
+  int fragCellOpt    = stodftInfo->fragCellOpt;
   int numCoeff       = cpcoeffs_info->ncoef;
   int numStateUpProc = cpcoeffs_info->nstate_up_proc;
   int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
@@ -156,10 +166,14 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   int numFFT            = cp_para_fft_pkg3d_lg->nfft;
   int numFFT2           = numFFT/2;
   int numFFT2Proc       = numFFTProc/2;
-  int iChem,iSamp,iCell,iProc,iCoeff;
+  int iChem,iSamp,iCell,iProc,iCoeff,iMol;
   int div,res;
   int count,numChemProc,rhoRealGridNum,rhoRealGridTot;
   int numSendNoise;
+  // frag
+  int numMolTot;
+  int numMolType	= atommaps->nmol_typ;
+
   MPI_Comm comm_states   =    communicate->comm_states;
 
   int *pcoefFormUp                   = &(cpcoeffs_pos->icoef_form_up);
@@ -174,6 +188,8 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   int *rhoRealDispls;
   int *noiseSendCounts;
   int *noiseDispls;
+  //frag
+  int *numMolJmolType;		     = atommaps->nmol_jmol_typ;
 
   char *ggaxTyp     = pseudo->ggax_typ;
   char *ggacTyp     = pseudo->ggac_typ;
@@ -560,6 +576,44 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
       stodftInfo->diisMatrixCalcFullFlag = 1;
     }
   }
+
+/*==========================================================================*/
+/* VIII) Initialize Fragmentation                                           */
+
+  int numFragTot;
+  int numFragProc;
+  int iFrag;
+
+  if(calcFragFlag==1){// We don't initialize frag scf here
+    stodftInfo->fragInfo = (FRAGINFO*)cmalloc(sizeof(FRAGINFO));
+    fraginfo = stodftInfo->fragInfo;
+    // Get total number of fragments
+    switch(fragOpt){
+      case 1:  //Use Molecule as fragmentation
+	numMolTot = 0;
+	for(iMol=1;iMol<=numMolType;iMol++)numMolTot += numMolJmolType[iMol];
+	fragInfo->numFragTot = numMolTot;
+	numFragTot = fragInfo->numFragTot;
+	break;
+      // I will put in other options later
+    }
+    div = numFragTot/numProcStates;
+    res = numFragTot%numProcStates;   
+    if(myidState<res)fragInfo->numFragProc = div+1;
+    else fragInfo->numFragProc = div;
+    numFragProc = fragInfo->numFragProc;
+    fragInfo->numElecUpFragTot = (int*)cmalloc(numFragTot*sizeof(int));
+    fragInfo->numElecDnFragTot = (int*)cmalloc(numFragTot*sizeof(int));
+    fragInfo->rhoFragSum = (double*)cmalloc(rhoRealGridNum*sizeof(double));
+    fragInfo->coefUpFragProc = (double***)cmalloc(numFragProc*sizeof(double**));
+    fragInfo->coefUpFragTot = (double***)cmalloc(numFragTot*sizeof(double**));
+    //fragInfo->coefDnFragProc = (double***)cmalloc(numFragProc*sizeof(double**));
+    //fragInfo->coefDnFragTot = (double***)cmalloc(numFragTot*sizeof(double**));
+    for(iFrag=0;iFrag<numFragProc;iFrag++){
+      fragInfo->coefUpFragProc[iFrag] = (double**)cmalloc();
+    }
+  }
+
 
 /*==========================================================================*/
 }/*end Routine*/

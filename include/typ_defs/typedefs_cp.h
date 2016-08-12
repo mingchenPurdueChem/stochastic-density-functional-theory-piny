@@ -305,19 +305,18 @@ typedef struct fragInfo{
   double *rhoFragSum;		    /* Lst: Sum of all densities from fragments	*/
 				    /* Lth: rhoRealGridNum			*/
   double ***coefUpFragProc;	    /* Lst: Occupied orbitals spin up		*/
-				    /* Lth: numGridFragProc*numElecUpFrag*	*/
+				    /* Lth: numFragProc*numElecUpFrag*	        */
 				    /*	    numGridFrac				*/
   double ***coefUpFragTot;	    /* Lst: Occupied orbitals spin up all frags */
-                                    /* Lth: numGridFragTot*numElecUpFrag*       */
+                                    /* Lth: numFragTot*numElecUpFrag*           */
                                     /*      numGridFrac                         */
   double ***coefDnFragProc;         /* Lst: Occupied orbitals spin dn           */
-                                    /* Lth: numGridFragProc*numElecUpFrag*      */
+                                    /* Lth: numFragProc*numElecUpFrag*		*/
                                     /*      numGridFrac                         */
   double ***coefDnFragTot;          /* Lst: Occupied orbitals spin dn all frags */
-                                    /* Lth: numGridFragTot*numElecUpFrag*       */
+                                    /* Lth: numFragTot*numElecUpFrag*	        */
                                     /*      numGridFrac                         */
 }FRAGINFO;
-
 
 typedef struct stodftInfo{
 /* This structure contains flag and constant. */
@@ -375,6 +374,8 @@ typedef struct stodftInfo{
 				    /*	    grid = nfft2			*/
   int rhoRealGridProc;		    /* Num: number of real space density grid   */
 				    /*	    on thid proc =nfft2_proc		*/
+  int numChemProc;                  /* Num: Number of densities stored on this  */
+                                    /*      proc. (full_g=numChemPot)           */
   int *densityMap;		    /* Lst: Map the density to different proc	*/
 				    /*	    We store the density for different  */
 				    /*	    chemical potential on different	*/
@@ -398,10 +399,6 @@ typedef struct stodftInfo{
 				    /* Lth: np_states				*/
   int *noiseDispls;		    /* Lst: noise orbital displs for scatter	*/
 				    /* Lth: np_states				*/
-
-  int numChemProc;		    /* Num: Number of densities stored on this  */
-				    /*	    proc. (full_g=numChemPot)		*/
-
   int *indexChemProc;		    /* Lst: the i'th element is the i'th chem	*/
 				    /*	    pot's index on its proc		*/
 				    /* Lth: numChemPot				*/
@@ -426,7 +423,7 @@ typedef struct stodftInfo{
 				    /*	    potential energy for different      */
 				    /*	    chem pot.				*/
   /* DIIS parameters */
-  int densityMixFlag;		    /* Num: Flag to control mixing density      */
+  int densityMixFlag;		    /* Opt: Flag to control mixing density      */
 				    /*	    0 = no mixing			*/
 				    /*	    1 = simple mixing			*/
 				    /*	    2 = diis				*/
@@ -443,7 +440,15 @@ typedef struct stodftInfo{
 				    /*	    0=no, 1=yes				*/
   double mixRatioBig;		    /* Num: What is the best ratio for mixing?  */
   double lambdaDiis;		    /* Num: Lagrange Multiplier for Diis	*/
-
+  /* Fragmentation parameters */
+  int calcFragFlag;		    /* Opt: control fragmentation on=1,off=0	*/
+  int fragOpt;			    /* Opt: Fragmentation type:			*/
+				    /*	    1=mol,2=atom,3=...			*/
+  int fragCellOpt;		    /* Opt: cell option for fragments		*/
+				    /*	    1=cubic (ball like molecule)	*/
+				    /*	    2=rect  (stick like molecule)	*/
+  FRAGINFO *fragInfo;
+ 
 
   FERMIFUNR fermiFunctionReal;
   FERMIFUNC fermiFunctionComplex;

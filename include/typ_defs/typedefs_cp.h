@@ -279,6 +279,46 @@ typedef struct newtonInfo{
 typedef double (*FERMIFUNR)(double,double,double);//x,mu,beta
 typedef double complex (*FERMIFUNC)(double complex,double,double);
 
+typedef struct fragInfo{
+/* I want to store some variables here so that I can pass them everytime */
+  int numFragProc;		    /* Num: Fragments calculated on one proc	*/
+  int numFragTot;		    /* Num: Total number of fragments		*/
+
+  int *numElecUpFragTot;	    /* Lst: Number of spin up electrons in one  */
+				    /*	    fragment				*/
+				    /* Lth: numFragTot				*/
+  int *numElecDnFragTot;	    /* Lst: Number of spin down electrons in    */
+				    /*	    one fragment			*/
+				    /* Lth: numFragTot				*/
+  int *numGridFragProc;		    /* Lst: Number of grid points for frags on	*/
+				    /*	    one proc				*/
+				    /* Lth: numFragProc				*/
+  int *numGridFratTot;		    /* Lst: Number of grid points for all frags */
+				    /* Lth: numFragTot				*/
+  int **gridMapProc;		    /* Lst: Map EVERY grid point in small box   */
+				    /*	    the big box, proc version		*/
+				    /* Lth: numFragProc*numGridFragProc[i]	*/
+  int **gridMapTot;		    /* Lst: gridMap for all frags		*/
+				    /* Lth: numFragTot*numGridFragTot[i]	*/
+  double **rhoFragProc;		    /* Lst: fragment densities, proc version	*/
+				    /* Lth: numFragProc*numGridFragProc[i]	*/
+  double *rhoFragSum;		    /* Lst: Sum of all densities from fragments	*/
+				    /* Lth: rhoRealGridNum			*/
+  double ***coefUpFragProc;	    /* Lst: Occupied orbitals spin up		*/
+				    /* Lth: numGridFragProc*numElecUpFrag*	*/
+				    /*	    numGridFrac				*/
+  double ***coefUpFragTot;	    /* Lst: Occupied orbitals spin up all frags */
+                                    /* Lth: numGridFragTot*numElecUpFrag*       */
+                                    /*      numGridFrac                         */
+  double ***coefDnFragProc;         /* Lst: Occupied orbitals spin dn           */
+                                    /* Lth: numGridFragProc*numElecUpFrag*      */
+                                    /*      numGridFrac                         */
+  double ***coefDnFragTot;          /* Lst: Occupied orbitals spin dn all frags */
+                                    /* Lth: numGridFragTot*numElecUpFrag*       */
+                                    /*      numGridFrac                         */
+}FRAGINFO;
+
+
 typedef struct stodftInfo{
 /* This structure contains flag and constant. */
   int stodftOn;                     /* Opt: turn stochastic dft(1)/off(0)	*/

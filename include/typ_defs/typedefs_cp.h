@@ -284,17 +284,39 @@ typedef struct fragInfo{
   int numFragProc;		    /* Num: Fragments calculated on one proc	*/
   int numFragTot;		    /* Num: Total number of fragments		*/
 
+  int *numMolFragProc;		    /* Lst: Number of molecules in the fragment */
+				    /*	    =1 if fragOpt = 1. For inorganic	*/
+				    /*	    materials, every fragment is a	*/
+				    /*	    group of atoms so the number of	*/
+				    /*	    mols is equal to the number of	*/
+				    /*	    atoms in the group since, in that   */
+				    /*	    case, one molecule is one atom.	*/
+				    /* Lth: numFragProc				*/
+  int *numAtomFragProc;		    /* Lst: Number of atoms in the fragment	*/
+				    /* Lth: numFragProc				*/
   int *numElecUpFragTot;	    /* Lst: Number of spin up electrons in one  */
 				    /*	    fragment				*/
 				    /* Lth: numFragTot				*/
   int *numElecDnFragTot;	    /* Lst: Number of spin down electrons in    */
 				    /*	    one fragment			*/
 				    /* Lth: numFragTot				*/
+  int *numElecUpFragProc;           /* Lst: Number of spin up electrons in one  */
+                                    /*      fragment (proc version)             */
+                                    /* Lth: numFragProc                         */
+  int *numElecDnFragProc;           /* Lst: Number of spin down electrons in    */
+                                    /*      one fragment (proc version)         */
+                                    /* Lth: numFragProc                         */
   int *numGridFragProc;		    /* Lst: Number of grid points for frags on	*/
 				    /*	    one proc				*/
 				    /* Lth: numFragProc				*/
   int *numGridFratTot;		    /* Lst: Number of grid points for all frags */
 				    /* Lth: numFragTot				*/
+  int **molFragMapProc;		    /* Lst: Map frag molecules to the big box   */
+				    /*	    You probably want to know why I	*/
+				    /*	    claim this but I don't know		*/
+				    /* Lth: numFragProc*numMolFragProc[i]	*/
+  int **atomFragMapProc;	    /* Lst: Map frag atoms to the big box	*/
+				    /* Lth: numFragProc*numAtomFragProc[i]	*/
   int **gridMapProc;		    /* Lst: Map EVERY grid point in small box   */
 				    /*	    the big box, proc version		*/
 				    /* Lth: numFragProc*numGridFragProc[i]	*/
@@ -443,7 +465,7 @@ typedef struct stodftInfo{
   /* Fragmentation parameters */
   int calcFragFlag;		    /* Opt: control fragmentation on=1,off=0	*/
   int fragOpt;			    /* Opt: Fragmentation type:			*/
-				    /*	    1=mol,2=atom,3=...			*/
+				    /*	    1=mol,2=group of atoms,3=...	*/
   int fragCellOpt;		    /* Opt: cell option for fragments		*/
 				    /*	    1=cubic (ball like molecule)	*/
 				    /*	    2=rect  (stick like molecule)	*/

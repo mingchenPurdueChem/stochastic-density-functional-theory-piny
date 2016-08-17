@@ -1,0 +1,887 @@
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+/*                                                                          */
+/*                         PI_MD:                                           */
+/*             The future of simulation technology                          */
+/*             ------------------------------------                         */
+/*                     Module: gen_wave.c                                   */
+/*                                                                          */
+/* Construct an initial wave function using the radial states               */
+/* of the isolated atoms                                                    */
+/*                                                                          */
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+
+
+#include "standard_include.h"
+#include "../typ_defs/typedefs_gen.h"
+#include "../typ_defs/typedefs_cp.h"
+#include "../typ_defs/typedefs_par.h"
+#include "../typ_defs/typedefs_class.h"
+#include "../typ_defs/typedefs_bnd.h"
+#include "../proto_defs/proto_friend_lib_entry.h"
+#include "../proto_defs/proto_math.h"
+#include "../proto_defs/proto_communicate_wrappers.h"
+#include "../proto_defs/proto_energy_cpcon_local.h"
+#include "../proto_defs/proto_energy_cp_local.h"
+#include "../proto_defs/proto_cp_ewald_local.h"
+#include "../proto_defs/proto_coords_cp_local.h"
+#include "../proto_defs/proto_handle_entry.h"
+#include "../proto_defs/proto_energy_ctrl_entry.h"
+
+#include "../proto_defs/proto_output_cp_entry.h"
+#include "../proto_defs/proto_output_cp_local.h"
+
+
+#define DEBUG_GW_OFF
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+
+
+void gen_wave_dvr(CLASS *class,GENERAL_DATA *general_data,CP *cp,
+                  CP_PARSE *cp_parse,NAME *vps_name)
+
+/*========================================================================*/
+{/*begin routine*/
+/*========================================================================*/
+/*             Local variable declarations                                */
+#include "../typ_defs/typ_mask.h"
+
+  /* misc */
+  double conv,pi,tpi,fpi,r;
+  int nsplin;
+  int    *nsplin_r  = cp->pseudo.nsplin_r;
+  double *dr_spl    = cp->pseudo.dr_spl;
+  double *rmin      = cp->pseudo.rmin;
+  double *phi0_0    = cp->pseudo.phi0_0;
+  double *phi0_1    = cp->pseudo.phi0_1;
+  double *phi0_2    = cp->pseudo.phi0_2;
+  double *phi0;
+
+  int i,j,k,iatm,ipart,is,iupper,ioff,ioff2,iii;
+  int ind,ind1,ind2,n,iatm_typ;
+
+  FILE *fp_dnamec;
+  int ibinary=0;
+
+/*----------------------------------------------------------------------*/
+/* particalus positionus */
+
+  double *x,*y,*z;
+
+  int    nab_initio = class->clatoms_info.nab_initio;
+
+  int   *cp_atm_lst   = class->atommaps.cp_atm_lst;
+  int   *cp_vlnc_up   = class->clatoms_info.cp_vlnc_up;
+  int   *cp_vlnc_dn   = class->clatoms_info.cp_vlnc_dn;
+
+/*----------------------------------------------------------------------*/
+/* hmatrikus */
+
+  double *hmat     = general_data->cell.hmat;
+  double *hmati    = general_data->cell.hmati;
+  double  vol      = general_data->cell.vol_cp;
+  int     iperd    = general_data->cell.iperd;
+
+/*----------------------------------------------------------------------*/
+/* oribitalus coefficientus                                             */
+
+  double *cre_up  = cp->cpscr.cpscr_wave.cre_up;
+  double *cre_dn  = cp->cpscr.cpscr_wave.cre_dn;
+
+  double *dvrc_up = cp->cpcoeffs_pos_dvr[1].dvrc_up;
+  double *dvrc_dn = cp->cpcoeffs_pos_dvr[1].dvrc_dn;
+  int ncoef      = cp->cp_comm_state_pkg_dvr_up.ncoef;
+  int nkf1 = cp->cpcoeffs_info.grid_nx; 
+  int nkf2 = cp->cpcoeffs_info.grid_ny;
+  int nkf3 = cp->cpcoeffs_info.grid_nz;
+
+/*----------------------------------------------------------------------*/
+/* Up and Dn state variables  */
+
+  int  *nstate_up_atm,*nstate_dn_atm;
+
+  int istate_up,istate_dn,istate;
+  int istate_up_proc,istate_dn_proc;
+  int nstate_up_gw,nstate_dn_gw;
+
+  int nstate_up       = cp->cpcoeffs_info.nstate_up;
+  int nstate_dn       = cp->cpcoeffs_info.nstate_dn;
+  int nstate_up_proc  = cp->cp_comm_state_pkg_dvr_up.nstate_proc;
+  int nstate_dn_proc  = cp->cp_comm_state_pkg_dvr_dn.nstate_proc;
+  int istate_up_st    = cp->cpcoeffs_info.istate_up_st;
+  int istate_up_end   = cp->cpcoeffs_info.istate_up_end;
+  int istate_dn_st    = cp->cpcoeffs_info.istate_dn_st;
+  int istate_dn_end   = cp->cpcoeffs_info.istate_dn_end;
+
+/*----------------------------------------------------------------------*/
+/*spline of radial wave functions                                  */
+
+  double ***rpsi0, ***rpsi1, ***rpsi2, ***rpsi3;
+  double **rpsi_now;
+  double *psi_r;
+
+/*----------------------------------------------------------------------*/
+/* Gram-Schmidt and Kinetic energy Variables*/
+
+  int icoef_form_up,icoef_form_dn;
+  double *ovlap       = cp->cpcoeffs_pos_dvr[1].ovmat_eigv_up;
+  double *ovlap_tmp   = cp->cpcoeffs_pos_dvr[1].ovmat_eigv_dn;
+  int *ioff_upt  =  cp->cpcoeffs_info.ioff_upt;
+  int *ioff_dnt  =  cp->cpcoeffs_info.ioff_dnt;
+
+/*----------------------------------------------------------------------*/
+/* variables to create DVR grids  */
+
+  int ka,kb,kc,icount;
+  double volrt, scalrt;
+  double scale_fact = cp->cpcoeffs_info.scale_fact;
+  double da,db,dc,dxx,dyy,dzz,sa,sb,sc,grid_x,grid_y,grid_z,dx,dy,dz;
+
+/*----------------------------------------------------------------------*/
+
+  FILE *fp_wave_in;
+  NAME *fname_ps;
+
+/*----------------------------------------------------------------------*/
+/* Communicate Variables */
+  int master = 0;
+  int myid              = cp->communicate.myid;
+  int nproc             = cp->communicate.np;
+  MPI_Comm comm_states  = cp->communicate.comm_states;
+
+
+  int cp_lsda         = cp->cpopts.cp_lsda;
+  int cp_lda          = cp->cpopts.cp_lda;
+
+/*----------------------------------------------------------------------*/
+/* Occupation Number Variables */
+
+  double *occ_dn      = cp->cpopts.occ_dn;
+  double *occ_up      = cp->cpopts.occ_up;
+  double *rocc_sum_up = cp->cpopts.rocc_sum_up;
+  double *rocc_sum_dn = cp->cpopts.rocc_sum_dn;
+  int iocc;
+
+/*----------------------------------------------------------------------*/
+/* Atom label Variables */
+
+  int natm_typ_cp;
+  int iflag;
+  int tag;
+
+  int *iatm_mol_typ   = class->atommaps.iatm_mol_typ;
+  int *iatm_atm_typ   = class->atommaps.iatm_atm_typ;
+  int natm_typ        = class->atommaps.natm_typ;
+
+  int natm_typ_gw;
+  int *iatm_atm_typ_cp,*n_ang;
+
+/*----------------------------------------------------------------------*/
+/* ylm constants                                                        */
+
+   YLM_CONS ylm_cons;
+   double *ylmr, *ylmi;
+   double *dylmr_x,*dylmi_x;
+   double *dylmr_y,*dylmi_y;
+   double *dylmr_z,*dylmi_z;
+
+/*=======================================================================*/
+/* 0) Check point  */
+
+  if(myid == master ){
+    printf("\n-----------------------------------------\n");
+    printf("Constructing Wave Function \n");
+    printf("-----------------------------------------\n");
+  }/*endif*/
+
+  if( nab_initio == 0){
+    if(myid == master){
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+      printf("There are no ab initio atoms \n");
+      printf("Please check whether you should have assigned some atoms \n");
+      printf("to be ab initio.  To proceed would be pointless.\n");
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+    }/*endif myid*/
+    if(nproc>1){
+      Barrier(comm_states);
+      Finalize();
+    }
+    exit(1);
+  }/*endif*/
+
+  nstate_up_gw = 0;
+  nstate_dn_gw = 0;
+  for(i=1; i<= nab_initio; i++){
+    iatm = cp_atm_lst[i];
+    nstate_up_gw += cp_vlnc_up[iatm];
+    nstate_dn_gw += cp_vlnc_dn[iatm];
+  }/*endfor*/
+
+  if( nstate_up_gw != nstate_up ){
+    if(myid == master){
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+      printf("The number of states up not equal to what is in the set file\n");
+      printf("%d here and %d from the set file\n",nstate_up_gw, nstate_up);
+      printf("Please check the values of cp_valence_up in the parm files\n");
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+    }/*endif myid*/
+    if(nproc>1){
+     Barrier(comm_states);
+     Finalize();
+    }
+    exit(1);
+  }/*endif*/
+
+  if(  nstate_dn_gw != nstate_dn  && cp_lsda==1){
+    if(myid == master){
+     printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+     printf("The number of states dn not equal to what is in the set file\n");
+     printf("%d here and %d from the set file\n",nstate_dn_gw, nstate_dn);
+     printf("Please check the values of cp_valence_dn in the parm files\n");
+     printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+    }/*endif myid*/
+    if(nproc>1){
+     Barrier(comm_states);
+     Finalize();
+    }
+     exit(1);
+  }/*endif*/
+
+  if(  nstate_dn_gw != nstate_dn  && cp_lda==1){
+    if(myid == master){
+     printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
+     printf("The number of states dn not equal to value in the set file.\n");
+     printf("This is OK only if you have some unit occupation numbers. \n");
+     printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
+    }/*endif myid*/
+  }/*endif*/
+
+  if(  nstate_dn_gw > nstate_dn  && cp_lda==1){
+    if(myid == master){
+     printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+     printf("The number of dn nstates is assumed <= up nstates \n");
+     printf("in gen_wave under LDA. Since you already have the warning\n" );
+     printf("about occupation numbers and states what you have to do is\n" );
+     printf("check the values of cp_valence_(dn/up) in the parm files\n");
+     printf("to ensure that the up states get the extra occupation \n");
+     printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+    }/*endif myid*/
+    if(nproc>1){
+     Barrier(comm_states);
+     Finalize();
+    }
+     exit(1);
+  }/*endif*/
+
+  /*check that the value assigned for cp_valence_up is same for */
+  /* for all atoms of the same atm_typ                          */
+
+  for(i=1; i <= nab_initio; i++){
+    ind1 = cp_atm_lst[i];
+    for(j=i+1; j <= nab_initio;j++){
+      ind2 = cp_atm_lst[j];
+      if( iatm_atm_typ[ind2] == iatm_atm_typ[ind1] &&
+                       cp_vlnc_up[ind2] != cp_vlnc_up[ind1]){
+        if(myid == master){
+          printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+          printf("There are two different assigned values for    \n");
+          printf("cp_valence_up for the same atom type           \n");
+          printf("atom numbers %d and %d \n",ind1,ind2);
+          printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+        }/*endif myid*/
+        if(nproc>1){
+          Barrier(comm_states);
+          Finalize();
+        }
+        exit(1);
+      }/*endif*/
+
+      if( cp_lsda == 1 && iatm_atm_typ[ind2] == iatm_atm_typ[ind1] &&
+                      cp_vlnc_dn[ind2] != cp_vlnc_dn[ind1]){
+        if(myid == master){
+          printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+          printf("There are two different assigned values for    \n");
+          printf("cp_valence_dn for the same atom type           \n");
+          printf("atom numbers %d and %d \n",ind1,ind2);
+          printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+        }/*endif myid*/
+        if(nproc>1){
+          Barrier(comm_states);
+          Finalize();
+        }
+        exit(1);
+      }/*endif*/
+
+    }/*endfor*/
+  }/*endfor*/
+
+/*=======================================================================*/
+/* I) Create number of ab initio atom types natm_typ_cp and make list    */
+/*=======================================================================*/
+
+  natm_typ_cp = 1;
+
+  for(i=2; i<= nab_initio; i++){
+    iflag = 0;
+    ind1 = cp_atm_lst[i];
+    for(j=i-1; j >= 1; j--){
+      ind2 = cp_atm_lst[j];
+      if( iatm_atm_typ[ind2] == iatm_atm_typ[ind1] ) {
+        iflag = 0;break;
+      }else{
+        iflag = 1;
+      }/*endif*/
+    }/*endfor*/
+    natm_typ_cp += iflag;
+  }/*endfor*/
+
+/*-----------------------------------------------------------------------*/
+/* II) malloc list iatm_atm_typ_cp holds index for what cp_atm_typ this is   */
+/* malloc fname_ps length natm_typ_cp  holds names of pseud files        */
+
+  iatm_atm_typ_cp = (int *) cmalloc(nab_initio*sizeof(int)) -1;
+
+  fname_ps = (NAME *) cmalloc(natm_typ_cp*sizeof(NAME))-1;
+
+  nstate_up_atm = (int *) cmalloc(natm_typ_cp*sizeof(int )) -1;
+  nstate_dn_atm = (int *) cmalloc(natm_typ_cp*sizeof(int )) -1;
+
+/*-----------------------------------------------------------------------*/
+/* III) Assign cp_atm_types  and values for nstate_up_atm nstate_dn_atm  */
+
+  /*Assign first element in arrays */
+
+  iatm_atm_typ_cp[1] = 1;
+  if(myid == 0){
+   strcpy(fname_ps[1],vps_name[iatm_atm_typ[cp_atm_lst[1]]]);
+  }/*endif myid*/
+
+  nstate_up_atm[1] = cp_vlnc_up[cp_atm_lst[1]];
+  nstate_dn_atm[1] = cp_vlnc_dn[cp_atm_lst[1]];
+
+  tag = 1;  /* used as counter for unique cp atom types */
+
+  for(i=2; i<= nab_initio; i++){
+    iflag = 0;
+    ind1 = cp_atm_lst[i];
+    for(j=i-1; j >= 1; j--){
+      ind2 = cp_atm_lst[j];
+      if( iatm_atm_typ[ind1] == iatm_atm_typ[ind2] ){
+        iatm_atm_typ_cp[i] = iatm_atm_typ_cp[j];
+        iflag = 0;
+        break;
+      }else{
+        iflag = 1;
+      }/*endif*/
+    }/*endfor*/
+
+    tag += iflag;
+
+    if(iflag == 1){
+      iatm_atm_typ_cp[i] = tag;
+      if(myid == 0){
+        strcpy(fname_ps[tag],vps_name[iatm_atm_typ[ind1]]);
+      }/*endif myid*/
+      nstate_up_atm[tag] = cp_vlnc_up[ind1];
+      nstate_dn_atm[tag] = cp_vlnc_dn[ind1];
+    }/*endif*/
+
+  }/*endfor*/
+
+/*=======================================================================*/
+/* IV) Assign positions array length of only number of ab initio atoms   */
+/*=======================================================================*/
+
+  x = (double *) cmalloc(nab_initio*sizeof(double )) -1;
+  y = (double *) cmalloc(nab_initio*sizeof(double )) -1;
+  z = (double *) cmalloc(nab_initio*sizeof(double )) -1;
+
+  for(i=1; i<=nab_initio; i++){
+    iatm = cp_atm_lst[i];
+    x[i] = class->clatoms_pos[1].x[iatm];
+    y[i] = class->clatoms_pos[1].y[iatm];
+    z[i] = class->clatoms_pos[1].z[iatm];
+  }/*endfor*/
+
+  if(nproc > 1){
+    Bcast(&(x[1]),nab_initio,MPI_DOUBLE,master,comm_states);
+    Bcast(&(y[1]),nab_initio,MPI_DOUBLE,master,comm_states);
+    Bcast(&(z[1]),nab_initio,MPI_DOUBLE,master,comm_states);
+  }
+
+/*=========================================================================*/
+/*  V) malloc some local memory using parameters given in initial input file  */
+
+  n_ang         = (int *) cmalloc(natm_typ_cp*sizeof(int )) -1;
+  psi_r    = (double *) cmalloc(20*sizeof(double )) -1;
+
+  ylmr  = (double *) cmalloc(20*sizeof(double)) -1;
+  ylmi  = (double *) cmalloc(20*sizeof(double)) -1;
+
+  dylmr_x  = (double *) cmalloc(16*sizeof(double)) -1;
+  dylmi_x  = (double *) cmalloc(16*sizeof(double)) -1;
+  dylmr_y  = (double *) cmalloc(16*sizeof(double)) -1;
+  dylmi_y  = (double *) cmalloc(16*sizeof(double)) -1;
+  dylmr_z  = (double *) cmalloc(16*sizeof(double)) -1;
+  dylmi_z  = (double *) cmalloc(16*sizeof(double)) -1;
+
+  pi         = M_PI;
+  tpi        = 2.0*pi;
+  fpi        = 4.0*pi;
+  ylm_cons.rt_fpi     = 1.0/sqrt(fpi);
+  ylm_cons.rt_thrfpi  = sqrt(3.0/fpi);
+  ylm_cons.rt_threpi  = sqrt(1.50/fpi);
+  ylm_cons.hrt_fivfpi = 0.50*sqrt(5.0/fpi);
+  ylm_cons.rt_fiftepi = sqrt(7.50/fpi);
+  ylm_cons.hrt_sevfpi = 0.50*sqrt(7.0/fpi);
+  ylm_cons.hrt_toepi  = 0.50*sqrt(10.50/fpi);
+  ylm_cons.hrt_ohffpi = 0.50*sqrt(105.0/fpi);
+  ylm_cons.hrt_tfepi  = 0.50*sqrt(17.50/fpi);
+
+/*===========================================================================*/
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!! WARNING !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/*        do NOT change this 3d malloc to the cmall_tens3                    */
+/*           UNLESS you want to BREAK this code                              */
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!! WARNING !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+/* VI)    nsplin rows 3 columns natm_typ_cp dimensions                      */
+
+  nsplin = 0;
+  for(i=1;i<=natm_typ_cp;i++){
+    if(nsplin_r[i] > nsplin) nsplin = nsplin_r[i];
+  }
+
+  rpsi0 = (double ***) cmalloc(natm_typ_cp*sizeof(double **))-1;
+  rpsi1 = (double ***) cmalloc(natm_typ_cp*sizeof(double **))-1;
+  rpsi2 = (double ***) cmalloc(natm_typ_cp*sizeof(double **))-1;
+  rpsi3 = (double ***) cmalloc(natm_typ_cp*sizeof(double **))-1;
+
+  for(i=1; i<= natm_typ_cp; i++){
+    rpsi0[i] = (double **) cmalloc(3*sizeof(double *))-1;
+    rpsi1[i] = (double **) cmalloc(3*sizeof(double *))-1;
+    rpsi2[i] = (double **) cmalloc(3*sizeof(double *))-1;
+    rpsi3[i] = (double **) cmalloc(3*sizeof(double *))-1;
+    for(j=1; j<=3; j++){
+      rpsi0[i][j] = (double *) cmalloc(nsplin*sizeof(double ))-1;
+      rpsi1[i][j] = (double *) cmalloc(nsplin*sizeof(double ))-1;
+      rpsi2[i][j] = (double *) cmalloc(nsplin*sizeof(double ))-1;
+      rpsi3[i][j] = (double *) cmalloc(nsplin*sizeof(double ))-1;
+    }/*endfor*/
+  }/*endfor*/
+
+  rpsi_now = cmall_mat(1,nab_initio,1,3);
+  phi0 = (double *) cmalloc(3*sizeof(double))-1;
+
+/*===========================================================================*/
+/* VII) assign the occupation numbers  and rocc_sum matrices                      */
+/*===========================================================================*/
+
+  for(i=1; i<= nstate_up; i++){
+    occ_up[i] = 0.0;
+    occ_dn[i] = 0.0;
+  }/*endfor*/
+
+  for(i=1; i<= nstate_up_gw; i++){
+    occ_up[i] = 1.0;
+  }
+
+  for(i=1; i<= nstate_dn_gw; i++){
+    occ_dn[i] = 1.0;
+  }
+
+  if(cp_lda==1){
+    for(i=1; i<= nstate_up; i++){
+      occ_up[i] += occ_dn[i];
+    }/*endfor*/
+  }/*endif cp_lda*/
+
+  if(nproc>1){Barrier(comm_states);}
+
+  iocc=0;
+  for(i=1;i<=nstate_up;i++){
+    for(j=1;j<=nstate_up;j++){
+      iocc++;
+      rocc_sum_up[iocc] = 1.0/(occ_up[i]+occ_up[j]);
+    }/*endfor i*/
+  }/* endfor j*/
+
+  if(cp_lsda==1){
+    iocc=0;
+    for(i=1;i<=nstate_dn;i++){
+      for(j=1;j<=nstate_dn;j++){
+        iocc++;
+        rocc_sum_dn[iocc] = 1.0/(occ_dn[i]+occ_dn[j]);
+      }/*endfor i*/
+    }/* endfor j*/
+  }/*endif*/
+
+/*=========================================================================*/
+/* VIII) spline the real-space pseudo-wave                                 */
+/* nsplin rows 3 columns natm_typ dimensions  [d][c][r]                    */
+/*=========================================================================*/
+  
+  for(i=1; i<= natm_typ_cp; i++){
+
+    phi0[1] = phi0_0[i];
+    phi0[2] = phi0_1[i];
+    phi0[3] = phi0_2[i];
+
+    splin_pseudo_wave(nsplin,rpsi0[i],rpsi1[i],rpsi2[i],rpsi3[i],
+                      &(n_ang[i]),phi0, fname_ps[i],myid,nproc,comm_states);
+  }/*endfor*/
+
+/*=========================================================================*/
+/* IX) get the wave functions in real-space                                    */
+/*========================================================================*/
+
+  /* grid set up */
+
+  da = 1.0/((double) nkf1);
+  db = 1.0/((double) nkf2);
+  dc = 1.0/((double) nkf3);
+
+  dxx = hmat[1]/(2.0*(double) nkf1);
+  dyy = hmat[5]/(2.0*(double) nkf2);
+  dzz = hmat[9]/(2.0*(double) nkf3);
+
+  scalrt = sqrt(scale_fact);
+  volrt  = sqrt(vol);
+
+  /* go over 3d grid-space */
+
+  icount=0;
+  for(kc=1;kc<=nkf3;kc++){
+    for(kb=1;kb<=nkf2;kb++){
+      for(ka=1;ka<=nkf1;ka++){
+
+        icount += 1;
+
+        sa = da*((double)(ka-1)) - 0.5;
+        sb = db*((double)(kb-1)) - 0.5;
+        sc = dc*((double)(kc-1)) - 0.5;
+
+        grid_x  = sa*hmat[1]+sb*hmat[4]+sc*hmat[7];
+        grid_y  = sa*hmat[2]+sb*hmat[5]+sc*hmat[8];
+        grid_z  = sa*hmat[3]+sb*hmat[6]+sc*hmat[9];
+
+        grid_x += dxx;
+        grid_y += dyy;
+        grid_z += dzz;
+
+        for(iatm=1; iatm <= nab_initio; iatm++){
+
+          iatm_typ = iatm_atm_typ[iatm];
+
+          get_rpsi(grid_x,grid_y,grid_z,x,y,z,iatm,nsplin,
+                   rpsi0[iatm_typ],rpsi1[iatm_typ],rpsi2[iatm_typ],rpsi3[iatm_typ],
+                   rpsi_now[iatm],rmin[iatm_typ],dr_spl[iatm_typ],n_ang[iatm_typ],
+                   &(general_data->cell));
+        }/*endfor*/
+
+        istate_up = 0;
+        istate_dn = 0;
+
+        istate_up_proc = 0;
+        istate_dn_proc = 0;
+
+        for(ipart = 1; ipart <= nab_initio; ipart++){
+
+          dx = grid_x - x[ipart];
+          dy = grid_y - y[ipart];
+          dz = grid_z - z[ipart];
+          if(iperd==3) {period_one(1,&dx,&dy,&dz,&(general_data->cell));}
+          r     = sqrt(dx*dx + dy*dy + dz*dz);
+
+          get_ylm(dx,dy,dz,r,ylmr,ylmi, dylmr_x,dylmi_x,
+                  dylmr_y,dylmi_y,dylmr_z,dylmi_z,&ylm_cons);
+
+          /* S STATE */
+          psi_r[1] = rpsi_now[ipart][1]*scalrt*ylmr[1];
+
+          /* P STATE */
+          /*-------------------------------------------------*/
+          /* We may need spherical harmonics in real-space.  */
+          /* But, let's try same psi for all m-components    */
+          /*-------------------------------------------------*/
+          if(n_ang[iatm_atm_typ_cp[ipart]] >= 1){
+            psi_r[2] = rpsi_now[ipart][2]*scalrt*ylmr[2];
+            psi_r[3] = rpsi_now[ipart][2]*scalrt*ylmr[3];
+            psi_r[4] = rpsi_now[ipart][2]*scalrt*ylmi[3];
+          }
+
+          /*D STATE */
+          if(n_ang[iatm_atm_typ_cp[ipart]] >= 2){
+            psi_r[5] = rpsi_now[ipart][3]*scalrt*ylmr[5];
+            psi_r[6] = rpsi_now[ipart][3]*scalrt*ylmr[6];
+            psi_r[7] = rpsi_now[ipart][3]*scalrt*ylmi[6];
+            psi_r[8] = rpsi_now[ipart][3]*scalrt*ylmr[8];
+            psi_r[9] = rpsi_now[ipart][3]*scalrt*ylmi[8];
+          }/*endif*/
+
+          /* construct coefficient */
+
+          for(is=1; is <= nstate_up_atm[iatm_atm_typ_cp[ipart]] ; is++){
+            if( ((istate_up + is ) >= istate_up_st) &&
+                ((istate_up + is) <= istate_up_end)){
+              ind = icount + (istate_up - istate_up_st + is  )*ncoef;
+              dvrc_up[ind]  =  psi_r[is];
+            }/*endif*/
+          }/*endfor*/
+
+          istate_up +=  nstate_up_atm[iatm_atm_typ_cp[ipart]];
+
+          if((cp_lsda == 1) && (nstate_dn > 0)){
+            for(is=1 ; is <= nstate_dn_atm[iatm_atm_typ_cp[ipart]] ; is++){
+              if( ((istate_dn + is ) >= istate_dn_st) &&
+                  ((istate_dn + is) <= istate_dn_end)){
+                ind = icount + (istate_dn - istate_dn_st + is  )*ncoef;
+                dvrc_dn[ind] =  psi_r[is];
+              }/*endif*/
+            }/*endfor*/
+            istate_dn +=  nstate_dn_atm[iatm_atm_typ_cp[ipart]];
+          }/*endif*/
+        }/*endfor ipart*/
+  } } }/*endfor kc,kb,ka*/
+
+/*=========================================================================*/
+/* X) create an orthonormal set with gram-schmidt                          */
+/* GRAM-SCHMIDT ORTHOGONALIZE                                              */
+
+  if(nproc>1){ Barrier(comm_states);}
+  icoef_form_up = 0; /*(0) normal (1) transposed */
+  icoef_form_dn = 0; /*(0) normal (1) transposed */
+
+  /* transpose to ncoef_proc form */
+  if( nproc > 1 ){
+    cp_transpose_fwd_dvr(dvrc_up,&icoef_form_up, cre_up,
+                         &(cp->cp_comm_state_pkg_dvr_up),nkf1,nkf2,nkf3);
+    if(cp_lsda==1 && nstate_dn != 0){
+      cp_transpose_fwd_dvr(dvrc_dn,&icoef_form_up, cre_dn,
+                         &(cp->cp_comm_state_pkg_dvr_dn),nkf1,nkf2,nkf3);
+
+    }/*endif lsda*/
+  }/*endif nproc*/
+
+  control_cp_gram_schmidt_dvr(dvrc_up, icoef_form_up,occ_up,ovlap,ovlap_tmp,ioff_upt, 
+                              scale_fact, &(cp->cp_comm_state_pkg_dvr_up));
+
+  if( (cp_lsda==1) && (nstate_dn > 0)){
+    control_cp_gram_schmidt_dvr(dvrc_dn, icoef_form_dn,occ_dn,ovlap,ovlap_tmp,ioff_dnt,
+                               scale_fact,&(cp->cp_comm_state_pkg_dvr_dn));
+  }
+
+  if(nproc>1){Barrier(comm_states);}
+
+  icount=0;
+  for(is=1; is <= cp->cp_comm_state_pkg_dvr_up.nstate; is++){
+    for(ipart=1;ipart<=cp->cp_comm_state_pkg_dvr_up.nstate_ncoef_proc_max;ipart++){
+      icount += 1;
+      if (dvrc_up[icount] < 5.0e-10) dvrc_up[icount] =5.0e-10;
+    }/*endif*/
+  }/*endfor*/
+  //test
+  // printf("dvrc_up[113628] %f\n", dvrc_up[113628]);
+  //printf("dvrc_dn[113628] %f\n", dvrc_dn[113628]);
+/* -------------------------------------------------------------------------------*/
+/* DEBUG
+
+   if(myid==0){
+      fp_dnamec = fopen(general_data->filenames.dnamec,"w");
+   }
+   write_dump_coef_cp_dvr(fp_dnamec,cp,class,ibinary);
+
+   Barrier(comm_states);
+
+   exit(1);
+
+*/
+  
+/*===========================================================================*/
+/* free locally assigned memory */
+
+  cfree(&(iatm_atm_typ_cp[1]));
+  if(myid == 0){ cfree(&(fname_ps[1])); }
+  cfree(&(nstate_up_atm[1]));
+  cfree(&(nstate_dn_atm[1]));
+
+  cfree(&(x[1]));
+  cfree(&(y[1]));
+  cfree(&(z[1]));
+
+  cfree(&(n_ang[1]));
+  cfree(&psi_r[1]);
+
+  for(i=1; i<= natm_typ_cp; i++){
+    for(j=1; j<=3; j++){
+      free(&(rpsi0[i][j][1]));
+      free(&(rpsi1[i][j][1]));
+      free(&(rpsi2[i][j][1]));
+      free(&(rpsi3[i][j][1]));
+    }
+
+    free(&(rpsi0[i][1]));
+    free(&(rpsi1[i][1]));
+    free(&(rpsi2[i][1]));
+    free(&(rpsi3[i][1]));
+
+  }
+
+  free(&(rpsi0[1]));
+  free(&(rpsi1[1]));
+  free(&(rpsi2[1]));
+  free(&(rpsi3[1]));
+
+  cfree_mat(rpsi_now,1,nab_initio,1,3);
+
+  cfree(&phi0[1]);
+
+/*===========================================================================*/
+
+  if(myid == master ){
+     printf("\n-----------------------------------------\n");
+     printf("Completed Constructing The Wave Function \n");
+     printf("-----------------------------------------\n");
+  }/*endif*/
+
+/*==========================================================================*/
+}/*  end routine*/
+/*==========================================================================*/
+
+void  splin_pseudo_wave(int nsplin,double **rpsi0,double **rpsi1, double **rpsi2,
+                        double **rpsi3,int *pn_ang, double *phi0, char *fname_ps,
+                        int myid, int nproc, MPI_Comm comm_states)
+
+/*==========================================================================*/
+{/*begin routine*/
+/*==========================================================================*/
+
+#include "../typ_defs/typ_mask.h"
+
+  int ir,iang,ishift,n_ang, n_ang1,nr;
+  double rmax,dr,xx;
+  double *r, *rphi;
+  int master=0;
+
+  FILE *fp_name_ps;
+
+/*--------------------------------------------------------------------------*/
+/* I) Open pseudopotential file */
+
+  if(myid == 0){
+   fp_name_ps = cfopen(fname_ps,"r");
+   fscanf(fp_name_ps,"%d %lg %d ",&nr,&rmax,&n_ang);
+   readtoendofline(fp_name_ps);
+   readtoendofline(fp_name_ps);
+  }
+
+  if( nproc > 1){
+     Bcast(&nr,1,MPI_INT,master,comm_states);
+     Bcast(&n_ang,1,MPI_INT,master,comm_states);
+     Bcast(&rmax,1,MPI_DOUBLE,master,comm_states);
+  }
+
+/*--------------------------------------------------------------------------*/
+/* II) set-up r  */
+
+  *pn_ang = n_ang;
+
+  r    = (double *) cmalloc(nr*sizeof(double)) -1;
+  rphi = (double *) cmalloc(nr*sizeof(double)) -1;
+
+  dr = rmax/(double)(nr);
+
+  for(ir=1; ir<= nr; ir++){
+    r[ir] = ((double)(ir-1))*dr;
+  }/*endfor*/
+
+/*--------------------------------------------------------------------------*/
+/* III) Read in pseudowave x r */
+
+  n_ang1 = (*pn_ang) + 1;
+
+  for(iang=1; iang <= n_ang1; iang++){
+
+    if(myid == 0){
+      for(ir=1; ir<= nr; ir++){
+        fscanf(fp_name_ps,"%lg %lg ",&xx,&(rphi[ir]));
+      }/*endfor*/
+    }/*endif myid*/
+
+    if(nproc>1){
+      Bcast(&(rphi[1]),nr,MPI_DOUBLE,master,comm_states);
+    }
+
+    rpsi0[iang][1]= phi0[iang];
+    for(ir=2;ir<= nr;ir++){
+      rpsi0[iang][ir] = rphi[ir]/r[ir];
+    }
+
+    spline_fit(&(rpsi0)[iang][0],&(rpsi1)[iang][0],
+               &(rpsi2)[iang][0],&(rpsi3)[iang][0],r,nr);
+
+  }/*endfor*/
+
+  if( myid == master){
+    fclose(fp_name_ps);
+  }/*endif myid*/
+
+/*========================================================================*/
+/* free locally assigned memory                                           */
+
+  cfree(&(r[1]));
+  cfree(&(rphi[1]));
+
+/*==========================================================================*/
+}/*end routine*/
+/*==========================================================================*/
+
+
+void  get_rpsi(double grid_x,double grid_y,double grid_z, double *x, double *y,
+               double *z, int iatm, int nsplin, double **rpsi0, double **rpsi1, 
+               double **rpsi2, double **rpsi3, double *rpsi_now, double rmin,
+               double dr_spl, int n_ang, CELL *cell)
+
+/*==========================================================================*/
+{/*begin routine*/
+/*==========================================================================*/
+
+#include "../typ_defs/typ_mask.h"
+
+  int iperd = cell->iperd;
+
+  int i,iii;
+  double dx,dy,dz,r,h,h0;
+  double partem1,partem2,partem3,partem4;
+
+  dx = grid_x - x[iatm];
+  dy = grid_y - y[iatm];
+  dz = grid_z - z[iatm];
+
+  if(iperd==3) {period_one(1,&dx,&dy,&dz,cell);}
+  r     = sqrt(dx*dx + dy*dy + dz*dz);
+
+  iii = (r-rmin)/dr_spl + 1 ;
+  iii = MIN(iii,nsplin);
+  iii = MAX(iii,1);
+  h0  = (double)(iii-1)*dr_spl + rmin;
+  h   = r-h0;
+
+  for(i=1;i<=n_ang+1;i++){
+
+    partem1 = rpsi0[i][iii];
+    partem2 = rpsi1[i][iii];
+    partem3 = rpsi2[i][iii];
+    partem4 = rpsi3[i][iii];
+
+    rpsi_now[i] = ((partem4*h+partem3)*h+partem2)*h+ partem1;
+
+  }
+
+/*==========================================================================*/
+}/*end routine*/
+/*==========================================================================*/
+

@@ -338,6 +338,11 @@ typedef struct fragInfo{
   double ***coefDnFragTot;          /* Lst: Occupied orbitals spin dn all frags */
                                     /* Lth: numFragTot*numElecUpFrag*	        */
                                     /*      numGridFrac                         */
+ /* The following parts are parameters/variables that will be passed to mini structures */
+ /* 1. Mini general_data*/
+ /* 2. Mini class	*/
+ /* 3. Mini bonded	*/
+ /* 4. Mini cp		*/
 }FRAGINFO;
 
 typedef struct stodftInfo{

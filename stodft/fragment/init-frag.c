@@ -7,7 +7,7 @@
 /*             ------------------------------------                         */
 /*                   Module: init-frag.c                                    */
 /*                                                                          */
-/* This routine initialize the fragmentation calculation.                   */
+/* This routine initialize the fragmentation calculation (common part).     */
 /*                                                                          */
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
@@ -35,7 +35,8 @@ void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
 /*************************************************************************/
-/* Calculate expanCoeff for different chemical potentials                */
+/* Main driver for fragmentation initialization common part              */
+/* This should be done in the stochastic dft initialization		 */
 /*************************************************************************/
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
@@ -66,7 +67,7 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
 /*************************************************************************/
-/* Calculate expanCoeff for different chemical potentials                */
+/* Fragmentation initialization common part for molecular fragments      */
 /*************************************************************************/
 /*=======================================================================*/
 /*         Local Variable declarations                                   */

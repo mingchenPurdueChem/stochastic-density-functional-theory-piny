@@ -31,10 +31,11 @@
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 
-void control_sim_params(CLASS *class,GENERAL_DATA *general_data,
-                        BONDED *bonded,CP *cp,ANALYSIS *analysis,
-                        CLASS_PARSE *class_parse,CP_PARSE *cp_parse,
-                        FILENAME_PARSE *filename_parse)
+void controlSimParamsFrag(CLASS *class,GENERAL_DATA *general_data,
+                         BONDED *bonded,CP *cp,ANALYSIS *analysis,
+			 CLASS *classMini,GENERAL_DATA *generalDataMini,
+                         BONDED *bondedMini,CP *cpMini,ANALYSIS *analysisMini,
+                         CLASS_PARSE *class_parse,CP_PARSE *cp_parse)
 
 /*=======================================================================*/
 
@@ -70,26 +71,17 @@ void control_sim_params(CLASS *class,GENERAL_DATA *general_data,
   double now_memory;         /* Num: Memory now                  */
 
 /*          Local pointer declarations */
-  char *input_name = filename_parse->input_name; 
   int myid=class->communicate.myid;
   int flag_test;
-/*========================================================================*/
-/*    I) Write to the screen                                              */
-   if(myid==0){
-    printf("\n");
-    PRINT_LINE_STAR;
-    printf("Reading simulation input file %s\n",input_name);
-    PRINT_LINE_DASH; printf("\n");
-    printf("b/f request mem -2\n");
-    fflush(stdout);
-     }
+
 /*=======================================================================*/
-/*   II) Set up dictionary and default parameters                        */
+/*   I) Copy All parameters from input file down to the mini structures  */
+
+  copySimParam(general_data,class,cp,generalDataMini,classMini,cpMini);
+
+/*=======================================================================*/
+/*   I) Set up dictionary and default parameters                        */
 /*            (set_sim_dict.c)   */ 
-   if(myid==0){      
-     printf("b/f request mem -1\n");
-    fflush(stdout);
-   }
   set_sim_dict_fun(&num_dict_fun,&dict_fun);
   set_sim_dict_list(&num_dict_list,&dict_list);
   set_sim_dict_cp(&num_dict_cp,&dict_cp);
@@ -108,17 +100,8 @@ void control_sim_params(CLASS *class,GENERAL_DATA *general_data,
   set_sim_dict_harmonic(&num_dict_harmonic,&dict_harmonic);
   set_sim_dict_dafed(&num_dict_dafed,&dict_dafed);
   set_sim_dict_stodft(&num_dict_stodft,&dict_stodft);
-  //debug Ma
-   if(myid==0){ 
-  printf("b/f request mem \n");
-   }
 
   fun_key     = (char *)cmalloc(MAXWORD*sizeof(char));
-  //debug Ma
-   if(myid==0){ 
-  printf("after request mem 1 \n");
-    fflush(stdout);
-   }
 /*=======================================================================*/
 /*  III) Malloc some memory */
 

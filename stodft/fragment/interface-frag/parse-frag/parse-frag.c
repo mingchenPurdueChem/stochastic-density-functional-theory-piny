@@ -61,7 +61,7 @@
 
 void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
            ANALYSIS *analysis,CLASS *classMini,BONDED *bondedMini,
-	   GENERAL_DATA *generalDataMini,CP *cpMini)
+	   GENERAL_DATA *generalDataMini,CP *cpMini,ANALYSIS *analysisMini)
 
 /*========================================================================*/
 /*             Begin Routine                                              */
@@ -94,51 +94,48 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*========================================================================*/
 /*   I) Zero the malloc size variables                                  */
 
-    control_zero_mem(classMini,bondedMini,generalDataMini,cp,&class_parse,
-                     &null_inter_parse);
+  control_zero_mem(classMini,bondedMini,generalDataMini,cpMini,&class_parse,
+                   &null_inter_parse);
+
 
 /*========================================================================*/
-  if(icontrol_proc==1){
+/*   II) Set the sim parameters: Done first to get input file names       */
+/*               (interface/sim_params/control_sim_params.c)              */
 
-  /*========================================================================*/
-  /*   II) Set the sim parameters: Done first to get input file names       */
-  /*               (interface/sim_params/control_sim_params.c)              */
- 
-    filename_parse.input_name  = (char *)cmalloc(MAXWORD*sizeof(char));
-    strcpy(filename_parse.input_name,input_name);
+  //filename_parse.input_name  = (char *)cmalloc(MAXWORD*sizeof(char));
+  //strcpy(filename_parse.input_name,input_name);
 
-    control_sim_params(class,general_data,bonded,cp,analysis,
-                       &class_parse,&cp_parse,&filename_parse);
+  controlSimParamsFrag(class,general_data,bonded,cp,analysis,classMini,generalDataMini,
+		       bondedMini,cpMini,analysisMini,
+		       &class_parse,&cp_parse);
 
-    
-  /*========================================================================*/
-  /*   III) Read in atom and CP parameters: Done second to get info         */
-  /*                                        needed for set_intra;           */
-  /*                                        some atom mallocing             */
-  /*               (interface/mol_params/control_mol_params.c)              */
   
-    control_mol_params(class,general_data,bonded,cp,&class_parse,&cp_parse,
-                       &free_parse,&filename_parse);
+/*========================================================================*/
+/*   III) Read in atom and CP parameters: Done second to get info         */
+/*                                        needed for set_intra;           */
+/*                                        some atom mallocing             */
+/*               (interface/mol_params/control_mol_params.c)              */
 
-    
-  /*========================================================================*/
-  /*  IV) Read in atom, molecule connectivity data: Done before setting     */
-  /*                                                 therms;                */
-  /*                                                 majority atom mallocing*/
-  /*                                                 intramol mallocing     */
-  /*                                                 pressure mallocing     */
-  /*               (interface/intra_params/control_intra_params.c)          */
+  controlMolParamsFrag(class,general_data,bonded,cp,&class_parse,&cp_parse,
+		     &free_parse,&filename_parse);
 
-    control_intra_params(tot_memory,
-                         &(class->clatoms_info),(class->clatoms_pos),
-                         &(class->ghost_atoms),&(class->atommaps),
-                         bonded,&filename_parse,&free_parse,
-                         &class_parse,&null_inter_parse,
-                         &(general_data->simopts),&(class->communicate),
-                         (class->surface.isurf_on));
+  
+/*========================================================================*/
+/*  IV) Read in atom, molecule connectivity data: Done before setting     */
+/*                                                 therms;                */
+/*                                                 majority atom mallocing*/
+/*                                                 intramol mallocing     */
+/*                                                 pressure mallocing     */
+/*               (interface/intra_params/control_intra_params.c)          */
 
-  /*========================================================================*/
-  }/*endif : icontrol_proc */
+  control_intra_params(tot_memory,
+		       &(class->clatoms_info),(class->clatoms_pos),
+		       &(class->ghost_atoms),&(class->atommaps),
+		       bonded,&filename_parse,&free_parse,
+		       &class_parse,&null_inter_parse,
+		       &(general_data->simopts),&(class->communicate),
+		       (class->surface.isurf_on));
+
 /*========================================================================*/
 /*    V) Communicate class interface: done before proceeding further      */
 

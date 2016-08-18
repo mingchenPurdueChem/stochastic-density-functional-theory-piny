@@ -32,7 +32,7 @@
 /*==========================================================================*/
 void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
 		  CP *cp,GENERAL_DATA *generalDataMini,BONDED *bondedMini,
-		  CLASS *classMini,CP *cpMini)
+		  CLASS *classMini,CP *cpMini,CLASS_PARSE *class_parse)
 /*========================================================================*/
 /*             Begin Routine                                              */
 {/*Begin subprogram: */
@@ -135,7 +135,153 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   /* 24)\ann_start_temperature{#} */
   generalDataMini->simopts.ann_start_temp = general_data->simopts.ann_start_temp;
 
-  
+/*=======================================================================*/
+/*   I) set_sim_params_list                                              */
+
+  /* 1)\verlist_pad{#} */
+  classMini->nbr_list.verlist.jver_pad = class->nbr_list.verlist.jver_pad;
+  /* 2)\verlist_mem_safe{#} */
+  classMini->nbr_list.verlist.mem_safe = class->nbr_list.verlist.mem_safe;
+  /* 3)\verlist_mem_min{#} */
+  classMini->nbr_list.verlist.nmem_min_lst = class->nbr_list.verlist.nmem_min_lst;
+  /* 4)\verlist_skin{#} */
+  classMini->interact.skin = class->interact.skin;
+  /* 8)\lnkcell_cell_divs{#} */
+  classMini->nbr_list.lnklist.ncell_div_avg = class->nbr_list.lnklist.ncell_div_avg;
+  /* 9)\lnk_cell_excl_safe{#} */
+  classMini->nbr_list.lnklist.lnk_excl_safe = class->nbr_list.lnklist.lnk_excl_safe;
+  /* 10)\lnk_cell_vol_safe{#} */
+  classMini->nbr_list.lnklist.lnk_vol_safe = class->nbr_list.lnklist.lnk_vol_safe;
+  /* 11)\lnkcell_force_odd{on,off} */
+  classMini->nbr_list.lnklist.lnk_for_odd = class->nbr_list.lnklist.lnk_for_odd; 
+  /* 12)\shave_skin_opt{#} */
+  classMini->interact.ishave_opt = class->interact.ishave_opt;
+  /*  13)\neighbor_list{ver_list,lnk_list,no_list} */
+  classMini->nbr_list.iver = class->nbr_list.iver;
+  classMini->nbr_list.ilnk = class->nbr_list.ilnk;
+  classMini->nbr_list.nolst = class->nbr_list.nolst;
+  /*  14)\update_type{no_list,lnk_list} */
+  classMini->nbr_list.verlist.nolst_ver_update = class->nbr_list.verlist.nolst_ver_update;
+  classMini->nbr_list.verlist.lnk_ver_update = class->nbr_list.verlist.lnk_ver_update;
+  /* 5)\brnch_root_list_opt{#} */
+  classMini->nbr_list.brnch_root_list_opt = class->nbr_list.brnch_root_list_opt;
+  /* 6)\brnch_root_list_skin{#} */
+  classMini->interact.brnch_root_skin = class->interact.brnch_root_skin;
+  /* 7)\brnch_root_cutoff{#} */
+  classMini->interact.brnch_root_cut = class->interact.brnch_root_cut;
+
+/*=======================================================================*/
+/*   I) set_sim_params_cp                                                */
+
+  /*  8)\cp_dft_typ{lsda,lda,gga_lda,gga_lsda} */
+  cpMini->cpopts.cp_lda = cp->cpopts.cp_lda;
+  cpMini->cpopts.cp_lsda = cp->cpopts.cp_lsda;
+  cpMini->cpopts.cp_gga = cp->cpopts.cp_gga;
+  /* 1)\cp_vxc_typ{pz_lda,pz_lsda,pw_lda,pw_lsda,pade_lda,pade_lsda}       */
+  sscanf(cp->pseudo.vxc_typ,"%s",cpMini->pseudo.vxc_typ);
+  /* 2)\cp_ggax_typ{becke,pw91x,debug97x,fila_1x,fila_2x,pbe_x,revpbe_x,rpbe_x,
+       xpbe_x,brx89,brx2k,off}  */
+  cpMini->cpopts.cp_gga = cp->cpopts.cp_gga;  
+  cpMini->cpcoeffs_info.cp_laplacian_on = cp->cpcoeffs_info.cp_laplacian_on;
+  cpMini->cpcoeffs_info.cp_ke_dens_on = cp->cpcoeffs_info.cp_ke_dens_on;
+  cpMini->cpcoeffs_info.cp_tau_functional = cp->cpcoeffs_info.cp_tau_functional;
+  sscanf(cp->pseudo.ggax_typ,"%s",cpMini->pseudo.ggax_typ);
+  /* 3)\cp_ggac_typ{lyp,lypm1,pw91c,pbe_c,xpbe_c,tau1_c,off}               */
+  sscanf(cp->pseudo.ggac_typ,"%s",cpMini->pseudo.ggac_typ);
+  /* 4)\cp_sic{on,off} */
+  cpMini->cpopts.cp_sic = cp->cpopts.cp_sic;
+  /* 5)\cp_e_e_interact{on,off} */
+  cpMini->cpopts.cp_nonint = cp->cpopts.cp_nonint;
+  /* 6)\cp_norb{full_ortho,norm_only,no_constrnt,off} */
+  cpMini->cpopts.cp_norb = cp->cpopts.cp_norb;
+  /* 7)\cp_gauss{on,off} */
+  cpMini->cpopts.cp_gauss = cp->cpopts.cp_gauss;
+  /* 9)\cp_nl_list{on,off} */
+  cpMini->pseudo.nl_cut_on = cp->pseudo.nl_cut_on;
+  /* 10)\cp_mass_tau_def{#} */
+  /* 11)\cp_mass_cut_def{#} */
+  /* 12)\cp_energy_cut_def{#} */
+  /* 13)\cp_fict_KE{#} */
+  cpMini->cpopts.te_ext = cp->cpopts.te_ext;
+  /*  14)\cp_ptens{on,off} */
+  cpMini->cpopts.cp_ptens_calc = cp->cpopts.cp_ptens_calc;
+  /* 15)\cp_init_orthog{on,off} */
+  cpMini->cpopts.cp_init_orthog = cp->cpopts.cp_init_orthog;
+  /* 16)\cp_cg_line_min_len{#} */
+  generalDataMini->minopts.cp_cg_line_min_len = general_data->minopts.cp_cg_line_min_len;
+  /* 17)\cp_minimize_typ{min_std,min_cg,min_diis} */
+  generalDataMini->minopts.cp_min_std = 0;
+  generalDataMini->minopts.cp_min_cg = 1;
+  generalDataMini->minopts.cp_min_diis = 0;
+  cpMini->cpopts.cp_hess_calc = 0;
+  /* 18)\cp_diis_hist_len{#} */
+  generalDataMini->minopts.cp_diis_hist_len = general_data->minopts.cp_diis_hist_len;
+  /* 19)\cp_orth_meth{gram_schmidt,lowdin,normalize,none} */
+  cpMini->cpopts.cp_gs = 1;
+  cp->cpopts.cp_low = 0;
+  cp->cpopts.cp_normalize = 0;
+  /* 20)\cp_restart_type{initial,restart_pos,restart_posvel,restart_all}*/
+  /* 21)\diis_hist_len{#} I don't need it */
+  /* 22)\nlvps_list_skin{#}   */
+  cpMini->pseudo.nlvps_skin = cp->pseudo.nlvps_skin;
+  /* 23)\gradient_cutoff{#}   */
+  cpMini->pseudo.gga_cut = cp->pseudo.gga_cut;
+  /* 24)\zero_cp_vel{initial,periodic,no} I don't need this */
+  /* 25)\cp_check_perd_size{#}   */
+  cpMini->cpopts.icheck_perd_size = cp->cpopts.icheck_perd_size;
+  /* 26)\cp_tol_edge_dist{#}   */
+  cpMini->cpopts.tol_edge_dist = cp->cpopts.tol_edge_dist;
+  /* 27)\cp_para_typ{#}   hybrid */
+  cpMini->cpopts.cp_para_opt = 0;
+  /* 28)\cp_dual_grid_opt{#} dual grid off */
+  cpMini->cpopts.cp_dual_grid_opt = 0;
+  /* 30)\cp_move_dual_box_opt{#}   */
+  generalDataMini->cell.imov_cp_box = general_data->cell.imov_cp_box;
+  /* 31)\cp_energy_cut_dual_grid_def{#} I don't need this*/
+  /* 32)\cp_alpha_conv_dual{#} */
+  cpMini->pseudo.alpha_conv_dual = cp->pseudo.alpha_conv_dual;
+  /* 33)\interp_pme_dual{#} */
+  cpMini->pseudo.n_interp_pme_dual = cp->pseudo.n_interp_pme_dual;
+  /* 34)\cp_elf_calc_frq{#} */
+  cpMini->cpcoeffs_info.cp_elf_calc_frq = cp->cpcoeffs_info.cp_elf_calc_frq;
+  /* 35)\cp_ngrid_skip{#} */
+  cpMini->cpopts.cp_ngrid_skip = cp->cpopts.cp_ngrid_skip;
+  /* 36)\cp_isok_opt{#} I don't need this */
+  /* 37)\cp_hess_cut{#} */
+  cpMini->cpcoeffs_info.cp_hess_cut = cp->cpcoeffs_info.cp_hess_cut;
+  /* 38)\basis_set_opt{plane_wave,dvr} */
+  cpMini->cpcoeffs_info.iopt_cp_pw  = 1;
+  cpMini->cpcoeffs_info.iopt_cp_dvr = 0;
+  /* 39)\dvr_grid_dens_def{#} I don't need this */
+  /* 40)\cp_nl_trunc_opt{#} */
+  cpMini->cpopts.cp_nl_trunc_opt = cp->cpopts.cp_nl_trunc_opt;
+  /* 41)\cp_wan_min_opt{#} I don't need it */
+  /* 42)\cp_wan_opt{#} I dont need it */
+  /* 43)\cp_wan_calc_frq{#} I dont need it */
+  /* 44)\wan_func_typ{#} I dont need it */
+  /* 45)\wan_diag_typ{#} I dont need it */
+  /* 46)\cp_dip_calc_frq{#} */
+  cpMini->cpcoeffs_info.cp_dip_calc_frq = cp->cpcoeffs_info.cp_dip_calc_frq;
+  /* 47)\cp_nloc_wan_opt{#} I don't need it */
+  /* 48)\cp_kinet_wan_opt{#} I don't need it */
+  /* 49)\rcut_wan_orb{#} I dont need it */
+  /* 50)\rcut_wan_nl{#} I dont need it */
+  /* 51)\nmax_wan_orb{#} I dont need it */
+  /* 52)\b3_cutoff{#} */
+  cpMini->pseudo.b3_cut = cp->pseudo.b3_cut;
+  /* 53)\b3_alpha{#}   */
+  cpMini->pseudo.b3_alp = cp->pseudo.b3_alp;
+  /* 54)\cp_wan_init_opt{#} I dont need it */
+  /* 55)\cp_init_min_opt{#} */
+  cpMini->cpopts.cp_init_min_opt =  cp->cpopts.cp_init_min_opt;
+  /* 56)\iwrite_init_wcent{#} I dont need it */
+  /* 57)\iwrite_init_worb{#} I dont need it */
+  /* 58)\iwrite_init_state{#} I dont need it */
+  /* 59)\dvr_clus_tmax{#}{#} I dont need it */
+  /* 60)\dvr_clus_num_twindow{#} I dont need it */
+  /* 61)\dvr_clus_num_tquad{#} I dont need it */
+  /* 62)\dvr_clus_grid_dens{#} I dont need it */
+  /* 63)\dvr_clus_rmax{#} I dont need it */
 
 /*------------------------------------------------------------------------*/
 }/*end routine*/

@@ -136,7 +136,7 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   generalDataMini->simopts.ann_start_temp = general_data->simopts.ann_start_temp;
 
 /*=======================================================================*/
-/*   I) set_sim_params_list                                              */
+/*  II) set_sim_params_list                                              */
 
   /* 1)\verlist_pad{#} */
   classMini->nbr_list.verlist.jver_pad = class->nbr_list.verlist.jver_pad;
@@ -171,7 +171,7 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   classMini->interact.brnch_root_cut = class->interact.brnch_root_cut;
 
 /*=======================================================================*/
-/*   I) set_sim_params_cp                                                */
+/*  III) set_sim_params_cp                                               */
 
   /*  8)\cp_dft_typ{lsda,lda,gga_lda,gga_lsda} */
   cpMini->cpopts.cp_lda = cp->cpopts.cp_lda;
@@ -282,6 +282,56 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   /* 61)\dvr_clus_num_tquad{#} I dont need it */
   /* 62)\dvr_clus_grid_dens{#} I dont need it */
   /* 63)\dvr_clus_rmax{#} I dont need it */
+
+/*=======================================================================*/
+/*  IV) set_sim_params_vpot                                              */
+
+  /* 1)\shift_inter_pe{on,off} cp_parse */
+  classMini->energy_ctrl.iswit_vdw = class->energy_ctrl.iswit_vdw;
+  classMini->interact.iswit_vdw = classMini->energy_ctrl.iswit_vdw;
+  generalDataMini->stat_avg.iswit_vdw = classMini->energy_ctrl.iswit_vdw;
+  /* 2)\inter_spline_pts{#} */
+  classMini->interact.nsplin = class->interact.nsplin;
+  bondedMini->ecor.nsplin = bonded->ecor.nsplin;
+  bondedMini->ecor.nsplin_m2 = bonded->ecor.nsplin_m2;
+  /* 3)\intra_block_min{} I dont need this */
+  /* 4)\pten_inter_respa{#} I dont need this */
+  /* 5)\pten_kin_respa{#} I dont need this */
+  /* 6)\pseud_spline_pts{#} */
+  cpMini->pseudo.nsplin_g = cp->pseudo.nsplin_g;
+  /* 13)\ewald_interp_pme{#} */
+  classMini->part_mesh.n_interp = class->part_mesh.n_interp;
+  cpMini->cpscr.cpscr_atom_pme.n_interp = cp->cpscr.cpscr_atom_pme.n_interp;
+  /* 7)\scratch_length{#} */
+  bondedMini->intra_scr.nlen = bonded->intra_scr.nlen;
+  classMini->for_scr.nlen = class->for_scr.nlen;
+  classMini->part_mesh.nlen_pme = class->part_mesh.nlen_pme;
+  cpMini->cpscr.cpscr_atom_pme.nlen_pme = cp->cpscr.cpscr_atom_pme.nlen_pme;
+  /* 8)\ewald_alpha{#} I may need to change this */
+  generalDataMini->ewald.alp_ewd = general_data->ewald.alp_ewd;
+  /* 9)\ewald_kmax{#} class_parse ??? */
+  /* 10)\ewald_respa_kmax{#} class_parse ??? */
+  /* 11)\ewald_pme_opt{#} */
+  classMini->part_mesh.pme_on = class->part_mesh.pme_on;
+  /* 12)\ewald_kmax_pme{#} ??? */
+  classMini->part_mesh.kmax_pme = class->part_mesh.kmax_pme;
+  /* 14)\ewald_respa_pme_opt{#} I dont need this */
+  /* 15)\ewald_respa_kmax_pme{#} I dont need this */
+  /* 16)\ewald_respa_interp_pme{#} I dont need this */
+  /* 17)\sep_VanderWaals{on,off} I dont need this */
+  /* 18)\dielectric_opt{on,off} I dont need this */
+  /* 19)\dielectric_rheal{#} I dont need this */
+  /* 20)\dielectric_cut{#} I dont need this */
+  /* 21)\dielectric_eps{#} I dont need this */
+  /* 22)\std_intra_block{on,off} I dont need this */
+  /* 23)\con_intra_block{on,off} I dont need this */
+  /* 24)\inter_PE_calc_freq */
+  generalDataMini->timeinfo.iget_pe_real_inter_freq = general_data->timeinfo.iget_pe_real_inter_freq;
+  /*  25)\pme_paralell_opt{#} serial */
+  classMini->part_mesh.pme_para_opt = 0;
+  
+
+
 
 /*------------------------------------------------------------------------*/
 }/*end routine*/

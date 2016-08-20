@@ -329,7 +329,125 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   generalDataMini->timeinfo.iget_pe_real_inter_freq = general_data->timeinfo.iget_pe_real_inter_freq;
   /*  25)\pme_paralell_opt{#} serial */
   classMini->part_mesh.pme_para_opt = 0;
+
+/*=======================================================================*/
+/*  V) set_sim_params_run                                                */
+ 
+  /* 1)\init_resmpl_atm_vel{on,off} class_parse */
+  /* 2)\init_resmpl_cp_vel{on,off} cp_parse */
+  /* 3)\init_resmpl_cp_nhc{on,off} cp_parse */
+  /* 4a)\resmpl_frq_atm_vel{#} */
+  classMini->vel_samp_class.nvx_smpl = class->vel_samp_class.nvx_smpl;
+  /* 4b)\rescale_frq_atm_vel{#} */
+  classMini->vel_samp_class.nvx_scale = class->vel_samp_class.nvx_scale;
+  /* 5)\respa_steps_lrf{#} */
+  generalDataMini->timeinfo.nres_ter = general_data->timeinfo.nres_ter;
+  generalDataMini->timeinfo.int_res_ter = general_data->timeinfo.int_res_ter;
+  classMini->energy_ctrl.int_res_ter = class->energy_ctrl.int_res_ter;
+  /* 6)\respa_steps_torsion{#} */
+  generalDataMini->timeinfo.nres_tor = general_data->timeinfo.nres_tor;
+  generalDataMini->timeinfo.int_res_tor = general_data->timeinfo.int_res_tor;
+  /* 7)\respa_steps_intra{#} */
+  generalDataMini->timeinfo.nres_tra = general_data->timeinfo.nres_tra;
+  generalDataMini->timeinfo.int_res_tra = general_data->timeinfo.int_res_tra;
+  classMini->energy_ctrl.int_res_tra = class->energy_ctrl.int_res_tra;
+  /* 8)\respa_rheal{#} */
+  classMini->interact.rheal_res = class->interact.rheal_res;
+  /* 9)\shake_tol{#} */
+  bondedMini->constrnt.tolshake = bonded->constrnt.tolshake;
+  /* 10)\rattle_tol{#} */
+  bondedMini->constrnt.tolratl = bonded->constrnt.tolratl;
+  /* 11)\max_constrnt_iter{#} */
+  bondedMini->constrnt.max_iter = bonded->constrnt.max_iter;
+  /* 12)\init_rescale_atm_vel{on,off} class_parse */
+  /* 13)\init_rescale_atm_nhc{on,off} class_parse */
+  /* 14)\init_rescale_cp_vel{on,off} cp_parse */
+  /* 15)\resmpl_frq_cp_vel{ # } */
+  cpMini->vel_samp_cp.nvc_smpl = cp->vel_samp_cp.nvc_smpl;
+  /* 16)\group_con_tol{#} */
+  bondedMini->grp_bond_con.tol = bonded->grp_bond_con.tol;
+  /* 17)\cp_norb_tol{#} */
+  cpMini->cpconstrnt.c_tolnorb = cp->cpconstrnt.c_tolnorb;
+  /* 18)\cp_ks_rot_frq{#} */
+  cpMini->cpcoeffs_info.ks_rot_on = cp->cpcoeffs_info.ks_rot_on;
+  cpMini->cpcoeffs_info.n_ks_rot = cp->cpcoeffs_info.n_ks_rot;
+  /* 19)\cp_shake_tol{#} */
+  cpMini->cpconstrnt.c_tolshake = cp->cpconstrnt.c_tolshake;
+  /* 20)\cp_rattle_tol{#} */
+  cpMini->cpconstrnt.c_tolratl = cp->cpconstrnt.c_tolratl;
+  /* 24)\cp_min_tol{#} */
+  generalDataMin->minopts.tol_coef = general_data->minopts.tol_coef;
+  /* 21)\cp_run_tol{#} */
+  cpMini->cpopts.tol_coef = cp->cpopts.tol_coef;
+  /* 22)\zero_com_vel{yes,no}*/
+  classMini_parse->zero_com_vel = class_parse->zero_com_vel;
+  /* 23)\min_tol{#} */
+  generalDataMini->minopts.tol_atom = general_data->minopts.tol_atom;
+  /* 26)hess_opt{full_an,full_num,unit} */
+  classMini->clatoms_info.hess_calc = 0;
+  /* 27)\class_mass_scale_fact{#} */
+  classMini->clatoms_info.mass_sc_fact = class->clatoms_info.mass_sc_fact;
+  /* 28)\hmat_int_typ{normal,upper_triangle} */
+  generalDataMini->cell.hmat_int_typ = general_data->cell.hmat_int_typ;
+  /* 29)\hmat_cons_typ{none,ortho_rhom,mono_clin} */
+  generalDataMini->cell.hmat_cons_typ = general_data->cell.hmat_cons_typ;
+  /* 30)\hmat_cons_typ{none,ortho_rhom,mono_clin} */
+  generalDataMini->minopts.min_atm_com_fix_opt = general_data->minopts.min_atm_com_fix_opt;
+  /* 31)\rescale_frq_cp_vel{ # } */
+  cpMini->vel_samp_cp.nvc_scal = cp->vel_samp_cp.nvc_scal;
+  /* 32)\auto_rescale_cp_vel{ on/off } */
+  cpMini->vel_samp_cp.iauto_vc_scal_opt = cp->vel_samp_cp.iauto_vc_scal_opt;
+  /* 33)\auto_rescale_cp_vel_tol{ # } */
+  cpMini->vel_samp_cp.vc_scal_tol = cp->vel_samp_cp.vc_scal_tol;
+  /* 34)\wan_min_tol{#} */
+  generalDataMini->minopts.tol_wan_coef = general_data->minopts.tol_wan_coef;
+
+/*=======================================================================*/
+/*  VI) set_sim_params_nhc                                               */
+
+/*=======================================================================*/
+/*  VII) set_sim_params_vol                                              */
   
+  /* 1)\volume_tau{#} class_parse */
+  /* 2)\volume_nhc_tau{#} class_parse */
+  /* 3)\periodicity{0,1,2,3} */
+  generalDataMini->cell.iperd = general_data->cell.iperd;
+  /* 4)\intra_perds{on,off} */
+  generalDataMini->cell.intra_perds = general_data->cell.intra_perds;
+
+/*=======================================================================*/
+/*  VIII) set_sim_params_write                                           */
+
+/*=======================================================================*/
+/*  IX) set_sim_params_pimd                                              */
+
+/*=======================================================================*/
+/*  X) set_sim_params_velo                                               */
+  
+/*=======================================================================*/
+/*  XI) set_sim_params_msqd                                              */
+
+/*=======================================================================*/
+/*  XII) set_sim_params_iikt_iso                                         */
+
+/*=======================================================================*/
+/*  XIII) set_sim_params_ickt_iso                                        */
+
+/*=======================================================================*/
+/*  XIV) set_sim_params_rdf                                              */
+
+/*=======================================================================*/
+/*  XV) set_sim_params_harmonic                                          */
+
+/*=======================================================================*/
+/*  XVI) set_sim_params_dafed                                            */
+
+/*=======================================================================*/
+/*  XVII) set_sim_params_stodft                                          */
+
+/*=======================================================================*/
+/*  XVII) set_sim_params_stodft                                          */
+
 
 
 

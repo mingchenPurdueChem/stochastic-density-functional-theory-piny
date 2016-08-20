@@ -2181,7 +2181,7 @@ void set_sim_params_run(CLASS *class,GENERAL_DATA *general_data,BONDED *bonded,
      }/*endif*/
 
   /*-----------------------------------------------------------------------*/ 
-  /* 30)\hmat_cons_typ{none,ortho_rhom,mono_clin} */
+  /* 30)\min_atm_com_fix{yes,no} */
       ifound      = 0;
       if(strcasecmp(dict[30].keyarg,"yes")==0)   {
               general_data->minopts.min_atm_com_fix_opt = 1;ifound++;}

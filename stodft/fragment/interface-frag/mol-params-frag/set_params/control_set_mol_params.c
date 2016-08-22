@@ -115,12 +115,6 @@ void control_set_mol_params(ATOMMAPS *atommaps,CPOPTS *cpopts,
       set_mol_dict(&(dict_mol->mol_dict),&(dict_mol->num_mol_dict),
                  iextend,class_parse->tau_nhc_def,t_ext,ifirst);
     }
-    if(num==24){
-      if(dafed_on==1){
-        set_dafed_dict(&(dict_mol->dafed_dict),&(dict_mol->num_dafed_dict),
-                       ifirst);
-      } 
-    }
     nkey=0;
     while(get_word(fp,word,&nline,&nkey,*nfun_key,molsetname)){
       switch(num){
@@ -238,12 +232,6 @@ void control_set_mol_params(ATOMMAPS *atommaps,CPOPTS *cpopts,
                       dict_mol->surface_dict,
                       dict_mol->num_surface_dict,
                       surface); 
-      break;
-    case 24:
-      if(dafed_on==1){
-        set_dafed_params(filename_parse,fun_key,dict_mol->dafed_dict,dict_mol->num_dafed_dict,
-                         dafed,n_cv);
-      }
       break;
     } /* end switch assigning dict stuff to variables */
 

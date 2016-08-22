@@ -79,7 +79,7 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
   CLASS_PARSE      classParse;
   CP_PARSE         cpParse;
-  FILENAME_PARSE   filenameParse;
+  FILENAME_PARSE   fileNameParse;
   FREE_PARSE       freeParse;
   SPLINE_PARSE     splineParse;
   NULL_INTER_PARSE nullInterParse;
@@ -96,7 +96,7 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
   control_zero_mem(classMini,bondedMini,generalDataMini,cpMini,&class_parse,
                    &null_inter_parse);
-
+  
 
 /*========================================================================*/
 /*   II) Set the sim parameters: Done first to get input file names       */
@@ -105,9 +105,14 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   //filename_parse.input_name  = (char *)cmalloc(MAXWORD*sizeof(char));
   //strcpy(filename_parse.input_name,input_name);
 
+  copySimParam(general_data,bonded,class,cp,generalDataMini,bondedMini,
+		classMini,cpMini,classParse,cpParse,fileNameParse);
+   
+  /*
   controlSimParamsFrag(class,general_data,bonded,cp,analysis,classMini,generalDataMini,
 		       bondedMini,cpMini,analysisMini,
 		       &classParse,&cpParse);
+  */
 
   
 /*========================================================================*/

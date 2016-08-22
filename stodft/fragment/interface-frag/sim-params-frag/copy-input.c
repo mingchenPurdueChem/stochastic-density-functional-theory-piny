@@ -32,7 +32,8 @@
 /*==========================================================================*/
 void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
 		  CP *cp,GENERAL_DATA *generalDataMini,BONDED *bondedMini,
-		  CLASS *classMini,CP *cpMini,CLASS_PARSE *class_parse)
+		  CLASS *classMini,CP *cpMini,CLASS_PARSE *classParse,
+		  CP_PARSE *cpParse,FILENAME_PARSE *fileNameParse)
 /*========================================================================*/
 /*             Begin Routine                                              */
 {/*Begin subprogram: */
@@ -42,6 +43,9 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
 /*************************************************************************/
 /*========================================================================*/
 /*             Local variable declarations                                */
+
+  STODFTINFO    *stodftInfo	  = cp->stodftInfo;
+  FRAGINFO      *fragInfo         = stodftInfo->fragInfo;
 
 /*=======================================================================*/
 /*   I) set_sim_params_gen						 */
@@ -77,6 +81,8 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   /* 6) \pressure{#} */
   /* I may need this if I want to do npt optimization */
   generalDataMini->statepoint.pext = general_data->statepoint.pext;  
+  /* 7)\restart_type{initial,restart_pos,restart_posvel,restart_all}*/
+  classParse->istart = 1;
   /* 8)\minimize_typ{min_std,min_cg,min_diis} */
   /* I don't do coord minimization pass some fake number. */
   generalDataMini->minopts.min_std = general_data->minopts.min_std;
@@ -198,9 +204,12 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   cpMini->cpopts.cp_gauss = cp->cpopts.cp_gauss;
   /* 9)\cp_nl_list{on,off} */
   cpMini->pseudo.nl_cut_on = cp->pseudo.nl_cut_on;
-  /* 10)\cp_mass_tau_def{#} */
-  /* 11)\cp_mass_cut_def{#} */
+  /* 10)\cp_mass_tau_def{#} some random number, anyway I'll not use this */
+  cpParse->cp_mass_tau_def = 6.0;
+  /* 11)\cp_mass_cut_def{#} some random number, anyway I'll not use this */
+  cpParse->cp_mass_cut_def = 15.0;
   /* 12)\cp_energy_cut_def{#} */
+  cpParse->cp_ecut_def = 2;
   /* 13)\cp_fict_KE{#} */
   cpMini->cpopts.te_ext = cp->cpopts.te_ext;
   /*  14)\cp_ptens{on,off} */
@@ -221,12 +230,15 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   cp->cpopts.cp_low = 0;
   cp->cpopts.cp_normalize = 0;
   /* 20)\cp_restart_type{initial,restart_pos,restart_posvel,restart_all}*/
-  /* 21)\diis_hist_len{#} I don't need it */
+  cpParse->istart_cp = 0; //gen_wave
+  /* 21)\diis_hist_len{#} I dont need it */
+  generalDataMini->minopts.diis_hist_len = general_data->minopts.diis_hist_len;
   /* 22)\nlvps_list_skin{#}   */
   cpMini->pseudo.nlvps_skin = cp->pseudo.nlvps_skin;
   /* 23)\gradient_cutoff{#}   */
   cpMini->pseudo.gga_cut = cp->pseudo.gga_cut;
   /* 24)\zero_cp_vel{initial,periodic,no} I don't need this */
+  cpMini->cpopts.zero_cp_vel = cp->cpopts.zero_cp_vel;
   /* 25)\cp_check_perd_size{#}   */
   cpMini->cpopts.icheck_perd_size = cp->cpopts.icheck_perd_size;
   /* 26)\cp_tol_edge_dist{#}   */
@@ -238,6 +250,7 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   /* 30)\cp_move_dual_box_opt{#}   */
   generalDataMini->cell.imov_cp_box = general_data->cell.imov_cp_box;
   /* 31)\cp_energy_cut_dual_grid_def{#} I don't need this*/
+  cpParse->cp_ecut_dual_grid_def = 2;
   /* 32)\cp_alpha_conv_dual{#} */
   cpMini->pseudo.alpha_conv_dual = cp->pseudo.alpha_conv_dual;
   /* 33)\interp_pme_dual{#} */
@@ -247,46 +260,68 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   /* 35)\cp_ngrid_skip{#} */
   cpMini->cpopts.cp_ngrid_skip = cp->cpopts.cp_ngrid_skip;
   /* 36)\cp_isok_opt{#} I don't need this */
+  cpMini->cpopts.cp_isok_opt = cp->cpopts.cp_isok_opt;
   /* 37)\cp_hess_cut{#} */
   cpMini->cpcoeffs_info.cp_hess_cut = cp->cpcoeffs_info.cp_hess_cut;
   /* 38)\basis_set_opt{plane_wave,dvr} */
   cpMini->cpcoeffs_info.iopt_cp_pw  = 1;
   cpMini->cpcoeffs_info.iopt_cp_dvr = 0;
   /* 39)\dvr_grid_dens_def{#} I don't need this */
+  cpParse->cp_dvrdens_def = 0.75;
   /* 40)\cp_nl_trunc_opt{#} */
   cpMini->cpopts.cp_nl_trunc_opt = cp->cpopts.cp_nl_trunc_opt;
   /* 41)\cp_wan_min_opt{#} I don't need it */
+  cpMini->cpopts.cp_wan_min_opt = cp->cpopts.cp_wan_min_opt;
   /* 42)\cp_wan_opt{#} I dont need it */
+  cpMini->cpopts.cp_wan_opt = cp->cpopts.cp_wan_opt;
   /* 43)\cp_wan_calc_frq{#} I dont need it */
+  cpMini->cp_wannier.cp_wan_calc_frq = cp->cp_wannier.cp_wan_calc_frq;
   /* 44)\wan_func_typ{#} I dont need it */
+  cpMini->cp_wannier.wan_func_typ = cp->cp_wannier.wan_func_typ;
   /* 45)\wan_diag_typ{#} I dont need it */
+  cpMini->cp_wannier.wan_diag_typ = cp->cp_wannier.wan_diag_typ;
   /* 46)\cp_dip_calc_frq{#} */
   cpMini->cpcoeffs_info.cp_dip_calc_frq = cp->cpcoeffs_info.cp_dip_calc_frq;
   /* 47)\cp_nloc_wan_opt{#} I don't need it */
+  cpMini->cpopts.cp_nloc_wan_opt = cp->cpopts.cp_nloc_wan_opt;
   /* 48)\cp_kinet_wan_opt{#} I don't need it */
+  cpMini->cpopts.cp_kinet_wan_opt = cp->cpopts.cp_kinet_wan_opt;
   /* 49)\rcut_wan_orb{#} I dont need it */
+  cpMini->cp_wannier.rcut_wan_orb = cp->cp_wannier.rcut_wan_orb;
   /* 50)\rcut_wan_nl{#} I dont need it */
+  cpMini->cp_wannier.rcut_wan_nl = cp->cp_wannier.rcut_wan_nl;
   /* 51)\nmax_wan_orb{#} I dont need it */
+  cpMini->cp_wannier.nmax_wan_orb = cp->cp_wannier.nmax_wan_orb;
   /* 52)\b3_cutoff{#} */
   cpMini->pseudo.b3_cut = cp->pseudo.b3_cut;
   /* 53)\b3_alpha{#}   */
   cpMini->pseudo.b3_alp = cp->pseudo.b3_alp;
   /* 54)\cp_wan_init_opt{#} I dont need it */
+  cpMini->cpopts.cp_wan_init_opt = cp->cpopts.cp_wan_init_opt;
   /* 55)\cp_init_min_opt{#} */
   cpMini->cpopts.cp_init_min_opt =  cp->cpopts.cp_init_min_opt;
   /* 56)\iwrite_init_wcent{#} I dont need it */
+  cpMini->cpopts.iwrite_init_wcent = cp->cpopts.iwrite_init_wcent;
   /* 57)\iwrite_init_worb{#} I dont need it */
+  cpMini->cpopts.iwrite_init_worb = cp->cpopts.iwrite_init_worb;
   /* 58)\iwrite_init_state{#} I dont need it */
+  cpMini->cpopts.iwrite_init_state = cp->cpopts.iwrite_init_state;
   /* 59)\dvr_clus_tmax{#}{#} I dont need it */
+  cpMini->cp_dvr_clus.tmax = cp->cp_dvr_clus.tmax;
   /* 60)\dvr_clus_num_twindow{#} I dont need it */
+  cpMini->cp_dvr_clus.num_twindow = cp->cp_dvr_clus.num_twindow ;
   /* 61)\dvr_clus_num_tquad{#} I dont need it */
+  cpMini->cp_dvr_clus.num_tquad = cp->cp_dvr_clus.num_tquad;
   /* 62)\dvr_clus_grid_dens{#} I dont need it */
+  cpMini->cp_dvr_clus.grid_dens = cp->cp_dvr_clus.grid_dens;
   /* 63)\dvr_clus_rmax{#} I dont need it */
+  cpMini->cp_dvr_clus.rmax = cp->cp_dvr_clus.rmax;
 
 /*=======================================================================*/
 /*  IV) set_sim_params_vpot                                              */
 
   /* 1)\shift_inter_pe{on,off} cp_parse */
+  classParse->ishift_pot = 2;
   classMini->energy_ctrl.iswit_vdw = class->energy_ctrl.iswit_vdw;
   classMini->interact.iswit_vdw = classMini->energy_ctrl.iswit_vdw;
   generalDataMini->stat_avg.iswit_vdw = classMini->energy_ctrl.iswit_vdw;
@@ -295,8 +330,11 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   bondedMini->ecor.nsplin = bonded->ecor.nsplin;
   bondedMini->ecor.nsplin_m2 = bonded->ecor.nsplin_m2;
   /* 3)\intra_block_min{} I dont need this */
+  classMini->energy_ctrl.nblock_min = class->energy_ctrl.nblock_min;
   /* 4)\pten_inter_respa{#} I dont need this */
+  classMini->interact.pten_inter_guess = class->interact.pten_inter_guess;
   /* 5)\pten_kin_respa{#} I dont need this */
+  classMini->interact.pten_kin_guess = class->interact.pten_kin_guess;
   /* 6)\pseud_spline_pts{#} */
   cpMini->pseudo.nsplin_g = cp->pseudo.nsplin_g;
   /* 13)\ewald_interp_pme{#} */
@@ -310,21 +348,33 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   /* 8)\ewald_alpha{#} I may need to change this */
   generalDataMini->ewald.alp_ewd = general_data->ewald.alp_ewd;
   /* 9)\ewald_kmax{#} class_parse ??? */
+  classParse->kmax_ewd = 10;
   /* 10)\ewald_respa_kmax{#} class_parse ??? */
+  classParse->kmax_res = 0;
   /* 11)\ewald_pme_opt{#} */
   classMini->part_mesh.pme_on = class->part_mesh.pme_on;
   /* 12)\ewald_kmax_pme{#} ??? */
   classMini->part_mesh.kmax_pme = class->part_mesh.kmax_pme;
   /* 14)\ewald_respa_pme_opt{#} I dont need this */
+  classMini->part_mesh.pme_res_on = class->part_mesh.pme_res_on;
   /* 15)\ewald_respa_kmax_pme{#} I dont need this */
+  classMini->part_mesh.kmax_pme_res = class->part_mesh.kmax_pme_res;
   /* 16)\ewald_respa_interp_pme{#} I dont need this */
+  classMini->part_mesh.n_interp_res = class->part_mesh.n_interp_res;
   /* 17)\sep_VanderWaals{on,off} I dont need this */
+  classMini->energy_ctrl.isep_vvdw = class->energy_ctrl.isep_vvdw;
   /* 18)\dielectric_opt{on,off} I dont need this */
+  classMini->interact.dielectric_opt = class->interact.dielectric_opt;
   /* 19)\dielectric_rheal{#} I dont need this */
+  classMini->interact.dielectric_rheal = class->interact.dielectric_rheal;
   /* 20)\dielectric_cut{#} I dont need this */
+  classMini->interact.dielectric_cut = class->interact.dielectric_cut;
   /* 21)\dielectric_eps{#} I dont need this */
+  classMini->interact.dielectric_eps = class->interact.dielectric_eps;
   /* 22)\std_intra_block{on,off} I dont need this */
+  classMini->energy_ctrl.block_std_on = class->energy_ctrl.block_std_on;
   /* 23)\con_intra_block{on,off} I dont need this */
+  classMini->energy_ctrl.block_con_on;
   /* 24)\inter_PE_calc_freq */
   generalDataMini->timeinfo.iget_pe_real_inter_freq = general_data->timeinfo.iget_pe_real_inter_freq;
   /*  25)\pme_paralell_opt{#} serial */
@@ -334,8 +384,11 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
 /*  V) set_sim_params_run                                                */
  
   /* 1)\init_resmpl_atm_vel{on,off} class_parse */
+  classParse->ivx_smpl = 0;
   /* 2)\init_resmpl_cp_vel{on,off} cp_parse */
+  cpParse->ivc_smpl = 0;
   /* 3)\init_resmpl_cp_nhc{on,off} cp_parse */
+  cpParse->ivcnhc_smpl = 0;
   /* 4a)\resmpl_frq_atm_vel{#} */
   classMini->vel_samp_class.nvx_smpl = class->vel_samp_class.nvx_smpl;
   /* 4b)\rescale_frq_atm_vel{#} */
@@ -360,8 +413,11 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   /* 11)\max_constrnt_iter{#} */
   bondedMini->constrnt.max_iter = bonded->constrnt.max_iter;
   /* 12)\init_rescale_atm_vel{on,off} class_parse */
+  classParse->ivx_scale = 0;
   /* 13)\init_rescale_atm_nhc{on,off} class_parse */
+  classParse->ivnhc_scale = 0;
   /* 14)\init_rescale_cp_vel{on,off} cp_parse */
+  cpParse->ivc_scale = 0;
   /* 15)\resmpl_frq_cp_vel{ # } */
   cpMini->vel_samp_cp.nvc_smpl = cp->vel_samp_cp.nvc_smpl;
   /* 16)\group_con_tol{#} */
@@ -380,7 +436,7 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   /* 21)\cp_run_tol{#} */
   cpMini->cpopts.tol_coef = cp->cpopts.tol_coef;
   /* 22)\zero_com_vel{yes,no}*/
-  classMini_parse->zero_com_vel = class_parse->zero_com_vel;
+  classParse->zero_com_vel = 0;
   /* 23)\min_tol{#} */
   generalDataMini->minopts.tol_atom = general_data->minopts.tol_atom;
   /* 26)hess_opt{full_an,full_num,unit} */
@@ -409,7 +465,9 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
 /*  VII) set_sim_params_vol                                              */
   
   /* 1)\volume_tau{#} class_parse */
+  classParse->tau_vol = 1000.0;
   /* 2)\volume_nhc_tau{#} class_parse */
+  classParse->tau_vol_nhc = 1000.0
   /* 3)\periodicity{0,1,2,3} */
   generalDataMini->cell.iperd = general_data->cell.iperd;
   /* 4)\intra_perds{on,off} */
@@ -417,6 +475,10 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
 
 /*=======================================================================*/
 /*  VIII) set_sim_params_write                                           */
+
+  /* 25)\mol_set_file */
+  fileNameParse->molsetname = (char *)cmalloc(MAXWORD*sizeof(char));
+  strcpy(filenameParse->molsetname,fragInfo->molSetName);
 
 /*=======================================================================*/
 /*  IX) set_sim_params_pimd                                              */

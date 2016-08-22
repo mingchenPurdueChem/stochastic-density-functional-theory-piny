@@ -283,7 +283,6 @@ typedef struct fragInfo{
 /* I want to store some variables here so that I can pass them everytime */
   int numFragProc;		    /* Num: Fragments calculated on one proc	*/
   int numFragTot;		    /* Num: Total number of fragments		*/
-
   int *numMolFragProc;		    /* Lst: Number of molecules in the fragment */
 				    /*	    =1 if fragOpt = 1. For inorganic	*/
 				    /*	    materials, every fragment is a	*/
@@ -338,6 +337,8 @@ typedef struct fragInfo{
   double ***coefDnFragTot;          /* Lst: Occupied orbitals spin dn all frags */
                                     /* Lth: numFragTot*numElecUpFrag*	        */
                                     /*      numGridFrac                         */
+  char *molSetName;		    /* Lst: molecular set file name		*/
+				    /* Lth: MAXWORD				*/
  /* The following parts are parameters/variables that will be passed to mini structures */
  /* 1. Mini general_data*/
  /* 2. Mini class	*/

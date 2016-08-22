@@ -30,11 +30,12 @@
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 
-void control_mol_params(CLASS *class,GENERAL_DATA *general_data,
-                        BONDED *bonded,CP *cp,
-                        CLASS_PARSE *class_parse,CP_PARSE *cp_parse,
-                        FREE_PARSE *free_parse,
-                        FILENAME_PARSE *filename_parse)
+void controlMolParamsFrag(CLASS *class,GENERAL_DATA *general_data,
+                          BONDED *bonded,CP *cp,CLASS *classMini,
+			  GENERAL_DATA *generalDataMini,BONDED *bondedMini,
+			  CP *cpMini,CLASS_PARSE *classParse,
+			  CP_PARSE *cpParse,FREE_PARSE *freeParse,
+                          FILENAME_PARSE *filenameParse)
 
 /*==========================================================================*/
     { /*begin routine*/
@@ -46,15 +47,9 @@ void control_mol_params(CLASS *class,GENERAL_DATA *general_data,
   int ifirst,nline,nfun_key;
   int num_user,num_def,cp_on;
   int dafed_atom_num;
-  CLATOMS_INFO *clatoms_info = &(class->clatoms_info);
-  DAFED_INFO *dinfo = &(clatoms_info->dinfo);
+  CLATOMS_INFO *clatoms_info = &(classMini->clatoms_info);
   STODFTINFO *stodftInfo = cp->stodftInfo;
-  CPCOEFFS_INFO *cpcoeffs_info = &(cp->cpcoeffs_info);
-  int stodftOn = stodftInfo->stodftOn;
-  int readCoeffFlag = stodftInfo->readCoeffFlag;
-  int numStateStoUp = stodftInfo->numStateStoUp;
-  int numStateStoDn = stodftInfo->numStateStoDn;   
-  int n_cv = dinfo->n_cv;
+  CPCOEFFS_INFO *cpcoeffs_info = &(cpMini->cpcoeffs_info);
   double now_memory;
   char *fun_key;
   int nhist,nhist_bar,nhist_sig,nfree,nsurf;
@@ -63,48 +58,37 @@ void control_mol_params(CLASS *class,GENERAL_DATA *general_data,
   DICT_MOL dict_mol;                        /* Dictionaries and sizes */
   DICT_WORD *word;
 
-  char *molsetname   = filename_parse->molsetname;
+  char *molsetname   = filenameParse->molsetname;
   double *text_mol;
   double *text_nhc_mol;
   int    *mol_freeze_opt;
   int    *imol_nhc_opt;
   int    *nmol_jmol_typ;
-  double *tot_memory = &(class->tot_memory);
-  int iperd          = general_data->cell.iperd;
-  int pi_beads       = class->clatoms_info.pi_beads;
-  int np_forc        = class->communicate.np_forc;
+  double *tot_memory = &(classMini->tot_memory);
+  int iperd          = generalDataMini->cell.iperd;
+  int pi_beads       = classMini->clatoms_info.pi_beads;
+  int np_forc        = classMini->communicate.np_forc;
   int iextend,ipress;
-  iextend            = (general_data->ensopts.nvt 
-                       +general_data->ensopts.npt_i  
-                       +general_data->ensopts.npt_f
-                       +general_data->ensopts.nst);
-  ipress             = (general_data->ensopts.npt_i
-                       +general_data->ensopts.npt_f);
+  iextend = generalDataMini->ensopts.nvt 
+	   +generalDataMini->ensopts.npt_i  
+	   +generalDataMini->ensopts.npt_f
+	   +generalDataMini->ensopts.nst;
+  ipress = generalDataMini->ensopts.npt_i
+          +generalDataMini->ensopts.npt_f;
 
-  cp_on  =    general_data->simopts.cp_min 
-            + general_data->simopts.cp_wave_min 
-            + general_data->simopts.cp_wave_min_pimd
-         +general_data->simopts.cp
-         +general_data->simopts.cp_wave
-         +general_data->simopts.cp_pimd +general_data->simopts.cp_wave_pimd
-         +general_data->simopts.debug_cp+general_data->simopts.debug_cp_pimd;
-
+  cp_on = generalDataMini->simopts.cp_min 
+         +generalDataMini->simopts.cp_wave_min 
+         +generalDataMini->simopts.cp_wave_min_pimd
+         +generalDataMini->simopts.cp
+         +generalDataMini->simopts.cp_wave
+         +generalDataMini->simopts.cp_pimd 
+	 +generalDataMini->simopts.cp_wave_pimd
+         +generalDataMini->simopts.debug_cp
+	 +generalDataMini->simopts.debug_cp_pimd;
 
 /*========================================================================*/
 /* 0) Output to screen */
-   if(class->communicate.myid==0){
-  printf("\n");  PRINT_LINE_STAR;
-  printf("Reading molecular set up file %s\n",molsetname);
-  PRINT_LINE_DASH;printf("\n");
-    fflush(stdout);
-   }
-   if(class->communicate.myid==0){ 
-     printf("control_mol 1 \n");
-     fflush(stdout);
-   }else{
-     printf("control_mol my id not 1 %d\n",class->communicate.myid);
-      fflush(stdout);
-   }
+
 /*========================================================================*/
 /* I) Set up dictionaries and malloc temporaries                          */
 
@@ -114,7 +98,6 @@ void control_mol_params(CLASS *class,GENERAL_DATA *general_data,
   set_mol_dict(&dict_mol.mol_dict,&dict_mol.num_mol_dict,
                iextend,class_parse->tau_nhc_def,
                general_data->statepoint.t_ext,ifirst);
-  set_dafed_dict(&dict_mol.dafed_dict,&dict_mol.num_dafed_dict,ifirst);
 
   set_wave_dict(&dict_mol.wave_dict,&dict_mol.num_wave_dict,cp_parse);
   set_bond_free_dict(&dict_mol.bond_free_dict,&dict_mol.num_bond_free_dict);
@@ -152,7 +135,6 @@ void control_mol_params(CLASS *class,GENERAL_DATA *general_data,
     if(!strcasecmp(fun_key,"tors_free_def")){tors_free_num+=1;}
     if(!strcasecmp(fun_key,"rbar_sig_free_def")){rbar_sig_free_iopt+=1;}
     if(!strcasecmp(fun_key,"surface_def")){nsurf+=1;}
-    if(!strcasecmp(fun_key,"pseudoatom_dafed_def")){dafed_atom_num+=1;}
   }/*endwhile*/
   fclose(fp);
 
@@ -171,15 +153,6 @@ void control_mol_params(CLASS *class,GENERAL_DATA *general_data,
       fflush(stdout);
       exit(1);
   }/*endif*/
-
-  if(n_cv!=dafed_atom_num){
-    printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
-    printf("CV number in the set file does not match with the\n");
-    printf("simulation paramteres %i vs %i\n",dafed_atom_num,n_cv);
-    printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
-    fflush(stdout);
-    exit(1);
-  }
 
 #ifdef JUNK
   if( (nsurf>0) && (iperd != 2)){

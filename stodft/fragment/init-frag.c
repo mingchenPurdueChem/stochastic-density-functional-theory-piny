@@ -107,6 +107,8 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
   int molInd,atomInd;
   int numAtomQM		= clatoms_info->nab_initio;
   int numAtomTot	= clatoms_info->natm_tot;
+  int myidState		= communicate->myidState;
+  int numProcStates	= communicate->numProcStates;
   MPI_Comm commStates   = communicate->comm_states;
 
   int *numMolJmolType	   = atommaps->nmol_jmol_typ;
@@ -275,6 +277,15 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
     }
   }
 
+/*======================================================================*/
+/* 3) Initialize other things	                                        */
+  fragInfo->molSetName = (char *)cmalloc(MAXWORD*sizeof(char));
+  if(numProcStates==1)strcpy(fragInfo->molSetName,general_data->filenames.molsetname);
+  else{
+    if(myidState==0)strcpy(fragInfo->molSetName,general_data->filenames.molsetname);
+    Barrier(commStates)
+    Bcast(fragInfo->molSetName,MAXWORD,MPI_CHAR,0,commStates);
+  }
 
 /*==========================================================================*/
 }/*end Routine*/

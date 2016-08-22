@@ -141,6 +141,7 @@ void control_sim_params(CLASS *class,GENERAL_DATA *general_data,
   general_data->filenames.worbname   = (char *)cmalloc(MAXWORD*sizeof(char));
   general_data->filenames.wcinname   = (char *)cmalloc(MAXWORD*sizeof(char));
   general_data->filenames.dipname    = (char *)cmalloc(MAXWORD*sizeof(char));
+  general_data->filenames.molsetname = (char *)cmalloc(MAXWORD*sizeof(char));
 
   cp->pseudo.vxc_typ                 = (char *)cmalloc(MAXWORD*sizeof(char));
   cp->pseudo.ggax_typ                = (char *)cmalloc(MAXWORD*sizeof(char));

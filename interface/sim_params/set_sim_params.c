@@ -2734,6 +2734,7 @@ void set_sim_params_write(CLASS *class,GENERAL_DATA *general_data,
   /*-----------------------------------------------------------------------*/ 
   /* 25)\mol_set_file */
        sscanf(dict[25].keyarg,"%s",filename_parse->molsetname);
+       strcpy(general_data->filenames.molsetname,filename_parse->molsetname);
   /*-----------------------------------------------------------------------*/ 
   /* 26)\cp_restart_out_file */
        sscanf(dict[26].keyarg,"%s",general_data->filenames.dnamec);

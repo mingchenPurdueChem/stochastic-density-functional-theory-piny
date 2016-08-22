@@ -345,6 +345,7 @@ typedef struct filenames {
   char *wcinname;              /* Chr: Wannier Center in file name    */
   char *worbname;              /* Chr: Wannier orbitals on grid points*/
   char *dipname;               /* Chr: dipole moment file name        */ 
+  char *molsetname;	       /* Chr: a copy of set file	      */
 
   int low_lim_par;             /* Num: lower limit of partial conf write */
   int high_lim_par;            /* Num: upper limit of partial conf write */

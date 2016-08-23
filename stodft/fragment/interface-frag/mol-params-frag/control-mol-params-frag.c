@@ -42,33 +42,39 @@ void controlMolParamsFrag(CLASS *class,GENERAL_DATA *general_data,
 /*========================================================================*/
 /*             Local variable declarations                                */
 
+  CLATOMS_INFO *clatoms_info = &(classMini->clatoms_info);
+  STODFTINFO *stodftInfo = cp->stodftInfo;
+  CPCOEFFS_INFO *cpcoeffs_info = &(cpMini->cpcoeffs_info);
+  DICT_MOL dict_mol;                        /* Dictionaries and sizes */
+  DICT_MOL *dictMolAll;
+  DICT_WORD *word;
+  ATOMMAPS atommaps = &(class->atommaps);
+
   int i,iii,jmol_typ,nmol_tot; 
   int nmol_typ,bond_free_num,bend_free_num,tors_free_num,rbar_sig_free_iopt;
   int ifirst,nline,nfun_key;
   int num_user,num_def,cp_on;
-  int dafed_atom_num;
-  CLATOMS_INFO *clatoms_info = &(classMini->clatoms_info);
-  STODFTINFO *stodftInfo = cp->stodftInfo;
-  CPCOEFFS_INFO *cpcoeffs_info = &(cpMini->cpcoeffs_info);
-  double now_memory;
-  char *fun_key;
   int nhist,nhist_bar,nhist_sig,nfree,nsurf;
-
-  FILE *fp; 
-  DICT_MOL dict_mol;                        /* Dictionaries and sizes */
-  DICT_WORD *word;
-
-  char *molsetname   = filenameParse->molsetname;
-  double *text_mol;
-  double *text_nhc_mol;
-  int    *mol_freeze_opt;
-  int    *imol_nhc_opt;
-  int    *nmol_jmol_typ;
-  double *tot_memory = &(classMini->tot_memory);
   int iperd          = generalDataMini->cell.iperd;
   int pi_beads       = classMini->clatoms_info.pi_beads;
   int np_forc        = classMini->communicate.np_forc;
+  int numMolTyp	     = atommaps->nmol_typ;
+  int iMolTyp;
   int iextend,ipress;
+  int *mol_freeze_opt;
+  int *imol_nhc_opt;
+  int *nmol_jmol_typ;
+
+  char *molsetname   = filenameParse->molsetname;
+  char *fun_key;
+
+  double now_memory;
+  double *text_mol;
+  double *text_nhc_mol;
+  double *tot_memory = &(classMini->tot_memory);
+
+  FILE *fp; 
+
   iextend = generalDataMini->ensopts.nvt 
 	   +generalDataMini->ensopts.npt_i  
 	   +generalDataMini->ensopts.npt_f
@@ -94,12 +100,21 @@ void controlMolParamsFrag(CLASS *class,GENERAL_DATA *general_data,
 
   ifirst = 1;
 
-  set_molset_fun_dict(&dict_mol.fun_dict,&dict_mol.num_fun_dict);
-  set_mol_dict(&dict_mol.mol_dict,&dict_mol.num_mol_dict,
-               iextend,class_parse->tau_nhc_def,
-               general_data->statepoint.t_ext,ifirst);
+  dictMolAll = (DICT_MOL*)cmalloc(numMolTyp*sizeof(DICT_MOL));
 
-  set_wave_dict(&dict_mol.wave_dict,&dict_mol.num_wave_dict,cp_parse);
+  for(iMolTyp=0;iMolTyp<numMolTyp;iMolTyp++){
+    set_mol_dict(&dict_mol[iMolTyp].mol_dict,&dict_mol[iMolTyp].num_mol_dict,
+                 iextend,classParse->tau_nhc_def,
+                 generalDataMini->statepoint.t_ext,ifirst);    
+  }
+
+  set_molset_fun_dict(&dict_mol.fun_dict,&dict_mol.num_fun_dict);
+  /*
+  set_mol_dict(&dict_mol.mol_dict,&dict_mol.num_mol_dict,
+               iextend,classParse->tau_nhc_def,
+               generalDataMini->statepoint.t_ext,ifirst);
+  */
+  set_wave_dict(&dict_mol.wave_dict,&dict_mol.num_wave_dict,cpParse);
   set_bond_free_dict(&dict_mol.bond_free_dict,&dict_mol.num_bond_free_dict);
   set_bend_free_dict(&dict_mol.bend_free_dict,&dict_mol.num_bend_free_dict);
   set_tors_free_dict(&dict_mol.tors_free_dict,&dict_mol.num_tors_free_dict); 
@@ -138,34 +153,14 @@ void controlMolParamsFrag(CLASS *class,GENERAL_DATA *general_data,
   }/*endwhile*/
   fclose(fp);
 
-  class->atommaps.nmol_typ    = nmol_typ;
-  bonded->bond_free.num       = bond_free_num;
-  bonded->bend_free.num       = bend_free_num;
-  bonded->tors_free.num       = tors_free_num;
-  bonded->rbar_sig_free.iopt  = rbar_sig_free_iopt ;
-  bonded->rbar_sig_free.nfree = 0;
+  classMini->atommaps.nmol_typ    = nmol_typ;
+  bondedMini->bond_free.num       = bond_free_num;
+  bondedMini->bend_free.num       = bend_free_num;
+  bondedMini->tors_free.num       = tors_free_num;
+  bondedMini->rbar_sig_free.iopt  = rbar_sig_free_iopt ;
+  bondedMini->rbar_sig_free.nfree = 0;
 
-  if((bond_free_num+bend_free_num+tors_free_num+rbar_sig_free_iopt)>1){
-      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
-      printf("Only one free energy definition permitted\n");
-      printf("in set up file %s \n",molsetname);
-      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
-      fflush(stdout);
-      exit(1);
-  }/*endif*/
-
-#ifdef JUNK
-  if( (nsurf>0) && (iperd != 2)){
-      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
-      printf("Surface potentials permitted ONLY in systems with\n");
-      printf("2D periodicity in set up file  %s \n",molsetname);
-      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
-      fflush(stdout);
-      exit(1);
-  }/*endif*/
-#endif
-
-  class->surface.isurf_on = nsurf;
+  classMini->surface.isurf_on = nsurf;
 
 /*========================================================================*/
 /* III) Malloc molecular data storage and initialize                      */
@@ -173,63 +168,60 @@ void controlMolParamsFrag(CLASS *class,GENERAL_DATA *general_data,
   now_memory = (double)((nmol_typ)*(sizeof(int)*2))*1.e-06;
   (*tot_memory) += now_memory;
   
-  printf("Allocating molecular memory: %g Mbytes; Total memory: %g Mbytes\n",
-          now_memory,(*tot_memory));
-  
-  class->atommaps.nmol_jmol_typ  = (int *)cmalloc(nmol_typ*sizeof(int))-1;
-  class->atommaps.mol_typ        = (NAME *)cmalloc(nmol_typ*sizeof(NAME))-1;
-  class->atommaps.nres_1mol_jmol_typ  = (int *)cmalloc(nmol_typ*sizeof(int))-1;
-  class->atommaps.jres_jmol_typ_strt  = (int *)cmalloc(nmol_typ*sizeof(int))-1;
-  class->atommaps.icons_jres_jmol_typ = (int *)cmalloc(nmol_typ*sizeof(int))-1;
-  class_parse->ionfo_opt         = (int *)cmalloc(nmol_typ*sizeof(int))-1;
-  class_parse->ires_bond_conv    = (int *)cmalloc(nmol_typ*sizeof(int))-1;
-  class_parse->tau_nhc_mol       = (double*)cmalloc(nmol_typ*sizeof(double))-1;
-  class_parse->text_nhc_mol      = (double*)cmalloc(nmol_typ*sizeof(double))-1;
-  class_parse->imol_nhc_opt      = (int *)cmalloc(nmol_typ*sizeof(int))-1;  
-  class_parse->mol_freeze_opt    = (int *)cmalloc(nmol_typ*sizeof(int))-1;  
-  class_parse->mol_hydrog_mass_opt = (int *)cmalloc(nmol_typ*sizeof(int))-1;
-  class_parse->mol_hydrog_mass_val = 
+  classMini->atommaps.nmol_jmol_typ  = (int *)cmalloc(nmol_typ*sizeof(int))-1;
+  classMini->atommaps.mol_typ        = (NAME *)cmalloc(nmol_typ*sizeof(NAME))-1;
+  classMini->atommaps.nres_1mol_jmol_typ  = (int *)cmalloc(nmol_typ*sizeof(int))-1;
+  classMini->atommaps.jres_jmol_typ_strt  = (int *)cmalloc(nmol_typ*sizeof(int))-1;
+  classMini->atommaps.icons_jres_jmol_typ = (int *)cmalloc(nmol_typ*sizeof(int))-1;
+  classParse->ionfo_opt         = (int *)cmalloc(nmol_typ*sizeof(int))-1;
+  classParse->ires_bond_conv    = (int *)cmalloc(nmol_typ*sizeof(int))-1;
+  classParse->tau_nhc_mol       = (double*)cmalloc(nmol_typ*sizeof(double))-1;
+  classParse->text_nhc_mol      = (double*)cmalloc(nmol_typ*sizeof(double))-1;
+  classParse->imol_nhc_opt      = (int *)cmalloc(nmol_typ*sizeof(int))-1;  
+  classParse->mol_freeze_opt    = (int *)cmalloc(nmol_typ*sizeof(int))-1;  
+  classParse->mol_hydrog_mass_opt = (int *)cmalloc(nmol_typ*sizeof(int))-1;
+  classParse->mol_hydrog_mass_val = 
                                (double *)cmalloc(nmol_typ*sizeof(double))-1;
-  class_parse->mol_hydrog_con_opt= (int *)cmalloc(nmol_typ*sizeof(int))-1;
-  filename_parse->mol_param_name = (NAME *)cmalloc(nmol_typ*sizeof(NAME))-1;
-  filename_parse->user_intra_name= (NAME *)cmalloc(num_user*sizeof(NAME))-1;
-  filename_parse->def_intra_name = (NAME *)cmalloc(num_def*sizeof(NAME))-1;
+  classParse->mol_hydrog_con_opt= (int *)cmalloc(nmol_typ*sizeof(int))-1;
+  filenameParse->mol_param_name = (NAME *)cmalloc(nmol_typ*sizeof(NAME))-1;
+  filenameParse->user_intra_name= (NAME *)cmalloc(num_user*sizeof(NAME))-1;
+  filenameParse->def_intra_name = (NAME *)cmalloc(num_def*sizeof(NAME))-1;
   if(bond_free_num>0){
-    bonded->bond_free.file       = (char *)cmalloc(MAXWORD*sizeof(char));
-    free_parse->imoltyp_bond_free= (int *) cmalloc(2*sizeof(int))-1;
-    free_parse->imol_bond_free   = (int *) cmalloc(2*sizeof(int))-1;
-    free_parse->ires_bond_free   = (int *) cmalloc(2*sizeof(int))-1;
-    free_parse->iatm_bond_free   = (int *) cmalloc(2*sizeof(int))-1;
+    bondedMini->bond_free.file       = (char *)cmalloc(MAXWORD*sizeof(char));
+    freeParse->imoltyp_bond_free= (int *) cmalloc(2*sizeof(int))-1;
+    freeParse->imol_bond_free   = (int *) cmalloc(2*sizeof(int))-1;
+    freeParse->ires_bond_free   = (int *) cmalloc(2*sizeof(int))-1;
+    freeParse->iatm_bond_free   = (int *) cmalloc(2*sizeof(int))-1;
   }
   if(bend_free_num>0){
-    bonded->bend_free.file       = (char *)cmalloc(MAXWORD*sizeof(char));
-    free_parse->imoltyp_bend_free= (int *) cmalloc(3*sizeof(int))-1;
-    free_parse->imol_bend_free   = (int *) cmalloc(3*sizeof(int))-1;
-    free_parse->ires_bend_free   = (int *) cmalloc(3*sizeof(int))-1;
-    free_parse->iatm_bend_free   = (int *) cmalloc(3*sizeof(int))-1;
+    bondedMini->bend_free.file       = (char *)cmalloc(MAXWORD*sizeof(char));
+    freeParse->imoltyp_bend_free= (int *) cmalloc(3*sizeof(int))-1;
+    freeParse->imol_bend_free   = (int *) cmalloc(3*sizeof(int))-1;
+    freeParse->ires_bend_free   = (int *) cmalloc(3*sizeof(int))-1;
+    freeParse->iatm_bend_free   = (int *) cmalloc(3*sizeof(int))-1;
   }
   if(tors_free_num>0){
-    bonded->tors_free.file       = (char *)cmalloc(MAXWORD*sizeof(char));
-    free_parse->imoltyp_tors_free= (int *) cmalloc(8*sizeof(int))-1;
-    free_parse->imol_tors_free   = (int *) cmalloc(8*sizeof(int))-1;
-    free_parse->ires_tors_free   = (int *) cmalloc(8*sizeof(int))-1;
-    free_parse->iatm_tors_free   = (int *) cmalloc(8*sizeof(int))-1;
+    bondedMini->tors_free.file       = (char *)cmalloc(MAXWORD*sizeof(char));
+    freeParse->imoltyp_tors_free= (int *) cmalloc(8*sizeof(int))-1;
+    freeParse->imol_tors_free   = (int *) cmalloc(8*sizeof(int))-1;
+    freeParse->ires_tors_free   = (int *) cmalloc(8*sizeof(int))-1;
+    freeParse->iatm_tors_free   = (int *) cmalloc(8*sizeof(int))-1;
   }
 
   if(rbar_sig_free_iopt>0){
-    bonded->rbar_sig_free.file   = (char *)cmalloc(MAXWORD*sizeof(char));
+    bondedMini->rbar_sig_free.file   = (char *)cmalloc(MAXWORD*sizeof(char));
   }
-  class->clatoms_info.text_mol   = (double*)cmalloc(nmol_typ*sizeof(double))-1;
+  classMini->clatoms_info.text_mol   = (double*)cmalloc(nmol_typ*sizeof(double))-1;
 
-  text_mol       = class->clatoms_info.text_mol;
-  text_nhc_mol   = class_parse->text_nhc_mol;
-  mol_freeze_opt = class_parse->mol_freeze_opt;
-  imol_nhc_opt   = class_parse->imol_nhc_opt;
+  text_mol       = classMini->clatoms_info.text_mol;
+  text_nhc_mol   = classParse->text_nhc_mol;
+  mol_freeze_opt = classParse->mol_freeze_opt;
+  imol_nhc_opt   = classParse->imol_nhc_opt;
 
 /*========================================================================*/
 /* IV) Get molecular/CP setup information */
 
-  control_set_mol_params(&(class->atommaps),&(cp->cpopts),
+  controlSetMolParamsFrag(&(class->atommaps),&(cp->cpopts),
                          &(cp->cpcoeffs_info),cp_parse,class_parse,
                          bonded,&(class->surface),
                          filename_parse,free_parse,
@@ -237,7 +229,7 @@ void controlMolParamsFrag(CLASS *class,GENERAL_DATA *general_data,
                          &dict_mol,word,
                          fun_key,&nfun_key,iextend,
                          general_data->statepoint.t_ext,
-                         ifirst,pi_beads);
+                         ifirst,pi_beads,dictMolAll);
   if(tors_free_num==1){
     tors_free_num = bonded->tors_free.num; /* changed in above routine */
   }/*endif*/

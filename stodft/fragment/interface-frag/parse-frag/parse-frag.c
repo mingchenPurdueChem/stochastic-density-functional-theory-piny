@@ -134,12 +134,12 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*               (interface/intra_params/control_intra_params.c)          */
 
   control_intra_params(tot_memory,
-		       &(class->clatoms_info),(class->clatoms_pos),
-		       &(class->ghost_atoms),&(class->atommaps),
-		       bonded,&filename_parse,&free_parse,
-		       &class_parse,&null_inter_parse,
-		       &(general_data->simopts),&(class->communicate),
-		       (class->surface.isurf_on));
+		       &(classMini->clatoms_info),(classMini->clatoms_pos),
+		       &(classMini->ghost_atoms),&(classMini->atommaps),
+		       bondedMini,&filename_parse,&free_parse,
+		       &classParse,&null_inter_parse,
+		       &(generalDataMini->simopts),&(classMini->communicate),
+		       (classMini->surface.isurf_on));
 
 /*========================================================================*/
 /*    V) Communicate class interface: done before proceeding further      */

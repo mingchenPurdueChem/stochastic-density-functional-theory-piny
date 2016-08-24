@@ -194,8 +194,7 @@ void controlSetMolParamsFrag(CP_PARSE *cp_parse,CLASS_PARSE *class_parse,
       set_wave_params(molsetname,fun_key,
                     dict_mol->wave_dict,dict_mol->num_wave_dict,
                     cpopts,cpcoeffs_info,cp_parse);
-      break;
-      
+      break;      
     case 3:
       set_bond_free_params(molsetname,fun_key,
                         dict_mol->bond_free_dict,
@@ -252,9 +251,8 @@ void controlSetMolParamsFrag(CP_PARSE *cp_parse,CLASS_PARSE *class_parse,
     for(iKey=3;iKey<14;iKey++){
       strcpy(dictMolFrag[iType].mol_dict[iKey].keyarg,dictMolAll[typeInd].mol_dict[iKey].keyarg);
     }
-    set_mol_params(filename_parse,fun_key,dict_mol->mol_dict,dict_mol->num_mol_dict,
+    set_mol_params(filename_parse,fun_key,dictMolFrag[iType].mol_dict,dictMolFrag[iType].num_mol_dict,
                    class_parse,atommaps,mol_ind_chk,pi_beads);
-
   }
 
 /*=====================================================================*/
@@ -330,7 +328,6 @@ void controlSetMolParamsFrag(CP_PARSE *cp_parse,CLASS_PARSE *class_parse,
   }/*endif*/
 
   if(rbar_sig_free_iopt>0){
-
     imoltyp_rbar1_free = free_parse->imoltyp_rbar1_free;
     imoltyp_rbar2_free = free_parse->imoltyp_rbar2_free;
     imol_rbar1_free    = free_parse->imol_rbar1_free;
@@ -367,6 +364,7 @@ void controlSetMolParamsFrag(CP_PARSE *cp_parse,CLASS_PARSE *class_parse,
 
   cfree(&mol_ind_chk[1]);
   cfree(&ifound[1]);
+  cfree(dictMolFrag);
 
 /*-----------------------------------------------------------------------*/
    }/*end routine*/

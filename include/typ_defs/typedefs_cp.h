@@ -283,6 +283,15 @@ typedef struct fragInfo{
 /* I want to store some variables here so that I can pass them everytime */
   int numFragProc;		    /* Num: Fragments calculated on one proc	*/
   int numFragTot;		    /* Num: Total number of fragments		*/
+  int iFrag;			    /* Num: fragmenttation index I'm working on */
+  int *numMolTypeFrag;		    /* Lst: Number of molecule types in each	*/
+				    /*	    fragment.				*/
+				    /* Lth: numFragProc				*/
+  int **molTypeFrag;		    /* Lst: molecular types for each fragment   */
+				    /* Lth: numFragProc*numMolTypFrag[i]	*/
+  int **molNumTypeFrag;		    /* Lst: number of molecules for each type   */
+				    /*	    in each fragment.			*/
+				    /* Lth: numFragProc*numMolTypFrag[i]	*/
   int *numMolFragProc;		    /* Lst: Number of molecules in the fragment */
 				    /*	    =1 if fragOpt = 1. For inorganic	*/
 				    /*	    materials, every fragment is a	*/

@@ -125,8 +125,9 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
   int *cpAtomList	    = atommaps->cp_atm_lst;
   int *atomVlncUpAll,*atomVlncDnAll;
   int *numElecUpFragTot,*numElecDnFragTot,*numElecUpFragProc,*numElecDnFragProc;
+  int *molTypeMapAll,*molTypeMapFrag,*numMolTypeFrag;
 
-
+  int **molTypeFrag,**molNumTypeFrag;
   int **molFragMapProc;
   int **atomFragMapProc;
 
@@ -147,6 +148,7 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
 /*======================================================================*/
 /* II) Get mol map in each fragments                                    */
 
+  // Get Mol Map
   fragInfo->numMolFragProc = (int*)cmalloc(numFragProc*sizeof(int));
   numMolFragProc = fragInfo->numMolFragProc;
   for(iFrag=0;iFrag<numFragProc;iFrag++)numMolFragProc[iFrag] = 1;
@@ -162,7 +164,50 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     molFragMapProc[iFrag][0] = iFrag+molIndStart+1;
   }
-
+  molTypAll = (int*)cmalloc(numMolTot*sizeof(int));
+  count = 0;
+  // Get Mol Type
+  for(iType=1;iType<=numMolType;iType++){
+    for(iMol=0;iMol<numMolJmolType[iType];iMol++){
+      molTypeMapAll[count] = iType;
+      count += 1;
+    }
+  }
+  fragInfo->numMolTypeFrag = (int*)cmalloc(numFragProc*sizeof(int));
+  numMolTypeFrag = fargInfo->numMolTypeFrag;
+  for(iFrag=0;iFrag<numFragProc;iFrag++)numMolTypeFrag[iFrag] = 1;
+  fragInfo->molTypeFrag = (int**)cmalloc(numFragProc*sizeof(int*));
+  fragInfo->molNumTypeFrag = (int**)cmalloc(numFragProc*sizeof(int*));
+  molTypeFrag = fragInfo->molTypeFrag;
+  molNumTypeFrag = fragInfo->molNumTypeFrag;
+  for(iFrag=0;iFrag<numFragProc;iFrag++){
+    molTypeFrag[iFrag] = (int*)cmalloc(numMoltypeFrag[iFrag]*sizeof(int));
+    molNumTypeFrag = (int*)cmalloc(numMoltypeFrag[iFrag]*sizeof(int));
+  }
+  for(iFrag=0;iFrag<numFragProc;iFrag++){
+    molTypeMapFrag = (int*)cmalloc(numMolFragProc*sizeof(int));
+    for(iMol=0;iMol<numMolFragProc[iFrag];iMol++){
+      molTypeMapFrag[iMol] = molTypeMapAll[molFragMapProc[iMol]];
+    }
+    molTypeFrag[iFrag][0] = molTypeFrag[0];
+    molNumTypeFrag[iFrag][0] = 1;
+    for(iMol=1;iMol<numMolFragProc[iFrag];iMol++){
+      if(molTypeFrag[iFrag][numMolTypeFrag[iFrag]-1]==molTypeMapFrag[iMol]){
+	// If this molecule is in the same type, this type has one more member
+	molNumTypeFrag[iFrag][numMolTypeFrag[iFrag]-1] += 1;
+      }
+      else{
+	// If molecular type does not equal to the old one, add the new mol type
+	numMolTypeFrag[iFrag] += 1;
+	molTypeFrag[iFrag] = (int*)realloc(molTypeFrag[iFrag],numMolTypeFrag[iFrag]);
+	molTypeFrag[iFrag][numMolTypeFrag[iFrag]-1] = molTypeMapFrag[iMol];
+	molNumTypeFrag[iFrag] = (int*)realloc(molTypeFrag[iFrag],numMolTypeFrag[iFrag]);
+	molNumTypeFrag[iFrag][numMolTypeFrag[iFrag]-1] = 1;
+      }//endif
+    }//endfor iMol       
+    free(molTypeMapFrag);
+  }//endfor iFrag
+  
 /*======================================================================*/
 /* 2) Get atoms map in each fragments                                   */
 

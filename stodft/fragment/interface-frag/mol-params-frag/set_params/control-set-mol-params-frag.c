@@ -45,8 +45,12 @@ void controlSetMolParamsFrag(CP_PARSE *cp_parse,CLASS_PARSE *class_parse,
   SURFACE *surface		= &(classMini->surface);
   CLATOMS_INFO *clatoms_info	= &(classMini->clatoms_info);
   ATOMMAPS *atommapsMacro	= &(class->atommaps);
+  DICT_MOL *dictMolFrag;
+  STODFTINFO *stodftInfo	= &(cp->stodftInfo);
+  FRAGINFO *fragInfo		= &(stodftInfo->fragInfo);
 
   int nline,nkey,i,num,ierr;
+  int iMol,iType,iKey;
   int nmol_typ            = atommaps->nmol_typ;
   int num_fun_dict        = dict_mol->num_fun_dict;
   int bond_free_num       = bondedMini->bond_free.num;
@@ -56,7 +60,9 @@ void controlSetMolParamsFrag(CP_PARSE *cp_parse,CLASS_PARSE *class_parse,
   int nbar_bond;
   int countMol;
   int numMolTyp		  = atommapsMacro->nmol_typ;
-  int iMol;
+  int iFrag		  = fragInfo->iFrag;
+  int numMolTypeNow	  = fragInfo->numMolTypeFrag[iFrag];
+  int typeInd;
 
   FILE *fp;
   int *mol_ind_chk;                                 /* Index check      */
@@ -81,9 +87,12 @@ void controlSetMolParamsFrag(CP_PARSE *cp_parse,CLASS_PARSE *class_parse,
   int *imol_tors_free     = free_parse->imol_tors_free;
   int *ires_tors_free    = free_parse->ires_tors_free; 
   int *iatm_tors_free    = free_parse->iatm_tors_free;
-
+  int *molTypeFragNow	 = fragInfo->molTypeFrag[iFrag];
+  int *molNumTypeFragNow = fragInfo->molNumTypeFrag[iFrag];
+  
   char *molsetname        = filename_parse->molsetname;
 
+  
 
 /*=======================================================================*/
 /* 0) Set up molecular index checking memory                             */
@@ -233,7 +242,20 @@ void controlSetMolParamsFrag(CP_PARSE *cp_parse,CLASS_PARSE *class_parse,
     } /* end switch assigning dict stuff to variables */
   } /*endwhile getting functional keywords data*/
 
-  for(
+/*=====================================================================*/
+/* III) Assign mol_dict variables				       */
+
+  for(iType=0;iType<numMolTypeNow;iType++){
+    typeInd = molTypeFragNow[iType];
+    sprintf(dictMolFrag[iType].mol_dict[1].keyarg,"%i",iType);
+    sprintf(dictMolFrag[iType].mol_dict[2].keyarg,"%i",molNumTypeFragNow[iType]);
+    for(iKey=3;iKey<14;iKey++){
+      strcpy(dictMolFrag[iType].mol_dict[iKey].keyarg,dictMolAll[typeInd].mol_dict[iKey].keyarg);
+    }
+    set_mol_params(filename_parse,fun_key,dict_mol->mol_dict,dict_mol->num_mol_dict,
+                   class_parse,atommaps,mol_ind_chk,pi_beads);
+
+  }
 
 /*=====================================================================*/
 /* IV) Make sure everything that is required has been found            */ 

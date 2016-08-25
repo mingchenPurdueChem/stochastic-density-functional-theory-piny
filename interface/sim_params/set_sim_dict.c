@@ -2200,7 +2200,7 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
  /*             Local variable declarations                                */
   
   unsigned int i;
-  *num_dict = 16;
+  *num_dict = 19;
   *dict = (DICT_WORD *)cmalloc(*num_dict*sizeof(DICT_WORD))-1;
 
   for (i=1;i<=*num_dict;i++) {
@@ -2272,6 +2272,19 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
   strcpy((*dict)[16].error_mes,"For mixing-diis, how many densities do you want to mix for diis?");
   strcpy((*dict)[16].keyword,"num_diis");
   strcpy((*dict)[16].keyarg,"0");
+
+  strcpy((*dict)[17].error_mes,"Turn on/off fragmentation");
+  strcpy((*dict)[17].keyword,"frag_on");
+  strcpy((*dict)[17].keyarg,"off");
+
+  strcpy((*dict)[18].error_mes,"Fragmentation option: molecule(mol)/...");
+  strcpy((*dict)[18].keyword,"frag_opt");
+  strcpy((*dict)[18].keyarg,"mol");
+
+  strcpy((*dict)[19].error_mes,"Fragmentation option: molecule(mol)/...");
+  strcpy((*dict)[19].keyword,"frag_box_opt");
+  strcpy((*dict)[19].keyarg,"hg");
+
 
  /*========================================================================*/
  } /* end routine set_sim_dict_harmonic */

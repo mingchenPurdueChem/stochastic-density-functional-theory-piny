@@ -25,6 +25,7 @@
 #include "../proto_defs/proto_math.h"
 #include "../proto_defs/proto_communicate_wrappers.h"
 #include "../proto_defs/proto_stodft_local.h"
+#include "../proto_defs/proto_frag_entry.h"
 
 #define TIME_CP_OFF
 /*==========================================================================*/
@@ -173,6 +174,9 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   // frag
   int numMolTot;
   int numMolType	= atommaps->nmol_typ;
+  int numFragTot;
+  int numFragProc;
+  int iFrag;
 
   MPI_Comm comm_states   =    communicate->comm_states;
 
@@ -580,38 +584,8 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*==========================================================================*/
 /* VIII) Initialize Fragmentation                                           */
 
-  int numFragTot;
-  int numFragProc;
-  int iFrag;
-
   if(calcFragFlag==1){// We don't initialize frag scf here
-    stodftInfo->fragInfo = (FRAGINFO*)cmalloc(sizeof(FRAGINFO));
-    fraginfo = stodftInfo->fragInfo;
-    // Get total number of fragments
-    switch(fragOpt){
-      case 1:  //Use Molecule as fragmentation
-	numMolTot = 0;
-	for(iMol=1;iMol<=numMolType;iMol++)numMolTot += numMolJmolType[iMol];
-	fragInfo->numFragTot = numMolTot;
-	numFragTot = fragInfo->numFragTot;
-	break;
-      // I will put in other options later
-    }
-    div = numFragTot/numProcStates;
-    res = numFragTot%numProcStates;   
-    if(myidState<res)fragInfo->numFragProc = div+1;
-    else fragInfo->numFragProc = div;
-    numFragProc = fragInfo->numFragProc;
-    fragInfo->numElecUpFragTot = (int*)cmalloc(numFragTot*sizeof(int));
-    fragInfo->numElecDnFragTot = (int*)cmalloc(numFragTot*sizeof(int));
-    fragInfo->rhoFragSum = (double*)cmalloc(rhoRealGridNum*sizeof(double));
-    fragInfo->coefUpFragProc = (double***)cmalloc(numFragProc*sizeof(double**));
-    fragInfo->coefUpFragTot = (double***)cmalloc(numFragTot*sizeof(double**));
-    //fragInfo->coefDnFragProc = (double***)cmalloc(numFragProc*sizeof(double**));
-    //fragInfo->coefDnFragTot = (double***)cmalloc(numFragTot*sizeof(double**));
-    for(iFrag=0;iFrag<numFragProc;iFrag++){
-      fragInfo->coefUpFragProc[iFrag] = (double**)cmalloc();
-    }
+    initFrag(class,bonded,general_data,cp);
   }
 
 

@@ -112,4 +112,7 @@ DAFED_ENT     = $(DCODE)/dafed/proto_dafed_entry.h
 DAFED_ENERGY  = $(DCODE)/energy/dafed/proto_dafed_energy.h
 STODFT_ENT    = $(DCODE)/stodft/proto_stodft_entry.h
 STODFT_LOC    = $(DCODE)/stodft/proto_stodft_local.h
+FRAG_ENT      = $(DCODE)/stodft/fragment/proto_frag_entry.h
+FRAG_INT_ENT  = $(DCODE)/stodft/fragment/interface-frag/proto_interface_frag_entry.h
+FRAG_INT_LOC  = $(DCODE)/stodft/fragment/interface-frag/proto_interface_frag_local.h
 #-------------------------------------------------------

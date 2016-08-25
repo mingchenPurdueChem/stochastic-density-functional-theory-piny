@@ -27,6 +27,8 @@
 #include "../proto_defs/proto_math.h"
 //#include "../proto_defs/proto_stodft_local.h"
 #include "../proto_defs/proto_integrate_cpmin_entry.h"
+#include "../proto_defs/proto_interface_frag_entry.h"
+
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
@@ -60,9 +62,8 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
 /*======================================================================*/
 /* I) Initialize Fragment SCF					        */
-    parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
-           ANALYSIS *analysis,CLASS *classMini,BONDED *bondedMini,
-           GENERAL_DATA *generalDataMini,CP *cpMini,ANALYSIS *analysisMini)
+    parseFrag(class,bonded,general_data,cp,analysis,classMini,bondedMini,
+           generalDataMini,cpMini,analysisMini);
 
 
 /*======================================================================*/

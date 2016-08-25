@@ -4513,6 +4513,8 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   
   cp->stodftInfo = stodftInfo;
   cp->stodftCoefPos = stodftCoefPos;
+  FRAGINFO *fragInfo = (FRAGINFO*)cmalloc(sizeof(FRAGINFO));
+  stodftInfo->fragInfo = fragInfo;
 
   /*-----------------------------------------------------------------------*/
   /*  1)\sto_dft_on{#} */
@@ -4587,7 +4589,22 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   /*  16)\num_diis{#} */
   sscanf(dict[16].keyarg,"%lg",&rka);
   stodftInfo->numDiis = (int)(rka);
- 
+
+  /*-----------------------------------------------------------------------*/
+  /*  17)\frag_on{#} */
+  if(strcasecmp(dict[17].keyarg,"off")==0)stodftInfo->calcFragFlag = 0;
+  if(strcasecmp(dict[17].keyarg,"on")==0)stodftInfo->calcFragFlag = 1;
+
+  /*-----------------------------------------------------------------------*/
+  /*  18)\frag_opt{#} */
+  if(strcasecmp(dict[18].keyarg,"mol")==0)stodftInfo->fragOpt = 1;
+  if(strcasecmp(dict[18].keyarg,"group")==0)stodftInfo->fragOpt = 2;
+
+  /*-----------------------------------------------------------------------*/
+  /*  19)\frag_box_opt{#} */
+  if(strcasecmp(dict[19].keyarg,"hg")==0)stodftInfo->fragOpt = 1;
+  if(strcasecmp(dict[19].keyarg,"nhg")==0)stodftInfo->fragOpt = 2;
+
 /*=======================================================================*/
 /* Check the conflicate options						 */
   

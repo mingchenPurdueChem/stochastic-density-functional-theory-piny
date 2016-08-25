@@ -26,6 +26,7 @@
 #include "../proto_defs/proto_sim_params_local.h"
 #include "../proto_defs/proto_friend_lib_entry.h"
 #include "../proto_defs/proto_handle_entry.h"
+#include "../proto_defs/proto_interface_frag_local.h"
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/

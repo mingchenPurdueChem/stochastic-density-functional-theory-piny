@@ -63,6 +63,7 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int iTime;
   int ip_now = 1;
   int reInitFlag;
+  int calcFragFlag;
 
   double elecEnergy,elecEnergyOld,elecEnergyOldTemp,elecEnergyTemp;
   double deltaEnergy;
@@ -91,6 +92,7 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
   initStodft(class,bonded,general_data,cp,ip_now);
   reInitFlag = cp->stodftInfo->reInitFlag;
+
 
   //fflush(stdout);
   //exit(0);
@@ -158,6 +160,14 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }
 
   //exit(0);
+/*======================================================================*/
+/* V) If needed, calculate the fragmentation                            */
+
+  calcFragFlag = cp->stodftInfo->calcFragFlag;
+  if(calcFragFlag==1){
+    fragScf(class,bonded,general_data,cp,analysis,ip_now);
+  }
+
 /*======================================================================*/
 /* IV) Electronic Structure calculation for initial configuration       */
 

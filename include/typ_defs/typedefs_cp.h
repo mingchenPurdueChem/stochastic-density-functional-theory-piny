@@ -482,8 +482,8 @@ typedef struct stodftInfo{
   int fragOpt;			    /* Opt: Fragmentation type:			*/
 				    /*	    1=mol,2=group of atoms,3=...	*/
   int fragCellOpt;		    /* Opt: cell option for fragments		*/
-				    /*	    1=cubic (ball like molecule)	*/
-				    /*	    2=rect  (stick like molecule)	*/
+				    /*	    1=hg (homogenious)			*/
+				    /*	    2=nhg  (non-homogenious)		*/
   FRAGINFO *fragInfo;
  
 

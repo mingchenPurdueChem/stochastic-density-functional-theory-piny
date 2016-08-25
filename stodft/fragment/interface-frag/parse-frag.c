@@ -50,8 +50,7 @@
 #include "../proto_defs/proto_communicate_wrappers.h"
 #include "../proto_defs/proto_integrate_cpmin_entry.h"
 #include "../proto_defs/proto_energy_cp_entry.h"
-
-
+#include "../proto_defs/proto_interface_frag_local.h"
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/

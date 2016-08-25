@@ -31,14 +31,39 @@
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
-                    CP *cp,int ip_now)
+                    CP *cp,ANALYSIS *analysis,int ip_now)
 /*========================================================================*/
 {/*begin routine*/
 /*========================================================================*/
 /*             Local variable declarations                                */
+  STODFTINFO *stodftInfo = cp->stodftInfo;
+  FRAGINFO *fragInfo	 = stodftInfo->fragInfo;
+  GENERAL_DATA *generalDataMini;
+  CP *cpMini;
+  CLASS *classMini;
+  ANALYSIS *analysisMini;
+  BONDED *bondedMini;
+  
+  int numFragProc = fragInfo->numFragProc;
+  int iFrag;
+  
+
+
+  for(iFrag=0;iFrag<numFragProc;iFrag++){
+/*======================================================================*/
+/* I) Allocate Mini Structures                                          */
+    generalDataMini = (GENERAL_DATA*)cmalloc(sizeof(GENERAL_DATA));
+    cpMini = (CP*)cmalloc(sizeof(CP));
+    classMini = (CLASS*)cmalloc(sizeof(CLASS));
+    analysisMini = (ANALYSIS*)cmalloc(sizeof(ANALYSIS));
+    bondedMini = (BONDED*)cmalloc(sizeof(BONDED));
 
 /*======================================================================*/
 /* I) Initialize Fragment SCF					        */
+    parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
+           ANALYSIS *analysis,CLASS *classMini,BONDED *bondedMini,
+           GENERAL_DATA *generalDataMini,CP *cpMini,ANALYSIS *analysisMini)
+
 
 /*======================================================================*/
 /* II) SCF LOOP					                        */
@@ -47,6 +72,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* II) Transfer Data and Free Memory				        */
 
+  }
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/

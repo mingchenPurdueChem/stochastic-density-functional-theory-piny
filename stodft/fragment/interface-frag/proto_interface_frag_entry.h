@@ -1,0 +1,3 @@
+void parseFrag(CLASS *,BONDED *,GENERAL_DATA *,CP *,ANALYSIS *,CLASS *,BONDED *,
+           GENERAL_DATA *,CP *,ANALYSIS *);
+

@@ -29,9 +29,11 @@
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 
-void read_hmat(CLASS *class,GENERAL_DATA *general_data,
-               FILENAME_PARSE *filename_parse,int istart,
-               int cp_dual_grid_opt_on, double *dbox_rat, int *box_rat)
+void readHmatFrag(CLASS *class,GENERAL_DATA *general_data,
+		FILENAME_PARSE *filename_parse,
+		CLASS *classMini,GENERAL_DATA *generalDataMini,
+		CP *cpMini,int istart,
+		int cp_dual_grid_opt_on, double *dbox_rat, int *box_rat)
 
 /*======================================================================*/
 /*                Begin Routine */
@@ -91,7 +93,8 @@ void read_hmat(CLASS *class,GENERAL_DATA *general_data,
 /*========================================================================*/
 /*  I)Open particle dump file and malloc temps:                           */
 
-  fp_dnamei = cfopen(dnamei,"r");
+  
+  //fp_dnamei = cfopen(dnamei,"r");
  
   line              = (char *)cmalloc(MAXLINE*sizeof(char));
   restart_type_now  = (char *)cmalloc(MAXWORD*sizeof(char));
@@ -99,10 +102,12 @@ void read_hmat(CLASS *class,GENERAL_DATA *general_data,
   res_typ_now       = (char *)cmalloc(MAXWORD*sizeof(char));
   mol_typ_now       = (char *)cmalloc(MAXWORD*sizeof(char));
   restart_type_spec = (char *)cmalloc(MAXWORD*sizeof(char));
+  
 
 /*========================================================================*/
 /*  II)Write to screen:                                                   */
 
+  /*
   PRINT_LINE_STAR;
   printf("Reading user specified atm coordinate file %s\n",dnamei);
   if(istart==1){printf("using the `initial' restart option\n");}
@@ -110,11 +115,13 @@ void read_hmat(CLASS *class,GENERAL_DATA *general_data,
   if(istart==3){printf("using the `restart_posvel' restart option\n");}
   if(istart==4){printf("using the `restart_all' restart option\n");}
   PRINT_LINE_DASH;printf("\n");
+  */
     
 /*========================================================================*/
 /*  III)Read class info                                                  */
 
 /* B) Type 1 start */
+
   if(istart==1){
    if(fscanf(fp_dnamei,"%d %d %d",&natm_tot_now,&istart_now,&pi_beads_now)!=3){
        printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");

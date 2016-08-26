@@ -6,106 +6,57 @@
 #=================================================================
 frag-scf.o :             $(STANDARD) $(DEFINES) \
                          $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
-                         $(TYP_STAT) \
-                         $(TYP_CP) $(TYP_PAR) \
-                         $(FRND_ENT) $(MATH) \
-			 $(ENR_CP_LOC) $(ENR_CPCON_LOC) $(STODFT_LOC) \
-                         $(DCODE)/stodft/coeff.c
-	$(ECHO) $@
-	$(COBJ) $(DCODE)/stodft/coeff.c
-
-control-stodft.o :       $(STANDARD) $(DEFINES) \
-                         $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
-                         $(TYP_STAT) \
-                         $(TYP_CP) $(TYP_PAR) \
-                         $(FRND_ENT) $(MATH) \
-                         $(STODFT_LOC) \
-                         $(DCODE)/stodft/control-stodft.c
-	$(ECHO) $@
-	$(COBJ) $(DCODE)/stodft/control-stodft.c
-
-
-filters.o :              $(STANDARD) $(DEFINES) \
-                         $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
-                         $(TYP_STAT) \
-                         $(TYP_CP) $(TYP_PAR) \
-                         $(FRND_ENT) $(MATH) \
-                         $(ENR_CP_LOC) $(ENR_CPCON_LOC) $(STODFT_LOC) \
-                         $(DCODE)/stodft/filter.c
-	$(ECHO) $@
-	$(COBJ) $(DCODE)/stodft/filter.c
-
-init.o :                 $(STANDARD) $(DEFINES) \
-                         $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
-                         $(TYP_STAT) \
-                         $(TYP_CP) $(TYP_PAR) \
+                         $(TYP_STAT) $(TYP_CP) \
                          $(FRND_ENT) $(MATH) \
 			 $(ENR_CPCON_ENT) $(ENR_CPCON_LOC) \
-                         $(ENR_CP_LOC) $(STODFT_LOC) \
-                         $(DCODE)/stodft/init.c
+			 $(ENR_CP_LOC) $(ENR_CPCON_LOC) $(COMM_WRAP) \
+			 $(INT_CPMIN_ENT) $(FRAG_INT_ENT) \
+                         $(DCODE)/stodft/fragment/frag-scf.c
 	$(ECHO) $@
-	$(COBJ) $(DCODE)/stodft/init.c
+	$(COBJ) $(DCODE)/stodft/fragment/frag-scf.c
 
-min-CP-stodft.o :        $(STANDARD) $(DEFINES) \
+init-frag.o :	         $(STANDARD) $(DEFINES) \
                          $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
-			 $(TYP_STAT) \
-			 $(TYP_CP) $(TYP_PAR) \
+                         $(TYP_STAT) \
+                         $(TYP_CP) $(TYP_PAR) \
                          $(FRND_ENT) $(MATH) \
-                         $(ENR_CP_LOC) $(ENR_CPCON_ENT) $(ENR_CPCON_LOC)\
-			 $(STODFT_LOC) \
-                         $(DCODE)/stodft/min-CP-stodft.c
+                         $(COMM_WRAP) $(FRAG_LOC)\
+                         $(DCODE)/stodft/fragment/init-frag.c
+	$(ECHO) $@
+	$(COBJ) $(DCODE)/stodft/fragment/init-frag.c
+
+parse-frag.o :           $(STANDARD) $(DEFINES) \
+                         $(TYP_GEN) $(TYP_CP) $(TYP_CLASS) $(TYP_BND) \
+                         $(TYP_PAR) $(TYP_STAT) $(PARSE_ENT) $(PARSE_LOC) \
+                         $(SIM_ENT) $(MOL_ENT) $(INTRA_ENT) $(COORD_ENT) \
+                         $(COORD_LOC) $(CPEWALD_ENT) $(INTER_ENT) \
+                         $(INTER_LOC) $(VPS_ENT) $(LISTS_ENT) $(SCRATCH_ENT) \
+                         $(ENR_CPCON_ENT) $(REAL_LOC) $(SAMPL_CLASS_ENT) \
+                         $(SAMPL_CP_ENT) $(SAMPL_CP_LOC) $(COORD_CP_ENT) \
+                         $(COORD_CP_LOC) $(MATH) $(PIMD_ENT) $(PIMD_LOC) \
+                         $(FRND_ENT) $(COMM_ENT) $(COMM_LOC) $(COMM_WRAP) \
+                         $(INT_CPMIN_ENT) $(FRAG_INT_LOC) \
+                         $(DCODE)/stodft/fragment/interface-frag/parse-frag.c
+	$(ECHO) $@
+	$(COBJ) $(DCODE)/stodft/fragment/interface-frag/parse-frag.c
+
+copy-input.o :           $(STANDARD) $(DEFINES) \
+                         $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
+                         $(TYP_STAT) \
+                         $(TYP_CP) $(TYP_PAR) \
+                         $(FRND_ENT) $(FRAG_INT_LOC) \
+                         $(DCODE)/stodft/fragment/interface-frag/copy-input.c
+	$(ECHO) $@
+	$(COBJ) $(DCODE)/stodft/fragment/interface-frag/copy-input.c
+
+control-mol-params-frag.o  :  $(STANDARD) $(DEFINES) \
+			      $(TYP_PAR) $(TYP_CLASS) $(TYP_BND) \
+                              $(TYP_GEN) $(TYP_CP) \
+                              $(MOL_ENT) $(MOL_LOC) $(HANDLE_ENT) $(FRND_ENT) 
+			      $(FRAG_INT_LOC) \
+                              $(DCODE)/stodft/fragment/interface-frag/control-mol-params-frag.c
 	$(ECHO)	$@
-	$(COBJ)	$(DCODE)/stodft/min-CP-stodft.c
+	$(COBJ)	$(DCODE)/stodft/fragment/interface-frag/control-mol-params-frag.c
 
-normh.o :                $(STANDARD) $(DEFINES) \
-                         $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
-                         $(TYP_STAT) \
-                         $(TYP_CP) $(TYP_PAR) \
-                         $(FRND_ENT) $(MATH) \
-                         $(ENR_CP_LOC) $(ENR_CPCON_LOC) $(STODFT_LOC) \
-                         $(DCODE)/stodft/normh.c
-	$(ECHO) $@
-	$(COBJ) $(DCODE)/stodft/normh.c
-
-density.o :		 $(STANDARD) $(DEFINES) \
-                         $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
-                         $(TYP_STAT) \
-                         $(TYP_CP) $(TYP_PAR) \
-                         $(FRND_ENT) $(MATH) \
-                         $(ENR_CP_LOC) $(ENR_CPCON_LOC) $(STODFT_LOC) \
-                         $(DCODE)/stodft/density.c
-	$(ECHO) $@
-	$(COBJ) $(DCODE)/stodft/density.c
-
-density-init.o :         $(STANDARD) $(DEFINES) \
-                         $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
-                         $(TYP_STAT) \
-                         $(TYP_CP) $(TYP_PAR) \
-                         $(FRND_ENT) $(MATH) \
-                         $(ENR_CP_LOC) $(ENR_CPCON_LOC) $(STODFT_LOC) \
-                         $(DCODE)/stodft/density-init.c
-	$(ECHO) $@
-	$(COBJ) $(DCODE)/stodft/density-init.c	
-
-calc-chempot.o :	 $(STANDARD) $(DEFINES) \
-                         $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
-                         $(TYP_STAT) \
-                         $(TYP_CP) $(TYP_PAR) \
-                         $(FRND_ENT) $(MATH) \
-                         $(ENR_CP_LOC) $(ENR_CPCON_LOC) $(STODFT_LOC) \
-                         $(DCODE)/stodft/calc-chempot.c
-	$(ECHO) $@
-	$(COBJ) $(DCODE)/stodft/calc-chempot.c
-
-diis.o :                $(STANDARD) $(DEFINES) \
-                         $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
-                         $(TYP_STAT) \
-                         $(TYP_CP) $(TYP_PAR) \
-                         $(FRND_ENT) $(MATH) \
-                         $(ENR_CP_LOC) $(ENR_CPCON_LOC) $(STODFT_LOC) \
-                         $(DCODE)/stodft/diis.c
-
-	$(ECHO) $@
-	$(COBJ) $(DCODE)/stodft/diis.c
                         
 #------------------------------------------------------------------

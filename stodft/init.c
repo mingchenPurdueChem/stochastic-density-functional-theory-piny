@@ -18,6 +18,7 @@
 #include "../typ_defs/typedefs_class.h"
 #include "../typ_defs/typedefs_bnd.h"
 #include "../typ_defs/typedefs_cp.h"
+#include "../typ_defs/typedefs_stat.h"
 #include "../proto_defs/proto_energy_cpcon_entry.h"
 #include "../proto_defs/proto_energy_cpcon_local.h"
 #include "../proto_defs/proto_energy_cp_local.h"
@@ -123,7 +124,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   STODFTCOEFPOS *stodftCoefPos    = cp->stodftCoefPos;
   CPSCR         *cpscr            = &(cp->cpscr);  
   NEWTONINFO    *newtonInfo;
-  FRAGINFO	*fragInfo
+  FRAGINFO	*fragInfo;
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
 
 
@@ -193,7 +194,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   int *noiseSendCounts;
   int *noiseDispls;
   //frag
-  int *numMolJmolType;		     = atommaps->nmol_jmol_typ;
+  int *numMolJmolType		     = atommaps->nmol_jmol_typ;
 
   char *ggaxTyp     = pseudo->ggax_typ;
   char *ggacTyp     = pseudo->ggac_typ;
@@ -585,7 +586,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /* VIII) Initialize Fragmentation                                           */
 
   if(calcFragFlag==1){// We don't initialize frag scf here
-    initFrag(class,bonded,general_data,cp);
+    initFrag(class,bonded,general_data,cp,ip_now);
   }
 
 

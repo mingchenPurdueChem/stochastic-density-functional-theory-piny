@@ -5,9 +5,9 @@
 /*                         PI_MD:                                           */
 /*             The future of simulation technology                          */
 /*             ------------------------------------                         */
-/*                     Module: parse                                        */
+/*                     Module: parse-frag.c                                 */
 /*                                                                          */
-/* This subprogram reads in all user inputs                                 */
+/* This subprogram generate all inputs for fragmentation                    */
 /*                                                                          */
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/

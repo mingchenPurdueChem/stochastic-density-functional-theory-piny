@@ -568,6 +568,8 @@ void genNoiseOrbital(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
 /*========================================================================*/
 /*             Local variable declarations                                */
 /*-----------------------------------------------------------------------*/
+#include "../typ_defs/typ_mask.h"
+
   CPOPTS       *cpopts       = &(cp->cpopts);
   CPSCR        *cpscr        = &(cp->cpscr);
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);

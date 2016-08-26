@@ -24,13 +24,14 @@
 #include "../proto_defs/proto_friend_lib_entry.h"
 #include "../proto_defs/proto_math.h"
 #include "../proto_defs/proto_communicate_wrappers.h"
-#include "../proto_defs/proto_stodft_local.h"
+#include "../proto_defs/proto_frag_local.h"
 
 #define TIME_CP_OFF
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
+void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
+	      int ip_now)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
@@ -46,11 +47,11 @@ void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
   int fragOpt           = stodftInfo->fragOpt;
 
   stodftInfo->fragInfo = (FRAGINFO*)cmalloc(sizeof(FRAGINFO));
-  fraginfo = stodftInfo->fragInfo;
+  fragInfo = stodftInfo->fragInfo;
   
   switch(fragOpt){ 
     case 1:
-      initFragMol(class,bonded,general_data,cp);
+      initFragMol(class,bonded,general_data,cp,ip_now);
       break;
   }
 
@@ -62,7 +63,8 @@ void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
+void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
+		 int ip_now)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
@@ -71,6 +73,8 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
 /*************************************************************************/
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
+#include "../typ_defs/typ_mask.h"
+
   CLATOMS_INFO *clatoms_info = &(class->clatoms_info);
   CLATOMS_POS  *clatoms_pos  = &(class->clatoms_pos[ip_now]);
   ATOMMAPS     *atommaps     = &(class->atommaps);
@@ -99,6 +103,8 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
   int div,res;
   int fragOpt           = stodftInfo->fragOpt;
   int fragCellOpt       = stodftInfo->fragCellOpt;
+  int rhoRealGridNum	= stodftInfo->rhoRealGridNum;
+  int cpLsda		= cpopts->cp_lsda;
   int numMolTot;
   int numMolType        = atommaps->nmol_typ;
   int molIndStart;
@@ -107,13 +113,13 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
   int molInd,atomInd;
   int numAtomQM		= clatoms_info->nab_initio;
   int numAtomTot	= clatoms_info->natm_tot;
-  int myidState		= communicate->myidState;
-  int numProcStates	= communicate->numProcStates;
+  int myidState		= communicate->myid_state;
+  int numProcStates	= communicate->np_states;
   MPI_Comm commStates   = communicate->comm_states;
 
   int *numMolJmolType	   = atommaps->nmol_jmol_typ;
   int *numAtomJmolType	   = atommaps->natm_1mol_jmol_typ;
-  int *jatomJmolTypeStart  = atommaps->jatm_jmol_typ_strt
+  int *jatomJmolTypeStart  = atommaps->jatm_jmol_typ_strt;
   int *numMolFragProc;
   int *numAtomFragProc;
   int *numAtomFragAll;
@@ -121,7 +127,6 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
   int *atomNumMol;
   int *cpVlncUp		    = clatoms_info->cp_vlnc_up;
   int *cpVlncDn		    = clatoms_info->cp_vlnc_dn;
-  int *numElecUpFragTot;
   int *cpAtomList	    = atommaps->cp_atm_lst;
   int *atomVlncUpAll,*atomVlncDnAll;
   int *numElecUpFragTot,*numElecDnFragTot,*numElecUpFragProc,*numElecDnFragProc;
@@ -154,7 +159,7 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
   for(iFrag=0;iFrag<numFragProc;iFrag++)numMolFragProc[iFrag] = 1;
   
   fragInfo->molFragMapProc = (int**)cmalloc(numFragProc*sizeof(int*));
-  molFragMapProc = fragIndo->molFragMapProc;
+  molFragMapProc = fragInfo->molFragMapProc;
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     molFragMapProc[iFrag] = (int*)cmalloc(numMolFragProc[iFrag]*sizeof(int));
   }
@@ -164,7 +169,7 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     molFragMapProc[iFrag][0] = iFrag+molIndStart+1;
   }
-  molTypAll = (int*)cmalloc(numMolTot*sizeof(int));
+  molTypeMapAll = (int*)cmalloc(numMolTot*sizeof(int));
   count = 0;
   // Get Mol Type
   for(iType=1;iType<=numMolType;iType++){
@@ -174,22 +179,22 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
     }
   }
   fragInfo->numMolTypeFrag = (int*)cmalloc(numFragProc*sizeof(int));
-  numMolTypeFrag = fargInfo->numMolTypeFrag;
+  numMolTypeFrag = fragInfo->numMolTypeFrag;
   for(iFrag=0;iFrag<numFragProc;iFrag++)numMolTypeFrag[iFrag] = 1;
   fragInfo->molTypeFrag = (int**)cmalloc(numFragProc*sizeof(int*));
   fragInfo->molNumTypeFrag = (int**)cmalloc(numFragProc*sizeof(int*));
   molTypeFrag = fragInfo->molTypeFrag;
   molNumTypeFrag = fragInfo->molNumTypeFrag;
   for(iFrag=0;iFrag<numFragProc;iFrag++){
-    molTypeFrag[iFrag] = (int*)cmalloc(numMoltypeFrag[iFrag]*sizeof(int));
-    molNumTypeFrag = (int*)cmalloc(numMoltypeFrag[iFrag]*sizeof(int));
+    molTypeFrag[iFrag] = (int*)cmalloc(numMolTypeFrag[iFrag]*sizeof(int));
+    molNumTypeFrag = (int*)cmalloc(numMolTypeFrag[iFrag]*sizeof(int));
   }
   for(iFrag=0;iFrag<numFragProc;iFrag++){
-    molTypeMapFrag = (int*)cmalloc(numMolFragProc*sizeof(int));
+    molTypeMapFrag = (int*)cmalloc(numMolFragProc[iFrag]*sizeof(int));
     for(iMol=0;iMol<numMolFragProc[iFrag];iMol++){
-      molTypeMapFrag[iMol] = molTypeMapAll[molFragMapProc[iMol]];
+      molTypeMapFrag[iMol] = molTypeMapAll[molFragMapProc[iFrag][iMol]];
     }
-    molTypeFrag[iFrag][0] = molTypeFrag[0];
+    molTypeFrag[iFrag][0] = molTypeMapFrag[0];
     molNumTypeFrag[iFrag][0] = 1;
     for(iMol=1;iMol<numMolFragProc[iFrag];iMol++){
       if(molTypeFrag[iFrag][numMolTypeFrag[iFrag]-1]==molTypeMapFrag[iMol]){
@@ -214,7 +219,7 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
   atomIndStart = (int*)cmalloc(numMolTot*sizeof(int));
   atomNumMol = (int*)cmalloc(numMolTot*sizeof(int));
   // Get starting atom index for each molecule
-  countMol = 0
+  countMol = 0;
   for(iType=1;iType<=numMolType;iType++){
     atomIndTypeStart = jatomJmolTypeStart[iType];
     for(iMol=0;iMol<numMolJmolType[iType];iMol++){
@@ -242,9 +247,9 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
     countAtom = 0;
     for(iMol=0;iMol<numMolFragProc[iFrag];iMol++){
       for(iAtom=0;iAtom<atomNumMol[molFragMapProc[iFrag][iMol]];iAtom++){
-	atomFragMapProc[iFrag][countAtom+iAtom] = atomIndStart[molFragMapProc[iFrag][iMol]]+iAtom
+	atomFragMapProc[iFrag][countAtom+iAtom] = atomIndStart[molFragMapProc[iFrag][iMol]]+iAtom;
       }//endfor iAtom
-      countAtom += atomNumMol[molFragMapProc[iFrag][iMol]]
+      countAtom += atomNumMol[molFragMapProc[iFrag][iMol]];
     }//endfor iMol
   }//endfor iFrag
 
@@ -277,7 +282,7 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
   numElecDnFragProc = fragInfo->numElecDnFragProc;
   // The following part is only correct for molecule fragment
   countAtom = 0;
-  for(iMol=0;iMol<numFragtot;iMol++){
+  for(iMol=0;iMol<numFragTot;iMol++){
     numElecUpFragTot[iMol] = 0;
     numElecDnFragTot[iMol] = 0;
     for(iAtom=0;iAtom<atomNumMol[iMol];iAtom++){
@@ -328,7 +333,7 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
   if(numProcStates==1)strcpy(fragInfo->molSetName,general_data->filenames.molsetname);
   else{
     if(myidState==0)strcpy(fragInfo->molSetName,general_data->filenames.molsetname);
-    Barrier(commStates)
+    Barrier(commStates);
     Bcast(fragInfo->molSetName,MAXWORD,MPI_CHAR,0,commStates);
   }
 

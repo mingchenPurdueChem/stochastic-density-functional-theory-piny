@@ -149,6 +149,8 @@ DAFED_FILES           = control_dafed.o integrate_dafed.o dafed_io.o \
 STODFT_FILES	      = coeff.o control-stodft.o filters.o init.o \
 			min-CP-stodft.o normh.o density.o density-init.o \
 			calc-chempot.o diis.o
+FRAG_FILES	      = frag-scf.o init-frag.o parse-frag.o copy-input.o \
+			control-mol-params-frag.o 
               
 
 
@@ -160,7 +162,7 @@ OBJS = $(ANALYSIS_FILES) $(ANALYSIS_CP_FILES) $(INTEGRATE_CPPIMD_FILES)\
        $(INTERFACE_CP_FILES) $(INTERFACE_INTRA_FILES) $(INTERFACE_MOL_FILES)\
        $(MAIN_FILES) $(MAIN_CP_FILES) $(MATH_FILES) $(OUTPUT_FILES) \
        $(OUTPUT_CP_FILES) $(SPEC_FILES) $(COMMUNICATE_FILES) $(DAFED_FILES) \
-       $(STODFT_FILES)
+       $(STODFT_FILES) $(FRAG_FILES)
 
 OBJS_CARE = make_lnk_lst.o make_lnk_map.o lnk_lst_dis.o parse.o \
             zero_bnd.o zero_par.o zero_class.o zero_cp.o interface_hand.o \

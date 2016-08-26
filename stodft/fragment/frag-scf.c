@@ -19,6 +19,7 @@
 #include "../typ_defs/typedefs_class.h"
 #include "../typ_defs/typedefs_bnd.h"
 #include "../typ_defs/typedefs_cp.h"
+#include "../typ_defs/typedefs_stat.h"
 #include "../proto_defs/proto_energy_cpcon_entry.h"
 #include "../proto_defs/proto_energy_cpcon_local.h"
 #include "../proto_defs/proto_energy_cp_local.h"

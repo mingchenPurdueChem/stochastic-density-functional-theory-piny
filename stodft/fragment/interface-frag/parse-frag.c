@@ -93,8 +93,8 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*========================================================================*/
 /*   I) Zero the malloc size variables                                  */
 
-  control_zero_mem(classMini,bondedMini,generalDataMini,cpMini,&class_parse,
-                   &null_inter_parse);
+  control_zero_mem(classMini,bondedMini,generalDataMini,cpMini,&classParse,
+                   &nullInterParse);
   
 
 /*========================================================================*/
@@ -105,7 +105,7 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   //strcpy(filename_parse.input_name,input_name);
 
   copySimParam(general_data,bonded,class,cp,generalDataMini,bondedMini,
-		classMini,cpMini,classParse,cpParse,fileNameParse);
+		classMini,cpMini,&classParse,&cpParse,&fileNameParse);
    
   /*
   controlSimParamsFrag(class,general_data,bonded,cp,analysis,classMini,generalDataMini,
@@ -120,9 +120,9 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*                                        some atom mallocing             */
 /*               (interface/mol_params/control_mol_params.c)              */
 
-  controlMolParamsFrag(class,general_data,bonded,cp,&class_parse,&cp_parse,
-		     &free_parse,&filename_parse);
-
+  controlMolParamsFrag(class,general_data,bonded,cp,classMini,
+		       generalDataMini,bondedMini,cpMini,&classParse,
+                       &cpParse,&freeParse,&fileNameParse);
   
 /*========================================================================*/
 /*  IV) Read in atom, molecule connectivity data: Done before setting     */
@@ -132,6 +132,7 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*                                                 pressure mallocing     */
 /*               (interface/intra_params/control_intra_params.c)          */
 
+  /* Keep
   control_intra_params(tot_memory,
 		       &(classMini->clatoms_info),(classMini->clatoms_pos),
 		       &(classMini->ghost_atoms),&(classMini->atommaps),
@@ -139,6 +140,7 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 		       &classParse,&null_inter_parse,
 		       &(generalDataMini->simopts),&(classMini->communicate),
 		       (classMini->surface.isurf_on));
+  */
 
 /*========================================================================*/
 /*    V) Communicate class interface: done before proceeding further      */
@@ -154,6 +156,7 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*========================================================================*/
 /*   VI) Assign Flags                                                     */
 
+  /* Keep
   cp_dual_grid_opt_on = cpMini->cpopts.cp_dual_grid_opt;
 
   pimd_on = generalDataMini->simopts.pimd
@@ -189,12 +192,13 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   pme_on      = classMini->part_mesh.pme_on;
   iopt_cp_pw  = cpMini->cpcoeffs_info.iopt_cp_pw;
   iopt_cp_dvr = cpMini->cpcoeffs_info.iopt_cp_dvr;
-
+  */
 
 /*========================================================================*/
 /*    VII) Read in hmat. Do before set_cp_ewald                           */
 /*                (interface/coords/read_coord.c)                         */
 
+  /* Keep
   mall_coord(classMini,generalDataMini);
   mall_pressure(classMini,generalDataMini);  
   if(myid==0){//change
@@ -202,6 +206,7 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
               cp_dual_grid_opt_on,&(cp->cpewald.dbox_rat),
               &(cp->cpewald.box_rat));
   }//endif
+  */
   /*
   if(num_proc>1){
     comm_cell_data(&(general_data->cell),
@@ -217,10 +222,11 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*                (interface/cp_ewald/control_set_cp_ewald                */
 
 /*--------------------------------------------------------------------------*/
-  if((nchrg>0&&iperd>0)||cp_on==1){
+  //Keep if((nchrg>0&&iperd>0)||cp_on==1){
 /*--------------------------------------------------------------------------*/
 /* Set up CP and Ewald stuff                                                */
 
+    /* Keep
     if(iopt_cp_pw == 1){//change
       control_set_cp_ewald(&(general_data->simopts),&(general_data->cell),
                            &(cp->cpcoeffs_info),&(general_data->ewald),
@@ -237,29 +243,33 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
                            cp_dual_grid_opt_on); 
     }
     classMini->clatoms_info.alp_ewd = generalDataMini->ewald.alp_ewd;
-
+    */
 /*--------------------------------------------------------------------------*/
 /*  Calculate Number of CP fictitious degrees of freedom                    */
 
+    /* Keep
     if(cp_on){
       if(iopt_cp_pw==1){calculate_cp_nfree(cpMini);}
       cpMini->cpopts.te_ext /= (double)(cpMini->cpcoeffs_info.cp_nfree);
       cpMini->vel_samp_cp.div_scal = (double)(cpMini->cpcoeffs_info.cp_nfree);
     }//endif cp_on 
+    */
 /*--------------------------------------------------------------------------*/
-  }/*endif nchrg > 0 or cp is on */
+  //Keep }/*endif nchrg > 0 or cp is on */
 /*========================================================================*/
 /*   IX) Build communication groups: must be done in serial and parallel  */
 /*                                    after call to set_cp_ewald          */
 
-  
+  /*
   control_group_communicators(classMini,cpMini,cp_on); //redo
   //if(num_proc>1){ Barrier(world); }
   myid_state  = classMini->communicate.myid_state;
   myid_forc   = classMini->communicate.myid_forc;
+  */
 
 /*========================================================================*/
 /*   IX) Create the FFT packages  */
+  /* Keep
   //change
   if((nchrg>0&&iperd>0&&pme_on==1)||cp_on==1){
     if(myid_state<num_proc&&myid_state>=0){
@@ -273,11 +283,12 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
                       cp->cpopts.cp_para_opt,cp_dual_grid_opt_on);
     }//endif
   }//endif
+  */
 
 /*========================================================================*/
 /*   XI) Setup intermolecular potential stuff: interspline mallocing      */
 /*                (interface/inter_params/control_inter_params.c)         */
-
+  /* Keep
   //change
   control_inter_params(&(class->interact),&spline_parse,
                        &filename_parse,general_data->ewald.alp_ewd,
@@ -287,6 +298,7 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
                        class_parse.ishift_pot,tot_memory,
                        general_data->timeinfo.int_res_ter,
                        myid,world,num_proc);
+  */
 
 /*========================================================================*/
 /*    XII) Setup the surface potential if needed                          */
@@ -295,11 +307,12 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*    XII) Setup pseudopotential stuff: pseudospline mallocing            */
 /*                (interface/interparams/control_vps_params.c)            */
 
-  if(cp_on==1){//change
+  //Keep if(cp_on==1){//change
   /*---------------------------------------------------------*/
   /* Create a list of ab initio atoms                        */
   /* List is used in gen_wave and also cp_dual_check routine */
 
+    /* Keep
     make_cp_atom_list(&(class->atommaps),
                        class->clatoms_info.cp_atm_flag,
                        &(class->clatoms_info.nab_initio),
@@ -315,6 +328,7 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
                          &(cp->cpcoeffs_info));
     }//endif
   }//endif
+  */
 
 
 /*========================================================================*/
@@ -322,10 +336,12 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*                (interface/lists/set_exclude.c)                         */
 
   /*THIS HAS ALSO BEEN MODIFIED FOR CLASSICAL HCA EQUILIBRATION */
+  /* Keep
   set_exclude(&(class->clatoms_info),&(class->ghost_atoms),bonded,
               &(bonded->excl),&null_inter_parse,
               iperd,tot_memory,
               general_data->ewald.alp_ewd,icontrol_proc);
+  */
 
 /*========================================================================*/
 /*   XV) Set thermostats: Done before reading the coordinates;           */
@@ -336,27 +352,31 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*  XVI) Read in atm positions/velocities/NHCs:                           */
 /*                (interface/coords/read_coord.c)                         */
 
+   /* Keep
    //change
    read_coord(class,general_data,&filename_parse,
               class_parse.istart,cp_dual_grid_opt_on);
-
+   */
 
 
 /*========================================================================*/
 /*  XVII) Spline the ewald corrections (needs particle positions)         */
 
+  /* Keep
   if((nchrg > 0 && iperd > 0)){//change
     splin_ecor(&(bonded->ecor),&(general_data->ewald),(class->clatoms_pos),
                pi_beads,icontrol_proc,tot_memory);
   }else{
     general_data->ewald.self_erf = 1.0;
-  }/*endif*/
+  }//endif
+  */
 
 /*========================================================================*/
 /* XVIII) Set thermostats: Done before reading the coeffs                 */
 /*                        CP NHC mallocing                                */
 /*                (interface/coords/set_coef_NHC.c)                       */
 
+  /* Keep
   if(cp_on==1){
    if(myid_state<np_states){//change
      mall_coef(cp,&(general_data->simopts),class->clatoms_info.pi_beads_proc);
@@ -366,18 +386,20 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
      cp->cptherm_info.massiv_flag    = 0;
    }//endif
   }//endif
+  */
 
 /*========================================================================*/
 /*   XIX)malloc scratch space                                            */
 /*                (interface/scratch/mall_scratch.c)                     */
 
-  control_mall_scratch(classMini,bondedMini,cpMini,generalDataMini);
+  //Keep control_mall_scratch(classMini,bondedMini,cpMini,generalDataMini);
 
 /*========================================================================*/
 /* XX) Read in coeffs/velocities:                                         */
 /*                (interface/coords/read_coef.c)                          */
 /*     And tidy up the dual option                                        */
 
+  /* Keep
   if(cp_on==1){
     if(myid_state<np_states){
       read_coef(cp,general_data,class,&filename_parse,&cp_parse,tot_memory);
@@ -395,17 +417,20 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
       }
     }//endif np_state
   }//endif cp_on
+  */
 /*========================================================================*/
 /* XXI) Set up branch root neighbor list data                             */
 
+  /*Keep
   if(class->nbr_list.brnch_root_list_opt>0){//do I need this?
     control_brnch_root_list(class,bonded);
-  }/*endif*/
+  }//endif
+  */
 
 /*========================================================================*/
 /* XXI) Control Molecular Decomposition       */
 
-  control_molec_decomp(class,bonded,general_data);//do I need this?
+  //Keep control_molec_decomp(class,bonded,general_data);//do I need this?
 
 /*========================================================================*/
 /*   X) Initialize path integral transformations: after group communicators*/
@@ -418,6 +443,7 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*   XXII) malloc neigbor list memory                                     */
 /*                (interface/lists/mall_make_lists.c)                     */
  
+  /* Keep
   //do I need this? 
   get_cut_skin(class->interact.cutskin,
                class->interact.cutskin_root,
@@ -434,21 +460,24 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   myatm_start = class->clatoms_info.myatm_start;
   myatm_end = class->clatoms_info.myatm_end;
 
-  if(( (myid_state==0) || (np_forc==np_states!= 1)==0  )&&pimd_on==1){ /*DY*/
+  if(( (myid_state==0) || (np_forc==np_states!= 1)==0  )&&pimd_on==1){ //DY
     control_pimd_trans_mode(class,general_data);
 
     control_pimd_trans_pos(class,general_data);
 
-  }/*endif*/
+  }//endif
 
   mall_make_lists(class,general_data,bonded,icontrol_proc);
+  */
 
 /*========================================================================*/
 /* XXIII) Orthogonalize coefficients                                      */
-
+  
+  /*
   if(myid_state<np_states){
     control_init_cp_orthog(generalDataMini,cpMini,&cp_parse,cp_on,cp_md,myid);
-  }/*endif*/
+  }//endif
+  */
 
 /*========================================================================*/
 /*  XXIV) Assign/resample the initial class velocities                    */
@@ -463,7 +492,7 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*                (dafed/)                                                */
 
 /*========================================================================*/
-/* XXVII) Flush the buffers                                                 */
+/* XXVII) Flush the buffers                                               */
   
   fflush(stdout);
   fflush(stderr);

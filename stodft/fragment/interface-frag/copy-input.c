@@ -58,7 +58,7 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   generalDataMini->simopts.cp_pimd	    = general_data->simopts.cp_pimd;
   generalDataMini->simopts.cp_min	    = general_data->simopts.cp_min;
   generalDataMini->simopts.cp_wave_min	    = general_data->simopts.cp_wave_min;
-  generalDataMini->simopts.cp_wve_min_pimd  = general_data->simopts.cp_wave_min_pimd;
+  generalDataMini->simopts.cp_wave_min_pimd = general_data->simopts.cp_wave_min_pimd;
   generalDataMini->simopts.debug	    = general_data->simopts.debug;
   generalDataMini->simopts.debug_pimd	    = general_data->simopts.debug_pimd;
   generalDataMini->simopts.debug_cp	    = general_data->simopts.debug_cp;
@@ -430,7 +430,7 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   /* 20)\cp_rattle_tol{#} */
   cpMini->cpconstrnt.c_tolratl = cp->cpconstrnt.c_tolratl;
   /* 24)\cp_min_tol{#} */
-  generalDataMin->minopts.tol_coef = general_data->minopts.tol_coef;
+  generalDataMini->minopts.tol_coef = general_data->minopts.tol_coef;
   /* 21)\cp_run_tol{#} */
   cpMini->cpopts.tol_coef = cp->cpopts.tol_coef;
   /* 22)\zero_com_vel{yes,no}*/
@@ -465,7 +465,7 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   /* 1)\volume_tau{#} class_parse */
   classParse->tau_vol = 1000.0;
   /* 2)\volume_nhc_tau{#} class_parse */
-  classParse->tau_vol_nhc = 1000.0
+  classParse->tau_vol_nhc = 1000.0;
   /* 3)\periodicity{0,1,2,3} */
   generalDataMini->cell.iperd = general_data->cell.iperd;
   /* 4)\intra_perds{on,off} */
@@ -476,7 +476,7 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
 
   /* 25)\mol_set_file */
   fileNameParse->molsetname = (char *)cmalloc(MAXWORD*sizeof(char));
-  strcpy(filenameParse->molsetname,fragInfo->molSetName);
+  strcpy(fileNameParse->molsetname,fragInfo->molSetName);
 
 /*=======================================================================*/
 /*  IX) set_sim_params_pimd                                              */

@@ -52,7 +52,7 @@ copy-input.o :           $(STANDARD) $(DEFINES) \
 control-mol-params-frag.o  :  $(STANDARD) $(DEFINES) \
 			      $(TYP_PAR) $(TYP_CLASS) $(TYP_BND) \
                               $(TYP_GEN) $(TYP_CP) \
-                              $(MOL_ENT) $(MOL_LOC) $(HANDLE_ENT) $(FRND_ENT) 
+                              $(MOL_ENT) $(MOL_LOC) $(HANDLE_ENT) $(FRND_ENT) \
 			      $(FRAG_INT_LOC) \
                               $(DCODE)/stodft/fragment/interface-frag/control-mol-params-frag.c
 	$(ECHO)	$@

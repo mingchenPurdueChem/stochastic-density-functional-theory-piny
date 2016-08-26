@@ -47,7 +47,7 @@ void controlMolParamsFrag(CLASS *class,GENERAL_DATA *general_data,
   DICT_MOL dict_mol;                        /* Dictionaries and sizes */
   DICT_MOL *dictMolAll;
   DICT_WORD *word;
-  ATOMMAPS atommaps = &(class->atommaps);
+  ATOMMAPS *atommaps = &(class->atommaps);
 
   int i,iii,jmol_typ,nmol_tot; 
   int nmol_typ,bond_free_num,bend_free_num,tors_free_num,rbar_sig_free_iopt;
@@ -102,7 +102,7 @@ void controlMolParamsFrag(CLASS *class,GENERAL_DATA *general_data,
   dictMolAll = (DICT_MOL*)cmalloc(numMolTyp*sizeof(DICT_MOL));
 
   for(iMolTyp=0;iMolTyp<numMolTyp;iMolTyp++){
-    set_mol_dict(&dict_mol[iMolTyp].mol_dict,&dict_mol[iMolTyp].num_mol_dict,
+    set_mol_dict(&dictMolAll[iMolTyp].mol_dict,&dictMolAll[iMolTyp].num_mol_dict,
                  iextend,classParse->tau_nhc_def,
                  generalDataMini->statepoint.t_ext,ifirst);    
   }
@@ -139,7 +139,6 @@ void controlMolParamsFrag(CLASS *class,GENERAL_DATA *general_data,
   tors_free_num       = 0;
   rbar_sig_free_iopt  = 0;
   nsurf               = 0;
-  dafed_atom_num      = 0;
 
   fp = cfopen(molsetname,"r");
   while(get_fun_key_cnt(fp,fun_key,&nline,&nfun_key,molsetname)){
@@ -291,7 +290,7 @@ void controlMolParamsFrag(CLASS *class,GENERAL_DATA *general_data,
   cfree(fun_key);
   cfree(word);
   cfree(&dict_mol.fun_dict[1]);
-  cfree(&dict_mol.mol_dict[1]);
+  //cfree(&dict_mol.mol_dict[1]);
   cfree(&dict_mol.wave_dict[1]);
   cfree(&dict_mol.bond_free_dict[1]);
   cfree(&dict_mol.bend_free_dict[1]);

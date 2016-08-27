@@ -172,30 +172,37 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   molTypeMapAll = (int*)cmalloc(numMolTot*sizeof(int));
   count = 0;
   // Get Mol Type
+  // First get map molTypeMapAll:(molecular index)->(molecular type) for all molecules
   for(iType=1;iType<=numMolType;iType++){
     for(iMol=0;iMol<numMolJmolType[iType];iMol++){
       molTypeMapAll[count] = iType;
       count += 1;
     }
   }
+  //for(iMol=0;iMol<numMolTot;iMol++)printf("iMol %i molTypeMapAll %i\n",iMol,molTypeMapAll[iMol]);
+  //Second Get number of molecule type in each fragment on this proc
   fragInfo->numMolTypeFrag = (int*)cmalloc(numFragProc*sizeof(int));
   numMolTypeFrag = fragInfo->numMolTypeFrag;
   for(iFrag=0;iFrag<numFragProc;iFrag++)numMolTypeFrag[iFrag] = 1;
+  //Get the list of molecule type in each fragment(molTypeFrag) and 
+  //the number of molecules in each molecule type in each fragment(molNumTypeFrag)
   fragInfo->molTypeFrag = (int**)cmalloc(numFragProc*sizeof(int*));
   fragInfo->molNumTypeFrag = (int**)cmalloc(numFragProc*sizeof(int*));
   molTypeFrag = fragInfo->molTypeFrag;
   molNumTypeFrag = fragInfo->molNumTypeFrag;
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     molTypeFrag[iFrag] = (int*)cmalloc(numMolTypeFrag[iFrag]*sizeof(int));
-    molNumTypeFrag = (int*)cmalloc(numMolTypeFrag[iFrag]*sizeof(int));
+    molNumTypeFrag[iFrag] = (int*)cmalloc(numMolTypeFrag[iFrag]*sizeof(int));
   }
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     molTypeMapFrag = (int*)cmalloc(numMolFragProc[iFrag]*sizeof(int));
     for(iMol=0;iMol<numMolFragProc[iFrag];iMol++){
-      molTypeMapFrag[iMol] = molTypeMapAll[molFragMapProc[iFrag][iMol]];
+      molTypeMapFrag[iMol] = molTypeMapAll[molFragMapProc[iFrag][iMol]-1];
+      //printf("iFrag %i iMol %i molFragMapProc %i molTypeMapFrag %i\n",iFrag,iMol,molFragMapProc[iFrag][iMol],molTypeMapFrag[iMol]);
     }
     molTypeFrag[iFrag][0] = molTypeMapFrag[0];
     molNumTypeFrag[iFrag][0] = 1;
+    
     for(iMol=1;iMol<numMolFragProc[iFrag];iMol++){
       if(molTypeFrag[iFrag][numMolTypeFrag[iFrag]-1]==molTypeMapFrag[iMol]){
 	// If this molecule is in the same type, this type has one more member
@@ -212,6 +219,12 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     }//endfor iMol       
     free(molTypeMapFrag);
   }//endfor iFrag
+  /*
+  for(iFrag=0;iFrag<numFragProc;iFrag++){
+    printf("iFrag %i molTypeFrag %i molNumTypeFrag %i\n",iFrag,molTypeFrag[iFrag][0],molNumTypeFrag[iFrag][0]);
+  }
+  exit(0);
+  */
   
 /*======================================================================*/
 /* 2) Get atoms map in each fragments                                   */
@@ -224,6 +237,7 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     atomIndTypeStart = jatomJmolTypeStart[iType];
     for(iMol=0;iMol<numMolJmolType[iType];iMol++){
       atomIndStart[countMol+iMol] = atomIndTypeStart+iMol*numAtomJmolType[iType];
+      //printf("countMol+iMol %i,atomIndStart %i\n",countMol+iMol,atomIndStart[countMol+iMol]);
       atomNumMol[countMol+iMol] = numAtomJmolType[iType];
     }
     countMol += numMolJmolType[iType];
@@ -234,7 +248,7 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     numAtomFragProc[iFrag] = 0;
     for(iMol=0;iMol<numMolFragProc[iFrag];iMol++){
-      numAtomFragProc[iFrag] += atomNumMol[molFragMapProc[iFrag][iMol]];
+      numAtomFragProc[iFrag] += atomNumMol[molFragMapProc[iFrag][iMol]-1];
     }
   }
   // Get Atom Map
@@ -246,12 +260,19 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     countAtom = 0;
     for(iMol=0;iMol<numMolFragProc[iFrag];iMol++){
-      for(iAtom=0;iAtom<atomNumMol[molFragMapProc[iFrag][iMol]];iAtom++){
-	atomFragMapProc[iFrag][countAtom+iAtom] = atomIndStart[molFragMapProc[iFrag][iMol]]+iAtom;
+      for(iAtom=0;iAtom<atomNumMol[molFragMapProc[iFrag][iMol]-1];iAtom++){
+	atomFragMapProc[iFrag][countAtom+iAtom] = atomIndStart[molFragMapProc[iFrag][iMol]-1]+iAtom;
       }//endfor iAtom
       countAtom += atomNumMol[molFragMapProc[iFrag][iMol]];
     }//endfor iMol
   }//endfor iFrag
+
+  /*
+  for(iFrag=0;iFrag<numFragProc;iFrag++){
+    //printf("iFrag %i numAtomFragProc %i\n",iFrag,numAtomFragProc[iFrag]);
+    printf("iFrag %i atomFragMap St %i atomFragMap Ed %i\n",iFrag,atomFragMapProc[iFrag][0],atomFragMapProc[iFrag][numAtomFragProc[iFrag]-1]);
+  }
+  */
 
 /*======================================================================*/
 /* 3) Get electron number in each fragments                             */
@@ -302,6 +323,10 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
       numElecDnFragProc[iFrag] += atomVlncDnAll[atomInd];
     }//endfor iAtom
   }//endfor iFrag
+  
+  for(iFrag=0;iFrag<numFragProc;iFrag++){
+    printf("iFrag %i numElecUpFragProc %i numElecDnFragProc %i\n",iFrag,numElecUpFragProc[iFrag],numElecDnFragProc[iFrag]);
+  }
 
 /*======================================================================*/
 /* 3) Malloc fragment wave functions	                                */

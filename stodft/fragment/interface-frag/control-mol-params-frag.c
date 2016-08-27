@@ -221,7 +221,7 @@ void controlMolParamsFrag(CLASS *class,GENERAL_DATA *general_data,
 
   controlSetMolParamsFrag(cpParse,classParse,filenameParse,freeParse,
                 bondedMini,classMini,cpMini,generalDataMini,class,cp,
-                general_data,dict_mol,word,fun_key,&nfun_key,
+                general_data,&dict_mol,word,fun_key,&nfun_key,
                 iextend,generalDataMini->statepoint.t_ext,ifirst,pi_beads,
                 dictMolAll);
 
@@ -244,18 +244,6 @@ void controlMolParamsFrag(CLASS *class,GENERAL_DATA *general_data,
   for(i=1; i<= nmol_typ; i++){
     text_mol[i] = text_nhc_mol[i];   
   }/*endfor*/
-
-  if(stodftOn==1&&readCoeffFlag==1){
-    if((numStateStoUp!=cpcoeffs_info->nstate_up)||
-        (numStateStoDn!=cpcoeffs_info->nstate_dn)){
-      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
-      printf("You want to readin stochastic orbitals but the number of \n");
-      printf("orbitals is inconsistent! Please check the parameters!\n");
-      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
-      fflush(stdout);
-      exit(1);
-    }
-  }
 
 /*========================================================================*/
 /* V) Free some memory and malloc some other                              */
@@ -337,8 +325,8 @@ void controlMolParamsFrag(CLASS *class,GENERAL_DATA *general_data,
     exit(1);
   }/*endif*/
 
-  if(cp_on==1&&cp->cpopts.cp_dual_grid_opt>=1){
-    if(cp_parse->cp_ecut_dual_grid>cp_parse->cp_ecut){
+  if(cp_on==1&&cpMini->cpopts.cp_dual_grid_opt>=1){
+    if(cpParse->cp_ecut_dual_grid>cpParse->cp_ecut){
       printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");   
       printf("The small dense grid cutoff is less than the large sparse");
       printf("grid cutoff. This might work, but I doubut it\n");
@@ -376,8 +364,8 @@ void controlSetMolParamsFrag(CP_PARSE *cp_parse,CLASS_PARSE *class_parse,
   CLATOMS_INFO *clatoms_info	= &(classMini->clatoms_info);
   ATOMMAPS *atommapsMacro   = &(class->atommaps);
   DICT_MOL *dictMolFrag;
-  STODFTINFO *stodftInfo    = &(cp->stodftInfo);
-  FRAGINFO *fragInfo	    = &(stodftInfo->fragInfo);
+  STODFTINFO *stodftInfo    = cp->stodftInfo;
+  FRAGINFO *fragInfo	    = stodftInfo->fragInfo;
 
   int nline,nkey,i,num,ierr;
   int iMol,iType,iKey;
@@ -529,14 +517,14 @@ void controlSetMolParamsFrag(CP_PARSE *cp_parse,CLASS_PARSE *class_parse,
       set_bond_free_params(molsetname,fun_key,
                         dict_mol->bond_free_dict,
                         dict_mol->num_bond_free_dict,
-                        &(bonded->bond_free),free_parse,
+                        &(bondedMini->bond_free),free_parse,
                         atommaps->nmol_typ);
       break;
     case 4:
       set_bend_free_params(molsetname,fun_key,
                         dict_mol->bend_free_dict,
                         dict_mol->num_bend_free_dict,
-                        &(bonded->bend_free),free_parse,
+                        &(bondedMini->bend_free),free_parse,
                         atommaps->nmol_typ);
       break;
       
@@ -544,7 +532,7 @@ void controlSetMolParamsFrag(CP_PARSE *cp_parse,CLASS_PARSE *class_parse,
       set_tors_free_params(molsetname,fun_key,
                         dict_mol->tors_free_dict,
                         dict_mol->num_tors_free_dict,
-                        &(bonded->tors_free),free_parse,
+                        &(bondedMini->tors_free),free_parse,
                         atommaps->nmol_typ);
       break;
     case 6:
@@ -559,7 +547,7 @@ void controlSetMolParamsFrag(CP_PARSE *cp_parse,CLASS_PARSE *class_parse,
       set_rbar_free_params(molsetname,fun_key,
                         dict_mol->rbar_free_dict,
                         dict_mol->num_rbar_free_dict,
-                        &(bonded->rbar_sig_free),free_parse,
+                        &(bondedMini->rbar_sig_free),free_parse,
                         atommaps->nmol_typ);
       break;
     case 9:
@@ -641,7 +629,7 @@ void controlSetMolParamsFrag(CP_PARSE *cp_parse,CLASS_PARSE *class_parse,
     }/*endfor*/
   }/*endif*/
 
-  if(tors_free_num>0){tors_free_num=bonded->tors_free.num;}
+  if(tors_free_num>0){tors_free_num=bondedMini->tors_free.num;}
   if(tors_free_num==1){
     for(i=1;i<=4;i++){
       if(imol_tors_free[i]>nmol_jmol_typ[imoltyp_tors_free[i]]){ierr=i;}

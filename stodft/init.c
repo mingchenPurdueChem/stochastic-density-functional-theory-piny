@@ -589,7 +589,6 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     initFrag(class,bonded,general_data,cp,ip_now);
   }
 
-
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/

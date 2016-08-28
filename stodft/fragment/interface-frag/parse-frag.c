@@ -132,15 +132,15 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*                                                 pressure mallocing     */
 /*               (interface/intra_params/control_intra_params.c)          */
 
-  /* Keep
+  
   control_intra_params(tot_memory,
 		       &(classMini->clatoms_info),(classMini->clatoms_pos),
 		       &(classMini->ghost_atoms),&(classMini->atommaps),
-		       bondedMini,&filename_parse,&free_parse,
+		       bondedMini,&fileNameParse,&freeParse,
 		       &classParse,&null_inter_parse,
 		       &(generalDataMini->simopts),&(classMini->communicate),
 		       (classMini->surface.isurf_on));
-  */
+  
 
 /*========================================================================*/
 /*    V) Communicate class interface: done before proceeding further      */
@@ -156,7 +156,7 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*========================================================================*/
 /*   VI) Assign Flags                                                     */
 
-  /* Keep
+  
   cp_dual_grid_opt_on = cpMini->cpopts.cp_dual_grid_opt;
 
   pimd_on = generalDataMini->simopts.pimd
@@ -192,11 +192,12 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   pme_on      = classMini->part_mesh.pme_on;
   iopt_cp_pw  = cpMini->cpcoeffs_info.iopt_cp_pw;
   iopt_cp_dvr = cpMini->cpcoeffs_info.iopt_cp_dvr;
-  */
+  
 
 /*========================================================================*/
 /*    VII) Read in hmat. Do before set_cp_ewald                           */
 /*                (interface/coords/read_coord.c)                         */
+/*  Pass all atom positions into */
 
   /* Keep
   mall_coord(classMini,generalDataMini);

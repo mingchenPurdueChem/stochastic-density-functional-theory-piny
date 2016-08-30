@@ -63,6 +63,7 @@ void passAtomCoord(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   double *xMini = clatomsPosMini->x;
   double *yMini	= clatomsPosMini->y;
   double *zMini = clatomsPosMini->z;
+  double *xDiff,*yDiff,*zDiff;
   double *hmat	= cell->hmat;
   double *hmati = cell->hmati;
   double xRef,yRef,zRef;
@@ -83,6 +84,29 @@ void passAtomCoord(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   xRef = xMini[1];
   yRef = yMini[1];
   zRef = zMini[1];
+  
+  double *xDiff = (double*)cmalloc((numAtomFrag+1)*sizeof(double));
+  double *yDiff = (double*)cmalloc((numAtomFrag+1)*sizeof(double));
+  double *zDiff = (double*)cmalloc((numAtomFrag+1)*sizeof(double));
+
+  // Shift the first atom to the center of the box
+  for(iAtom=1;iAtom<=numAtomFrag;iAtom++){
+    xDiff[iAtom] = xMini[iAtom]-xRef[iAtom];
+    yDiff[iAtom] = yMini[iAtom]-yRef[iAtom];
+    zDiff[iAtom] = zMini[iAtom]-zRef[iAtom];
+  }
+  // Renormalize to cubic box
+  for(iAtom=1;iAtom<=numAtomFrag;iAtom++){
+    xMini[iAtom] = xDiff[iAtom]*hmati[1]+yDiff[iAtom]*hmati[4]+zDiff[iAtom]*hmati[7];
+    yMini[iAtom] = xDiff[iAtom]*hmati[2]+yDiff[iAtom]*hmati[5]+zDiff[iAtom]*hmati[8];
+    zMini[iAtom] = xDiff[iAtom]*hmati[3]+yDiff[iAtom]*hmati[6]+zDiff[iAtom]*hmati[9];
+  }
+  // Remove the PBC
+  for(iAtom=1;iAtom<=numAtomFrag;iAtom++){
+    if(xMini[iAtom]
+  }
+
+  
 
 
 /*------------------------------------------------------------------------*/

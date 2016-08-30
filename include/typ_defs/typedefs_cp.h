@@ -330,6 +330,11 @@ typedef struct fragInfo{
 				    /* Lth: numFragProc*numGridFragProc[i]	*/
   int **gridMapTot;		    /* Lst: gridMap for all frags		*/
 				    /* Lth: numFragTot*numGridFragTot[i]	*/
+  double **skinFragBox;		    /* Lst: You probably want to add a skin	*/
+				    /*	    arround your atoms so that the box  */
+				    /*	    is big enough. I'd like to use the  */
+				    /*	    number bigger then vdw radius	*/
+				    /* Lth: numFragProc*numAtomFragProc[i]	*/
   double **rhoFragProc;		    /* Lst: fragment densities, proc version	*/
 				    /* Lth: numFragProc*numGridFragProc[i]	*/
   double *rhoFragSum;		    /* Lst: Sum of all densities from fragments	*/

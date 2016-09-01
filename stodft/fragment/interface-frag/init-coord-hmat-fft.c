@@ -37,7 +37,7 @@
 /*==========================================================================*/
 void passAtomCoord(GENERAL_DATA *generalData,CLASS *class,CP *cp,
 		   GENERAL_DATA *generalDataMini,CLASS *classMini,CP *cpMini,
-		   int ip_now)
+		   int ip_now,double *geoCnt)
 /*========================================================================*/
 /*             Begin Routine                                              */
 {/*Begin subprogram: */
@@ -57,6 +57,7 @@ void passAtomCoord(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   int numAtomFrag	= fragInfo->numAtomFragProc[iFrag];
   int *atomFragMap	= fragInfo->atomFragMapProc[iFrag];
 
+  double xCnt,yCnt,zCnt;
   double *x = clatomsPos->x;
   double *y = clatomsPos->y;
   double *z = clatomsPos->z;
@@ -95,20 +96,80 @@ void passAtomCoord(GENERAL_DATA *generalData,CLASS *class,CP *cp,
     yDiff[iAtom] = yMini[iAtom]-yRef[iAtom];
     zDiff[iAtom] = zMini[iAtom]-zRef[iAtom];
   }
-  // Renormalize to cubic box
+  // Scale to cubic box
   for(iAtom=1;iAtom<=numAtomFrag;iAtom++){
     xMini[iAtom] = xDiff[iAtom]*hmati[1]+yDiff[iAtom]*hmati[4]+zDiff[iAtom]*hmati[7];
     yMini[iAtom] = xDiff[iAtom]*hmati[2]+yDiff[iAtom]*hmati[5]+zDiff[iAtom]*hmati[8];
     zMini[iAtom] = xDiff[iAtom]*hmati[3]+yDiff[iAtom]*hmati[6]+zDiff[iAtom]*hmati[9];
   }
-  // Remove the PBC
+  // Remove the PBC. I assume the fragment is no bigger then half of the box.
+  // If it is, then a better way is to make it into even smaller pieces and remove pbc
+  // for those small pieces. 
   for(iAtom=1;iAtom<=numAtomFrag;iAtom++){
-    if(xMini[iAtom]
+    if(xMini[iAtom]>0.5)xMini[iAtom] -= 1.0;
+    if(yMini[iAtom]>0.5)yMini[iAtom] -= 1.0;
+    if(zMini[iAtom]>0.5)zMini[iAtom] -= 1.0;
+    if(xMini[iAtom]<-0.5)xMini[iAtom] += 1.0;
+    if(yMini[iAtom]<-0.5)yMini[iAtom] += 1.0;
+    if(zMini[iAtom]<-0.5)zMini[iAtom] += 1.0;
   }
 
+  // Rescale to true box
+  for(iAtom=1;iAtom<=numAtomFrag;iAtom++){
+    xDiff[iAtom] = xMini[iAtom]*hmat[1]+yMini[iAtom]*hmat[4]+zMini[iAtom]*hmat[7];
+    yDiff[iAtom] = xMini[iAtom]*hmat[2]+yMini[iAtom]*hmat[5]+zMini[iAtom]*hmat[8];
+    zDiff[iAtom] = xMini[iAtom]*hmat[3]+yMini[iAtom]*hmat[6]+zMini[iAtom]*hmat[9];
+  }
+  // Copy x/y/zDiff to x/y/zMini
+  memcpy(&xMini[1],&xDiff[1],numAtomFrag*sizeof(double));
+  memcpy(&yMini[1],&yDiff[1],numAtomFrag*sizeof(double));
+  memcpy(&zMini[1],&zDiff[1],numAtomFrag*sizeof(double));
+
+  // Get the geometric center
+  xCnt = 0.0;
+  yCnt = 0.0;
+  zCnt = 0.0;
+  for(iAtom=1;iAtom<=numAtomFrag;iAtom++){
+    xCnt += xMini[iAtom];
+    yCnt += yMini[iAtom];
+    zCnt += zMini[iAtom];
+  }
+  xCnt /= numAtomFrag;
+  yCnt /= numAtomFrag;
+  zCnt /= numAtomFrag;
+  geoCnt[0] = xCnt;
+  geoCnt[1] = yCnt;
+  geoCnt[2] = zCnt;
+  // Shift the center to 0
+  for(iAtom=1;iAtom<=numAtomFrag;iAtom++){
+    xMini[iAtom] -= xCnt;
+    yMini[iAtom] -= yCnt;
+    zMini[iAtom] -= zCnt;
+  }
   
+/*======================================================================*/
+/* II) Free local array				                        */
+  free(xDiff);
+  free(yDiff);
+  free(zDiff); 
+/*------------------------------------------------------------------------*/
+}/*end routine*/
+/*==========================================================================*/
 
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+/*  Parse: note there is a noncommuting order of calls                      */
+/*==========================================================================*/
+void findCnt(GENERAL_DATA *generalData,CLASS *class,CP *cp,
+                   GENERAL_DATA *generalDataMini,CLASS *classMini,CP *cpMini,
+                   int ip_now)
+/*========================================================================*/
+/*             Begin Routine                                              */
+{/*Begin subprogram: */
+/*========================================================================*/
+/*             Local variable declarations                                */
 /*------------------------------------------------------------------------*/
 }/*end routine*/
 /*==========================================================================*/

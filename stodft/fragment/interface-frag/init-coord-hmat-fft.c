@@ -40,7 +40,12 @@ void passAtomCoord(GENERAL_DATA *generalData,CLASS *class,CP *cp,
 		   int ip_now,double *geoCnt)
 /*========================================================================*/
 /*             Begin Routine                                              */
+/*************************************************************************/
 {/*Begin subprogram: */
+/*************************************************************************/
+/* This routine takes the coords of a fragment, remove the pbc and       */
+/* center the fragment at the geometric center.				 */
+/*************************************************************************/
 /*========================================================================*/
 /*             Local variable declarations                                */
   STODFTINFO *stodftInfo	= cp->stodftInfo;
@@ -114,7 +119,7 @@ void passAtomCoord(GENERAL_DATA *generalData,CLASS *class,CP *cp,
     if(zMini[iAtom]<-0.5)zMini[iAtom] += 1.0;
   }
 
-  // Rescale to true box
+  // Rescale to Big box
   for(iAtom=1;iAtom<=numAtomFrag;iAtom++){
     xDiff[iAtom] = xMini[iAtom]*hmat[1]+yMini[iAtom]*hmat[4]+zMini[iAtom]*hmat[7];
     yDiff[iAtom] = xMini[iAtom]*hmat[2]+yMini[iAtom]*hmat[5]+zMini[iAtom]*hmat[8];
@@ -164,13 +169,45 @@ void passAtomCoord(GENERAL_DATA *generalData,CLASS *class,CP *cp,
 /*==========================================================================*/
 void findCnt(GENERAL_DATA *generalData,CLASS *class,CP *cp,
                    GENERAL_DATA *generalDataMini,CLASS *classMini,CP *cpMini,
-                   int ip_now)
+                   int ip_now,double *geoCnt)
 /*========================================================================*/
 /*             Begin Routine                                              */
 {/*Begin subprogram: */
+/*************************************************************************/
+/* This routine find the FFT grid point in big box that is closest to    */
+/* the geometric center of the fragment and set that point as center     */
+/*************************************************************************/
 /*========================================================================*/
 /*             Local variable declarations                                */
 /*------------------------------------------------------------------------*/
+  PARA_FFT_PKG3D *cpParaFftPkg3dLgBigBox = &(cp->cp_para_fft_pkg3d_lg);
+  CELL *cell = &(generalData->cell);
+
+  int numGridBigBoxC = cpParaFftPkg3dLgBigBox->nkf3;
+  int numGridBigBoxB = cpParaFftPkg3dLgBigBox->nkf2;
+  int numGridBigBoxA = cpParaFftPkg3dLgBigBox->nkf1;
+
+  double geoCntBox[3];
+  double *hmat  = cell->hmat;
+  double *hmati = cell->hmati;
+
+/*======================================================================*/
+/* I) Put the genmetric center into the box if necessary                */
+
+  geoCntBox[0] = geoCnt[0]*hmati[1]+geoCnt[1]*hmati[4]+geoCnt[2]*hmati[7];
+  geoCntBox[1] = geoCnt[0]*hmati[2]+geoCnt[1]*hmati[5]+geoCnt[2]*hmati[8];
+  geoCntBox[2] = geoCnt[0]*hmati[3]+geoCnt[1]*hmati[6]+geoCnt[2]*hmati[9];
+
+  geoCntBox[0] -= NINT(geoCntBox[0]);
+  geoCntBox[1] -= NINT(geoCntBox[1]);
+  geoCntBox[2] -= NINT(geoCntBox[2]);
+
+/*======================================================================*/
+/* I) Put the genmetric center into the box if necessary                */
+
+
+
+
 }/*end routine*/
 /*==========================================================================*/
 

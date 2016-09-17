@@ -182,14 +182,29 @@ void findCnt(GENERAL_DATA *generalData,CLASS *class,CP *cp,
 /*------------------------------------------------------------------------*/
   PARA_FFT_PKG3D *cpParaFftPkg3dLgBigBox = &(cp->cp_para_fft_pkg3d_lg);
   CELL *cell = &(generalData->cell);
+  STODFTINFO *stodftInfo = cp->stodftInfo;
+  FRAGINFO *fragInfo            = stodftInfo->fragInfo; 
+  CLATOMS_POS *clatomsPosMini   = &(cpMini->clatoms_pos[1]);
 
+
+  int iAtom;
+  int iFrag = fragInfo->iFrag;
+  int numAtomFrag       = fragInfo->numAtomFragProc[iFrag];
   int numGridBigBoxC = cpParaFftPkg3dLgBigBox->nkf3;
   int numGridBigBoxB = cpParaFftPkg3dLgBigBox->nkf2;
   int numGridBigBoxA = cpParaFftPkg3dLgBigBox->nkf1;
+  int numGridBigBox[3];
+  int indexGrid[3];
 
-  double geoCntBox[3];
+  double geoCntBox[3],gridSize[3];
+  double 
+
   double *hmat  = cell->hmat;
   double *hmati = cell->hmati;
+  double *skinFrag = fragInfo->skinFragBox[iFrag];
+  double *xMini = clatomsPosMini->x;
+  double *yMini = clatomsPosMini->y;
+  double *zMini = clatomsPosMini->z;
 
 /*======================================================================*/
 /* I) Put the genmetric center into the box if necessary                */
@@ -198,14 +213,28 @@ void findCnt(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   geoCntBox[1] = geoCnt[0]*hmati[2]+geoCnt[1]*hmati[5]+geoCnt[2]*hmati[8];
   geoCntBox[2] = geoCnt[0]*hmati[3]+geoCnt[1]*hmati[6]+geoCnt[2]*hmati[9];
 
-  geoCntBox[0] -= NINT(geoCntBox[0]);
-  geoCntBox[1] -= NINT(geoCntBox[1]);
-  geoCntBox[2] -= NINT(geoCntBox[2]);
+  geoCntBox[0] -= floor(geoCntBox[0]);
+  geoCntBox[1] -= floor(geoCntBox[1]);
+  geoCntBox[2] -= floor(geoCntBox[2]);
 
 /*======================================================================*/
-/* I) Put the genmetric center into the box if necessary                */
+/* II) Find the closest FFT grid point in the big box.                  */
+ 
+  // Get the Bin index
+  numGridBigBox[0] = cpParaFftPkg3dLgBigBox->nkf1; //a
+  numGridBigBox[1] = cpParaFftPkg3dLgBigBox->nkf2; //b
+  numGridBigBox[2] = cpParaFftPkg3dLgBigBox->nkf3; //c
 
+  //gridSize[0] = 1.0/numGridBigBox[0];
+  //gridSize[1] = 1.0/numGridBigBox[1];
+  //gridSize[2] = 1.0/numGridBigBox[2];
 
+  indexGrid[0] = NINT(geoCntBox[0]*numGridBigBox[0]);
+  indexGrid[1] = NINT(geoCntBox[1]*numGridBigBox[1]);
+  indexGrid[2] = NINT(geoCntBox[2]*numGridBigBox[2]);
+ 
+  
+  
 
 
 }/*end routine*/

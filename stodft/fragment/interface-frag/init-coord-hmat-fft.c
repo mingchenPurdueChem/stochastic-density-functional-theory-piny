@@ -197,7 +197,9 @@ void findCnt(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   int indexGrid[3];
 
   double geoCntBox[3],gridSize[3];
-  double 
+  double aBig[3],bBig[3],cBig[3];
+  double crossProd[3];
+  double norm;
 
   double *hmat  = cell->hmat;
   double *hmati = cell->hmati;
@@ -233,7 +235,32 @@ void findCnt(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   indexGrid[1] = NINT(geoCntBox[1]*numGridBigBox[1]);
   indexGrid[2] = NINT(geoCntBox[2]*numGridBigBox[2]);
  
+/*======================================================================*/
+/* II) Find the number of grid points on each dimension.                */
+/*     e.g. We want to calculate # grid points along c direction. We	*/
+/*     first shift our molecule to the center FFT grid we find in the   */
+/*     last step. Then we calculate the signed distances between all	*/
+/*     atoms and the <ab> surface. This is done by project the atom	*/
+/*     positions along the aXb direction. Then for each projection, we  */
+/*     add/substract skin value. Now we have 2*(atom number) values and */
+/*     we pick the max(positive) and min(negative) value. The max-min   */
+/*     is the vertical distance between box top and box botom. Finally, */
+/*     we calculate the c length by using (max-min)/cos(<c,aXb>).       */
+/*     The # of grid along c is a integer multiplication of grid	*/
+/*     that just larger then c length calculated before.		*/
+  aBig[0] = hmat[1];aBig[1] = hmat[2];aBig[2] = hmat[3];
+  bBig[0] = hmat[4];bBig[1] = hmat[5];bBig[2] = hmat[6];
+  cBig[0] = hmat[7];cBig[1] = hmat[8];cBig[2] = hmat[9];
+
+/*--------------------------------------------------------------------------*/
+/*  Along c direction					                    */
   
+  cross_product(aBig,bBig,crossProd);
+  norm = sqrt(crossProd[0]*crossProd[0]+crossProd[1]*crossProd[1]+crossProd[2]*crossProd[2]);
+  crossProd[0] /= norm;
+  crossProd[1] /= norm;
+  crossProd[2] /= norm;
+   
   
 
 

@@ -481,6 +481,42 @@ double dsum1(int n,double *a,int astep)
 }
 /*===============================================================*/
 
+/*========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*========================================================================*/
+double dot(double *dot_1, double *dot_2)
+{
+
+    return dot_1[0]*dot_2[0]+dot_1[1]*dot_2[1]+dot_1[2]*dot_2[2];
+}
+/*==========================================================================*/
+
+/*========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*========================================================================*/
+void cross_product(double *a, double *b, double *result)
+{
+    result[0] = a[1]*b[2]-a[2]*b[1];
+    result[1] = a[2]*b[0]-a[0]*b[2];
+    result[2] = a[0]*b[1]-a[1]*b[0];
+}
+/*==========================================================================*/
+
+
+
+/*========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*========================================================================*/
+void normalize3d(double *a)
+{
+  int i;
+  double norm = sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]);
+  a[0] /= norm;
+  a[1] /= norm;
+  a[2] /= norm;
+}
+/*==========================================================================*/
+
 
 /*===============================================================*/
 /*ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/

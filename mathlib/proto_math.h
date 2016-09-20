@@ -147,6 +147,12 @@ double ddot1(int ,double *,int,double *,int);
 
 double dsum1(int ,double *,int);
 
+double dot(double *, double *);
+
+void normalize3d(double *);
+
+void cross_product(double *, double *, double *);
+
 double gerf(double);
 
 double gerfc(double);

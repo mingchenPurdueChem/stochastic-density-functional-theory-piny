@@ -149,7 +149,7 @@ double dsum1(int ,double *,int);
 
 double dot(double *, double *);
 
-void normalize3d(double *);
+double normalize3d(double *);
 
 void cross_product(double *, double *, double *);
 

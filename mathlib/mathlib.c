@@ -507,13 +507,14 @@ void cross_product(double *a, double *b, double *result)
 /*========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*========================================================================*/
-void normalize3d(double *a)
+double normalize3d(double *a)
 {
   int i;
   double norm = sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]);
   a[0] /= norm;
   a[1] /= norm;
   a[2] /= norm;
+  return norm
 }
 /*==========================================================================*/
 

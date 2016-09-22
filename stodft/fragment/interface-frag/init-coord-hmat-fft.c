@@ -57,7 +57,7 @@ void passAtomCoord(GENERAL_DATA *generalData,CLASS *class,CP *cp,
 
   int numFragProc	= fragInfo->numFragProc;
   int iFrag		= fragInfo->iFrag;
-  int iAtom;
+  int iAtom,iProj,iDim;
   
   int numAtomFrag	= fragInfo->numAtomFragProc[iFrag];
   int *atomFragMap	= fragInfo->atomFragMapProc[iFrag];
@@ -186,20 +186,24 @@ void findCnt(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   FRAGINFO *fragInfo            = stodftInfo->fragInfo; 
   CLATOMS_POS *clatomsPosMini   = &(cpMini->clatoms_pos[1]);
 
-
-  int iAtom;
+  int iAtom,iProj,iDim;
   int iFrag = fragInfo->iFrag;
   int numAtomFrag       = fragInfo->numAtomFragProc[iFrag];
   int numGridBigBoxC = cpParaFftPkg3dLgBigBox->nkf3;
   int numGridBigBoxB = cpParaFftPkg3dLgBigBox->nkf2;
   int numGridBigBoxA = cpParaFftPkg3dLgBigBox->nkf1;
-  int numGridBigBox[3];
+  int numGridBigBox[3],numGridMiniBox[3];
   int indexGrid[3];
 
   double geoCntBox[3],gridSize[3];
   double aBig[3],bBig[3],cBig[3];
+  double aGrid[3],bGrid[3],cGrid[3];
+  double aNorm[3],bNorm[3],cNorm[3];
+  double aGridLen,bGridLen,cGridLen;
   double crossProd[3];
-  double norm;
+  double norm,dotProd;
+  double projMin,projMax;
+  double distVert,distProjAxis;
 
   double *hmat  = cell->hmat;
   double *hmati = cell->hmati;
@@ -207,6 +211,7 @@ void findCnt(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   double *xMini = clatomsPosMini->x;
   double *yMini = clatomsPosMini->y;
   double *zMini = clatomsPosMini->z;
+  double *projList;
 
 /*======================================================================*/
 /* I) Put the genmetric center into the box if necessary                */
@@ -234,7 +239,8 @@ void findCnt(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   indexGrid[0] = NINT(geoCntBox[0]*numGridBigBox[0]);
   indexGrid[1] = NINT(geoCntBox[1]*numGridBigBox[1]);
   indexGrid[2] = NINT(geoCntBox[2]*numGridBigBox[2]);
- 
+
+
 /*======================================================================*/
 /* II) Find the number of grid points on each dimension.                */
 /*     e.g. We want to calculate # grid points along c direction. We	*/
@@ -251,15 +257,69 @@ void findCnt(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   aBig[0] = hmat[1];aBig[1] = hmat[2];aBig[2] = hmat[3];
   bBig[0] = hmat[4];bBig[1] = hmat[5];bBig[2] = hmat[6];
   cBig[0] = hmat[7];cBig[1] = hmat[8];cBig[2] = hmat[9];
+  aGrid[0] = aBig[0]/numGridBigBox[0];
+  aGrid[1] = aBig[1]/numGridBigBox[0];
+  aGrid[2] = aBig[2]/numGridBigBox[0];
+  bGrid[0] = bBig[0]/numGridBigBox[1];
+  bGrid[1] = bBig[1]/numGridBigBox[1];
+  bGrid[2] = bBig[2]/numGridBigBox[1];
+  cGrid[0] = cBig[0]/numGridBigBox[2];
+  cGrid[1] = cBig[1]/numGridBigBox[2];
+  cGrid[2] = cBig[2]/numGridBigBox[2];
+  
+  for(iDim=0;iDim<3;iDim++){
+    aNorm[iDim] = aGrid[iDim];
+    bNorm[iDim] = bGrid[iDim];
+    cNorm[iDim] = cGrid[iDim];
+  } 
+  aGridLen = normalized3d(aNorm);
+  bGridLen = normalized3d(bNorm);
+  cGridLen = normalized3d(cNorm);
 
+  //update the center to the grid point
+  geoCntBox[0] = aGrid[0]*indexGrid[0]+bGrid[0]*indexGrid[1]+cGrid[0]*indexGrid[2];
+  geoCntBox[1] = aGrid[1]*indexGrid[0]+bGrid[1]*indexGrid[1]+cGrid[1]*indexGrid[2];
+  geoCntBox[2] = aGrid[2]*indexGrid[0]+bGrid[2]*indexGrid[1]+cGrid[2]*indexGrid[2];
+
+  // Reshift mini coords
+  for(iAtom=1;iAtom<=numAtomFrag;iAtom++){
+    xMini[iAtom] -= geoCntBox[0];
+    yMini[iAtom] -= geoCntBox[1];
+    zMini[iAtom] -= geoCntBox[2];
+  }
+
+  projList = (double*)cmalloc(2*numAtomFrag*sizeof(double));
 /*--------------------------------------------------------------------------*/
 /*  Along c direction					                    */
-  
+
+  // generate aXb direction
   cross_product(aBig,bBig,crossProd);
-  norm = sqrt(crossProd[0]*crossProd[0]+crossProd[1]*crossProd[1]+crossProd[2]*crossProd[2]);
-  crossProd[0] /= norm;
-  crossProd[1] /= norm;
-  crossProd[2] /= norm;
+  normalize3d(crossProd);
+  // generate atom-plan distance list
+  for(iAtom=1;iAtom<=numAtomFrag;iAtom++){
+    dotProd = xMini[iAtom]*crossProd[0]+yMini[iAtom]*crossProd[1]
+	      +zMini[iAtom]*crossProd[2];
+    projList[iAtom*2-2] = dotProd+skinFrag[iAtom-1];
+    projList[iAtom*2-1] = dotProd-skinFrag[iAtom-1];
+  }
+
+  // find the max/min element
+  projMin = 1.0e10;
+  projMax = -1.0e10;
+
+  for(iProj=0;iProj<2*numAtomFrag;iProj++){
+    if(projList[iProj]>projMax)projMax = projList[iProj];
+    if(projList[iProj]<projMin)projMin = projList[iProj];
+  }
+
+  // Get the vertical distance between upper/lower surface
+  distVert = projMax-projMin;
+  // Get the c direction distance   
+  dotProd = cNorm[0]*crossProd[0]+cNorm[1]*crossProd[1]+cNorm[2]*crossProd[2];
+  distProjAxis = disVert/fabs(dotProd);
+  // Get the # of Grid along c direction
+  numGridMiniBox[2] = distProjAxis/cGridLen+1; 
+  // round it if necessary
    
   
 

@@ -165,8 +165,6 @@ void passAtomCoord(GENERAL_DATA *generalData,CLASS *class,CP *cp,
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-/*  Parse: note there is a noncommuting order of calls                      */
-/*==========================================================================*/
 void findCnt(GENERAL_DATA *generalData,CLASS *class,CP *cp,
                    GENERAL_DATA *generalDataMini,CLASS *classMini,CP *cpMini,
                    int ip_now,double *geoCnt)
@@ -287,20 +285,64 @@ void findCnt(GENERAL_DATA *generalData,CLASS *class,CP *cp,
     yMini[iAtom] -= geoCntBox[1];
     zMini[iAtom] -= geoCntBox[2];
   }
-
-  projList = (double*)cmalloc(2*numAtomFrag*sizeof(double));
 /*--------------------------------------------------------------------------*/
 /*  Along c direction					                    */
 
-  // generate aXb direction
-  cross_product(aBig,bBig,crossProd);
+  distProjAxis = calcMiniBoxLength(numAtomFrag,&xMini[1],&yMini[1],&zMini[1],
+				    aNorm,bNorm,cNorm,skinFrag);
+  numGridMiniBox[2] = distProjAxis/cGridLen+1; 
+  // round it if necessary
+
+/*--------------------------------------------------------------------------*/
+/*  Along b direction                                                       */
+
+  distProjAxis = calcMiniBoxLength(numAtomFrag,&xMini[1],&yMini[1],&zMini[1],
+                                    cNorm,aNorm,bNorm,skinFrag);
+  numGridMiniBox[1] = distProjAxis/bGridLen+1;
+  // round it if necessary
+/*--------------------------------------------------------------------------*/
+/*  Along a direction                                                       */
+
+  distProjAxis = calcMiniBoxLength(numAtomFrag,&xMini[1],&yMini[1],&zMini[1],
+                                    bNorm,cNorm,aNorm,skinFrag);
+  numGridMiniBox[0] = distProjAxis/aGridLen+1;
+  // round it if necessary
+
+
+
+   
+}/*end routine*/
+/*==========================================================================*/
+
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+double calcMiniBoxLength(int numAtomFrag,double *x,double *y,double *z,
+			 double *aNorm,double *bNorm,double *cNorm,
+			 double *skinFrag) 
+/*========================================================================*/
+/*             Begin Routine                                              */
+{/*Begin subprogram: */
+/*========================================================================*/
+/*             Local variable declarations                                */
+/*------------------------------------------------------------------------*/
+  int iAtom,iProj;
+
+  double projMin,projMax;
+  double dotProd;
+  double distVert,distProjAxis;
+  double crossProd[3];
+  double *projList = (double*)cmalloc(2*numAtomFrag*sizeof(double));;
+  
+  cross_product(aNorm,bNorm,crossProd);
   normalize3d(crossProd);
   // generate atom-plan distance list
-  for(iAtom=1;iAtom<=numAtomFrag;iAtom++){
-    dotProd = xMini[iAtom]*crossProd[0]+yMini[iAtom]*crossProd[1]
-	      +zMini[iAtom]*crossProd[2];
-    projList[iAtom*2-2] = dotProd+skinFrag[iAtom-1];
-    projList[iAtom*2-1] = dotProd-skinFrag[iAtom-1];
+  for(iAtom=0;iAtom<numAtomFrag;iAtom++){
+    dotProd = x[iAtom]*crossProd[0]+y[iAtom]*crossProd[1]
+              +z[iAtom]*crossProd[2];
+    projList[iAtom*2] = dotProd+skinFrag[iAtom];
+    projList[iAtom*2+1] = dotProd-skinFrag[iAtom];
   }
 
   // find the max/min element
@@ -315,15 +357,12 @@ void findCnt(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   // Get the vertical distance between upper/lower surface
   distVert = projMax-projMin;
   // Get the c direction distance   
-  dotProd = cNorm[0]*crossProd[0]+cNorm[1]*crossProd[1]+cNorm[2]*crossProd[2];
+  dotProd = dot(cNorm,crossProd);
   distProjAxis = disVert/fabs(dotProd);
-  // Get the # of Grid along c direction
-  numGridMiniBox[2] = distProjAxis/cGridLen+1; 
-  // round it if necessary
-   
+  cfree(projList);
+
+  return distProjAxis
   
-
-
 }/*end routine*/
 /*==========================================================================*/
 

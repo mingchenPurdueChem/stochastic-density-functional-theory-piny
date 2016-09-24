@@ -317,7 +317,7 @@ typedef struct fragInfo{
   int *numGridFragProc;		    /* Lst: Number of grid points for frags on	*/
 				    /*	    one proc				*/
 				    /* Lth: numFragProc				*/
-  int *numGridFratTot;		    /* Lst: Number of grid points for all frags */
+  int *numGridFragTot;		    /* Lst: Number of grid points for all frags */
 				    /* Lth: numFragTot				*/
   int **molFragMapProc;		    /* Lst: Map frag molecules to the big box   */
 				    /*	    You probably want to know why I	*/

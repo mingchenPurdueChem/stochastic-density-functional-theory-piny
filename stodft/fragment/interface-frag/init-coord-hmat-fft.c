@@ -185,15 +185,20 @@ void findCnt(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   CLATOMS_POS *clatomsPosMini   = &(cpMini->clatoms_pos[1]);
 
   int iAtom,iProj,iDim;
+  int iGrid,jGrid,kGrid;
   int iFrag = fragInfo->iFrag;
   int numAtomFrag       = fragInfo->numAtomFragProc[iFrag];
   int numGridBigBoxC = cpParaFftPkg3dLgBigBox->nkf3;
   int numGridBigBoxB = cpParaFftPkg3dLgBigBox->nkf2;
   int numGridBigBoxA = cpParaFftPkg3dLgBigBox->nkf1;
   int numGridBigBox[3],numGridMiniBox[3];
-  int indexGrid[3];
+  int indexGrid[3],zeroGrid[3];
+  int negativeGridNum;
+  int numGridTotMiniBox;
+  int index,indexa,indexb,indexc;
 
-  double geoCntBox[3],gridSize[3];
+  double geoCntBox[3],gridSize[3],zeroShift[3];
+  double zeroShift[3] = {0};
   double aBig[3],bBig[3],cBig[3];
   double aGrid[3],bGrid[3],cGrid[3];
   double aNorm[3],bNorm[3],cNorm[3];
@@ -202,6 +207,7 @@ void findCnt(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   double norm,dotProd;
   double projMin,projMax;
   double distVert,distProjAxis;
+  double negativeLength;
 
   double *hmat  = cell->hmat;
   double *hmati = cell->hmati;
@@ -287,26 +293,73 @@ void findCnt(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   }
 /*--------------------------------------------------------------------------*/
 /*  Along c direction					                    */
-
+  negativeLength = 0.0;
   distProjAxis = calcMiniBoxLength(numAtomFrag,&xMini[1],&yMini[1],&zMini[1],
-				    aNorm,bNorm,cNorm,skinFrag);
-  numGridMiniBox[2] = distProjAxis/cGridLen+1; 
+				    aNorm,bNorm,cNorm,skinFrag,&negativeLength);
+  numGridMiniBox[2] = (int)(distProjAxis/cGridLen)+2; 
+  negativeGridNum = (int)(negativeLength/cGridLen)+1;
+  zeroGrid[2] = indexGrid[2]-negativeGridNum;
+  for(iDim=0;iDim<3;iDim++)zeroShift[iDim] -= negativeGridNum*cGrid[iDim];
+  if(zeroGrid[2]<0)zeroGrid[2] += numGridBigBoxC;
+  temp
   // round it if necessary
 
 /*--------------------------------------------------------------------------*/
 /*  Along b direction                                                       */
 
+  negativeLength = 0.0;
   distProjAxis = calcMiniBoxLength(numAtomFrag,&xMini[1],&yMini[1],&zMini[1],
-                                    cNorm,aNorm,bNorm,skinFrag);
-  numGridMiniBox[1] = distProjAxis/bGridLen+1;
+                                    cNorm,aNorm,bNorm,skinFrag,&negativeLength);
+  numGridMiniBox[1] = distProjAxis/bGridLen+2;
+  negativeGridNum = (int)(negativeLength/bGridLen)+1;
+  zeroGrid[1] = indexGrid[1]-negativeGridNum;
+  for(iDim=0;iDim<3;iDim++)zeroShift[iDim] -= negativeGridNum*bGrid[iDim];
+  if(zeroGrid[1]<0)zeroGrid[1] += numGridBigBoxB;
   // round it if necessary
 /*--------------------------------------------------------------------------*/
 /*  Along a direction                                                       */
 
+  negativeLength = 0.0;
   distProjAxis = calcMiniBoxLength(numAtomFrag,&xMini[1],&yMini[1],&zMini[1],
-                                    bNorm,cNorm,aNorm,skinFrag);
-  numGridMiniBox[0] = distProjAxis/aGridLen+1;
+                                    bNorm,cNorm,aNorm,skinFrag,&negativeLength);
+  numGridMiniBox[0] = distProjAxis/aGridLen+2;
+  negativeGridNum = (int)(negativeLength/aGridLen)+1;
+  zeroGrid[0] = indexGrid[0]-negativeGridNum;
+  for(iDim=0;iDim<3;iDim++)zeroShift[iDim] -= negativeGridNum*aGrid[iDim];
+  if(zeroGrid[0]<0)zeroGrid[0] += numGridBigBoxA;
   // round it if necessary
+
+/*--------------------------------------------------------------------------*/
+/*  shift the zero point from central Grid to corner Grid                   */
+
+  for(iAtom=1;iAtom<=numAtomFrag;iAtom++){
+    xMini[iAtom] -= zeroShift[0];
+    yMini[iAtom] -= zeroShift[1];
+    zMini[iAtom] -= zeroShift[2];
+  }
+
+/*======================================================================*/
+/* II) Map the grid.					                */
+  
+  numGridTotMiniBox = numGridMiniBox[2]*numGridMiniBox[1]*numGridMiniBox[0];
+
+  fragInfo->numGridFragProc[iFrag] = numGridTotMiniBox;
+  fragInfo->gridMapProc[iFrag] = (int*)cmalloc(numGridTotMiniBox*sizeof(int));
+ 
+  for(iGrid=0;iGrid<numGridMiniBox[2];iGrid++){//c
+    for(jGrid=0;jGrid<numGridMiniBox[1];jGrid++){//b
+      for(kGrid=0;kGrid<numGridMiniBox[0];kGrid++){//a
+	index = iGrid*numGridMiniBox[1]*numGridMiniBox[0]
+		+jGrid*numGridMiniBox[0]+kGrid;    
+	indexc = zeroGrid[2]+iGrid;
+	indexb = zeroGrid[1]+jGrid;
+	indexa = zeroGrid[0]+kGrid;
+	
+      }
+    }
+  }
+  
+
 
 
 
@@ -320,7 +373,7 @@ void findCnt(GENERAL_DATA *generalData,CLASS *class,CP *cp,
 /*==========================================================================*/
 double calcMiniBoxLength(int numAtomFrag,double *x,double *y,double *z,
 			 double *aNorm,double *bNorm,double *cNorm,
-			 double *skinFrag) 
+			 double *skinFrag,double *negativelength) 
 /*========================================================================*/
 /*             Begin Routine                                              */
 {/*Begin subprogram: */
@@ -359,6 +412,7 @@ double calcMiniBoxLength(int numAtomFrag,double *x,double *y,double *z,
   // Get the c direction distance   
   dotProd = dot(cNorm,crossProd);
   distProjAxis = disVert/fabs(dotProd);
+  *negativelength = fabs(projMin/dotProd);
   cfree(projList);
 
   return distProjAxis

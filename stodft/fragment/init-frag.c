@@ -352,6 +352,14 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     }
   }
 
+/*--------------------------------------------------------------------------*/
+/*  Partially Malloc Grid Mapping					    */
+
+  fragInfo->numGridFragProc = (int*)cmalloc(numFragProc*sizeof(int));  
+  fragInfo->numGridFragTot = (int*)cmalloc(numFragTot*sizeof(int));
+  fragInfo->gridMapProc = (int**)cmalloc(numFragProc*sizeof(int*));
+  fragInfo->gridMapTot  = (int**)cmalloc(numFragTot*sizeof(int*));
+
 /*======================================================================*/
 /* 3) Initialize other things	                                        */
   fragInfo->molSetName = (char *)cmalloc(MAXWORD*sizeof(char));

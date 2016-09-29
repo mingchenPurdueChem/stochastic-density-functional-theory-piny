@@ -198,16 +198,19 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*    VII) Read in hmat. Do before set_cp_ewald                           */
 /*                (interface/coords/read_coord.c)                         */
 /*  Pass all atom positions into */
+  
+  
 
-  /* Keep
   mall_coord(classMini,generalDataMini);
   mall_pressure(classMini,generalDataMini);  
+
+  // Do this first
+  initCoordHmatFFT(generalData,class,cp,generalDataMini,classMini,cpMini);
+
   if(myid==0){//change
-    read_hmat(class,general_data,&filename_parse,class_parse.istart,
-              cp_dual_grid_opt_on,&(cp->cpewald.dbox_rat),
-              &(cp->cpewald.box_rat));
+    readHmatFrag(classMini,generalDataMini,cpMini,cp_dual_grid_opt_on
+		&(cpMini->cpewald.dbox_rat),&(cpMini->cpewald.box_rat));
   }//endif
-  */
   /*
   if(num_proc>1){
     comm_cell_data(&(general_data->cell),

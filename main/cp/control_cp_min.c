@@ -282,6 +282,7 @@ void control_cp_min(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
                               general_data->minopts.tol_coef,1,1,
                               &(general_data->stat_avg));
       }
+      printf("myid %i idone %i\n",myid,idone);
       if(idone==1){
         if(calcul_freq_on == 0){
           if(myid==0){

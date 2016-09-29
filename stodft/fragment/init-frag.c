@@ -369,6 +369,10 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     Barrier(commStates);
     Bcast(fragInfo->molSetName,MAXWORD,MPI_CHAR,0,commStates);
   }
+  fragInfo->cellHmat = (double**)cmalloc(numFragProc*sizeof(double*));
+  for(iFrag=0;iFrag<numFragProc;iFrag++){
+    fragInfo->cellHmat[iFrag] = (double*)cmalloc(9*sizeof(double));
+  }
 
 /*==========================================================================*/
 }/*end Routine*/

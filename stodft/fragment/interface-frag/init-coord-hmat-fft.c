@@ -33,6 +33,30 @@
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
+void initCoordHmatFFT(GENERAL_DATA *generalData,CLASS *class,CP *cp,
+		      GENERAL_DATA *generalDataMini,CLASS *classMini,CP *cpMini)
+/*========================================================================*/
+/*             Begin Routine                                              */
+/*************************************************************************/
+{/*Begin subprogram: */
+/*************************************************************************/
+/*========================================================================*/
+/*             Local variable declarations                                */
+  double geoCnt[3];
+  passAtomCoord(generalData,class,cp,generalDataMini,classMini,cpMini,1,geoCnt);
+  
+  findCnt(generalData,class,cp,generalDataMini,classMini,cpMini,1,geoCnt);
+
+
+/*------------------------------------------------------------------------*/
+}/*end routine*/
+/*==========================================================================*/
+
+
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
 /*  Parse: note there is a noncommuting order of calls                      */
 /*==========================================================================*/
 void passAtomCoord(GENERAL_DATA *generalData,CLASS *class,CP *cp,
@@ -180,6 +204,7 @@ void findCnt(GENERAL_DATA *generalData,CLASS *class,CP *cp,
 /*------------------------------------------------------------------------*/
   PARA_FFT_PKG3D *cpParaFftPkg3dLgBigBox = &(cp->cp_para_fft_pkg3d_lg);
   CELL *cell = &(generalData->cell);
+  CELL *cellMini = &(generalDataMini->cell);
   STODFTINFO *stodftInfo = cp->stodftInfo;
   FRAGINFO *fragInfo            = stodftInfo->fragInfo; 
   CLATOMS_POS *clatomsPosMini   = &(cpMini->clatoms_pos[1]);
@@ -215,6 +240,7 @@ void findCnt(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   double *xMini = clatomsPosMini->x;
   double *yMini = clatomsPosMini->y;
   double *zMini = clatomsPosMini->z;
+  double *hmatMini = cellMini->hmat;
   double *projList;
 
 /*======================================================================*/
@@ -353,17 +379,24 @@ void findCnt(GENERAL_DATA *generalData,CLASS *class,CP *cp,
 		+jGrid*numGridMiniBox[0]+kGrid;    
 	indexc = zeroGrid[2]+iGrid;
 	indexb = zeroGrid[1]+jGrid;
-	indexa = zeroGrid[0]+kGrid;
-	
-      }
-    }
-  }
+	indexa = zeroGrid[0]+kGrid;	
+      }//endfor kGrid
+    }//endfor jGrid
+  }//endfor iGrid
+
+/*======================================================================*/
+/* III) Get the mini cell matrix                                        */
+
+  hmatMini[1] = numGridMinBox[0]*aGrid[0];
+  hmatMini[2] = numGridMinBox[0]*aGrid[1];
+  hmatMini[3] = numGridMinBox[0]*aGrid[2];
+  hmatMini[4] = numGridMinBox[1]*bGrid[0];
+  hmatMini[5] = numGridMinBox[1]*bGrid[1];
+  hmatMini[6] = numGridMinBox[1]*bGrid[2];
+  hmatMini[7] = numGridMinBox[2]*cGrid[0];
+  hmatMini[8] = numGridMinBox[2]*cGrid[1];
+  hmatMini[9] = numGridMinBox[2]*cGrid[2];
   
-
-
-
-
-   
 }/*end routine*/
 /*==========================================================================*/
 

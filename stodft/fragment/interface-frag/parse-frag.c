@@ -226,11 +226,10 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*                (interface/cp_ewald/control_set_cp_ewald                */
 
 /*--------------------------------------------------------------------------*/
-  //Keep if((nchrg>0&&iperd>0)||cp_on==1){
+  if((nchrg>0&&iperd>0)||cp_on==1){
 /*--------------------------------------------------------------------------*/
 /* Set up CP and Ewald stuff                                                */
 
-    /* Keep
     if(iopt_cp_pw == 1){//change
       control_set_cp_ewald(&(general_data->simopts),&(general_data->cell),
                            &(cp->cpcoeffs_info),&(general_data->ewald),
@@ -247,7 +246,6 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
                            cp_dual_grid_opt_on); 
     }
     classMini->clatoms_info.alp_ewd = generalDataMini->ewald.alp_ewd;
-    */
 /*--------------------------------------------------------------------------*/
 /*  Calculate Number of CP fictitious degrees of freedom                    */
 
@@ -259,7 +257,7 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     }//endif cp_on 
     */
 /*--------------------------------------------------------------------------*/
-  //Keep }/*endif nchrg > 0 or cp is on */
+  }/*endif nchrg > 0 or cp is on */
 /*========================================================================*/
 /*   IX) Build communication groups: must be done in serial and parallel  */
 /*                                    after call to set_cp_ewald          */

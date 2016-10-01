@@ -47,6 +47,12 @@ void controlSetCpEwaldFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
 /*=======================================================================*/
 /*            Begin subprogram:                                          */
    {/*begin routine*/
+/*************************************************************************/
+/* Our FFT grid is numGridDim[0](c)*numGridDim[1](b)*numGridDim[2](a)	 */
+/* The k space coef number should be 2n+1 for each dimension, from -n to */
+/* n. and n=numGridDim[i]-1. The total k space coef number is ((2na+1)*	 */
+/* (2nb+1)*(2nc+1)-1)/2. Wf and density share the same k space		 */
+/*************************************************************************/
 /*=======================================================================*/
 /*            Local variable declarations:                               */
 
@@ -85,13 +91,14 @@ void controlSetCpEwaldFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
   int kmax_res		= cp_parse->kmax_res;
   int cp_lsda		= cpopts->cp_lsda;
   int cp_dual_grid_opt_on = cpopts->cp_dual_grid_opt_on;
+  int numGridFragProc = fragInfo->numGridFragProc[iFrag];
 
   int *kmaxv;                         /* Lst: K-vector ranges               */
   int *kmax_cp_tmp,*kmaxv_res,cp_on_tmp;
   int *kmax_cp;
   int *kmaxv_dens_cp_box;
   int *kmax_cp_dens_cp_box;
-  int *numGridFragProc = fragInfo->numGridFragProc;
+  int *numGridDim = fragInfo->numGridFragDim[iFrag];
 
   double ecut_now;                    /* Num: Energy cutoff                 */
   double ecut_dens_cp_box_now;        /* Num: Energy cutoff                 */
@@ -118,16 +125,8 @@ void controlSetCpEwaldFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
 
 /*=======================================================================*/
 /* I) Set cp switch and initialize respa kvectors                        */
-
-  cp_on = simopts->cp_min 
-          +simopts->cp_wave_min
-          +simopts->cp
-          +simopts->cp_wave
-          +simopts->debug_cp
-          +simopts->cp_pimd
-          +simopts->debug_cp_pimd+simopts->cp_wave_pimd
-          +simopts->cp_wave_min_pimd;
-
+ 
+  cp_on = 1;
   // int_res_ter==0
   ewald->nktot_res=0;
   ecor->nktot_res=0;
@@ -141,15 +140,13 @@ void controlSetCpEwaldFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
   kmaxv_res      =    (int *) cmalloc((size_t)3*sizeof(int))-1;
   kmax_cp_tmp    =    (int *) cmalloc((size_t)3*sizeof(int))-1;
 
-  if(cp_on == 1){
-    cpewald->kmax_cp = (int *) cmalloc((size_t)3*sizeof(int))-1;
-    kmax_cp          = cpewald->kmax_cp;
-    cpewald->kmax_cp_dens_cp_box = (int *) cmalloc((size_t)3*sizeof(int))-1;
-    kmax_cp_dens_cp_box          = cpewald->kmax_cp_dens_cp_box;
-    if(cp_dual_grid_opt_on >= 1){ 
-      kmaxv_dens_cp_box = (int *) cmalloc((size_t)3*sizeof(int))-1;
-    }/*endif*/     
-  }/* endif cp_on */
+  cpewald->kmax_cp = (int *) cmalloc((size_t)3*sizeof(int))-1;
+  kmax_cp          = cpewald->kmax_cp;
+  cpewald->kmax_cp_dens_cp_box = (int *) cmalloc((size_t)3*sizeof(int))-1;
+  kmax_cp_dens_cp_box          = cpewald->kmax_cp_dens_cp_box;
+  if(cp_dual_grid_opt_on >= 1){ 
+    kmaxv_dens_cp_box = (int *) cmalloc((size_t)3*sizeof(int))-1;
+  }/*endif*/     
 
 
 /*==========================================================================*/
@@ -185,40 +182,46 @@ void controlSetCpEwaldFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
    ewald->ecut             = 4.0*ecut_now;
    ewald->nkc_max          = kmaxv[3];
    */
-  nktot = numGridFragProc[iFrag]-1;
-   
+  ecut_now = 1.0e30; // A big number so that all grids included
+
+  kmaxv[1] = numGridDim[2]/2-1; 
+  kmaxv[2] = numGridDim[1]/2-1;
+  kmaxv[3] = numGridDim[0]/2-1;
+  kmax_cp[1] = kmaxv[1];
+  kmax_cp[2] = kmaxv[2];
+  kmax_cp[3] = kmaxv[3];
+  nktot = ((kmaxv[1]*2+1)*(kmaxv[2]*2+1)*(kmaxv[3]*2+1)-1)/2;
+  ewald->nktot = nktot;
+  cpcoeffs_info->ncoef_l = nktot+1;
+  kmax_cp_dens_cp_box[1] = kmax_cp[1];
+  kmax_cp_dens_cp_box[2] = kmax_cp[2];
+  kmax_cp_dens_cp_box[3] = kmax_cp[3];
+
 
 /*----------------------------------------------------------------------*/
 /* A.1) For dualing : Calculate cutoff and count kvectors for the large */
 /*      box and save the small box.                                     */
-  if(cp_on == 1){
-    ecut_dens_cp_box_now   = ecut_now;
-    kmax_cp_dens_cp_box[1] = kmax_cp[1];
-    kmax_cp_dens_cp_box[2] = kmax_cp[2];
-    kmax_cp_dens_cp_box[3] = kmax_cp[3];
-  }/*endif cp_on*/
  
 /*----------------------------------------------------------------------*/
 /* B) Malloc                                                            */
 
-   nmall =  nktot+1;   if((nmall % 2)==0){nmall++;}
-   ewald->nktot_mall = nmall;
-   now_mem    = (nmall*(sizeof(double)*0 + sizeof(int)*5))*1.e-06;
+  nmall =  nktot+1;   if((nmall % 2)==0){nmall++;}
+  ewald->nktot_mall = nmall;
 
-   ewald->kastr = (int *) cmalloc(nmall*sizeof(int))-1;
-   ewald->kbstr = (int *) cmalloc(nmall*sizeof(int))-1;
-   ewald->kcstr = (int *) cmalloc(nmall*sizeof(int))-1;
-   ewald->ibrk1 = (int *) cmalloc(nmall*sizeof(int))-1;
-   ewald->ibrk2 = (int *) cmalloc(nmall*sizeof(int))-1;
+  ewald->kastr = (int *) cmalloc(nmall*sizeof(int))-1;
+  ewald->kbstr = (int *) cmalloc(nmall*sizeof(int))-1;
+  ewald->kcstr = (int *) cmalloc(nmall*sizeof(int))-1;
+  ewald->ibrk1 = (int *) cmalloc(nmall*sizeof(int))-1;
+  ewald->ibrk2 = (int *) cmalloc(nmall*sizeof(int))-1;
 
 /*------------------------------------------------------------------------*/
 
 /*------------------------------------------------------------------------*/
 /* C) Fill                                                                */
-   setkvec3d(nktot,ecut_now,kmaxv,hmati_ewd,
-             ewald->kastr,ewald->kbstr,ewald->kcstr,
-             ewald->ibrk1,ewald->ibrk2,cp_on,
-             gmin_spl,gmin_true,gmax_spl);
+  setkvec3d(nktot,ecut_now,kmaxv,hmati_ewd,
+            ewald->kastr,ewald->kbstr,ewald->kcstr,
+            ewald->ibrk1,ewald->ibrk2,cp_on,
+            gmin_spl,gmin_true,gmax_spl);
 /*------------------------------------------------------------------------*/
 /* C) Fill DENS_CP_BOX                                                    */
 
@@ -231,63 +234,55 @@ void controlSetCpEwaldFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
 /*=======================================================================*/
 /* VII) Setup CP coefs and k vectors                                     */
 
-   if(cp_on == 1) {
+  if(cp_on == 1) {
 
 /*--------------------------------------------------------------------*/
 /*  A)  Count the k-vectors                                           */
+      /*
       ecut_sm = ecut_dens_cp_box_now;
       countkvec3d_sm(&(cpewald->nktot_sm),ecut_sm,
                      kmax_cp_dens_cp_box,hmati_ewd_cp);
       nktot_sm = cpewald->nktot_sm;
       cpcoeffs_info->ncoef   = nktot_sm+1;
       ncoef                  = nktot_sm+1;
+      */    
+    ecut_now = 1.0e30;  
+    nktot_sm = nktot;
+    cpewald->nktot_sm = nktot;
+    cpcoeffs_info->ncoef = nktot_sm+1;
+    ncoef = nktot_sm+1;
 /*--------------------------------------------------------------------*/
 /*  B)  Malloc                                                       */
-      nmall =  (nktot_sm+1);if((nmall % 2)==0){nmall++;}
-      cpewald->nktot_cp_sm_mall = nmall;
-      now_mem = (nmall*(sizeof(double)*0 + sizeof(int)*5 ))*1.e-06;
-      *tot_memory += now_mem;
-      cpewald->kastr_sm = (int *) cmalloc(nmall*sizeof(int))-1;
-      cpewald->kbstr_sm = (int *) cmalloc(nmall*sizeof(int))-1;
-      cpewald->kcstr_sm = (int *) cmalloc(nmall*sizeof(int))-1;
-      cpewald->ibrk1_sm = (int *) cmalloc(nmall*sizeof(int))-1;
-      cpewald->ibrk2_sm = (int *) cmalloc(nmall*sizeof(int))-1;
+    nmall =  (nktot_sm+1);if((nmall % 2)==0){nmall++;}
+    cpewald->nktot_cp_sm_mall = nmall;
+    cpewald->kastr_sm = (int *) cmalloc(nmall*sizeof(int))-1;
+    cpewald->kbstr_sm = (int *) cmalloc(nmall*sizeof(int))-1;
+    cpewald->kcstr_sm = (int *) cmalloc(nmall*sizeof(int))-1;
+    cpewald->ibrk1_sm = (int *) cmalloc(nmall*sizeof(int))-1;
+    cpewald->ibrk2_sm = (int *) cmalloc(nmall*sizeof(int))-1;
 
-      nmall =  ncoef; if((nmall % 2)==0){nmall++;}
-      cpcoeffs_info->cmass = (double *)cmalloc(nmall*sizeof(double))-1;
-
-      if(myid==0){
-        printf("CP allocation: %g Mbytes; Total memory %g Mbytes\n",
-                 now_mem,*tot_memory);
-      }/*endif*/
+    nmall =  ncoef; if((nmall % 2)==0){nmall++;}
+    cpcoeffs_info->cmass = (double *)cmalloc(nmall*sizeof(double))-1;
 /*--------------------------------------------------------------------*/
 /*  C)  Fill and check                                                */
 
-      setkvec3d_sm(nktot_sm,ecut_sm,kmax_cp_dens_cp_box,hmati_ewd_cp,
-                   cpewald->kastr_sm,cpewald->kbstr_sm,cpewald->kcstr_sm,
-                   cpewald->ibrk1_sm,cpewald->ibrk2_sm,
-                   &(cpewald->gw_gmin),&(cpewald->gw_gmax));
+    setkvec3d_sm(nktot_sm,ecut_sm,kmax_cp_dens_cp_box,hmati_ewd_cp,
+                 cpewald->kastr_sm,cpewald->kbstr_sm,cpewald->kcstr_sm,
+                 cpewald->ibrk1_sm,cpewald->ibrk2_sm,
+                 &(cpewald->gw_gmin),&(cpewald->gw_gmax));
 
     if(cp_dual_grid_opt_on == 0 && cp_on == 1){
       check_kvec(ewald->nktot,ewald->kastr,ewald->kbstr,ewald->kcstr,nktot_sm,
                   cpewald->kastr_sm,cpewald->kbstr_sm,cpewald->kcstr_sm);
     }
-
-      if(cp_dual_grid_opt_on >= 1 && cp_on == 1){
-        check_kvec(cpewald->nktot_dens_cp_box,cpewald->kastr_dens_cp_box,
-                   cpewald->kbstr_dens_cp_box,
-                   cpewald->kcstr_dens_cp_box,nktot_sm,
-                   cpewald->kastr_sm,cpewald->kbstr_sm,cpewald->kcstr_sm);
-      }/*endif cp_dual_grid_opt_on */   
 /*--------------------------------------------------------------------*/
 /*  D) Set up the cp masses                                           */
 
-      set_cpmass(ncoef,cpewald->kastr_sm,
-                 cpewald->kbstr_sm,cpewald->kcstr_sm,
-                 cpcoeffs_info->cmass,hmati_ewd_cp,
-                 &(cp_parse->cp_mass_tau_def),cp_parse->cp_mass_cut_def,
-                 &(cpcoeffs_info->icmass_unif));
-
+    set_cpmass(ncoef,cpewald->kastr_sm,
+               cpewald->kbstr_sm,cpewald->kcstr_sm,
+               cpcoeffs_info->cmass,hmati_ewd_cp,
+               &(cp_parse->cp_mass_tau_def),cp_parse->cp_mass_cut_def,
+               &(cpcoeffs_info->icmass_unif));
    }/*endif:cpon*/
 
 /*=======================================================================*/
@@ -315,7 +310,7 @@ void controlSetCpEwaldFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
 /* Control the setup of the FFT packages                                    */
 /*==========================================================================*/
 
-void control_fft_pkg(PARA_FFT_PKG3D *cp_sclr_fft_pkg_sm,
+void controlFFTPkg(PARA_FFT_PKG3D *cp_sclr_fft_pkg_sm,
                      PARA_FFT_PKG3D *cp_para_fft_pkg_sm,
                      PARA_FFT_PKG3D *cp_sclr_fft_pkg_dens_cp_box,
                      PARA_FFT_PKG3D *cp_para_fft_pkg_dens_cp_box,
@@ -334,10 +329,32 @@ void control_fft_pkg(PARA_FFT_PKG3D *cp_sclr_fft_pkg_sm,
 /*=========================================================================*/
 /*    Local Variables */
 
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg_sm = &(cpMini->cp_sclr_fft_pkg3d_sm);
+  PARA_FFT_PKG3D *cp_para_fft_pkg_sm = &(cpMini->cp_para_fft_pkg_sm);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg_dens_cp_box = &(cpMini->cp_sclr_fft_pkg_dens_cp_box);
+  PARA_FFT_PKG3D *cp_para_fft_pkg_dens_cp_box = &(cpMini->cp_para_fft_pkg_dens_cp_box);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg_lg = &(cpMini->cp_sclr_fft_pkg_lg);
+  PARA_FFT_PKG3D *cp_para_fft_pkg_lg = &(cpMini->cp_para_fft_pkg_lg);
+  PARA_FFT_PKG3D *pme_fft_pkg = &(cpMini->pme_fft_pkg);
+  PARA_FFT_PKG3D *pme_res_fft_pkg = &(cpMini->pme_res_fft_pkg);
+  EWALD *ewald = &(generalDataMini->ewald);
+  CPEWALD *cpewald = &(cpMini->cpewald);
+  PART_MESH *part_mesh = &(classMini->part_mesh);
+  CPCOEFFS_INFO *cpcoeffs_info = &(cpMini->cpcoeffs_info);
+  COMMUNICATE *communicate = &(classMini->communicate);
+  CPOPTS *cpopts = &(cpMini->cpopts);
+  STODFTINFO *stodftInfo = cp->stodftInfo;
+  FRAGINFO *fragInfo->stodftInfo->fragInfo;
+  
+
+  int iFrag = fragInfo->iFrag;
   int nkf1,nkf2,nkf3,nfft_ext,iii;
   int nkf1_dens_cp_box,nkf2_dens_cp_box,nkf3_dens_cp_box;
           /* used for denisty on cp grid when have 2 boxes*/
-
+  int cp_on		  = 1;  // Always do cp
+  int cp_lsda		  = cpopts->cp_lsda;
+  int cp_para_opt	  = cpopts->cp_para_opt;
+  int cp_dual_grid_opt_on = cpopts->cp_dual_grid_opt_on;
   int nstate_up          = cpcoeffs_info->nstate_up;
   int nstate_dn          = cpcoeffs_info->nstate_dn;
   int ncoef              = cpcoeffs_info->ncoef;
@@ -361,134 +378,33 @@ void control_fft_pkg(PARA_FFT_PKG3D *cp_sclr_fft_pkg_sm,
   int n_interp           = part_mesh->n_interp;
   int n_interp_res       = part_mesh->n_interp_res;
   int pme_para_opt       = part_mesh->pme_para_opt;
+  int *numGridDim	 = fragInfo->numGridFragDim[iFrag];
 
 /*=========================================================================*/
 /* 0) Print to screen and check for nproc > nstate error */
 
-  if(myid == 0){
-    printf("\n");PRINT_LINE_STAR;
-    printf("Setting up FFTs\n");
-    PRINT_LINE_DASH;printf("\n");
-  }/* endif myid */
-
-  if(cp_on == 1){
-    if(cp_lsda == 0){ 
-     if(nstate_up < np_states){
-      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@\n");
-       printf("Number of states less than number of processors\n");
-       printf("If possible, reduce number of processors to be\n");
-       printf("less than the number of states or run a bigger system.\n");
-       printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@\n");
-       fflush(stdout);
-       exit(1);
-     }/* endif */
-    } else {
-     if(nstate_up + nstate_dn < np_states){
-      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@\n");
-       printf("Number of states less than number of processors\n");
-       printf("If possible, reduce number of processors to be\n");
-       printf("less than the number of states or run a bigger system.\n");
-       printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@\n");
-       fflush(stdout);
-       exit(1);
-     }/* endif */
-    }/* endif lsda */
-  }/* endif */
-
 /*=========================================================================*/
 /* 0.1) Set CP FFT Size  */
 
-  if(cp_on==1){
-    nkf1 = 4*(kmax_cp_dens_cp_box[1]+1);
-    nkf2 = 4*(kmax_cp_dens_cp_box[2]+1);
-    nkf3 = 4*(kmax_cp_dens_cp_box[3]+1);
-  }/*endif*/
+  nkf1 = numGridDim[2];
+  nkf2 = numGridDim[1];
+  nkf3 = numGridDim[0];
+  //nkf1 = 4*(kmax_cp_dens_cp_box[1]+1);
+  //nkf2 = 4*(kmax_cp_dens_cp_box[2]+1);
+  //nkf3 = 4*(kmax_cp_dens_cp_box[3]+1);
 
 /*=========================================================================*/
 /* I) DENS_CP_BOX CP scalar package                                        */
 
- if(cp_dual_grid_opt_on >= 1 && cp_para_opt == 0){/* hybrid option */
-
-    cp_sclr_fft_pkg_dens_cp_box->nkf1       = nkf1;
-    cp_sclr_fft_pkg_dens_cp_box->nkf2       = nkf2;
-    cp_sclr_fft_pkg_dens_cp_box->nkf3       = nkf3;
-      
-    cp_sclr_fft_pkg_dens_cp_box->nktot      = nktot_dens_cp_box;
-    cp_sclr_fft_pkg_dens_cp_box->ncoef      = ncoef_dens_cp_box;
-
-    cp_sclr_fft_pkg_dens_cp_box->myid       = 0;
-    cp_sclr_fft_pkg_dens_cp_box->myidp1     = 1;
-    cp_sclr_fft_pkg_dens_cp_box->num_proc   = 1;
-    cp_sclr_fft_pkg_dens_cp_box->comm       = communicate->comm_faux;
-
-
-    create_para_fft_pkg3d(cp_sclr_fft_pkg_dens_cp_box,
-                          cpewald->kastr_dens_cp_box,
-                          cpewald->kbstr_dens_cp_box,
-                          cpewald->kcstr_dens_cp_box,cp_dual_grid_opt_on);
-  }/*endif*/
-
-
 /*=========================================================================*/
 /* II) DENSITY_CP_BOX  parallel package                                    */
 /*       This package must be made for both hybrid and full_g options      */
-
-  if(cp_dual_grid_opt_on >= 1){
-
-    cp_para_fft_pkg_dens_cp_box->nkf1       = nkf1;
-    cp_para_fft_pkg_dens_cp_box->nkf2       = nkf2;
-    cp_para_fft_pkg_dens_cp_box->nkf3       = nkf3;
-      
-    cp_para_fft_pkg_dens_cp_box->nktot      = nktot_dens_cp_box;
-    cp_para_fft_pkg_dens_cp_box->ncoef      = ncoef_dens_cp_box;
-   
-    cp_para_fft_pkg_dens_cp_box->myid       = myid_state;
-    cp_para_fft_pkg_dens_cp_box->myidp1     = myid_state+1;
-    cp_para_fft_pkg_dens_cp_box->num_proc   = np_states;
-    cp_para_fft_pkg_dens_cp_box->comm       = communicate->comm_states;
-
-    create_para_fft_pkg3d(cp_para_fft_pkg_dens_cp_box,
-                          cpewald->kastr_dens_cp_box,
-                          cpewald->kbstr_dens_cp_box,
-                          cpewald->kcstr_dens_cp_box,cp_dual_grid_opt_on);
-
-
-  }/*endif*/
 
 /*=========================================================================*/
 /* I) Large CP scalar package                                              */
 
 
  if(cp_on == 1 && cp_para_opt == 0){/* hybrid option */
-
-   switch(cp_dual_grid_opt_on){
-    case 0:
-     nkf1 = 4*(kmax_cp[1]+1);
-     nkf2 = 4*(kmax_cp[2]+1);
-     nkf3 = 4*(kmax_cp[3]+1);
-    break;
-    case 1:
-     nkf1 = 4*box_rat*(kmax_cp_dens_cp_box[1]+1);
-     nkf2 = 4*box_rat*(kmax_cp_dens_cp_box[2]+1);
-     nkf3 = 4*box_rat*(kmax_cp_dens_cp_box[3]+1);
-    break;
-
-#ifdef ORIG
-    case 2:
-     nkf1 = 4*box_rat*(kmax_cp_dens_cp_box[1]+1);
-     nkf2 = 4*box_rat*(kmax_cp_dens_cp_box[2]+1);
-     nkf3 = 4*box_rat*(kmax_cp_dens_cp_box[3]+1);
-    break;
-#endif
-#ifdef  PME
-    case 2:
-     nkf1 = 4*(kmax_cp[1]+1);
-     nkf2 = 4*(kmax_cp[2]+1);
-     nkf3 = 4*(kmax_cp[3]+1);
-    break;
-#endif
-   }/*end switch */
-
     cp_sclr_fft_pkg_lg->nkf1       = nkf1;
     cp_sclr_fft_pkg_lg->nkf2       = nkf2;
     cp_sclr_fft_pkg_lg->nkf3       = nkf3;
@@ -511,34 +427,11 @@ void control_fft_pkg(PARA_FFT_PKG3D *cp_sclr_fft_pkg_sm,
 /* II) Large CP parallel package                                           */
 
   if(cp_on == 1){
-
-   switch(cp_dual_grid_opt_on){
-    case 0:
-     nkf1 = 4*(kmax_cp[1]+1);
-     nkf2 = 4*(kmax_cp[2]+1);
-     nkf3 = 4*(kmax_cp[3]+1);
-    break;
-    case 1:
-     nkf1 = 4*box_rat*(kmax_cp_dens_cp_box[1]+1);
-     nkf2 = 4*box_rat*(kmax_cp_dens_cp_box[2]+1);
-     nkf3 = 4*box_rat*(kmax_cp_dens_cp_box[3]+1);
-    break;
-#ifdef ORIG
-    case 2:
-     nkf1 = 4*box_rat*(kmax_cp_dens_cp_box[1]+1);
-     nkf2 = 4*box_rat*(kmax_cp_dens_cp_box[2]+1);
-     nkf3 = 4*box_rat*(kmax_cp_dens_cp_box[3]+1);
-    break;
-#endif
-#ifdef  PME
-    case 2:
-     nkf1 = 4*(kmax_cp[1]+1);
-     nkf2 = 4*(kmax_cp[2]+1);
-     nkf3 = 4*(kmax_cp[3]+1);
-    break;
-#endif
-   }/*end switch */
-
+    /*
+    nkf1 = 4*(kmax_cp[1]+1);
+    nkf2 = 4*(kmax_cp[2]+1);
+    nkf3 = 4*(kmax_cp[3]+1);
+    */
     cp_para_fft_pkg_lg->nkf1       = nkf1;
     cp_para_fft_pkg_lg->nkf2       = nkf2;
     cp_para_fft_pkg_lg->nkf3       = nkf3;
@@ -560,11 +453,11 @@ void control_fft_pkg(PARA_FFT_PKG3D *cp_sclr_fft_pkg_sm,
 /* III) Small  CP scalar package                                           */
 
   if(cp_on == 1 && cp_para_opt == 0){/* hybrid option */
-
+    /*
     nkf1 = 4*(kmax_cp_dens_cp_box[1]+1);
     nkf2 = 4*(kmax_cp_dens_cp_box[2]+1);
     nkf3 = 4*(kmax_cp_dens_cp_box[3]+1);
-
+    */
     cp_sclr_fft_pkg_sm->nkf1       = nkf1;
     cp_sclr_fft_pkg_sm->nkf2       = nkf2;
     cp_sclr_fft_pkg_sm->nkf3       = nkf3;
@@ -587,10 +480,11 @@ void control_fft_pkg(PARA_FFT_PKG3D *cp_sclr_fft_pkg_sm,
 /* IV) Small  CP parallel package                                         */
 
   if(cp_on == 1 && cp_para_opt == 1){/* full g option */
-
+    /*
     nkf1 = 4*(kmax_cp_dens_cp_box[1]+1);
     nkf2 = 4*(kmax_cp_dens_cp_box[2]+1);
     nkf3 = 4*(kmax_cp_dens_cp_box[3]+1);
+    */
 
     cp_para_fft_pkg_sm->nkf1       = nkf1;
     cp_para_fft_pkg_sm->nkf2       = nkf2;
@@ -613,112 +507,14 @@ void control_fft_pkg(PARA_FFT_PKG3D *cp_sclr_fft_pkg_sm,
 /*=========================================================================*/
 /* V) PME package                                                         */
 
-  if(cp_on==0 && pme_on ==1 ){
-
-    pme_fft_pkg->nkf1       = ngrid_a;
-    pme_fft_pkg->nkf2       = ngrid_b;
-    pme_fft_pkg->nkf3       = part_mesh->ngrid_c;
-      
-    pme_fft_pkg->nktot      = ewald->nktot;
-    pme_fft_pkg->ncoef      = ewald->nktot+1;
-
-    if(pme_para_opt==2){
-     pme_fft_pkg->myid       = myid_forc;
-     pme_fft_pkg->myidp1     = myid_forc+1;
-     pme_fft_pkg->num_proc   = np_forc;
-     pme_fft_pkg->comm       = communicate->comm_forc;
-   }else{
-     pme_fft_pkg->myid       = 0;
-     pme_fft_pkg->myidp1     = 1;
-     pme_fft_pkg->num_proc   = 1;
-     pme_fft_pkg->comm       = communicate->comm_faux;
-   }/*endif*/
-
-    create_para_fft_pkg3d(pme_fft_pkg,
-                          ewald->kastr,ewald->kbstr,
-                          ewald->kcstr,cp_dual_grid_opt_on);
-
-    pme_fft_pkg->scale_opt = 0;
-#ifdef HP_VECLIB
-    if(pme_fft_pkg->igeneric_opt==0){pme_fft_pkg->scale_opt = -1;}
-#endif
-
-    if(pme_para_opt==2){
-      nfft_ext  = 2*ngrid_a*(  (pme_fft_pkg->nfft_ka_proc)
-                             + (pme_fft_pkg->skb_fft_ka_proc) - 1
-                             + (pme_fft_pkg->ekb_fft_ka_proc) - ngrid_b
-                             + (n_interp-1)*ngrid_b );
-      pme_fft_pkg->nfft_size = MAX(pme_fft_pkg->nfft_size,nfft_ext);
-
-      if(np_forc>1){create_pme_comm_full_g(n_interp,pme_fft_pkg);}
-    }/*endif*/
-
-    if((pme_para_opt==1)&&(np_forc>1)){
-       create_pme_comm_hybr(np_forc,myid_forc,communicate->comm_forc,
-                             pme_fft_pkg);
-    }/*endif*/
-
-  }/*endif*/
-
-
 /*=========================================================================*/
 /* VI) PME_RES package                                                      */
-
-  if(cp_on==0 && int_res_ter == 1 && pme_res_on==1 && nktot_res > 0){
-
-    pme_res_fft_pkg->nkf1       = part_mesh->ngrid_a_res;
-    pme_res_fft_pkg->nkf2       = part_mesh->ngrid_b_res;
-    pme_res_fft_pkg->nkf3       = part_mesh->ngrid_c_res;
-      
-    pme_res_fft_pkg->nktot      = nktot_res;
-    pme_res_fft_pkg->ncoef      = nktot_res+1;
-
-    if(pme_para_opt==2){
-      pme_res_fft_pkg->myid       = myid_forc;
-      pme_res_fft_pkg->myidp1     = myid_forc+1;
-      pme_res_fft_pkg->num_proc   = np_forc;
-      pme_res_fft_pkg->comm       = communicate->comm_forc;
-    }else{
-      pme_res_fft_pkg->myid       = 0;
-      pme_res_fft_pkg->myidp1     = 1;
-      pme_res_fft_pkg->num_proc   = 1;
-      pme_res_fft_pkg->comm       = communicate->comm_faux;
-    }/*endif*/
-
-    create_para_fft_pkg3d(pme_res_fft_pkg,
-                          ewald->kastr_res,ewald->kbstr_res,
-                          ewald->kcstr_res,cp_dual_grid_opt_on);
-
-    pme_res_fft_pkg->scale_opt = 0;
-#ifdef HP_VECLIB
-    if(pme_res_fft_pkg->igeneric_opt==0){pme_res_fft_pkg->scale_opt = -1;}
-#endif
-
-    if(np_forc>1 && pme_para_opt==2){
-      create_pme_comm_full_g(n_interp_res,pme_res_fft_pkg);
-    }/*endif*/
-
-    pme_fft_pkg->nfft_size = MAX(pme_fft_pkg->nfft_size,
-                                 pme_res_fft_pkg->nfft_size);
-
-    if((pme_para_opt==1)&&(np_forc>1)){ 
-      create_pme_comm_hybr(np_forc,myid_forc,communicate->comm_forc,
-                           pme_res_fft_pkg);
-    }/*endif*/
-
-  }/*endif*/
 
 /*=========================================================================*/
 /* VI) Output */
 
-  if(myid == 0){
-    printf("\n");PRINT_LINE_DASH;
-    printf("Finished setting up FFTs\n");
-    PRINT_LINE_STAR;printf("\n");
-  }/* endif myid */
-
 /*-------------------------------------------------------------------------*/
-     }/*end routine */
+}/*end routine */
 /*=========================================================================*/
 
 

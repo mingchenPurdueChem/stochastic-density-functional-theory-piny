@@ -229,49 +229,35 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   if((nchrg>0&&iperd>0)||cp_on==1){
 /*--------------------------------------------------------------------------*/
 /* Set up CP and Ewald stuff                                                */
-
     if(iopt_cp_pw == 1){//change
-      control_set_cp_ewald(&(general_data->simopts),&(general_data->cell),
-                           &(cp->cpcoeffs_info),&(general_data->ewald),
-                           &(cp->cpewald),&cp_parse,
-                           &(cp->pseudo.gmin_true),
-                           &(cp->pseudo.gmin_spl),
-                           &(cp->pseudo.gmax_spl),
-                           &(class->ewd_scr),(class_parse.kmax_ewd),
-                           (class_parse.kmax_res),
-                           tot_memory,general_data->timeinfo.int_res_ter,
-                           &(class->part_mesh),&(bonded->ecor),myid,
-                           cp->cpopts.cp_lsda,
-                           general_data->minopts.cp_min_diis,
-                           cp_dual_grid_opt_on); 
+      controlSetCpEwaldFrag(generalDataMini,classMini,cpMini,bondedMini,
+			    cp,&cp_parse)
     }
     classMini->clatoms_info.alp_ewd = generalDataMini->ewald.alp_ewd;
 /*--------------------------------------------------------------------------*/
 /*  Calculate Number of CP fictitious degrees of freedom                    */
 
-    /* Keep
     if(cp_on){
       if(iopt_cp_pw==1){calculate_cp_nfree(cpMini);}
       cpMini->cpopts.te_ext /= (double)(cpMini->cpcoeffs_info.cp_nfree);
       cpMini->vel_samp_cp.div_scal = (double)(cpMini->cpcoeffs_info.cp_nfree);
     }//endif cp_on 
-    */
+
 /*--------------------------------------------------------------------------*/
   }/*endif nchrg > 0 or cp is on */
 /*========================================================================*/
 /*   IX) Build communication groups: must be done in serial and parallel  */
 /*                                    after call to set_cp_ewald          */
 
-  /*
+  
   control_group_communicators(classMini,cpMini,cp_on); //redo
   //if(num_proc>1){ Barrier(world); }
   myid_state  = classMini->communicate.myid_state;
   myid_forc   = classMini->communicate.myid_forc;
-  */
+  
 
 /*========================================================================*/
 /*   IX) Create the FFT packages  */
-  /* Keep
   //change
   if((nchrg>0&&iperd>0&&pme_on==1)||cp_on==1){
     if(myid_state<num_proc&&myid_state>=0){
@@ -285,7 +271,6 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
                       cp->cpopts.cp_para_opt,cp_dual_grid_opt_on);
     }//endif
   }//endif
-  */
 
 /*========================================================================*/
 /*   XI) Setup intermolecular potential stuff: interspline mallocing      */

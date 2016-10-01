@@ -359,6 +359,10 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   fragInfo->numGridFragTot = (int*)cmalloc(numFragTot*sizeof(int));
   fragInfo->gridMapProc = (int**)cmalloc(numFragProc*sizeof(int*));
   fragInfo->gridMapTot  = (int**)cmalloc(numFragTot*sizeof(int*));
+  fragInfo->numGridFragDim = (int**)cmalloc(numFragProc*sizeof(int*));
+  for(iFrag=0;iFrag<numFragProc;iFrag++){
+    fragInfo->numGridFragDim[iFrag] = (int*)cmalloc(3*sizeof(int));
+  }
 
 /*======================================================================*/
 /* 3) Initialize other things	                                        */

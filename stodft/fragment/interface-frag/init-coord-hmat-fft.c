@@ -216,11 +216,12 @@ void initFFTMap(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   int numGridBigBoxC = cpParaFftPkg3dLgBigBox->nkf3;
   int numGridBigBoxB = cpParaFftPkg3dLgBigBox->nkf2;
   int numGridBigBoxA = cpParaFftPkg3dLgBigBox->nkf1;
-  int numGridBigBox[3],numGridMiniBox[3];
+  int numGridBigBox[3];
   int indexGrid[3],zeroGrid[3];
   int negativeGridNum;
   int numGridTotMiniBox;
   int index,indexa,indexb,indexc;
+  int *numGridMiniBox = fragInfo->numGridFragDim[iFrag];
 
   double geoCntBox[3],gridSize[3],zeroShift[3];
   double zeroShift[3] = {0};

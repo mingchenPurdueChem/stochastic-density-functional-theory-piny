@@ -330,6 +330,9 @@ typedef struct fragInfo{
 				    /* Lth: numFragProc*numGridFragProc[i]	*/
   int **gridMapTot;		    /* Lst: gridMap for all frags		*/
 				    /* Lth: numFragTot*numGridFragTot[i]	*/
+  int **numGridFragDim;		    /* Lst: numof Grid point per dimension for  */
+				    /*	    each mini box.			*/
+				    /* Lth: numFragProc*3			*/
   double **skinFragBox;		    /* Lst: You probably want to add a skin	*/
 				    /*	    arround your atoms so that the box  */
 				    /*	    is big enough. I'd like to use the  */

@@ -46,7 +46,7 @@ typedef struct vps_file{
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 
-void control_vps_params(PSEUDO *pseudo,CELL *cell,
+void controlVpsParamsFrag(PSEUDO *pseudo,CELL *cell,
                         FILENAME_PARSE *filename_parse,
                         SPLINE_PARSE *spline_parse,int natm_typ,NAME *atm_typ,
                         double *tot_memory,int natm_tot,int natm_ab_init,

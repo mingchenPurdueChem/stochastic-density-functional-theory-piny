@@ -83,10 +83,9 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   SPLINE_PARSE     splineParse;
   NULL_INTER_PARSE nullInterParse;
 
-  int icontrol_proc  = general_data->error_check_on;
-  int num_proc       = class->communicate.np;
-  MPI_Comm world     = class->communicate.world;
-  double *tot_memory = &(class->tot_memory);
+  int icontrol_proc  = generalDataMini->error_check_on;
+  int num_proc       = classMini->communicate.np;
+  MPI_Comm world     = classMini->communicate.world;
 
   int iopt_cp_pw,iopt_cp_dvr;
 
@@ -231,7 +230,7 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /* Set up CP and Ewald stuff                                                */
     if(iopt_cp_pw == 1){//change
       controlSetCpEwaldFrag(generalDataMini,classMini,cpMini,bondedMini,
-			    cp,&cp_parse)
+			    cp,class,general_data,bonded,&cp_parse)
     }
     classMini->clatoms_info.alp_ewd = generalDataMini->ewald.alp_ewd;
 /*--------------------------------------------------------------------------*/
@@ -261,31 +260,17 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   //change
   if((nchrg>0&&iperd>0&&pme_on==1)||cp_on==1){
     if(myid_state<num_proc&&myid_state>=0){
-      control_fft_pkg(&(cp->cp_sclr_fft_pkg3d_sm),&(cp->cp_para_fft_pkg3d_sm),
-                      &(cp->cp_sclr_fft_pkg3d_dens_cp_box),&(cp->cp_para_fft_pkg3d_dens_cp_box),
-                      &(cp->cp_sclr_fft_pkg3d_lg),&(cp->cp_para_fft_pkg3d_lg),
-                      &(general_data->pme_fft_pkg),&(general_data->pme_res_fft_pkg),
-                      &(general_data->ewald),&(cp->cpewald),&(class->part_mesh),&(cp->cpcoeffs_info),
-                      &(class->communicate),cp_on,cp->cpopts.cp_lsda,
-		      tot_memory,general_data->timeinfo.int_res_ter,
-                      cp->cpopts.cp_para_opt,cp_dual_grid_opt_on);
+      controlFFTPkgFrag(generalDataMini,classMini,cpMini,cp);
     }//endif
   }//endif
 
 /*========================================================================*/
 /*   XI) Setup intermolecular potential stuff: interspline mallocing      */
 /*                (interface/inter_params/control_inter_params.c)         */
-  /* Keep
   //change
-  control_inter_params(&(class->interact),&spline_parse,
-                       &filename_parse,general_data->ewald.alp_ewd,
-                       nchrg,class->clatoms_info.natm_tot,
-                       class->atommaps.natm_typ,class->atommaps.atm_typ,
-                       class->atommaps.iatm_atm_typ,iperd,
-                       class_parse.ishift_pot,tot_memory,
-                       general_data->timeinfo.int_res_ter,
-                       myid,world,num_proc);
-  */
+
+  controlInterParamsFrag(generalDataMini,classMini,cpMini,bondedMini,cp,
+			  &spline_parse,&filename_parse,&class_parse);
 
 /*========================================================================*/
 /*    XII) Setup the surface potential if needed                          */
@@ -294,16 +279,15 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*    XII) Setup pseudopotential stuff: pseudospline mallocing            */
 /*                (interface/interparams/control_vps_params.c)            */
 
-  //Keep if(cp_on==1){//change
+  if(cp_on==1){//change
   /*---------------------------------------------------------*/
   /* Create a list of ab initio atoms                        */
   /* List is used in gen_wave and also cp_dual_check routine */
 
-    /* Keep
-    make_cp_atom_list(&(class->atommaps),
-                       class->clatoms_info.cp_atm_flag,
-                       &(class->clatoms_info.nab_initio),
-                       class->clatoms_info.natm_tot);
+    make_cp_atom_list(&(classMini->atommaps),
+                       classMini->clatoms_info.cp_atm_flag,
+                       &(classMini->clatoms_info.nab_initio),
+                       classMini->clatoms_info.natm_tot);
     if(myid_state<np_states){
       control_vps_params(&(cp->pseudo),&(general_data->cell),&filename_parse,
                          &spline_parse,class->atommaps.natm_typ,
@@ -315,7 +299,6 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
                          &(cp->cpcoeffs_info));
     }//endif
   }//endif
-  */
 
 
 /*========================================================================*/

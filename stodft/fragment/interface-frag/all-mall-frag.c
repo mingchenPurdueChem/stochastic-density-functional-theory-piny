@@ -1,29 +1,94 @@
 /*==========================================================================*/
-/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*/
 /*==========================================================================*/
 /*                                                                          */
-/*                         PI_MD:                                           */
-/*             The future of simulation technology                          */
+/*                         Stochastic DFT:                                  */
+/*             The future of density functional theory                      */
 /*             ------------------------------------                         */
-/*                     Module: mall_scratch.c                               */
+/*                   Module: all-mall-frag.c                                */
 /*                                                                          */
-/* This subprogram mallocs the scratch memory                               */
+/* This file provide all modified malloc modules for fragmentation in parse */
 /*                                                                          */
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-
 
 #include "standard_include.h"
-#include "../typ_defs/typedefs_gen.h"
+#include "../typ_defs/typedefs_par.h"
 #include "../typ_defs/typedefs_class.h"
+#include "../typ_defs/typedefs_gen.h"
 #include "../typ_defs/typedefs_bnd.h"
 #include "../typ_defs/typedefs_cp.h"
 #include "../proto_defs/proto_scratch_entry.h"
 #include "../proto_defs/proto_scratch_local.h"
+#include "../proto_defs/proto_lists_entry.h"
+#include "../proto_defs/proto_lists_local.h"
+#include "../proto_defs/proto_real_space_local.h"
 #include "../proto_defs/proto_friend_lib_entry.h"
 #include "../proto_defs/proto_communicate_wrappers.h"
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+
+void mallMakeListsFrag(CLASS *class,GENERAL_DATA *general_data,
+                                    BONDED *bonded,int error_check_on)
+
+/*==========================================================================*/
+{/*begin routine */
+
+int isave,iii;
+int np         = class->communicate.np;
+int rank       = class->communicate.myid;
+MPI_Comm world = class->communicate.world;
+
+/*==========================================================================*/
+/* 0) Initialize */
+
+/*==========================================================================*/
+/* I) Malloc and create the lnk lists: Must be done first.                  */
+/*                                     RESPA lnk lst shifts not             */
+/*                                     needed by lnk_ver_update option      */
+
+ if( (class->nbr_list.ilnk==1)||
+    ((class->nbr_list.verlist.lnk_ver_update+class->nbr_list.iver)==2)){
+   isave = general_data->timeinfo.int_res_ter;
+   if(class->nbr_list.iver==1){general_data->timeinfo.int_res_ter=0;}
+   if(np>1){Barrier(world);}
+
+   lnk_mall_make(&(class->clatoms_info),&(class->clatoms_pos[1]),
+                 &(class->nbr_list),&(bonded->excl),
+                 &(class->atommaps),&(general_data->cell),
+                 &(bonded->intra_scr),
+                 &(class->for_scr),&(general_data->timeinfo),
+                 &(class->interact),&(class->tot_memory),rank,
+                   error_check_on,world,np);
+
+   if(class->nbr_list.iver==1&&rank==0){printf("\n");}
+   if(class->nbr_list.iver==1){general_data->timeinfo.int_res_ter=isave;}
+ /*endif*/}
+
+/*==========================================================================*/
+/* II) Malloc and create the ver lists */
+
+ if(class->nbr_list.iver==1){
+   (general_data->stat_avg.itime_update) = 0;
+  if(np>1){Barrier(world);}
+   ver_mall_make(&(class->clatoms_info),&(class->clatoms_pos[1]),
+                 &(class->nbr_list),&(bonded->excl),
+                 &(class->atommaps),&(general_data->cell),
+                 &(bonded->intra_scr),
+                 &(class->for_scr),&(general_data->timeinfo),
+                 &(class->interact),&(class->tot_memory),rank,
+                 error_check_on,world,&(class->class_comm_forc_pkg),np);
+ /*endif*/}
+
+/*==========================================================================*/
+/* III) Done */
+
+/*--------------------------------------------------------------------------*/
+/*end routine*/}
+/*==========================================================================*/
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
@@ -231,7 +296,7 @@ void mall_integrator_scr_frag(int pimd_on,int extsys_on,
 /*==========================================================================*/
 
 void mall_intra_scr_frag(INTRA_SCR *intra_scr,double *tot_memory, 
-			int myid,MPI_Comm world)
+	    int myid,MPI_Comm world)
 
 /*===========================================================================*/
   {/*begin routine*/
@@ -1507,10 +1572,6 @@ void mall_atm_forc_scr_frag(int natm_tot,FOR_SCR *for_scr,int pme_on,
 /*-------------------------------------------------------------------------*/
   }/*end routine */
 /*=========================================================================*/
-
-
-
-
 
 
 

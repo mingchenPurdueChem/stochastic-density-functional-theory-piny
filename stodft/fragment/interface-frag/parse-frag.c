@@ -386,41 +386,31 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*   XXII) malloc neigbor list memory                                     */
 /*                (interface/lists/mall_make_lists.c)                     */
  
-  /* Keep
-  //do I need this? 
-  get_cut_skin(class->interact.cutskin,
-               class->interact.cutskin_root,
-               class->interact.cutoff,
-               class->interact.cutskin_res,
-               class->interact.cutskin_root_res,
-               class->interact.cutoff_res,
-               class->interact.skin,
-               class->interact.spread,
-               class->interact.brnch_root_skin,
-               class->interact.nter_typ);
+  get_cut_skin(classMini->interact.cutskin,
+               classMini->interact.cutskin_root,
+               classMini->interact.cutoff,
+               classMini->interact.cutskin_res,
+               classMini->interact.cutskin_root_res,
+               classMini->interact.cutoff_res,
+               classMini->interact.skin,
+               classMini->interact.spread,
+               classMini->interact.brnch_root_skin,
+               classMini->interact.nter_typ);
 
-  pi_beads_proc_st = class->clatoms_info.pi_beads_proc_st;
-  myatm_start = class->clatoms_info.myatm_start;
-  myatm_end = class->clatoms_info.myatm_end;
+  pi_beads_proc_st = classMini->clatoms_info.pi_beads_proc_st;
+  myatm_start = classMini->clatoms_info.myatm_start;
+  myatm_end = classMini->clatoms_info.myatm_end;
 
-  if(( (myid_state==0) || (np_forc==np_states!= 1)==0  )&&pimd_on==1){ //DY
-    control_pimd_trans_mode(class,general_data);
-
-    control_pimd_trans_pos(class,general_data);
-
-  }//endif
-
-  mall_make_lists(class,general_data,bonded,icontrol_proc);
-  */
+  mallMakeListsFrag(classMini,generalDataMini,bondedMini,icontrol_proc);
 
 /*========================================================================*/
 /* XXIII) Orthogonalize coefficients                                      */
   
-  /*
+  
   if(myid_state<np_states){
     control_init_cp_orthog(generalDataMini,cpMini,&cp_parse,cp_on,cp_md,myid);
   }//endif
-  */
+  
 
 /*========================================================================*/
 /*  XXIV) Assign/resample the initial class velocities                    */
@@ -436,9 +426,6 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
 /*========================================================================*/
 /* XXVII) Flush the buffers                                               */
-  
-  fflush(stdout);
-  fflush(stderr);
 
 /*------------------------------------------------------------------------*/
 }/*end routine*/ 

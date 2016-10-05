@@ -70,10 +70,14 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* II) SCF LOOP					                        */
 
+    controlCpMinFrag(classMini,bondedMini,generalDataMini,
+                     cpMini,analysisMini);      
 
 /*======================================================================*/
 /* II) Transfer Data and Free Memory				        */
-
+    
+    copyDataMini(cp,cpMini,generalDataMini);
+    freeAllMini(generalDataMini,cpMini,classMini,analysisMini,bondedMini);
   }
 /*==========================================================================*/
 }/*end Routine*/

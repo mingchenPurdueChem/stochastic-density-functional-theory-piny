@@ -21,21 +21,10 @@
 #include "../typ_defs/typedefs_cp.h"
 #include "../proto_defs/proto_energy_cpcon_entry.h"
 #include "../proto_defs/proto_coords_cp_entry.h"
+#include "../proto_defs/proto_coords_cp_local.h"
 #include "../proto_defs/proto_handle_entry.h"
 #include "../proto_defs/proto_friend_lib_entry.h"
 #include "../proto_defs/proto_communicate_wrappers.h"
-
-void read_coef_sys_info(CP *, FILE *,int , char *);
-void read_coef_alloc_init(CP *, int ,double *);
-void read_coef_alloc_init_dvr(CP *, int, double *);
-void read_coef_fetch_occs(CP *, FILE *, char *);
-void read_coef_fetch_coefs(CP *, FILE *, char *,int);
-void read_coef_fetch_coefs_dvr(CP *, FILE *, char *,int);
-void read_coef_fetch_vcoefs(CP *, FILE *, char *);
-void read_coef_fetch_vcoefs_dvr(CP *, FILE *, char *);
-void read_coef_fetch_vnhc(CP *, FILE *, char *);
-void read_coef_init_nhc(CP *);
-void read_coef_transpose(CP *,int ,int, int);
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/

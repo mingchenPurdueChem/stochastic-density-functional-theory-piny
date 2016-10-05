@@ -5,9 +5,9 @@
 /*                         PI_MD:                                           */
 /*             The future of simulation technology                          */
 /*             ------------------------------------                         */
-/*                     Module: read_coord                                   */
+/*                     Module: read_coef.c                                  */
 /*                                                                          */
-/* This subprogram reads atm-atm_NHC vol-vol_NHC input for a MD on a        */ 
+/* This subprogram provides output for a MD on a                            */
 /* LD-classical potential energy surface (LD-PES)                           */
 /*                                                                          */
 /*==========================================================================*/
@@ -18,20 +18,85 @@
 #include "../typ_defs/typedefs_class.h"
 #include "../typ_defs/typedefs_par.h"
 #include "../typ_defs/typedefs_gen.h"
-#include "../typ_defs/typedefs_bnd.h"
+#include "../typ_defs/typedefs_cp.h"
 #include "../proto_defs/proto_coords_entry.h"
-#include "../proto_defs/proto_handle_entry.h"
-#include "../proto_defs/proto_friend_lib_entry.h"
 #include "../proto_defs/proto_math.h"
 #include "../proto_defs/proto_pimd_local.h"
+#include "../proto_defs/proto_energy_cpcon_entry.h"
+#include "../proto_defs/proto_coords_cp_entry.h"
+#include "../proto_defs/proto_coords_cp_local.h"
+#include "../proto_defs/proto_handle_entry.h"
+#include "../proto_defs/proto_friend_lib_entry.h"
+#include "../proto_defs/proto_communicate_wrappers.h"
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+
+void readCoefFrag(CP *cp,GENERAL_DATA *general_data,CLASS *class,
+               FILENAME_PARSE *filename_parse,
+               CP_PARSE *cp_parse,double *tot_memory)
+
+/*==========================================================================*/
+/*               Begin subprogram:                                          */
+  {/*begin routine*/
+/*==========================================================================*/
+/*               Local variable declarations                                */
+#include "../typ_defs/typ_mask.h"
+
+  FILE *fp_dnameci;   
+
+/* Local pointers */
+  SIMOPTS *simopts       = &(general_data->simopts);
+  int istart             = cp_parse->istart_cp;
+  int myid               = cp->communicate.myid;
+  MPI_Comm world         = cp->communicate.world;
+  int cp_wave_min        = simopts->cp_wave_min;
+  int cp_wave_min_pimd   = simopts->cp_wave_min_pimd;
+  int cp_min             = simopts->cp_min;
+  int cp_min_on;
+  int initial_spread_opt = simopts->initial_spread_opt;
+  int np_states          = cp->communicate.np_states;
+  int num_proc           = cp->communicate.np;
+  char *dnameci          = filename_parse->dnameci;
+
+  int ibinary            = cp->cpopts.iread_coef_binary;
+  int iii;
+
+  int iopt_cp_pw         = cp->cpcoeffs_info.iopt_cp_pw;
+  int iopt_cp_dvr        = cp->cpcoeffs_info.iopt_cp_dvr;
+
+  cp_min_on = cp_wave_min + cp_wave_min_pimd + cp_min;
+
+/*========================================================================*/
+/*  V) Allocate and initialize coefficient arrays                         */
+
+  if(iopt_cp_pw){
+    read_coef_alloc_init(cp,cp_min_on,tot_memory);
+    if(num_proc>1){Barrier(world);}
+  }
+
+/*========================================================================*/
+/*  VII) Read/Spread the coefficients  */
+
+  if(iopt_cp_pw==1){
+    gen_wave_frag(class,general_data,cp,cp_parse,filename_parse->vps_name);
+  }
+
+  
+  read_coef_init_nhc(cp);
+
+/*-----------------------------------------------------------------------*/
+  }/* end routine */
+/*==========================================================================*/
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 
 void readHmatFrag(CLASS *classMini,GENERAL_DATA *generalDataMini,
-		CP *cpMini,int cp_dual_grid_opt_on, double *dbox_rat, 
-		int *box_rat)
+                CP *cpMini,int cp_dual_grid_opt_on, double *dbox_rat,
+                int *box_rat)
 
 /*======================================================================*/
 /*                Begin Routine */
@@ -39,14 +104,14 @@ void readHmatFrag(CLASS *classMini,GENERAL_DATA *generalDataMini,
 /*======================================================================*/
 /*               Local variable declarations                            */
 
-  SIMOPTS *simopts		= &(generalDataMini->simopts);
-  CELL *cell			= &(generalDataMini->cell);
-  CLATOMS_INFO *clatoms_info	= &(classMini->clatoms_info);
-  ATOMMAPS *atommaps		= &(classMini->atommaps);
+  SIMOPTS *simopts              = &(generalDataMini->simopts);
+  CELL *cell                    = &(generalDataMini->cell);
+  CLATOMS_INFO *clatoms_info    = &(classMini->clatoms_info);
+  ATOMMAPS *atommaps            = &(classMini->atommaps);
 
   int ii,iii,upper;
   int i,j,ip;              /* Num: For loop counter                 */
-  
+
   double sx,sy,sz;
   double vol,vol_cp,area;
 
@@ -65,7 +130,7 @@ void readHmatFrag(CLASS *classMini,GENERAL_DATA *generalDataMini,
   int iperd              = cell->iperd;
 
   int ensemble_flag;
-  ensemble_flag          = generalDataMini->ensopts.nve 
+  ensemble_flag          = generalDataMini->ensopts.nve
                          + generalDataMini->ensopts.nvt
                          + generalDataMini->ensopts.npt_i;
 
@@ -135,6 +200,4 @@ void readHmatFrag(CLASS *classMini,GENERAL_DATA *generalDataMini,
 /*========================================================================*/
    }/* end routine */
 /*==========================================================================*/
-
-
 

@@ -1,0 +1,2047 @@
+/*==========================================================================*/
+/*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*/
+/*==========================================================================*/
+/*                                                                          */
+/*                         Stochastic DFT:                                  */
+/*             The future of density functional theory                      */
+/*             ------------------------------------                         */
+/*                   Module: all-control-frag.c                             */
+/*                                                                          */
+/* This file provide all modified control modules for fragmentation	    */
+/*                                                                          */
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+
+#include "standard_include.h"
+#include "../typ_defs/typedefs_class.h"
+#include "../typ_defs/typedefs_par.h"
+#include "../typ_defs/typedefs_bnd.h"
+#include "../typ_defs/typedefs_gen.h"
+#include "../typ_defs/typedefs_cp.h"
+#include "../proto_defs/proto_friend_lib_entry.h"
+#include "../proto_defs/proto_math.h"
+
+#include "../proto_defs/proto_mol_params_entry.h"
+#include "../proto_defs/proto_mol_params_local.h"
+#include "../proto_defs/proto_inter_params_entry.h"
+#include "../proto_defs/proto_inter_params_local.h"
+#include "../proto_defs/proto_intra_params_local.h"
+#include "../proto_defs/proto_search_entry.h"
+#include "../proto_defs/proto_handle_entry.h"
+#include "../proto_defs/proto_communicate_wrappers.h"
+#include "../proto_defs/proto_cp_ewald_entry.h"
+#include "../proto_defs/proto_cp_ewald_local.h"
+#include "../proto_defs/proto_energy_cp_local.h"
+#include "../proto_defs/proto_vps_params_entry.h"
+#include "../proto_defs/proto_vps_params_local.h"
+
+#include "../proto_defs/proto_interface_frag_local.h"
+
+#define DEBUG_CLUS_CORR_OFF
+#define CHECK_CLUS_OFF
+
+#define MAX_INT 12.0
+#define MIN3(A,B,C) (MIN(MIN((A),(B)),(C)))
+
+#define ORIG_OFF
+#define PME
+
+#define DEBUG_DKNY_OFF
+
+#define JUERG_FACTOR_ON
+#ifdef  JUERG_FACTOR_ON
+#define JUERG_FACTOR 0.72
+#else
+#define JUERG_FACTOR 1.0
+#endif
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+
+void controlInterParamsFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
+	        CP *cpMini,BONDED *bondedMini,CP *cp,
+	        SPLINE_PARSE *spline_parse,FILENAME_PARSE *filename_parse
+	        CLASS_PARSE *class_parse)
+
+/*======================================================================*/
+/*  Begin routine */
+     {/*begin routine*/
+/*======================================================================*/
+/*          Local variable declarations                                */
+#include "../typ_defs/typ_mask.h"
+  INTERACT *interact = &(classMini->interact);
+  DATA_BASE_ENTRIES *inter_base;          /* Lst: Database parameters    */
+  CATM_LAB *cinter,*cinter_base;
+  DICT_WORD *fun_dict;
+
+  int i,j,iii;                           /* Num: Counters               */
+  int ninter;                            /* Num: Number of interactions */
+  int nsearch,natm_srch;
+  int num_fun_dict;
+  int ifirst,ityp;
+  int nsplin_mall;
+  int nsplin_mall_tot;
+  int ninter_mall;
+  int ninter_unique;                     /* Num: number of interactions with 
+                                             unqiue paramters */
+  int ninter_unique_mall;
+  int nbase,nbase2,ibase_want;
+  int ncharge = classMini->clatoms_info.nchrg;
+  int natm_tot = classMini->clatoms_info.natm_tot;
+  int natm_typ = classMini->atommaps.natm_typ;
+  int iperd = generalDataMini->cell.iperd;
+  int ishift_pot = class_parse->ishift_pot;
+  int int_res_ter = generalDataMini->timeinfo.int_res_ter;
+  int myid = classMini->communicate.myid;
+  int num_proc = classMini->communicate.np;
+  int iatm_typ[] = classMini->atommaps.iatm_atm_typ;
+  NAME atm_typ[] = classMini->atommaps.atm_typ;
+  MPI_Comm comm = classMini->communicate.world;
+  
+  int *inter_label;
+  int *ifound,*isearch,*igood;           /* Lst: found,search goodness flags*/
+
+  char typ[5];
+  char *fun_key;
+
+
+  double alp_ewd = generalDataMini->ewald.alp_ewd;
+  double now_mem;                        /* Num: Memory allocated here  */
+
+  double *eps,*sig;                      /* Lst: Lennard-Jones params   */
+  double *awill,*bwill,*c6m,*c8m,*c10m;  /* Lst: Williams params        */
+  double *cwill ,*rm_swit, *c9m;         /* Lst: Aziz-chen params       */
+  double *temp_cutoff,*temp_cutoff_res,*temp_cutti;
+ 
+/*======================================================================*/
+/* 0) Write to screen                                                   */
+
+/*======================================================================*/
+/*  I) Malloc the memory                                                 */
+
+  ninter = natm_typ*(natm_typ + 1)/2;
+  ninter_mall = ninter;
+  if((ninter_mall!=0)&&((ninter_mall %2)==0)){ninter_mall +=1;}
+  inter_label = (int *) cmalloc(ninter_mall*sizeof(int))-1;
+  eps        = (double *) cmalloc(ninter_mall*sizeof(double))-1;
+  sig        = (double *) cmalloc(ninter_mall*sizeof(double))-1;
+  awill      = (double *) cmalloc(ninter_mall*sizeof(double))-1;
+  bwill      = (double *) cmalloc(ninter_mall*sizeof(double))-1;
+  cwill      = (double *) cmalloc(ninter_mall*sizeof(double))-1;
+  rm_swit    = (double *) cmalloc(ninter_mall*sizeof(double))-1;
+  c6m        = (double *) cmalloc(ninter_mall*sizeof(double))-1;
+  c8m        = (double *) cmalloc(ninter_mall*sizeof(double))-1;
+  c9m        = (double *) cmalloc(ninter_mall*sizeof(double))-1;
+  c10m       = (double *) cmalloc(ninter_mall*sizeof(double))-1;
+  fun_key    = (char *)cmalloc(MAXWORD*sizeof(char));  
+  cinter     = (CATM_LAB *)cmalloc(ninter*sizeof(CATM_LAB))-1;  
+  ifound     = (int *)cmalloc(ninter*sizeof(int))-1;
+  isearch    = (int *)cmalloc(ninter*sizeof(int))-1;
+  igood      = (int *)cmalloc(ninter*sizeof(int))-1;
+
+  temp_cutoff     = (double *) cmalloc(ninter_mall*sizeof(double))-1;
+  temp_cutoff_res = (double *) cmalloc(ninter_mall*sizeof(double))-1;
+  temp_cutti      = (double *) cmalloc(ninter_mall*sizeof(double))-1;
+
+  interact->cutoff     = (double *) cmalloc(ninter_mall*sizeof(double))-1;
+  interact->cutoff_res = (double *) cmalloc(ninter_mall*sizeof(double))-1;
+  interact->cutti      = (double *) cmalloc(ninter_mall*sizeof(double))-1;
+
+  interact->cutskin    = (double *) cmalloc(ninter_mall*sizeof(double))-1;
+  interact->cutskin_res= (double *) cmalloc(ninter_mall*sizeof(double))-1;
+  interact->cutskin_root   = (double *) cmalloc(ninter_mall*sizeof(double))-1;
+  interact->cutskin_root_res= (double *) cmalloc(ninter_mall*sizeof(double))-1;
+
+  interact->inter_map_index = (int *) cmalloc(ninter_mall*sizeof(int))-1;
+
+/*======================================================================*/
+/*  II) Set up the data structures                                      */
+
+if(myid==0){
+  ifirst =1;
+  set_potfun_dict(&fun_dict,&num_fun_dict,ifirst);
+  ityp = 0;
+  for(i=1;i <= natm_typ; i++) {
+    for(j=i;j <= natm_typ; j++) {
+      ityp++;
+      strcpy(cinter[ityp].atm1,atm_typ[i]);
+      strcpy(cinter[ityp].atm2,atm_typ[j]);
+    }/*endfor*/
+  }/*endfor*/
+  for(i=1;i<=ninter;i++){ifound[i]=0;}
+  for(i=1;i<=ninter;i++){igood[i]=6;}
+}/*endif*/
+
+/*======================================================================*/
+/*  III) Search the user defined data base                              */
+
+if(myid==0){
+  natm_srch = 2;
+  if(strlen(filename_parse->user_inter_name) != 0){
+    nsearch = 1;
+    ibase_want = 1;
+    count_data_base(filename_parse->user_inter_name,fun_dict,num_fun_dict,
+                    &nbase,ibase_want);
+    if(nbase>0){
+      nbase2 = 2*nbase;
+      inter_base  = (DATA_BASE_ENTRIES *)
+                       cmalloc(nbase2*sizeof(DATA_BASE_ENTRIES))-1;
+      cinter_base = (CATM_LAB *)cmalloc(nbase2*sizeof(CATM_LAB))-1;
+      read_data_base(filename_parse->user_inter_name,fun_dict,num_fun_dict,
+                     inter_base,cinter_base,ibase_want,nbase);
+      search_base(nbase,nbase2,cinter_base,ninter,cinter,igood,ifound,
+                  isearch,nsearch,natm_srch,filename_parse->user_inter_name);
+
+      assign_base_inter(inter_base,nbase,ifound,ninter,
+                        sig,eps,awill,bwill,cwill,rm_swit,c6m,c8m,c9m,c10m,
+                        inter_label,interact->cutoff,interact->cutoff_res,
+                        interact->cutti,
+                        isearch,nsearch,cinter,cinter_base);
+      cfree(&inter_base[1]);
+      cfree(&cinter_base[1]);
+    }/*endif*/
+  }/*endif*/
+}/*endif*/
+/*======================================================================*/
+/*  IV) Search the default defined data base                            */
+
+if(myid==0){
+  if(strlen(filename_parse->def_inter_name) != 0){
+    nsearch = 2;
+    ibase_want = 1;
+    count_data_base(filename_parse->def_inter_name,fun_dict,num_fun_dict,
+                    &nbase,ibase_want);
+    if(nbase>0){
+      nbase2 = 2*nbase;
+      inter_base = (DATA_BASE_ENTRIES *)
+                    cmalloc(nbase*sizeof(DATA_BASE_ENTRIES))-1;
+      cinter_base = (CATM_LAB *)cmalloc(nbase2*sizeof(CATM_LAB))-1;
+      read_data_base(filename_parse->def_inter_name,fun_dict,num_fun_dict,
+                     inter_base,cinter_base,ibase_want,nbase);
+      search_base(nbase,nbase2,cinter_base,ninter,cinter,igood,ifound,
+                  isearch,nsearch,natm_srch,filename_parse->def_inter_name);
+
+      assign_base_inter(inter_base,nbase,ifound,ninter,
+                        sig,eps,awill,bwill,cwill,rm_swit,c6m,c8m,c9m,c10m,
+                        inter_label,interact->cutoff,interact->cutoff_res,
+                        interact->cutti,
+                        isearch,nsearch,cinter,cinter_base);
+      cfree(&inter_base[1]);
+      cfree(&cinter_base[1]);
+    }/*endif*/
+  }/*endif*/
+}/*endif*/
+
+/*======================================================================*/
+/* V) Check list for missing entries                                    */
+
+if(myid==0){
+  strcpy(typ,"inter");
+  atmlst_not_found(ninter,cinter,ifound,natm_srch,typ);
+}/*endif*/
+
+/*======================================================================*/
+/*Find unique values of epsilon,sigma,rcut for LJ and null interactions */
+/* This involves rearranging all the intermolecular interactions.       */
+
+if(myid==0){
+
+ for(i=1; i<= ninter; i++){
+   temp_cutoff[i]     = interact->cutoff[i];
+   temp_cutoff_res[i] = interact->cutoff_res[i];
+   temp_cutti[i]      = interact->cutti[i];
+ }/*endfor*/
+
+#define BYPASS_OFF
+#ifdef BYPASS
+
+ ninter_unique = ninter;
+ for(i=1;i<=ninter;i++){
+   interact->inter_map_index[i] = i;
+ }/*endfor*/
+
+#else
+ sort_inter_params(eps,sig,
+                   awill,bwill,cwill,
+                   rm_swit,
+                   c6m,c8m,c9m,c10m,
+                   temp_cutoff,temp_cutoff_res,temp_cutti,
+                   inter_label,interact->inter_map_index,
+                   &ninter_unique,ninter);
+#endif
+
+}/*endif myid*/
+
+if(num_proc > 1){ Bcast(&ninter_unique,1,MPI_INT,0,comm);}
+
+ ninter_unique_mall = ninter_unique;
+ if((ninter_unique_mall!=0)&&((ninter_unique_mall %2)==0))
+    {ninter_unique_mall++;}
+
+/*======================================================================*/
+/* V) Broadcast the parameters                                          */
+
+ if(num_proc>1){
+   Bcast(&(sig[1]),ninter_unique,MPI_DOUBLE,0,comm);
+   Bcast(&(eps[1]),ninter_unique,MPI_DOUBLE,0,comm);
+   Bcast(&(awill[1]),ninter_unique,MPI_DOUBLE,0,comm);
+   Bcast(&(bwill[1]),ninter_unique,MPI_DOUBLE,0,comm);
+   Bcast(&(cwill[1]),ninter_unique,MPI_DOUBLE,0,comm);
+   Bcast(&(rm_swit[1]),ninter_unique,MPI_DOUBLE,0,comm);
+   Bcast(&(c6m[1]),ninter_unique,MPI_DOUBLE,0,comm);
+   Bcast(&(c8m[1]),ninter_unique,MPI_DOUBLE,0,comm);
+   Bcast(&(c9m[1]),ninter_unique,MPI_DOUBLE,0,comm);
+   Bcast(&(c10m[1]),ninter_unique,MPI_DOUBLE,0,comm);
+
+   Bcast(&(inter_label[1]),ninter_unique,MPI_INT,0,comm);
+
+   Bcast(&(temp_cutoff[1]),ninter_unique,MPI_DOUBLE,0,comm);
+   Bcast(&(temp_cutoff_res[1]),ninter_unique,MPI_DOUBLE,0,comm);
+   Bcast(&(temp_cutti[1]),ninter_unique,MPI_DOUBLE,0,comm);
+
+   Bcast(&(interact->cutoff[1]),ninter,MPI_DOUBLE,0,comm);
+   Bcast(&(interact->cutoff_res[1]),ninter,MPI_DOUBLE,0,comm);
+   Bcast(&(interact->cutti[1]),ninter,MPI_DOUBLE,0,comm);
+   Bcast(&(interact->inter_map_index[1]),ninter,MPI_INT,0,comm);
+ }/*endif*/
+
+/*======================================================================*/
+/* VI) Allocate spline arrays                                           */
+
+  interact->nter_typ = ninter;
+  interact->nsplin_tot = interact->nsplin*ninter;
+
+  nsplin_mall_tot = interact->nsplin*ninter_unique;
+  if((nsplin_mall_tot!=0)&&((nsplin_mall_tot % 2)==0)){nsplin_mall_tot += 1;}
+
+  nsplin_mall = interact->nsplin;
+  if((nsplin_mall!=0)&&((nsplin_mall % 2)==0)){nsplin_mall += 1;}
+
+  interact->cv0    = (double *) cmalloc(nsplin_mall_tot*sizeof(double))-1;
+  interact->cdv0   = (double *) cmalloc(nsplin_mall_tot*sizeof(double))-1;
+  interact->cv0_c  = (double *) cmalloc(nsplin_mall_tot*sizeof(double))-1;
+  interact->cdv0_c = (double *) cmalloc(nsplin_mall_tot*sizeof(double))-1;
+
+  interact->vcut_coul  = (double *) cmalloc(ninter_unique_mall*sizeof(double))-1;
+  interact->rmin_spl   = (double *) cmalloc(ninter_unique_mall*sizeof(double))-1;
+  interact->dr_spl     = (double *) cmalloc(ninter_unique_mall*sizeof(double))-1;
+  interact->dri_spl    = (double *) cmalloc(ninter_unique_mall*sizeof(double))-1;
+
+
+/*======================================================================*/
+/*          Assign mall variables                                 */
+
+  interact->ninter_mall        = ninter_mall;
+  interact->nsplin_mall_tot    = nsplin_mall_tot;
+
+/*=======================================================================*/
+/* VII) Set up the splines for the real-space intermolecular potential   */
+/*     energy and forces                                                 */
+
+/* Spline the intermolecular interaction */
+
+ set_inter_splin(sig,eps,awill,bwill,cwill,rm_swit,c6m,c8m,c9m,c10m,
+                  alp_ewd,ishift_pot,inter_label,
+                  spline_parse,interact,
+                  temp_cutti,temp_cutoff,
+                  ninter_unique,ncharge,iperd,myid);
+
+
+/*=======================================================================*/
+/*  VIII) Get the long range correction                                   */
+
+  interact->clong = 0.0;
+  interact->clong_res = 0.0;      
+  if(iperd == 3) {
+
+    get_clong(natm_tot,natm_typ,ninter,iatm_typ,c6m,
+              interact->inter_map_index,
+             &(interact->clong),
+             &(interact->clong_res),temp_cutoff,temp_cutoff_res,
+             interact->iswit_vdw,interact->rheal_res);
+
+  } /* endif */
+
+/*=======================================================================*/
+/*  IX) Free temporary memory                                            */
+
+  cfree(&inter_label[1]);
+  cfree(&eps[1]);
+  cfree(&sig[1]);
+  cfree(&awill[1]);
+  cfree(&bwill[1]);
+  cfree(&cwill[1]);
+  cfree(&rm_swit[1]);
+  cfree(&c6m[1]);
+  cfree(&c8m[1]);
+  cfree(&c9m[1]);
+  cfree(&c10m[1]);
+  cfree(&temp_cutoff[1]);
+  cfree(&temp_cutoff_res[1]);
+  cfree(&temp_cutti[1]);
+
+  if(myid==0){
+    cfree(&fun_dict[1]);
+  }/*endif*/
+  cfree(fun_key);
+  cfree(&cinter[1]);
+  cfree(&ifound[1]);
+  cfree(&isearch[1]);
+  cfree(&igood[1]);
+
+/*=======================================================================*/
+/* X) Write to screen                                                    */
+
+/*----------------------------------------------------------------------*/
+} /* end routine */
+/*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+
+void controlMolParamsFrag(CLASS *class,GENERAL_DATA *general_data,
+                          BONDED *bonded,CP *cp,CLASS *classMini,
+	      GENERAL_DATA *generalDataMini,BONDED *bondedMini,
+	      CP *cpMini,CLASS_PARSE *classParse,
+	      CP_PARSE *cpParse,FREE_PARSE *freeParse,
+                          FILENAME_PARSE *filenameParse)
+
+/*==========================================================================*/
+    { /*begin routine*/
+/*========================================================================*/
+/*             Local variable declarations                                */
+
+  CLATOMS_INFO *clatoms_info = &(classMini->clatoms_info);
+  STODFTINFO *stodftInfo = cp->stodftInfo;
+  CPCOEFFS_INFO *cpcoeffs_info = &(cpMini->cpcoeffs_info);
+  DICT_MOL dict_mol;                        /* Dictionaries and sizes */
+  DICT_MOL *dictMolAll;
+  DICT_WORD *word;
+  ATOMMAPS *atommaps = &(class->atommaps);
+
+  int i,iii,jmol_typ,nmol_tot; 
+  int nmol_typ,bond_free_num,bend_free_num,tors_free_num,rbar_sig_free_iopt;
+  int ifirst,nline,nfun_key;
+  int num_user,num_def,cp_on;
+  int nhist,nhist_bar,nhist_sig,nfree,nsurf;
+  int iperd          = generalDataMini->cell.iperd;
+  int pi_beads       = classMini->clatoms_info.pi_beads;
+  int np_forc        = classMini->communicate.np_forc;
+  int numMolTyp	     = atommaps->nmol_typ;
+  int iMolTyp;
+  int iextend,ipress;
+  int *mol_freeze_opt;
+  int *imol_nhc_opt;
+  int *nmol_jmol_typ;
+
+  char *molsetname   = filenameParse->molsetname;
+  char *fun_key;
+
+  double now_memory;
+  double *text_mol;
+  double *text_nhc_mol;
+  double *tot_memory = &(classMini->tot_memory);
+
+  FILE *fp; 
+
+  iextend = generalDataMini->ensopts.nvt 
+       +generalDataMini->ensopts.npt_i  
+       +generalDataMini->ensopts.npt_f
+       +generalDataMini->ensopts.nst;
+  ipress = generalDataMini->ensopts.npt_i
+          +generalDataMini->ensopts.npt_f;
+
+  cp_on = generalDataMini->simopts.cp_min 
+         +generalDataMini->simopts.cp_wave_min 
+         +generalDataMini->simopts.cp_wave_min_pimd
+         +generalDataMini->simopts.cp
+         +generalDataMini->simopts.cp_wave
+         +generalDataMini->simopts.cp_pimd 
+     +generalDataMini->simopts.cp_wave_pimd
+         +generalDataMini->simopts.debug_cp
+     +generalDataMini->simopts.debug_cp_pimd;
+
+/*========================================================================*/
+/* 0) Output to screen */
+
+/*========================================================================*/
+/* I) Set up dictionaries and malloc temporaries                          */
+
+  ifirst = 1;
+
+  dictMolAll = (DICT_MOL*)cmalloc(numMolTyp*sizeof(DICT_MOL));
+
+  for(iMolTyp=0;iMolTyp<numMolTyp;iMolTyp++){
+    set_mol_dict(&dictMolAll[iMolTyp].mol_dict,&dictMolAll[iMolTyp].num_mol_dict,
+                 iextend,classParse->tau_nhc_def,
+                 generalDataMini->statepoint.t_ext,ifirst);    
+  }
+
+  set_molset_fun_dict(&dict_mol.fun_dict,&dict_mol.num_fun_dict);
+  /*
+  set_mol_dict(&dict_mol.mol_dict,&dict_mol.num_mol_dict,
+               iextend,classParse->tau_nhc_def,
+               generalDataMini->statepoint.t_ext,ifirst);
+  */
+  set_wave_dict(&dict_mol.wave_dict,&dict_mol.num_wave_dict,cpParse);
+  set_bond_free_dict(&dict_mol.bond_free_dict,&dict_mol.num_bond_free_dict);
+  set_bend_free_dict(&dict_mol.bend_free_dict,&dict_mol.num_bend_free_dict);
+  set_tors_free_dict(&dict_mol.tors_free_dict,&dict_mol.num_tors_free_dict); 
+  set_rbar_free_dict(&dict_mol.rbar_free_dict,&dict_mol.num_rbar_free_dict); 
+  set_user_base_dict(&dict_mol.user_base_dict,&dict_mol.num_user_base_dict);   
+  set_def_base_dict(&dict_mol.def_base_dict,&dict_mol.num_def_base_dict);
+  set_surf_dict(&dict_mol.surface_dict,&dict_mol.num_surface_dict);
+  num_user = dict_mol.num_user_base_dict;
+  num_def  = dict_mol.num_def_base_dict;
+
+  word = (DICT_WORD *)cmalloc(sizeof(DICT_WORD));
+  fun_key = (char *)cmalloc(MAXWORD*sizeof(char));
+
+/*========================================================================*/
+/* II) Read the moleset file and count the molecule types                 */
+/*       and the free energy stuff                                        */
+  
+  nmol_typ            = 0;
+  nline               = 0;
+  nfun_key            = 0;
+  bond_free_num       = 0;
+  bend_free_num       = 0;
+  tors_free_num       = 0;
+  rbar_sig_free_iopt  = 0;
+  nsurf               = 0;
+
+  fp = cfopen(molsetname,"r");
+  while(get_fun_key_cnt(fp,fun_key,&nline,&nfun_key,molsetname)){
+    if(!strcasecmp(fun_key,"molecule_def")) {nmol_typ+=1;}
+    if(!strcasecmp(fun_key,"bond_free_def")){bond_free_num+=1;}
+    if(!strcasecmp(fun_key,"bend_free_def")){bend_free_num+=1;}
+    if(!strcasecmp(fun_key,"tors_free_def")){tors_free_num+=1;}
+    if(!strcasecmp(fun_key,"rbar_sig_free_def")){rbar_sig_free_iopt+=1;}
+    if(!strcasecmp(fun_key,"surface_def")){nsurf+=1;}
+  }/*endwhile*/
+  fclose(fp);
+
+  classMini->atommaps.nmol_typ    = nmol_typ;
+  bondedMini->bond_free.num       = bond_free_num;
+  bondedMini->bend_free.num       = bend_free_num;
+  bondedMini->tors_free.num       = tors_free_num;
+  bondedMini->rbar_sig_free.iopt  = rbar_sig_free_iopt ;
+  bondedMini->rbar_sig_free.nfree = 0;
+
+  classMini->surface.isurf_on = nsurf;
+
+/*========================================================================*/
+/* III) Malloc molecular data storage and initialize                      */
+  
+  now_memory = (double)((nmol_typ)*(sizeof(int)*2))*1.e-06;
+  (*tot_memory) += now_memory;
+  
+  classMini->atommaps.nmol_jmol_typ  = (int *)cmalloc(nmol_typ*sizeof(int))-1;
+  classMini->atommaps.mol_typ        = (NAME *)cmalloc(nmol_typ*sizeof(NAME))-1;
+  classMini->atommaps.nres_1mol_jmol_typ  = (int *)cmalloc(nmol_typ*sizeof(int))-1;
+  classMini->atommaps.jres_jmol_typ_strt  = (int *)cmalloc(nmol_typ*sizeof(int))-1;
+  classMini->atommaps.icons_jres_jmol_typ = (int *)cmalloc(nmol_typ*sizeof(int))-1;
+  classParse->ionfo_opt         = (int *)cmalloc(nmol_typ*sizeof(int))-1;
+  classParse->ires_bond_conv    = (int *)cmalloc(nmol_typ*sizeof(int))-1;
+  classParse->tau_nhc_mol       = (double*)cmalloc(nmol_typ*sizeof(double))-1;
+  classParse->text_nhc_mol      = (double*)cmalloc(nmol_typ*sizeof(double))-1;
+  classParse->imol_nhc_opt      = (int *)cmalloc(nmol_typ*sizeof(int))-1;  
+  classParse->mol_freeze_opt    = (int *)cmalloc(nmol_typ*sizeof(int))-1;  
+  classParse->mol_hydrog_mass_opt = (int *)cmalloc(nmol_typ*sizeof(int))-1;
+  classParse->mol_hydrog_mass_val = 
+                               (double *)cmalloc(nmol_typ*sizeof(double))-1;
+  classParse->mol_hydrog_con_opt= (int *)cmalloc(nmol_typ*sizeof(int))-1;
+  filenameParse->mol_param_name = (NAME *)cmalloc(nmol_typ*sizeof(NAME))-1;
+  filenameParse->user_intra_name= (NAME *)cmalloc(num_user*sizeof(NAME))-1;
+  filenameParse->def_intra_name = (NAME *)cmalloc(num_def*sizeof(NAME))-1;
+  if(bond_free_num>0){
+    bondedMini->bond_free.file       = (char *)cmalloc(MAXWORD*sizeof(char));
+    freeParse->imoltyp_bond_free= (int *) cmalloc(2*sizeof(int))-1;
+    freeParse->imol_bond_free   = (int *) cmalloc(2*sizeof(int))-1;
+    freeParse->ires_bond_free   = (int *) cmalloc(2*sizeof(int))-1;
+    freeParse->iatm_bond_free   = (int *) cmalloc(2*sizeof(int))-1;
+  }
+  if(bend_free_num>0){
+    bondedMini->bend_free.file       = (char *)cmalloc(MAXWORD*sizeof(char));
+    freeParse->imoltyp_bend_free= (int *) cmalloc(3*sizeof(int))-1;
+    freeParse->imol_bend_free   = (int *) cmalloc(3*sizeof(int))-1;
+    freeParse->ires_bend_free   = (int *) cmalloc(3*sizeof(int))-1;
+    freeParse->iatm_bend_free   = (int *) cmalloc(3*sizeof(int))-1;
+  }
+  if(tors_free_num>0){
+    bondedMini->tors_free.file       = (char *)cmalloc(MAXWORD*sizeof(char));
+    freeParse->imoltyp_tors_free= (int *) cmalloc(8*sizeof(int))-1;
+    freeParse->imol_tors_free   = (int *) cmalloc(8*sizeof(int))-1;
+    freeParse->ires_tors_free   = (int *) cmalloc(8*sizeof(int))-1;
+    freeParse->iatm_tors_free   = (int *) cmalloc(8*sizeof(int))-1;
+  }
+
+  if(rbar_sig_free_iopt>0){
+    bondedMini->rbar_sig_free.file   = (char *)cmalloc(MAXWORD*sizeof(char));
+  }
+  classMini->clatoms_info.text_mol   = (double*)cmalloc(nmol_typ*sizeof(double))-1;
+
+  text_mol       = classMini->clatoms_info.text_mol;
+  text_nhc_mol   = classParse->text_nhc_mol;
+  mol_freeze_opt = classParse->mol_freeze_opt;
+  imol_nhc_opt   = classParse->imol_nhc_opt;
+
+/*========================================================================*/
+/* IV) Get molecular/CP setup information */
+
+  controlSetMolParamsFrag(cpParse,classParse,filenameParse,freeParse,
+                bondedMini,classMini,cpMini,generalDataMini,class,cp,
+                general_data,&dict_mol,word,fun_key,&nfun_key,
+                iextend,generalDataMini->statepoint.t_ext,ifirst,pi_beads,
+                dictMolAll);
+
+  /*
+  controlSetMolParamsFrag(&(class->atommaps),&(cp->cpopts),
+                         &(cp->cpcoeffs_info),cp_parse,class_parse,
+                         bonded,&(class->surface),
+                         filename_parse,free_parse,
+	     clatoms_info,
+                         &dict_mol,word,
+                         fun_key,&nfun_key,iextend,
+                         general_data->statepoint.t_ext,
+                         ifirst,pi_beads,dictMolAll);
+  */
+  exit(0);
+  if(tors_free_num==1){
+    tors_free_num = bondedMini->tors_free.num; /* changed in above routine */
+  }/*endif*/
+
+  for(i=1; i<= nmol_typ; i++){
+    text_mol[i] = text_nhc_mol[i];   
+  }/*endfor*/
+
+/*========================================================================*/
+/* V) Free some memory and malloc some other                              */
+
+  if(bond_free_num>0){
+    nhist = (bondedMini->bond_free.nhist);
+    bonded->bond_free.hist = (double *)cmalloc(nhist*sizeof(double))-1;
+  }/*endif*/
+
+  if(bend_free_num>0){
+    nhist = (bondedMini->bend_free.nhist);
+    bonded->bend_free.hist = (double *)cmalloc(nhist*sizeof(double))-1;
+  }/*endif*/
+
+  if(tors_free_num==1){
+    nhist = (bondedMini->tors_free.nhist);
+    bonded->tors_free.hist = (double *)cmalloc(nhist*sizeof(double))-1;
+  }/*endif*/
+  if(tors_free_num==2){
+    nhist = (bondedMini->tors_free.nhist);
+    bonded->tors_free.hist_2d = cmall_mat(1,nhist,1,nhist);
+  }/*endif*/
+
+  if(rbar_sig_free_iopt>0){
+    nhist_bar = (bondedMini->rbar_sig_free.nhist_bar);
+    nhist_sig = (bondedMini->rbar_sig_free.nhist_sig);
+    nfree     = (bondedMini->rbar_sig_free.nfree);
+    bondedMini->rbar_sig_free.hist    = cmall_mat(1,nhist_bar,1,nhist_sig);
+    bondedMini->rbar_sig_free.hist_rn = cmall_mat(1,nfree,1,nhist_bar);
+  }/*endif*/
+
+  cfree(fun_key);
+  cfree(word);
+  cfree(&dict_mol.fun_dict[1]);
+  //cfree(&dict_mol.mol_dict[1]);
+  cfree(&dict_mol.wave_dict[1]);
+  cfree(&dict_mol.bond_free_dict[1]);
+  cfree(&dict_mol.bend_free_dict[1]);
+  cfree(&dict_mol.tors_free_dict[1]);
+  cfree(&dict_mol.rbar_free_dict[1]);
+  cfree(&dict_mol.user_base_dict[1]);
+  cfree(&dict_mol.def_base_dict[1]);
+  for(iMolTyp=0;iMolTyp<numMolTyp;iMolTyp++){
+    cfree(&(dictMolAll[iMolTyp].mol_dict[1]));
+  }
+  cfree(dictMolAll);
+
+  for(jmol_typ=1;jmol_typ<=nmol_typ;jmol_typ++){
+    if((mol_freeze_opt[jmol_typ]>0)&&(ipress>0)){
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+      printf("No freezing allowed with NPT_I and NPT_F       \n");
+      printf("Ensembles                                      \n");
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(1);
+    }//endif
+    if((mol_freeze_opt[jmol_typ]==1)&&(imol_nhc_opt[jmol_typ]>0)){
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+      printf("Do not use thermostating when freezing the     \n");
+      printf("whole molecule.(Use none option)               \n");
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(1);
+    }/*endif*/
+  }/*endfor*/
+
+/*========================================================================*/
+/* Error check */
+ 
+  nmol_tot = 0;
+  nmol_jmol_typ  = classMini->atommaps.nmol_jmol_typ;
+  for(i=1;i<=nmol_typ;i++)nmol_tot += nmol_jmol_typ[i];
+  if(nmol_tot<np_forc){
+    printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");   
+    printf("Number of force level processors %d is greater than\n",np_forc);
+    printf("the total number of molecules %d\n",nmol_tot);
+    printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+    fflush(stdout);
+    exit(1);
+  }/*endif*/
+
+  if(cp_on==1&&cpMini->cpopts.cp_dual_grid_opt>=1){
+    if(cpParse->cp_ecut_dual_grid>cpParse->cp_ecut){
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");   
+      printf("The small dense grid cutoff is less than the large sparse");
+      printf("grid cutoff. This might work, but I doubut it\n");
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(1);
+    }
+  }
+
+/*------------------------------------------------------------------------*/
+   }/*end routine*/
+/*===========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+
+void controlSetMolParamsFrag(CP_PARSE *cp_parse,CLASS_PARSE *class_parse,
+	FILENAME_PARSE *filename_parse,FREE_PARSE *free_parse,
+	BONDED *bondedMini,CLASS *classMini,CP *cpMini,
+	GENERAL_DATA *generalDataMini,CLASS *class,CP *cp,
+	GENERAL_DATA *general_data,DICT_MOL *dict_mol,DICT_WORD *word,
+                char *fun_key,int *nfun_key,
+                int iextend,double t_ext,int ifirst,int pi_beads,
+	DICT_MOL *dictMolAll)
+/*=======================================================================*/
+{/*begin routine*/
+/*=======================================================================*/
+/*             Local variable declarations                               */
+
+  ATOMMAPS *atommaps	    = &(classMini->atommaps);
+  CPOPTS   *cpopts  = &(cpMini->cpopts);
+  CPCOEFFS_INFO *cpcoeffs_info	= &(cpMini->cpcoeffs_info);
+  SURFACE *surface  = &(classMini->surface);
+  CLATOMS_INFO *clatoms_info	= &(classMini->clatoms_info);
+  ATOMMAPS *atommapsMacro   = &(class->atommaps);
+  DICT_MOL *dictMolFrag;
+  STODFTINFO *stodftInfo    = cp->stodftInfo;
+  FRAGINFO *fragInfo	    = stodftInfo->fragInfo;
+
+  int nline,nkey,i,num,ierr;
+  int iMol,iType,iKey;
+  int nmol_typ            = atommaps->nmol_typ;
+  int num_fun_dict        = dict_mol->num_fun_dict;
+  int bond_free_num       = bondedMini->bond_free.num;
+  int bend_free_num       = bondedMini->bend_free.num;
+  int tors_free_num       = bondedMini->tors_free.num;
+  int rbar_sig_free_iopt  = bondedMini->rbar_sig_free.iopt;
+  int nbar_bond;
+  int countMol;
+  int numMolTyp	      = atommapsMacro->nmol_typ;
+  int iFrag   = fragInfo->iFrag;
+  int numMolTypeNow   = fragInfo->numMolTypeFrag[iFrag];
+  int typeInd;
+
+  FILE *fp;
+  int *mol_ind_chk;                                 /* Index check      */
+  int *ifound;
+  int *nmol_jmol_typ      = atommaps->nmol_jmol_typ;
+  int *nres_1mol_jmol_typ = atommaps->nres_1mol_jmol_typ;
+  int *imoltyp_rbar1_free;
+  int *imoltyp_rbar2_free;
+  int *imol_rbar1_free;
+  int *imol_rbar2_free;
+  int *ires_rbar1_free;
+  int *ires_rbar2_free;
+  int *imoltyp_bond_free = free_parse->imoltyp_bond_free;
+  int *imol_bond_free     = free_parse->imol_bond_free;
+  int *ires_bond_free    = free_parse->ires_bond_free;
+  int *iatm_bond_free    = free_parse->iatm_bond_free;
+  int *imoltyp_bend_free = free_parse->imoltyp_bend_free;
+  int *imol_bend_free     = free_parse->imol_bend_free;
+  int *ires_bend_free    = free_parse->ires_bend_free;
+  int *iatm_bend_free    = free_parse->iatm_bend_free;
+  int *imoltyp_tors_free = free_parse->imoltyp_tors_free;
+  int *imol_tors_free     = free_parse->imol_tors_free;
+  int *ires_tors_free    = free_parse->ires_tors_free; 
+  int *iatm_tors_free    = free_parse->iatm_tors_free;
+  int *molTypeFragNow	 = fragInfo->molTypeFrag[iFrag];
+  int *molNumTypeFragNow = fragInfo->molNumTypeFrag[iFrag];
+  
+  char *molsetname        = filename_parse->molsetname;
+
+  
+
+/*=======================================================================*/
+/* 0) Set up molecular index checking memory                             */
+
+  mol_ind_chk     = (int *) cmalloc(nmol_typ*sizeof(int))-1;
+  ifound          = (int *) cmalloc(num_fun_dict*sizeof(int))-1;
+  for(i=1;i<=nmol_typ;i++){ mol_ind_chk[i]=0;}
+  for(i=1;i<=num_fun_dict;i++){ ifound[i]=0;}
+
+/*=======================================================================*/
+/* I) Fetch a valid functional key word from molset file                 */
+
+  fp = cfopen(molsetname,"r");
+
+  nline          = 1;
+  *nfun_key      = 0;
+  word->iuset    = 0;
+  word->key_type = 0;
+  countMol = 0;
+  while(get_fun_key(fp,fun_key,&nline,nfun_key,molsetname)){
+    get_fun_key_index(fun_key,dict_mol->num_fun_dict,dict_mol->fun_dict,
+                      nline,*nfun_key,molsetname,&num);
+
+/*=======================================================================*/
+/* II) Fetch the key words and key args of the functional key word       */
+/*     and stick them into the correct dictionary                        */
+
+    /*
+    if(num==1){
+      set_mol_dict(&(dict_mol->mol_dict),&(dict_mol->num_mol_dict),
+                 iextend,class_parse->tau_nhc_def,t_ext,ifirst);
+    }
+    */
+    nkey=0;
+    while(get_word(fp,word,&nline,&nkey,*nfun_key,molsetname)){
+      switch(num){
+      case 1:
+        put_word_dict(word,dictMolAll[countMol].mol_dict,dictMolAll[countMol].num_mol_dict,
+                      fun_key,nline,nkey,*nfun_key,molsetname);
+        break;
+      case 2:
+        put_word_dict(word,dict_mol->wave_dict,
+                      dict_mol->num_wave_dict,fun_key,nline,nkey,
+                      *nfun_key,molsetname);
+        break;
+      case 3:
+        put_word_dict(word,dict_mol->bond_free_dict,
+                     dict_mol->num_bond_free_dict,fun_key,nline,
+                     nkey,*nfun_key,molsetname);
+        break;
+      case 4:
+        put_word_dict(word,dict_mol->bend_free_dict,
+                    dict_mol->num_bend_free_dict,fun_key,nline,
+                    nkey,*nfun_key,molsetname);
+        break;
+      case 5:
+        put_word_dict(word,dict_mol->tors_free_dict,
+                    dict_mol->num_tors_free_dict,fun_key,nline,
+                    nkey,*nfun_key,molsetname);
+        break;
+      case 6:
+        put_word_dict(word,dict_mol->def_base_dict,
+                    dict_mol->num_def_base_dict,fun_key,nline,
+                    nkey,*nfun_key,molsetname);
+        break;
+      case 7:
+        put_word_dict(word,dict_mol->user_base_dict,
+                    dict_mol->num_user_base_dict,fun_key,nline,
+                    nkey,*nfun_key,molsetname);
+        break;
+      case 8:
+        put_word_dict(word,dict_mol->rbar_free_dict,
+                    dict_mol->num_rbar_free_dict,fun_key,nline,
+                    nkey,*nfun_key,molsetname);
+        break;
+      case 9:
+        put_word_dict(word,dict_mol->surface_dict,
+                    dict_mol->num_surface_dict,fun_key,nline,
+                    nkey,*nfun_key,molsetname);
+        break;
+      } /* end switch dictionary fills*/
+    } /* endwhile fetching keywords and keyargs*/
+    if(num==1) countMol += 1;
+  
+/*=====================================================================*/
+/* III) Assign the key args of the key words to the appropriate        */
+/*      program variables                                              */
+
+    ifound[num]=1;
+    switch(num){
+    /*
+    case 1:
+      set_mol_params(filename_parse,fun_key,dict_mol->mol_dict,
+                   dict_mol->num_mol_dict,
+                   class_parse,atommaps,mol_ind_chk,pi_beads);
+      break;
+    */
+    case 2:
+      set_wave_params(molsetname,fun_key,
+                    dict_mol->wave_dict,dict_mol->num_wave_dict,
+                    cpopts,cpcoeffs_info,cp_parse);
+      break;      
+    case 3:
+      set_bond_free_params(molsetname,fun_key,
+                        dict_mol->bond_free_dict,
+                        dict_mol->num_bond_free_dict,
+                        &(bondedMini->bond_free),free_parse,
+                        atommaps->nmol_typ);
+      break;
+    case 4:
+      set_bend_free_params(molsetname,fun_key,
+                        dict_mol->bend_free_dict,
+                        dict_mol->num_bend_free_dict,
+                        &(bondedMini->bend_free),free_parse,
+                        atommaps->nmol_typ);
+      break;
+      
+    case 5:
+      set_tors_free_params(molsetname,fun_key,
+                        dict_mol->tors_free_dict,
+                        dict_mol->num_tors_free_dict,
+                        &(bondedMini->tors_free),free_parse,
+                        atommaps->nmol_typ);
+      break;
+    case 6:
+      set_def_base_params(filename_parse,dict_mol->def_base_dict,
+                       dict_mol->num_def_base_dict);
+      break;
+    case 7:
+      set_user_base_params(filename_parse,dict_mol->user_base_dict,
+                        dict_mol->num_user_base_dict);
+      break;
+    case 8:
+      set_rbar_free_params(molsetname,fun_key,
+                        dict_mol->rbar_free_dict,
+                        dict_mol->num_rbar_free_dict,
+                        &(bondedMini->rbar_sig_free),free_parse,
+                        atommaps->nmol_typ);
+      break;
+    case 9:
+      set_surf_params(molsetname,fun_key,
+                      dict_mol->surface_dict,
+                      dict_mol->num_surface_dict,
+                      surface); 
+      break;
+    } /* end switch assigning dict stuff to variables */
+  } /*endwhile getting functional keywords data*/
+
+/*=====================================================================*/
+/* III) Assign mol_dict variables	       */
+
+  for(iType=0;iType<numMolTypeNow;iType++){
+    typeInd = molTypeFragNow[iType];
+    sprintf(dictMolFrag[iType].mol_dict[1].keyarg,"%i",iType);
+    sprintf(dictMolFrag[iType].mol_dict[2].keyarg,"%i",molNumTypeFragNow[iType]);
+    for(iKey=3;iKey<14;iKey++){
+      strcpy(dictMolFrag[iType].mol_dict[iKey].keyarg,dictMolAll[typeInd].mol_dict[iKey].keyarg);
+    }
+    set_mol_params(filename_parse,fun_key,dictMolFrag[iType].mol_dict,dictMolFrag[iType].num_mol_dict,
+                   class_parse,atommaps,mol_ind_chk,pi_beads);
+  }
+
+/*=====================================================================*/
+/* IV) Make sure everything that is required has been found            */ 
+/*     if it hasn't either die or define defaults                      */ 
+
+  if(ifound[1]==0){
+    printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+    printf("  Required functional keyword %s not found     \n",
+              dict_mol->fun_dict[1].keyword);
+    printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+    fflush(stdout);
+    exit(1);
+  }/*endif*/
+  if(ifound[6]==0){
+    set_def_base_params(filename_parse,dict_mol->def_base_dict,
+                     dict_mol->num_def_base_dict);
+  }/*endif*/
+  if(ifound[7]==0){
+    set_user_base_params(filename_parse,dict_mol->user_base_dict,
+                      dict_mol->num_user_base_dict);
+  }/*endif*/
+  
+/*=======================================================================*/
+/* IV) Check  indices                                                    */
+
+  for(i = 1;i<=nmol_typ;i++){
+    if(mol_ind_chk[i]!=1){
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@  \n");
+      printf("Molecule number %d specified %d times in file %s \n",
+              i,mol_ind_chk[i],molsetname);
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@  \n");
+      fflush(stdout);
+      exit(1);
+    }/*endif*/
+  } /*endfor*/
+
+/*=======================================================================*/
+/* V) Check  free energy indices                                         */
+
+  ierr = 0;
+
+  if(bond_free_num>0){
+    for(i=1;i<=2;i++){
+      if(imol_bond_free[i]>nmol_jmol_typ[imoltyp_bond_free[i]]){ierr=i;}
+      if(ires_bond_free[i]>MAX(nres_1mol_jmol_typ[imoltyp_bond_free[i]],1))
+                                                               {ierr=i;}
+    }/*endfor*/
+  }/*endif*/
+
+  if(bend_free_num>0){
+    for(i=1;i<=3;i++){
+      if(imol_bend_free[i]>nmol_jmol_typ[imoltyp_bend_free[i]]){ierr=i;}
+      if(ires_bend_free[i]>MAX(nres_1mol_jmol_typ[imoltyp_bend_free[i]],1))
+                                                               {ierr=i;}
+    }/*endfor*/
+  }/*endif*/
+
+  if(tors_free_num>0){tors_free_num=bondedMini->tors_free.num;}
+  if(tors_free_num==1){
+    for(i=1;i<=4;i++){
+      if(imol_tors_free[i]>nmol_jmol_typ[imoltyp_tors_free[i]]){ierr=i;}
+      if(ires_tors_free[i]>MAX(nres_1mol_jmol_typ[imoltyp_tors_free[i]],1))
+                                                               {ierr=i;}
+    }/*endfor*/
+  }/*endif*/
+  if(tors_free_num==2){
+    for(i=1;i<=8;i++){
+      if(imol_tors_free[i]>nmol_jmol_typ[imoltyp_tors_free[i]]){ierr=i;}
+      if(ires_tors_free[i]>MAX(nres_1mol_jmol_typ[imoltyp_tors_free[i]],1))
+                                                               {ierr=i;}
+    }/*endfor*/
+  }/*endif*/
+
+  if(rbar_sig_free_iopt>0){
+    imoltyp_rbar1_free = free_parse->imoltyp_rbar1_free;
+    imoltyp_rbar2_free = free_parse->imoltyp_rbar2_free;
+    imol_rbar1_free    = free_parse->imol_rbar1_free;
+    imol_rbar2_free    = free_parse->imol_rbar2_free;
+    ires_rbar1_free    = free_parse->ires_rbar1_free;
+    ires_rbar2_free    = free_parse->ires_rbar2_free;
+    nbar_bond          = free_parse->nbar_bond;
+
+    for(i=1;i<=nbar_bond;i++){
+     if(imol_rbar1_free[i]>nmol_jmol_typ[imoltyp_rbar1_free[i]]){ierr=1;}
+     if(imol_rbar2_free[i]>nmol_jmol_typ[imoltyp_rbar2_free[i]]){ierr=2;}
+     if(ires_rbar1_free[i]>
+              MAX(nres_1mol_jmol_typ[imoltyp_rbar1_free[i]],1)){ierr=1;}
+     if(ires_rbar2_free[i]>
+              MAX(nres_1mol_jmol_typ[imoltyp_rbar2_free[i]],1)){ierr=2;}
+    }/*endfor*/
+  }/*endif*/
+
+  if(ierr>0){
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+      printf("Error specifing the %dth atom in a free energy def \n",ierr);
+      printf("in set up file %s \n",molsetname);
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(1);
+  }/*endif*/ 
+
+/*=======================================================================*/
+/* VI) Check for stochastic DFT                                          */
+/*     (move to control_mol_params) */
+
+/*=======================================================================*/
+/* VII) Free memory                                                      */
+
+  cfree(&mol_ind_chk[1]);
+  cfree(&ifound[1]);
+  cfree(dictMolFrag);
+
+/*-----------------------------------------------------------------------*/
+   }/*end routine*/
+/*=======================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+/* Control ewald/cp g-space initialization */
+/*==========================================================================*/
+
+void controlSetCpEwaldFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
+	       CP *cpMini,BONDED *bondedMini,CP *cp,CLASS *class,
+	        GENERAL_DATA *general_data,BONDED *bonded,
+                          CP_PARSE *cp_parse)
+/*=======================================================================*/
+/*            Begin subprogram:                                          */
+   {/*begin routine*/
+/*************************************************************************/
+/* Our FFT grid is numGridDim[0](c)*numGridDim[1](b)*numGridDim[2](a)	 */
+/* The k space coef number should be 2n+1 for each dimension, from -n to */
+/* n. and n=numGridDim[i]-1. The total k space coef number is ((2na+1)*	 */
+/* (2nb+1)*(2nc+1)-1)/2. Wf and density share the same k space	     */
+/*************************************************************************/
+/*=======================================================================*/
+/*            Local variable declarations:                               */
+
+  CPOPTS *cpopts	= &(cpMini->cpopts);
+  SIMOPTS *simopts	= &(generalDataMini->simopts);
+  CELL *cell		= &(generalDataMini->cell);
+  CPCOEFFS_INFO *cpcoeffs_info	= &(cpMini->cpcoeffs_info);
+  EWALD *ewald		= &(generalDataMini->ewald);
+  CPEWALD *cpewald	= &(cpMini->cpewald);
+  PSEUDO *pseudo	= &(cpMini->pseudo);
+  EWD_SCR *ewd_scr	= &(classMini->ewd_scr);
+  ECOR *ecor		= &(bondedMini->ecor);
+  STODFTINFO *stodftInfo    = cp->stodftInfo;
+  FRAGINFO *fragInfo	    = stodftInfo->fragInfo;
+  
+  int iFrag = fragInfo->iFrag;
+  int idum1=1,idum2=1,idum3=1;
+  int iii;                            /* Num: Debug tool                    */
+  int nmall;
+  int cp_on;                          /* Num: CP on flag                    */
+  int nk1,nk2,nk3;                    /* Num: Number of k vec on small grid */
+  int nkf1_dens_cp_box,nkf2_dens_cp_box,nkf3_dens_cp_box;               
+		      /* Num: Number of k vec on large  grid*/
+  int nkf1,nkf2,nkf3;                 /* Num: Number of k vec on mega  grid */
+
+  int nktot,nktot_res,nktot_sm;       /* Num: Spherically cutoff k vecs     */
+  int nktot_dens_cp_box;
+  int ncoef,ncoef_dens_cp_box,ncoef_l;
+  int ngrid_tot,nlen_pme;             /* Num: PME sizes                     */
+  int ngrid_a_res,ngrid_b_res,ngrid_c_res;
+  int ngrid_a, ngrid_b, ngrid_c;
+  int pme_b_opt;
+  int iperd	= cell->iperd;
+  int box_rat	    = cpewald->box_rat;
+  int kmax_ewd	    = cp_parse->kmax_ewd;
+  int kmax_res	    = cp_parse->kmax_res;
+  int cp_lsda	    = cpopts->cp_lsda;
+  int cp_dual_grid_opt_on = cpopts->cp_dual_grid_opt_on;
+  int numGridFragProc = fragInfo->numGridFragProc[iFrag];
+
+  int *kmaxv;                         /* Lst: K-vector ranges               */
+  int *kmax_cp_tmp,*kmaxv_res,cp_on_tmp;
+  int *kmax_cp;
+  int *kmaxv_dens_cp_box;
+  int *kmax_cp_dens_cp_box;
+  int *numGridDim = fragInfo->numGridFragDim[iFrag];
+
+  double ecut_now;                    /* Num: Energy cutoff                 */
+  double ecut_dens_cp_box_now;        /* Num: Energy cutoff                 */
+  double ecut_res,ecut_tmp;
+  double ecut_lg;                     /* Num: Energy cutoff for dens        */
+  double ecut_sm;                     /* Num: Energy cutoff for wf          */
+  double deth,deth_cp,side;           /* Num: Volumes and sizes             */
+  double now_mem;                     /* Num: Memory used here              */
+  double gmin_spl_tmp,gmin_true_tmp;  /* Num : Min/Max g-vectors            */
+  double gmax_spl_tmp;
+  double dbox_rat  =   cpewald->dbox_rat;
+
+  double *gmin_true = &(pseudo->gmin_true);
+  double *gmin_spl  = &(pseudo->gmin_spl);
+  double *gmax_spl  = &(pseodu->gmax_spl);
+  double *bfact_r, *bfact_i;
+  double *hmati_ewd;                  /* Num: Inverse ewald h matrix        */
+  double *hmati_ewd_cp;               /* Num: Inverse cp ewald h matrix     */
+  double *hmat_ewd    = cell->hmat_ewd;
+  double *hmat_ewd_cp = cell->hmat_ewd_cp;
+
+/*=======================================================================*/
+/* 0) Output to screen                                                   */
+
+/*=======================================================================*/
+/* I) Set cp switch and initialize respa kvectors                        */
+ 
+  cp_on = 1;
+  // int_res_ter==0
+  ewald->nktot_res=0;
+  ecor->nktot_res=0;
+
+/*=======================================================================*/
+/* II) Allocate simple memory                                            */
+
+  hmati_ewd      = (double *) cmalloc((size_t)9*sizeof(double))-1;
+  hmati_ewd_cp   = (double *) cmalloc((size_t)9*sizeof(double))-1;
+  kmaxv          =    (int *) cmalloc((size_t)3*sizeof(int))-1;
+  kmaxv_res      =    (int *) cmalloc((size_t)3*sizeof(int))-1;
+  kmax_cp_tmp    =    (int *) cmalloc((size_t)3*sizeof(int))-1;
+
+  cpewald->kmax_cp = (int *) cmalloc((size_t)3*sizeof(int))-1;
+  kmax_cp          = cpewald->kmax_cp;
+  cpewald->kmax_cp_dens_cp_box = (int *) cmalloc((size_t)3*sizeof(int))-1;
+  kmax_cp_dens_cp_box          = cpewald->kmax_cp_dens_cp_box;
+  if(cp_dual_grid_opt_on >= 1){ 
+    kmaxv_dens_cp_box = (int *) cmalloc((size_t)3*sizeof(int))-1;
+  }/*endif*/     
+
+
+/*==========================================================================*/
+/* III) Get inverse cell matrix and convert ewald_alpha                     */
+
+  gethinv(hmat_ewd,hmati_ewd,&deth,iperd);    
+  gethinv(hmat_ewd_cp,hmati_ewd_cp,&deth_cp,iperd);    
+
+  side  = pow(deth,(1.0/3.0));  
+  (ewald->alp_ewd) /= side;
+  
+/*==========================================================================*/
+/* IV) Calculate cutoff, count number k vectors, Malloc and Fill            */
+
+/*----------------------------------------------------------------------*/
+/* A) Calculate cutoff, count number k vectors, malloc and fill        */
+/*    Without the dual box this is standard grid for cp/ewald          */
+/*    With the dual box this is the small box calculation              */
+   
+   /*
+   calc_cutoff(kmax_ewd,&ecut_now,&(cp_parse->cp_ecut),cp_on,
+                kmax_cp,kmaxv,hmati_ewd_cp,deth_cp);  
+   printf("!!!!!!!!!!!!!! ecut_now %lg\n",ecut_now);
+
+   countkvec3d(&(ewald->nktot),ecut_now,kmaxv,hmati_ewd_cp); 
+
+
+   nktot                   = ewald->nktot;
+   cpcoeffs_info->ecut     = ecut_now;
+   cpcoeffs_info->ncoef_l  = nktot+1;
+   ncoef_l                 = nktot+1;
+   ecor->ecut              = 4.0*ecut_now;
+   ewald->ecut             = 4.0*ecut_now;
+   ewald->nkc_max          = kmaxv[3];
+   */
+  ecor->ecut = bonded->ecor.ecut; // I don't think I need ecor but just to prevent segfault
+  ewald->ecut = general_data->ewald.ecut;
+  ecut_now = 1.0e30; // A big number so that all grids included
+
+  kmaxv[1] = numGridDim[2]/2-1; 
+  kmaxv[2] = numGridDim[1]/2-1;
+  kmaxv[3] = numGridDim[0]/2-1;
+  ewald->nkc_max = kmaxv[3];
+  kmax_cp[1] = kmaxv[1];
+  kmax_cp[2] = kmaxv[2];
+  kmax_cp[3] = kmaxv[3];
+  nktot = ((kmaxv[1]*2+1)*(kmaxv[2]*2+1)*(kmaxv[3]*2+1)-1)/2;
+  ewald->nktot = nktot;
+  cpcoeffs_info->ncoef_l = nktot+1;
+  kmax_cp_dens_cp_box[1] = kmax_cp[1];
+  kmax_cp_dens_cp_box[2] = kmax_cp[2];
+  kmax_cp_dens_cp_box[3] = kmax_cp[3];
+
+
+/*----------------------------------------------------------------------*/
+/* A.1) For dualing : Calculate cutoff and count kvectors for the large */
+/*      box and save the small box.                                     */
+ 
+/*----------------------------------------------------------------------*/
+/* B) Malloc                                                            */
+
+  nmall =  nktot+1;   if((nmall % 2)==0){nmall++;}
+  ewald->nktot_mall = nmall;
+
+  ewald->kastr = (int *) cmalloc(nmall*sizeof(int))-1;
+  ewald->kbstr = (int *) cmalloc(nmall*sizeof(int))-1;
+  ewald->kcstr = (int *) cmalloc(nmall*sizeof(int))-1;
+  ewald->ibrk1 = (int *) cmalloc(nmall*sizeof(int))-1;
+  ewald->ibrk2 = (int *) cmalloc(nmall*sizeof(int))-1;
+
+/*------------------------------------------------------------------------*/
+
+/*------------------------------------------------------------------------*/
+/* C) Fill                                                                */
+  setkvec3d(nktot,ecut_now,kmaxv,hmati_ewd,
+            ewald->kastr,ewald->kbstr,ewald->kcstr,
+            ewald->ibrk1,ewald->ibrk2,cp_on,
+            gmin_spl,gmin_true,gmax_spl);
+/*------------------------------------------------------------------------*/
+/* C) Fill DENS_CP_BOX                                                    */
+
+/*=======================================================================*/
+/* V) Setup PME                                                          */
+
+/*=======================================================================*/
+/* VI) Set up RESPA k vectors and RESPA PME                              */
+
+/*=======================================================================*/
+/* VII) Setup CP coefs and k vectors                                     */
+
+  if(cp_on == 1) {
+
+/*--------------------------------------------------------------------*/
+/*  A)  Count the k-vectors                                           */
+      /*
+      ecut_sm = ecut_dens_cp_box_now;
+      countkvec3d_sm(&(cpewald->nktot_sm),ecut_sm,
+                     kmax_cp_dens_cp_box,hmati_ewd_cp);
+      nktot_sm = cpewald->nktot_sm;
+      cpcoeffs_info->ncoef   = nktot_sm+1;
+      ncoef                  = nktot_sm+1;
+      */    
+    ecut_now = 1.0e30;  
+    nktot_sm = nktot;
+    cpewald->nktot_sm = nktot;
+    cpcoeffs_info->ncoef = nktot_sm+1;
+    ncoef = nktot_sm+1;
+/*--------------------------------------------------------------------*/
+/*  B)  Malloc                                                       */
+    nmall =  (nktot_sm+1);if((nmall % 2)==0){nmall++;}
+    cpewald->nktot_cp_sm_mall = nmall;
+    cpewald->kastr_sm = (int *) cmalloc(nmall*sizeof(int))-1;
+    cpewald->kbstr_sm = (int *) cmalloc(nmall*sizeof(int))-1;
+    cpewald->kcstr_sm = (int *) cmalloc(nmall*sizeof(int))-1;
+    cpewald->ibrk1_sm = (int *) cmalloc(nmall*sizeof(int))-1;
+    cpewald->ibrk2_sm = (int *) cmalloc(nmall*sizeof(int))-1;
+
+    nmall =  ncoef; if((nmall % 2)==0){nmall++;}
+    cpcoeffs_info->cmass = (double *)cmalloc(nmall*sizeof(double))-1;
+/*--------------------------------------------------------------------*/
+/*  C)  Fill and check                                                */
+
+    setkvec3d_sm(nktot_sm,ecut_sm,kmax_cp_dens_cp_box,hmati_ewd_cp,
+                 cpewald->kastr_sm,cpewald->kbstr_sm,cpewald->kcstr_sm,
+                 cpewald->ibrk1_sm,cpewald->ibrk2_sm,
+                 &(cpewald->gw_gmin),&(cpewald->gw_gmax));
+
+    if(cp_dual_grid_opt_on == 0 && cp_on == 1){
+      check_kvec(ewald->nktot,ewald->kastr,ewald->kbstr,ewald->kcstr,nktot_sm,
+                  cpewald->kastr_sm,cpewald->kbstr_sm,cpewald->kcstr_sm);
+    }
+/*--------------------------------------------------------------------*/
+/*  D) Set up the cp masses                                           */
+
+    set_cpmass(ncoef,cpewald->kastr_sm,
+               cpewald->kbstr_sm,cpewald->kcstr_sm,
+               cpcoeffs_info->cmass,hmati_ewd_cp,
+               &(cp_parse->cp_mass_tau_def),cp_parse->cp_mass_cut_def,
+               &(cpcoeffs_info->icmass_unif));
+   }/*endif:cpon*/
+
+/*=======================================================================*/
+/* VIII) Output time has arrived                                         */
+
+/*=======================================================================*/
+/* IX) Free excess memory                                                */
+
+   cfree(&(hmati_ewd)[1]);
+   cfree(&(hmati_ewd_cp)[1]);
+   cfree(&(kmaxv)[1]);
+   cfree(&(kmaxv_res)[1]);
+   cfree(&(kmax_cp_tmp)[1]);
+
+/*-----------------------------------------------------------------------*/ 
+  }/* end routine */
+/*=======================================================================*/
+
+
+
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+/* Control the setup of the FFT packages                                    */
+/*==========================================================================*/
+
+void controlFFTPkgFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,CP *cpMini,
+	    CP *cp)
+
+/*=========================================================================*/
+     {/*Begin Routine*/
+/*=========================================================================*/
+/*    Local Variables */
+
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg_sm = &(cpMini->cp_sclr_fft_pkg3d_sm);
+  PARA_FFT_PKG3D *cp_para_fft_pkg_sm = &(cpMini->cp_para_fft_pkg_sm);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg_dens_cp_box = &(cpMini->cp_sclr_fft_pkg_dens_cp_box);
+  PARA_FFT_PKG3D *cp_para_fft_pkg_dens_cp_box = &(cpMini->cp_para_fft_pkg_dens_cp_box);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg_lg = &(cpMini->cp_sclr_fft_pkg_lg);
+  PARA_FFT_PKG3D *cp_para_fft_pkg_lg = &(cpMini->cp_para_fft_pkg_lg);
+  PARA_FFT_PKG3D *pme_fft_pkg = &(cpMini->pme_fft_pkg);
+  PARA_FFT_PKG3D *pme_res_fft_pkg = &(cpMini->pme_res_fft_pkg);
+  EWALD *ewald = &(generalDataMini->ewald);
+  CPEWALD *cpewald = &(cpMini->cpewald);
+  PART_MESH *part_mesh = &(classMini->part_mesh);
+  CPCOEFFS_INFO *cpcoeffs_info = &(cpMini->cpcoeffs_info);
+  COMMUNICATE *communicate = &(classMini->communicate);
+  CPOPTS *cpopts = &(cpMini->cpopts);
+  STODFTINFO *stodftInfo = cp->stodftInfo;
+  FRAGINFO *fragInfo->stodftInfo->fragInfo;
+  
+
+  int iFrag = fragInfo->iFrag;
+  int nkf1,nkf2,nkf3,nfft_ext,iii;
+  int nkf1_dens_cp_box,nkf2_dens_cp_box,nkf3_dens_cp_box;
+          /* used for denisty on cp grid when have 2 boxes*/
+  int cp_on	  = 1;  // Always do cp
+  int cp_lsda	      = cpopts->cp_lsda;
+  int cp_para_opt     = cpopts->cp_para_opt;
+  int cp_dual_grid_opt_on = cpopts->cp_dual_grid_opt_on;
+  int nstate_up          = cpcoeffs_info->nstate_up;
+  int nstate_dn          = cpcoeffs_info->nstate_dn;
+  int ncoef              = cpcoeffs_info->ncoef;
+  int ncoef_dens_cp_box  = cpcoeffs_info->ncoef_l_dens_cp_box;
+  int ncoef_l            = cpcoeffs_info->ncoef_l;
+  int nktot              = ewald->nktot;
+  int nktot_dens_cp_box  = cpewald->nktot_dens_cp_box;
+  int box_rat            = cpewald->box_rat;
+  int nktot_res          = ewald->nktot_res;
+  int *kmax_cp           = cpewald->kmax_cp;
+  int *kmax_cp_dens_cp_box = cpewald->kmax_cp_dens_cp_box;
+  int myid               = communicate->myid;
+  int np_states          = communicate->np_states;
+  int myid_state         = communicate->myid_state;
+  int pme_on             = part_mesh->pme_on;
+  int pme_res_on         = part_mesh->pme_res_on;
+  int myid_forc          = communicate->myid_forc;
+  int np_forc            = communicate->np_forc;
+  int ngrid_a            = part_mesh->ngrid_a;
+  int ngrid_b            = part_mesh->ngrid_b;
+  int n_interp           = part_mesh->n_interp;
+  int n_interp_res       = part_mesh->n_interp_res;
+  int pme_para_opt       = part_mesh->pme_para_opt;
+  int *numGridDim    = fragInfo->numGridFragDim[iFrag];
+
+/*=========================================================================*/
+/* 0) Print to screen and check for nproc > nstate error */
+
+/*=========================================================================*/
+/* 0.1) Set CP FFT Size  */
+
+  nkf1 = numGridDim[2];
+  nkf2 = numGridDim[1];
+  nkf3 = numGridDim[0];
+  //nkf1 = 4*(kmax_cp_dens_cp_box[1]+1);
+  //nkf2 = 4*(kmax_cp_dens_cp_box[2]+1);
+  //nkf3 = 4*(kmax_cp_dens_cp_box[3]+1);
+
+/*=========================================================================*/
+/* I) DENS_CP_BOX CP scalar package                                        */
+
+/*=========================================================================*/
+/* II) DENSITY_CP_BOX  parallel package                                    */
+/*       This package must be made for both hybrid and full_g options      */
+
+/*=========================================================================*/
+/* I) Large CP scalar package                                              */
+
+
+ if(cp_on == 1 && cp_para_opt == 0){/* hybrid option */
+    cp_sclr_fft_pkg_lg->nkf1       = nkf1;
+    cp_sclr_fft_pkg_lg->nkf2       = nkf2;
+    cp_sclr_fft_pkg_lg->nkf3       = nkf3;
+      
+    cp_sclr_fft_pkg_lg->nktot      = nktot;
+    cp_sclr_fft_pkg_lg->ncoef      = ncoef_l;
+
+    cp_sclr_fft_pkg_lg->myid       = 0;
+    cp_sclr_fft_pkg_lg->myidp1     = 1;
+    cp_sclr_fft_pkg_lg->num_proc   = 1;
+    cp_sclr_fft_pkg_lg->comm       = communicate->comm_faux;
+
+    create_para_fft_pkg3d(cp_sclr_fft_pkg_lg,
+                          ewald->kastr,ewald->kbstr,
+                          ewald->kcstr,cp_dual_grid_opt_on);
+  }/*endif*/
+
+
+/*=========================================================================*/
+/* II) Large CP parallel package                                           */
+
+  if(cp_on == 1){
+    /*
+    nkf1 = 4*(kmax_cp[1]+1);
+    nkf2 = 4*(kmax_cp[2]+1);
+    nkf3 = 4*(kmax_cp[3]+1);
+    */
+    cp_para_fft_pkg_lg->nkf1       = nkf1;
+    cp_para_fft_pkg_lg->nkf2       = nkf2;
+    cp_para_fft_pkg_lg->nkf3       = nkf3;
+      
+    cp_para_fft_pkg_lg->nktot      = nktot;
+    cp_para_fft_pkg_lg->ncoef      = ncoef_l;
+   
+    cp_para_fft_pkg_lg->myid       = myid_state;
+    cp_para_fft_pkg_lg->myidp1     = myid_state+1;
+    cp_para_fft_pkg_lg->num_proc   = np_states;
+    cp_para_fft_pkg_lg->comm       = communicate->comm_states;
+
+    create_para_fft_pkg3d(cp_para_fft_pkg_lg,
+                          ewald->kastr,ewald->kbstr,
+                          ewald->kcstr,cp_dual_grid_opt_on);
+  }/*endif*/
+
+/*=========================================================================*/
+/* III) Small  CP scalar package                                           */
+
+  if(cp_on == 1 && cp_para_opt == 0){/* hybrid option */
+    /*
+    nkf1 = 4*(kmax_cp_dens_cp_box[1]+1);
+    nkf2 = 4*(kmax_cp_dens_cp_box[2]+1);
+    nkf3 = 4*(kmax_cp_dens_cp_box[3]+1);
+    */
+    cp_sclr_fft_pkg_sm->nkf1       = nkf1;
+    cp_sclr_fft_pkg_sm->nkf2       = nkf2;
+    cp_sclr_fft_pkg_sm->nkf3       = nkf3;
+      
+    cp_sclr_fft_pkg_sm->nktot      = ncoef-1;
+    cp_sclr_fft_pkg_sm->ncoef      = ncoef;
+
+    cp_sclr_fft_pkg_sm->myid       = 0;
+    cp_sclr_fft_pkg_sm->myidp1     = 1;
+    cp_sclr_fft_pkg_sm->num_proc   = 1;
+    cp_sclr_fft_pkg_sm->comm       = communicate->comm_faux;
+
+    create_para_fft_pkg3d(cp_sclr_fft_pkg_sm,
+                          cpewald->kastr_sm,cpewald->kbstr_sm,
+                          cpewald->kcstr_sm,cp_dual_grid_opt_on);
+
+  }/*endif*/
+
+/*=========================================================================*/
+/* IV) Small  CP parallel package                                         */
+
+  if(cp_on == 1 && cp_para_opt == 1){/* full g option */
+    /*
+    nkf1 = 4*(kmax_cp_dens_cp_box[1]+1);
+    nkf2 = 4*(kmax_cp_dens_cp_box[2]+1);
+    nkf3 = 4*(kmax_cp_dens_cp_box[3]+1);
+    */
+
+    cp_para_fft_pkg_sm->nkf1       = nkf1;
+    cp_para_fft_pkg_sm->nkf2       = nkf2;
+    cp_para_fft_pkg_sm->nkf3       = nkf3;
+      
+    cp_para_fft_pkg_sm->nktot      = ncoef-1;
+    cp_para_fft_pkg_sm->ncoef      = ncoef;
+
+    cp_para_fft_pkg_sm->myid       = myid_state;
+    cp_para_fft_pkg_sm->myidp1     = myid_state+1;
+    cp_para_fft_pkg_sm->num_proc   = np_states;
+    cp_para_fft_pkg_sm->comm       = communicate->comm_states;
+
+    create_para_fft_pkg3d(cp_para_fft_pkg_sm,
+                         cpewald->kastr_sm,cpewald->kbstr_sm,
+                          cpewald->kcstr_sm,cp_dual_grid_opt_on);
+
+  }/*endif*/
+
+/*=========================================================================*/
+/* V) PME package                                                         */
+
+/*=========================================================================*/
+/* VI) PME_RES package                                                      */
+
+/*=========================================================================*/
+/* VI) Output */
+
+/*-------------------------------------------------------------------------*/
+}/*end routine */
+/*=========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+
+void controlVpsParamsFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
+	      CP *cpMini,FILENAME_PARSE *filename_parse,
+	      SPLINE_PARSE *spline_parse,CP_PARSE *cp_parse)
+
+/*==========================================================================*/
+/*               Begin subprogram:                                          */
+      {/*begin routine*/
+/*==========================================================================*/
+/*               Local variable declarations                                */
+#include "../typ_defs/typ_mask.h"
+  PSEUDO *pseudo = &(cpMini->pseudo);
+  CELL *cell = &(generalDataMini->cell);
+  ATOMMAPS *atommaps = &(classMini->atommaps);
+  CLATOMS_INFO *clatoms_info = &(classMini->clatoms_info);
+  CPOPTS *cpopts = &(cpMini->cpopts);
+  COMMUNICATE *communicate = &(classMini->communicate);
+  
+  CVPS *cvps_typ;
+  VPS_FILE *vps_file;          /* Fle:  Pseudopotential file          */
+  DICT_WORD *word;
+  DICT_WORD *fun_dict;
+  DICT_WORD *vps_dict,*vps_dict_tmp;
+  NAME *atm_typ = atommaps->atm_typ;
+  MPI_Comm comm = communicate->world;
+ 
+  int natm_typ = atommaps->natm_typ;
+  int natm_tot = clatoms_info->natm_tot;
+  int natm_ab_init = clatoms_info->nab_initio;
+  int cp_ptens_calc = cpopts->cp_ptens_calc;
+  int cp_dual_grid_opt = cpopts->cp_dual_grid_opt;
+  
+  int i;                       /* Num:  For loop counters             */
+  int ifound;                  /* Num:  Data base match flag          */
+  int ishift,ishift2,ishift3;  /* Num:  Angular momentum shifts       */
+  int ngh_now;                 /* Num:  Number of ngh points read in  */
+  int ngh_max;                 /* Num:  Max number of ngh points      */
+  int num_fun_dict;
+  int num_vps_dict,ifirst,iii;
+  int natm_typ_mall,natm_mall,nsplin_mall,norm_mall,nlist_mall,nsplin_mall_dvr;
+  int nmall_gh,natm_typ_gh = 0;   /* starting malloc value for gauss-hermite */
+  int iopt_cp_dvr = cpcoeffs_info->iopt_cp_dvr;
+  int myid      = communicate->myid;
+  int num_proc  = communicate->np;
+
+
+  char *filename;              /* Char: temp file name                */
+  char *fun_key;
+
+  double now_mem;              /* Num:  Current memory usage          */
+  double ecut_cp = cp_parse->cp_ecut;
+  double dummy0,dummy1,dummy2,dummy3;
+  double alpha_conv_dual = pseudo->alpha_conv_dual;
+  double vol_cp   = cell->vol_cp;
+  double *hmat     = cell->hmat;
+  double grid_h;
+
+/*==========================================================================*/
+/* 0) Output                                                                */
+
+/*==========================================================================*/
+/* 0.5) Toast bad spline points : (note conversion back to Ry)              */
+
+  if( (pseudo->nsplin_g< 4000) && (2.0*ecut_cp > 60.0) && (iopt_cp_dvr == 0)){
+     if(myid==0){
+       printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+       printf("Now, dude, lets clean up those files and use a \n");
+       printf("reasonable number of psuedo spline points at large \n");
+       printf("cutoffs. Its clear, %d points at %g Ry, won't do!\n",
+               pseudo->nsplin_g,2.0*ecut_cp);
+       printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+       fflush(stdout);
+     }/*endif*/
+     exit(1);
+  }/*endif*/
+
+/*==========================================================================*/
+/* I) Convert alpha_conv_dual and Allocate some temporary character arrays  */
+
+   alpha_conv_dual        /= (pow(vol_cp,1.0/3.0));
+   pseudo->alpha_conv_dual = alpha_conv_dual;
+
+  if(myid==0){
+   filename_parse->vps_name = (NAME *) cmalloc(natm_typ*sizeof(NAME))-1;
+   vps_file  = (VPS_FILE *) cmalloc(natm_typ*sizeof(VPS_FILE))-1;
+   fun_key   = (char *)cmalloc(MAXWORD*sizeof(char));  
+   filename  = (char *)cmalloc(MAXWORD*sizeof(char));  
+   word      = (DICT_WORD *)cmalloc(sizeof(DICT_WORD))-1;  
+   cvps_typ  = (CVPS *)cmalloc(sizeof(CVPS));  
+   ifirst    = 1;
+   set_potfun_dict(&fun_dict,&num_fun_dict,ifirst);
+   set_potvps_dict(&vps_dict,&num_vps_dict,ifirst);      
+   set_potvps_dict(&vps_dict_tmp,&num_vps_dict,ifirst);      
+ }/*endif*/
+
+
+/*==========================================================================*/
+/* III) Malloc up the vps stuff                                             */ 
+
+   natm_typ_mall      = natm_typ;
+
+   if( (natm_typ_mall % 2)==0){natm_typ_mall++;}
+
+   pseudo->n_ang      = (int *) cmalloc(natm_typ_mall*sizeof(int))-1;
+   pseudo->loc_opt    = (int *) cmalloc(natm_typ_mall*sizeof(int))-1;
+   pseudo->ivps_label = (int *) cmalloc(natm_typ_mall*sizeof(int))-1;
+   pseudo->rcut_nl    = (double *) cmalloc(natm_typ_mall*sizeof(double))-1;
+   pseudo->q_pseud    = (double *) cmalloc(natm_typ_mall*sizeof(double))-1;
+
+   pseudo->nrad_0 = (int *) cmalloc(natm_typ_mall*sizeof(int))-1;
+   pseudo->nrad_1 = (int *) cmalloc(natm_typ_mall*sizeof(int))-1;
+   pseudo->nrad_2 = (int *) cmalloc(natm_typ_mall*sizeof(int))-1;
+   pseudo->nrad_3 = (int *) cmalloc(natm_typ_mall*sizeof(int))-1;
+
+   pseudo->nl_alp = (double *) cmalloc(natm_typ_mall*sizeof(double))-1;
+   pseudo->nl_beta = (double *) cmalloc(natm_typ_mall*sizeof(double))-1;
+   pseudo->nl_filter = (int *) cmalloc(natm_typ_mall*sizeof(int))-1;
+
+   pseudo->phi0_0 = (double *) cmalloc(natm_typ_mall*sizeof(double))-1;
+   pseudo->phi0_1 = (double *) cmalloc(natm_typ_mall*sizeof(double))-1;
+   pseudo->phi0_2 = (double *) cmalloc(natm_typ_mall*sizeof(double))-1;
+
+/*==========================================================================*/
+/* III) Loop over all unique atom types and get the vps stuff               */ 
+
+ if(myid==0){
+   pseudo->n_rad_max    = 0;
+   pseudo->n_ang_max    = 0;
+   pseudo->n_ang_max_kb = 0;
+   pseudo->n_ang_max_gh = 0;
+   ngh_max = 0;
+   for(i=1;i<=natm_typ;i++) {
+/*--------------------------------------------------------------------------*/
+/*     A) First search the user defined data base                           */
+
+      ifound = 0;
+      strcpy(cvps_typ->atm1,atm_typ[i]);
+      if(strcasecmp(filename_parse->user_vps_name,"")!=0) {
+         search_base_vps(filename_parse->user_vps_name,
+                         cvps_typ,fun_dict,num_fun_dict,
+                         &vps_dict_tmp,vps_dict,num_vps_dict,&ifound);
+         if(ifound==1){
+            set_vps_params(vps_dict,
+                           filename_parse->user_vps_name,fun_key,
+                           &(pseudo->ivps_label[i]),filename,
+                           &(pseudo->loc_opt[i]),&(pseudo->n_ang[i]),
+                           &(pseudo->rcut_nl[i]),&ngh_now,
+                           &(pseudo->nrad_0[i]),
+                           &(pseudo->nrad_1[i]),&(pseudo->nrad_2[i]),
+                           &(pseudo->nrad_3[i]),
+                           &(pseudo->nl_alp[i]),&(pseudo->nl_beta[i]),
+                           &(pseudo->nl_filter[i]),
+                           &(pseudo->phi0_0[i]),
+                           &(pseudo->phi0_1[i]),&(pseudo->phi0_2[i]));
+         }/*endif*/
+     }/*endif*/
+/*--------------------------------------------------------------------------*/
+/*     B) If you haven't found it search the default data base              */
+
+      if(ifound == 0) {
+         search_base_vps(filename_parse->def_vps_name,
+                         cvps_typ,fun_dict,num_fun_dict,
+                         &vps_dict_tmp,vps_dict,num_vps_dict,&ifound);
+         if(ifound==1){
+            set_vps_params(vps_dict,
+                           filename_parse->def_vps_name,fun_key,
+                           &(pseudo->ivps_label[i]),filename,
+                           &(pseudo->loc_opt[i]),&(pseudo->n_ang[i]),
+                           &(pseudo->rcut_nl[i]),&ngh_now,
+                           &(pseudo->nrad_0[i]),
+                           &(pseudo->nrad_1[i]),&(pseudo->nrad_2[i]),
+                           &(pseudo->nrad_3[i]),
+                           &(pseudo->nl_alp[i]),&(pseudo->nl_beta[i]),
+                           &(pseudo->nl_filter[i]),
+                           &(pseudo->phi0_0[i]),
+                           &(pseudo->phi0_1[i]),&(pseudo->phi0_2[i]));
+
+         }/*endif*/
+      }/*endif*/
+/*--------------------------------------------------------------------------*/
+/*     C) Make sure you have now found this puppy, if not exit              */
+
+      if(ifound == 0) {
+         printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+         printf("Electron pseudopotential interaction with\n"); 
+         printf("%s\n",atm_typ[i]);
+         printf("not found in default interaction data base\n");
+         printf("pi_md.vps\n");
+         if(strlen(filename_parse->user_vps_name) > 0)  {
+             printf("or in user defined pseudopot data base\n");
+             printf("%s\n",filename_parse->user_vps_name);
+         /*endif*/}
+        putchar('\n');
+        printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+        fflush(stdout);
+        exit(1);
+     }/*endif*/
+
+/*--------------------------------------------------------------------------*/
+/*     D) Find maximum angular momentum component                           */
+      pseudo->n_ang_max = (pseudo->n_ang_max > pseudo->n_ang[i] ? 
+                           pseudo->n_ang_max : pseudo->n_ang[i]);
+
+     if(pseudo->ivps_label[i] != 2){
+      pseudo->n_ang_max_kb = (pseudo->n_ang_max_kb > pseudo->n_ang[i] ? 
+                              pseudo->n_ang_max_kb : pseudo->n_ang[i]);
+     }else{
+      pseudo->n_ang_max_gh = (pseudo->n_ang_max_gh > pseudo->n_ang[i] ? 
+                              pseudo->n_ang_max_gh : pseudo->n_ang[i]);
+      natm_typ_gh++;
+     }/*endif*/
+
+      pseudo->n_rad_max = (pseudo->n_rad_max > pseudo->nrad_0[i] ? 
+                           pseudo->n_rad_max : pseudo->nrad_0[i]);
+      pseudo->n_rad_max = (pseudo->n_rad_max > pseudo->nrad_1[i] ?
+                           pseudo->n_rad_max : pseudo->nrad_1[i]);
+      pseudo->n_rad_max = (pseudo->n_rad_max > pseudo->nrad_2[i] ?
+                           pseudo->n_rad_max : pseudo->nrad_2[i]);
+      pseudo->n_rad_max = (pseudo->n_rad_max > pseudo->nrad_3[i] ?
+                           pseudo->n_rad_max : pseudo->nrad_3[i]);
+      ngh_max           = MAX(ngh_max,ngh_now);
+
+      strcpy(vps_file[i].name,filename);
+      strcpy(filename_parse->vps_name[i],filename);
+   }/*endfor natm_typ*/
+      pseudo->ngh = ngh_max;
+      pseudo->natm_typ_gh  = natm_typ_gh;
+ }/*endif : myid==0*/
+
+ if(num_proc>1){
+    Bcast(&(pseudo->ivps_label[1]),natm_typ,MPI_INT,0,comm);
+    Bcast(&(pseudo->loc_opt[1]),natm_typ,MPI_INT,0,comm);
+    Bcast(&(pseudo->n_ang[1]),natm_typ,MPI_INT,0,comm);
+    Bcast(&(pseudo->rcut_nl[1]),natm_typ,MPI_DOUBLE,0,comm);
+    Bcast(&(pseudo->nrad_0[1]),natm_typ,MPI_INT,0,comm);
+    Bcast(&(pseudo->nrad_1[1]),natm_typ,MPI_INT,0,comm);
+    Bcast(&(pseudo->nrad_2[1]),natm_typ,MPI_INT,0,comm);
+    Bcast(&(pseudo->nrad_3[1]),natm_typ,MPI_INT,0,comm);
+
+    Bcast(&(pseudo->nl_alp[1]),natm_typ,MPI_DOUBLE,0,comm);
+    Bcast(&(pseudo->nl_beta[1]),natm_typ,MPI_DOUBLE,0,comm);
+    Bcast(&(pseudo->nl_filter[1]),natm_typ,MPI_INT,0,comm);
+
+    Bcast(&(pseudo->phi0_0[1]),natm_typ,MPI_DOUBLE,0,comm);
+    Bcast(&(pseudo->phi0_1[1]),natm_typ,MPI_DOUBLE,0,comm);
+    Bcast(&(pseudo->phi0_2[1]),natm_typ,MPI_DOUBLE,0,comm);
+
+
+    Bcast(&(pseudo->n_rad_max),1,MPI_INT,0,comm);
+    Bcast(&(pseudo->n_ang_max),1,MPI_INT,0,comm);
+    Bcast(&(pseudo->n_ang_max_kb),1,MPI_INT,0,comm);
+    Bcast(&(pseudo->n_ang_max_gh),1,MPI_INT,0,comm);
+
+    Bcast(&(pseudo->ngh),1,MPI_INT,0,comm);
+    Bcast(&(pseudo->natm_typ_gh),1,MPI_INT,0,comm);
+    Bcast(&(ngh_max),1,MPI_INT,0,comm);
+
+    natm_typ_gh = pseudo->natm_typ_gh;
+
+ }/*endif*/
+
+/*==========================================================================*/
+/*  III) Allocate more memory for pseudopotentials                          */
+
+/*--------------------------------------------------------------------------*/
+/* i) Malloc Pseudo spline and other stuff */
+   pseudo->nsplin_g_tot = (pseudo->n_ang_max+1)*(pseudo->n_rad_max)
+                         *(pseudo->nsplin_g)*natm_typ;
+   nsplin_mall = pseudo->nsplin_g_tot;
+   norm_mall   = (pseudo->n_ang_max+1)*natm_typ*
+                 (pseudo->n_rad_max)*(pseudo->n_rad_max);
+   if((nsplin_mall % 2)==0){nsplin_mall++;}
+   if((norm_mall % 2)==0){norm_mall++;}
+   pseudo->nsplin_g_mall = nsplin_mall;
+   pseudo->nvpsnorm_mall = norm_mall;
+
+   pseudo->vps0    = (double *) cmalloc(nsplin_mall*sizeof(double))-1;
+   pseudo->vps1    = (double *) cmalloc(nsplin_mall*sizeof(double))-1;
+   pseudo->vps2    = (double *) cmalloc(nsplin_mall*sizeof(double))-1;
+   pseudo->vps3    = (double *) cmalloc(nsplin_mall*sizeof(double))-1;
+ 
+   now_mem   = ( nsplin_mall*4 *sizeof(double))*1.e-06;
+  *tot_memory += now_mem;
+
+   if(cp_ptens_calc == 1 || iopt_cp_dvr){
+
+     pseudo->dvps0    = (double *) cmalloc(nsplin_mall*sizeof(double))-1;
+     pseudo->dvps1    = (double *) cmalloc(nsplin_mall*sizeof(double))-1;
+     pseudo->dvps2    = (double *) cmalloc(nsplin_mall*sizeof(double))-1;
+     pseudo->dvps3    = (double *) cmalloc(nsplin_mall*sizeof(double))-1;
+   }/* endif */
+   pseudo->vpsnorm = (double *) cmalloc(norm_mall*sizeof(double))-1;
+   pseudo->gzvps   = (double *) cmalloc(natm_typ_mall*sizeof(double))-1;
+
+   pseudo->gzvps0  = (double *) cmalloc(natm_typ_mall*pseudo->n_rad_max*
+                                        sizeof(double))-1;
+   pseudo->nrad_max_l = (int *)cmalloc(natm_typ_mall*5*sizeof(int))-1;
+
+/*--------------------------------------------------------------------------*/
+/* iii) Pseudo list : MAJOR HACKET JOB */
+
+   natm_mall = natm_tot;
+   if((natm_mall % 2)==0){natm_mall++;}
+   nlist_mall = (pseudo->n_ang_max+1)*natm_tot;
+   if((nlist_mall % 2)==0){nlist_mall++;}
+   pseudo->n_ang_mall    = pseudo->n_ang_max;
+   pseudo->nlist_mall    = nlist_mall;
+
+   pseudo->x0w   = (double *) cmalloc(natm_mall*sizeof(double))-1;
+   pseudo->y0w   = (double *) cmalloc(natm_mall*sizeof(double))-1;
+   pseudo->z0w   = (double *) cmalloc(natm_mall*sizeof(double))-1;
+
+   pseudo->np_nl        = (int *) cmalloc((pseudo->n_ang_max+1)*sizeof(int))-1;
+   pseudo->np_nl_gh     = (int *) cmalloc((pseudo->n_ang_max+1)*sizeof(int))-1;
+   pseudo->ip_nl        = (int *) cmalloc(nlist_mall*sizeof(int))-1;
+   pseudo->ip_nl_gh     = (int *) cmalloc(nlist_mall*sizeof(int))-1;
+   pseudo->ip_nl_rev    = (int *) cmalloc(nlist_mall*sizeof(int))-1;
+   pseudo->ip_nl_rev_gh = (int *) cmalloc(nlist_mall*sizeof(int))-1;
+
+   pseudo->map_nl = (int *) cmalloc(natm_mall*sizeof(int))-1;
+   pseudo->ip_loc_cp_box = (int *) cmalloc(natm_mall *sizeof(int))-1;
+
+   pseudo->np_nl_rad_str  = cmall_int_mat(1,pseudo->n_ang_max+1,
+                                          1,pseudo->n_rad_max);
+   pseudo->np_nl_rad_end  = cmall_int_mat(1,pseudo->n_ang_max+1,
+                                          1,pseudo->n_rad_max);
+
+   pseudo->rgh = (double *)cmalloc(ngh_max*sizeof(double))-1;
+
+   nmall_gh =  ngh_max*(pseudo->natm_typ_gh)*(pseudo->n_ang_max+1);
+
+   pseudo->wgh = (double *)cmalloc((nmall_gh)*sizeof(double))-1;
+
+  for(i=1; i<= nmall_gh; i++){
+   pseudo->wgh[i] = 0.0;
+  }/*endfor*/ 
+
+  if(iopt_cp_dvr == 1){
+    pseudo->nsplin_r = (int *) cmalloc(natm_typ_mall*sizeof(int))-1;
+
+    pseudo->dr_spl   = (double *) cmalloc(natm_typ_mall*sizeof(double))-1;
+    pseudo->rmin     = (double *) cmalloc(natm_typ_mall*sizeof(double))-1;
+    /*
+    pseudo->rmax     = (double *) cmalloc(natm_typ_mall*sizeof(double))-1;
+    pseudo->z_1      = (double *) cmalloc(natm_typ_mall*sizeof(double))-1;
+    pseudo->z_2      = (double *) cmalloc(natm_typ_mall*sizeof(double))-1;
+    pseudo->alp_1    = (double *) cmalloc(natm_typ_mall*sizeof(double))-1;
+    pseudo->alp_2    = (double *) cmalloc(natm_typ_mall*sizeof(double))-1;
+
+    now_mem   = ( natm_typ_mall*sizeof(int)
+	  +   natm_typ_mall*7*sizeof(double))*1.e-06;
+    *tot_memory += now_mem;
+    */
+  }
+
+/*--------------------------------------------------------------------------*/
+/* iv) Output */
+
+/*==========================================================================*/
+/*  IV) Spline up the stuff                                                 */
+
+
+   for(i=1;i<=natm_typ;i++){
+     pseudo->nrad_max_l[1] = MAX(pseudo->nrad_max_l[1],pseudo->nrad_0[i]);
+     pseudo->nrad_max_l[2] = MAX(pseudo->nrad_max_l[2],pseudo->nrad_1[i]);
+     pseudo->nrad_max_l[3] = MAX(pseudo->nrad_max_l[3],pseudo->nrad_2[i]);
+     pseudo->nrad_max_l[4] = MAX(pseudo->nrad_max_l[4],pseudo->nrad_3[i]);
+   }/*endfor*/
+
+   pseudo->dg_spl = ((pseudo->gmax_spl)-(pseudo->gmin_spl))
+                    /((double)(pseudo->nsplin_g));
+
+   for(i=1;i<=natm_typ*(pseudo->n_rad_max);i++){
+     (pseudo->gzvps0)[i] = 0;
+   }/*endfor*/
+
+   if(iopt_cp_dvr== 0){ /*PW basis */
+     for(i=1;i<=natm_typ;i++) {
+       ishift  = (i-1)*(pseudo->n_ang_max+1)*(pseudo->nsplin_g)
+                      *(pseudo->n_rad_max);
+       ishift2 = (i-1)*(pseudo->n_ang_max+1)*(pseudo->n_rad_max)
+                      *(pseudo->n_rad_max);
+       ishift3 = (i-1)*(pseudo->n_rad_max);
+       if(myid==0){strcpy(filename,vps_file[i].name);}
+       if(cp_ptens_calc == 1){
+         make_vps_splin(filename,pseudo->loc_opt[i],pseudo->n_ang[i],
+                         pseudo->ivps_label[i],
+                         pseudo->nsplin_g,pseudo->dg_spl,
+                         pseudo->gmin_spl,
+                         pseudo->gmax_spl,pseudo->gmin_true,
+                         &(pseudo->vps0)[ishift],&(pseudo->vps1)[ishift],
+                         &(pseudo->vps2)[ishift],&(pseudo->vps3)[ishift],
+                         &(pseudo->dvps0)[ishift],&(pseudo->dvps1)[ishift],
+                         &(pseudo->dvps2)[ishift],&(pseudo->dvps3)[ishift],
+                         &(pseudo->gzvps)[i],&(pseudo->gzvps0)[ishift3],
+                         &(pseudo->q_pseud[i]),
+                         &(pseudo->vpsnorm)[ishift2],
+                         (pseudo->nrad_0[i]),
+                         (pseudo->nrad_1[i]),(pseudo->nrad_2[i]),
+                         (pseudo->nrad_3[i]),
+                         cp_ptens_calc,myid,comm,num_proc,
+                         cp_dual_grid_opt,alpha_conv_dual,pseudo->n_rad_max,
+                         pseudo->n_ang_max_gh,
+                         &(pseudo->ngh),pseudo->rgh,pseudo->wgh);
+       }else{
+         make_vps_splin(filename,pseudo->loc_opt[i],pseudo->n_ang[i],
+                         pseudo->ivps_label[i],
+                         pseudo->nsplin_g,pseudo->dg_spl,
+                         pseudo->gmin_spl,
+                         pseudo->gmax_spl,pseudo->gmin_true,
+                         &(pseudo->vps0)[ishift],&(pseudo->vps1)[ishift],
+                         &(pseudo->vps2)[ishift],&(pseudo->vps3)[ishift],
+                         &dummy0,&dummy1,
+                         &dummy2,&dummy3,
+                         &(pseudo->gzvps)[i],&(pseudo->gzvps0)[ishift3],
+                         &(pseudo->q_pseud[i]),
+                         &(pseudo->vpsnorm)[ishift2],
+                         (pseudo->nrad_0[i]),
+                         (pseudo->nrad_1[i]),(pseudo->nrad_2[i]),
+                         (pseudo->nrad_3[i]),
+                         cp_ptens_calc,myid,comm,num_proc,
+                         cp_dual_grid_opt,alpha_conv_dual,pseudo->n_rad_max,
+                         pseudo->n_ang_max_gh,
+                         &(pseudo->ngh),pseudo->rgh,pseudo->wgh);
+       }/* endif */
+     }/*endfor*/
+   }else{     
+     grid_h = hmat[1]/(double)(cpcoeffs_info->grid_nx);
+     if(grid_h < hmat[5]/(double)(cpcoeffs_info->grid_ny)){
+       grid_h = hmat[5]/(double)(cpcoeffs_info->grid_ny);
+     }
+     if(grid_h < hmat[9]/(double)(cpcoeffs_info->grid_nz)){
+       grid_h = hmat[9]/(double)(cpcoeffs_info->grid_nz);
+     }
+
+     if( cp_ptens_calc == 1){
+       if(myid==0){
+         printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+         printf("The pressure tensor is not implemented for DVR CP \n");
+         printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+         fflush(stdout);
+       }/*endif*/
+       exit(1);
+     }/*endif*/
+     if(pseudo->natm_typ_gh > 0){  /* NO GAUSS-HERMITE PSEUDOPOTENTIALS */
+       if(myid==0){
+         printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+         printf("Gauss-Hermite integration for pseudopotentials has not \n");
+         printf("been implemented for DVR CP \n");
+         printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+         fflush(stdout);
+       }/*endif*/
+       exit(1);
+     }/*endif*/
+     if( pseudo->n_rad_max > 1 ){  /* NO GOEDECKER PSEUDOPOTENTIALS */
+       if(myid==0){
+         printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+         printf("Goedecker pseudopotentials have not ");
+         printf("been implemented for DVR CP \n");
+         printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+         fflush(stdout);
+       }/*endif*/
+       exit(1);
+     }/*endif*/
+
+     pseudo->nsplin_r_tot = 0;
+     nsplin_mall_dvr = nsplin_mall;
+
+     for(i=1;i<=natm_typ;i++) {
+       if(myid==0){strcpy(filename,vps_file[i].name);}
+       make_vps_splin_dvr(filename,pseudo->loc_opt[i],natm_typ,i,
+                          &nsplin_mall_dvr,pseudo,
+                          &(pseudo->nsplin_r_tot),
+                          &(pseudo->gzvps)[i],&(pseudo->gzvps0)[i],
+                          (pseudo->nl_filter[i]), (pseudo->phi0_0[i]),
+                          (pseudo->phi0_1[i]),(pseudo->phi0_2[i]),
+                          (pseudo->nl_alp[i]),(pseudo->nl_beta[i]),
+                          myid,comm,num_proc,grid_h,cell->iperd);
+
+     }
+
+   }
+
+/*==========================================================================*/
+/*  V) Free                                                 */
+
+  if(myid==0){
+    cfree(&vps_file[1]);
+    cfree(fun_key);
+    cfree(filename);
+    cfree(&word[1]);
+    cfree(&fun_dict[1]);
+    cfree(&vps_dict[1]);
+    cfree(&vps_dict_tmp[1]);
+    cfree(cvps_typ);
+  }/*endif*/
+
+/*==========================================================================*/
+/*  VI) Output                                                              */
+
+/*--------------------------------------------------------------------------*/
+  }/*end routine*/
+/*==========================================================================*/
+
+
+

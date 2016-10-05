@@ -31,4 +31,15 @@ void splin_pseudo_wave(int ,double **,double **, double **, double **,int *,
 void get_rpsi(double ,double ,double , double *, double *, double *, int , int ,
               double **, double **,double **, double **, double *, double ,
               double , int , CELL *);
+void read_coef_sys_info(CP *, FILE *,int , char *);
+void read_coef_alloc_init(CP *, int ,double *);
+void read_coef_alloc_init_dvr(CP *, int, double *);
+void read_coef_fetch_occs(CP *, FILE *, char *);
+void read_coef_fetch_coefs(CP *, FILE *, char *,int);
+void read_coef_fetch_coefs_dvr(CP *, FILE *, char *,int);
+void read_coef_fetch_vcoefs(CP *, FILE *, char *);
+void read_coef_fetch_vcoefs_dvr(CP *, FILE *, char *);
+void read_coef_fetch_vnhc(CP *, FILE *, char *);
+void read_coef_init_nhc(CP *);
+void read_coef_transpose(CP *,int ,int, int);
 

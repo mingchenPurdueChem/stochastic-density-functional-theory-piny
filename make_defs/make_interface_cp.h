@@ -29,7 +29,8 @@ set_coef_NHC.o    :      $(STANDARD) $(DEFINES) \
 #------------------------------------------------------------------
 read_coef.o     :        $(STANDARD) $(DEFINES) \
                          $(TYP_CLASS) $(TYP_PAR) $(TYP_GEN) $(TYP_CP) \
-                         $(ENR_CPCON_ENT) $(COORD_CP_ENT) $(HANDLE_ENT) \
+                         $(ENR_CPCON_ENT) $(COORD_CP_ENT) $(COORD_CP_LOC) \
+			 $(HANDLE_ENT) \
                          $(FRND_ENT) $(COMM_WRAP) \
                          $(CODE)/interface/coords_cp/read_coef.c
 	$(ECHO) $@

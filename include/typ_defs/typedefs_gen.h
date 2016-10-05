@@ -370,6 +370,9 @@ typedef struct filenames {
   int iwrite_dipole;
 } FILENAMES;
 
+typedef struct vps_file{
+ char name[MAXWORD];
+}VPS_FILE;
 
 /*==========================================================================*/
 /*                  FFT Package variables                                   */

@@ -29,7 +29,7 @@
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 
-void control_mall_scratch(CLASS *class,BONDED *bonded,CP *cp,
+void controlMallScratchFrag(CLASS *class,BONDED *bonded,CP *cp,
                           GENERAL_DATA *general_data)
 
 /*======================================================================*/
@@ -57,12 +57,6 @@ void control_mall_scratch(CLASS *class,BONDED *bonded,CP *cp,
 
 /*=======================================================================*/
 /* I) Output */
-
-  if(myid==0){
-    printf("\n");PRINT_LINE_STAR;
-    printf("Allocating Scratch memory\n");
-    PRINT_LINE_DASH;printf("\n");
-  }/*endif for myid=0*/
   
 /*=======================================================================*/
 /* II) Useful constants */
@@ -90,19 +84,19 @@ void control_mall_scratch(CLASS *class,BONDED *bonded,CP *cp,
 /*=======================================================================*/
 /* III) Integrator scratch */
 
-  mall_integrator_scr(pimd_on,extsys_on,&(class->clatoms_info),
+  mall_integrator_scr_frag(pimd_on,extsys_on,&(class->clatoms_info),
                       &(class->therm_info_class),&(class->therm_info_bead),
                       &(class->int_scr),tot_memory,myid,world);
   
 /*=======================================================================*/
 /* IV) Intra scratch */
 
-  mall_intra_scr(&(bonded->intra_scr),tot_memory,myid,world);
+  mall_intra_scr_frag(&(bonded->intra_scr),tot_memory,myid,world);
 
 /*=======================================================================*/
 /* V) Intra scratch */
 
-  mall_ewald_scr(cp_on,natm_tot,int_res_ter,nfft_size,ncoef_pme,
+  mall_ewald_scr_frag(cp_on,natm_tot,int_res_ter,nfft_size,ncoef_pme,
                  &(class->part_mesh),&(class->ewd_scr),tot_memory,myid,world);
 
 /*======================================================================*/
@@ -110,9 +104,8 @@ void control_mall_scratch(CLASS *class,BONDED *bonded,CP *cp,
 
   if(cp_on==1){
     cp->cpscr.cpscr_nonloc.natm_nls_max = natm_tot;
-
     if( cp->cpcoeffs_info.iopt_cp_pw == 1 ){
-      mall_cp_scr(&(cp->cptherm_info),&(cp->cpopts),&(cp->cpewald),&(cp->cpscr),
+      mall_cp_scr_frag(&(cp->cptherm_info),&(cp->cpopts),&(cp->cpewald),&(cp->cpscr),
                   &(cp->cpcoeffs_info),&(cp->pseudo),
                   &(cp->cp_para_fft_pkg3d_dens_cp_box),
                   &(cp->cp_para_fft_pkg3d_lg),
@@ -120,35 +113,16 @@ void control_mall_scratch(CLASS *class,BONDED *bonded,CP *cp,
                   class->clatoms_info.hess_calc,
                   tot_memory,myid,cp_dual_grid_opt_on,world);
     }
-
-    if( cp->cpcoeffs_info.iopt_cp_dvr == 1 ){
-      mall_cp_scr_dvr(&(cp->cptherm_info),&(cp->cpopts),
-                  &(cp->cpewald),&(cp->cpscr), &(cp->cpcoeffs_info),
-                  &(cp->dvr_matrix),&(cp->pseudo),
-                  &(cp->cp_para_fft_pkg3d_sm),
-                  &(cp->cp_comm_state_pkg_dvr_up), /* CHECK */
-                  &(cp->cp_comm_state_pkg_dvr_dn),
-                  class->clatoms_info.hess_calc,
-                  tot_memory,myid,world);
-    }
-
   }/*endif*/
 
 /*======================================================================*/
 /* VII) Atom force scratch */
 
-  mall_atm_forc_scr(natm_tot,&(class->for_scr),pme_on,ilnk_lst,
+  mall_atm_forc_scr_frag(natm_tot,&(class->for_scr),pme_on,ilnk_lst,
                     iver_lst,lnk_ver_update,tot_memory,np_forc,myid,world);
 
 /*=======================================================================*/
 /* VIII) Output */
-
-  if(myid==0){
-    printf("\n");PRINT_LINE_DASH;
-    printf("Completed scratch memory allocation  ");
-    printf("Total memory : %g Mbytes\n",*tot_memory);
-    PRINT_LINE_STAR;printf("\n");
-  }/*endif for myid=0*/
 
 /*----------------------------------------------------------------------*/
   }/*end routine */
@@ -160,7 +134,7 @@ void control_mall_scratch(CLASS *class,BONDED *bonded,CP *cp,
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 
-void mall_integrator_scr(int pimd_on,int extsys_on,
+void mall_integrator_scr_frag(int pimd_on,int extsys_on,
                         CLATOMS_INFO *clatoms_info,
                         THERM_INFO *therm_info_class,
                         THERM_INFO *therm_info_bead,
@@ -245,11 +219,6 @@ void mall_integrator_scr(int pimd_on,int extsys_on,
 
   now_memory *= 1.0e-06;
   *tot_memory += now_memory;
-  if(myid==0){
-    printf(
-       "Integrator scratch allocation: %g Mbytes; Total memory: %g Mbytes\n",
-            now_memory,*tot_memory);
-  }/*endif for myid=0*/
 
 /*---------------------------------------------------------------------------*/
   }/*end routine */
@@ -261,8 +230,8 @@ void mall_integrator_scr(int pimd_on,int extsys_on,
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 
-void mall_intra_scr(INTRA_SCR *intra_scr,double *tot_memory, 
-                    int myid,MPI_Comm world)
+void mall_intra_scr_frag(INTRA_SCR *intra_scr,double *tot_memory, 
+			int myid,MPI_Comm world)
 
 /*===========================================================================*/
   {/*begin routine*/
@@ -439,11 +408,6 @@ void mall_intra_scr(INTRA_SCR *intra_scr,double *tot_memory,
   now_memory   = (nlen_mall*(sizeof(double)*134 + sizeof(int)*2 ))*1.0e-06;;
   *tot_memory += (now_memory);
 
-  if(myid==0){
-    printf("Intramol scratch allocation: %g Mbytes; Total memory: %g Mbytes\n",
-            now_memory,*tot_memory);
-  }/*endif for myid=0*/
-
 /*---------------------------------------------------------------------------*/
   }/*end routine */
 /*===========================================================================*/
@@ -455,7 +419,7 @@ void mall_intra_scr(INTRA_SCR *intra_scr,double *tot_memory,
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 
-void mall_ewald_scr(int cp_on,int natm_tot,int int_res_ter,
+void mall_ewald_scr_frag(int cp_on,int natm_tot,int int_res_ter,
                     int nfft_size,int ncoef_pme,PART_MESH *part_mesh, 
                     EWD_SCR *ewd_scr,double *tot_memory,
                     int myid,MPI_Comm world)
@@ -559,11 +523,6 @@ void mall_ewald_scr(int cp_on,int natm_tot,int int_res_ter,
   now_memory   = (num_re*sizeof(double)+num_int*sizeof(int))*1.e-06;
   *tot_memory += now_memory;
 
-  if(myid==0){
-   printf("Ewald/PME scratch allocation: %g Mbytes; Total memory: %g Mbytes\n",
-          now_memory,*tot_memory);
-  }/*endif for myid=0*/
-
 /*--------------------------------------------------------------------------*/
   }/*end routine */
 /*==========================================================================*/
@@ -575,7 +534,7 @@ void mall_ewald_scr(int cp_on,int natm_tot,int int_res_ter,
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 
-void mall_cp_scr(CPTHERM_INFO *cptherm_info,CPOPTS *cpopts,CPEWALD *cpewald,
+void mall_cp_scr_frag(CPTHERM_INFO *cptherm_info,CPOPTS *cpopts,CPEWALD *cpewald,
                  CPSCR *cpscr,CPCOEFFS_INFO *cpcoeffs_info,PSEUDO *pseudo,
                  PARA_FFT_PKG3D *cp_para_fft_pkg3d_dens_cp_box,
                  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg,
@@ -1483,11 +1442,6 @@ void mall_cp_scr(CPTHERM_INFO *cptherm_info,CPOPTS *cpopts,CPEWALD *cpewald,
 
   now_memory = num*sizeof(double)*(1.0e-6);
   *tot_memory += now_memory;
-  if(myid==0){
-    printf("CP allocation: %g Mbytes; Total memory: %g Mbytes\n",
-            now_memory,*tot_memory);
-  }/*endif for myid=0*/
-
 
 /*--------------------------------------------------------------------------*/
   }/*end routine */
@@ -1500,7 +1454,7 @@ void mall_cp_scr(CPTHERM_INFO *cptherm_info,CPOPTS *cpopts,CPEWALD *cpewald,
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 
-void mall_atm_forc_scr(int natm_tot,FOR_SCR *for_scr,int pme_on,
+void mall_atm_forc_scr_frag(int natm_tot,FOR_SCR *for_scr,int pme_on,
                        int ilnk_lst,int iver_lst, int lnk_ver_update,
                        double *tot_memory,int np_forc,int myid,MPI_Comm world)
 
@@ -1549,11 +1503,6 @@ void mall_atm_forc_scr(int natm_tot,FOR_SCR *for_scr,int pme_on,
 
   now_memory  *= 1.0e-06;
   *tot_memory += now_memory;
-
-  if(myid==0){
-    printf("Atom allocation: %g Mbytes; Total memory: %g Mbytes\n",
-            now_memory,*tot_memory);
-  }/*endif for myid=0*/
 
 /*-------------------------------------------------------------------------*/
   }/*end routine */

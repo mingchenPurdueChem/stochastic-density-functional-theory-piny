@@ -289,14 +289,8 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
                        &(classMini->clatoms_info.nab_initio),
                        classMini->clatoms_info.natm_tot);
     if(myid_state<np_states){
-      control_vps_params(&(cp->pseudo),&(general_data->cell),&filename_parse,
-                         &spline_parse,class->atommaps.natm_typ,
-                         class->atommaps.atm_typ,
-                         tot_memory,class->clatoms_info.natm_tot,
-                         class->clatoms_info.nab_initio,
-                         cp->cpopts.cp_ptens_calc,cp_dual_grid_opt_on,
-                         &(class->communicate),cp_parse.cp_ecut,
-                         &(cp->cpcoeffs_info));
+      controlVpsParamsFrag(generalDataMini,classMini,cpMini,filename_parse,
+			    spline_parse,cp_parse);
     }//endif
   }//endif
 
@@ -306,12 +300,10 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*                (interface/lists/set_exclude.c)                         */
 
   /*THIS HAS ALSO BEEN MODIFIED FOR CLASSICAL HCA EQUILIBRATION */
-  /* Keep
-  set_exclude(&(class->clatoms_info),&(class->ghost_atoms),bonded,
-              &(bonded->excl),&null_inter_parse,
+  set_exclude(&(classMini->clatoms_info),&(classMini->ghost_atoms),bondedMini,
+              &(bondedMini->excl),&null_inter_parse,
               iperd,tot_memory,
-              general_data->ewald.alp_ewd,icontrol_proc);
-  */
+              generalDataMini->ewald.alp_ewd,/*icontrol_proc*/0);
 
 /*========================================================================*/
 /*   XV) Set thermostats: Done before reading the coordinates;           */
@@ -322,85 +314,66 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*  XVI) Read in atm positions/velocities/NHCs:                           */
 /*                (interface/coords/read_coord.c)                         */
 
-   /* Keep
    //change
+   /*
    read_coord(class,general_data,&filename_parse,
               class_parse.istart,cp_dual_grid_opt_on);
    */
 
-
 /*========================================================================*/
 /*  XVII) Spline the ewald corrections (needs particle positions)         */
 
-  /* Keep
   if((nchrg > 0 && iperd > 0)){//change
-    splin_ecor(&(bonded->ecor),&(general_data->ewald),(class->clatoms_pos),
-               pi_beads,icontrol_proc,tot_memory);
+    splin_ecor(&(bondedMini->ecor),&(generalDataMini->ewald),(classMini->clatoms_pos),
+               pi_beads,/*icontrol_proc*/0,tot_memory);
   }else{
-    general_data->ewald.self_erf = 1.0;
+    generalDataMini->ewald.self_erf = 1.0;
   }//endif
-  */
 
 /*========================================================================*/
 /* XVIII) Set thermostats: Done before reading the coeffs                 */
 /*                        CP NHC mallocing                                */
 /*                (interface/coords/set_coef_NHC.c)                       */
 
-  /* Keep
   if(cp_on==1){
    if(myid_state<np_states){//change
-     mall_coef(cp,&(general_data->simopts),class->clatoms_info.pi_beads_proc);
-     cp->cptherm_info.num_c_nhc      = 0;
-     cp->cptherm_info.num_c_nhc_proc = 0;
-     cp->cptherm_info.num_c_nhc_norm = 0;
-     cp->cptherm_info.massiv_flag    = 0;
+     mall_coef(cpMini,&(generalDataMini->simopts),classMini->clatoms_info.pi_beads_proc);
+     cpMini->cptherm_info.num_c_nhc      = 0;
+     cpMini->cptherm_info.num_c_nhc_proc = 0;
+     cpMini->cptherm_info.num_c_nhc_norm = 0;
+     cpMini->cptherm_info.massiv_flag    = 0;
    }//endif
   }//endif
-  */
 
 /*========================================================================*/
 /*   XIX)malloc scratch space                                            */
 /*                (interface/scratch/mall_scratch.c)                     */
 
-  //Keep control_mall_scratch(classMini,bondedMini,cpMini,generalDataMini);
+  controlMallScratchFrag(classMini,bondedMini,cpMini,generalDataMini);
 
 /*========================================================================*/
 /* XX) Read in coeffs/velocities:                                         */
 /*                (interface/coords/read_coef.c)                          */
 /*     And tidy up the dual option                                        */
 
-  /* Keep
   if(cp_on==1){
     if(myid_state<np_states){
-      read_coef(cp,general_data,class,&filename_parse,&cp_parse,tot_memory);
+      read_coef(cpMini,generalDataMini,classMIni,&filename_parse,&cp_parse,tot_memory);
       if(myid == 0){cfree(&(filename_parse.vps_name[1]));} 
-      if(cp->cpcoeffs_info.cp_elf_calc_frq >0 || 
-        cp->cpcoeffs_info.cp_dip_calc_frq>0){
-        mall_properties(cp);
-      }
-      if(cp->cpscr.cpscr_wannier.cp_wannier_on==1 ||
-        cp->cpcoeffs_info.cp_dip_calc_frq > 0){
-        mall_wannier(cp);
-      }
-      if(cp->cpopts.cp_nloc_wan_opt==1){
-        read_wan_cent(cp,general_data);
-      }
     }//endif np_state
   }//endif cp_on
-  */
+
 /*========================================================================*/
 /* XXI) Set up branch root neighbor list data                             */
 
-  /*Keep
-  if(class->nbr_list.brnch_root_list_opt>0){//do I need this?
-    control_brnch_root_list(class,bonded);
+  if(classMini->nbr_list.brnch_root_list_opt>0){//do I need this?
+    control_brnch_root_list(classMini,bondedMini);
   }//endif
-  */
 
 /*========================================================================*/
 /* XXI) Control Molecular Decomposition       */
 
-  //Keep control_molec_decomp(class,bonded,general_data);//do I need this?
+   control_molec_decomp(class,bonded,general_data);//do I need this?
 
 /*========================================================================*/
 /*   X) Initialize path integral transformations: after group communicators*/

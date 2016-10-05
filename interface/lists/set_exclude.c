@@ -358,10 +358,10 @@ if(error_check_on==1){
                +(clatoms_info->natm_tot)*(sizeof(double)*0 + sizeof(int)*2 )
                )*1.e-06;
   *tot_memory += now_memory;
-if(error_check_on==1){
-  printf("Exclusion allocation: %g Mbytes; Total memory %g Mbytes\n",
-           now_memory,*tot_memory);
-}/*endif*/
+  if(error_check_on==1){
+    printf("Exclusion allocation: %g Mbytes; Total memory %g Mbytes\n",
+	     now_memory,*tot_memory);
+  }/*endif*/
 
   excl->nlst = num_excl_now;
   excl->j    =  (int *) cmalloc(excl->nlst*sizeof(int))-1;
@@ -402,12 +402,12 @@ if(error_check_on==1){
 /*========================================================================*/
 /* V) Output */
 
-if(error_check_on==1){
-  printf("Total number of exclusions, %d\n\n",num_excl_now);
-  PRINT_LINE_DASH;
-  printf("Completed exclusion generation\n"); 
-  PRINT_LINE_STAR;printf("\n");
-}/*endif*/
+  if(error_check_on==1){
+    printf("Total number of exclusions, %d\n\n",num_excl_now);
+    PRINT_LINE_DASH;
+    printf("Completed exclusion generation\n"); 
+    PRINT_LINE_STAR;printf("\n");
+  }/*endif*/
 
 /*======================================================================*/
 /*  VI) Form ewald corrections                                           */

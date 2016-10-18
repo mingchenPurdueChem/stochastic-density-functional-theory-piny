@@ -378,6 +378,30 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     fragInfo->cellHmat[iFrag] = (double*)cmalloc(9*sizeof(double));
   }
 
+/*======================================================================*/
+/* 4) Initialize skin	                                                */
+
+  FILE *fileSkin;
+  fragInfo->skinAll = (double*)cmalloc(numAtomTot*sizeof(double));
+  fragInfo->skinFragBox = (double**)cmalloc(numFragProc*sizeof(double*));
+  for(iFrag=0;iFrag<numFragProc;iFrag++){
+    fragInfo->skinFragBox[iFrag] = (double*)cmalloc(numAtomFragProc[iFrag]*sizeof(double));
+  }
+  double *skinAll = fragInfo->skinAll;
+  if(myidState==0){
+    fileSkin = fopen("atomskin","r");
+    for(iAtom=0;iAtom<numAtomTot;iAtom++){
+      fscanf(fileSkin,"%lg",&skinAll[iAtom]);
+    }
+  }
+  Barrier(commStates);
+  Bcast(allSkin,numAtomTot,MPI_DOUBLE,0,commStates);
+  for(iFrag=0;iFrag<numFragProc;iFrag++){
+    for(iAtom=0;iAtom<numAtomFragProc[iFrag];iAtom++){
+      fragInfo->skinFragBox[iFrag][iAtom] = skinAll[atomFragMapProc[iFrag][iAtom]-1];
+    }//endfor iAtom
+  }//endfor iFrag
+  
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/

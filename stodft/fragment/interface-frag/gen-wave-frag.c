@@ -1,19 +1,17 @@
 /*==========================================================================*/
-/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*/
 /*==========================================================================*/
 /*                                                                          */
-/*                         PI_MD:                                           */
-/*             The future of simulation technology                          */
+/*                         Stochastic DFT:                                  */
+/*             The future of density functional theory                      */
 /*             ------------------------------------                         */
-/*                     Module: gen_wave.c                                   */
+/*                   Module: gen-wave-frag.c                                */
 /*                                                                          */
-/* Construct an initial wave function using the radial states               */
-/* of the isolated atoms                                                    */
+/* This file provide all modified malloc modules for fragmentation in parse */
 /*                                                                          */
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-
 
 #include "standard_include.h"
 #include "../typ_defs/typedefs_gen.h"

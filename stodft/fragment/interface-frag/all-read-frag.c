@@ -1,14 +1,13 @@
 /*==========================================================================*/
-/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*/
 /*==========================================================================*/
 /*                                                                          */
-/*                         PI_MD:                                           */
-/*             The future of simulation technology                          */
+/*                         Stochastic DFT:                                  */
+/*             The future of density functional theory                      */
 /*             ------------------------------------                         */
-/*                     Module: read_coef.c                                  */
+/*                   Module: all-read-frag.c                                */
 /*                                                                          */
-/* This subprogram provides output for a MD on a                            */
-/* LD-classical potential energy surface (LD-PES)                           */
+/* This file provide all modified malloc modules for fragmentation in parse */
 /*                                                                          */
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/

@@ -338,6 +338,8 @@ typedef struct fragInfo{
 				    /*	    is big enough. I'd like to use the  */
 				    /*	    number bigger then vdw radius	*/
 				    /* Lth: numFragProc*numAtomFragProc[i]	*/
+  double *skinAll;		    /* Lst: Skin of all atoms			*/
+				    /* Lth: natm_tot				*/
   double **rhoFragProc;		    /* Lst: fragment densities, proc version	*/
 				    /* Lth: numFragProc*numGridFragProc[i]	*/
   double *rhoFragSum;		    /* Lst: Sum of all densities from fragments	*/

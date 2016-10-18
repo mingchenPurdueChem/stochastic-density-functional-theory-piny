@@ -62,7 +62,7 @@
 
 void controlInterParamsFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
 	        CP *cpMini,BONDED *bondedMini,CP *cp,
-	        SPLINE_PARSE *spline_parse,FILENAME_PARSE *filename_parse
+	        SPLINE_PARSE *spline_parse,FILENAME_PARSE *filename_parse,
 	        CLASS_PARSE *class_parse)
 
 /*======================================================================*/
@@ -404,9 +404,9 @@ if(num_proc > 1){ Bcast(&ninter_unique,1,MPI_INT,0,comm);}
 
 void controlMolParamsFrag(CLASS *class,GENERAL_DATA *general_data,
                           BONDED *bonded,CP *cp,CLASS *classMini,
-	      GENERAL_DATA *generalDataMini,BONDED *bondedMini,
-	      CP *cpMini,CLASS_PARSE *classParse,
-	      CP_PARSE *cpParse,FREE_PARSE *freeParse,
+			  GENERAL_DATA *generalDataMini,BONDED *bondedMini,
+			  CP *cpMini,CLASS_PARSE *classParse,
+			  CP_PARSE *cpParse,FREE_PARSE *freeParse,
                           FILENAME_PARSE *filenameParse)
 
 /*==========================================================================*/
@@ -718,13 +718,13 @@ void controlMolParamsFrag(CLASS *class,GENERAL_DATA *general_data,
 /*==========================================================================*/
 
 void controlSetMolParamsFrag(CP_PARSE *cp_parse,CLASS_PARSE *class_parse,
-	FILENAME_PARSE *filename_parse,FREE_PARSE *free_parse,
-	BONDED *bondedMini,CLASS *classMini,CP *cpMini,
-	GENERAL_DATA *generalDataMini,CLASS *class,CP *cp,
-	GENERAL_DATA *general_data,DICT_MOL *dict_mol,DICT_WORD *word,
-                char *fun_key,int *nfun_key,
-                int iextend,double t_ext,int ifirst,int pi_beads,
-	DICT_MOL *dictMolAll)
+			     FILENAME_PARSE *filename_parse,FREE_PARSE *free_parse,
+			     BONDED *bondedMini,CLASS *classMini,CP *cpMini,
+			     GENERAL_DATA *generalDataMini,CLASS *class,CP *cp,
+			     GENERAL_DATA *general_data,DICT_MOL *dict_mol,
+			     DICT_WORD *word,char *fun_key,int *nfun_key,
+			     int iextend,double t_ext,int ifirst,int pi_beads,
+			     DICT_MOL *dictMolAll)
 /*=======================================================================*/
 {/*begin routine*/
 /*=======================================================================*/
@@ -1068,9 +1068,9 @@ void controlSetMolParamsFrag(CP_PARSE *cp_parse,CLASS_PARSE *class_parse,
 /*==========================================================================*/
 
 void controlSetCpEwaldFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
-	       CP *cpMini,BONDED *bondedMini,CP *cp,CLASS *class,
-	        GENERAL_DATA *general_data,BONDED *bonded,
-                          CP_PARSE *cp_parse)
+			   CP *cpMini,BONDED *bondedMini,CP *cp,CLASS *class,
+			   GENERAL_DATA *general_data,BONDED *bonded,
+                           CP_PARSE *cp_parse)
 /*=======================================================================*/
 /*            Begin subprogram:                                          */
    {/*begin routine*/

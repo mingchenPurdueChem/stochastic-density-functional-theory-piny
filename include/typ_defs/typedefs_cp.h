@@ -360,9 +360,13 @@ typedef struct fragInfo{
 				    /* Lth: MAXWORD				*/
  /* The following parts are parameters/variables that will be passed to mini structures */
  /* 1. Mini general_data*/
+  GENERAL_DATA *generalDataMini;
  /* 2. Mini class	*/
+  CLASS *classMini;
  /* 3. Mini bonded	*/
+  CLASS *bondMini;
  /* 4. Mini cp		*/
+  
 }FRAGINFO;
 
 typedef struct stodftInfo{

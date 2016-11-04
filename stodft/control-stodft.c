@@ -57,6 +57,12 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
   STAT_AVG *stat_avg = &(general_data->stat_avg);
 
+  GENERAL_DATA *generalDataMiniPoint = (GENERAL_DATA**)cmalloc(sizeof(GENERAL_DATA*));
+  CP **cpMiniPoint = (CP**)cmalloc(sizeof(CP*));
+  CLASS **classMiniPoint = (CLASS**)cmalloc(sizeof(CLASS*));
+  ANALYSIS **analysisMiniPoint = (ANALYSIS**)cmalloc(sizeof(ANALYSIS*));
+  BONDED **bondedMiniPoint = (BONDED**)cmalloc(sizeof(BONDED*));
+  
   int myid = class->communicate.myid;
   int numProc = cp->communicate.np;
   int numTime = general_data->timeinfo.ntime;
@@ -165,7 +171,10 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
   calcFragFlag = cp->stodftInfo->calcFragFlag;
   if(calcFragFlag==1){
-    fragScf(class,bonded,general_data,cp,analysis,ip_now);
+    initFrag(class,bonded,general_data,cp,classMiniPoint,bondedMiniPoint,
+		generalDataMiniPoint,analysisMiniPoint,cpMiniPoint,ip_now);
+    fragScf(class,bonded,general_data,cp,analysis,*generalDataMiniPoint,
+	    *cpMiniPoint,*classMiniPoint,*analysisMiniPoint,*bondedMiniPoint,ip_now);
   }
 
 /*======================================================================*/

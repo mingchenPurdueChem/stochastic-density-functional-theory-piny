@@ -585,9 +585,11 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*==========================================================================*/
 /* VIII) Initialize Fragmentation                                           */
 
+  /*
   if(calcFragFlag==1){// We don't initialize frag scf here
     initFrag(class,bonded,general_data,cp,ip_now);
   }
+  */
 
 /*==========================================================================*/
 }/*end Routine*/

@@ -31,7 +31,9 @@
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
-	      int ip_now)
+	      CLASS **classMiniPoint,BONDED **bondedMiniPoint,
+	      GENERAL_DATA **generalDataMiniPoint,
+	      ANALYSIS **analysisMiniPoint,CP **cpMiniPoint,int ip_now)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
@@ -45,6 +47,7 @@ void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   FRAGINFO      *fragInfo;
 
   int fragOpt           = stodftInfo->fragOpt;
+  int numFragProc;
 
   stodftInfo->fragInfo = (FRAGINFO*)cmalloc(sizeof(FRAGINFO));
   fragInfo = stodftInfo->fragInfo;
@@ -53,6 +56,19 @@ void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     case 1:
       initFragMol(class,bonded,general_data,cp,ip_now);
       break;
+  }
+
+
+  numFragProc = fragInfo->numFragProc;
+  *classMiniPoint = (CLASS*)cmalloc(numFragProc*sizeof(CLASS));
+  *bondedMiniPoint = (BONDED*)cmalloc(numFragProc*sizeof(BONDED));
+  *generalDataMiniPoint = (GENERAL_DATA*)cmalloc(numFragProc*sizeof(GENERAL_DATA));
+  *analysisMiniPoint = (ANALYSIS*)cmalloc(numFragProc*sizeof(ANALYSIS));
+  *cpMiniPoint = (CP*)cmalloc(numFragProc*sizeof(CP));
+  for(iFrag=0;iFrag<numFragProc;iFrag++){
+    parseFrag(class,bonded,general_data,cp,analysis,&(*classMiniPoint[iFrag]),
+	      &(*bondedMiniPoint[iFrag]),&(*generalDataMiniPoint[iFrag]),
+	      &(*cpMiniPoint[iFrag]),&(*analysisMiniPoint[iFrag]));
   }
 
 /*==========================================================================*/

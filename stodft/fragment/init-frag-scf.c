@@ -86,6 +86,7 @@ void initFragSCF(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   FRAGINFO      *fragInfo         = stodftInfo->fragInfo;
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
 
+  
 
      
 

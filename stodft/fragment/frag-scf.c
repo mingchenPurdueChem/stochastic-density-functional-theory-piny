@@ -34,7 +34,9 @@
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
-                    CP *cp,ANALYSIS *analysis,int ip_now)
+            CP *cp,ANALYSIS *analysis,GENERAL_DATA *generalDataMini,
+	    CP *cpMini,CLASS *classMini,ANALYSIS *analysisMini,BONDED *bondedMini,
+	    int ip_now)
 /*========================================================================*/
 {/*begin routine*/
 /*========================================================================*/
@@ -55,17 +57,13 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   for(iFrag=0;iFrag<numFragProc;iFrag++){
 /*======================================================================*/
 /* I) Allocate Mini Structures                                          */
-    generalDataMini = (GENERAL_DATA*)cmalloc(sizeof(GENERAL_DATA));
-    cpMini = (CP*)cmalloc(sizeof(CP));
-    classMini = (CLASS*)cmalloc(sizeof(CLASS));
-    analysisMini = (ANALYSIS*)cmalloc(sizeof(ANALYSIS));
-    bondedMini = (BONDED*)cmalloc(sizeof(BONDED));
 
 /*======================================================================*/
 /* I) Initialize Fragment SCF					        */
-    parseFrag(class,bonded,general_data,cp,analysis,classMini,bondedMini,
-           generalDataMini,cpMini,analysisMini);
-
+    /*
+    parseFrag(class,bonded,general_data,cp,analysis,&classMini[iFrag],&bondedMini[iFrag],
+           &generalDataMini[iFrag],&cpMini[iFrag],&analysisMini[iFrag]);
+    */
 
 /*======================================================================*/
 /* II) SCF LOOP					                        */

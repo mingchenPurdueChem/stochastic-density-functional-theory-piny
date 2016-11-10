@@ -56,6 +56,8 @@ void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     case 1:
       initFragMol(class,bonded,general_data,cp,ip_now);
       break;
+    case 4:
+      initFragUnitCell(class,bonded,general_data,cp,ip_now);
   }
 
 
@@ -418,6 +420,45 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     }//endfor iAtom
   }//endfor iFrag
   
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void initFragUnitCell(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
+                 int ip_now)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* Fragmentation initialization common part for molecular fragments      */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void reInitFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
+	       CLASS *classMini,BONDED *bondedMini,GENERAL_DATA *generalDataMini,
+	       CP *cpMini)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* Every time a new set of coordinates passed into fragment calculation  */
+/* I need ot redo */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+#include "../typ_defs/typ_mask.h"
+
+
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/

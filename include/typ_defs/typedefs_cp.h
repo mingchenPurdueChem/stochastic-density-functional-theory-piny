@@ -360,11 +360,11 @@ typedef struct fragInfo{
 				    /* Lth: MAXWORD				*/
  /* The following parts are parameters/variables that will be passed to mini structures */
  /* 1. Mini general_data*/
-  GENERAL_DATA *generalDataMini;
+  //GENERAL_DATA *generalDataMini;
  /* 2. Mini class	*/
-  CLASS *classMini;
+  //CLASS *classMini;
  /* 3. Mini bonded	*/
-  CLASS *bondMini;
+  //CLASS *bondMini;
  /* 4. Mini cp		*/
   
 }FRAGINFO;
@@ -494,7 +494,8 @@ typedef struct stodftInfo{
   /* Fragmentation parameters */
   int calcFragFlag;		    /* Opt: control fragmentation on=1,off=0	*/
   int fragOpt;			    /* Opt: Fragmentation type:			*/
-				    /*	    1=mol,2=group of atoms,3=...	*/
+				    /*	    1=mol,2=group of atoms,3= unit cell	*/
+				    /*	    4=...*/
   int fragCellOpt;		    /* Opt: cell option for fragments		*/
 				    /*	    1=hg (homogenious)			*/
 				    /*	    2=nhg  (non-homogenious)		*/

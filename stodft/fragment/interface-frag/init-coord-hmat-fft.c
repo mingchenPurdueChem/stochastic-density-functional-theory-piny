@@ -30,6 +30,9 @@
 #include "../proto_defs/proto_friend_lib_entry.h"
 #include "../proto_defs/proto_communicate_wrappers.h"
 #include "../proto_defs/proto_stodft_local.h"
+#include "../proto_defs/proto_interface_frag_local.h"
+
+
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
@@ -56,8 +59,6 @@ void initCoordHmatFFT(GENERAL_DATA *generalData,CLASS *class,CP *cp,
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
-/*==========================================================================*/
-/*  Parse: note there is a noncommuting order of calls                      */
 /*==========================================================================*/
 void passAtomCoord(GENERAL_DATA *generalData,CLASS *class,CP *cp,
 		   GENERAL_DATA *generalDataMini,CLASS *classMini,CP *cpMini,

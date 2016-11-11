@@ -29,6 +29,7 @@
 //#include "../proto_defs/proto_stodft_local.h"
 #include "../proto_defs/proto_integrate_cpmin_entry.h"
 #include "../proto_defs/proto_interface_frag_entry.h"
+#include "../proto_defs/proto_frag_local.h"
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/

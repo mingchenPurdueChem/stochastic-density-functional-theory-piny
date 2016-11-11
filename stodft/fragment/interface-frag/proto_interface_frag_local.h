@@ -79,5 +79,7 @@ void passAtomCoord(GENERAL_DATA *,CLASS *,CP *,GENERAL_DATA *,CLASS *,
 void initFFTMap(GENERAL_DATA *,CLASS *,CP *,GENERAL_DATA *,CLASS *,CP *,
 		int ,double *);
 
+/*-----------------------------------------------------------------*/
+/* init-coord-hmat-fft.c                                           */
 
-
+void reInitFFT(GENERAL_DATA *,CLASS *,CP *,GENERAL_DATA *,CLASS *,CP *,int);

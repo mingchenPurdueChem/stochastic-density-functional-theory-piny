@@ -458,6 +458,24 @@ void reInitFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*         Local Variable declarations                                   */
 #include "../typ_defs/typ_mask.h"
 
+  double geoCnt[3];
+
+  //cleanFFT(generalData,class,cp,generalDataMini,classMini,cpMini,1);
+
+/*======================================================================*/
+/* 1) First pass new coords to fragment calculation                     */
+
+  passAtomCoord(generalData,class,cp,generalDataMini,classMini,cpMini,1,geoCnt);
+
+/*======================================================================*/
+/* 2) Recalculate fragment box size		                        */
+
+  initFFTMap(generalData,class,cp,generalDataMini,classMini,cpMini,1,geoCnt);
+
+/*======================================================================*/
+/* 2) Reinitialize FFT for fragments box size				*/
+
+  reInitFFT(generalData,class,cp,generalDataMini,classMini,cpMini,1);
 
 /*==========================================================================*/
 }/*end Routine*/

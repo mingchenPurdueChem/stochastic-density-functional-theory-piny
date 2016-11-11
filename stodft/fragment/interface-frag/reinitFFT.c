@@ -1,63 +1,47 @@
 /*==========================================================================*/
-/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*/
 /*==========================================================================*/
 /*                                                                          */
-/*                         PI_MD:                                           */
-/*             The future of simulation technology                          */
+/*                         Stochastic DFT:                                  */
+/*             The future of density functional theory                      */
 /*             ------------------------------------                         */
-/*                     Module: proj_com_min                                 */
+/*                   Module: init-coord-hmat-fft.c                          */
 /*                                                                          */
-/* This subprogram projects force along the com                             */
+/*  This routine re-initialize the FFT after updating nuclei positions.	    */
+/*  We need to change all malloc to realloc.				    */
 /*                                                                          */
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-
-
 #include "standard_include.h"
+#include "../typ_defs/typedefs_gen.h"
 #include "../typ_defs/typedefs_class.h"
 #include "../typ_defs/typedefs_bnd.h"
-#include "../typ_defs/typedefs_gen.h"
-#include "../proto_defs/proto_intra_con_entry.h"
+#include "../typ_defs/typedefs_cp.h"
+#include "../proto_defs/proto_math.h"
+#include "../proto_defs/proto_friend_lib_entry.h"
+#include "../proto_defs/proto_communicate_wrappers.h"
+#include "../proto_defs/proto_stodft_local.h"
+#include "../proto_defs/proto_interface_frag_local.h"
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-
-void proj_com_out(int natm_tot, double *fx,double *fy, double *fz)
-
+void reInitFFT(GENERAL_DATA *generalData,CLASS *class,CP *cp,
+               GENERAL_DATA *generalDataMini,CLASS *classMini,CP *cpMini,
+               int ip_now)
 /*========================================================================*/
-   {/*begin routine*/
+/*             Begin Routine                                              */
+/*************************************************************************/
+{/*Begin subprogram: */
 /*========================================================================*/
 /*             Local variable declarations                                */
 
-    int i;
-    double xcm,ycm,zcm;
 
+
+
+/*------------------------------------------------------------------------*/
+}/*end routine*/
 /*==========================================================================*/
-/* I) Get the force on the com */
 
-   xcm = 0.0;
-   ycm = 0.0;
-   zcm = 0.0;
-   for(i=1;i<=natm_tot;i++){
-     xcm += fx[i];
-     ycm += fy[i];
-     zcm += fz[i];
-   }/*endfor*/
-   xcm /= (double)natm_tot;
-   ycm /= (double)natm_tot;
-   zcm /= (double)natm_tot;
 
-/*==========================================================================*/
-/* II) Remove it */
-
-   for(i=1;i<=natm_tot;i++){
-     fx[i] -= xcm;
-     fy[i] -= ycm;
-     fz[i] -= zcm;
-   }/*endfor*/
-
-/*--------------------------------------------------------------------------*/
-  }/*end routine*/
-/*==========================================================================*/

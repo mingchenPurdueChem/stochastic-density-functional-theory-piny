@@ -25,6 +25,18 @@ init-frag.o :	         $(STANDARD) $(DEFINES) \
 	$(ECHO) $@
 	$(COBJ) $(DCODE)/stodft/fragment/init-frag.c
 
+control-cp-min-frag.o :	 $(STANDARD) $(DEFINES) \
+                         $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
+                         $(TYP_STAT) \
+                         $(TYP_CP) $(TYP_PAR) \
+                         $(FRND_ENT) $(MATH) \
+                         $(COMM_WRAP) $(FRAG_LOC)\
+			 $(FRAG_INT_LOC)
+			 $(DCODE)/stodft/fragment/control-cp-min-frag.c
+	$(ECHO) $@
+	$(COBJ) $(DCODE)/stodft/fragment/control-cp-min-frag.c
+
+
 parse-frag.o :           $(STANDARD) $(DEFINES) \
                          $(TYP_GEN) $(TYP_CP) $(TYP_CLASS) $(TYP_BND) \
                          $(TYP_PAR) $(TYP_STAT) $(PARSE_ENT) $(PARSE_LOC) \
@@ -49,14 +61,56 @@ copy-input.o :           $(STANDARD) $(DEFINES) \
 	$(ECHO) $@
 	$(COBJ) $(DCODE)/stodft/fragment/interface-frag/copy-input.c
 
-control-mol-params-frag.o  :  $(STANDARD) $(DEFINES) \
-			      $(TYP_PAR) $(TYP_CLASS) $(TYP_BND) \
-                              $(TYP_GEN) $(TYP_CP) \
-                              $(MOL_ENT) $(MOL_LOC) $(HANDLE_ENT) $(FRND_ENT) \
-			      $(FRAG_INT_LOC) \
-                              $(DCODE)/stodft/fragment/interface-frag/control-mol-params-frag.c
-	$(ECHO)	$@
-	$(COBJ)	$(DCODE)/stodft/fragment/interface-frag/control-mol-params-frag.c
 
-                        
+all-control-frag.o :	 $(STANDARD) $(DEFINES) \
+			 $(TYP_GEN) $(TYP_CP) $(TYP_CLASS) $(TYP_BND) \
+			 $(MATH) $(FRND_ENT) \
+			 $(MOL_ENT) $(MOL_LOC) $(INTER_ENT) $(INTER_LOC) \
+			 $(INTRA_LOC) $(SCRATCH_ENT) $(HANDLE_ENT) $(COMM_WRAP) \
+			 $(CPEWALD_ENT) $(CPEWALD_LOC) $(ENR_CP_LOC) $(VPS_ENT) \
+			 $ (VPS_LOC) $(FRAG_INT_LOC) 
+			 $(DCODE)/stodft/fragment/interface-frag/all-control-frag.c
+	$(ECHO) $@
+	$(COBJ) $(DCODE)/stodft/fragment/interface-frag/all-control-frag.c
+
+all-mall-frag.o	:	 $(STANDARD) $(DEFINES) \
+                         $(TYP_GEN) $(TYP_CP) $(TYP_CLASS) $(TYP_BND) \
+			 $(SCRATCH_ENT) $(SCRATCH_LOC) $(LISTS_ENT) $(LISTS_LOC) \
+			 $(REAL_LOC) $(FRND_ENT) $(COMM_WRAP) $(FRAG_INT_LOC) 
+			 $(DCODE)/stodft/fragment/interface-frag/all-mall-frag.c
+	$(ECHO) $@
+	$(COBJ) $(DCODE)/stodft/fragment/interface-frag/all-mall-frag.c
+
+all-read-frag.o :	 $(STANDARD) $(DEFINES) \
+                         $(TYP_GEN) $(TYP_CP) $(TYP_CLASS) $(TYP_BND) \
+			 $(COORD_ENT) $(MATH) $(ENR_PIMD_LOC) $(ENR_CPCON_LOC) \
+			 $(COORD_CP_ENT) $(COORD_CP_LOC) $(HANDLE_ENT) $(FRND_ENT) \
+			 $(COMM_WRAP) $(FRAG_INT_LOC)
+			 $(DCODE)/stodft/fragment/interface-frag/all-read-frag.c
+	$(ECHO) $@
+	$(COBJ) $(DCODE)/stodft/fragment/interface-frag/all-read-frag.c
+
+gen-wave-frag.o :	 $(STANDARD) $(DEFINES) \
+			 $(TYP_GEN) $(TYP_CP) $(TYP_CLASS) $(TYP_BND) \
+			 $(FRND_ENT) $(MATH) $(COMM_WRAP) $(ENR_CPCON_LOC) \
+			 $(ENR_CP_LOC) $(CPEWALD_LOC) $(COORD_CP_LOC) \
+			 $(HANDLE_ENT) $(FRAG_INT_LOC)
+			 $(DCODE)/stodft/fragment/interface-frag/gen-wave-frag.c
+	$(ECHO) $@
+	$(COBJ) $(DCODE)/stodft/fragment/interface-frag/gen-wave-frag.c
+
+init-coord-hmat-fft.o :  $(STANDARD) $(DEFINES) \
+			 $(TYP_GEN) $(TYP_CP) $(TYP_CLASS) $(TYP_BND) \
+			 $(MATH) $(FRND_ENT) $(COMM_WRAP) $(FRAG_INT_LOC) 
+			 $(DCODE)/stodft/fragment/interface-frag/init-coord-hmat-fft.c
+	$(ECHO) $@
+	$(COBJ) $(DCODE)/stodft/fragment/interface-frag/gen-wave-frag.o
+
+reinitFFT.o :		 $(STANDARD) $(DEFINES) \
+			 $(TYP_GEN) $(TYP_CP) $(TYP_CLASS) $(TYP_BND) \
+			 $(MATH) $(FRND_ENT) $(COMM_WRAP) $(FRAG_INT_LOC)
+			 $(DCODE)/stodft/fragment/interface-frag/reinitFFT.c
+	$(ECHO) $@
+	$(COBJ) $(DCODE)/stodft/fragment/interface-frag/reinitFFT.c
+
 #------------------------------------------------------------------

@@ -38,10 +38,6 @@
 #define JUERG_FACTOR 1.0
 #endif
 
-typedef struct vps_file{
- char name[MAXWORD];
-}VPS_FILE;
-
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/

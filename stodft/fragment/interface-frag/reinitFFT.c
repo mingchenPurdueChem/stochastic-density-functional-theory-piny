@@ -5,7 +5,7 @@
 /*                         Stochastic DFT:                                  */
 /*             The future of density functional theory                      */
 /*             ------------------------------------                         */
-/*                   Module: init-coord-hmat-fft.c                          */
+/*                   Module: reinitFFT.c	                            */
 /*                                                                          */
 /*  This routine re-initialize the FFT after updating nuclei positions.	    */
 /*  We need to change all malloc to realloc.				    */
@@ -21,7 +21,6 @@
 #include "../proto_defs/proto_math.h"
 #include "../proto_defs/proto_friend_lib_entry.h"
 #include "../proto_defs/proto_communicate_wrappers.h"
-#include "../proto_defs/proto_stodft_local.h"
 #include "../proto_defs/proto_interface_frag_local.h"
 
 /*==========================================================================*/

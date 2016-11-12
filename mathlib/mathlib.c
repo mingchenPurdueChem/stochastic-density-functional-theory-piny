@@ -514,7 +514,7 @@ double normalize3d(double *a)
   a[0] /= norm;
   a[1] /= norm;
   a[2] /= norm;
-  return norm
+  return norm;
 }
 /*==========================================================================*/
 

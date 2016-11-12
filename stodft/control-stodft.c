@@ -58,7 +58,7 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
   STAT_AVG *stat_avg = &(general_data->stat_avg);
 
-  GENERAL_DATA *generalDataMiniPoint = (GENERAL_DATA**)cmalloc(sizeof(GENERAL_DATA*));
+  GENERAL_DATA **generalDataMiniPoint = (GENERAL_DATA**)cmalloc(sizeof(GENERAL_DATA*));
   CP **cpMiniPoint = (CP**)cmalloc(sizeof(CP*));
   CLASS **classMiniPoint = (CLASS**)cmalloc(sizeof(CLASS*));
   ANALYSIS **analysisMiniPoint = (ANALYSIS**)cmalloc(sizeof(ANALYSIS*));
@@ -97,7 +97,8 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
   if(numProc>1)commStodft(class,bonded,general_data,cp);
 
-  initStodft(class,bonded,general_data,cp,ip_now);
+  initStodft(class,bonded,general_data,cp,*classMiniPoint,*bondedMiniPoint,
+	     *generalDataMiniPoint,*analysisMiniPoint,*cpMiniPoint,ip_now);
   reInitFlag = cp->stodftInfo->reInitFlag;
 
 

@@ -19,6 +19,7 @@
 #include "../typ_defs/typedefs_gen.h"
 #include "../typ_defs/typedefs_bnd.h"
 #include "../typ_defs/typedefs_cp.h"
+#include "../typ_defs/typedefs_stat.h"
 #include "../proto_defs/proto_scratch_entry.h"
 #include "../proto_defs/proto_scratch_local.h"
 #include "../proto_defs/proto_lists_entry.h"

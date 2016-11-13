@@ -18,6 +18,7 @@
 #include "../typ_defs/typedefs_par.h"
 #include "../typ_defs/typedefs_gen.h"
 #include "../typ_defs/typedefs_cp.h"
+#include "../typ_defs/typedefs_stat.h"
 #include "../proto_defs/proto_coords_entry.h"
 #include "../proto_defs/proto_math.h"
 #include "../proto_defs/proto_pimd_local.h"

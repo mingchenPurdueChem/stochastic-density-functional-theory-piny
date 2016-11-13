@@ -44,17 +44,10 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*             Local variable declarations                                */
   STODFTINFO *stodftInfo = cp->stodftInfo;
   FRAGINFO *fragInfo	 = stodftInfo->fragInfo;
-  GENERAL_DATA *generalDataMini;
-  CP *cpMini;
-  CLASS *classMini;
-  ANALYSIS *analysisMini;
-  BONDED *bondedMini;
   
   int numFragProc = fragInfo->numFragProc;
   int iFrag;
   
-
-
   for(iFrag=0;iFrag<numFragProc;iFrag++){
 /*======================================================================*/
 /* I) Allocate Mini Structures                                          */

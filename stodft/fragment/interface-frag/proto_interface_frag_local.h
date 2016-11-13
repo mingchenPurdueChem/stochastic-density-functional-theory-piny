@@ -34,7 +34,7 @@ void controlVpsParamsFrag(GENERAL_DATA *,CLASS *,CP *,FILENAME_PARSE *,
 /*-----------------------------------------------------------------*/
 /* all-mall-frag.c                                                 */
 
-void mallMakeListsFrag(CLASS *,GENERAL_DATA *,BONDED *,int;
+void mallMakeListsFrag(CLASS *,GENERAL_DATA *,BONDED *,int);
 
 void controlMallScratchFrag(CLASS *,BONDED *,CP *,GENERAL_DATA *);
 

@@ -97,8 +97,7 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
   if(numProc>1)commStodft(class,bonded,general_data,cp);
 
-  initStodft(class,bonded,general_data,cp,*classMiniPoint,*bondedMiniPoint,
-	     *generalDataMiniPoint,*analysisMiniPoint,*cpMiniPoint,ip_now);
+  initStodft(class,bonded,general_data,cp,ip_now);
   reInitFlag = cp->stodftInfo->reInitFlag;
 
 
@@ -173,7 +172,7 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
   calcFragFlag = cp->stodftInfo->calcFragFlag;
   if(calcFragFlag==1){
-    initFrag(class,bonded,general_data,cp,classMiniPoint,bondedMiniPoint,
+    initFrag(class,bonded,general_data,cp,analysis,classMiniPoint,bondedMiniPoint,
 		generalDataMiniPoint,analysisMiniPoint,cpMiniPoint,ip_now);
     fragScf(class,bonded,general_data,cp,analysis,*generalDataMiniPoint,
 	    *cpMiniPoint,*classMiniPoint,*analysisMiniPoint,*bondedMiniPoint,ip_now);

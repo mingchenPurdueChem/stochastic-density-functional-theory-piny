@@ -150,7 +150,9 @@ STODFT_FILES	      = coeff.o control-stodft.o filters.o init.o \
 			min-CP-stodft.o normh.o density.o density-init.o \
 			calc-chempot.o diis.o
 FRAG_FILES	      = frag-scf.o init-frag.o parse-frag.o copy-input.o \
-			control-mol-params-frag.o 
+			control-cp-min-frag.o all-control-frag.o all-mall-frag.o \
+			all-read-frag.o gen-wave-frag.o init-coord-hmat-fft.o \
+			reinitFFT.o
               
 
 

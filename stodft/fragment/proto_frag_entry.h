@@ -1,5 +1,7 @@
-void initFrag(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
-void fragScf(CLASS *,BONDED *,GENERAL_DATA *,CP *,ANALYSIS *,int );
+void initFrag(CLASS *,BONDED *,GENERAL_DATA *,CP *,ANALYSIS *,CLASS **,BONDED **,GENERAL_DATA **,
+	      ANALYSIS **,CP **,int);
+void fragScf(CLASS *,BONDED *,GENERAL_DATA *,CP *,ANALYSIS *,GENERAL_DATA *,CP *,
+	     CLASS *,ANALYSIS *,BONDED *,int);
 void reInitFrag(CLASS *,BONDED *,GENERAL_DATA *,CP *,CLASS *,BONDED *,GENERAL_DATA *,CP *);
 
 

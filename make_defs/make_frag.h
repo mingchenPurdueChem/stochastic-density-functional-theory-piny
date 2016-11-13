@@ -64,6 +64,7 @@ copy-input.o :           $(STANDARD) $(DEFINES) \
 
 all-control-frag.o :	 $(STANDARD) $(DEFINES) \
 			 $(TYP_GEN) $(TYP_CP) $(TYP_CLASS) $(TYP_BND) \
+			 $(TYP_STAT) $(TYP_PAR) \
 			 $(MATH) $(FRND_ENT) \
 			 $(MOL_ENT) $(MOL_LOC) $(INTER_ENT) $(INTER_LOC) \
 			 $(INTRA_LOC) $(SCRATCH_ENT) $(HANDLE_ENT) $(COMM_WRAP) \
@@ -75,6 +76,7 @@ all-control-frag.o :	 $(STANDARD) $(DEFINES) \
 
 all-mall-frag.o	:	 $(STANDARD) $(DEFINES) \
                          $(TYP_GEN) $(TYP_CP) $(TYP_CLASS) $(TYP_BND) \
+			 $(TYP_STAT) $(TYP_PAR) \
 			 $(SCRATCH_ENT) $(SCRATCH_LOC) $(LISTS_ENT) $(LISTS_LOC) \
 			 $(REAL_LOC) $(FRND_ENT) $(COMM_WRAP) $(FRAG_INT_LOC) 
 			 $(DCODE)/stodft/fragment/interface-frag/all-mall-frag.c
@@ -83,6 +85,7 @@ all-mall-frag.o	:	 $(STANDARD) $(DEFINES) \
 
 all-read-frag.o :	 $(STANDARD) $(DEFINES) \
                          $(TYP_GEN) $(TYP_CP) $(TYP_CLASS) $(TYP_BND) \
+			 $(TYP_STAT) $(TYP_PAR) \
 			 $(COORD_ENT) $(MATH) $(ENR_PIMD_LOC) $(ENR_CPCON_LOC) \
 			 $(COORD_CP_ENT) $(COORD_CP_LOC) $(HANDLE_ENT) $(FRND_ENT) \
 			 $(COMM_WRAP) $(FRAG_INT_LOC)
@@ -92,6 +95,7 @@ all-read-frag.o :	 $(STANDARD) $(DEFINES) \
 
 gen-wave-frag.o :	 $(STANDARD) $(DEFINES) \
 			 $(TYP_GEN) $(TYP_CP) $(TYP_CLASS) $(TYP_BND) \
+			 $(TYP_STAT) $(TYP_PAR) \
 			 $(FRND_ENT) $(MATH) $(COMM_WRAP) $(ENR_CPCON_LOC) \
 			 $(ENR_CP_LOC) $(CPEWALD_LOC) $(COORD_CP_LOC) \
 			 $(HANDLE_ENT) $(FRAG_INT_LOC)
@@ -101,6 +105,7 @@ gen-wave-frag.o :	 $(STANDARD) $(DEFINES) \
 
 init-coord-hmat-fft.o :  $(STANDARD) $(DEFINES) \
 			 $(TYP_GEN) $(TYP_CP) $(TYP_CLASS) $(TYP_BND) \
+			 $(TYP_STAT) \
 			 $(MATH) $(FRND_ENT) $(COMM_WRAP) $(FRAG_INT_LOC) 
 			 $(DCODE)/stodft/fragment/interface-frag/init-coord-hmat-fft.c
 	$(ECHO) $@

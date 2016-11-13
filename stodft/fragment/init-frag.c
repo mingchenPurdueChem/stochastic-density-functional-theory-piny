@@ -18,6 +18,8 @@
 #include "../typ_defs/typedefs_class.h"
 #include "../typ_defs/typedefs_bnd.h"
 #include "../typ_defs/typedefs_cp.h"
+#include "../typ_defs/typedefs_stat.h"
+#include "../typ_defs/typedefs_par.h"
 #include "../proto_defs/proto_energy_cpcon_entry.h"
 #include "../proto_defs/proto_energy_cpcon_local.h"
 #include "../proto_defs/proto_energy_cp_local.h"
@@ -32,6 +34,7 @@
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
+	      ANALYSIS *analysis,
 	      CLASS **classMiniPoint,BONDED **bondedMiniPoint,
 	      GENERAL_DATA **generalDataMiniPoint,
 	      ANALYSIS **analysisMiniPoint,CP **cpMiniPoint,int ip_now)
@@ -49,6 +52,7 @@ void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
   int fragOpt           = stodftInfo->fragOpt;
   int numFragProc;
+  int iFrag;
 
   stodftInfo->fragInfo = (FRAGINFO*)cmalloc(sizeof(FRAGINFO));
   fragInfo = stodftInfo->fragInfo;
@@ -414,7 +418,7 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     }
   }
   Barrier(commStates);
-  Bcast(allSkin,numAtomTot,MPI_DOUBLE,0,commStates);
+  Bcast(skinAll,numAtomTot,MPI_DOUBLE,0,commStates);
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     for(iAtom=0;iAtom<numAtomFragProc[iFrag];iAtom++){
       fragInfo->skinFragBox[iFrag][iAtom] = skinAll[atomFragMapProc[iFrag][iAtom]-1];
@@ -466,17 +470,17 @@ void reInitFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*======================================================================*/
 /* 1) First pass new coords to fragment calculation                     */
 
-  passAtomCoord(generalData,class,cp,generalDataMini,classMini,cpMini,1,geoCnt);
+  passAtomCoord(general_data,class,cp,generalDataMini,classMini,cpMini,1,geoCnt);
 
 /*======================================================================*/
 /* 2) Recalculate fragment box size		                        */
 
-  initFFTMap(generalData,class,cp,generalDataMini,classMini,cpMini,1,geoCnt);
+  initFFTMap(general_data,class,cp,generalDataMini,classMini,cpMini,1,geoCnt);
 
 /*======================================================================*/
 /* 2) Reinitialize FFT for fragments box size				*/
 
-  reInitFFT(generalData,class,cp,generalDataMini,classMini,cpMini,1);
+  reInitFFT(general_data,class,cp,generalDataMini,classMini,cpMini,1);
 
 /*==========================================================================*/
 }/*end Routine*/

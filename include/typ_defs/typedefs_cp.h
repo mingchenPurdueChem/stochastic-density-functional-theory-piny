@@ -356,6 +356,8 @@ typedef struct fragInfo{
   double ***coefDnFragTot;          /* Lst: Occupied orbitals spin dn all frags */
                                     /* Lth: numFragTot*numElecUpFrag*	        */
                                     /*      numGridFrac                         */
+  double **cellHmat;		    /* Lst: cell h-matrix of all fragments	*/
+				    /* Lth: numFragProc*9			*/
   char *molSetName;		    /* Lst: molecular set file name		*/
 				    /* Lth: MAXWORD				*/
  /* The following parts are parameters/variables that will be passed to mini structures */

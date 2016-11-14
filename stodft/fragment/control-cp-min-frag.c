@@ -409,9 +409,3 @@ void controlCpMinFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
 
 
-
-
-
-
-
-

@@ -88,6 +88,8 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   MPI_Comm world     = classMini->communicate.world;
 
   int iopt_cp_pw,iopt_cp_dvr;
+  double *tot_memory;
+  *tot_memory = 0.0;
 
 /*========================================================================*/
 /*   I) Zero the malloc size variables                                  */
@@ -136,7 +138,7 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 		       &(classMini->clatoms_info),(classMini->clatoms_pos),
 		       &(classMini->ghost_atoms),&(classMini->atommaps),
 		       bondedMini,&fileNameParse,&freeParse,
-		       &classParse,&null_inter_parse,
+		       &classParse,&nullInterParse,
 		       &(generalDataMini->simopts),&(classMini->communicate),
 		       (classMini->surface.isurf_on));
   
@@ -204,10 +206,10 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   mall_pressure(classMini,generalDataMini);  
 
   // Do this first
-  initCoordHmatFFT(generalData,class,cp,generalDataMini,classMini,cpMini);
+  initCoordHmatFFT(general_data,class,cp,generalDataMini,classMini,cpMini);
 
   if(myid==0){//change
-    readHmatFrag(classMini,generalDataMini,cpMini,cp_dual_grid_opt_on
+    readHmatFrag(classMini,generalDataMini,cpMini,cp_dual_grid_opt_on,
 		&(cpMini->cpewald.dbox_rat),&(cpMini->cpewald.box_rat));
   }//endif
   /*
@@ -230,7 +232,7 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /* Set up CP and Ewald stuff                                                */
     if(iopt_cp_pw == 1){//change
       controlSetCpEwaldFrag(generalDataMini,classMini,cpMini,bondedMini,
-			    cp,class,general_data,bonded,&cp_parse)
+			    cp,class,general_data,bonded,&cpParse);
     }
     classMini->clatoms_info.alp_ewd = generalDataMini->ewald.alp_ewd;
 /*--------------------------------------------------------------------------*/
@@ -270,7 +272,7 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   //change
 
   controlInterParamsFrag(generalDataMini,classMini,cpMini,bondedMini,cp,
-			  &spline_parse,&filename_parse,&class_parse);
+			  &splineParse,&fileNameParse,&classParse);
 
 /*========================================================================*/
 /*    XII) Setup the surface potential if needed                          */
@@ -289,8 +291,8 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
                        &(classMini->clatoms_info.nab_initio),
                        classMini->clatoms_info.natm_tot);
     if(myid_state<np_states){
-      controlVpsParamsFrag(generalDataMini,classMini,cpMini,filename_parse,
-			    spline_parse,cp_parse);
+      controlVpsParamsFrag(generalDataMini,classMini,cpMini,&fileNameParse,
+			    &splineParse,&cpParse);
     }//endif
   }//endif
 
@@ -301,7 +303,7 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
   /*THIS HAS ALSO BEEN MODIFIED FOR CLASSICAL HCA EQUILIBRATION */
   set_exclude(&(classMini->clatoms_info),&(classMini->ghost_atoms),bondedMini,
-              &(bondedMini->excl),&null_inter_parse,
+              &(bondedMini->excl),&nullInterParse,
               iperd,tot_memory,
               generalDataMini->ewald.alp_ewd,/*icontrol_proc*/0);
 
@@ -358,8 +360,8 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
   if(cp_on==1){
     if(myid_state<np_states){
-      read_coef(cpMini,generalDataMini,classMIni,&filename_parse,&cp_parse,tot_memory);
-      if(myid == 0){cfree(&(filename_parse.vps_name[1]));} 
+      read_coef(cpMini,generalDataMini,classMini,&fileNameParse,&cpParse,tot_memory);
+      if(myid == 0){cfree(&(fileNameParse.vps_name[1]));} 
     }//endif np_state
   }//endif cp_on
 
@@ -408,7 +410,7 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   
   
   if(myid_state<np_states){
-    control_init_cp_orthog(generalDataMini,cpMini,&cp_parse,cp_on,cp_md,myid);
+    control_init_cp_orthog(generalDataMini,cpMini,&cpParse,cp_on,cp_md,myid);
   }//endif
   
 

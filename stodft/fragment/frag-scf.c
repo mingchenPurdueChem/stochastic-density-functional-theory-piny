@@ -68,7 +68,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* II) Transfer Data and Free Memory				        */
     
-    copyDataMini(cp,cpMini,generalDataMini);
+    //copyDataMini(cp,cpMini,generalDataMini);
     //freeAllMini(generalDataMini,cpMini,classMini,analysisMini,bondedMini);
   }
 /*==========================================================================*/

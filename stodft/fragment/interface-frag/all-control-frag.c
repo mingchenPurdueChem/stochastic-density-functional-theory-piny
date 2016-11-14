@@ -97,8 +97,8 @@ void controlInterParamsFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
   int int_res_ter = generalDataMini->timeinfo.int_res_ter;
   int myid = classMini->communicate.myid;
   int num_proc = classMini->communicate.np;
-  int iatm_typ[] = classMini->atommaps.iatm_atm_typ;
-  NAME atm_typ[] = classMini->atommaps.atm_typ;
+  int *iatm_typ = classMini->atommaps.iatm_atm_typ;
+  NAME *atm_typ = classMini->atommaps.atm_typ;
   MPI_Comm comm = classMini->communicate.world;
   
   int *inter_label;
@@ -1071,7 +1071,7 @@ void controlSetMolParamsFrag(CP_PARSE *cp_parse,CLASS_PARSE *class_parse,
 void controlSetCpEwaldFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
 			   CP *cpMini,BONDED *bondedMini,CP *cp,CLASS *class,
 			   GENERAL_DATA *general_data,BONDED *bonded,
-                           CP_PARSE *cp_parse)
+                           CP_PARSE *cp_parse,CLASS_PARSE *class_parse)
 /*=======================================================================*/
 /*            Begin subprogram:                                          */
    {/*begin routine*/
@@ -1115,10 +1115,10 @@ void controlSetCpEwaldFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
   int pme_b_opt;
   int iperd	= cell->iperd;
   int box_rat	    = cpewald->box_rat;
-  int kmax_ewd	    = cp_parse->kmax_ewd;
-  int kmax_res	    = cp_parse->kmax_res;
+  int kmax_ewd	    = class_parse->kmax_ewd;
+  int kmax_res	    = class_parse->kmax_res;
   int cp_lsda	    = cpopts->cp_lsda;
-  int cp_dual_grid_opt_on = cpopts->cp_dual_grid_opt_on;
+  int cp_dual_grid_opt_on = cpopts->cp_dual_grid_opt;
   int numGridFragProc = fragInfo->numGridFragProc[iFrag];
 
   int *kmaxv;                         /* Lst: K-vector ranges               */
@@ -1141,7 +1141,7 @@ void controlSetCpEwaldFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
 
   double *gmin_true = &(pseudo->gmin_true);
   double *gmin_spl  = &(pseudo->gmin_spl);
-  double *gmax_spl  = &(pseodu->gmax_spl);
+  double *gmax_spl  = &(pseudo->gmax_spl);
   double *bfact_r, *bfact_i;
   double *hmati_ewd;                  /* Num: Inverse ewald h matrix        */
   double *hmati_ewd_cp;               /* Num: Inverse cp ewald h matrix     */
@@ -1350,13 +1350,13 @@ void controlFFTPkgFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,CP *cpMini
 /*    Local Variables */
 
   PARA_FFT_PKG3D *cp_sclr_fft_pkg_sm = &(cpMini->cp_sclr_fft_pkg3d_sm);
-  PARA_FFT_PKG3D *cp_para_fft_pkg_sm = &(cpMini->cp_para_fft_pkg_sm);
-  PARA_FFT_PKG3D *cp_sclr_fft_pkg_dens_cp_box = &(cpMini->cp_sclr_fft_pkg_dens_cp_box);
-  PARA_FFT_PKG3D *cp_para_fft_pkg_dens_cp_box = &(cpMini->cp_para_fft_pkg_dens_cp_box);
-  PARA_FFT_PKG3D *cp_sclr_fft_pkg_lg = &(cpMini->cp_sclr_fft_pkg_lg);
-  PARA_FFT_PKG3D *cp_para_fft_pkg_lg = &(cpMini->cp_para_fft_pkg_lg);
-  PARA_FFT_PKG3D *pme_fft_pkg = &(cpMini->pme_fft_pkg);
-  PARA_FFT_PKG3D *pme_res_fft_pkg = &(cpMini->pme_res_fft_pkg);
+  PARA_FFT_PKG3D *cp_para_fft_pkg_sm = &(cpMini->cp_para_fft_pkg3d_sm);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg_dens_cp_box = &(cpMini->cp_sclr_fft_pkg3d_dens_cp_box);
+  PARA_FFT_PKG3D *cp_para_fft_pkg_dens_cp_box = &(cpMini->cp_para_fft_pkg3d_dens_cp_box);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg_lg = &(cpMini->cp_sclr_fft_pkg3d_lg);
+  PARA_FFT_PKG3D *cp_para_fft_pkg_lg = &(cpMini->cp_para_fft_pkg3d_lg);
+  PARA_FFT_PKG3D *pme_fft_pkg = &(generalDataMini->pme_fft_pkg);
+  PARA_FFT_PKG3D *pme_res_fft_pkg = &(generalDataMini->pme_res_fft_pkg);
   EWALD *ewald = &(generalDataMini->ewald);
   CPEWALD *cpewald = &(cpMini->cpewald);
   PART_MESH *part_mesh = &(classMini->part_mesh);
@@ -1364,7 +1364,7 @@ void controlFFTPkgFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,CP *cpMini
   COMMUNICATE *communicate = &(classMini->communicate);
   CPOPTS *cpopts = &(cpMini->cpopts);
   STODFTINFO *stodftInfo = cp->stodftInfo;
-  FRAGINFO *fragInfo->stodftInfo->fragInfo;
+  FRAGINFO *fragInfo = stodftInfo->fragInfo;
   
 
   int iFrag = fragInfo->iFrag;
@@ -1374,7 +1374,7 @@ void controlFFTPkgFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,CP *cpMini
   int cp_on	  = 1;  // Always do cp
   int cp_lsda	      = cpopts->cp_lsda;
   int cp_para_opt     = cpopts->cp_para_opt;
-  int cp_dual_grid_opt_on = cpopts->cp_dual_grid_opt_on;
+  int cp_dual_grid_opt_on = cpopts->cp_dual_grid_opt;
   int nstate_up          = cpcoeffs_info->nstate_up;
   int nstate_dn          = cpcoeffs_info->nstate_dn;
   int ncoef              = cpcoeffs_info->ncoef;
@@ -1557,6 +1557,7 @@ void controlVpsParamsFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
   CLATOMS_INFO *clatoms_info = &(classMini->clatoms_info);
   CPOPTS *cpopts = &(cpMini->cpopts);
   COMMUNICATE *communicate = &(classMini->communicate);
+  CPCOEFFS_INFO *cpcoeffs_info = &(cpMini->cpcoeffs_info);
   
   CVPS *cvps_typ;
   VPS_FILE *vps_file;          /* Fle:  Pseudopotential file          */
@@ -1822,7 +1823,6 @@ void controlVpsParamsFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
    pseudo->vps3    = (double *) cmalloc(nsplin_mall*sizeof(double))-1;
  
    now_mem   = ( nsplin_mall*4 *sizeof(double))*1.e-06;
-  *tot_memory += now_mem;
 
    if(cp_ptens_calc == 1 || iopt_cp_dvr){
 

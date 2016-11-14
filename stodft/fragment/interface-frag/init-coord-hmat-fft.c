@@ -26,6 +26,7 @@
 #include "../typ_defs/typedefs_class.h"
 #include "../typ_defs/typedefs_bnd.h"
 #include "../typ_defs/typedefs_cp.h"
+#include "../typ_defs/typedefs_par.h"
 #include "../typ_defs/typedefs_stat.h"
 #include "../proto_defs/proto_math.h"
 #include "../proto_defs/proto_friend_lib_entry.h"
@@ -75,8 +76,8 @@ void passAtomCoord(GENERAL_DATA *generalData,CLASS *class,CP *cp,
 /*             Local variable declarations                                */
   STODFTINFO *stodftInfo	= cp->stodftInfo;
   FRAGINFO *fragInfo		= stodftInfo->fragInfo;
-  CLATOMS_POS *clatomsPos	= &(cp->clatoms_pos[ip_now]);
-  CLATOMS_POS *clatomsPosMini	= &(cpMini->clatoms_pos[1]);
+  CLATOMS_POS *clatomsPos	= &(class->clatoms_pos[ip_now]);
+  CLATOMS_POS *clatomsPosMini	= &(classMini->clatoms_pos[1]);
   CELL *cell			= &(generalData->cell);
   
 
@@ -116,15 +117,15 @@ void passAtomCoord(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   yRef = yMini[1];
   zRef = zMini[1];
   
-  double *xDiff = (double*)cmalloc((numAtomFrag+1)*sizeof(double));
-  double *yDiff = (double*)cmalloc((numAtomFrag+1)*sizeof(double));
-  double *zDiff = (double*)cmalloc((numAtomFrag+1)*sizeof(double));
+  xDiff = (double*)cmalloc((numAtomFrag+1)*sizeof(double));
+  yDiff = (double*)cmalloc((numAtomFrag+1)*sizeof(double));
+  zDiff = (double*)cmalloc((numAtomFrag+1)*sizeof(double));
 
   // Shift the first atom to the center of the box
   for(iAtom=1;iAtom<=numAtomFrag;iAtom++){
-    xDiff[iAtom] = xMini[iAtom]-xRef[iAtom];
-    yDiff[iAtom] = yMini[iAtom]-yRef[iAtom];
-    zDiff[iAtom] = zMini[iAtom]-zRef[iAtom];
+    xDiff[iAtom] = xMini[iAtom]-xRef;
+    yDiff[iAtom] = yMini[iAtom]-yRef;
+    zDiff[iAtom] = zMini[iAtom]-zRef;
   }
   // Scale to cubic box
   for(iAtom=1;iAtom<=numAtomFrag;iAtom++){
@@ -208,7 +209,7 @@ void initFFTMap(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   CELL *cellMini = &(generalDataMini->cell);
   STODFTINFO *stodftInfo = cp->stodftInfo;
   FRAGINFO *fragInfo            = stodftInfo->fragInfo; 
-  CLATOMS_POS *clatomsPosMini   = &(cpMini->clatoms_pos[1]);
+  CLATOMS_POS *clatomsPosMini   = &(classMini->clatoms_pos[1]);
 
   int iAtom,iProj,iDim;
   int iGrid,jGrid,kGrid;
@@ -224,7 +225,7 @@ void initFFTMap(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   int index,indexa,indexb,indexc;
   int *numGridMiniBox = fragInfo->numGridFragDim[iFrag];
 
-  double geoCntBox[3],gridSize[3],zeroShift[3];
+  double geoCntBox[3],gridSize[3];
   double zeroShift[3] = {0};
   double aBig[3],bBig[3],cBig[3];
   double aGrid[3],bGrid[3],cGrid[3];
@@ -326,7 +327,7 @@ void initFFTMap(GENERAL_DATA *generalData,CLASS *class,CP *cp,
 				    aNorm,bNorm,cNorm,skinFrag,&negativeLength);
   
   numGridMiniBox[2] = (int)(distProjAxis/cGridLen);
-  if(numGridMiniBox[2]%2!=0)numGridMinBox[2] += 1;
+  if(numGridMiniBox[2]%2!=0)numGridMiniBox[2] += 1;
   numGridMiniBox[2] += 2; 
   negativeGridNum = numGridMiniBox[2]/2;
   zeroGrid[2] = indexGrid[2]-negativeGridNum;
@@ -395,15 +396,15 @@ void initFFTMap(GENERAL_DATA *generalData,CLASS *class,CP *cp,
 /*======================================================================*/
 /* III) Get the mini cell matrix                                        */
 
-  hmatMini[1] = numGridMinBox[0]*aGrid[0];
-  hmatMini[2] = numGridMinBox[0]*aGrid[1];
-  hmatMini[3] = numGridMinBox[0]*aGrid[2];
-  hmatMini[4] = numGridMinBox[1]*bGrid[0];
-  hmatMini[5] = numGridMinBox[1]*bGrid[1];
-  hmatMini[6] = numGridMinBox[1]*bGrid[2];
-  hmatMini[7] = numGridMinBox[2]*cGrid[0];
-  hmatMini[8] = numGridMinBox[2]*cGrid[1];
-  hmatMini[9] = numGridMinBox[2]*cGrid[2];
+  hmatMini[1] = numGridMiniBox[0]*aGrid[0];
+  hmatMini[2] = numGridMiniBox[0]*aGrid[1];
+  hmatMini[3] = numGridMiniBox[0]*aGrid[2];
+  hmatMini[4] = numGridMiniBox[1]*bGrid[0];
+  hmatMini[5] = numGridMiniBox[1]*bGrid[1];
+  hmatMini[6] = numGridMiniBox[1]*bGrid[2];
+  hmatMini[7] = numGridMiniBox[2]*cGrid[0];
+  hmatMini[8] = numGridMiniBox[2]*cGrid[1];
+  hmatMini[9] = numGridMiniBox[2]*cGrid[2];
   
 }/*end routine*/
 /*==========================================================================*/
@@ -452,12 +453,35 @@ double calcMiniBoxLength(int numAtomFrag,double *x,double *y,double *z,
   distVert = projMax-projMin;
   // Get the c direction distance   
   dotProd = dot(cNorm,crossProd);
-  distProjAxis = disVert/fabs(dotProd);
+  distProjAxis = distVert/fabs(dotProd);
   *negativelength = fabs(projMin/dotProd);
   cfree(projList);
 
-  return distProjAxis
-  
+  return distProjAxis;
+
+/*==========================================================================*/  
 }/*end routine*/
 /*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+double normalized3d(double *x)
+/*========================================================================*/
+/*             Begin Routine                                              */
+{/*Begin subprogram: */
+/*========================================================================*/
+/*             Local variable declarations                                */
+/*------------------------------------------------------------------------*/
+  double norm = sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2]);
+  x[0] /= norm;
+  x[1] /= norm;
+  x[2] /= norm;
+  
+  return norm;
+
+/*==========================================================================*/
+}/*end routine*/
+/*==========================================================================*/
+
 

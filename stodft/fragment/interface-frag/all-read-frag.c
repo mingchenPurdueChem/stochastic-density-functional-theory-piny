@@ -18,6 +18,7 @@
 #include "../typ_defs/typedefs_par.h"
 #include "../typ_defs/typedefs_gen.h"
 #include "../typ_defs/typedefs_cp.h"
+#include "../typ_defs/typedefs_bnd.h"
 #include "../typ_defs/typedefs_stat.h"
 #include "../proto_defs/proto_coords_entry.h"
 #include "../proto_defs/proto_math.h"
@@ -109,9 +110,12 @@ void readHmatFrag(CLASS *classMini,GENERAL_DATA *generalDataMini,
   CELL *cell                    = &(generalDataMini->cell);
   CLATOMS_INFO *clatoms_info    = &(classMini->clatoms_info);
   ATOMMAPS *atommaps            = &(classMini->atommaps);
+  GENERAL_DATA *general_data = generalDataMini;
 
   int ii,iii,upper;
   int i,j,ip;              /* Num: For loop counter                 */
+
+  char dnamei[100];
 
   double sx,sy,sz;
   double vol,vol_cp,area;

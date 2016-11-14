@@ -23,7 +23,7 @@ void controlSetMolParamsFrag(CP_PARSE *,CLASS_PARSE *,
                 char *,int *,int ,double ,int ,int ,DICT_MOL *);
 
 void controlSetCpEwaldFrag(GENERAL_DATA *,CLASS *,CP *,BONDED *,CP *,CLASS *,
-                           GENERAL_DATA *,BONDED *,CP_PARSE *);
+                           GENERAL_DATA *,BONDED *,CP_PARSE *,CLASS_PARSE *);
 
 void controlFFTPkgFrag(GENERAL_DATA *,CLASS *,CP *,CP *);
 
@@ -79,6 +79,10 @@ void passAtomCoord(GENERAL_DATA *,CLASS *,CP *,GENERAL_DATA *,CLASS *,
 void initFFTMap(GENERAL_DATA *,CLASS *,CP *,GENERAL_DATA *,CLASS *,CP *,
 		int ,double *);
 
+double calcMiniBoxLength(int,double *,double *,double *,
+                         double *,double *,double *,double *,double *);
+
+double normalized3d(double *);
 /*-----------------------------------------------------------------*/
 /* init-coord-hmat-fft.c                                           */
 

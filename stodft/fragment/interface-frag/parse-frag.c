@@ -232,7 +232,7 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /* Set up CP and Ewald stuff                                                */
     if(iopt_cp_pw == 1){//change
       controlSetCpEwaldFrag(generalDataMini,classMini,cpMini,bondedMini,
-			    cp,class,general_data,bonded,&cpParse);
+			    cp,class,general_data,bonded,&cpParse,&classParse);
     }
     classMini->clatoms_info.alp_ewd = generalDataMini->ewald.alp_ewd;
 /*--------------------------------------------------------------------------*/

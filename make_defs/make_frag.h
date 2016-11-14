@@ -105,11 +105,11 @@ gen-wave-frag.o :	 $(STANDARD) $(DEFINES) \
 
 init-coord-hmat-fft.o :  $(STANDARD) $(DEFINES) \
 			 $(TYP_GEN) $(TYP_CP) $(TYP_CLASS) $(TYP_BND) \
-			 $(TYP_STAT) \
+			 $(TYP_STAT) $(TYP_PAR) \
 			 $(MATH) $(FRND_ENT) $(COMM_WRAP) $(FRAG_INT_LOC) \
 			 $(DCODE)/stodft/fragment/interface-frag/init-coord-hmat-fft.c
 	$(ECHO) $@
-	$(COBJ) $(DCODE)/stodft/fragment/interface-frag/gen-wave-frag.o
+	$(COBJ) $(DCODE)/stodft/fragment/interface-frag/init-coord-hmat-fft.c
 
 reinitFFT.o :		 $(STANDARD) $(DEFINES) \
 			 $(TYP_GEN) $(TYP_CP) $(TYP_CLASS) $(TYP_BND) \

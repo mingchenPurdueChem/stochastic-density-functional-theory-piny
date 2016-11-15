@@ -4602,8 +4602,8 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
 
   /*-----------------------------------------------------------------------*/
   /*  19)\frag_box_opt{#} */
-  if(strcasecmp(dict[19].keyarg,"hg")==0)stodftInfo->fragOpt = 1;
-  if(strcasecmp(dict[19].keyarg,"nhg")==0)stodftInfo->fragOpt = 2;
+  if(strcasecmp(dict[19].keyarg,"hg")==0)stodftInfo->fragCellOpt = 1;
+  if(strcasecmp(dict[19].keyarg,"nhg")==0)stodftInfo->fragCellOpt = 2;
 
 /*=======================================================================*/
 /* Check the conflicate options						 */

@@ -54,6 +54,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
 /*======================================================================*/
 /* I) Initialize Fragment SCF					        */
+    
     /*
     parseFrag(class,bonded,general_data,cp,analysis,&classMini[iFrag],&bondedMini[iFrag],
            &generalDataMini[iFrag],&cpMini[iFrag],&analysisMini[iFrag]);

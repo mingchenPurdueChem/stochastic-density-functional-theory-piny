@@ -56,6 +56,8 @@ void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
   stodftInfo->fragInfo = (FRAGINFO*)cmalloc(sizeof(FRAGINFO));
   fragInfo = stodftInfo->fragInfo;
+
+  printf("fragOpt %i\n",fragOpt);
   
   switch(fragOpt){ 
     case 1:
@@ -63,6 +65,7 @@ void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
       break;
     case 4:
       initFragUnitCell(class,bonded,general_data,cp,ip_now);
+      break;
   }
 
 
@@ -73,6 +76,7 @@ void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   *analysisMiniPoint = (ANALYSIS*)cmalloc(numFragProc*sizeof(ANALYSIS));
   *cpMiniPoint = (CP*)cmalloc(numFragProc*sizeof(CP));
   for(iFrag=0;iFrag<numFragProc;iFrag++){
+    printf("iFrag %i\n",iFrag);
     parseFrag(class,bonded,general_data,cp,analysis,&(*classMiniPoint[iFrag]),
 	      &(*bondedMiniPoint[iFrag]),&(*generalDataMiniPoint[iFrag]),
 	      &(*cpMiniPoint[iFrag]),&(*analysisMiniPoint[iFrag]));
@@ -162,6 +166,10 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*======================================================================*/
 /* I) Get number of fragments per processor                             */
 
+  if(myidState==0){
+    printf("**Get number of fragments\n");
+  }
+
   numMolTot = 0;
   for(iMol=1;iMol<=numMolType;iMol++)numMolTot += numMolJmolType[iMol];
   fragInfo->numFragTot = numMolTot;
@@ -176,6 +184,10 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*======================================================================*/
 /* II) Get mol map in each fragments                                    */
 
+  if(myidState==0){
+    printf("**Get mol map\n");
+  }
+  
   // Get Mol Map
   fragInfo->numMolFragProc = (int*)cmalloc(numFragProc*sizeof(int));
   numMolFragProc = fragInfo->numMolFragProc;
@@ -252,6 +264,10 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*======================================================================*/
 /* 2) Get atoms map in each fragments                                   */
 
+  if(myidState==0){
+    printf("**Get atom map\n");
+  }
+  
   atomIndStart = (int*)cmalloc(numMolTot*sizeof(int));
   atomNumMol = (int*)cmalloc(numMolTot*sizeof(int));
   // Get starting atom index for each molecule
@@ -299,6 +315,10 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
 /*======================================================================*/
 /* 3) Get electron number in each fragments                             */
+
+  if(myidState==0){
+    printf("**Get electron number\n");
+  }
 
   if(numAtomQM!=numAtomTot){
     printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
@@ -353,6 +373,10 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
 /*======================================================================*/
 /* 3) Malloc fragment wave functions	                                */
+
+  if(myidState==0){
+    printf("**Allocate fragment wave functions\n");
+  }
     
   fragInfo->rhoFragSum = (double*)cmalloc(rhoRealGridNum*sizeof(double));
   fragInfo->coefUpFragProc = (double***)cmalloc(numFragProc*sizeof(double**));
@@ -378,6 +402,10 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*--------------------------------------------------------------------------*/
 /*  Partially Malloc Grid Mapping					    */
 
+  if(myidState==0){
+    printf("**Partially allocate grid mapping\n");
+  }
+
   fragInfo->numGridFragProc = (int*)cmalloc(numFragProc*sizeof(int));  
   fragInfo->numGridFragTot = (int*)cmalloc(numFragTot*sizeof(int));
   fragInfo->gridMapProc = (int**)cmalloc(numFragProc*sizeof(int*));
@@ -389,6 +417,11 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
 /*======================================================================*/
 /* 3) Initialize other things	                                        */
+
+  if(myidState==0){
+    printf("**Finish other initializtion\n");
+  }
+
   fragInfo->molSetName = (char *)cmalloc(MAXWORD*sizeof(char));
   if(numProcStates==1)strcpy(fragInfo->molSetName,general_data->filenames.molsetname);
   else{
@@ -404,6 +437,10 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*======================================================================*/
 /* 4) Initialize skin	                                                */
 
+  if(myidState==0){
+    printf("**Initialize skin\n");
+  }
+
   FILE *fileSkin;
   fragInfo->skinAll = (double*)cmalloc(numAtomTot*sizeof(double));
   fragInfo->skinFragBox = (double**)cmalloc(numFragProc*sizeof(double*));
@@ -417,8 +454,10 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
       fscanf(fileSkin,"%lg",&skinAll[iAtom]);
     }
   }
-  Barrier(commStates);
-  Bcast(skinAll,numAtomTot,MPI_DOUBLE,0,commStates);
+  if(numProcStates>1){
+    Barrier(commStates);
+    Bcast(skinAll,numAtomTot,MPI_DOUBLE,0,commStates);
+  }
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     for(iAtom=0;iAtom<numAtomFragProc[iFrag];iAtom++){
       fragInfo->skinFragBox[iFrag][iAtom] = skinAll[atomFragMapProc[iFrag][iAtom]-1];

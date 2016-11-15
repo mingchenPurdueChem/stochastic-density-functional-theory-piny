@@ -171,12 +171,19 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /* V) If needed, calculate the fragmentation                            */
 
   calcFragFlag = cp->stodftInfo->calcFragFlag;
+  printf("calcFragFlag %i\n",calcFragFlag);
   if(calcFragFlag==1){
+    if(myid==0){
+      PRINT_LINE_STAR;
+      printf("Initial fragment calculation\n");
+      PRINT_LINE_DASH;
+    }  
     initFrag(class,bonded,general_data,cp,analysis,classMiniPoint,bondedMiniPoint,
 		generalDataMiniPoint,analysisMiniPoint,cpMiniPoint,ip_now);
     fragScf(class,bonded,general_data,cp,analysis,*generalDataMiniPoint,
 	    *cpMiniPoint,*classMiniPoint,*analysisMiniPoint,*bondedMiniPoint,ip_now);
   }
+  exit(0);
 
 /*======================================================================*/
 /* IV) Electronic Structure calculation for initial configuration       */

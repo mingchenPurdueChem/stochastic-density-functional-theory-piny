@@ -784,8 +784,6 @@ void controlSetMolParamsFrag(CP_PARSE *cp_parse,CLASS_PARSE *class_parse,
   
   char *molsetname        = filename_parse->molsetname;
 
-  
-
 /*=======================================================================*/
 /* 0) Set up molecular index checking memory                             */
 
@@ -935,6 +933,15 @@ void controlSetMolParamsFrag(CP_PARSE *cp_parse,CLASS_PARSE *class_parse,
 
 /*=====================================================================*/
 /* III) Assign mol_dict variables	       */
+
+  dictMolFrag = (DICT_MOL*)cmalloc(numMolTypeNow*sizeof(DICT_MOL));
+
+  for(iType=0;iType<numMolTypeNow;iType++){
+    set_mol_dict(&dictMolFrag[iType].mol_dict,&dictMolFrag[iType].num_mol_dict,
+                 iextend,class_parse->tau_nhc_def,
+                 generalDataMini->statepoint.t_ext,1);
+  }
+
 
   for(iType=0;iType<numMolTypeNow;iType++){
     typeInd = molTypeFragNow[iType];

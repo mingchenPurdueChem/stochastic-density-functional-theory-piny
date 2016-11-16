@@ -61,7 +61,6 @@ void mall_coord(CLASS *class,GENERAL_DATA *general_data)
 /*========================================================================*/
 /* I) Malloc atom positions, velocities, and forces                       */
 
-
   for(i=1;i<=pi_beads;i++){
   (class->clatoms_pos)[i].x   = (double *)cmalloc(natm_mall*sizeof(double))-1;
   (class->clatoms_pos)[i].y   = (double *)cmalloc(natm_mall*sizeof(double))-1;

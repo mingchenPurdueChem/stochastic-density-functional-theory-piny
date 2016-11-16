@@ -459,6 +459,8 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
 /*=======================================================================*/
 /*  VI) set_sim_params_nhc                                               */
 
+  classParse->tau_nhc_def = 1000.0;
+
 /*=======================================================================*/
 /*  VII) set_sim_params_vol                                              */
   
@@ -480,6 +482,12 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
 
 /*=======================================================================*/
 /*  IX) set_sim_params_pimd                                              */
+
+  classMini->clatoms_info.pi_beads = 1;
+  cpMini->cpcoeffs_info.pi_beads = 1;
+  generalDataMini->simopts.pi_beads = 1;
+  classMini->clatoms_info.pi_beads_proc = 1;
+  cpMini->cpcoeffs_info.pi_beads_proc = 1;
 
 /*=======================================================================*/
 /*  X) set_sim_params_velo                                               */

@@ -88,7 +88,8 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   MPI_Comm world     = classMini->communicate.world;
 
   int iopt_cp_pw,iopt_cp_dvr;
-  double *tot_memory;
+  double totMemFake;
+  double *tot_memory = &totMemFake;
   *tot_memory = 0.0;
 
 /*========================================================================*/
@@ -134,13 +135,11 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*               (interface/intra_params/control_intra_params.c)          */
 
   
-  control_intra_params(tot_memory,
-		       &(classMini->clatoms_info),(classMini->clatoms_pos),
-		       &(classMini->ghost_atoms),&(classMini->atommaps),
-		       bondedMini,&fileNameParse,&freeParse,
-		       &classParse,&nullInterParse,
-		       &(generalDataMini->simopts),&(classMini->communicate),
-		       (classMini->surface.isurf_on));
+  printf("Start intra\n");
+
+  controlIntraParamsFrag(tot_memory,classMini,generalDataMini,bondedMini,
+			&fileNameParse,&freeParse,&classParse,&nullInterParse);
+  printf("End intra\n");
   
 
 /*========================================================================*/
@@ -200,13 +199,15 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*                (interface/coords/read_coord.c)                         */
 /*  Pass all atom positions into */
   
-  
+  printf("start coordhmatfft\n");
 
   mall_coord(classMini,generalDataMini);
   mall_pressure(classMini,generalDataMini);  
 
   // Do this first
   initCoordHmatFFT(general_data,class,cp,generalDataMini,classMini,cpMini);
+
+  printf("start read hmat\n");
 
   if(myid==0){//change
     readHmatFrag(classMini,generalDataMini,cpMini,cp_dual_grid_opt_on,
@@ -259,6 +260,8 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
 /*========================================================================*/
 /*   IX) Create the FFT packages  */
+  printf("start FFT\n");
+
   //change
   if((nchrg>0&&iperd>0&&pme_on==1)||cp_on==1){
     if(myid_state<num_proc&&myid_state>=0){
@@ -271,6 +274,7 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*                (interface/inter_params/control_inter_params.c)         */
   //change
 
+  printf("start Inter");
   controlInterParamsFrag(generalDataMini,classMini,cpMini,bondedMini,cp,
 			  &splineParse,&fileNameParse,&classParse);
 

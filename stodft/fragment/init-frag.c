@@ -76,7 +76,7 @@ void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   *analysisMiniPoint = (ANALYSIS*)cmalloc(numFragProc*sizeof(ANALYSIS));
   *cpMiniPoint = (CP*)cmalloc(numFragProc*sizeof(CP));
   for(iFrag=0;iFrag<numFragProc;iFrag++){
-    printf("iFrag %i\n",iFrag);
+    printf("iFrag %i numFragProc %i\n",iFrag,numFragProc);
     parseFrag(class,bonded,general_data,cp,analysis,&(*classMiniPoint[iFrag]),
 	      &(*bondedMiniPoint[iFrag]),&(*generalDataMiniPoint[iFrag]),
 	      &(*cpMiniPoint[iFrag]),&(*analysisMiniPoint[iFrag]));
@@ -367,9 +367,11 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     }//endfor iAtom
   }//endfor iFrag
   
+  /*
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     printf("iFrag %i numElecUpFragProc %i numElecDnFragProc %i\n",iFrag,numElecUpFragProc[iFrag],numElecDnFragProc[iFrag]);
   }
+  */
 
 /*======================================================================*/
 /* 3) Malloc fragment wave functions	                                */

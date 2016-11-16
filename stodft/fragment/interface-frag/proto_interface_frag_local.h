@@ -22,6 +22,10 @@ void controlSetMolParamsFrag(CP_PARSE *,CLASS_PARSE *,
                 GENERAL_DATA *,CLASS *class,CP *,GENERAL_DATA *,DICT_MOL *,DICT_WORD *,
                 char *,int *,int ,double ,int ,int ,DICT_MOL *);
 
+void controlIntraParamsFrag(double *,CLASS *,GENERAL_DATA *,BONDED *,FILENAME_PARSE *,
+                    FREE_PARSE *,CLASS_PARSE *,NULL_INTER_PARSE *);
+
+
 void controlSetCpEwaldFrag(GENERAL_DATA *,CLASS *,CP *,BONDED *,CP *,CLASS *,
                            GENERAL_DATA *,BONDED *,CP_PARSE *,CLASS_PARSE *);
 

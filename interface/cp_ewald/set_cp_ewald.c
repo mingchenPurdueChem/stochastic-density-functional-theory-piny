@@ -534,6 +534,7 @@ void setkvec3d(int nktot,double ecut,int *kmaxv,double *hmatik,
 	  aka = (double) ka;
 	  akb = (double) kb;
 	  akc = (double) kc;
+	  //printf("aka %lg akb %lg akc %lg icount %i\n",aka,akb,akc,icount);
 	  xk = (aka * hmatik[1] + akb * hmatik[2] + akc * hmatik[3]) * tpi;
 	  yk = (aka * hmatik[4] + akb * hmatik[5] + akc * hmatik[6]) * tpi;
 	  zk = (aka * hmatik[7] + akb * hmatik[8] + akc * hmatik[9]) * tpi;
@@ -698,6 +699,7 @@ void setkvec3d_sm(int nktot,double ecut,int *kmax_cp,double *hmatik,
 	aka = (double) ka;
 	akb = (double) kb;
 	akc = (double) kc;
+	//printf("aka %lg akb %lg akc %lg icount %i\n",aka,akb,akc,icount);
 	xk = (aka * hmatik[1] + akb * hmatik[2] + akc * hmatik[3]) * tpi;
 	yk = (aka * hmatik[4] + akb * hmatik[5] + akc * hmatik[6]) * tpi;
 	zk = (aka * hmatik[7] + akb * hmatik[8] + akc * hmatik[9]) * tpi;

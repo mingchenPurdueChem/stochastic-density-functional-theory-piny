@@ -96,6 +96,7 @@ void passAtomCoord(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   double *yMini	= clatomsPosMini->y;
   double *zMini = clatomsPosMini->z;
   double *xDiff,*yDiff,*zDiff;
+  double *xTemp,*yTemp,*zTemp;
   double *hmat	= cell->hmat;
   double *hmati = cell->hmati;
   double xRef,yRef,zRef;
@@ -104,9 +105,9 @@ void passAtomCoord(GENERAL_DATA *generalData,CLASS *class,CP *cp,
 /* I) Pass the coordinates                                              */
   
   for(iAtom=1;iAtom<=numAtomFrag;iAtom++){
-    xMini[iAtom] = x[atomFragMap[iAtom]];
-    yMini[iAtom] = y[atomFragMap[iAtom]];
-    zMini[iAtom] = z[atomFragMap[iAtom]];
+    xMini[iAtom] = x[atomFragMap[iAtom-1]];
+    yMini[iAtom] = y[atomFragMap[iAtom-1]];
+    zMini[iAtom] = z[atomFragMap[iAtom-1]];
   }
   
 /*======================================================================*/
@@ -120,6 +121,10 @@ void passAtomCoord(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   xDiff = (double*)cmalloc((numAtomFrag+1)*sizeof(double));
   yDiff = (double*)cmalloc((numAtomFrag+1)*sizeof(double));
   zDiff = (double*)cmalloc((numAtomFrag+1)*sizeof(double));
+  xTemp = (double*)cmalloc((numAtomFrag+1)*sizeof(double));
+  yTemp = (double*)cmalloc((numAtomFrag+1)*sizeof(double));
+  zTemp = (double*)cmalloc((numAtomFrag+1)*sizeof(double));
+
 
   // Shift the first atom to the center of the box
   for(iAtom=1;iAtom<=numAtomFrag;iAtom++){
@@ -129,33 +134,45 @@ void passAtomCoord(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   }
   // Scale to cubic box
   for(iAtom=1;iAtom<=numAtomFrag;iAtom++){
-    xMini[iAtom] = xDiff[iAtom]*hmati[1]+yDiff[iAtom]*hmati[4]+zDiff[iAtom]*hmati[7];
-    yMini[iAtom] = xDiff[iAtom]*hmati[2]+yDiff[iAtom]*hmati[5]+zDiff[iAtom]*hmati[8];
-    zMini[iAtom] = xDiff[iAtom]*hmati[3]+yDiff[iAtom]*hmati[6]+zDiff[iAtom]*hmati[9];
+    xTemp[iAtom] = xDiff[iAtom]*hmati[1]+yDiff[iAtom]*hmati[4]+zDiff[iAtom]*hmati[7];
+    yTemp[iAtom] = xDiff[iAtom]*hmati[2]+yDiff[iAtom]*hmati[5]+zDiff[iAtom]*hmati[8];
+    zTemp[iAtom] = xDiff[iAtom]*hmati[3]+yDiff[iAtom]*hmati[6]+zDiff[iAtom]*hmati[9];
   }
   // Remove the PBC. I assume the fragment is no bigger then half of the box.
   // If it is, then a better way is to make it into even smaller pieces and remove pbc
   // for those small pieces. 
   for(iAtom=1;iAtom<=numAtomFrag;iAtom++){
-    if(xMini[iAtom]>0.5)xMini[iAtom] -= 1.0;
-    if(yMini[iAtom]>0.5)yMini[iAtom] -= 1.0;
-    if(zMini[iAtom]>0.5)zMini[iAtom] -= 1.0;
-    if(xMini[iAtom]<-0.5)xMini[iAtom] += 1.0;
-    if(yMini[iAtom]<-0.5)yMini[iAtom] += 1.0;
-    if(zMini[iAtom]<-0.5)zMini[iAtom] += 1.0;
+    if(xTemp[iAtom]>0.5)xTemp[iAtom] -= 1.0;
+    if(yTemp[iAtom]>0.5)yTemp[iAtom] -= 1.0;
+    if(zTemp[iAtom]>0.5)zTemp[iAtom] -= 1.0;
+    if(xTemp[iAtom]<-0.5)xTemp[iAtom] += 1.0;
+    if(yTemp[iAtom]<-0.5)yTemp[iAtom] += 1.0;
+    if(zTemp[iAtom]<-0.5)zTemp[iAtom] += 1.0;
   }
 
   // Rescale to Big box
   for(iAtom=1;iAtom<=numAtomFrag;iAtom++){
-    xDiff[iAtom] = xMini[iAtom]*hmat[1]+yMini[iAtom]*hmat[4]+zMini[iAtom]*hmat[7];
-    yDiff[iAtom] = xMini[iAtom]*hmat[2]+yMini[iAtom]*hmat[5]+zMini[iAtom]*hmat[8];
-    zDiff[iAtom] = xMini[iAtom]*hmat[3]+yMini[iAtom]*hmat[6]+zMini[iAtom]*hmat[9];
+    xDiff[iAtom] = xTemp[iAtom]*hmat[1]+yTemp[iAtom]*hmat[4]+zTemp[iAtom]*hmat[7];
+    yDiff[iAtom] = xTemp[iAtom]*hmat[2]+yTemp[iAtom]*hmat[5]+zTemp[iAtom]*hmat[8];
+    zDiff[iAtom] = xTemp[iAtom]*hmat[3]+yTemp[iAtom]*hmat[6]+zTemp[iAtom]*hmat[9];
+    //printf("%lg %lg %lg\n",xDiff[iAtom],yDiff[iAtom],zDiff[iAtom]);
   }
+  //debug
+  /*
+  FILE *testxyz = fopen("test.xyz","w");
+  fprintf(testxyz,"3\n\n");
+  fprintf(testxyz,"O %lg %lg %lg\n",xDiff[1]*BOHR,yDiff[1]*BOHR,zDiff[1]*BOHR);
+  fprintf(testxyz,"H %lg %lg %lg\n",xDiff[2]*BOHR,yDiff[2]*BOHR,zDiff[2]*BOHR);
+  fprintf(testxyz,"H %lg %lg %lg\n",xDiff[3]*BOHR,yDiff[3]*BOHR,zDiff[3]*BOHR);
+  fclose(testxyz);
+  */
+
   // Copy x/y/zDiff to x/y/zMini
+  
   memcpy(&xMini[1],&xDiff[1],numAtomFrag*sizeof(double));
   memcpy(&yMini[1],&yDiff[1],numAtomFrag*sizeof(double));
   memcpy(&zMini[1],&zDiff[1],numAtomFrag*sizeof(double));
-
+  
   // Get the geometric center
   xCnt = 0.0;
   yCnt = 0.0;
@@ -168,21 +185,35 @@ void passAtomCoord(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   xCnt /= numAtomFrag;
   yCnt /= numAtomFrag;
   zCnt /= numAtomFrag;
-  geoCnt[0] = xCnt;
-  geoCnt[1] = yCnt;
-  geoCnt[2] = zCnt;
+  geoCnt[0] = xCnt+xRef;
+  geoCnt[1] = yCnt+yRef;
+  geoCnt[2] = zCnt+zRef;
   // Shift the center to 0
+  
   for(iAtom=1;iAtom<=numAtomFrag;iAtom++){
     xMini[iAtom] -= xCnt;
     yMini[iAtom] -= yCnt;
     zMini[iAtom] -= zCnt;
   }
   
+  /*
+  FILE *testxyz = fopen("test.xyz","w");
+  fprintf(testxyz,"3\n\n");
+  fprintf(testxyz,"O %lg %lg %lg\n",xMini[1]*BOHR,yMini[1]*BOHR,zMini[1]*BOHR);
+  fprintf(testxyz,"H %lg %lg %lg\n",xMini[2]*BOHR,yMini[2]*BOHR,zMini[2]*BOHR);
+  fprintf(testxyz,"H %lg %lg %lg\n",xMini[3]*BOHR,yMini[3]*BOHR,zMini[3]*BOHR);
+  fclose(testxyz);
+  */
+
+  
 /*======================================================================*/
 /* II) Free local array				                        */
   free(xDiff);
   free(yDiff);
   free(zDiff); 
+  free(xTemp);
+  free(yTemp);
+  free(zTemp);
 /*------------------------------------------------------------------------*/
 }/*end routine*/
 /*==========================================================================*/
@@ -225,7 +256,7 @@ void initFFTMap(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   int index,indexa,indexb,indexc;
   int *numGridMiniBox = fragInfo->numGridFragDim[iFrag];
 
-  double geoCntBox[3],gridSize[3];
+  double geoCntBox[3],geoCntDiff[3],gridSize[3];
   double zeroShift[3] = {0};
   double aBig[3],bBig[3],cBig[3];
   double aGrid[3],bGrid[3],cGrid[3];
@@ -247,15 +278,19 @@ void initFFTMap(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   double *projList;
 
 /*======================================================================*/
-/* I) Put the genmetric center into the box if necessary                */
+/* I) Rescale the geometric center into unit box	                */
+  //geoCnt[0] = 24.4033431368*-0.01;
 
   geoCntBox[0] = geoCnt[0]*hmati[1]+geoCnt[1]*hmati[4]+geoCnt[2]*hmati[7];
   geoCntBox[1] = geoCnt[0]*hmati[2]+geoCnt[1]*hmati[5]+geoCnt[2]*hmati[8];
   geoCntBox[2] = geoCnt[0]*hmati[3]+geoCnt[1]*hmati[6]+geoCnt[2]*hmati[9];
 
+
+  /*
   geoCntBox[0] -= floor(geoCntBox[0]);
   geoCntBox[1] -= floor(geoCntBox[1]);
   geoCntBox[2] -= floor(geoCntBox[2]);
+  */
 
 /*======================================================================*/
 /* II) Find the closest FFT grid point in the big box.                  */
@@ -268,10 +303,13 @@ void initFFTMap(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   //gridSize[0] = 1.0/numGridBigBox[0];
   //gridSize[1] = 1.0/numGridBigBox[1];
   //gridSize[2] = 1.0/numGridBigBox[2];
-
+  
   indexGrid[0] = NINT(geoCntBox[0]*numGridBigBox[0]);
   indexGrid[1] = NINT(geoCntBox[1]*numGridBigBox[1]);
   indexGrid[2] = NINT(geoCntBox[2]*numGridBigBox[2]);
+  
+  //printf("geoCntBox %lg %lg %lg\n",geoCntBox[0],geoCntBox[1],geoCntBox[2]);
+  printf("indexGrid %i %i %i\n",indexGrid[0],indexGrid[1],indexGrid[2]);
 
 
 /*======================================================================*/
@@ -309,6 +347,11 @@ void initFFTMap(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   bGridLen = normalized3d(bNorm);
   cGridLen = normalized3d(cNorm);
 
+  //printf("aGridLen %lg bGridLen %lg cGridLen %lg\n",aGridLen,bGridLen,cGridLen);
+  
+  //double boxlen = sqrt(hmat[1]*hmat[1]+hmat[2]*hmat[2]+hmat[3]*hmat[3]);
+  //printf("genCnt %lg %lg %lg\n",geoCntBox[0]*boxlen,geoCntBox[1]*boxlen,geoCntBox[2]*boxlen);
+
   //update the center to the grid point
   geoCntBox[0] = aGrid[0]*indexGrid[0]+bGrid[0]*indexGrid[1]+cGrid[0]*indexGrid[2];
   geoCntBox[1] = aGrid[1]*indexGrid[0]+bGrid[1]*indexGrid[1]+cGrid[1]*indexGrid[2];
@@ -316,19 +359,21 @@ void initFFTMap(GENERAL_DATA *generalData,CLASS *class,CP *cp,
 
   // Reshift mini coords
   for(iAtom=1;iAtom<=numAtomFrag;iAtom++){
-    xMini[iAtom] -= geoCntBox[0];
-    yMini[iAtom] -= geoCntBox[1];
-    zMini[iAtom] -= geoCntBox[2];
+    xMini[iAtom] += geoCnt[0]-geoCntBox[0];
+    yMini[iAtom] += geoCnt[1]-geoCntBox[1];
+    zMini[iAtom] += geoCnt[2]-geoCntBox[2];
   }
 /*--------------------------------------------------------------------------*/
 /*  Along c direction					                    */
   negativeLength = 0.0;
   distProjAxis = calcMiniBoxLength(numAtomFrag,&xMini[1],&yMini[1],&zMini[1],
 				    aNorm,bNorm,cNorm,skinFrag,&negativeLength);
+  printf("dist c %.16lg cGridLen %.16lg\n",distProjAxis,cGridLen);
   
   numGridMiniBox[2] = (int)(distProjAxis/cGridLen);
   if(numGridMiniBox[2]%2!=0)numGridMiniBox[2] += 1;
   numGridMiniBox[2] += 2; 
+  printf("num c %i\n",numGridMiniBox[2]);
   negativeGridNum = numGridMiniBox[2]/2;
   zeroGrid[2] = indexGrid[2]-negativeGridNum;
   for(iDim=0;iDim<3;iDim++)zeroShift[iDim] -= negativeGridNum*cGrid[iDim];
@@ -341,9 +386,14 @@ void initFFTMap(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   negativeLength = 0.0;
   distProjAxis = calcMiniBoxLength(numAtomFrag,&xMini[1],&yMini[1],&zMini[1],
                                     cNorm,aNorm,bNorm,skinFrag,&negativeLength);
-  numGridMiniBox[1] = (int)distProjAxis/bGridLen;
+
+  printf("dist b %.16lg bGridLen %.16lg\n",distProjAxis,bGridLen);
+
+  numGridMiniBox[1] = (int)(distProjAxis/bGridLen);
   if(numGridMiniBox[1]%2!=0)numGridMiniBox[1] += 1;
   numGridMiniBox[1] += 2;
+  printf("num b %i\n",numGridMiniBox[1]);
+
   negativeGridNum = numGridMiniBox[1]/2;
   zeroGrid[1] = indexGrid[1]-negativeGridNum;
   for(iDim=0;iDim<3;iDim++)zeroShift[iDim] -= negativeGridNum*bGrid[iDim];
@@ -355,9 +405,13 @@ void initFFTMap(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   negativeLength = 0.0;
   distProjAxis = calcMiniBoxLength(numAtomFrag,&xMini[1],&yMini[1],&zMini[1],
                                     bNorm,cNorm,aNorm,skinFrag,&negativeLength);
-  numGridMiniBox[0] = (int)distProjAxis/aGridLen;
+
+  printf("dist a %.16lg aGridLen %.16lg\n",distProjAxis,aGridLen);
+  numGridMiniBox[0] = (int)(distProjAxis/aGridLen);
   if(numGridMiniBox[0]%2!=0)numGridMiniBox[0] += 1;
   numGridMiniBox[0] += 2;
+  printf("num a %i\n",numGridMiniBox[0]);
+
   negativeGridNum = numGridMiniBox[0]/2;
   zeroGrid[0] = indexGrid[0]-negativeGridNum;
   for(iDim=0;iDim<3;iDim++)zeroShift[iDim] -= negativeGridNum*aGrid[iDim];
@@ -371,10 +425,13 @@ void initFFTMap(GENERAL_DATA *generalData,CLASS *class,CP *cp,
     xMini[iAtom] -= zeroShift[0];
     yMini[iAtom] -= zeroShift[1];
     zMini[iAtom] -= zeroShift[2];
+    //printf("x %lg y %lg z %lg\n",xMini[iAtom],yMini[iAtom],zMini[iAtom]);
   }
 
 /*======================================================================*/
 /* II) Map the grid.					                */
+
+  printf("numGridMiniBox %i %i %i\n",numGridMiniBox[2],numGridMiniBox[1],numGridMiniBox[0]);
   
   numGridTotMiniBox = numGridMiniBox[2]*numGridMiniBox[1]*numGridMiniBox[0];
 
@@ -389,6 +446,14 @@ void initFFTMap(GENERAL_DATA *generalData,CLASS *class,CP *cp,
 	indexc = zeroGrid[2]+iGrid;
 	indexb = zeroGrid[1]+jGrid;
 	indexa = zeroGrid[0]+kGrid;	
+	if(indexc<0)indexc += numGridBigBox[2];
+	if(indexc>=numGridBigBox[2])indexc -= numGridBigBox[2];
+	if(indexb<0)indexb += numGridBigBox[1];
+	if(indexb>=numGridBigBox[1])indexb -= numGridBigBox[1];
+        if(indexa<0)indexa += numGridBigBox[0];
+        if(indexa>=numGridBigBox[0])indexa -= numGridBigBox[0];
+	fragInfo->gridMapProc[iFrag][index] = indexc*numGridBigBox[1]*numGridBigBox[0]+
+		    indexb*numGridBigBox[0]+indexa;
       }//endfor kGrid
     }//endfor jGrid
   }//endfor iGrid
@@ -405,6 +470,19 @@ void initFFTMap(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   hmatMini[7] = numGridMiniBox[2]*cGrid[0];
   hmatMini[8] = numGridMiniBox[2]*cGrid[1];
   hmatMini[9] = numGridMiniBox[2]*cGrid[2];
+
+  //Let's give a final test before this is over
+  /*
+  FILE *testxyz = fopen("test.xyz","w");
+  fprintf(testxyz,"3\n\n");
+  fprintf(testxyz,"O %lg %lg %lg\n",xMini[1]*BOHR,yMini[1]*BOHR,zMini[1]*BOHR);
+  fprintf(testxyz,"H %lg %lg %lg\n",xMini[2]*BOHR,yMini[2]*BOHR,zMini[2]*BOHR);
+  fprintf(testxyz,"H %lg %lg %lg\n",xMini[3]*BOHR,yMini[3]*BOHR,zMini[3]*BOHR);
+  fclose(testxyz);
+  printf("%lg %lg %lg\n",hmatMini[1]*BOHR,hmatMini[2]*BOHR,hmatMini[3]*BOHR);
+  printf("%lg %lg %lg\n",hmatMini[4]*BOHR,hmatMini[5]*BOHR,hmatMini[6]*BOHR);
+  printf("%lg %lg %lg\n",hmatMini[7]*BOHR,hmatMini[8]*BOHR,hmatMini[9]*BOHR);
+  */
   
 }/*end routine*/
 /*==========================================================================*/

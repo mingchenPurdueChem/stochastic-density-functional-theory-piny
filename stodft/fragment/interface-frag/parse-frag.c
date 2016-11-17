@@ -221,6 +221,7 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
   }//endif
   */
+  printf("start init ewald\n");
 
 /*========================================================================*/
 /* VIII) Set up the ewald/cp: Done before setting intermol PE             */

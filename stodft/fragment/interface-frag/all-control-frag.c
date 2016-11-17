@@ -1719,6 +1719,10 @@ void controlSetCpEwaldFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
   kmax_cp_dens_cp_box[2] = kmax_cp[2];
   kmax_cp_dens_cp_box[3] = kmax_cp[3];
 
+  //printf("kmax_cp %i %i %i\n",kmax_cp[1],kmax_cp[2],kmax_cp[3]);
+  //printf("nktot %i\n",nktot);
+
+
 
 /*----------------------------------------------------------------------*/
 /* A.1) For dualing : Calculate cutoff and count kvectors for the large */
@@ -1768,7 +1772,7 @@ void controlSetCpEwaldFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
       cpcoeffs_info->ncoef   = nktot_sm+1;
       ncoef                  = nktot_sm+1;
       */    
-    ecut_now = 1.0e30;  
+    ecut_sm = 1.0e30;  
     nktot_sm = nktot;
     cpewald->nktot_sm = nktot;
     cpcoeffs_info->ncoef = nktot_sm+1;

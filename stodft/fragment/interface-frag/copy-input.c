@@ -466,6 +466,7 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
 /*  VI) set_sim_params_nhc                                               */
 
   classParse->tau_nhc_def = 1000.0;
+  cpParse->cp_tau_nhc_def = 25.0;
 
 /*=======================================================================*/
 /*  VII) set_sim_params_vol                                              */

@@ -302,7 +302,7 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
       for(iAtom=0;iAtom<atomNumMol[molFragMapProc[iFrag][iMol]-1];iAtom++){
 	atomFragMapProc[iFrag][countAtom+iAtom] = atomIndStart[molFragMapProc[iFrag][iMol]-1]+iAtom;
       }//endfor iAtom
-      countAtom += atomNumMol[molFragMapProc[iFrag][iMol]];
+      countAtom += atomNumMol[molFragMapProc[iFrag][iMol]-1];
     }//endfor iMol
   }//endfor iFrag
 
@@ -332,8 +332,8 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   atomVlncDnAll = (int*)cmalloc(numAtomTot*sizeof(int));
   for(iAtom=1;iAtom<=numAtomQM;iAtom++){
    cpAtom = cpAtomList[iAtom];
-   atomVlncUpAll[cpAtom] = cpVlncUp[cpAtom];
-   atomVlncDnAll[cpAtom] = cpVlncDn[cpAtom];
+   atomVlncUpAll[cpAtom-1] = cpVlncUp[cpAtom];
+   atomVlncDnAll[cpAtom-1] = cpVlncDn[cpAtom];
   }/*endfor*/
   
   fragInfo->numElecUpFragTot = (int*)cmalloc(numFragTot*sizeof(int));
@@ -362,8 +362,8 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     numElecDnFragProc[iFrag] = 0;
     for(iAtom=0;iAtom<numAtomFragProc[iFrag];iAtom++){
       atomInd = atomFragMapProc[iFrag][iAtom];
-      numElecUpFragProc[iFrag] += atomVlncUpAll[atomInd];
-      numElecDnFragProc[iFrag] += atomVlncDnAll[atomInd];
+      numElecUpFragProc[iFrag] += atomVlncUpAll[atomInd-1];
+      numElecDnFragProc[iFrag] += atomVlncDnAll[atomInd-1];
     }//endfor iAtom
   }//endfor iFrag
   

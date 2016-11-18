@@ -236,7 +236,6 @@ void gen_wave(CLASS *class,GENERAL_DATA *general_data,CP *cp,
    nstate_dn_gw += cp_vlnc_dn[iatm];
   }/*endfor*/
 
-
   if( nstate_up_gw != nstate_up ){
     if(myid == master){
      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");

@@ -182,16 +182,22 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   cpMini->cpopts.cp_lsda = cp->cpopts.cp_lsda;
   cpMini->cpopts.cp_gga = cp->cpopts.cp_gga;
   /* 1)\cp_vxc_typ{pz_lda,pz_lsda,pw_lda,pw_lsda,pade_lda,pade_lsda}       */
-  sscanf(cp->pseudo.vxc_typ,"%s",cpMini->pseudo.vxc_typ);
+  cpMini->pseudo.vxc_typ = (char*)cmalloc(MAXWORD*sizeof(char));
+  //sscanf(cp->pseudo.vxc_typ,"%s",cpMini->pseudo.vxc_typ);
+  strcpy(cpMini->pseudo.vxc_typ,cp->pseudo.vxc_typ);
   /* 2)\cp_ggax_typ{becke,pw91x,debug97x,fila_1x,fila_2x,pbe_x,revpbe_x,rpbe_x,
        xpbe_x,brx89,brx2k,off}  */
   cpMini->cpopts.cp_gga = cp->cpopts.cp_gga;  
   cpMini->cpcoeffs_info.cp_laplacian_on = cp->cpcoeffs_info.cp_laplacian_on;
   cpMini->cpcoeffs_info.cp_ke_dens_on = cp->cpcoeffs_info.cp_ke_dens_on;
   cpMini->cpcoeffs_info.cp_tau_functional = cp->cpcoeffs_info.cp_tau_functional;
-  sscanf(cp->pseudo.ggax_typ,"%s",cpMini->pseudo.ggax_typ);
+  cpMini->pseudo.ggax_typ = (char*)cmalloc(MAXWORD*sizeof(char));
+  //sscanf(cp->pseudo.ggax_typ,"%s",cpMini->pseudo.ggax_typ);
+  strcpy(cpMini->pseudo.ggax_typ,cp->pseudo.ggax_typ);
   /* 3)\cp_ggac_typ{lyp,lypm1,pw91c,pbe_c,xpbe_c,tau1_c,off}               */
-  sscanf(cp->pseudo.ggac_typ,"%s",cpMini->pseudo.ggac_typ);
+  cpMini->pseudo.ggac_typ = (char*)cmalloc(MAXWORD*sizeof(char));
+  strcpy(cpMini->pseudo.ggac_typ,cp->pseudo.ggac_typ);
+  //sscanf(cp->pseudo.ggac_typ,"%s",cpMini->pseudo.ggac_typ);
   /* 4)\cp_sic{on,off} */
   cpMini->cpopts.cp_sic = cp->cpopts.cp_sic;
   /* 5)\cp_e_e_interact{on,off} */

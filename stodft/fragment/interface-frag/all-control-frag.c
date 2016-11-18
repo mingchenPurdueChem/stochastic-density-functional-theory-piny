@@ -782,6 +782,8 @@ void controlSetMolParamsFrag(CP_PARSE *cp_parse,CLASS_PARSE *class_parse,
   int *iatm_tors_free    = free_parse->iatm_tors_free;
   int *molTypeFragNow	 = fragInfo->molTypeFrag[iFrag];
   int *molNumTypeFragNow = fragInfo->molNumTypeFrag[iFrag];
+  int *numElecUpFragProc = fragInfo->numElecUpFragProc;
+  int *numElecDnFragProc = fragInfo->numElecDnFragProc;
   
   char *molsetname        = filename_parse->molsetname;
 
@@ -882,9 +884,14 @@ void controlSetMolParamsFrag(CP_PARSE *cp_parse,CLASS_PARSE *class_parse,
       break;
     */
     case 2:
+      sprintf(dict_mol->wave_dict[1].keyarg,"%i",numElecUpFragProc[iFrag]);
+      sprintf(dict_mol->wave_dict[2].keyarg,"%i",numElecDnFragProc[iFrag]);
+      printf("%s %s\n",dict_mol->wave_dict[1].keyarg,dict_mol->wave_dict[2].keyarg);
+      printf("num e up %i num e dn %i\n",numElecUpFragProc[iFrag],numElecDnFragProc[iFrag]);
       set_wave_params(molsetname,fun_key,
                     dict_mol->wave_dict,dict_mol->num_wave_dict,
                     cpopts,cpcoeffs_info,cp_parse);
+      printf("nstate_up %i nstate_dn %i\n",cpcoeffs_info->nstate_up,cpcoeffs_info->nstate_dn);
       break;      
     case 3:
       set_bond_free_params(molsetname,fun_key,

@@ -74,7 +74,7 @@ void readCoefFrag(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 /*  V) Allocate and initialize coefficient arrays                         */
 
   if(iopt_cp_pw){
-    read_coef_alloc_init(cp,cp_min_on,tot_memory);
+    readCoefAllocInitFrag(cp,cp_min_on,tot_memory);
     if(num_proc>1){Barrier(world);}
   }
 
@@ -204,5 +204,204 @@ void readHmatFrag(CLASS *classMini,GENERAL_DATA *generalDataMini,
 
 /*========================================================================*/
    }/* end routine */
+/*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+
+void readCoefAllocInitFrag(CP *cp,int cp_min_on,double *tot_memory)
+
+/*==========================================================================*/
+  {/*begin routine */
+/*==========================================================================*/
+/*    Local Variables   */
+#include "../typ_defs/typ_mask.h"
+  int myid = cp->communicate.myid;
+  int i,ip,nread,is;
+  int par_size_up,par_size_dn,ncoef_up_tot;
+  int nstate,nstate2,ncoef_dn_tot;
+  double *cre,*cim,*vcre,*vcim,*fcre,*fcim;
+  int *ioff_up,*ioff_upt,*ioff_dn,*ioff_dnt;
+  double mem_test;
+
+/*  Local Pointers */
+  int pi_beads       = cp->cpcoeffs_info.pi_beads;
+  int pi_beads_proc  = cp->cpcoeffs_info.pi_beads_proc;
+  int nstate_up_proc = cp->cpcoeffs_info.nstate_up_proc;
+  int nstate_dn_proc = cp->cpcoeffs_info.nstate_dn_proc;
+  int nstate_up      = cp->cpcoeffs_info.nstate_up;
+  int nstate_dn      = cp->cpcoeffs_info.nstate_dn;
+  int cp_lda         = cp->cpopts.cp_lda;
+  int cp_lsda        = cp->cpopts.cp_lsda;
+  int ncoef_up       = cp->cpcoeffs_info.ncoef;
+  int ncoef_dn       = cp->cpcoeffs_info.ncoef;
+  int cp_norb        = cp->cpopts.cp_norb;
+
+  int np_states               = cp->communicate.np_states;
+  int ncoef_up_proc           = cp->cp_comm_state_pkg_up.nstate_ncoef_proc_max;
+  int ncoef_dn_proc           = cp->cp_comm_state_pkg_dn.nstate_ncoef_proc_max;
+  int nstate_max_up           =cp->cp_comm_state_pkg_up.nstate_max;
+  int nstate_ncoef_proc_max_up=cp->cp_comm_state_pkg_up.nstate_ncoef_proc_max;
+  int nstate_max_dn           =cp->cp_comm_state_pkg_dn.nstate_max;
+  int nstate_ncoef_proc_max_dn=cp->cp_comm_state_pkg_dn.nstate_ncoef_proc_max;
+
+  if(cp_lda == 1){ncoef_dn = 0;}
+
+
+
+/*==========================================================================*/
+/* 0) Calculate the sizes */
+
+  par_size_up = nstate_max_up*(nstate_ncoef_proc_max_up);
+  ncoef_up_tot = nstate_up_proc*ncoef_up;
+  ncoef_up_tot = MAX(ncoef_up_tot,par_size_up);
+
+  par_size_dn = nstate_max_dn*(nstate_ncoef_proc_max_dn);
+  if(cp_lda ==1){par_size_dn = 0;}
+  ncoef_dn_tot = MAX(nstate_dn_proc*ncoef_dn,1);
+  ncoef_dn_tot = MAX(ncoef_dn_tot,par_size_dn);
+
+  nstate  = MAX(nstate_up,nstate_dn);
+  nstate2 = nstate*nstate;
+
+/*==========================================================================*/
+/* I) Malloc the variables */
+
+ for(i=1;i<=pi_beads_proc;i++){
+  cp->cpcoeffs_pos[i].cre_up =(double *)cmalloc(ncoef_up_tot*sizeof(double))-1;
+  cp->cpcoeffs_pos[i].cim_up =(double *)cmalloc(ncoef_up_tot*sizeof(double))-1;
+  cp->cpcoeffs_pos[i].cre_dn =(double *)cmalloc(ncoef_dn_tot*sizeof(double))-1;
+  cp->cpcoeffs_pos[i].cim_dn =(double *)cmalloc(ncoef_dn_tot*sizeof(double))-1;
+  cp->cpcoeffs_pos[i].fcre_up=(double *)cmalloc(ncoef_up_tot*sizeof(double))-1;
+  cp->cpcoeffs_pos[i].fcim_up=(double *)cmalloc(ncoef_up_tot*sizeof(double))-1;
+  cp->cpcoeffs_pos[i].fcre_dn=(double *)cmalloc(ncoef_dn_tot*sizeof(double))-1;
+  cp->cpcoeffs_pos[i].fcim_dn=(double *)cmalloc(ncoef_dn_tot*sizeof(double))-1;
+  cp->cpcoeffs_pos[i].vcre_up=(double *)cmalloc(ncoef_up_tot*sizeof(double))-1;
+  cp->cpcoeffs_pos[i].vcim_up=(double *)cmalloc(ncoef_up_tot*sizeof(double))-1;
+  cp->cpcoeffs_pos[i].vcre_dn=(double *)cmalloc(ncoef_dn_tot*sizeof(double))-1;
+  cp->cpcoeffs_pos[i].vcim_dn=(double *)cmalloc(ncoef_dn_tot*sizeof(double))-1;
+  // Test only
+  cp->cpcoeffs_pos[i].kfcre_up = (double *)cmalloc(ncoef_up_tot*sizeof(double))-1;
+  cp->cpcoeffs_pos[i].kfcim_up = (double *)cmalloc(ncoef_up_tot*sizeof(double))-1;
+
+
+  cp->cpcoeffs_pos[i].ksmat_up    =(double *)cmalloc(nstate2*sizeof(double))-1;
+  cp->cpcoeffs_pos[i].ksmat_dn    =(double *)cmalloc(nstate2*sizeof(double))-1;
+  cp->cpcoeffs_pos[i].ksmat_eig_up=(double *)cmalloc(nstate*sizeof(double))-1;
+  cp->cpcoeffs_pos[i].ksmat_eig_dn=(double *)cmalloc(nstate*sizeof(double))-1;
+  cp->cpcoeffs_pos[i].norbmat_up  =(double *)cmalloc(nstate2*sizeof(double))-1;
+  cp->cpcoeffs_pos[i].norbmat_dn  =(double *)cmalloc(nstate2*sizeof(double))-1;
+  cp->cpcoeffs_pos[i].norbmati_up =(double *)cmalloc(nstate2*sizeof(double))-1;
+  cp->cpcoeffs_pos[i].norbmati_dn =(double *)cmalloc(nstate2*sizeof(double))-1;
+  cp->cpcoeffs_pos[i].ovmat_eigv_up=(double *)
+                                  cmalloc(nstate2*sizeof(double))-1;
+  cp->cpcoeffs_pos[i].ovmat_eigv_dn=(double *)
+                                  cmalloc(nstate2*sizeof(double))-1;
+  if(cp_min_on > 0){  /* Then we need to allocate the diagonal Hessian */
+    cp->cpcoeffs_pos[i].cp_hess_re_up = (double *) cmalloc(ncoef_up*sizeof(double))-1;
+    cp->cpcoeffs_pos[i].cp_hess_im_up = (double *) cmalloc(ncoef_up*sizeof(double))-1;
+    cp->cpcoeffs_pos[i].cp_hess_re_dn = (double *) cmalloc(ncoef_dn*sizeof(double))-1;
+    cp->cpcoeffs_pos[i].cp_hess_im_dn = (double *) cmalloc(ncoef_dn*sizeof(double))-1;
+  }/* endif cp_min_on */
+ }/*endfor*/
+
+  cp->cpcoeffs_info.ioff_up  = (int *)cmalloc(nstate*sizeof(int))-1;
+  cp->cpcoeffs_info.ioff_dn  = (int *)cmalloc(nstate*sizeof(int))-1;
+  cp->cpcoeffs_info.ioff_upt = (int *)cmalloc(nstate*sizeof(int))-1;
+  cp->cpcoeffs_info.ioff_dnt = (int *)cmalloc(nstate*sizeof(int))-1;
+  cp->cpopts.occ_up          = (double *) cmalloc(nstate*sizeof(double))-1;
+  cp->cpopts.occ_dn          = (double *) cmalloc(nstate*sizeof(double))-1;
+  cp->cpopts.rocc_sum_up = (double *) cmalloc(nstate*nstate*sizeof(double))-1;
+  cp->cpopts.rocc_sum_dn = (double *) cmalloc(nstate*nstate*sizeof(double))-1;
+
+ if(myid==0){
+   mem_test = (pi_beads_proc*(ncoef_up_tot + ncoef_dn_tot)*6*sizeof(double)
+             + nstate*2*sizeof(int)) *1.0e-6;
+   if(cp_min_on > 0) mem_test += (pi_beads_proc*(2*ncoef_up + 2*ncoef_dn))*1.0e-6;
+   *tot_memory += mem_test;
+
+ }/*endif for myid==0*/
+
+/*==========================================================================*/
+/* II) Assign the offsets */
+
+  ioff_up  = cp->cpcoeffs_info.ioff_up;
+  ioff_upt = cp->cpcoeffs_info.ioff_upt;
+  ioff_dn  = cp->cpcoeffs_info.ioff_dn;
+  ioff_dnt = cp->cpcoeffs_info.ioff_dnt;
+
+  for(is=1;is<=nstate;is++){ioff_up[is]=(is-1)*ncoef_up;}
+  for(is=1;is<=nstate;is++){ioff_dn[is]=(is-1)*ncoef_dn;}
+
+  if(np_states==1){
+   for(is=1;is<=nstate;is++){ioff_upt[is]=(is-1)*ncoef_up;}
+   for(is=1;is<=nstate;is++){ioff_dnt[is]=(is-1)*ncoef_dn;}
+  }else{
+   for(is=1;is<=nstate;is++){ioff_upt[is]=(is-1)*ncoef_up_proc;}
+   for(is=1;is<=nstate;is++){ioff_dnt[is]=(is-1)*ncoef_dn_proc;}
+  }/*endif*/
+
+/*========================================================================*/
+/* III) Initialize coeficient arrays and form flags                       */
+
+ for(ip=1;ip<=pi_beads_proc;ip++){
+
+   cp->cpcoeffs_pos[ip].icoef_form_up  = 0;
+   cp->cpcoeffs_pos[ip].ivcoef_form_up = 0;
+   cp->cpcoeffs_pos[ip].ifcoef_form_up = 1;
+   cp->cpcoeffs_pos[ip].icoef_orth_up  = 1;
+   if(cp_norb>0){cp->cpcoeffs_pos[ip].icoef_orth_up = 0;}
+   cp->cpcoeffs_pos[ip].ivcoef_orth_up  = 1;
+   if(cp_norb>0){cp->cpcoeffs_pos[ip].ivcoef_orth_up = 0;}
+
+   cre = cp->cpcoeffs_pos[ip].cre_up;
+   cim = cp->cpcoeffs_pos[ip].cim_up;
+   vcre = cp->cpcoeffs_pos[ip].vcre_up;
+   vcim = cp->cpcoeffs_pos[ip].vcim_up;
+   fcre = cp->cpcoeffs_pos[ip].fcre_up;
+   fcim = cp->cpcoeffs_pos[ip].fcim_up;
+   nread = ncoef_up_tot;
+   for(i=1;i<=nread;i++){
+    cre[i] = 0.0;
+    cim[i] = 0.0;
+    vcre[i] = 0.0;
+    vcim[i] = 0.0;
+    fcre[i] = 0.0;
+    fcim[i] = 0.0;
+   }/*endfor*/
+
+   if(cp_lsda==1){
+
+    cp->cpcoeffs_pos[ip].icoef_form_dn  = 0;
+    cp->cpcoeffs_pos[ip].ivcoef_form_dn = 0;
+    cp->cpcoeffs_pos[ip].ifcoef_form_dn = 1;
+    cp->cpcoeffs_pos[ip].icoef_orth_dn  = 1;
+    if(cp_norb>0){cp->cpcoeffs_pos[ip].icoef_orth_dn = 0;}
+    cp->cpcoeffs_pos[ip].ivcoef_orth_dn  = 1;
+    if(cp_norb>0){cp->cpcoeffs_pos[ip].ivcoef_orth_dn = 0;}
+
+    cre = cp->cpcoeffs_pos[ip].cre_dn;
+    cim = cp->cpcoeffs_pos[ip].cim_dn;
+    vcre = cp->cpcoeffs_pos[ip].vcre_dn;
+    vcim = cp->cpcoeffs_pos[ip].vcim_dn;
+    fcre = cp->cpcoeffs_pos[ip].fcre_dn;
+    fcim = cp->cpcoeffs_pos[ip].fcim_dn;
+    nread = ncoef_dn_tot;
+    for(i=1;i<=nread;i++){
+     cre[i] = 0.0;
+     cim[i] = 0.0;
+     vcre[i] = 0.0;
+     vcim[i] = 0.0;
+     fcre[i] = 0.0;
+     fcim[i] = 0.0;
+    }/*endfor*/
+
+   }/*endif:lsda*/
+
+ }/*endfor:pi_bead*/
+
+/*-----------------------------------------------------------------------*/
+  }/* end routine */
 /*==========================================================================*/
 

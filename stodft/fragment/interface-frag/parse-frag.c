@@ -134,13 +134,9 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*                                                 pressure mallocing     */
 /*               (interface/intra_params/control_intra_params.c)          */
 
-  
-  printf("Start intra\n");
 
   controlIntraParamsFrag(tot_memory,classMini,generalDataMini,bondedMini,
 			&fileNameParse,&freeParse,&classParse,&nullInterParse);
-  printf("End intra\n");
-  
 
 /*========================================================================*/
 /*    V) Communicate class interface: done before proceeding further      */
@@ -198,16 +194,12 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*    VII) Read in hmat. Do before set_cp_ewald                           */
 /*                (interface/coords/read_coord.c)                         */
 /*  Pass all atom positions into */
-  
-  printf("start coordhmatfft\n");
 
   mall_coord(classMini,generalDataMini);
-  mall_pressure(classMini,generalDataMini);  
+  mall_pressure_frag(classMini,generalDataMini);  
 
   // Do this first
   initCoordHmatFFT(general_data,class,cp,generalDataMini,classMini,cpMini);
-
-  printf("start read hmat\n");
 
   if(myid==0){//change
     readHmatFrag(classMini,generalDataMini,cpMini,cp_dual_grid_opt_on,
@@ -221,7 +213,6 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
   }//endif
   */
-  printf("start init ewald\n");
 
 /*========================================================================*/
 /* VIII) Set up the ewald/cp: Done before setting intermol PE             */
@@ -253,7 +244,7 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*                                    after call to set_cp_ewald          */
 
   
-  control_group_communicators(classMini,cpMini,cp_on); //redo
+  controlGroupCommunicatorsFrag(classMini,cpMini,cp_on);
   //if(num_proc>1){ Barrier(world); }
   myid_state  = classMini->communicate.myid_state;
   myid_forc   = classMini->communicate.myid_forc;
@@ -261,8 +252,6 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
 /*========================================================================*/
 /*   IX) Create the FFT packages  */
-  printf("start FFT\n");
-
   //change
   if((nchrg>0&&iperd>0&&pme_on==1)||cp_on==1){
     if(myid_state<num_proc&&myid_state>=0){
@@ -274,8 +263,6 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*   XI) Setup intermolecular potential stuff: interspline mallocing      */
 /*                (interface/inter_params/control_inter_params.c)         */
   //change
-
-  printf("start Inter");
   controlInterParamsFrag(generalDataMini,classMini,cpMini,bondedMini,cp,
 			  &splineParse,&fileNameParse,&classParse);
 

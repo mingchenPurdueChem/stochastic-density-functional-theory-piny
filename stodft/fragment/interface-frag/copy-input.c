@@ -350,7 +350,7 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   classMini->part_mesh.nlen_pme = class->part_mesh.nlen_pme;
   cpMini->cpscr.cpscr_atom_pme.nlen_pme = cp->cpscr.cpscr_atom_pme.nlen_pme;
   /* 8)\ewald_alpha{#} I may need to change this */
-  generalDataMini->ewald.alp_ewd = general_data->ewald.alp_ewd;
+  generalDataMini->ewald.alp_ewd = 39.9;
   /* 9)\ewald_kmax{#} class_parse ??? */
   classParse->kmax_ewd = 10;
   /* 10)\ewald_respa_kmax{#} class_parse ??? */

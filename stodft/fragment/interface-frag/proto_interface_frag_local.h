@@ -25,9 +25,12 @@ void controlSetMolParamsFrag(CP_PARSE *,CLASS_PARSE *,
 void controlIntraParamsFrag(double *,CLASS *,GENERAL_DATA *,BONDED *,FILENAME_PARSE *,
                     FREE_PARSE *,CLASS_PARSE *,NULL_INTER_PARSE *);
 
+void setIntraPotentFrag(BONDED *,BUILD_INTRA *,NAME [],NAME []);
 
 void controlSetCpEwaldFrag(GENERAL_DATA *,CLASS *,CP *,BONDED *,CP *,CLASS *,
                            GENERAL_DATA *,BONDED *,CP_PARSE *,CLASS_PARSE *);
+
+void controlGroupCommunicatorsFrag(CLASS *,CP *,int);
 
 void controlFFTPkgFrag(GENERAL_DATA *,CLASS *,CP *,CP *);
 
@@ -59,12 +62,20 @@ void mall_atm_forc_scr_frag(int natm_tot,FOR_SCR *for_scr,int pme_on,
                        int ilnk_lst,int iver_lst, int ,
                        double *,int ,int ,MPI_Comm);
 
+void mall_pressure_frag(CLASS *,GENERAL_DATA *);
+
+void close_intra_params_frag(CLATOMS_INFO *,CLATOMS_POS *,
+                        GHOST_ATOMS *,ATOMMAPS *,BUILD_INTRA *,
+                        BONDED *,NULL_INTER_PARSE *,double *,SIMOPTS *,int);
+
 /*-----------------------------------------------------------------*/
 /* all-read-frag.c                                                 */
 
 void readCoefFrag(CP *,GENERAL_DATA *,CLASS *,FILENAME_PARSE *,CP_PARSE *,double *);
 
 void readHmatFrag(CLASS *,GENERAL_DATA *,CP *,int , double *,int *);
+
+void readCoefAllocInitFrag(CP *,int,double *);
 
 /*-----------------------------------------------------------------*/
 /* gen-wave-frag.c                                                 */

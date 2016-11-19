@@ -30,7 +30,9 @@
 #include "../proto_defs/proto_intra_params_local.h"
 #include "../proto_defs/proto_search_entry.h"
 #include "../proto_defs/proto_handle_entry.h"
+#include "../proto_defs/proto_communicate_entry.h"
 #include "../proto_defs/proto_communicate_wrappers.h"
+#include "../proto_defs/proto_communicate_local.h"
 #include "../proto_defs/proto_cp_ewald_entry.h"
 #include "../proto_defs/proto_cp_ewald_local.h"
 #include "../proto_defs/proto_energy_cp_local.h"
@@ -886,12 +888,9 @@ void controlSetMolParamsFrag(CP_PARSE *cp_parse,CLASS_PARSE *class_parse,
     case 2:
       sprintf(dict_mol->wave_dict[1].keyarg,"%i",numElecUpFragProc[iFrag]);
       sprintf(dict_mol->wave_dict[2].keyarg,"%i",numElecDnFragProc[iFrag]);
-      printf("%s %s\n",dict_mol->wave_dict[1].keyarg,dict_mol->wave_dict[2].keyarg);
-      printf("num e up %i num e dn %i\n",numElecUpFragProc[iFrag],numElecDnFragProc[iFrag]);
       set_wave_params(molsetname,fun_key,
                     dict_mol->wave_dict,dict_mol->num_wave_dict,
                     cpopts,cpcoeffs_info,cp_parse);
-      printf("nstate_up %i nstate_dn %i\n",cpcoeffs_info->nstate_up,cpcoeffs_info->nstate_dn);
       break;      
     case 3:
       set_bond_free_params(molsetname,fun_key,
@@ -1382,7 +1381,7 @@ void controlIntraParamsFrag(double *tot_memory,CLASS *classMini,
 /*=======================================================================*/
 /*  VI)Tidy up                                                           */
 
- close_intra_params(clatoms_info,clatoms_pos,ghost_atoms,atommaps,
+ close_intra_params_frag(clatoms_info,clatoms_pos,ghost_atoms,atommaps,
                     &build_intra,bonded,null_inter_parse,tot_memory,
                     simopts,communicate->np_forc);
 
@@ -1418,7 +1417,7 @@ void controlIntraParamsFrag(double *tot_memory,CLASS *classMini,
 /*========================================================================*/
 /*  IX) Set the intramolecular potential params                          */
 
-  set_intra_potent(bonded,&build_intra,
+  setIntraPotentFrag(bonded,&build_intra,
                filename_parse->def_intra_name,
                filename_parse->user_intra_name);
   
@@ -1459,10 +1458,6 @@ void controlIntraParamsFrag(double *tot_memory,CLASS *classMini,
 
 /*=======================================================================*/
 /*  X) Write out synopsis                                               */
-  
-  PRINT_LINE_STAR;
-  printf("System Summary  \n");
-  PRINT_LINE_DASH;printf("\n");
 
   nmol_tot=0;
   nres_tot=0;
@@ -1557,8 +1552,93 @@ void controlIntraParamsFrag(double *tot_memory,CLASS *classMini,
   }/*end routine*/ 
 /*==========================================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+/*  control_set_intra_potent:                                               */
+/*==========================================================================*/
 
+void setIntraPotentFrag(BONDED *bonded,BUILD_INTRA *build_intra,
+                      NAME def_intra_name[],NAME user_intra_name[])
 
+/*========================================================================*/
+    { /* begin routine */
+/*========================================================================*/
+  /*            Local Variables                                             */
+  int i,iii,ifirst,isum,n;
+  int num_fun_dict;
+  DICT_WORD *fun_dict;
+  /*=======================================================================*/
+  /*-----------------------------------------------------------------------*/
+  /*=======================================================================*/
+  /*     Control set_intra_potent:                                         */
+  /*=======================================================================*/
+  /* 0) Set up                                                             */
+
+  ifirst =1;
+  set_potfun_dict(&fun_dict,&num_fun_dict,ifirst);
+
+  /*=======================================================================*/
+  /* I) set the bond parameters                                            */
+  isum = bonded->bond.ntyp_pow
+       + bonded->bond.ntyp_con
+       + bonded->grp_bond_con.ntyp_21
+       + bonded->grp_bond_con.ntyp_23
+       + bonded->grp_bond_con.ntyp_33
+       + bonded->grp_bond_watts.ntyp_33
+       + bonded->grp_bond_con.ntyp_43
+       + bonded->grp_bond_con.ntyp_46;
+  if(isum > 0){
+    set_bond_potent(&(bonded->bond),&(bonded->grp_bond_con),
+                        &(bonded->grp_bond_watts),build_intra,
+                        def_intra_name[1],user_intra_name[1],
+                        fun_dict,num_fun_dict);
+  }/*endif*/
+
+  /*=======================================================================*/
+  /* II) set the bend parameters                                           */
+  if((bonded->bend.ntyp_con) > 0){
+    set_bend_potent(&(bonded->bend),build_intra,
+                        def_intra_name[2],user_intra_name[2],
+                        fun_dict,num_fun_dict);
+  }/*endif*/
+
+  /*=======================================================================*/
+  /* IV) set the onfo parameters                                            */
+  if((bonded->onfo.ntyp) > 0){
+    set_onfo_potent(&(bonded->onfo),build_intra,
+                        def_intra_name[4],user_intra_name[4],
+                        fun_dict,num_fun_dict);
+  }/*endif*/
+
+  /*=======================================================================*/
+  /* V) set the bend_bnd parameters                                        */
+  if((bonded->bend_bnd.ntyp) > 0){
+    n = bonded->bend_bnd.ntyp;
+    build_intra->ibend_bnd_typ_pure = (int *)cmalloc(n*sizeof(int))-1;
+    build_intra->ibend_bnd_typ_map = (int *)cmalloc(n*sizeof(int))-1;
+    set_bend_bnd_potent(&(bonded->bend_bnd),build_intra,
+                        def_intra_name[2],user_intra_name[2],
+                        fun_dict,num_fun_dict);
+    extract_pure_bends(&(bonded->bend_bnd),&(bonded->bend),build_intra);
+    cfree(&(build_intra->ibend_bnd_typ_pure[1]));
+    cfree(&(build_intra->ibend_bnd_typ_map[1]));
+  }/*endif*/
+
+  /*=======================================================================*/
+  /* III) set the tors parameters                                          */
+  if((bonded->tors.ntyp_pow+bonded->tors.ntyp_con) > 0){
+    set_tors_potent(&(bonded->tors),build_intra,
+                        def_intra_name[3],user_intra_name[3],
+                        fun_dict,num_fun_dict);
+  }/*endif*/
+
+/*=======================================================================*/
+  cfree(&fun_dict[1]);
+
+/*-----------------------------------------------------------------------*/
+}  /*end routine*/
+/*==========================================================================*/
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
@@ -1834,8 +1914,176 @@ void controlSetCpEwaldFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
   }/* end routine */
 /*=======================================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+
+ void controlGroupCommunicatorsFrag(CLASS *class,CP *cp,int cp_on)
+
+/*==========================================================================*/
+{/* begin routine */
+/*==========================================================================*/
+/*          Local variable declarations                                     */
+
+ int iii;
+ int num_proc = class->communicate.np;
+ int myid     = class->communicate.myid;
+ int comm_compare_result;
+ MPI_Comm world;
+
+/*==========================================================================*/
+/* I) Build different communicators                                        */
+
+ if(num_proc>1){
+
+   build_communicate_groups(&(class->communicate),cp_on);
+
+ }else{
+
+   class->communicate.myid_bead        = 0;
+   class->communicate.myid_bead_prime  = 0;
+   class->communicate.myid_state       = 0;
+   class->communicate.myid_forc        = 0;
+   class->communicate.myid_forc_source = 0;
+   class->communicate.myid_forc_target = 0;
+
+   Comm_dup(class->communicate.world,&class->communicate.comm_forc);
+   Comm_dup(class->communicate.world,&class->communicate.comm_forc_source);
+   Comm_dup(class->communicate.world,&class->communicate.comm_forc_target);
+   Comm_dup(class->communicate.world,&class->communicate.comm_states);
+   Comm_dup(class->communicate.world,&class->communicate.comm_beads);
+   Comm_dup(class->communicate.world,&class->communicate.comm_faux);
+
+ }/*endif*/
+
+/*==========================================================================*/
+/* II) Duplicate communicate into force package */
+
+ /*-----------------------------------------------------------------------*/
+ /* i) Force level communicator */
+
+  class->class_comm_forc_pkg.myid     = class->communicate.myid_forc;
+  class->class_comm_forc_pkg.num_proc = class->communicate.np_forc;
+  Comm_dup(class->communicate.comm_forc,&class->class_comm_forc_pkg.comm);
+
+  class->class_comm_forc_pkg.dbl_num_proc =
+                            (double)(class->communicate.np_forc);
+
+ /*-----------------------------------------------------------------------*/
+ /* ii) Source-Force level communicator */
+
+  class->class_comm_forc_pkg.plimpton_ind.myid_source
+                          = class->communicate.myid_forc_source;
+  class->class_comm_forc_pkg.plimpton_ind.num_proc_source
+                          = class->communicate.np_forc_src;
+  Comm_dup(class->communicate.comm_forc_source,
+          &(class->class_comm_forc_pkg.plimpton_ind.source));
+
+ /*-----------------------------------------------------------------------*/
+ /* iii) Target-Force level communicator */
+
+  class->class_comm_forc_pkg.plimpton_ind.myid_target
+                          = class->communicate.myid_forc_target;
+  class->class_comm_forc_pkg.plimpton_ind.num_proc_target
+                          = class->communicate.np_forc_trg;
+  Comm_dup(class->communicate.comm_forc_target,
+          &(class->class_comm_forc_pkg.plimpton_ind.target));
+
+/*==========================================================================*/
+/* II) Set up some Bead level parallel stuff                                */
+
+  class->clatoms_info.pi_beads_proc_st    =
+                     (class->communicate.myid_bead_prime)*
+                     (class->clatoms_info.pi_beads_proc)+1;
+
+  class->clatoms_info.pi_beads_proc_end   =
+                     (class->communicate.myid_bead_prime+1)*
+                     (class->clatoms_info.pi_beads_proc);
+
+  cp->cpcoeffs_info.pi_beads_proc_st  = class->clatoms_info.pi_beads_proc_st;
+  cp->cpcoeffs_info.pi_beads_proc_end = class->clatoms_info.pi_beads_proc_end;
+
+/*==========================================================================*/
+/* III) Duplicate class->communicate into cp->communicate                   */
+/*      then set up the cp_comm_package                                     */
+
+ /*-------------------------------------------------------------------------*/
+ /* i) Duplicate */
+
+  cp->communicate.np             = class->communicate.np;
+  cp->communicate.np_beads       = class->communicate.np_beads;
+  cp->communicate.np_states      = class->communicate.np_states;
+  cp->communicate.np_forc        = class->communicate.np_forc;
+  cp->communicate.np_forc_src    =  class->communicate.np_forc_src;
+  cp->communicate.np_forc_trg    =  class->communicate.np_forc_trg;
+
+  cp->communicate.myid             = class->communicate.myid;
+  cp->communicate.myid_bead        = class->communicate.myid_bead;
+  cp->communicate.myid_bead_forc   = class->communicate.myid_bead_forc;
+  cp->communicate.myid_state       = class->communicate.myid_state;
+  cp->communicate.myid_forc        = class->communicate.myid_forc;
+  cp->communicate.myid_forc_source = class->communicate.myid_forc_source;
+  cp->communicate.myid_forc_target = class->communicate.myid_forc_target;
 
 
+  if(cp->communicate.np>1){
+
+#ifdef DUPLICATE_NOT_CORRECT
+    Comm_dup(class->communicate.world,&(cp->communicate.world));
+    Comm_dup(class->communicate.comm_beads,&(cp->communicate.comm_beads));
+    Comm_dup(class->communicate.comm_beads_forc,
+              &(cp->communicate.comm_beads_forc));
+    Comm_dup(class->communicate.comm_states,&(cp->communicate.comm_states));
+    Comm_dup(class->communicate.comm_forc,&(cp->communicate.comm_forc));
+    Comm_dup(class->communicate.comm_forc_source,
+              &(cp->communicate.comm_forc_source));
+    Comm_dup(class->communicate.comm_forc_target,
+              &(cp->communicate.comm_forc_target));
+#endif
+
+    cp->communicate.world            = class->communicate.world;
+    cp->communicate.comm_beads       = class->communicate.comm_beads;
+    cp->communicate.comm_beads_forc  = class->communicate.comm_beads_forc;
+    cp->communicate.comm_states      = class->communicate.comm_states;
+    cp->communicate.comm_forc        = class->communicate.comm_forc;
+    cp->communicate.comm_forc_source = class->communicate.comm_forc_source;
+    cp->communicate.comm_forc_target = class->communicate.comm_forc_target;
+
+
+  }else{
+
+    cp->communicate.world            = class->communicate.world;
+    cp->communicate.comm_beads       = class->communicate.comm_beads;
+    cp->communicate.comm_beads_forc  = class->communicate.comm_beads_forc;
+    cp->communicate.comm_states      = class->communicate.comm_states;
+    cp->communicate.comm_forc        = class->communicate.comm_forc;
+    cp->communicate.comm_forc_source = class->communicate.comm_forc_source;
+    cp->communicate.comm_forc_target = class->communicate.comm_forc_target;
+    cp->communicate.comm_faux        = class->communicate.comm_faux;
+
+  }/*endif : cp->communicate.np>1*/
+
+ /*-------------------------------------------------------------------------*/
+ /* ii) Build the cp package */
+
+  Comm_dup(class->communicate.world,&world);
+
+
+  if(cp->cpcoeffs_info.iopt_cp_pw==1){
+    build_cp_comm_pkg(cp,world); /* Contains no src/target stuff */
+  }else if (cp->cpcoeffs_info.iopt_cp_dvr==1){
+    build_cp_comm_pkg_dvr(cp,world);
+  }else{
+    printf("@@@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@@@\n");
+    printf("Wrong basis set in building communication package\n");
+    printf("@@@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@@@\n");
+    fflush(stdout);
+    exit(1);
+  }
+
+/*==========================================================================*/
+   }/* end routine */
+/*==========================================================================*/
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/

@@ -309,7 +309,6 @@ void initFFTMap(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   indexGrid[2] = NINT(geoCntBox[2]*numGridBigBox[2]);
   
   //printf("geoCntBox %lg %lg %lg\n",geoCntBox[0],geoCntBox[1],geoCntBox[2]);
-  printf("indexGrid %i %i %i\n",indexGrid[0],indexGrid[1],indexGrid[2]);
 
 
 /*======================================================================*/
@@ -368,12 +367,10 @@ void initFFTMap(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   negativeLength = 0.0;
   distProjAxis = calcMiniBoxLength(numAtomFrag,&xMini[1],&yMini[1],&zMini[1],
 				    aNorm,bNorm,cNorm,skinFrag,&negativeLength);
-  printf("dist c %.16lg cGridLen %.16lg\n",distProjAxis,cGridLen);
   
   numGridMiniBox[2] = (int)(distProjAxis/cGridLen);
   if(numGridMiniBox[2]%2!=0)numGridMiniBox[2] += 1;
   numGridMiniBox[2] += 2; 
-  printf("num c %i\n",numGridMiniBox[2]);
   negativeGridNum = numGridMiniBox[2]/2;
   zeroGrid[2] = indexGrid[2]-negativeGridNum;
   for(iDim=0;iDim<3;iDim++)zeroShift[iDim] -= negativeGridNum*cGrid[iDim];
@@ -387,12 +384,10 @@ void initFFTMap(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   distProjAxis = calcMiniBoxLength(numAtomFrag,&xMini[1],&yMini[1],&zMini[1],
                                     cNorm,aNorm,bNorm,skinFrag,&negativeLength);
 
-  printf("dist b %.16lg bGridLen %.16lg\n",distProjAxis,bGridLen);
 
   numGridMiniBox[1] = (int)(distProjAxis/bGridLen);
   if(numGridMiniBox[1]%2!=0)numGridMiniBox[1] += 1;
   numGridMiniBox[1] += 2;
-  printf("num b %i\n",numGridMiniBox[1]);
 
   negativeGridNum = numGridMiniBox[1]/2;
   zeroGrid[1] = indexGrid[1]-negativeGridNum;
@@ -406,11 +401,9 @@ void initFFTMap(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   distProjAxis = calcMiniBoxLength(numAtomFrag,&xMini[1],&yMini[1],&zMini[1],
                                     bNorm,cNorm,aNorm,skinFrag,&negativeLength);
 
-  printf("dist a %.16lg aGridLen %.16lg\n",distProjAxis,aGridLen);
   numGridMiniBox[0] = (int)(distProjAxis/aGridLen);
   if(numGridMiniBox[0]%2!=0)numGridMiniBox[0] += 1;
   numGridMiniBox[0] += 2;
-  printf("num a %i\n",numGridMiniBox[0]);
 
   negativeGridNum = numGridMiniBox[0]/2;
   zeroGrid[0] = indexGrid[0]-negativeGridNum;
@@ -430,8 +423,6 @@ void initFFTMap(GENERAL_DATA *generalData,CLASS *class,CP *cp,
 
 /*======================================================================*/
 /* II) Map the grid.					                */
-
-  printf("numGridMiniBox %i %i %i\n",numGridMiniBox[2],numGridMiniBox[1],numGridMiniBox[0]);
   
   numGridTotMiniBox = numGridMiniBox[2]*numGridMiniBox[1]*numGridMiniBox[0];
 

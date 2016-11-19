@@ -67,7 +67,8 @@ all-control-frag.o :	 $(STANDARD) $(DEFINES) \
 			 $(TYP_STAT) $(TYP_PAR) \
 			 $(MATH) $(FRND_ENT) \
 			 $(MOL_ENT) $(MOL_LOC) $(INTER_ENT) $(INTER_LOC) \
-			 $(INTRA_LOC) $(SCRATCH_ENT) $(HANDLE_ENT) $(COMM_WRAP) \
+			 $(INTRA_LOC) $(SCRATCH_ENT) $(HANDLE_ENT) \
+			 $(COMM_ENT) $(COMM_WRAP) $(COMM_LOC)\
 			 $(CPEWALD_ENT) $(CPEWALD_LOC) $(ENR_CP_LOC) $(VPS_ENT) \
 			 $(VPS_LOC) $(FRAG_INT_LOC) \
 			 $(DCODE)/stodft/fragment/interface-frag/all-control-frag.c
@@ -79,6 +80,7 @@ all-mall-frag.o	:	 $(STANDARD) $(DEFINES) \
 			 $(TYP_STAT) $(TYP_PAR) \
 			 $(SCRATCH_ENT) $(SCRATCH_LOC) $(LISTS_ENT) $(LISTS_LOC) \
 			 $(REAL_LOC) $(FRND_ENT) $(COMM_WRAP) $(FRAG_INT_LOC) \
+			 $(INTRA_ENT) $(INTRA) \
 			 $(DCODE)/stodft/fragment/interface-frag/all-mall-frag.c
 	$(ECHO) $@
 	$(COBJ) $(DCODE)/stodft/fragment/interface-frag/all-mall-frag.c

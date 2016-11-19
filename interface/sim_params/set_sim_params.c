@@ -303,6 +303,8 @@ int iii;
        itemp = cp->cpopts.cp_gga;
        cp->cpopts.cp_gga = 0;
        cp->cpcoeffs_info.cp_laplacian_on = 0;
+       cp->cpcoeffs_info.cp_tau_functional = 0;
+       cp->cpcoeffs_info.cp_ke_dens_on = 0;
        if(strcasecmp(dict[2].keyarg,"off")==0)    {
            ifound++;cp->cpopts.cp_gga=0;}
        if(strcasecmp(dict[2].keyarg,"becke")==0)  {
@@ -2344,13 +2346,6 @@ void set_sim_params_nhc(CLASS *class,GENERAL_DATA *general_data,BONDED *bonded,
        index=9;
        if(class->therm_info_bead.len_nhc < 0){ 
        keyarg_barf(dict,filename_parse->input_name,fun_key,index);}
-       if(class->therm_info_bead.therm_typ == 1
-              && class->therm_info_bead.len_nhc > 3 ){
-        printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
-        printf("You have requested a NHC length > 3      \n");
-        printf("Are you certain this is what you would like to do?\n");
-        printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
-       }/*endif*/
   /*-----------------------------------------------------------------------*/
   /* 10)\cp_nhc_tau_def{#} */
        sscanf(dict[10].keyarg,"%lg",&(cp_parse->cp_tau_nhc_def));
@@ -2406,15 +2401,6 @@ void set_sim_params_nhc(CLASS *class,GENERAL_DATA *general_data,BONDED *bonded,
            || class->therm_info_class.therm_typ >= 3) {
         keyarg_barf(dict,filename_parse->input_name,fun_key,index);
        }
-
-       if(class->therm_info_bead.therm_typ == 2
-         && class->therm_info_bead.len_nhc > 3 ){
-        printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
-        printf("You have requested a GGMT length > 3      \n");
-        printf("Available GGMT lengths are 2 or 3    \n");
-        printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
-        exit(1);
-       }/*endif*/
    /*-----------------------------------------------------------------------*/ 
   /* 15)\cp_therm_heat_fact{#} */
      sscanf(dict[15].keyarg,"%lg",&real_key_arg);
@@ -2423,6 +2409,23 @@ void set_sim_params_nhc(CLASS *class,GENERAL_DATA *general_data,BONDED *bonded,
      if(real_key_arg<1.0){
        keyarg_barf(dict,filename_parse->input_name,fun_key,index);
      }/*endif*/
+
+    /* Check */
+       if(class->therm_info_bead.therm_typ == 1
+              && class->therm_info_bead.len_nhc > 3 ){
+        printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
+        printf("You have requested a NHC length > 3      \n");
+        printf("Are you certain this is what you would like to do?\n");
+        printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
+       }/*endif*/
+       if(class->therm_info_bead.therm_typ == 2
+         && class->therm_info_bead.len_nhc > 3 ){
+        printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+        printf("You have requested a GGMT length > 3      \n");
+        printf("Available GGMT lengths are 2 or 3    \n");
+        printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+        exit(1);
+       }/*endif*/
 
 /*========================================================================*/
     }/*end routine*/ 

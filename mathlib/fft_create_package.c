@@ -24,9 +24,11 @@
 #include "../proto_defs/proto_energy_cp_local.h"
 #include "../proto_defs/proto_communicate_wrappers.h"
 
+/*
 #ifdef FFTW3
 #include "fftw3.h"
 #endif
+*/
 
 #define DEBUG_PME_OFF
 
@@ -131,6 +133,14 @@ void create_para_fft_pkg3d(PARA_FFT_PKG3D *para_fft_pkg3d,
  int icoef_off;
  int icoef_strt;
 
+#ifdef FFTW3D
+  
+  para_fft_pkg3d->mapFftwLarge = (int*)cmalloc(ncoef*sizeof(int))-1;
+  para_fft_pkg3d->mapConFftwLarge = (int*)cmalloc(ncoef*sizeof(int))-1;
+  int *mapFftwLarge = para_fft_pkg3d->mapFftwLarge;
+  int *mapConFftwLarge = para_fft_pkg3d->mapConFftwLarge;
+#endif
+
 /*=======================================================================*/
 /* 0) Determine useful constants                                         */
 
@@ -224,6 +234,17 @@ void create_para_fft_pkg3d(PARA_FFT_PKG3D *para_fft_pkg3d,
 
   setfft_indx(nkf1,nkf2,nkf3,ncoef,kastr,kbstr,kcstr,
               indx,indx_c);
+
+#ifdef FFTW3D
+
+    setfft_indx(nkf1,nkf2,nkf3,ncoef-1,kastr,kbstr,kcstr,
+                 mapFftwLarge,mapConFftwLarge);
+    mapFftwLarge[ncoef] = 1;
+    mapConFftwLarge[ncoef] = 0;
+
+#endif
+
+
   for(i=1;i<=ncoef;i++){map_inv[i]=i;map_c_inv[i]=i;}
   sort_commence(ncoef,indx,map_inv);
   sort_commence(nktot,indx_c,map_c_inv);
@@ -904,9 +925,9 @@ void create_para_fft_pkg3d(PARA_FFT_PKG3D *para_fft_pkg3d,
 /*==========================================================================*/
 /*  VI) Initialize the FFTs                                                */
 
-  // para_fft_gen3d_init(para_fft_pkg3d);
+   para_fft_gen3d_init(para_fft_pkg3d);
 
- para_fft_gen3d_init_dvr(para_fft_pkg3d);
+ //para_fft_gen3d_init_dvr(para_fft_pkg3d);
 /*==========================================================================*/
 /* VII) Free the excess memory                                              */
 
@@ -1568,6 +1589,25 @@ void para_fft_gen3d_init(PARA_FFT_PKG3D *para_fft_pkg3d)
 
 #ifdef FFTW3
   double *dummy;
+  fftw_complex *fftw3DForwardIn,*fftw3DForwardOut,*fftw3DBackwardIn,*fftw3DBackwardOut;
+#endif
+
+#ifdef FFTW3D
+  para_fft_pkg3d->fftw3DForwardIn = (fftw_complex*)fftw_malloc(nfft2_proc*sizeof(fftw_complex));
+  para_fft_pkg3d->fftw3DForwardOut = (fftw_complex*)fftw_malloc(nfft2_proc*sizeof(fftw_complex));
+  para_fft_pkg3d->fftw3DBackwardIn = (fftw_complex*)fftw_malloc(nfft2_proc*sizeof(fftw_complex));
+  para_fft_pkg3d->fftw3DBackwardOut = (fftw_complex*)fftw_malloc(nfft2_proc*sizeof(fftw_complex));
+
+  fftw3DForwardIn = para_fft_pkg3d->fftw3DForwardIn;
+  fftw3DForwardOut = para_fft_pkg3d->fftw3DForwardOut;
+  fftw3DBackwardIn = para_fft_pkg3d->fftw3DBackwardIn;
+  fftw3DBackwardOut = para_fft_pkg3d->fftw3DBackwardOut;
+
+  para_fft_pkg3d->fftwPlan3DForward = fftw_plan_dft_3d(nkf_c,nkf_b,nkf_a,fftw3DForwardIn,
+                                        fftw3DForwardOut,FFTW_FORWARD,FFTW_MEASURE);
+  para_fft_pkg3d->fftwPlan3DBackward = fftw_plan_dft_3d(nkf_c,nkf_b,nkf_a,fftw3DBackwardIn,
+                                        fftw3DBackwardOut,FFTW_BACKWARD,FFTW_MEASURE);
+
 #endif
 
 /*==========================================================================*/

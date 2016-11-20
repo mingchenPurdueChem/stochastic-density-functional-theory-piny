@@ -792,6 +792,8 @@ typedef struct cpewald {
   double *ak2,*ak2_sm;         /* Square of k vectors on big and small grid */
   double *ak2_dens_cp_box;      /* Square of k vectors on big and small grid */
 
+/* What will happen if we change everything to 3d FFTW*/
+  int *mapFFTW,*mapConFFTW;
 } CPEWALD;
 
 

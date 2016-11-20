@@ -497,6 +497,12 @@ typedef struct para_fft_pkg3d {
   fftw_plan plan_fftw_fa,plan_fftw_fb,plan_fftw_fc;
   fftw_plan plan_fftw_ba,plan_fftw_bb,plan_fftw_bc;
 #endif
+#ifdef FFTW3D
+  fftw_plan fftwPlan3DForward,fftwPlan3DBackward;
+  fftw_complex *fftw3DForwardIn,*fftw3DForwardOut;
+  fftw_complex *fftw3DBackwardIn,*fftw3DBackwardOut;
+  int *mapFFTW,*mapConFFTW;
+#endif
 
 
  } PARA_FFT_PKG3D;

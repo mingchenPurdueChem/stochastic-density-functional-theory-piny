@@ -98,6 +98,16 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
  double *rhoci_dens_cp_box;
 #endif
 
+#ifdef FFTW3D
+  int *mapFFTWSm = cp_sclr_fft_pkg3d_sm->mapFFTW;
+  int *mapConFFTWSm = cp_sclr_fft_pkg3d_sm->mapConFFTW;
+  fftw_plan fftwPlan3DForward,fftwPlan3DBackward;
+  fftw_complex *fftw3DForwardIn,*fftw3DForwardOut;
+  fftw_complex *fftw3DBackwardIn,*fftw3DBackwardOut;
+
+
+#endif
+
  double integral,int_tmp;
  int    *recv_counts_coef_dens_cp_box;
 

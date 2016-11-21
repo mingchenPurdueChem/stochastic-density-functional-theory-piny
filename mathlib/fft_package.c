@@ -158,12 +158,10 @@ void para_fft_gen3d_fwd_to_r(double *zfft, double *zfft_tmp,
  fftw_plan plan_fc = para_fft_pkg3d->plan_fftw_fc;
 #endif
 
-#ifdef FFTW3D
   fftw_plan fftwPlan3DForward,fftwPlan3DBackward;
   fftw_complex *fftw3DForwardIn,*fftw3DForwardOut;
   fftw_complex *fftw3DBackwardIn,*fftw3DBackwardOut;
   int *mapFFTW,*mapConFFTW;
-#endif
 
 /* MAPS */
  int *map_proc_post       = para_fft_pkg3d->map_proc_post;
@@ -447,10 +445,57 @@ void para_fft_gen3d_fwd_to_r(double *zfft, double *zfft_tmp,
    }/*end routine*/ 
 /*==========================================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
 
+void para_fft_gen3d_fwd_to_r_fftw3d(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
 
+/*=======================================================================*/
+/*            Begin subprogram:                                          */
+{/*begin routine*/
+/*=======================================================================*/
+/*          Local variable declarations                                  */
+#include "../typ_defs/typ_mask.h"
+  int nfft_proc = para_fft_pkg3d->nfft_proc;
+  int nfft2_proc = nfft_proc/2;
+  int igrid;
+  int i,j,k;
+  int nkf3 = para_fft_pkg3d->nkf3;
+  int nkf2 = para_fft_pkg3d->nkf2;
+  int nkf1 = para_fft_pkg3d->nkf1;
+  int fftInd,fftIndTrans;
 
+  fftw_complex *fftw3DBackwardIn = para_fft_pkg3d->fftw3DBackwardIn;
+  fftw_complex *fftw3DBackwardOut = para_fft_pkg3d->fftw3DBackwardOut;
+  
+  fftw_plan fftwPlan3DBackward;
 
+  for(igrid=0;igrid<nfft2_proc;igrid++){
+    fftw3DBackwardIn[igrid] = zfft[igrid*2+1]+zfft[igrid*2+2]*I;
+  }
+  fftw_execute(fftwPlan3DBackward);
+  
+  for(i=0;i<nkf3;i++){
+    for(j=0;j<nkf2;j++){
+      for(k=0;k<nkf1;k++){
+	fftInd = i*nkf2*nkf1+j*nkf1+k;
+	fftInfTrans = k*nkf2*nkf3+j*nkf3+i;
+	zfft[fftInd*2+1] = creal(fftw3DBackwardOut[fftIndTrans]);
+	zfft[fftInd*2+2] = cimag(fftw3DBackwardOut[fftIndTrans]);
+      }
+    }
+  }
+
+  /*
+  for(igird=0;igrid<nfft2_proc;igrid++){
+    zfft[igrid*2+1] = creal(fftw3DBackwardOut[igrid]);
+    zfft[igrid*2+2] = cimag(fftw3DBackwardOut[igrid]);
+  }
+  */
+/*-----------------------------------------------------------------------*/
+   }/*end routine*/
+/*==========================================================================*/
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
@@ -498,6 +543,50 @@ void sngl_pack_coef(double *cre,double *cim,double *zfft,
    }/*end routine*/ 
 /*==========================================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+/*   Sngl pack the coefs for 3D FFT */
+/*==========================================================================*/
+
+void sngl_pack_coef_fftw3d(double *cre,double *cim,double *zfft,
+                    PARA_FFT_PKG3D *para_fft_pkg3d)
+
+/*=======================================================================*/
+/*            Begin subprogram:                                          */
+   {/*begin routine*/
+/*=======================================================================*/
+/*          Local variable declarations                                  */
+
+   int i;
+   int ndata       = para_fft_pkg3d->ndata_kc;
+   int num_proc    = para_fft_pkg3d->num_proc;
+   int ncoef_use   = para_fft_pkg3d->ncoef_use;
+   int ncoef_proc  = para_fft_pkg3d->ncoef_proc;
+   int mapFFTW = para_fft_pkg3d->mapFFTW;
+   int mapConFFTW = para_fft_pkg3d->mapConFFTW;
+
+/*=========================================================================*/
+/* Pack the data up: top and bottom half of k-space : zero fill in scalar */
+
+  if(num_proc==1){for(i=1;i<=ndata;i++){zfft[i]=0.0;} }
+
+  for(i=1;i<=ncoef_use;i++){
+    zfft[mapFFTW[i]]      =  cre[i];
+    zfft[mapFFTW[i]+1]    =  cim[i];
+    zfft[mapConFFTW[i]]   =  cre[i];
+    zfft[mapConFFTW[i]+1] = -cim[i];
+  }/*endfor*/
+
+  if(ncoef_proc > ncoef_use){
+    zfft[1]     = cre[i];
+    zfft[2]     = cim[i];
+  }/*endif*/
+
+
+/*-----------------------------------------------------------------------*/
+   }/*end routine*/
+/*==========================================================================*/
 
 
 /*==========================================================================*/
@@ -593,8 +682,48 @@ void dble_pack_coef(double *c1re, double *c1im,double *c2re, double *c2im,
    }/*end routine*/ 
 /*==========================================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+/*   Dble pack the coefs for 3D FFT */
+/*==========================================================================*/
 
+void dble_pack_coef_fftw(double *c1re, double *c1im,double *c2re, double *c2im,
+                    double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
 
+/*=======================================================================*/
+/*            Begin subprogram:                                          */
+   {/*begin routine*/
+/*=======================================================================*/
+/*          Local variable declarations                                  */
+   int i;
+   int ndata       = para_fft_pkg3d->ndata_kc;
+   int num_proc    = para_fft_pkg3d->num_proc;
+   int ncoef_use   = para_fft_pkg3d->ncoef_use;
+   int ncoef_proc  = para_fft_pkg3d->ncoef_proc;
+   int mapFFTW = para_fft_pkg3d->mapFFTW;
+   int mapConFFTW = para_fft_pkg3d->mapConFFTW;
+
+/*=========================================================================*/
+/* Pack the data up: top and bottom half of k-space : zero fill in scalar */
+
+  if(num_proc==1){for(i=1;i<=ndata;i++){zfft[i]=0.0;} }
+
+  for(i=1;i<=ncoef_use;i++){
+    zfft[mapFFTW[i]]     =   c1re[i] - c2im[i];
+    zfft[mapFFTW[i]+1]   =   c1im[i] + c2re[i];
+    zfft[mapConFFTW[i]]   =   c1re[i] + c2im[i];
+    zfft[mapConFFTW[i]+1] =  -c1im[i] + c2re[i];
+  }/*endfor*/
+
+  if(ncoef_proc > ncoef_use){
+    zfft[1]     = c1re[i];
+    zfft[2]     = c2re[i];
+  }/*endif*/
+
+/*-----------------------------------------------------------------------*/
+   }/*end routine*/
+/*==========================================================================*/
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
@@ -1002,9 +1131,52 @@ void para_fft_gen3d_bck_to_g(double *zfft, double *zfft_tmp,
    }/*end routine*/ 
 /*==========================================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
 
+void para_fft_gen3d_bck_to_g_fftw3d(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
 
+/*=======================================================================*/
+/*            Begin subprogram:                                          */
+{/*begin routine*/
+/*=======================================================================*/
+/*          Local variable declarations                                  */
+#include "../typ_defs/typ_mask.h"
+  int nfft_proc = para_fft_pkg3d->nfft_proc;
+  int nfft2_proc = nfft_proc/2;
+  int igrid;
+  int i,j,k;
+  int nkf3 = para_fft_pkg3d->nkf3;
+  int nkf2 = para_fft_pkg3d->nkf2;
+  int nkf1 = para_fft_pkg3d->nkf1;
+  int fftInd,fftIndTrans;
 
+  fftw_complex *fftw3DForwardIn = para_fft_pkg3d->fftw3DForwardIn;
+  fftw_complex *fftw3DForwardOut = para_fft_pkg3d->fftw3DForwardOut;
+
+  fftw_plan fftwPlan3DForward;
+
+  for(i=0;i<nkf3;i++){
+    for(j=0;j<nkf2;j++){
+      for(k=0;k<nkf1;k++){
+        fftInd = i*nkf2*nkf1+j*nkf1+k;
+        fftInfTrans = k*nkf2*nkf3+j*nkf3+i;
+	fftw3DForwardIn[fftIndTrans] = zfft[fftInd*2+1]+zfft[fftInd*2+2]*I
+      }
+    }
+  }
+
+  fftw_execute(fftwPlan3DForward);
+
+  for(igrid=0;igrid<nfft2_proc;igrid++){
+    zfft[igrid*2+1] = creal(fftw3DForwardOut[igrid]);
+    zfft[igrid*2+2] = cimag(fftw3DForwardOut[igrid]);
+  }
+
+/*-----------------------------------------------------------------------*/
+   }/*end routine*/
+/*==========================================================================*/
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
@@ -1042,6 +1214,47 @@ void sngl_upack_coef(double *cre,double *cim,double *zfft,
    }/*end routine*/ 
 /*==========================================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+/*  Sngl unpack the coefs */
+/*==========================================================================*/
+
+void sngl_upack_coef_fftw3d(double *cre,double *cim,double *zfft,
+                     PARA_FFT_PKG3D *para_fft_pkg3d)
+
+/*=======================================================================*/
+/*            Begin subprogram:                                          */
+   {/*begin routine*/
+/*=======================================================================*/
+/*          Local variable declarations                                  */
+
+ int i;
+ int ncoef_proc = para_fft_pkg3d->ncoef_proc;
+ int ncoef_use  = para_fft_pkg3d->ncoef_use;
+ int *mapFFTW = para_fft_pkg3d->mapFFTW;
+ int nfft = para_fft_pkg3d->nfft;
+ int nfft2 = nfft/2;
+
+/*=======================================================================*/
+/*  Unpack the data : Top half of k space only */
+
+  for(i=1;i<=ncoef_use;i++){
+    cre[i]=zfft[mapFFTW[i]];
+    cim[i]=zfft[mapFFTW[i]+1];
+  }/*endfor*/
+  if(ncoef_proc>ncoef_use){
+    cim[ncoef_proc]=0.0;
+    cre[ncoef_proc]=zfft[1];
+  }/*endif*/
+  for(i=1;i<=ncoef_proc;i++){
+    cre[i] /= nfft2;
+    cim[i] /= nfft2;
+  }
+  
+/*-----------------------------------------------------------------------*/
+   }/*end routine*/
+/*==========================================================================*/
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/

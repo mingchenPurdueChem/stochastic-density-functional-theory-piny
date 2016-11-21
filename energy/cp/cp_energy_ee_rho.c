@@ -35,7 +35,7 @@
 
 void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
                         CPCOEFFS_INFO *cpcoeffs_info,EWALD *ewald,
-                        CELL *cell,double *creal, double *cimag,
+                        CELL *cell,double *ccreal, double *ccimag,
                         int icoef_form,int icoef_orth,
                         double *rhocr ,double *rhoci,double *rho,
                         double *rhocr_dens_cp_box,double *rhoci_dens_cp_box,
@@ -98,18 +98,15 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
  double *rhoci_dens_cp_box;
 #endif
 
-#ifdef FFTW3D
   int *mapFFTWSm = cp_sclr_fft_pkg3d_sm->mapFFTW;
   int *mapConFFTWSm = cp_sclr_fft_pkg3d_sm->mapConFFTW;
   fftw_plan fftwPlan3DForward,fftwPlan3DBackward;
   fftw_complex *fftw3DForwardIn,*fftw3DForwardOut;
   fftw_complex *fftw3DBackwardIn,*fftw3DBackwardOut;
 
-
-#endif
-
  double integral,int_tmp;
  int    *recv_counts_coef_dens_cp_box;
+ int fftw3dFlag = cpcoeffs_info->fftw3dFlag;
 
  MPI_Comm comm_states   =    communicate->comm_states;
 
@@ -190,13 +187,24 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
     the wavefunctions are reperesented in spherically cuttof 
     half g space                                                            */
 
-    dble_pack_coef(&creal[ioff],&cimag[ioff],&creal[ioff2],&cimag[ioff2],
-                   zfft,cp_sclr_fft_pkg3d_sm);
+    if(fftw3dFlag==0){
+      dble_pack_coef(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
+                     zfft,cp_sclr_fft_pkg3d_sm);
+    }
+    else{
+      dble_pack_coef_fftw3d(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
+  		      zfft,cp_sclr_fft_pkg3d_sm);
+    }
 /*--------------------------------------------------------------------------*/
 /*II) fourier transform the two wavefunctions to real space
      convention exp(-igr)                                                   */
-
-    para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+    
+    if(fftw3dFlag==0){
+      para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+    }
+    else{
+      para_fft_gen3d_fwd_to_r_fftw3d(zfft,cp_sclr_fft_pkg3d_sm);
+    }
   
 /*--------------------------------------------------------------------------*/
 /* III) add the square of the two wave functions to the density(real space) */
@@ -216,13 +224,23 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
 
  if((nstate % 2 ) != 0) {
     ioff = (nstate-1)*ncoef;
-    sngl_pack_coef(&creal[ioff],&cimag[ioff],zfft,cp_sclr_fft_pkg3d_sm);
+    if(fftw3dFlag==0){
+      sngl_pack_coef(&ccreal[ioff],&ccimag[ioff],zfft,cp_sclr_fft_pkg3d_sm);
+    }
+    else{
+      sngl_pack_coef_fftw3d(&ccreal[ioff],&ccimag[ioff],zfft,cp_sclr_fft_pkg3d_sm);
+    }
 
 /*--------------------------------------------------------------------------*/
 /* V) fourier transform the last wavefunction to real space
        convention exp(-igr)                                                 */
 
-    para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+    if(fftw3dFlag==0){
+      para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+    }
+    else{
+      para_fft_gen3d_fwd_to_r_fftw3d(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+    }
 
 /*--------------------------------------------------------------------------*/
 /*VI) add the square of the last wave function to the density(real space)   */
@@ -253,7 +271,12 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
  if(cp_dual_grid_opt >= 1){ 
   para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_dens_cp_box); 
  }else{
-  para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_lg); 
+   if(fftw3dFlag==0){
+     para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_lg);
+   }
+   else{
+     para_fft_gen3d_bck_to_g_fftw3d(zfft,cp_sclr_fft_pkg3d_lg); 
+   }
  }/*endif cp_dual_grid_opt*/
 
 /*==========================================================================*/
@@ -396,7 +419,7 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
 
 void cp_rho_calc_full_g(CPEWALD *cpewald,CPSCR *cpscr,
                         CPCOEFFS_INFO *cpcoeffs_info,EWALD *ewald,
-                        CELL *cell,double *creal, double *cimag,
+                        CELL *cell,double *ccreal, double *ccimag,
                         int icoef_form,int icoef_orth,
                         double *rhocr ,double *rhoci,double *rho,
                         double *rhocr_dens_cp_box,double *rhoci_dens_cp_box,
@@ -532,7 +555,7 @@ void cp_rho_calc_full_g(CPEWALD *cpewald,CPSCR *cpscr,
     the wavefunctions are reperesented in spherically cuttof 
     half g space                       */
 
-    dble_pack_coef(&creal[ioff],&cimag[ioff],&creal[ioff2],&cimag[ioff2],
+    dble_pack_coef(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
                    zfft,cp_para_fft_pkg3d_sm);
 
 /*--------------------------------------------------------------------------*/
@@ -558,7 +581,7 @@ void cp_rho_calc_full_g(CPEWALD *cpewald,CPSCR *cpscr,
 
  if((nstate % 2 ) != 0) {
     ioff = (nstate-1)*ncoef;
-    sngl_pack_coef(&creal[ioff],&cimag[ioff],zfft,cp_para_fft_pkg3d_sm);
+    sngl_pack_coef(&ccreal[ioff],&ccimag[ioff],zfft,cp_para_fft_pkg3d_sm);
 
 /*--------------------------------------------------------------------------*/
 /* V) fourier transform the last wavefunction to real space
@@ -754,14 +777,14 @@ void coef_force_control(CPOPTS *cpopts,CPCOEFFS_INFO *cpcoeffs_info,
    int      laplacian_on      =  cpcoeffs_info->cp_laplacian_on;
    int      cp_tau_functional =  cpcoeffs_info->cp_tau_functional;
 
-   double   *creal_up         =  cpcoeffs_pos->cre_up;
-   double   *cimag_up         =  cpcoeffs_pos->cim_up;
-   double   *cimag_dn         =  cpcoeffs_pos->cim_dn;
-   double   *creal_dn         =  cpcoeffs_pos->cre_dn;
-   double   *fcreal_up        =  cpcoeffs_pos->fcre_up;
-   double   *fcimag_up        =  cpcoeffs_pos->fcim_up;
-   double   *fcimag_dn        =  cpcoeffs_pos->fcim_dn;
-   double   *fcreal_dn        =  cpcoeffs_pos->fcre_dn;
+   double   *ccreal_up         =  cpcoeffs_pos->cre_up;
+   double   *ccimag_up         =  cpcoeffs_pos->cim_up;
+   double   *ccimag_dn         =  cpcoeffs_pos->cim_dn;
+   double   *ccreal_dn         =  cpcoeffs_pos->cre_dn;
+   double   *fccreal_up        =  cpcoeffs_pos->fcre_up;
+   double   *fccimag_up        =  cpcoeffs_pos->fcim_up;
+   double   *fccimag_dn        =  cpcoeffs_pos->fcim_dn;
+   double   *fccreal_dn        =  cpcoeffs_pos->fcre_dn;
    double   *kfcre_up         =  cpcoeffs_pos->kfcre_up;
    double   *kfcim_up         =  cpcoeffs_pos->kfcim_up;
 
@@ -888,8 +911,8 @@ void coef_force_control(CPOPTS *cpopts,CPCOEFFS_INFO *cpcoeffs_info,
   case 0: /* hybrid */
  /*-----------------------------------------*/
  /* i)  Up states                           */
-   coef_force_calc_hybrid(cpewald,nstate_up,creal_up,cimag_up,
-                          fcreal_up,fcimag_up,cre_scr,cim_scr,cp_hess_re_up,cp_hess_im_up,
+   coef_force_calc_hybrid(cpewald,nstate_up,ccreal_up,ccimag_up,
+                          fccreal_up,fccimag_up,cre_scr,cim_scr,cp_hess_re_up,cp_hess_im_up,
                           zfft,zfft_tmp,v_ks_up,v_ks_tau_up,ak2_sm,&cp_eke,pvten_cp,
                           cp_ptens_calc,hmati_cp,communicate,icoef_form_up,
                           icoef_orth_up,ifcoef_form_up,cp_tau_functional,cp_min_on,
@@ -904,8 +927,8 @@ void coef_force_control(CPOPTS *cpopts,CPCOEFFS_INFO *cpcoeffs_info,
   for(istest=0;istest<nstate_up;istest++){
     for(icoeftest=0;icoeftest<ncoef1;icoeftest++){
       indextest = istest*ncoef+icoeftest+1;
-      kfcre_up[indextest] = -2.0*ak2_sm[icoeftest+1]*creal_up[indextest];
-      kfcim_up[indextest] = -2.0*ak2_sm[icoeftest+1]*cimag_up[indextest];
+      kfcre_up[indextest] = -2.0*ak2_sm[icoeftest+1]*ccreal_up[indextest];
+      kfcim_up[indextest] = -2.0*ak2_sm[icoeftest+1]*ccimag_up[indextest];
     }//endfor i
    kfcre_up[istest*ncoef+ncoef] = 0.0;
    kfcim_up[istest*ncoef+ncoef] = 0.0;
@@ -917,8 +940,8 @@ void coef_force_control(CPOPTS *cpopts,CPCOEFFS_INFO *cpcoeffs_info,
  /* ii) down states (if necessary)             */
 
   if(cp_lsda == 1 && nstate_dn != 0){
-   coef_force_calc_hybrid(cpewald,nstate_dn,creal_dn,cimag_dn,
-                          fcreal_dn,fcimag_dn,cre_scr,cim_scr,cp_hess_re_dn,cp_hess_im_dn,
+   coef_force_calc_hybrid(cpewald,nstate_dn,ccreal_dn,ccimag_dn,
+                          fccreal_dn,fccimag_dn,cre_scr,cim_scr,cp_hess_re_dn,cp_hess_im_dn,
                           zfft,zfft_tmp,v_ks_dn,v_ks_tau_dn,ak2_sm,&cp_eke_dn,pvten_cp,
                           cp_ptens_calc,hmati_cp,communicate,icoef_form_dn,
                           icoef_orth_dn,ifcoef_form_dn,cp_tau_functional,cp_min_on,
@@ -935,7 +958,7 @@ void coef_force_control(CPOPTS *cpopts,CPCOEFFS_INFO *cpcoeffs_info,
 
    coef_force_calc_full_g(cpewald,nstate_up_tot,nstate_ncoef_proc_up,
                           nstate_ncoef_proc_max_up,
-                          creal_up,cimag_up,fcreal_up,fcimag_up,cre_scr,cim_scr,
+                          ccreal_up,ccimag_up,fccreal_up,fccimag_up,cre_scr,cim_scr,
                           cp_hess_re_up,cp_hess_im_up,
                           zfft,zfft_tmp,v_ks_up,v_ks_tau_up,ak2_sm,&cp_eke,pvten_cp,
                           cp_ptens_calc,hmati_cp,communicate,icoef_form_up,
@@ -949,7 +972,7 @@ void coef_force_control(CPOPTS *cpopts,CPCOEFFS_INFO *cpcoeffs_info,
   if(cp_lsda == 1 && nstate_dn != 0){
    coef_force_calc_full_g(cpewald,nstate_dn_tot,nstate_ncoef_proc_dn,
                           nstate_ncoef_proc_max_dn,
-                          creal_dn,cimag_dn,fcreal_dn,fcimag_dn,cre_scr,cim_scr,
+                          ccreal_dn,ccimag_dn,fccreal_dn,fccimag_dn,cre_scr,cim_scr,
                           cp_hess_re_dn,cp_hess_im_dn,
                           zfft,zfft_tmp,v_ks_dn,v_ks_tau_dn,ak2_sm,&cp_eke_dn,pvten_cp,
                           cp_ptens_calc,hmati_cp,communicate,icoef_form_dn,
@@ -1582,8 +1605,8 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
 /*==========================================================================*/
 
 void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
-                             double *creal,double *cimag, 
-                             double *fcreal,double  *fcimag,
+                             double *ccreal,double *ccimag, 
+                             double *fccreal,double  *fccimag,
                              double *cre_scr,double *cim_scr,
                              double *cp_hess_re,double *cp_hess_im,
                              double *zfft,double *zfft_tmp,
@@ -1673,7 +1696,7 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
 /* 1) get the wave functions in real space two at a time                    */
 /*   I) double pack the complex zfft array with two real wavefunctions      */
 
-    dble_pack_coef(&creal[ioff],&cimag[ioff],&creal[ioff2],&cimag[ioff2],
+    dble_pack_coef(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
                    zfft,cp_sclr_fft_pkg3d_sm);
 
 /*--------------------------------------------------------------------------*/
@@ -1697,8 +1720,8 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
 /*==========================================================================*/
 /* 3) get forces on coefficients by double unpacking the array zfft         */
 
-    dble_upack_coef_sum(&fcreal[ioff],&fcimag[ioff],
-                        &fcreal[ioff2],&fcimag[ioff2],
+    dble_upack_coef_sum(&fccreal[ioff],&fccimag[ioff],
+                        &fccreal[ioff2],&fccimag[ioff2],
                         zfft,cp_sclr_fft_pkg3d_sm);
 
   }/*endfor is */
@@ -1717,7 +1740,7 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
 /*--------------------------------------------------------------------------*/
 /*   I) sngl pack                                                           */
 
-     sngl_pack_coef(&creal[ioff],&cimag[ioff],zfft,cp_sclr_fft_pkg3d_sm);
+     sngl_pack_coef(&ccreal[ioff],&ccimag[ioff],zfft,cp_sclr_fft_pkg3d_sm);
 
 /*--------------------------------------------------------------------------*/
 /* II) fourier transform the wavefunctions to real space                    */
@@ -1741,7 +1764,7 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
 /* 6) get forces on coefficients by single unpacking the array zfft         */
 
 
-      sngl_upack_coef_sum(&fcreal[ioff],&fcimag[ioff],zfft,
+      sngl_upack_coef_sum(&fccreal[ioff],&fccimag[ioff],zfft,
                           cp_sclr_fft_pkg3d_sm);
 
   }/* endif: odd number of states*/
@@ -1751,7 +1774,7 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
 /*    this contribution to the force                                        */
 
   if(cp_tau_functional==1)
-    coef_force_tau_fun_hybrid(cpewald,nstate,creal,cimag,fcreal,fcimag,
+    coef_force_tau_fun_hybrid(cpewald,nstate,ccreal,ccimag,fccreal,fccimag,
                               cre_scr,cim_scr,zfft,zfft_tmp,v_ks_tau,ak2_sm,
                               pvten_cp,cp_ptens_calc,hmati,communicate,
                               icoef_form,icoef_orth,ifcoef_form,
@@ -1784,12 +1807,12 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
     ioff = (is-1)*ncoef;
     for(i=1; i<= ncoef1 ; i++){
       iis = ioff + i;
-      fcreal[iis] -= 2.0*ak2_sm[i]*creal[iis];
-      fcimag[iis] -= 2.0*ak2_sm[i]*cimag[iis];
-      eke += (2.0*ak2_sm[i]*(creal[iis]*creal[iis] + cimag[iis]*cimag[iis]));
+      fccreal[iis] -= 2.0*ak2_sm[i]*ccreal[iis];
+      fccimag[iis] -= 2.0*ak2_sm[i]*ccimag[iis];
+      eke += (2.0*ak2_sm[i]*(ccreal[iis]*ccreal[iis] + ccimag[iis]*ccimag[iis]));
     }/*endfor i*/
    nis = is*ncoef;
-   fcimag[nis] = 0.0;
+   fccimag[nis] = 0.0;
   }/*endfor*/
 
   eke *= .50;
@@ -1880,7 +1903,7 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
        yk = (aka*hmati[4] +akb*hmati[5] +akc*hmati[6])*tpi;
        zk = (aka*hmati[7] +akb*hmati[8] +akc*hmati[9])*tpi;
 
-       cfact = 2.0*(creal[iis]*creal[iis] + cimag[iis]*cimag[iis]);
+       cfact = 2.0*(ccreal[iis]*ccreal[iis] + ccimag[iis]*ccimag[iis]);
 
        pvten_cp[1] += xk*xk*cfact;
        pvten_cp[2] += xk*yk*cfact;
@@ -1916,8 +1939,8 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
 
 void coef_force_calc_full_g(CPEWALD *cpewald,int nstate,int ncoef,
                              int ncoef_max,
-                             double *creal,double *cimag, 
-                             double *fcreal,double  *fcimag,
+                             double *ccreal,double *ccimag, 
+                             double *fccreal,double  *fccimag,
                              double *cre_scr,double *cim_scr,
                              double *cp_hess_re,double *cp_hess_im,
                              double *zfft,double *zfft_tmp,
@@ -2007,7 +2030,7 @@ void coef_force_calc_full_g(CPEWALD *cpewald,int nstate,int ncoef,
 /* 1) get the wave functions in real space two at a time                    */
 /*   I) double pack the complex zfft array with two real wavefunctions      */
 
-    dble_pack_coef(&creal[ioff],&cimag[ioff],&creal[ioff2],&cimag[ioff2],
+    dble_pack_coef(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
                    zfft,cp_para_fft_pkg3d_sm);
 
 /*--------------------------------------------------------------------------*/
@@ -2032,8 +2055,8 @@ void coef_force_calc_full_g(CPEWALD *cpewald,int nstate,int ncoef,
 /* 3) get forces on coefficients by double unpacking the array zfft         */
 
 
-    dble_upack_coef_sum(&fcreal[ioff],&fcimag[ioff],
-                        &fcreal[ioff2],&fcimag[ioff2],
+    dble_upack_coef_sum(&fccreal[ioff],&fccimag[ioff],
+                        &fccreal[ioff2],&fccimag[ioff2],
                         zfft,cp_para_fft_pkg3d_sm);
 
   }/*endfor is */
@@ -2051,7 +2074,7 @@ void coef_force_calc_full_g(CPEWALD *cpewald,int nstate,int ncoef,
 /*--------------------------------------------------------------------------*/
 /*   I) sngl pack                                                           */
 
-     sngl_pack_coef(&creal[ioff],&cimag[ioff],zfft,cp_para_fft_pkg3d_sm);
+     sngl_pack_coef(&ccreal[ioff],&ccimag[ioff],zfft,cp_para_fft_pkg3d_sm);
 
 /*--------------------------------------------------------------------------*/
 /* II) fourier transform the wavefunctions to real space                    */
@@ -2075,7 +2098,7 @@ void coef_force_calc_full_g(CPEWALD *cpewald,int nstate,int ncoef,
 /* 6) get forces on coefficients by double unpacking the array zfft         */
 
 
-   sngl_upack_coef_sum(&fcreal[ioff],&fcimag[ioff],zfft,cp_para_fft_pkg3d_sm);
+   sngl_upack_coef_sum(&fccreal[ioff],&fccimag[ioff],zfft,cp_para_fft_pkg3d_sm);
 
   }/* endif: odd number of states*/
 
@@ -2084,7 +2107,7 @@ void coef_force_calc_full_g(CPEWALD *cpewald,int nstate,int ncoef,
 /*    this contribution to the force                                        */
 
   if(cp_tau_functional==1)
-    coef_force_tau_fun_full_g(cpewald,nstate,creal,cimag,fcreal,fcimag,
+    coef_force_tau_fun_full_g(cpewald,nstate,ccreal,ccimag,fccreal,fccimag,
                               cre_scr,cim_scr,zfft,zfft_tmp,v_ks_tau,ak2_sm,
                               pvten_cp,cp_ptens_calc,hmati,communicate,
                               icoef_form,icoef_orth,ifcoef_form,
@@ -2117,12 +2140,12 @@ void coef_force_calc_full_g(CPEWALD *cpewald,int nstate,int ncoef,
     for(i=1; i<= ncoef_use ; i++){
       joff = i+icoef_off;
       iis = ioff + i;
-      fcreal[iis] -= 2.0*ak2_sm[joff]*creal[iis];
-      fcimag[iis] -= 2.0*ak2_sm[joff]*cimag[iis];
+      fccreal[iis] -= 2.0*ak2_sm[joff]*ccreal[iis];
+      fccimag[iis] -= 2.0*ak2_sm[joff]*ccimag[iis];
       eke += (2.0*ak2_sm[joff]
-           *(creal[iis]*creal[iis] + cimag[iis]*cimag[iis]));
+           *(ccreal[iis]*ccreal[iis] + ccimag[iis]*ccimag[iis]));
     }/*endfor i*/
-    if(ncoef_use != ncoef){fcimag[(ioff+ncoef)] = 0.0;}
+    if(ncoef_use != ncoef){fccimag[(ioff+ncoef)] = 0.0;}
   }/*endfor*/
   eke *= .50;
   *eke_ret = eke;
@@ -2161,7 +2184,7 @@ void coef_force_calc_full_g(CPEWALD *cpewald,int nstate,int ncoef,
        yk = (aka*hmati[4] +akb*hmati[5] +akc*hmati[6])*tpi;
        zk = (aka*hmati[7] +akb*hmati[8] +akc*hmati[9])*tpi;
 
-       cfact = 2.0*(creal[iis]*creal[iis] + cimag[iis]*cimag[iis]);
+       cfact = 2.0*(ccreal[iis]*ccreal[iis] + ccimag[iis]*ccimag[iis]);
 
        pvten_cp[1] += xk*xk*cfact;
        pvten_cp[2] += xk*yk*cfact;

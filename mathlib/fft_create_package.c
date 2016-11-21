@@ -132,14 +132,11 @@ void create_para_fft_pkg3d(PARA_FFT_PKG3D *para_fft_pkg3d,
  int ncoef_use;
  int icoef_off;
  int icoef_strt;
-
-#ifdef FFTW3D
   
   para_fft_pkg3d->mapFftwLarge = (int*)cmalloc(ncoef*sizeof(int))-1;
   para_fft_pkg3d->mapConFftwLarge = (int*)cmalloc(ncoef*sizeof(int))-1;
   int *mapFftwLarge = para_fft_pkg3d->mapFftwLarge;
   int *mapConFftwLarge = para_fft_pkg3d->mapConFftwLarge;
-#endif
 
 /*=======================================================================*/
 /* 0) Determine useful constants                                         */
@@ -235,14 +232,12 @@ void create_para_fft_pkg3d(PARA_FFT_PKG3D *para_fft_pkg3d,
   setfft_indx(nkf1,nkf2,nkf3,ncoef,kastr,kbstr,kcstr,
               indx,indx_c);
 
-#ifdef FFTW3D
+  // In case you need fftw3d
+  setfft_indx(nkf1,nkf2,nkf3,ncoef-1,kastr,kbstr,kcstr,
+	       mapFftwLarge,mapConFftwLarge);
+  mapFftwLarge[ncoef] = 1;
+  mapConFftwLarge[ncoef] = 0;
 
-    setfft_indx(nkf1,nkf2,nkf3,ncoef-1,kastr,kbstr,kcstr,
-                 mapFftwLarge,mapConFftwLarge);
-    mapFftwLarge[ncoef] = 1;
-    mapConFftwLarge[ncoef] = 0;
-
-#endif
 
 
   for(i=1;i<=ncoef;i++){map_inv[i]=i;map_c_inv[i]=i;}
@@ -1592,7 +1587,6 @@ void para_fft_gen3d_init(PARA_FFT_PKG3D *para_fft_pkg3d)
   fftw_complex *fftw3DForwardIn,*fftw3DForwardOut,*fftw3DBackwardIn,*fftw3DBackwardOut;
 #endif
 
-#ifdef FFTW3D
   para_fft_pkg3d->fftw3DForwardIn = (fftw_complex*)fftw_malloc(nfft2_proc*sizeof(fftw_complex));
   para_fft_pkg3d->fftw3DForwardOut = (fftw_complex*)fftw_malloc(nfft2_proc*sizeof(fftw_complex));
   para_fft_pkg3d->fftw3DBackwardIn = (fftw_complex*)fftw_malloc(nfft2_proc*sizeof(fftw_complex));
@@ -1607,8 +1601,6 @@ void para_fft_gen3d_init(PARA_FFT_PKG3D *para_fft_pkg3d)
                                         fftw3DForwardOut,FFTW_FORWARD,FFTW_MEASURE);
   para_fft_pkg3d->fftwPlan3DBackward = fftw_plan_dft_3d(nkf_c,nkf_b,nkf_a,fftw3DBackwardIn,
                                         fftw3DBackwardOut,FFTW_BACKWARD,FFTW_MEASURE);
-
-#endif
 
 /*==========================================================================*/
 /* I) Hard-wired sizes of scratch arrays                                    */

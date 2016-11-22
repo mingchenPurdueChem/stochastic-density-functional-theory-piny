@@ -182,7 +182,10 @@ void parse(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   pme_on      = class->part_mesh.pme_on;
   iopt_cp_pw  = cp->cpcoeffs_info.iopt_cp_pw;
   iopt_cp_dvr = cp->cpcoeffs_info.iopt_cp_dvr;
-
+  
+  cp->cpopts.fftw3dFlag = 0;
+  cp->cpcoeffs_info.fftw3dFlag = 0;
+  cp->cpewald.fftw3dFlag = 0;
 
 /*========================================================================*/
 /*    VII) Read in hmat. Do before set_cp_ewald                           */

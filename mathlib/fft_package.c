@@ -688,7 +688,7 @@ void dble_pack_coef(double *c1re, double *c1im,double *c2re, double *c2im,
 /*   Dble pack the coefs for 3D FFT */
 /*==========================================================================*/
 
-void dble_pack_coef_fftw(double *c1re, double *c1im,double *c2re, double *c2im,
+void dble_pack_coef_fftw3d(double *c1re, double *c1im,double *c2re, double *c2im,
                     double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
 
 /*=======================================================================*/
@@ -1293,8 +1293,43 @@ void sngl_upack_coef_sum(double *cre,double *cim,double *zfft,
    }/*end routine*/ 
 /*==========================================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+/*  Sngl unpack the coefs */
+/*==========================================================================*/
 
+void sngl_upack_coef_sum_fftw3d(double *cre,double *cim,double *zfft,
+                         PARA_FFT_PKG3D *para_fft_pkg3d)
 
+/*=======================================================================*/
+/*            Begin subprogram:                                          */
+   {/*begin routine*/
+/*=======================================================================*/
+/*          Local variable declarations                                  */
+
+ int i,ncoef_min;
+ int ncoef_proc = para_fft_pkg3d->ncoef_proc;
+ int ncoef_use  = para_fft_pkg3d->ncoef_use;
+ int *map_proc  = para_fft_pkg3d->map_proc;
+ int *mapFFTW = para_fft_pkg3d->mapFFTW;
+
+/*=======================================================================*/
+/*  Unpack the data : Top half of k space only */
+
+  ncoef_min = MIN(ncoef_proc,ncoef_use);
+  for(i=1;i<=ncoef_min;i++){
+    cre[i]-=(4.0*zfft[mapFFTW[i]]);
+    cim[i]-=(4.0*zfft[mapFFTW[i]+1]);
+  }/*endfor*/
+  if(ncoef_proc>ncoef_use){
+    i = ncoef_proc;
+    cre[i]-=(2.0*zfft[1]);
+  }/*endif*/
+
+/*-----------------------------------------------------------------------*/
+   }/*end routine*/
+/*==========================================================================*/
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
@@ -1622,6 +1657,58 @@ void dble_upack_coef_sum(double *c1re,double *c1im,double *c2re,double *c2im,
 /*-----------------------------------------------------------------------*/
    }/*end routine*/ 
 /*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+/*  Dble upack the coefs */
+/*==========================================================================*/
+
+void dble_upack_coef_sum_fftw3d(double *c1re,double *c1im,double *c2re,double *c2im,
+                         double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
+
+/*=======================================================================*/
+/*            Begin subprogram:                                          */
+   {/*begin routine*/
+/*=======================================================================*/
+/*          Local variable declarations                                  */
+
+ int i,ncoef_min;
+ double tempr ,tempi;
+ double temprc,tempic;
+ int ncoef_proc   = para_fft_pkg3d->ncoef_proc;
+ int ncoef_use    = para_fft_pkg3d->ncoef_use;
+ int *mapFFTW = para_fft_pkg3d->mapFFTW;
+ int *mapConFFTW = para_fft_pkg3d->mapConFFTW;
+
+/*=======================================================================*/
+/*  Unpack the data :  */
+
+  ncoef_min = MIN(ncoef_proc,ncoef_use);
+  for(i=1;i<=ncoef_min;i++){
+
+    tempr  = zfft[mapFFTW[i]];
+    tempi  = zfft[mapFFTW[i]+1];
+    temprc = zfft[mapConFFTW[i]];
+    tempic = zfft[mapConFFTW[i]+1];
+
+    c2im[i] -= (2.0*(-tempr + temprc));
+    c1re[i] -= (2.0*( tempr + temprc));
+
+    c1im[i] -= (2.0*( tempi - tempic));
+    c2re[i] -= (2.0*( tempi + tempic));
+
+  }/*endfor*/
+  if(ncoef_proc>ncoef_use){
+    i = ncoef_proc;
+    c1re[ncoef_proc] -= (2.0*zfft[1]);
+    c2re[ncoef_proc] -= (2.0*zfft[2]);
+  }/*endif*/
+
+/*-----------------------------------------------------------------------*/
+   }/*end routine*/
+/*==========================================================================*/
+
 
 
 /*==========================================================================*/

@@ -1095,6 +1095,9 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
    double temp_r,temp_i;
    int i,j,iii,igo;
 
+   // fftw3d options
+   int fftw3dFlag = cpopts->fftw3dFlag;
+
    if( cp_dual_grid_opt >= 1){
     nfft_dens_cp_box       = cp_para_fft_pkg3d_dens_cp_box->nfft;
     nfft_proc_dens_cp_box  = cp_para_fft_pkg3d_dens_cp_box->nfft_proc;
@@ -1273,13 +1276,23 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
 
 /*====================================================================*/
 /*  II) single pack the ks potential for fourier transform routine    */
-
-   sngl_pack_coef(vextr,vexti,zfft,cp_para_fft_pkg3d_lg);
+   
+   if(fftw3dFlag==0){
+     sngl_pack_coef(vextr,vexti,zfft,cp_para_fft_pkg3d_lg);
+   }
+   else{
+     sngl_pack_coef_fftw3d(vextr,vexti,zfft,cp_para_fft_pkg3d_lg);
+   }
 
 /*====================================================================*/
 /* III) fourier transform ks potential to real space exp(-igr)        */
 
-   para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_para_fft_pkg3d_lg);
+   if(fftw3dFlag==0){
+     para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_para_fft_pkg3d_lg);
+   }
+   else{
+     para_fft_gen3d_fwd_to_r_fftw3d(zfft,zfft_tmp,cp_para_fft_pkg3d_lg);
+   }
 
 /*====================================================================*/
 /* IV) Contract and unpack rho for dual option, otherwise just upack  */
@@ -1654,6 +1667,8 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
       double sum_check,sum_check_tmp;
       MPI_Comm comm_states = communicate->comm_states;
 
+  int fftw3dFlag = cpewald->fftw3dFlag;
+
 /* ================================================================= */
 /*0) Check the form of the coefficients                              */
 
@@ -1696,14 +1711,25 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
 /* 1) get the wave functions in real space two at a time                    */
 /*   I) double pack the complex zfft array with two real wavefunctions      */
 
-    dble_pack_coef(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
-                   zfft,cp_sclr_fft_pkg3d_sm);
+    if(fftw3dFlag==0){
+      dble_pack_coef(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
+                     zfft,cp_sclr_fft_pkg3d_sm);
+    }
+    else{
+      dble_pack_coef_fftw3d(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
+                     zfft,cp_sclr_fft_pkg3d_sm);
+    }
 
 /*--------------------------------------------------------------------------*/
 /* II) fourier transform the wavefunctions to real space                    */
 /*      convention exp(-igr)                                                */
 
-    para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+    if(fftw3dFlag==0){
+      para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+    }
+    else{
+      para_fft_gen3d_fwd_to_r_fftw3d(zfft,cp_sclr_fft_pkg3d_sm);
+    }
 
 /*==========================================================================*/
 /* 2) get v|psi> in g space and store it in zfft                            */
@@ -1715,14 +1741,27 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
 /*  II) fourier transform  to g-space                                       */
 /*     convention exp(igr)                                                  */
 
-    para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+    if(fftw3dFlag==0){
+      para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+    }
+    else{
+      para_fft_gen3d_bck_to_g_fftw3d(zfft,cp_sclr_fft_pkg3d_sm);
+    }
 
 /*==========================================================================*/
 /* 3) get forces on coefficients by double unpacking the array zfft         */
 
-    dble_upack_coef_sum(&fccreal[ioff],&fccimag[ioff],
-                        &fccreal[ioff2],&fccimag[ioff2],
-                        zfft,cp_sclr_fft_pkg3d_sm);
+    if(fftw3dFlag==0){
+      dble_upack_coef_sum(&fccreal[ioff],&fccimag[ioff],
+			  &fccreal[ioff2],&fccimag[ioff2],
+			  zfft,cp_sclr_fft_pkg3d_sm);
+    }
+    else{
+      dble_upack_coef_sum_fftw3d(&fccreal[ioff],&fccimag[ioff],
+                          &fccreal[ioff2],&fccimag[ioff2],
+                          zfft,cp_sclr_fft_pkg3d_sm);
+
+    }
 
   }/*endfor is */
 
@@ -1739,14 +1778,24 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
 
 /*--------------------------------------------------------------------------*/
 /*   I) sngl pack                                                           */
-
-     sngl_pack_coef(&ccreal[ioff],&ccimag[ioff],zfft,cp_sclr_fft_pkg3d_sm);
+      
+     if(fftw3dFlag==0){
+       sngl_pack_coef(&ccreal[ioff],&ccimag[ioff],zfft,cp_sclr_fft_pkg3d_sm);
+     }
+     else{
+       sngl_pack_coef_fftw3d(&ccreal[ioff],&ccimag[ioff],zfft,cp_sclr_fft_pkg3d_sm);
+     }
 
 /*--------------------------------------------------------------------------*/
 /* II) fourier transform the wavefunctions to real space                    */
 /*      convention exp(-igr)                                                */
  
-      para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+      if(fftw3dFlag==0){
+        para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+      }
+      else{ 
+	para_fft_gen3d_fwd_to_r_fftw3d(zfft,cp_sclr_fft_pkg3d_sm);
+      }
 
 /*==========================================================================*/
 /* 5) get v|psi> in g space and store it in zfft                            */
@@ -1757,15 +1806,24 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
 /*--------------------------------------------------------------------------*/
 /*   II) fourier transform the result back to g-space */
 /*     convention exp(igr)  */
-
-      para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+      if(fftw3dFlag==0){
+        para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+      }
+      else{
+	para_fft_gen3d_bck_to_g_fftw3d(zfft,cp_sclr_fft_pkg3d_sm);
+      }
 
 /*==========================================================================*/
 /* 6) get forces on coefficients by single unpacking the array zfft         */
 
-
-      sngl_upack_coef_sum(&fccreal[ioff],&fccimag[ioff],zfft,
-                          cp_sclr_fft_pkg3d_sm);
+      if(fftw3dFlag==0){
+        sngl_upack_coef_sum(&fccreal[ioff],&fccimag[ioff],zfft,
+                            cp_sclr_fft_pkg3d_sm);
+      }
+      else{
+	ngl_upack_coef_sum_fftw3d(&fccreal[ioff],&fccimag[ioff],zfft,
+                            cp_sclr_fft_pkg3d_sm);
+      }
 
   }/* endif: odd number of states*/
 
@@ -1788,12 +1846,20 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
 
     for(i=1;i<=ncoef;i++){ cp_hess_re[i] = cp_hess_im[i] = 0.0;}
 
-    sngl_pack_rho(zfft,v_ks,cp_sclr_fft_pkg3d_sm);
+    if(fftw3dFlag==0){
+      sngl_pack_rho(zfft,v_ks,cp_sclr_fft_pkg3d_sm);
 
-    para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+      para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
 
-    sngl_upack_coef(cp_hess_re,cp_hess_im,zfft,cp_sclr_fft_pkg3d_sm);
-
+      sngl_upack_coef(cp_hess_re,cp_hess_im,zfft,cp_sclr_fft_pkg3d_sm);
+    }
+    else{
+      sngl_pack_rho(zfft,v_ks,cp_sclr_fft_pkg3d_sm);
+      
+      para_fft_gen3d_bck_to_g_fftw3d(zfft,cp_sclr_fft_pkg3d_sm);
+      
+      sngl_upack_coef_fftw3d(cp_hess_re,cp_hess_im,zfft,cp_sclr_fft_pkg3d_sm);
+    }
   }/* endif cp_min_on */
 
 

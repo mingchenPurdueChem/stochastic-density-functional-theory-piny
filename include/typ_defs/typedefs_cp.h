@@ -112,6 +112,8 @@ typedef struct cpopts{
                                    Lth: nstate_up*nstate_up           */
   double *rocc_sum_dn;            /* Lst: reciprocal sums of occ numbers 
                                    Lth: nstate_up*nstate_up           */
+  int fftw3dFlag;		  /* fftw3d flag, usually off. Turn on when */
+				  /* you need it.			    */
 } CPOPTS;
 
 /*==========================================================================*/
@@ -208,7 +210,7 @@ typedef struct cpcoeffs_info {
   int ncoef_up,ncoef_dn;  
   int cp_para_opt;    
   */   
-
+  int fftw3dFlag; /* Replica from cpopts*/
 } CPCOEFFS_INFO;
 
 typedef struct cpcoeffs_pos {
@@ -792,8 +794,7 @@ typedef struct cpewald {
   double *ak2,*ak2_sm;         /* Square of k vectors on big and small grid */
   double *ak2_dens_cp_box;      /* Square of k vectors on big and small grid */
 
-/* What will happen if we change everything to 3d FFTW*/
-  int *mapFFTW,*mapConFFTW;
+  int fftw3dFlag; /* Replica from cpopts*/
 } CPEWALD;
 
 

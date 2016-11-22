@@ -158,11 +158,6 @@ void para_fft_gen3d_fwd_to_r(double *zfft, double *zfft_tmp,
  fftw_plan plan_fc = para_fft_pkg3d->plan_fftw_fc;
 #endif
 
-  fftw_plan fftwPlan3DForward,fftwPlan3DBackward;
-  fftw_complex *fftw3DForwardIn,*fftw3DForwardOut;
-  fftw_complex *fftw3DBackwardIn,*fftw3DBackwardOut;
-  int *mapFFTW,*mapConFFTW;
-
 /* MAPS */
  int *map_proc_post       = para_fft_pkg3d->map_proc_post;
 

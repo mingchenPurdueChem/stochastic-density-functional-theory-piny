@@ -189,6 +189,9 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   iopt_cp_pw  = cpMini->cpcoeffs_info.iopt_cp_pw;
   iopt_cp_dvr = cpMini->cpcoeffs_info.iopt_cp_dvr;
   
+  cpMini->cpopts.fftw3dFlag = 1;
+  cpMini->cpcoeffs_info.fftw3dFlag = 1;
+  cpMini->cpewald.fftw3dFlag = 1;
 
 /*========================================================================*/
 /*    VII) Read in hmat. Do before set_cp_ewald                           */

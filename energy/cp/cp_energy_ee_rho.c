@@ -1821,7 +1821,7 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
                             cp_sclr_fft_pkg3d_sm);
       }
       else{
-	ngl_upack_coef_sum_fftw3d(&fccreal[ioff],&fccimag[ioff],zfft,
+	sngl_upack_coef_sum_fftw3d(&fccreal[ioff],&fccimag[ioff],zfft,
                             cp_sclr_fft_pkg3d_sm);
       }
 

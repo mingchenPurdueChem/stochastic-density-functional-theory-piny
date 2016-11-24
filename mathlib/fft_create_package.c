@@ -133,10 +133,10 @@ void create_para_fft_pkg3d(PARA_FFT_PKG3D *para_fft_pkg3d,
  int icoef_off;
  int icoef_strt;
   
-  para_fft_pkg3d->mapFftwLarge = (int*)cmalloc(ncoef*sizeof(int))-1;
-  para_fft_pkg3d->mapConFftwLarge = (int*)cmalloc(ncoef*sizeof(int))-1;
-  int *mapFftwLarge = para_fft_pkg3d->mapFftwLarge;
-  int *mapConFftwLarge = para_fft_pkg3d->mapConFftwLarge;
+  para_fft_pkg3d->mapFFTW = (int*)cmalloc(ncoef*sizeof(int))-1;
+  para_fft_pkg3d->mapConFFTW = (int*)cmalloc(ncoef*sizeof(int))-1;
+  int *mapFFTW = para_fft_pkg3d->mapFFTW;
+  int *mapConFFTW = para_fft_pkg3d->mapConFFTW;
 
 /*=======================================================================*/
 /* 0) Determine useful constants                                         */
@@ -234,9 +234,9 @@ void create_para_fft_pkg3d(PARA_FFT_PKG3D *para_fft_pkg3d,
 
   // In case you need fftw3d
   setfft_indx(nkf1,nkf2,nkf3,ncoef-1,kastr,kbstr,kcstr,
-	       mapFftwLarge,mapConFftwLarge);
-  mapFftwLarge[ncoef] = 1;
-  mapConFftwLarge[ncoef] = 0;
+	       mapFFTW,mapConFFTW);
+  mapFFTW[ncoef] = 1;
+  mapConFFTW[ncoef] = 0;
 
 
 
@@ -1586,7 +1586,9 @@ void para_fft_gen3d_init(PARA_FFT_PKG3D *para_fft_pkg3d)
   double *dummy;
   fftw_complex *fftw3DForwardIn,*fftw3DForwardOut,*fftw3DBackwardIn,*fftw3DBackwardOut;
 #endif
-
+  int nfft_proc = para_fft_pkg3d->nfft_proc;
+  int nfft2_proc = nfft_proc/2;
+  //printf("nfft2_proc %i\n",nfft2_proc);
   para_fft_pkg3d->fftw3DForwardIn = (fftw_complex*)fftw_malloc(nfft2_proc*sizeof(fftw_complex));
   para_fft_pkg3d->fftw3DForwardOut = (fftw_complex*)fftw_malloc(nfft2_proc*sizeof(fftw_complex));
   para_fft_pkg3d->fftw3DBackwardIn = (fftw_complex*)fftw_malloc(nfft2_proc*sizeof(fftw_complex));
@@ -1597,10 +1599,12 @@ void para_fft_gen3d_init(PARA_FFT_PKG3D *para_fft_pkg3d)
   fftw3DBackwardIn = para_fft_pkg3d->fftw3DBackwardIn;
   fftw3DBackwardOut = para_fft_pkg3d->fftw3DBackwardOut;
 
+  //printf("%p %p %p %p\n",fftw3DForwardIn,fftw3DForwardOut,fftw3DBackwardIn,fftw3DBackwardOut);
   para_fft_pkg3d->fftwPlan3DForward = fftw_plan_dft_3d(nkf_c,nkf_b,nkf_a,fftw3DForwardIn,
                                         fftw3DForwardOut,FFTW_FORWARD,FFTW_MEASURE);
   para_fft_pkg3d->fftwPlan3DBackward = fftw_plan_dft_3d(nkf_c,nkf_b,nkf_a,fftw3DBackwardIn,
                                         fftw3DBackwardOut,FFTW_BACKWARD,FFTW_MEASURE);
+
 
 /*==========================================================================*/
 /* I) Hard-wired sizes of scratch arrays                                    */
@@ -1963,8 +1967,8 @@ void para_fft_gen3d_init_dvr(PARA_FFT_PKG3D *para_fft_pkg3d)
 #ifdef FFTW3
   if(igeneric_opt==0) {
     iopt=-1;//It is forward FFT for fftw3.
-  para_fft_pkg3d->plan_fftw_fa = fftw_plan_many_dft(1,&nkf_a,num,
-        dummy,NULL,incl,incn,dummy,NULL,incl,incn,iopt,FFTW_MEASURE);
+    para_fft_pkg3d->plan_fftw_fa = fftw_plan_many_dft(1,&nkf_a,num,
+    dummy,NULL,incl,incn,dummy,NULL,incl,incn,iopt,FFTW_MEASURE);
   } else {
     fft_gen1d_init(nkf_a,incl,num,incn,iopt,&ier,
                work_1a_f,nwork1,work_2a_f,nwork2,ifax_a_f,&scale_opt,

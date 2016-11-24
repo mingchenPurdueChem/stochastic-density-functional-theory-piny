@@ -40,12 +40,12 @@ double ran_essl(double *qseed)
 
   DURAND(qseed,&n,&x,&ierr);
   if(ierr==1){
-    printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@");
-    printf("Error in random number generator: Durand");
-    if(n    < 0           ){printf("Parameter n=%d < 0"             ,n);}
-    if(*qseed< 1.0        ){printf("Parameter qseed=%g < 1.0"       ,*qseed);}
-    if(*qseed>2147483646.0){printf("Parameter qseed=%g > 2147483646",*qseed);}
-    printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@");
+    printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+    printf("Error in random number generator: Durand\n");
+    if(n    < 0           ){printf("Parameter n=%d < 0\n"             ,n);}
+    if(*qseed< 1.0        ){printf("Parameter qseed=%g < 1.0\n"       ,*qseed);}
+    if(*qseed>2147483646.0){printf("Parameter qseed=%g > 2147483646\n",*qseed);}
+    printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
     fflush(stdout);
     exit(1);
   }/*endif*/  

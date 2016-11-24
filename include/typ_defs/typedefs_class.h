@@ -265,6 +265,8 @@ typedef struct clatoms_info{
   /*--------dafed-----------*/
   DAFED *dafed;
   DAFED_INFO dinfo;
+  // I want to kick out the static flags 
+  int ifirst_vps;
 
 } CLATOMS_INFO;
 

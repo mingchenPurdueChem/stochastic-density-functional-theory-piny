@@ -116,7 +116,7 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
   int i,iii,is,icoef;
   int cp_debug_xc=0;
   int cp_dual_grid_opt_on  = cp->cpopts.cp_dual_grid_opt;
-  static int itime=0;
+  int itime = cp->cpcoeffs_info.itime_ks;
   double cpu1,cpu2;
 /*        Local pointers */
 
@@ -497,7 +497,7 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
   if(itime == 0 || cp_dual_grid_opt_on >= 1){
      control_vps_atm_list(&(cp->pseudo),cell,clatoms_pos,clatoms_info,
                           atommaps,ewd_scr,for_scr,cp_dual_grid_opt_on,itime);
-    itime=1;
+    cp->cpcoeffs_info.itime_ks = 1;
   }/*endif*/
 
 #ifdef TIME_CP
@@ -896,7 +896,7 @@ void cp_ks_energy_full_g(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
   int cp_debug_xc=0;
   int cp_min_on;
   int cp_dual_grid_opt_on = cp->cpopts.cp_dual_grid_opt;
-  static int itime=0;
+  int itime = cp->cpcoeffs_info.itime_ks;
   double cpu1,cpu2;
 /*        Local pointers */
 
@@ -1275,8 +1275,7 @@ void cp_ks_energy_full_g(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
   if(itime == 0 || cp_dual_grid_opt_on >= 1){
      control_vps_atm_list(&(cp->pseudo),cell,clatoms_pos,clatoms_info,
                   atommaps,ewd_scr,for_scr,cp_dual_grid_opt_on,itime);
-    itime=1;
-
+    cp->cpcoeffs_info.itime_ks = 1;
   }/*endif*/
 
 #ifdef TIME_CP

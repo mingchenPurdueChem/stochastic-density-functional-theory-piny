@@ -2705,7 +2705,7 @@ void vps_atm_list(PSEUDO *pseudo, CELL *cell, CLATOMS_POS *clatoms_pos,
   int np_nonloc_cp_box_gh;
   int count,count_np_nonloc_cp_box_kb,count_np_nonloc_cp_box_gh;
   int *inonloc_index;
-  static int ifirst = 0;
+  int ifirst = clatoms_info->ifirst_vps;
   double dx,dy,dz;
   double sx,sy,sz;
   double asx,asy,asz;
@@ -3036,7 +3036,7 @@ void vps_atm_list(PSEUDO *pseudo, CELL *cell, CLATOMS_POS *clatoms_pos,
 
   }/*endif there are gauss-hermite nonlocal atoms */
 
-     ifirst = 1;
+    clatoms_info->ifirst_vps = 1;
 
   }/*endif ifirst*/
 

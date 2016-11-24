@@ -211,6 +211,8 @@ typedef struct cpcoeffs_info {
   int cp_para_opt;    
   */   
   int fftw3dFlag; /* Replica from cpopts*/
+  // I want to kick out the static flags 
+  int itime_ks;
 } CPCOEFFS_INFO;
 
 typedef struct cpcoeffs_pos {

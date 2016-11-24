@@ -83,8 +83,8 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   SPLINE_PARSE     splineParse;
   NULL_INTER_PARSE nullInterParse;
 
-  int icontrol_proc  = generalDataMini->error_check_on;
-  int num_proc       = classMini->communicate.np;
+  int icontrol_proc;
+  int num_proc;
   MPI_Comm world     = classMini->communicate.world;
 
   int iopt_cp_pw,iopt_cp_dvr;
@@ -108,6 +108,10 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
   copySimParam(general_data,bonded,class,cp,generalDataMini,bondedMini,
 		classMini,cpMini,&classParse,&cpParse,&fileNameParse);
+
+  icontrol_proc = generalDataMini->error_check_on;
+  num_proc = classMini->communicate.np;
+  
    
   /*
   controlSimParamsFrag(class,general_data,bonded,cp,analysis,classMini,generalDataMini,
@@ -192,6 +196,8 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   cpMini->cpopts.fftw3dFlag = 1;
   cpMini->cpcoeffs_info.fftw3dFlag = 1;
   cpMini->cpewald.fftw3dFlag = 1;
+  classMini->clatoms_info.ifirst_vps = 0;
+  cpMini->cpcoeffs_info.itime_ks = 0;
 
 /*========================================================================*/
 /*    VII) Read in hmat. Do before set_cp_ewald                           */
@@ -256,6 +262,7 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*========================================================================*/
 /*   IX) Create the FFT packages  */
   //change
+  printf("cp_on %i myid_state %i num_proc %i\n",cp_on,myid_state,num_proc); 
   if((nchrg>0&&iperd>0&&pme_on==1)||cp_on==1){
     if(myid_state<num_proc&&myid_state>=0){
       controlFFTPkgFrag(generalDataMini,classMini,cpMini,cp);

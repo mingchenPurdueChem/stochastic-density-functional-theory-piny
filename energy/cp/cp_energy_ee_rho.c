@@ -107,6 +107,7 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
  double integral,int_tmp;
  int    *recv_counts_coef_dens_cp_box;
  int fftw3dFlag = cpcoeffs_info->fftw3dFlag;
+ int icoef;
 
  MPI_Comm comm_states   =    communicate->comm_states;
 
@@ -187,6 +188,12 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
     the wavefunctions are reperesented in spherically cuttof 
     half g space                                                            */
 
+    /*
+    for(icoef=1;icoef<=ncoef;icoef++){
+      printf("coeff1111 %lg %lg %lg %lg\n",ccreal[ioff+icoef],ccimag[ioff+icoef],
+	      ccreal[ioff2+icoef],ccimag[ioff2+icoef]);
+    }
+    */
     if(fftw3dFlag==0){
       dble_pack_coef(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
                      zfft,cp_sclr_fft_pkg3d_sm);
@@ -205,6 +212,7 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
     else{
       para_fft_gen3d_fwd_to_r_fftw3d(zfft,cp_sclr_fft_pkg3d_sm);
     }
+    
   
 /*--------------------------------------------------------------------------*/
 /* III) add the square of the two wave functions to the density(real space) */
@@ -239,7 +247,7 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
       para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
     }
     else{
-      para_fft_gen3d_fwd_to_r_fftw3d(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+      para_fft_gen3d_fwd_to_r_fftw3d(zfft,cp_sclr_fft_pkg3d_sm);
     }
 
 /*--------------------------------------------------------------------------*/
@@ -297,6 +305,27 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
                     cp_sclr_fft_pkg3d_dens_cp_box);
   }/*endif*/
  }/*endif cp_dual_grid_opt*/
+
+  if(fftw3dFlag==0){ 
+    FILE *fp_rho = fopen("rho_bm","w");
+
+    int kc,kb,ka;
+    int nkf1    = cp_para_fft_pkg3d_lg->nkf1;
+    int nkf2    = cp_para_fft_pkg3d_lg->nkf2;
+    int nkf3    = cp_para_fft_pkg3d_lg->nkf3;
+
+    if(np_states == 1){
+      for(kc=1;kc<=nkf3;kc++){
+	for(kb=1;kb<=nkf2;kb++){
+	  for(ka=1;ka<=nkf1;ka++){
+	    i = (ka-1) + (kb-1)*nkf1 + (kc-1)*nkf1*nkf2 + 1;
+	    fprintf(fp_rho,"%.5e\n",rho[i]);
+	  }/* endfor */
+	}/* endfor */
+      }/* endfor */
+    }
+    fclose(fp_rho);
+  }
 
 
 /*==========================================================================*/
@@ -1291,7 +1320,7 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
      para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_para_fft_pkg3d_lg);
    }
    else{
-     para_fft_gen3d_fwd_to_r_fftw3d(zfft,zfft_tmp,cp_para_fft_pkg3d_lg);
+     para_fft_gen3d_fwd_to_r_fftw3d(zfft,cp_para_fft_pkg3d_lg);
    }
 
 /*====================================================================*/

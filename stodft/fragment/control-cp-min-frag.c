@@ -238,7 +238,11 @@ void controlCpMinFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
         }
       }/*endif*/
       if((general_data->minopts.cp_min_cg==1)){
-        if(iopt_cp_pw) min_CG_cp(class,bonded,general_data,cp,ip_now);
+        if(iopt_cp_pw){
+	  //printf("Start min_cg_cp\n");
+	  min_CG_cp(class,bonded,general_data,cp,ip_now);
+	  //printf("End min_cg_cp\n");
+	}
         if(iopt_cp_dvr) min_CG_cp_dvr(class,bonded,general_data,cp,ip_now);
         cp->cpcoeffs_info.cg_reset_flag = 0;
       }/*endif*/
@@ -260,6 +264,9 @@ void controlCpMinFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
                      + general_data->stat_avg.cp_ehart
                      + general_data->stat_avg.cp_exc
                      + general_data->stat_avg.cp_eext;
+      printf("cp_eke %lg cp_enl %lg cp_ehart %lg cp_exc %lg cp_eext %lg\n",general_data->stat_avg.cp_eke,
+	    general_data->stat_avg.cp_enl,general_data->stat_avg.cp_ehart,general_data->stat_avg.cp_exc,
+	    general_data->stat_avg.cp_eext);
       if(num_proc>1){
        elec_e_tmp = elec_e;
        Allreduce(&(elec_e_tmp),&(elec_e),1,MPI_DOUBLE,MPI_SUM,0,comm_states);
@@ -305,6 +312,7 @@ void controlCpMinFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       }else{
         if((ireset==1)&&(general_data->minopts.cp_min_cg==1)&&(elec_e-elec_e_old)>0){
           cp->cpcoeffs_info.cg_reset_flag = 1;
+	  printf("elec_e %lg elec_e_old %lg\n",elec_e,elec_e_old);
 	  /*
           if(myid==0){
            printf("\n@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");

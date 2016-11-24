@@ -464,7 +464,7 @@ void para_fft_gen3d_fwd_to_r_fftw3d(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
   fftw_complex *fftw3DBackwardIn = para_fft_pkg3d->fftw3DBackwardIn;
   fftw_complex *fftw3DBackwardOut = para_fft_pkg3d->fftw3DBackwardOut;
   
-  fftw_plan fftwPlan3DBackward;
+  fftw_plan fftwPlan3DBackward = para_fft_pkg3d->fftwPlan3DBackward;
 
   for(igrid=0;igrid<nfft2_proc;igrid++){
     fftw3DBackwardIn[igrid] = zfft[igrid*2+1]+zfft[igrid*2+2]*I;
@@ -475,7 +475,7 @@ void para_fft_gen3d_fwd_to_r_fftw3d(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
     for(j=0;j<nkf2;j++){
       for(k=0;k<nkf1;k++){
 	fftInd = i*nkf2*nkf1+j*nkf1+k;
-	fftInfTrans = k*nkf2*nkf3+j*nkf3+i;
+	fftIndTrans = k*nkf2*nkf3+j*nkf3+i;
 	zfft[fftInd*2+1] = creal(fftw3DBackwardOut[fftIndTrans]);
 	zfft[fftInd*2+2] = cimag(fftw3DBackwardOut[fftIndTrans]);
       }
@@ -558,8 +558,8 @@ void sngl_pack_coef_fftw3d(double *cre,double *cim,double *zfft,
    int num_proc    = para_fft_pkg3d->num_proc;
    int ncoef_use   = para_fft_pkg3d->ncoef_use;
    int ncoef_proc  = para_fft_pkg3d->ncoef_proc;
-   int mapFFTW = para_fft_pkg3d->mapFFTW;
-   int mapConFFTW = para_fft_pkg3d->mapConFFTW;
+   int *mapFFTW = para_fft_pkg3d->mapFFTW;
+   int *mapConFFTW = para_fft_pkg3d->mapConFFTW;
 
 /*=========================================================================*/
 /* Pack the data up: top and bottom half of k-space : zero fill in scalar */
@@ -696,8 +696,8 @@ void dble_pack_coef_fftw3d(double *c1re, double *c1im,double *c2re, double *c2im
    int num_proc    = para_fft_pkg3d->num_proc;
    int ncoef_use   = para_fft_pkg3d->ncoef_use;
    int ncoef_proc  = para_fft_pkg3d->ncoef_proc;
-   int mapFFTW = para_fft_pkg3d->mapFFTW;
-   int mapConFFTW = para_fft_pkg3d->mapConFFTW;
+   int *mapFFTW = para_fft_pkg3d->mapFFTW;
+   int *mapConFFTW = para_fft_pkg3d->mapConFFTW;
 
 /*=========================================================================*/
 /* Pack the data up: top and bottom half of k-space : zero fill in scalar */
@@ -1150,14 +1150,14 @@ void para_fft_gen3d_bck_to_g_fftw3d(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
   fftw_complex *fftw3DForwardIn = para_fft_pkg3d->fftw3DForwardIn;
   fftw_complex *fftw3DForwardOut = para_fft_pkg3d->fftw3DForwardOut;
 
-  fftw_plan fftwPlan3DForward;
+  fftw_plan fftwPlan3DForward = para_fft_pkg3d->fftwPlan3DForward;
 
   for(i=0;i<nkf3;i++){
     for(j=0;j<nkf2;j++){
       for(k=0;k<nkf1;k++){
         fftInd = i*nkf2*nkf1+j*nkf1+k;
-        fftInfTrans = k*nkf2*nkf3+j*nkf3+i;
-	fftw3DForwardIn[fftIndTrans] = zfft[fftInd*2+1]+zfft[fftInd*2+2]*I
+        fftIndTrans = k*nkf2*nkf3+j*nkf3+i;
+	fftw3DForwardIn[fftIndTrans] = zfft[fftInd*2+1]+zfft[fftInd*2+2]*I;
       }
     }
   }

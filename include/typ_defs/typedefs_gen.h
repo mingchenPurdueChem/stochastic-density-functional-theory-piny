@@ -496,6 +496,7 @@ typedef struct para_fft_pkg3d {
 #ifdef FFTW3
   fftw_plan plan_fftw_fa,plan_fftw_fb,plan_fftw_fc;
   fftw_plan plan_fftw_ba,plan_fftw_bb,plan_fftw_bc;
+#endif
 /* We want to use this for:			    */
 /* 1.wave function k->r hybrid case		    */
 /* 2.*/

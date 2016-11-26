@@ -239,6 +239,19 @@ void create_para_fft_pkg3d(PARA_FFT_PKG3D *para_fft_pkg3d,
   mapConFFTW[ncoef] = 0;
 
 
+  //test
+  /*
+  printf("ncoef %i\n",ncoef);
+  for(i=1;i<=ncoef;i++){
+    printf("kakbkc %i %i %i\n",kastr[i],kbstr[i],kcstr[i]);
+  }
+  */
+  printf("ncoef %i\n",ncoef);
+  for(i=1;i<=ncoef;i++){
+    printf("mapFFTW %i mapConFFTW %i\n",mapFFTW[i],mapConFFTW[i]);
+  }
+
+  
 
   for(i=1;i<=ncoef;i++){map_inv[i]=i;map_c_inv[i]=i;}
   sort_commence(ncoef,indx,map_inv);

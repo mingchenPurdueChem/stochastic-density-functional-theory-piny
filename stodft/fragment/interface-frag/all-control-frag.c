@@ -2159,6 +2159,7 @@ void controlFFTPkgFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,CP *cpMini
   nkf1 = numGridDim[2];
   nkf2 = numGridDim[1];
   nkf3 = numGridDim[0];
+  printf("nkf1 %i nkf2 %i nkf3 %i\n",nkf1,nkf2,nkf3);
   //nkf1 = 4*(kmax_cp_dens_cp_box[1]+1);
   //nkf2 = 4*(kmax_cp_dens_cp_box[2]+1);
   //nkf3 = 4*(kmax_cp_dens_cp_box[3]+1);

@@ -574,8 +574,8 @@ void sngl_pack_coef_fftw3d(double *cre,double *cim,double *zfft,
   }/*endfor*/
 
   if(ncoef_proc > ncoef_use){
-    zfft[1]     = cre[i];
-    zfft[2]     = cim[i];
+    zfft[1]     = cre[ncoef_proc];
+    zfft[2]     = cim[ncoef_proc];
   }/*endif*/
 
 
@@ -712,8 +712,8 @@ void dble_pack_coef_fftw3d(double *c1re, double *c1im,double *c2re, double *c2im
   }/*endfor*/
 
   if(ncoef_proc > ncoef_use){
-    zfft[1]     = c1re[i];
-    zfft[2]     = c2re[i];
+    zfft[1]     = c1re[ncoef_proc];
+    zfft[2]     = c2re[ncoef_proc];
   }/*endif*/
 
 /*-----------------------------------------------------------------------*/

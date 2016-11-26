@@ -49,7 +49,12 @@ void cp_ks_energy_ctrl(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
 /*=======================================================================*/
 /* Use the specified parallelization scheme                              */
 
-
+  /*
+  printf("xyz1 %lg %lg %lg\n",clatoms_pos->x[1],clatoms_pos->y[1],clatoms_pos->z[1]);
+  printf("xyz1 %lg %lg %lg\n",clatoms_pos->x[2],clatoms_pos->y[2],clatoms_pos->z[2]);
+  printf("xyz1 %lg %lg %lg\n",clatoms_pos->x[3],clatoms_pos->y[3],clatoms_pos->z[3]);
+  */
+    
   if(iopt_cp_pw == 1){
     switch(cp_para_opt){
 

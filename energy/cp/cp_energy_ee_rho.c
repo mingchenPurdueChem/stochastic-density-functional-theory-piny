@@ -306,8 +306,8 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
   }/*endif*/
  }/*endif cp_dual_grid_opt*/
 
-  if(fftw3dFlag==0){ 
-    FILE *fp_rho = fopen("rho_bm","w");
+  if(fftw3dFlag==3){ 
+    FILE *fp_rho = fopen("rho_test","w");
 
     int kc,kb,ka;
     int nkf1    = cp_para_fft_pkg3d_lg->nkf1;
@@ -319,7 +319,7 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
 	for(kb=1;kb<=nkf2;kb++){
 	  for(ka=1;ka<=nkf1;ka++){
 	    i = (ka-1) + (kb-1)*nkf1 + (kc-1)*nkf1*nkf2 + 1;
-	    fprintf(fp_rho,"%.5e\n",rho[i]);
+	    fprintf(fp_rho,"%i %i %i %.5e\n",kc,kb,ka,rho[i]);
 	  }/* endfor */
 	}/* endfor */
       }/* endfor */

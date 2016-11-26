@@ -1170,7 +1170,6 @@ void mall_cp_scr_frag(CPTHERM_INFO *cptherm_info,CPOPTS *cpopts,CPEWALD *cpewald
    if(cp_dual_grid_opt_on >= 1){mtemp = MAX(nfft_up,nfft_up_dens_cp_box);}
    if(cp_dual_grid_opt_on == 0){mtemp = nfft_up;}
 
-   printf("mtemp %i\n",mtemp);
    cpscr->cpscr_wave.zfft         
                     = (double *)cmalloc(mtemp*sizeof(double))-1;
    cpscr->cpscr_wave.zfft_tmp

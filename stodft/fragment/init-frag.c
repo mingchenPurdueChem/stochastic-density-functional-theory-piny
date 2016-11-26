@@ -80,12 +80,22 @@ void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     parseFrag(class,bonded,general_data,cp,analysis,&((*classMiniPoint)[iFrag]),
 	      &((*bondedMiniPoint)[iFrag]),&((*generalDataMiniPoint)[iFrag]),
 	      &((*cpMiniPoint)[iFrag]),&((*analysisMiniPoint)[iFrag]));
+    exit(0);
   }
+  CLASS *classMini = (*classMiniPoint);
+  /*
+  printf("xyz %lg %lg %lg\n",classMini[0].clatoms_pos[1].x[1],
+	classMini[0].clatoms_pos[1].y[1],classMini[0].clatoms_pos[1].z[1]);
+  printf("xyz %lg %lg %lg\n",classMini[0].clatoms_pos[1].x[2],
+        classMini[0].clatoms_pos[1].y[2],classMini[0].clatoms_pos[1].z[2]);
+  printf("xyz %lg %lg %lg\n",classMini[0].clatoms_pos[1].x[3],
+        classMini[0].clatoms_pos[1].y[3],classMini[0].clatoms_pos[1].z[3]);
+  */
+  exit(0);
 
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/
-
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/

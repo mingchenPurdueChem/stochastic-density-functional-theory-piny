@@ -30,7 +30,8 @@
 #include "../proto_defs/proto_handle_entry.h"
 #include "../proto_defs/proto_interface_frag_local.h"
 
-#define DEBUG_GW_OFF
+//#define DEBUG_GW_OFF
+#define DEBUG_GW
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
@@ -791,7 +792,7 @@ void gen_wave_frag(CLASS *class,GENERAL_DATA *general_data,CP *cp,
     fprintf(stdout,"myid %d up  %d %.12lg \n",myid,(i-1 + istate_up_st),o);
   }/*endfor*/
    
-  Dbx_Barrier(comm_states);}
+  Dbx_Barrier(comm_states);
 
 /* check  LSDA */
    if((cp_lsda == 1) &&(nstate_dn > 0)){

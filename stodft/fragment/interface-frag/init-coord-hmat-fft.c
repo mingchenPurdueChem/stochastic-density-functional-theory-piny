@@ -462,6 +462,11 @@ void initFFTMap(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   hmatMini[8] = numGridMiniBox[2]*cGrid[1];
   hmatMini[9] = numGridMiniBox[2]*cGrid[2];
 
+  printf("hmatMini %lg %lg %lg\n",hmatMini[1],hmatMini[2],hmatMini[3]);
+  printf("hmatMini %lg %lg %lg\n",hmatMini[4],hmatMini[5],hmatMini[6]);
+  printf("hmatMini %lg %lg %lg\n",hmatMini[7],hmatMini[8],hmatMini[9]);
+
+
   //Let's give a final test before this is over
   /*
   FILE *testxyz = fopen("test.xyz","w");

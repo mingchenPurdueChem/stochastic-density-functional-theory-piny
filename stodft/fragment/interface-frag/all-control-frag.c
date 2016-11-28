@@ -1676,7 +1676,7 @@ void controlSetCpEwaldFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
   
   int iFrag = fragInfo->iFrag;
   int idum1=1,idum2=1,idum3=1;
-  int iii;                            /* Num: Debug tool                    */
+  int i,j,k,iii;                            /* Num: Debug tool                    */
   int nmall;
   int cp_on;                          /* Num: CP on flag                    */
   int nk1,nk2,nk3;                    /* Num: Number of k vec on small grid */
@@ -1835,6 +1835,16 @@ void controlSetCpEwaldFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
             ewald->kastr,ewald->kbstr,ewald->kcstr,
             ewald->ibrk1,ewald->ibrk2,cp_on,
             gmin_spl,gmin_true,gmax_spl);
+
+  /* 
+  for(i=1;i<=nktot;i++){
+    printf("ka %i kb %i kc %i\n",ewald->kastr[i],ewald->kbstr[i],ewald->kcstr[i]);
+  }
+
+  exit(0);
+  */
+
+
 /*------------------------------------------------------------------------*/
 /* C) Fill DENS_CP_BOX                                                    */
 

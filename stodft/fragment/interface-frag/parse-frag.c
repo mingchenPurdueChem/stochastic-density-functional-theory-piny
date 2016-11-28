@@ -262,7 +262,7 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*========================================================================*/
 /*   IX) Create the FFT packages  */
   //change
-  printf("cp_on %i myid_state %i num_proc %i\n",cp_on,myid_state,num_proc); 
+  //printf("cp_on %i myid_state %i num_proc %i\n",cp_on,myid_state,num_proc); 
   if((nchrg>0&&iperd>0&&pme_on==1)||cp_on==1){
     if(myid_state<num_proc&&myid_state>=0){
       controlFFTPkgFrag(generalDataMini,classMini,cpMini,cp);

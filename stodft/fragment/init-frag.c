@@ -76,11 +76,10 @@ void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   *analysisMiniPoint = (ANALYSIS*)cmalloc(numFragProc*sizeof(ANALYSIS));
   *cpMiniPoint = (CP*)cmalloc(numFragProc*sizeof(CP));
   for(iFrag=0;iFrag<numFragProc;iFrag++){
-    //printf("iFrag %i numFragProc %i\n",iFrag,numFragProc);
+    printf("iFrag %i numFragProc %i\n",iFrag,numFragProc);
     parseFrag(class,bonded,general_data,cp,analysis,&((*classMiniPoint)[iFrag]),
 	      &((*bondedMiniPoint)[iFrag]),&((*generalDataMiniPoint)[iFrag]),
 	      &((*cpMiniPoint)[iFrag]),&((*analysisMiniPoint)[iFrag]));
-    exit(0);
   }
   CLASS *classMini = (*classMiniPoint);
   /*
@@ -91,7 +90,7 @@ void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   printf("xyz %lg %lg %lg\n",classMini[0].clatoms_pos[1].x[3],
         classMini[0].clatoms_pos[1].y[3],classMini[0].clatoms_pos[1].z[3]);
   */
-  exit(0);
+  //exit(0);
 
 /*==========================================================================*/
 }/*end Routine*/

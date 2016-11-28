@@ -2211,7 +2211,7 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
 
   strcpy((*dict)[1].error_mes,"Stochastic dft mission type sp/geo_opt/md");
   strcpy((*dict)[1].keyword,"sto_dft_on");
-  strcpy((*dict)[1].keyarg,"sp");
+  strcpy((*dict)[1].keyarg,"off");
 
   strcpy((*dict)[2].error_mes,"Choose the polynomial type chebyshev/newton_hermit/newton_nohermit");
   strcpy((*dict)[2].keyword,"poly_type");

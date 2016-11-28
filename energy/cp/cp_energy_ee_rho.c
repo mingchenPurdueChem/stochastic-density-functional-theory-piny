@@ -306,8 +306,8 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
   }/*endif*/
  }/*endif cp_dual_grid_opt*/
 
-  if(fftw3dFlag==3){ 
-    FILE *fp_rho = fopen("rho_test","w");
+  if(fftw3dFlag==0){ 
+    FILE *fp_rho = fopen("rho_bm","w");
 
     int kc,kb,ka;
     int nkf1    = cp_para_fft_pkg3d_lg->nkf1;

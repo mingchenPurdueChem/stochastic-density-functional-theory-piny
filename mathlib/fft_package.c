@@ -699,6 +699,11 @@ void dble_pack_coef_fftw3d(double *c1re, double *c1im,double *c2re, double *c2im
    int *mapFFTW = para_fft_pkg3d->mapFFTW;
    int *mapConFFTW = para_fft_pkg3d->mapConFFTW;
 
+   /*
+   for(i=1;i<=ncoef_proc;i++){
+     printf("i %i mapFFTW %i mapConFFTW %i\n",i,mapFFTW[i],mapConFFTW[i]);
+   }
+   */
 /*=========================================================================*/
 /* Pack the data up: top and bottom half of k-space : zero fill in scalar */
 
@@ -715,6 +720,7 @@ void dble_pack_coef_fftw3d(double *c1re, double *c1im,double *c2re, double *c2im
     zfft[1]     = c1re[ncoef_proc];
     zfft[2]     = c2re[ncoef_proc];
   }/*endif*/
+  //exit(0);
 
 /*-----------------------------------------------------------------------*/
    }/*end routine*/

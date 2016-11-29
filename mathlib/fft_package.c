@@ -461,23 +461,23 @@ void para_fft_gen3d_fwd_to_r_fftw3d(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
   int nkf1 = para_fft_pkg3d->nkf1;
   int fftInd,fftIndTrans;
 
-  fftw_complex *fftw3DBackwardIn = para_fft_pkg3d->fftw3DBackwardIn;
-  fftw_complex *fftw3DBackwardOut = para_fft_pkg3d->fftw3DBackwardOut;
+  fftw_complex *fftw3DForwardIn = para_fft_pkg3d->fftw3DForwardIn;
+  fftw_complex *fftw3DForwardOut = para_fft_pkg3d->fftw3DForwardOut;
   
-  fftw_plan fftwPlan3DBackward = para_fft_pkg3d->fftwPlan3DBackward;
+  fftw_plan fftwPlan3DForward = para_fft_pkg3d->fftwPlan3DForward;
 
   for(igrid=0;igrid<nfft2_proc;igrid++){
-    fftw3DBackwardIn[igrid] = zfft[igrid*2+1]+zfft[igrid*2+2]*I;
+    fftw3DForwardIn[igrid] = zfft[igrid*2+1]+zfft[igrid*2+2]*I;
   }
-  fftw_execute(fftwPlan3DBackward);
+  fftw_execute(fftwPlan3DForward);
   
   for(i=0;i<nkf3;i++){
     for(j=0;j<nkf2;j++){
       for(k=0;k<nkf1;k++){
 	fftInd = i*nkf2*nkf1+j*nkf1+k;
 	fftIndTrans = k*nkf2*nkf3+j*nkf3+i;
-	zfft[fftInd*2+1] = creal(fftw3DBackwardOut[fftIndTrans]);
-	zfft[fftInd*2+2] = cimag(fftw3DBackwardOut[fftIndTrans]);
+	zfft[fftInd*2+1] = creal(fftw3DForwardOut[fftIndTrans]);
+	zfft[fftInd*2+2] = cimag(fftw3DForwardOut[fftIndTrans]);
       }
     }
   }
@@ -1153,26 +1153,26 @@ void para_fft_gen3d_bck_to_g_fftw3d(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
   int nkf1 = para_fft_pkg3d->nkf1;
   int fftInd,fftIndTrans;
 
-  fftw_complex *fftw3DForwardIn = para_fft_pkg3d->fftw3DForwardIn;
-  fftw_complex *fftw3DForwardOut = para_fft_pkg3d->fftw3DForwardOut;
+  fftw_complex *fftw3DBackwardIn = para_fft_pkg3d->fftw3DBackwardIn;
+  fftw_complex *fftw3DBackwardOut = para_fft_pkg3d->fftw3DBackwardOut;
 
-  fftw_plan fftwPlan3DForward = para_fft_pkg3d->fftwPlan3DForward;
+  fftw_plan fftwPlan3DBackward = para_fft_pkg3d->fftwPlan3DBackward;
 
   for(i=0;i<nkf3;i++){
     for(j=0;j<nkf2;j++){
       for(k=0;k<nkf1;k++){
         fftInd = i*nkf2*nkf1+j*nkf1+k;
         fftIndTrans = k*nkf2*nkf3+j*nkf3+i;
-	fftw3DForwardIn[fftIndTrans] = zfft[fftInd*2+1]+zfft[fftInd*2+2]*I;
+	fftw3DBackwardIn[fftIndTrans] = zfft[fftInd*2+1]+zfft[fftInd*2+2]*I;
       }
     }
   }
 
-  fftw_execute(fftwPlan3DForward);
+  fftw_execute(fftwPlan3DBackward);
 
   for(igrid=0;igrid<nfft2_proc;igrid++){
-    zfft[igrid*2+1] = creal(fftw3DForwardOut[igrid]);
-    zfft[igrid*2+2] = cimag(fftw3DForwardOut[igrid]);
+    zfft[igrid*2+1] = creal(fftw3DBackwardOut[igrid]);
+    zfft[igrid*2+2] = cimag(fftw3DBackwardOut[igrid]);
   }
 
 /*-----------------------------------------------------------------------*/

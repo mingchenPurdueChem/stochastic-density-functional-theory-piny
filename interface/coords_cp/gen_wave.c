@@ -601,12 +601,14 @@ void gen_wave(CLASS *class,GENERAL_DATA *general_data,CP *cp,
    aka = -(double)(kastore[i]);
    akb = -(double)(kbstore[i]);
    akc = -(double)(kcstore[i]);
+   //printf("aka akb akc %lg %lg %lg\n",aka,akb,akc);
 
    xk = (aka*hmati[1] + akb*hmati[2] +akc*hmati[3])*tpi;
    yk = (aka*hmati[4] + akb*hmati[5] +akc*hmati[6])*tpi;
    zk = (aka*hmati[7] + akb*hmati[8] +akc*hmati[9])*tpi;
    g2 = (xk*xk+yk*yk+zk*zk);
    g  = sqrt(g2);
+    //printf("aka akb akc g %lg %lg %lg %lg\n",aka,akb,akc,g);
   
 /*-------------------------------------------------------------------------*/
 /*  get ylm                                                                */
@@ -687,6 +689,7 @@ void gen_wave(CLASS *class,GENERAL_DATA *general_data,CP *cp,
     asx = dx*hmati_big[1]+dy*hmati_big[4]+dz*hmati_big[7];
     asy = dx*hmati_big[2]+dy*hmati_big[5]+dz*hmati_big[8];
     asz = dx*hmati_big[3]+dy*hmati_big[6]+dz*hmati_big[9];
+    //printf("dx dy dz %lg %lg %lg\n",dx,dy,dz);
 
     sx  = asx - NINT(asx);
     sy  = asy - NINT(asy);
@@ -700,6 +703,7 @@ void gen_wave(CLASS *class,GENERAL_DATA *general_data,CP *cp,
     ctemp = dx*hmati[3] + dy*hmati[6] + dz*hmati[9];
 
     arg = (aka*atemp + akb*btemp + akc*ctemp)*tpi;
+    //printf("arg %lg\n",arg);
 
     helr = cos(arg);
     heli = sin(arg);

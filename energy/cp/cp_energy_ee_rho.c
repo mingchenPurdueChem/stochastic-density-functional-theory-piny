@@ -59,7 +59,7 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
 /* local variables                                                  */
 
  int iii,ioff,ioff2;
- int is,i,iupper;
+ int is,i,j,k,iupper;
  double vol_cp,rvol_cp;
  double temp_r,temp_i;
 
@@ -108,6 +108,14 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
  int    *recv_counts_coef_dens_cp_box;
  int fftw3dFlag = cpcoeffs_info->fftw3dFlag;
  int icoef;
+ int fftIndTrans;
+ int fftInd;
+ int nkf1    = cp_para_fft_pkg3d_lg->nkf1;
+ int nkf2    = cp_para_fft_pkg3d_lg->nkf2;
+ int nkf3    = cp_para_fft_pkg3d_lg->nkf3;
+ int kc,kb,ka;
+
+
 
  MPI_Comm comm_states   =    communicate->comm_states;
 
@@ -178,6 +186,10 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
  if((nstate % 2) != 0){ 
      iupper = nstate-1; 
  }/* endif */
+ for(i=1;i<=ncoef;i++){
+   printf("");
+ }
+
 
  for(is = 1; is <= iupper; is = is + 2){
     ioff   = (is-1)*ncoef;
@@ -194,6 +206,18 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
 	      ccreal[ioff2+icoef],ccimag[ioff2+icoef]);
     }
     */
+    //debug
+    /*
+    for(i=1;i<=ncoef;i++)ccreal[ioff+i] = 0.0;
+    //ccreal[ioff+2] = 1.0;
+    for(i=1;i<=ncoef;i++)ccimag[ioff+i] = 0.0;
+    ccimag[ioff+2] = 1.0;
+    for(i=1;i<=ncoef;i++)ccreal[ioff2+i] = 0.0;
+    for(i=1;i<=ncoef;i++)ccimag[ioff2+i] = 0.0;    
+    */
+    //printf("ccreal ccimag %lg %lg\n",ccreal[ioff+ncoef],ccimag[ioff+ncoef]);
+    //printf("ccreal ccimag %lg %lg\n",ccreal[ioff2+ncoef],ccimag[ioff2+ncoef]);
+
     if(fftw3dFlag==0){
       dble_pack_coef(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
                      zfft,cp_sclr_fft_pkg3d_sm);
@@ -208,12 +232,36 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
     
     if(fftw3dFlag==0){
       para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+
     }
     else{
       para_fft_gen3d_fwd_to_r_fftw3d(zfft,cp_sclr_fft_pkg3d_sm);
     }
-    
-  
+
+    /*
+    if(fftw3dFlag==1){
+      FILE *fileFFTTest = fopen("fftw-bck-test","w");
+      for(i=0;i<nkf3;i++){
+        for(j=0;j<nkf2;j++){
+          for(k=0;k<nkf1;k++){
+            //fftInd = i*nkf2*nkf1+j*nkf1+k;
+            fftIndTrans = k*nkf2*nkf3+j*nkf3+i;
+            fftInd = i*nkf2*nkf1+j*nkf1+k;
+            //cp_para_fft_pkg3d_sm->fftw3DBackwardIn[fftInd] = zfft[fftInd*2+1]+zfft[fftInd*2+2]*I;
+            //fprintf(fileFFTTest,"%i %i %i %.16lg %.16lg\n",i,j,k,
+            //   creal(cp_sclr_fft_pkg3d_sm->fftw3DBackwardOut[fftIndTrans]),
+            //  cimag(cp_sclr_fft_pkg3d_sm->fftw3DBackwardOut[fftIndTrans]));
+            fprintf(fileFFTTest,"%i %i %i %.16lg %.16lg\n",i,j,k,zfft[2*fftInd+1],zfft[2*fftInd+2]);
+          }
+        }
+      }
+      fclose(fileFFTTest);
+      exit(0);
+    }
+    */
+
+
+
 /*--------------------------------------------------------------------------*/
 /* III) add the square of the two wave functions to the density(real space) */
 
@@ -306,13 +354,8 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
   }/*endif*/
  }/*endif cp_dual_grid_opt*/
 
-  if(fftw3dFlag==0){ 
-    FILE *fp_rho = fopen("rho_bm","w");
-
-    int kc,kb,ka;
-    int nkf1    = cp_para_fft_pkg3d_lg->nkf1;
-    int nkf2    = cp_para_fft_pkg3d_lg->nkf2;
-    int nkf3    = cp_para_fft_pkg3d_lg->nkf3;
+  if(fftw3dFlag==1){ 
+    FILE *fp_rho = fopen("rho_test","w");
 
     if(np_states == 1){
       for(kc=1;kc<=nkf3;kc++){
@@ -325,8 +368,8 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
       }/* endfor */
     }
     fclose(fp_rho);
+    exit(0);
   }
-
 
 /*==========================================================================*/
 /* VII) Reduce rho in g space and get all of it in real space               */

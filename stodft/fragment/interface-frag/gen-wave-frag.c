@@ -36,11 +36,8 @@
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-
-
 void gen_wave_frag(CLASS *class,GENERAL_DATA *general_data,CP *cp,
               CP_PARSE *cp_parse,NAME *vps_name)
-
 /*========================================================================*/
 {/*begin routine*/
 /*========================================================================*/
@@ -590,144 +587,148 @@ void gen_wave_frag(CLASS *class,GENERAL_DATA *general_data,CP *cp,
 /* get the wave functions in g space                                       */
 /*=========================================================================*/
 
- for(i=1; i<=  ncoef-1; i++){
+  for(i=1; i<=  ncoef-1; i++){
 
 /*-------------------------------------------------------------------------*/
 /* get g vectors                                                           */
-   aka = -(double)(kastore[i]);
-   akb = -(double)(kbstore[i]);
-   akc = -(double)(kcstore[i]);
+    aka = -(double)(kastore[i]);
+    akb = -(double)(kbstore[i]);
+    akc = -(double)(kcstore[i]);
 
-   xk = (aka*hmati[1] + akb*hmati[2] +akc*hmati[3])*tpi;
-   yk = (aka*hmati[4] + akb*hmati[5] +akc*hmati[6])*tpi;
-   zk = (aka*hmati[7] + akb*hmati[8] +akc*hmati[9])*tpi;
-   g2 = (xk*xk+yk*yk+zk*zk);
-   g  = sqrt(g2);
-  
+    xk = (aka*hmati[1] + akb*hmati[2] +akc*hmati[3])*tpi;
+    yk = (aka*hmati[4] + akb*hmati[5] +akc*hmati[6])*tpi;
+    zk = (aka*hmati[7] + akb*hmati[8] +akc*hmati[9])*tpi;
+    g2 = (xk*xk+yk*yk+zk*zk);
+    g  = sqrt(g2);
+    //printf("aka akb akc g %lg %lg %lg %lg\n",aka,akb,akc,g);
+
 /*-------------------------------------------------------------------------*/
 /*  get ylm                                                                */
 
- get_ylm(xk,yk,zk,g,ylmr,ylmi,
-         dylmr_x,dylmi_x,dylmr_y,dylmi_y,dylmr_z,dylmi_z,&ylm_cons);
+    get_ylm(xk,yk,zk,g,ylmr,ylmi,
+            dylmr_x,dylmi_x,dylmr_y,dylmi_y,dylmr_z,dylmi_z,&ylm_cons);
 
 /*-------------------------------------------------------------------------*/
 /*  get the spherical bessel tranform of the radial wave functions         */
 /*  at this g space point using the spline.                                */
 
    for(iatm=1; iatm <= natm_typ_cp; iatm++){
-    get_gpsi(g,nsplin,
-             gpsi0[iatm],gpsi1[iatm],gpsi2[iatm],gpsi3[iatm],
-             gpsi_now[iatm],gmin,dg,n_ang[iatm]);
+     get_gpsi(g,nsplin,
+              gpsi0[iatm],gpsi1[iatm],gpsi2[iatm],gpsi3[iatm],
+              gpsi_now[iatm],gmin,dg,n_ang[iatm]);
    }/*endfor*/
 
-  istate_up = 0;
-  istate_dn = 0;
+   istate_up = 0;
+   istate_dn = 0;
 
-  istate_up_proc = 0;
-  istate_dn_proc = 0;
+   istate_up_proc = 0;
+   istate_dn_proc = 0;
 
-  for(ipart = 1; ipart <= nab_initio; ipart++){
+   for(ipart = 1; ipart <= nab_initio; ipart++){
 /*  S STATE                                                                 */
-     psi_r[1] = ylmr[1]*gpsi_now[iatm_atm_typ_cp[ipart]][1]/volrt; 
+      psi_r[1] = ylmr[1]*gpsi_now[iatm_atm_typ_cp[ipart]][1]/volrt; 
     /*     psi_r[1] = exp(-g2/(2.0*kappa*kappa))/volrt; */
-     psi_i[1] = 0.0;
+      psi_i[1] = 0.0;
 /* SPHERICALIZED P BAND                                                    */
-    if(n_ang[iatm_atm_typ_cp[ipart]] >= 1){
-      itemp = (int) (3.0*ran_essl(&qseed));
-      itemp = MAX(itemp,0);
-      itemp = MIN(itemp,2);
-      switch(itemp){
-       case 0:
-        p_c = -ylmr[2]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
-        p_b = -rad2*ylmr[3]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
-        p_a = -rad2*ylmi[3]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
-       break;
-       case 1:
-        p_a = -ylmr[2]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
-        p_c = -rad2*ylmr[3]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
-        p_b = -rad2*ylmi[3]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
-       break;
-       case 2:
-        p_b = -ylmr[2]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
-        p_a = -rad2*ylmr[3]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
-        p_c = -rad2*ylmi[3]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
-       break;
-      }/*end switch*/
-      psi_r[2] = 0.0;
-      psi_i[2] = (p_c + (p_b+p_a)/rad2)/rad2;
-      psi_r[3] = 0.0;
-      psi_i[3] = (p_c - (p_b+p_a)/rad2)/rad2;
-      psi_r[4] = 0.0;
-      psi_i[4] = (p_b-p_a)/rad2;
-    }/*endif*/
+      if(n_ang[iatm_atm_typ_cp[ipart]] >= 1){
+	itemp = (int) (3.0*ran_essl(&qseed));
+	itemp = MAX(itemp,0);
+	itemp = MIN(itemp,2);
+	switch(itemp){
+	 case 0:
+	  p_c = -ylmr[2]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
+	  p_b = -rad2*ylmr[3]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
+	  p_a = -rad2*ylmi[3]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
+	 break;
+	 case 1:
+	  p_a = -ylmr[2]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
+	  p_c = -rad2*ylmr[3]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
+	  p_b = -rad2*ylmi[3]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
+	 break;
+	 case 2:
+	  p_b = -ylmr[2]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
+	  p_a = -rad2*ylmr[3]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
+	  p_c = -rad2*ylmi[3]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
+	 break;
+	}/*end switch*/
+	psi_r[2] = 0.0;
+	psi_i[2] = (p_c + (p_b+p_a)/rad2)/rad2;
+	psi_r[3] = 0.0;
+	psi_i[3] = (p_c - (p_b+p_a)/rad2)/rad2;
+	psi_r[4] = 0.0;
+	psi_i[4] = (p_b-p_a)/rad2;
+      }/*endif*/
 /*  D BAND                                                                   */
-   if(n_ang[iatm_atm_typ_cp[ipart]] >= 2){
-     psi_r[5] = -ylmr[5]*gpsi_now[iatm_atm_typ_cp[ipart]][3]/volrt;
-     psi_i[5] = 0.0;
-     psi_r[6] = -rad2*ylmr[6]*gpsi_now[iatm_atm_typ_cp[ipart]][3]/volrt;
-     psi_i[6] = 0.0;
-     psi_r[7] = -rad2*ylmi[6]*gpsi_now[iatm_atm_typ_cp[ipart]][3]/volrt;
-     psi_i[7] = 0.0;
-     psi_r[8] = -rad2*ylmr[8]*gpsi_now[iatm_atm_typ_cp[ipart]][3]/volrt;
-     psi_i[8] = 0.0;
-     psi_r[9] = -rad2*ylmi[8]*gpsi_now[iatm_atm_typ_cp[ipart]][3]/volrt;
-     psi_i[9] = 0.0;
-   }/*endif*/
+      if(n_ang[iatm_atm_typ_cp[ipart]] >= 2){
+        psi_r[5] = -ylmr[5]*gpsi_now[iatm_atm_typ_cp[ipart]][3]/volrt;
+        psi_i[5] = 0.0;
+        psi_r[6] = -rad2*ylmr[6]*gpsi_now[iatm_atm_typ_cp[ipart]][3]/volrt;
+        psi_i[6] = 0.0;
+        psi_r[7] = -rad2*ylmi[6]*gpsi_now[iatm_atm_typ_cp[ipart]][3]/volrt;
+        psi_i[7] = 0.0;
+        psi_r[8] = -rad2*ylmr[8]*gpsi_now[iatm_atm_typ_cp[ipart]][3]/volrt;
+        psi_i[8] = 0.0;
+        psi_r[9] = -rad2*ylmi[8]*gpsi_now[iatm_atm_typ_cp[ipart]][3]/volrt;
+        psi_i[9] = 0.0;
+      }/*endif*/
 
 /*---------------------------------------------------------------------------*/
 /*  structure factor                                                         */
 
-    dx  = x[ipart] - cp_box_center[1];
-    dy  = y[ipart] - cp_box_center[2];
-    dz  = z[ipart] - cp_box_center[3];
-    asx = dx*hmati_big[1]+dy*hmati_big[4]+dz*hmati_big[7];
-    asy = dx*hmati_big[2]+dy*hmati_big[5]+dz*hmati_big[8];
-    asz = dx*hmati_big[3]+dy*hmati_big[6]+dz*hmati_big[9];
+      dx  = x[ipart] - cp_box_center[1];
+      dy  = y[ipart] - cp_box_center[2];
+      dz  = z[ipart] - cp_box_center[3];
+      asx = dx*hmati_big[1]+dy*hmati_big[4]+dz*hmati_big[7];
+      asy = dx*hmati_big[2]+dy*hmati_big[5]+dz*hmati_big[8];
+      asz = dx*hmati_big[3]+dy*hmati_big[6]+dz*hmati_big[9];
+      //printf("dx dy dz %lg %lg %lg\n",dx,dy,dz);
 
-    sx  = asx - NINT(asx);
-    sy  = asy - NINT(asy);
-    sz  = asz - NINT(asz);
-    dx  = sx*hmat_big[1]+sy*hmat_big[4]+sz*hmat_big[7] + cp_box_center_rel[1];
-    dy  = sx*hmat_big[2]+sy*hmat_big[5]+sz*hmat_big[8] + cp_box_center_rel[2];
-    dz  = sx*hmat_big[3]+sy*hmat_big[6]+sz*hmat_big[9] + cp_box_center_rel[3];
+      sx  = asx - NINT(asx);
+      sy  = asy - NINT(asy);
+      sz  = asz - NINT(asz);
+      dx  = sx*hmat_big[1]+sy*hmat_big[4]+sz*hmat_big[7] + cp_box_center_rel[1];
+      dy  = sx*hmat_big[2]+sy*hmat_big[5]+sz*hmat_big[8] + cp_box_center_rel[2];
+      dz  = sx*hmat_big[3]+sy*hmat_big[6]+sz*hmat_big[9] + cp_box_center_rel[3];
 
-    atemp = dx*hmati[1] + dy*hmati[4] + dz*hmati[7];
-    btemp = dx*hmati[2] + dy*hmati[5] + dz*hmati[8];
-    ctemp = dx*hmati[3] + dy*hmati[6] + dz*hmati[9];
+      atemp = dx*hmati[1] + dy*hmati[4] + dz*hmati[7];
+      btemp = dx*hmati[2] + dy*hmati[5] + dz*hmati[8];
+      ctemp = dx*hmati[3] + dy*hmati[6] + dz*hmati[9];
 
-    arg = (aka*atemp + akb*btemp + akc*ctemp)*tpi;
+      arg = (aka*atemp + akb*btemp + akc*ctemp)*tpi;
+      //printf("arg %lg\n",arg);
 
-    helr = cos(arg);
-    heli = sin(arg);
- 
+      helr = cos(arg);
+      heli = sin(arg);
+   
 /*=========================================================================*/
 /*  construct the coeff                                                    */
 
-   for(is=1; is <= nstate_up_atm[iatm_atm_typ_cp[ipart]] ; is++){
-   if( ((istate_up + is ) >= istate_up_st) &&
-       ((istate_up + is) <= istate_up_end)){  
-      ind = i + (istate_up - istate_up_st + is  )*ncoef;
-     creal_up[ind]  =  helr*psi_r[is] - heli*psi_i[is];
-     cimag_up[ind]  =  heli*psi_r[is] + helr*psi_i[is];
-    }/*endif*/
-   }/*endfor*/
+      for(is=1; is <= nstate_up_atm[iatm_atm_typ_cp[ipart]] ; is++){
+	if( ((istate_up + is ) >= istate_up_st) &&
+	  ((istate_up + is) <= istate_up_end)){  
+	  ind = i + (istate_up - istate_up_st + is  )*ncoef;
+	  creal_up[ind]  =  helr*psi_r[is] - heli*psi_i[is];
+	  cimag_up[ind]  =  heli*psi_r[is] + helr*psi_i[is];
+	  if(i==1){
+	  }
+	}/*endif*/
+      }/*endfor*/
 
-   istate_up +=  nstate_up_atm[iatm_atm_typ_cp[ipart]];
+      istate_up +=  nstate_up_atm[iatm_atm_typ_cp[ipart]];
 
-  if((cp_lsda == 1) && (nstate_dn > 0)){
-   for(is=1 ; is <= nstate_dn_atm[iatm_atm_typ_cp[ipart]] ; is++){
-   if( ((istate_dn + is ) >= istate_dn_st) && 
-       ((istate_dn + is) <= istate_dn_end)){  
-     ind = i + (istate_dn - istate_dn_st + is  )*ncoef;
-     creal_dn[ind] =  helr*psi_r[is] - heli*psi_i[is];
-     cimag_dn[ind] =  heli*psi_r[is] + helr*psi_i[is];
-   }/*endif*/
-   }/*endfor*/
-  istate_dn +=  nstate_dn_atm[iatm_atm_typ_cp[ipart]];
- }/*endif*/
-
- }/*endfor*/
- }/*endfor:ncoef*/
+      if((cp_lsda == 1) && (nstate_dn > 0)){
+	for(is=1 ; is <= nstate_dn_atm[iatm_atm_typ_cp[ipart]] ; is++){
+	  if( ((istate_dn + is ) >= istate_dn_st) && 
+	     ((istate_dn + is) <= istate_dn_end)){  
+	    ind = i + (istate_dn - istate_dn_st + is  )*ncoef;
+	    creal_dn[ind] =  helr*psi_r[is] - heli*psi_i[is];
+	    cimag_dn[ind] =  heli*psi_r[is] + helr*psi_i[is];
+	  }/*endif*/
+	}/*endfor*/
+	istate_dn +=  nstate_dn_atm[iatm_atm_typ_cp[ipart]];
+      }/*endif*/
+    }/*endfor*/
+  }/*endfor:ncoef*/
 
 /*=======================================================================*/
 /*  g=0                                                                  */

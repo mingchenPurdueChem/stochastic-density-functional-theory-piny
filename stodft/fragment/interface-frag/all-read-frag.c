@@ -143,6 +143,9 @@ void readHmatFrag(CLASS *classMini,GENERAL_DATA *generalDataMini,
 /*========================================================================*/
 /*  I) Assign Volumes */
   for(i=1;i<=9;i++)hmat_cp[i] = hmat[i];
+  cp_box_center[1] = 0.5;
+  cp_box_center[2] = 0.5;
+  cp_box_center[3] = 0.5;
 
   gethinv(hmat,hmati,&(vol),iperd);
   gethinv(hmat_cp,hmati_cp,&(vol_cp),iperd);

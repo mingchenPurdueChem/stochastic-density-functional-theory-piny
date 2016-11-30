@@ -107,6 +107,8 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
  double integral,int_tmp;
  int    *recv_counts_coef_dens_cp_box;
  int fftw3dFlag = cpcoeffs_info->fftw3dFlag;
+
+ //debug
  int icoef;
  int fftIndTrans;
  int fftInd;
@@ -114,7 +116,10 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
  int nkf2    = cp_para_fft_pkg3d_lg->nkf2;
  int nkf3    = cp_para_fft_pkg3d_lg->nkf3;
  int kc,kb,ka;
-
+ int *kastr_sm = cpewald->kastr_sm;
+ int *kbstr_sm = cpewald->kbstr_sm;
+ int *kcstr_sm = cpewald->kcstr_sm;
+ double sum;
 
 
  MPI_Comm comm_states   =    communicate->comm_states;
@@ -186,10 +191,16 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
  if((nstate % 2) != 0){ 
      iupper = nstate-1; 
  }/* endif */
- for(i=1;i<=ncoef;i++){
-   printf("");
- }
-
+  /*
+  if(fftw3dFlag==0){
+    for(i=1;i<=ncoef;i++){
+      printf("cccccc %i %i %i %lg %lg\n",kastr_sm[i],kbstr_sm[i],kcstr_sm[i],
+	    ccreal[i+3*ncoef],ccimag[i+3*ncoef]);
+    }
+    exit(0);
+  }
+  */
+  //exit(0);
 
  for(is = 1; is <= iupper; is = is + 2){
     ioff   = (is-1)*ncoef;
@@ -207,16 +218,32 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
     }
     */
     //debug
-    /*
-    for(i=1;i<=ncoef;i++)ccreal[ioff+i] = 0.0;
+    
+    //for(i=1;i<=ncoef;i++)ccreal[ioff+i] = 0.0;
     //ccreal[ioff+2] = 1.0;
-    for(i=1;i<=ncoef;i++)ccimag[ioff+i] = 0.0;
-    ccimag[ioff+2] = 1.0;
-    for(i=1;i<=ncoef;i++)ccreal[ioff2+i] = 0.0;
-    for(i=1;i<=ncoef;i++)ccimag[ioff2+i] = 0.0;    
+    //for(i=1;i<=ncoef;i++)ccimag[ioff+i] = 0.0;
+    //ccimag[ioff+2] = 1.0;
+    //for(i=1;i<=ncoef;i++)ccreal[ioff2+i] = 0.0;
+    //for(i=1;i<=ncoef;i++)ccimag[ioff2+i] = 0.0;    
+    
+    //printf("ccreal ccimag %lg %lg\n",ccreal[ioff+1],ccimag[ioff+1]);
+    //printf("ccreal ccimag %lg %lg\n",ccreal[ioff2+1],ccimag[ioff2+1]);
+    /*
+    sum = 0.0;
+    for(i=1;i<=ncoef-1;i++){
+      sum += ccreal[ioff+i]*ccreal[ioff+i]+ccimag[ioff+i]*ccimag[ioff+i];
+    }
+    sum *= 2.0;
+    sum += ccreal[ioff+ncoef]*ccreal[ioff+ncoef];
+    printf("inital wf normalization %i %lg\n",is-1,sum);
+    sum = 0.0;
+    for(i=1;i<=ncoef-1;i++){
+      sum += ccreal[ioff2+i]*ccreal[ioff2+i]+ccimag[ioff2+i]*ccimag[ioff2+i];
+    }
+    sum *= 2.0;
+    sum += ccreal[ioff2+ncoef]*ccreal[ioff2+ncoef];
+    printf("inital wf normalization %i %lg\n",is,sum);
     */
-    //printf("ccreal ccimag %lg %lg\n",ccreal[ioff+ncoef],ccimag[ioff+ncoef]);
-    //printf("ccreal ccimag %lg %lg\n",ccreal[ioff2+ncoef],ccimag[ioff2+ncoef]);
 
     if(fftw3dFlag==0){
       dble_pack_coef(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
@@ -238,8 +265,9 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
       para_fft_gen3d_fwd_to_r_fftw3d(zfft,cp_sclr_fft_pkg3d_sm);
     }
 
-    /*
+    
     if(fftw3dFlag==1){
+      /*
       FILE *fileFFTTest = fopen("fftw-bck-test","w");
       for(i=0;i<nkf3;i++){
         for(j=0;j<nkf2;j++){
@@ -256,9 +284,21 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
         }
       }
       fclose(fileFFTTest);
-      exit(0);
+      */
+      /*
+      sum = 0.0;
+      for(i=0;i<nfft2_proc;i++){
+	sum += zfft[2*i+1]*zfft[2*i+1];
+      }
+      printf("real space sum %i %lg\n",is-1,sum);
+      sum = 0.0;
+      for(i=0;i<nfft2_proc;i++){
+        sum += zfft[2*i+2]*zfft[2*i+2];
+      }
+      printf("real space sum %i %lg\n",is,sum);
+      */
+
     }
-    */
 
 
 
@@ -354,7 +394,9 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
   }/*endif*/
  }/*endif cp_dual_grid_opt*/
 
+  
   if(fftw3dFlag==1){ 
+    double sum = 0.0;
     FILE *fp_rho = fopen("rho_test","w");
 
     if(np_states == 1){
@@ -363,12 +405,14 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
 	  for(ka=1;ka<=nkf1;ka++){
 	    i = (ka-1) + (kb-1)*nkf1 + (kc-1)*nkf1*nkf2 + 1;
 	    fprintf(fp_rho,"%i %i %i %.5e\n",kc,kb,ka,rho[i]);
+	    sum += rho[i];
 	  }/* endfor */
 	}/* endfor */
       }/* endfor */
     }
+    printf("rho sum test %lg\n",sum);
     fclose(fp_rho);
-    exit(0);
+    //exit(0);
   }
 
 /*==========================================================================*/

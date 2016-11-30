@@ -642,6 +642,7 @@ void gen_wave(CLASS *class,GENERAL_DATA *general_data,CP *cp,
       itemp = (int) (3.0*ran_essl(&qseed));
       itemp = MAX(itemp,0);
       itemp = MIN(itemp,2);
+      //itemp = 1;
       switch(itemp){
        case 0:
         p_c = -ylmr[2]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;

@@ -466,11 +466,29 @@ void para_fft_gen3d_fwd_to_r_fftw3d(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
   
   fftw_plan fftwPlan3DForward = para_fft_pkg3d->fftwPlan3DForward;
 
+  printf("nfft2_proc %i\n",nfft2_proc);
   for(igrid=0;igrid<nfft2_proc;igrid++){
     fftw3DForwardIn[igrid] = zfft[igrid*2+1]+zfft[igrid*2+2]*I;
   }
-  fftw_execute(fftwPlan3DForward);
   
+  /*
+  for(i=0;i<nfft2_proc;i++){
+    printf("zffttttt %lg %lg\n",zfft[2*i+1],zfft[2*i+2]);
+  }
+
+  for(i=0;i<nfft2_proc;i++){
+    //printf("zffttttt %lg %lg\n",zfft[2*i+1],zfft[2*i+2]);
+    printf("zfftinnnn %lg %lg\n",creal(fftw3DForwardIn[i]),cimag(fftw3DForwardIn[i]));
+  }
+  */
+
+  fftw_execute(fftwPlan3DForward);
+
+  for(i=0;i<nfft2_proc;i++){
+    //printf("zffttttt %lg %lg\n",zfft[2*i+1],zfft[2*i+2]);
+    //printf("zfftoutttt %lg %lg\n",creal(fftw3DForwardOut[i]),cimag(fftw3DForwardOut[i]));
+  }
+ 
   for(i=0;i<nkf3;i++){
     for(j=0;j<nkf2;j++){
       for(k=0;k<nkf1;k++){
@@ -488,6 +506,7 @@ void para_fft_gen3d_fwd_to_r_fftw3d(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
     zfft[igrid*2+2] = cimag(fftw3DBackwardOut[igrid]);
   }
   */
+
 /*-----------------------------------------------------------------------*/
    }/*end routine*/
 /*==========================================================================*/
@@ -533,7 +552,6 @@ void sngl_pack_coef(double *cre,double *cim,double *zfft,
     zfft[(map_proc[i]+1)]   = cim[i];
   }/*endif*/
 
-
 /*-----------------------------------------------------------------------*/
    }/*end routine*/ 
 /*==========================================================================*/
@@ -554,6 +572,8 @@ void sngl_pack_coef_fftw3d(double *cre,double *cim,double *zfft,
 /*          Local variable declarations                                  */
 
    int i;
+   int nfft_proc = para_fft_pkg3d->nfft_proc;
+   int nfft2_proc = nfft_proc/2;
    int ndata       = para_fft_pkg3d->ndata_kc;
    int num_proc    = para_fft_pkg3d->num_proc;
    int ncoef_use   = para_fft_pkg3d->ncoef_use;
@@ -564,7 +584,7 @@ void sngl_pack_coef_fftw3d(double *cre,double *cim,double *zfft,
 /*=========================================================================*/
 /* Pack the data up: top and bottom half of k-space : zero fill in scalar */
 
-  if(num_proc==1){for(i=1;i<=ndata;i++){zfft[i]=0.0;} }
+  if(num_proc==1){for(i=1;i<=nfft_proc;i++){zfft[i]=0.0;} }
 
   for(i=1;i<=ncoef_use;i++){
     zfft[mapFFTW[i]]      =  cre[i];
@@ -653,6 +673,9 @@ void dble_pack_coef(double *c1re, double *c1im,double *c2re, double *c2im,
    int ncoef_proc  = para_fft_pkg3d->ncoef_proc;
    int *map_proc   = para_fft_pkg3d->map_proc;
    int *map_c_proc = para_fft_pkg3d->map_c_proc;
+   int nfft_proc = para_fft_pkg3d->nfft_proc;
+
+   //printf("ndata %i nfft_proc %i\n",ndata,nfft_proc);
 
 /*=========================================================================*/
 /* Pack the data up: top and bottom half of k-space : zero fill in scalar */
@@ -692,7 +715,8 @@ void dble_pack_coef_fftw3d(double *c1re, double *c1im,double *c2re, double *c2im
 /*=======================================================================*/
 /*          Local variable declarations                                  */
    int i;
-   int ndata       = para_fft_pkg3d->ndata_kc;
+   int nfft_proc = para_fft_pkg3d->nfft_proc;
+   int nfft2_proc = nfft_proc/2;
    int num_proc    = para_fft_pkg3d->num_proc;
    int ncoef_use   = para_fft_pkg3d->ncoef_use;
    int ncoef_proc  = para_fft_pkg3d->ncoef_proc;
@@ -704,10 +728,11 @@ void dble_pack_coef_fftw3d(double *c1re, double *c1im,double *c2re, double *c2im
      printf("i %i mapFFTW %i mapConFFTW %i\n",i,mapFFTW[i],mapConFFTW[i]);
    }
    */
+   // ndata is not complete grid  
 /*=========================================================================*/
 /* Pack the data up: top and bottom half of k-space : zero fill in scalar */
 
-  if(num_proc==1){for(i=1;i<=ndata;i++){zfft[i]=0.0;} }
+  if(num_proc==1){for(i=1;i<=nfft_proc;i++){zfft[i]=0.0;} }
 
   for(i=1;i<=ncoef_use;i++){
     zfft[mapFFTW[i]]     =   c1re[i] - c2im[i];
@@ -721,6 +746,13 @@ void dble_pack_coef_fftw3d(double *c1re, double *c1im,double *c2re, double *c2im
     zfft[2]     = c2re[ncoef_proc];
   }/*endif*/
   //exit(0);
+
+  /*
+  for(i=0;i<nfft2_proc;i++){
+    printf("zfftpack %lg %lg\n",zfft[2*i+1],zfft[2*i+2]);
+  }
+  */
+  
 
 /*-----------------------------------------------------------------------*/
    }/*end routine*/

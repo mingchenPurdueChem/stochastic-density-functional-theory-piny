@@ -71,6 +71,7 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   generalDataMini->ensopts.nst = general_data->ensopts.nst;
   /* 3) \num_time_step */
   generalDataMini->timeinfo.ntime = general_data->timeinfo.ntime;
+  //generalDataMini->timeinfo.ntime = 2;
   /* 4) \time_step */ 
   generalDataMini->timeinfo.dt = general_data->timeinfo.dt;
   /* 5) \temperature */
@@ -223,8 +224,8 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   /* 16)\cp_cg_line_min_len{#} */
   generalDataMini->minopts.cp_cg_line_min_len = general_data->minopts.cp_cg_line_min_len;
   /* 17)\cp_minimize_typ{min_std,min_cg,min_diis} */
-  generalDataMini->minopts.cp_min_std = 0;
-  generalDataMini->minopts.cp_min_cg = 1;
+  generalDataMini->minopts.cp_min_std = 1;
+  generalDataMini->minopts.cp_min_cg = 0;
   generalDataMini->minopts.cp_min_diis = 0;
   cpMini->cpopts.cp_hess_calc = 0;
   /* 18)\cp_diis_hist_len{#} */

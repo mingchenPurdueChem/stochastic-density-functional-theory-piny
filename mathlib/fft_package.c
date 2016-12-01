@@ -466,7 +466,7 @@ void para_fft_gen3d_fwd_to_r_fftw3d(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
   
   fftw_plan fftwPlan3DForward = para_fft_pkg3d->fftwPlan3DForward;
 
-  printf("nfft2_proc %i\n",nfft2_proc);
+  //printf("nfft2_proc %i\n",nfft2_proc);
   for(igrid=0;igrid<nfft2_proc;igrid++){
     fftw3DForwardIn[igrid] = zfft[igrid*2+1]+zfft[igrid*2+2]*I;
   }
@@ -1184,6 +1184,8 @@ void para_fft_gen3d_bck_to_g_fftw3d(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
   int nkf2 = para_fft_pkg3d->nkf2;
   int nkf1 = para_fft_pkg3d->nkf1;
   int fftInd,fftIndTrans;
+  double nfft2Inv = 1.0/nfft2_proc;
+
 
   fftw_complex *fftw3DBackwardIn = para_fft_pkg3d->fftw3DBackwardIn;
   fftw_complex *fftw3DBackwardOut = para_fft_pkg3d->fftw3DBackwardOut;
@@ -1203,8 +1205,8 @@ void para_fft_gen3d_bck_to_g_fftw3d(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
   fftw_execute(fftwPlan3DBackward);
 
   for(igrid=0;igrid<nfft2_proc;igrid++){
-    zfft[igrid*2+1] = creal(fftw3DBackwardOut[igrid]);
-    zfft[igrid*2+2] = cimag(fftw3DBackwardOut[igrid]);
+    zfft[igrid*2+1] = creal(fftw3DBackwardOut[igrid])*nfft2Inv;
+    zfft[igrid*2+2] = cimag(fftw3DBackwardOut[igrid])*nfft2Inv;
   }
 
 /*-----------------------------------------------------------------------*/
@@ -1280,10 +1282,12 @@ void sngl_upack_coef_fftw3d(double *cre,double *cim,double *zfft,
     cim[ncoef_proc]=0.0;
     cre[ncoef_proc]=zfft[1];
   }/*endif*/
+  /*
   for(i=1;i<=ncoef_proc;i++){
     cre[i] /= nfft2;
     cim[i] /= nfft2;
   }
+  */
   
 /*-----------------------------------------------------------------------*/
    }/*end routine*/
@@ -1392,6 +1396,37 @@ void sngl_upack_rho(double *zfft,double *rfft,PARA_FFT_PKG3D *para_fft_pkg3d)
 /*-----------------------------------------------------------------------*/
    }/*end routine*/ 
 /*==========================================================================*/
+
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+/*  Sngl unpack the density */
+/*==========================================================================*/
+
+void sngl_upack_rho_fftw3d(double *zfft,double *rfft,PARA_FFT_PKG3D *para_fft_pkg3d)
+
+/*=======================================================================*/
+/*            Begin subprogram:                                          */
+   {/*begin routine*/
+/*=======================================================================*/
+/*          Local variable declarations                                  */
+
+ int m,i;
+ int nfft_proc = para_fft_pkg3d->nfft_proc;
+ int ndata     = nfft_proc/2;
+
+/*=======================================================================*/
+/*  Unpack the data : Top half of k space only */
+
+  for(i=1,m=1;i<=ndata;i++,m+=2){
+    rfft[i] = zfft[m];
+  }/*endfor*/
+
+/*-----------------------------------------------------------------------*/
+   }/*end routine*/
+/*==========================================================================*/
+
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/

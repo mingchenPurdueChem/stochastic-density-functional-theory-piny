@@ -119,6 +119,9 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
  int *kastr_sm = cpewald->kastr_sm;
  int *kbstr_sm = cpewald->kbstr_sm;
  int *kcstr_sm = cpewald->kcstr_sm;
+ int *kastr = ewald->kastr;
+ int *kbstr = ewald->kbstr;
+ int *kcstr = ewald->kcstr;
  double sum;
 
 
@@ -380,7 +383,8 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
 
  if(cp_dual_grid_opt == 0){
   if(np_states == 1){
-    sngl_upack_coef(rhocr,rhoci,zfft,cp_sclr_fft_pkg3d_lg);
+    if(fftw3dFlag==0)sngl_upack_coef(rhocr,rhoci,zfft,cp_sclr_fft_pkg3d_lg);
+    else sngl_upack_coef_fftw3d(rhocr,rhoci,zfft,cp_sclr_fft_pkg3d_lg);
   }else{
     sngl_upack_coef(zfft_tmp,&zfft_tmp[ncoef_l],zfft,cp_sclr_fft_pkg3d_lg);
   }/*endif*/
@@ -395,10 +399,11 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
  }/*endif cp_dual_grid_opt*/
 
   
-  if(fftw3dFlag==1){ 
+  if(fftw3dFlag==100){
     double sum = 0.0;
-    FILE *fp_rho = fopen("rho_test","w");
+    FILE *fp_rho = fopen("rho_recip_test","w");
 
+    /*
     if(np_states == 1){
       for(kc=1;kc<=nkf3;kc++){
 	for(kb=1;kb<=nkf2;kb++){
@@ -406,13 +411,18 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
 	    i = (ka-1) + (kb-1)*nkf1 + (kc-1)*nkf1*nkf2 + 1;
 	    fprintf(fp_rho,"%i %i %i %.5e\n",kc,kb,ka,rho[i]);
 	    sum += rho[i];
-	  }/* endfor */
-	}/* endfor */
-      }/* endfor */
+	  }//endfor
+	}//endfor
+      }//endfor
     }
     printf("rho sum test %lg\n",sum);
     fclose(fp_rho);
-    //exit(0);
+    */
+    
+    for(i=1;i<=ncoef_l;i++){
+      fprintf(fp_rho,"%i %i %i %lg %lg\n",kastr[i],kbstr[i],kcstr[i],rhocr[i],rhoci[i]);
+    }
+    exit(0);
   }
 
 /*==========================================================================*/
@@ -1418,7 +1428,15 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
                            cp_para_fft_pkg3d_dens_cp_box,
                            cp_para_fft_pkg3d_lg,cp_dual_grid_opt);   
    }else{
-      sngl_upack_rho(zfft,v_ks_up,cp_para_fft_pkg3d_lg);
+      sngl_upack_rho(zfft,v_ks_up,cp_para_fft_pkg3d_lg);    
+      /*
+      if(fftw3dFlag==0){
+        for(i=1;i<=nfft2_proc;i++){
+	  printf("vksppppp %i %lg\n",i,v_ks_up[i]);
+        }
+	exit(0);
+      }
+      */
    }/*endif cp_dual_grid_opt*/
 
 /*=====================================================================*/
@@ -1878,8 +1896,17 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
                           zfft,cp_sclr_fft_pkg3d_sm);
 
     }
-
   }/*endfor is */
+
+  /*
+  if(fftw3dFlag==0){
+    for(i=1;i<=ncoef*nstate;i++){
+      printf("forceeeee %lg %lg\n",fccreal[i],fccimag[i]);
+    }
+    exit(0);
+  }
+  */
+
 
 /*==========================================================================*/
 /*==========================================================================*/
@@ -1976,6 +2003,15 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
       
       sngl_upack_coef_fftw3d(cp_hess_re,cp_hess_im,zfft,cp_sclr_fft_pkg3d_sm);
     }
+
+    /*
+    if(fftw3dFlag==0){
+      for(i=1;i<=ncoef;i++){
+	printf("hessiannnn %lg %lg\n",cp_hess_re[i],cp_hess_im[i]);
+      }
+      exit(0);
+    }
+    */
   }/* endif cp_min_on */
 
 

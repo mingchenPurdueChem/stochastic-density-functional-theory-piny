@@ -170,28 +170,32 @@ void controlCpMinFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
                      + general_data->stat_avg.cp_ehart
                      + general_data->stat_avg.cp_exc
                      + general_data->stat_avg.cp_eext;
-      printf("elec_e %lg cp_eke %lg cp_enl %lg cp_ehart %lg cp_exc %lg cp_eext %lg\n",
-	    elec_e,general_data->stat_avg.cp_eke,
-	    general_data->stat_avg.cp_enl,general_data->stat_avg.cp_ehart,general_data->stat_avg.cp_exc,
-	    general_data->stat_avg.cp_eext);
       Delta_E = fabs(elec_e - elec_e_old);
-      if(iopt_cp_pw){
+      if(iopt_cp_pw){	
         check_coef_grad_mag(cp,&(general_data->simopts),
                             &fc_mag_up,&fc_mag_dn,&ireset,&idone,
                             general_data->minopts.tol_coef,1,1,
-                            &(general_data->stat_avg));
+                            &(general_data->stat_avg));	
       }
       if(idone==1){
+        printf("elec_e %.16lg Delta_E %.16lg cp_eke %.16lg cp_enl %.16lg cp_ehart %.16lg cp_exc %.16lg cp_eext %.16lg\n",
+            elec_e,Delta_E,general_data->stat_avg.cp_eke,
+            general_data->stat_avg.cp_enl,general_data->stat_avg.cp_ehart,general_data->stat_avg.cp_exc,
+            general_data->stat_avg.cp_eext);
+	fflush(stdout);
+        iexit = 1;
+      }
+      else{
         if((ireset==1)&&(general_data->minopts.cp_min_cg==1)&&(elec_e-elec_e_old)>0){
           cp->cpcoeffs_info.cg_reset_flag = 1;
 	  printf("elec_e %lg elec_e_old %lg\n",elec_e,elec_e_old);
-	  /*
+	  
           if(myid==0){
            printf("\n@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
            printf("Resetting CP Conjugate Gradient\n");
            printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
           }// endif 
-	  */
+	  
           if(iopt_cp_pw) cp_shuffle_states(cp,1);
         }/*endif:reset cg*/
       }/*endif:not done*/

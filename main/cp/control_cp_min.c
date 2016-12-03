@@ -282,7 +282,6 @@ void control_cp_min(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
                               general_data->minopts.tol_coef,1,1,
                               &(general_data->stat_avg));
       }
-      printf("myid %i idone %i\n",myid,idone);
       if(idone==1){
         if(calcul_freq_on == 0){
           if(myid==0){
@@ -807,7 +806,6 @@ void get_diag_cp_hess(CP *cp,int ip_now,CELL *cell,double scale)
  double *cp_hess_im_dn = cp->cpcoeffs_pos[ip_now].cp_hess_im_dn;
 
  double sum_check,sum_check_tmp;
-
 
 /*==========================================================================*/
 /* Set the Hessian to a constant for g<g_cut                                */

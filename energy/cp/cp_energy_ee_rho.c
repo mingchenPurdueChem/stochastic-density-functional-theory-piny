@@ -247,6 +247,7 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
     sum += ccreal[ioff2+ncoef]*ccreal[ioff2+ncoef];
     printf("inital wf normalization %i %lg\n",is,sum);
     */
+    
 
     if(fftw3dFlag==0){
       dble_pack_coef(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
@@ -401,9 +402,7 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
   
   if(fftw3dFlag==100){
     double sum = 0.0;
-    FILE *fp_rho = fopen("rho_recip_test","w");
-
-    /*
+    FILE *fp_rho = fopen("rho_bm","w");
     if(np_states == 1){
       for(kc=1;kc<=nkf3;kc++){
 	for(kb=1;kb<=nkf2;kb++){
@@ -415,14 +414,15 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
 	}//endfor
       }//endfor
     }
-    printf("rho sum test %lg\n",sum);
+    //printf("rho sum test %lg\n",sum);
     fclose(fp_rho);
-    */
     
+    /*
     for(i=1;i<=ncoef_l;i++){
       fprintf(fp_rho,"%i %i %i %lg %lg\n",kastr[i],kbstr[i],kcstr[i],rhocr[i],rhoci[i]);
     }
-    exit(0);
+    */
+    //exit(0);
   }
 
 /*==========================================================================*/

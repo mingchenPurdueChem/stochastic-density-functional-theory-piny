@@ -267,7 +267,7 @@ void min_CG_cp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   printf("sum_test %lg\n",sum_test);
   */
 
-   get_diag_cp_hess(cp,ip_now,&(general_data->cell),gamma);
+  get_diag_cp_hess(cp,ip_now,&(general_data->cell),gamma);
     
   eenergy_temp = general_data->stat_avg.cp_ehart
                + general_data->stat_avg.cp_exc + general_data->stat_avg.cp_eext
@@ -322,6 +322,7 @@ void min_CG_cp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*==========================================================================*/
 /* II.V) Evolve gradients                                                   */
 
+   if(gamma_up>100.0)exit(0);
    for(i=1;i<=ncoef_up_tot; i++){
       hcre_up[i] = fcre_up[i] + gamma_up*hcre_up[i];
       hcim_up[i] = fcim_up[i] + gamma_up*hcim_up[i];
@@ -337,35 +338,55 @@ void min_CG_cp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*==========================================================================*/
 /* III) Calculate the step length                                           */
 
-   ioff_hyb = (cp_para_opt == 0 ? myid_state*ncoef_up_max : 0);
+  //double stepMax = -100000.0;
+  ioff_hyb = (cp_para_opt == 0 ? myid_state*ncoef_up_max : 0);
   if(cp_cg_line_min_len == 0){
-   for(i=1;i<=ncoef_up;i++) {
-     zeta_up[i] = 1.0/cp_hess_re_up[ioff_hyb + i];
-   }/* endfor */
-   if( (cp_lsda== 1) && (nstate_dn != 0) ){
-    ioff_hyb = (cp_para_opt == 0 ? myid_state*ncoef_dn_max : 0);
-    for(i=1;i<=ncoef_dn;i++) {
-      zeta_dn[i] = 1.0/cp_hess_re_dn[ioff_hyb + i];
+    for(i=1;i<=ncoef_up;i++) {
+      zeta_up[i] = 0.1/cp_hess_re_up[ioff_hyb + i];
+      //if(zeta_up[i]>stepMax)stepMax = zeta_up[i];
+      //printf("zeta_up %i %lg\n",i,zeta_up[i]);
     }/* endfor */
-   }/* endif */
-   }else{
-     line_min_cp(class,bonded,general_data,cp,zeta_up,zeta_dn,ip_now,eenergy);
-   }/*endif*/
-
+    if((cp_lsda==1)&&(nstate_dn!=0)){
+      ioff_hyb = (cp_para_opt == 0 ? myid_state*ncoef_dn_max : 0);
+      for(i=1;i<=ncoef_dn;i++) {
+        zeta_dn[i] = 1.0/cp_hess_re_dn[ioff_hyb + i];
+      }/* endfor */
+    }/* endif */
+  }else{
+    line_min_cp(class,bonded,general_data,cp,zeta_up,zeta_dn,ip_now,eenergy);
+  }/*endif*/
+  //exit(0);
 
 /*==========================================================================*/
 
 
 /*==========================================================================*/
 /* IV) Evolve positions and coefficients                                   */ 
+   /*
+   double re_inc,im_inc;
+   double inc_sq;
 
+   for(is=1;is<=nstate_up;is++) {
+     inc_sq = 0.0;
+     for(i=1;i<=ncoef_up;i++) {
+       icoef = i+ioff_up[is];
+       re_inc = zeta_up[i]*hcre_up[icoef];
+       im_inc = zeta_up[i]*hcim_up[icoef];
+       inc_sq += 2.0*(re_inc*re_inc+im_inc*im_inc);
+       cre_up[icoef] +=zeta_up[i]*hcre_up[icoef];
+       cim_up[icoef] +=zeta_up[i]*hcim_up[icoef];
+     }//endfor
+     inc_sq -= 2.0*im_inc*im_inc-re_inc*re_inc;
+     printf("is %i inc_sq %lg\n",is,inc_sq);
+   }//endfor
+   */
    for(is=1;is<=nstate_up;is++) {
      for(i=1;i<=ncoef_up;i++) {
        icoef = i+ioff_up[is];
        cre_up[icoef] +=zeta_up[i]*hcre_up[icoef];
        cim_up[icoef] +=zeta_up[i]*hcim_up[icoef];
-     }/*endfor*/
-   }/*endfor*/
+     }
+   }
 
 
 
@@ -430,14 +451,14 @@ double diag_ovlap(int ncomp,double wght1,double wght2,double *v1_re,double *v1_i
 {/*begin routine */
 /*========================================================================*/
 
- int ig,i;
- double ovlap;
+  int ig,i;
+  double ovlap;
 
- ovlap = 0.0;
- for(ig=1;ig<=ncomp-1;ig++){
-  i = ig+ioff;
-  ovlap += 2.0*(v1_re[i]*v2_re[i] + v1_im[i]*v2_im[i]);
-      }
+  ovlap = 0.0;
+  for(ig=1;ig<=ncomp-1;ig++){
+    i = ig+ioff;
+    ovlap += 2.0*(v1_re[i]*v2_re[i] + v1_im[i]*v2_im[i]);
+  }
   i = ncomp+ioff;
   ovlap += wght1*v1_re[i]*v2_re[i] + wght2*v1_im[i]*v2_im[i];
   return ovlap;

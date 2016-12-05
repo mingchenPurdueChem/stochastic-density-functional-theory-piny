@@ -4557,6 +4557,7 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   if(strcasecmp(dict[8].keyarg,"off")==0)stodftInfo->readCoeffFlag = 0;
   if(strcasecmp(dict[8].keyarg,"sto")==0)stodftInfo->readCoeffFlag = 1;
   if(strcasecmp(dict[8].keyarg,"det")==0)stodftInfo->readCoeffFlag = 2;
+  if(strcasecmp(dict[8].keyarg,"rho")==0)stodftInfo->readCoeffFlag = 3;
 
   /*-----------------------------------------------------------------------*/
   /*  9)\num_sto_state_up{#} */
@@ -4607,6 +4608,24 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   /*  19)\frag_box_opt{#} */
   if(strcasecmp(dict[19].keyarg,"hg")==0)stodftInfo->fragCellOpt = 1;
   if(strcasecmp(dict[19].keyarg,"nhg")==0)stodftInfo->fragCellOpt = 2;
+
+  /*-----------------------------------------------------------------------*/
+  /*  20)\out_rho_file_name{#} */
+  strcpy(stodftInfo->densityFileName,dict[20].keyarg);
+
+  /*-----------------------------------------------------------------------*/
+  /*  21)\chem_pot_opt{#} */
+  if(strcasecmp(dict[21].keyarg,"interp")==0)stodftInfo->chemPotOpt = 1;
+  if(strcasecmp(dict[21].keyarg,"cheby")==0)stodftInfo->chemPotOpt = 2;
+
+  /*-----------------------------------------------------------------------*/
+  /*  22)\filter_diag{#} */
+  if(strcasecmp(dict[22].keyarg,"off")==0)stodftInfo->filterDiagFlag = 0;
+  if(strcasecmp(dict[22].keyarg,"on")==0)stodftInfo->filterDiagFlag = 1;
+
+  /*-----------------------------------------------------------------------*/
+  /*  23)\in_rho_file_name{#} */
+  strcpy(stodftInfo->densityReadFileName,dict[23].keyarg);
 
 /*=======================================================================*/
 /* Check the conflicate options						 */

@@ -2200,7 +2200,7 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
  /*             Local variable declarations                                */
   
   unsigned int i;
-  *num_dict = 19;
+  *num_dict = 23;
   *dict = (DICT_WORD *)cmalloc(*num_dict*sizeof(DICT_WORD))-1;
 
   for (i=1;i<=*num_dict;i++) {
@@ -2284,6 +2284,23 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
   strcpy((*dict)[19].error_mes,"Fragmentation option: molecule(mol)/...");
   strcpy((*dict)[19].keyword,"frag_box_opt");
   strcpy((*dict)[19].keyarg,"hg");
+
+  strcpy((*dict)[20].error_mes,"You need to input a legal name for density output file");
+  strcpy((*dict)[20].keyword,"out_rho_file_name");
+  strcpy((*dict)[20].keyarg,"density.log");
+
+  strcpy((*dict)[21].error_mes,"Valid chem pot option:interp/cheby");
+  strcpy((*dict)[21].keyword,"chem_pot_opt");
+  strcpy((*dict)[21].keyarg,"interp");
+
+  strcpy((*dict)[22].error_mes,"Filter diagalization?");
+  strcpy((*dict)[22].keyword,"filter_diag");
+  strcpy((*dict)[22].keyarg,"off");
+
+  strcpy((*dict)[23].error_mes,"You need to input a legal name for density output file");
+  strcpy((*dict)[23].keyword,"in_rho_file_name");
+  strcpy((*dict)[23].keyarg,"density.in");
+
 
 
  /*========================================================================*/

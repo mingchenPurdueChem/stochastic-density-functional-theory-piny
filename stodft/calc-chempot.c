@@ -98,7 +98,7 @@ void calcChemPotInterp(CP *cp)
 
   if(myidState==0){
     chemPotTrue = solveLagrangePolyInterp(numChemPot,chemPot,numElectron,numElecTrue,interpCoef,&numElecDiff);
-    printf("Chem Pot %.6lg DNe %.6lg\n",chemPotTrue,numElecDiff);
+    printf("Chem Pot %.16lg DNe %.16lg\n",chemPotTrue,numElecDiff);
   }
   if(numProcStates>1){
     Bcast(&chemPotTrue,1,MPI_DOUBLE,0,comm_states);
@@ -111,8 +111,17 @@ void calcChemPotInterp(CP *cp)
     for(i=0;i<4;i++)printf("rhoRealSendCounts %i rhoRealDispls %i\n",rhoRealSendCounts[i],rhoRealDispls[i]);
   }
   */
-  
   if(cpParaOpt==0){
+    for(iChem=0;iChem<numChemPot;iChem++){
+      if(numProcStates>1){
+        Scatterv(rhoUpChemPot[indexChemProc[iChem]],rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
+                 &rhoTemp[iChem*rhoRealGridNum],rhoRealGridNum,MPI_DOUBLE,densityMap[iChem],comm_states);  
+      }
+      else{
+	memcpy(&rhoTemp[iChem*rhoRealGridNum],rhoUpChemPot[iChem],rhoRealGridNum*sizeof(double));
+      }
+    }
+    /*
     for(iChem=0;iChem<numChemProc;iChem++){
       chemPotIndex = chemProcIndexInv[iChem];
       //printf("iChem %i chemPotIndex %i\n",iChem,chemPotIndex);
@@ -120,6 +129,7 @@ void calcChemPotInterp(CP *cp)
 	for(iProc=0;iProc<numProcStates;iProc++){
 	  if(myidState==iProc)chemPotIndexProc = chemPotIndex;
 	  Bcast(&chemPotIndexProc,1,MPI_INT,iProc,comm_states);
+	  printf("myid %i iChem %i iProc %i chemPotIndexProc %i\n",myidState,iChem,iProc,chemPotIndexProc);
 	  Scatterv(rhoUpChemPot[iChem],rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
 		   &rhoTemp[chemPotIndexProc*rhoRealGridNum],rhoRealGridNum,MPI_DOUBLE,iProc,comm_states);
 	}
@@ -130,6 +140,7 @@ void calcChemPotInterp(CP *cp)
 	//for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)rhoTemp[chemPotIndex*rhoRealGridNum+iGrid] = rhoUpChemPot[iChem][iGrid];
       }//endif       
     }//endfor iChem
+    */
   }
 
   //printf("coef %lg\n",interpCoef[0]);
@@ -139,6 +150,9 @@ void calcChemPotInterp(CP *cp)
     for(iChem=0;iChem<numChemPot;iChem++){
       rhoUpCorrect[iGrid] += interpCoef[iChem]*rhoTemp[iChem*rhoRealGridNum+iGrid];
     }//endfor iChem
+    if(rhoUpCorrect[iGrid]<0.0){
+      printf("Negative Density Value!\n");
+    }
     //printf("iGrid %i rhoCorrect %lg\n",iGrid,rhoUpCorrect[iGrid]*0.0009250463018013585);
   }//endfor iGrid  
   if(cpLsda==1&&numStateDnProc>0){
@@ -195,21 +209,39 @@ void genChemPotInterpPoints(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
 /*         Local Variable declarations                                   */
   int numChemPot = stodftInfo->numChemPot;
   int iNode;
+  int filterDiagFlag = stodftInfo->filterDiagFlag;
   double chemPotInit = stodftInfo->chemPotInit;
   double gapInit = stodftInfo->gapInit;
   double factor = M_PI*0.5/numChemPot;
   double *chemPot = stodftCoefPos->chemPot;
   double *chebyNode = (double*)cmalloc(numChemPot*sizeof(double));
+  double energyMin = chemPotInit-gapInit*0.5;
+  double dE = gapInit/numChemPot;
   
   // Generate Chebyshev nodes
-  for(iNode=0;iNode<numChemPot;iNode++){
-    chebyNode[numChemPot-iNode-1] = cos((2.0*iNode+1.0)*factor);
+  if(filterDiagFlag==0){
+    for(iNode=0;iNode<numChemPot;iNode++){
+      chebyNode[numChemPot-iNode-1] = cos((2.0*iNode+1.0)*factor);
+    }
+    // Scale the nodes to correct chem pot and gap
+    for(iNode=0;iNode<numChemPot;iNode++){
+      chemPot[iNode] = chebyNode[iNode]*0.5*gapInit+chemPotInit;
+      //printf("iNode %i chemPot %lg\n",iNode,chemPot[iNode]);
+    }
+    chemPot[0] = chemPotInit-gapInit*0.5;
+    chemPot[1] = chemPotInit+gapInit*0.5;
+
+  }else{
+    for(iNode=0;iNode<numChemPot;iNode++){
+      chemPot[iNode] = energyMin+(iNode+1)*dE;
+    }
   }
-  // Scale the nodes to correct chem pot and gap
-  
+
+  //debug
+  double deltChemPot = gapInit/numChemPot;
+  double chemPotMin = chemPotInit-0.5*gapInit;
   for(iNode=0;iNode<numChemPot;iNode++){
-    chemPot[iNode] = chebyNode[iNode]*0.5*gapInit+chemPotInit;
-    //printf("iNode %i chemPot %lg\n",iNode,chemPot[iNode]);
+    chemPot[iNode] = chemPotMin+(iNode+0.5)*deltChemPot;
   }
   
   free(chebyNode);
@@ -260,6 +292,21 @@ double solveLagrangePolyInterp(int numSamp,double *x, double *y,double target,
 /*=======================================================================*/
 /* II. Get the initial guess of chemical potential.                      */
 
+  //debug
+  /*
+  double dx = (x[numSamp-1]-x[0])/1000.0;
+  int i;
+  double xi,test;
+  for(i=0;i<1000;i++){
+    xi = x[0]+(i+0.5)*dx;
+    test = calcLagrangeInterpFun(numSamp,xi,x,y,interpCoef);
+    printf("testinterp %.16lg %.16lg\n",xi,test);
+  }
+  for(iSamp=0;iSamp<numSamp;iSamp++){
+    printf("testinterp %.16lg %.16lg\n",x[iSamp],y[iSamp]);
+  }
+  */
+  
   iSamp = 0;
   while(y[iSamp]<target)iSamp += 1;
   xopt = x[iSamp-1]+(target-y[iSamp-1])*(x[iSamp]-x[iSamp-1])/(y[iSamp]-y[iSamp-1]);
@@ -287,18 +334,20 @@ double solveLagrangePolyInterp(int numSamp,double *x, double *y,double target,
     y1old = y1;
     y2old = y2;
     xopt = x1+(target-y1)*(x2-x1)/(y2-y1);
+    //printf("x1 %.10lg x2 %.10lg y1 %.10lg y2 %.10lg xopt %.10lg\n",x1,x2,y1,y2,xopt);
     value = calcLagrangeInterpFun(numSamp,xopt,x,y,interpCoef);
+    //printf("value %.10lg\n",value);
     if(value<target){
-      x1 = x1old;
-      x2 = xopt;
-      y1 = y1old;
-      y2 = value;
-    }
-    else{
       x1 = xopt;
       x2 = x2old;
       y1 = value;
       y2 = y2old;
+    }
+    else{
+      x1 = x1old;
+      x2 = xopt;
+      y1 = y1old;
+      y2 = value;
     }
     tolnow = fabs(value-target);
     /*
@@ -409,6 +458,129 @@ double calcLagrangeInterpDrv(int numSamp,double xopt,double *x,double *y,
 }/*end Routine*/
 /*==========================================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void updateChemPot(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
+/*========================================================================*/
+{/*begin routine*/
+/**************************************************************************/
+/* We may want to dynamically change the chemical ponteital interpolation */
+/* range. As I have tested, more dense the interpolation points, better   */
+/* convergence we will have. We can not affort very dense interpolation   */
+/* points covering from <HOMO to >LUMO. Therefore, we shall dynamically   */
+/* shrink the interpolation range. Considering the chemical potential can */
+/* jump between HOMO and LUMO at the beginning of a SCF. The interp range */
+/* shall cover the whole gap until the chemical potential pinning around  */
+/* HOMO or LUMO for 5 steps. Then we use the last step chemical potential */
+/* u_n as the center and 2*max_{i<=5}{|u_{n-i}-u_n|} as range.            */
+/**************************************************************************/
+/*========================================================================*/
+/*             Local variable declarations                                */
+/*------------------------------------------------------------------------*/
+
+  int iScf = stodftInfo->iScf;
+  int iPot,jPot;
+  int numChemPot = stodftInfo->numChemPot;
+  int iNode;
+
+  double factor = M_PI*0.5/numChemPot;
+  double chemPotTrue = stodftInfo->chemPotTrue;
+  double diff;
+  double rangeMax = -100000.0;
+  double *chemPotHistory = stodftInfo->chemPotHistory;
+  double *chemPot = stodftCoefPos->chemPot;
+  double *chebyNode = (double*)cmalloc(numChemPot*sizeof(double));
+
+/*======================================================================*/
+/* I) Record the true chemical potential in this step                   */
+
+  chemPotHistory[iScf-1] = chemPotTrue;
+
+/*======================================================================*/
+/* II) Record the true chemical potential in this step                  */
+
+  if(iScf>=5){
+    for(iPot=iScf-5;iPot<iScf;iPot++){
+      for(jPot=iPot+1;jPot<iScf;jPot++){
+        diff = fabs(chemPotHistory[iPot]-chemPotHistory[jPot]);
+        if(diff>rangeMax)rangeMax = diff;
+      }//endfor jPot
+    }//endfor iPot
+
+    // Generate Chebyshev nodes
+    for(iNode=0;iNode<numChemPot;iNode++){
+      chebyNode[numChemPot-iNode-1] = cos((2.0*iNode+1.0)*factor);
+    }
+    // Scale the nodes to chemPotTrue+-rangeMax
+
+    for(iNode=0;iNode<numChemPot;iNode++){
+      chemPot[iNode] = chebyNode[iNode]*rangeMax+chemPotTrue;
+      //printf("iNode %i chemPot %lg\n",iNode,chemPot[iNode]);
+    }
+  }//endif iScf
+
+  free(chebyNode);
+/*--------------------------------------------------------------------------*/
+}/*end routine*/
+/*==========================================================================*/
 
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void adjChemPot(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
+/*========================================================================*/
+{/*begin routine*/
+/**************************************************************************/
+/* Double the chem pot range if it is too small				  */
+/**************************************************************************/
+/*========================================================================*/
+/*             Local variable declarations                                */
+/*------------------------------------------------------------------------*/
+
+  int numChemPot = stodftInfo->numChemPot;
+  int iNode;
+
+  double factor = M_PI*0.5/numChemPot;
+  double numElecTrue = stodftInfo->numElecTrue;
+
+  double range,center;
+  double *chemPot = stodftCoefPos->chemPot;
+  double *chebyNode = (double*)cmalloc(numChemPot*sizeof(double));
+  double *numElectron = stodftCoefPos->numElectron;
+
+
+/*======================================================================*/
+/* I) Get the center and range			                        */
+
+  center = 0.5*(chemPot[0]+chemPot[numChemPot-1]);
+  range = chemPot[numChemPot-1]-chemPot[0];
+
+
+/*======================================================================*/
+/* II) Shift the center						        */
+
+  if(numElectron[0]>numElecTrue)center -= range;
+  else if(numElectron[numChemPot-1]<numElecTrue)center += range;
+
+/*======================================================================*/
+/* II) Record the true chemical potential in this step                  */
+
+  // Generate Chebyshev nodes
+  for(iNode=0;iNode<numChemPot;iNode++){
+    chebyNode[numChemPot-iNode-1] = cos((2.0*iNode+1.0)*factor);
+  }
+  // Scale the nodes to chemPotTrue+-rangeMax
+
+  for(iNode=0;iNode<numChemPot;iNode++){
+    //[-range+center,range+center]
+    chemPot[iNode] = chebyNode[iNode]*0.5*range+center;
+    //printf("iNode %i chemPot %lg\n",iNode,chemPot[iNode]);
+  }
+
+  free(chebyNode);
+/*--------------------------------------------------------------------------*/
+}/*end routine*/
+/*==========================================================================*/
 

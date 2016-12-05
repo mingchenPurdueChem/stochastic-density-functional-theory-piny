@@ -162,6 +162,136 @@ void normHNewtonHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
+void normHCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
+                 CPCOEFFS_POS *cpcoeffs_pos,CLATOMS_POS *clatoms_pos,int iPoly)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* Different from the Newton case, the first step is diffierent from all */
+/* the others. Also, to save memory, we shall return force vector for    */
+/* T_(n+1).								 */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  STODFTINFO *stodftInfo        = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  CPOPTS *cpopts                = &(cp->cpopts);
+  COMMUNICATE *communicate      = &(cp->communicate);
+
+  CHEBYSHEVINFO *chebyshevInfo = stodftInfo->chebyshevInfo;
+  double Smin           = chebyshevInfo->Smin;
+  double Smax           = chebyshevInfo->Smax;
+  double scale          = chebyshevInfo->scale;
+  double energyMean     = stodftInfo->energyMean;
+  double energyDiff     = stodftInfo->energyDiff;
+  double prefact        = -scale*energyMean;
+  double scale1         = -scale*0.5;
+  double scale2         = -scale;
+
+  int cpLsda         = cpopts->cp_lsda;
+  int numStateUpProc = cpcoeffs_info->nstate_up_proc;
+  int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
+  int numCoeff       = cpcoeffs_info->ncoef;
+  int numCoeffUpTotal = numStateUpProc*numCoeff;
+  int numCoeffDnTotal = numStateDnProc*numCoeff;
+  int cpDualGridOptOn  = cpopts->cp_dual_grid_opt;
+  int numCoeffM1     = numCoeff-1;
+  int incx = 1;
+  int incy = 1;
+  int iState,iCoeff,iCoeffStart,index1,index2;
+
+  double *expanCoeff = (double*)stodftCoefPos->expanCoeff;
+
+  double *cre_up = cpcoeffs_pos->cre_up;
+  double *cim_up = cpcoeffs_pos->cim_up;
+  double *cre_dn = cpcoeffs_pos->cre_dn;
+  double *cim_dn = cpcoeffs_pos->cim_dn;
+  double *fcre_up = cpcoeffs_pos->fcre_up;
+  double *fcim_up = cpcoeffs_pos->fcim_up;
+  double *fcre_dn = cpcoeffs_pos->fcre_dn;
+  double *fcim_dn = cpcoeffs_pos->fcim_dn;
+  double *wfUpRe1 = stodftCoefPos->wfUpRe1;
+  double *wfUpIm1 = stodftCoefPos->wfUpIm1;
+  double *wfDnRe1 = stodftCoefPos->wfDnRe1;
+  double *wfDnIm1 = stodftCoefPos->wfDnIm1;
+
+  double dot;
+
+/*==========================================================================*/
+/* 1) Calculate the H(norm)|phi> */
+  //control_vps_atm_list will be done somewhere else (perhaps in density calculation?)
+
+  //calcCoefForceWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+  calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+  calcCoefForceWrapReduce(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+
+/*==========================================================================*/
+/* 2) Calculate T_(n+1)|phi> */
+
+
+  if(iPoly==1){//iPoly=1
+    for(iState=0;iState<numStateUpProc;iState++){
+      iCoeffStart = iState*numCoeff;
+      for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
+	index1 = iCoeffStart+iCoeff;
+	fcre_up[index1] = scale1*fcre_up[index1]+prefact*cre_up[index1];
+	fcim_up[index1] = scale1*fcim_up[index1]+prefact*cim_up[index1];
+      }//endfor iCoeff
+      index1 = iCoeffStart+numCoeff;
+      fcre_up[index1] = scale2*fcre_up[index1]+prefact*cre_up[index1];
+    }//endfor iState
+    if(cpLsda==1&&numStateDnProc!=0){
+      for(iState=0;iState<numStateDnProc;iState++){
+	iCoeffStart = iState*numCoeff;
+	for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
+	  index1 = iCoeffStart+iCoeff;
+	  fcre_dn[index1] = scale1*fcre_dn[index1]+prefact*cre_dn[index1];
+	  fcim_dn[index1] = scale1*fcim_dn[index1]+prefact*cim_dn[index1];
+	}//endfor iCoeff
+	index1 = iCoeffStart+numCoeff;
+	fcim_dn[index1] = scale2*fcre_dn[index1]+prefact*cre_dn[index1];
+      }//endfor iState
+    }
+  }
+  else{//iPoly>1
+    scale1 *= 2.0;
+    scale2 *= 2.0;
+    prefact *= 2.0;
+    for(iState=0;iState<numStateUpProc;iState++){
+      iCoeffStart = iState*numCoeff;
+      for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
+        index1 = iCoeffStart+iCoeff;
+        fcre_up[index1] = scale1*fcre_up[index1]+prefact*cre_up[index1]-wfUpRe1[index1];
+        fcim_up[index1] = scale1*fcim_up[index1]+prefact*cim_up[index1]-wfUpIm1[index1];
+      }//endfor iCoeff
+      index1 = iCoeffStart+numCoeff;
+      fcre_up[index1] = scale2*fcre_up[index1]+prefact*cre_up[index1]-wfUpRe1[index1];
+    }//endfor iState
+    if(cpLsda==1&&numStateDnProc!=0){
+      for(iState=0;iState<numStateDnProc;iState++){
+        iCoeffStart = iState*numCoeff;
+        for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
+          index1 = iCoeffStart+iCoeff;
+          fcre_dn[index1] = scale1*fcre_dn[index1]+prefact*cre_dn[index1]-wfDnRe1[index1];
+          fcim_dn[index1] = scale1*fcim_dn[index1]+prefact*cim_dn[index1]-wfDnIm1[index1];
+        }//endfor iCoeff
+        index1 = iCoeffStart+numCoeff;
+        fcim_dn[index1] = scale2*fcre_dn[index1]+prefact*cre_dn[index1]-wfDnRe1[index1];
+      }//endfor iState
+    }
+  }
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
 void calcCoefForceWrap(CLASS *class,GENERAL_DATA *general_data,
                    CP *cp,CPCOEFFS_POS  *cpcoeffs_pos,CLATOMS_POS *clatoms_pos)
 /*==========================================================================*/

@@ -101,7 +101,7 @@ void genDensityMix(CP *cp,int iScf)
     //updateBank(rhoDnCorrect,rhoDnBank,iScf);
     //updateErr(rhoDnBank,rhoDnErr,iScf);
 
-    if(iScf==0){//Initial Step
+    if(iScf==1){//Initial Step
       updateBank(stodftInfo,stodftCoefPos,rhoDnCorrect,rhoDnBank);
       memcpy(rhoDnOld,rhoDnCorrect,rhoRealGridNum*sizeof(double));
     }
@@ -146,8 +146,8 @@ void updateBank(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
   int rhoRealGridNum = stodftInfo->rhoRealGridNum;
   int iDiis;
   
-  if(rhoBank[numDiis-1]!=NULL)free(rhoBank[numDiis-1]);
-  for(iDiis=numDiis-2;iDiis>-1;iDiis--)rhoBank[iDiis+1] = rhoBank[iDiis];
+  if(rhoBank[numDiis]!=NULL)free(rhoBank[numDiis]);
+  for(iDiis=numDiis-1;iDiis>-1;iDiis--)rhoBank[iDiis+1] = rhoBank[iDiis];
   rhoBank[0] = (double*)cmalloc(rhoRealGridNum*sizeof(double));
   memcpy(rhoBank[0],rho,rhoRealGridNum*sizeof(double));
 
@@ -217,6 +217,8 @@ void calcDensityDiis(CP *cp,double **rhoBank,double **rhoErr)
 
   double dotProc;
   double dotTot;   
+  double matrixElemMax = -1000.0;
+  double matrixElemNorm;
   double *diisMatrix = (double*)cmalloc((numDiisNow+1)*(numDiisNow+1)*sizeof(double));
   double *svdLinSol = (double*)cmalloc((numDiisNow+1)*sizeof(double));
   double *b = (double*)cmalloc((numDiisNow+1)*sizeof(double));
@@ -232,8 +234,9 @@ void calcDensityDiis(CP *cp,double **rhoBank,double **rhoErr)
 /* I) For the first time, calculate the whole diisMatrix		    */
 
   // Calculate the dot prod part
-  printf("numDiis %i numDiisNow %i\n",numDiis,numDiisNow);
-  for(iDiis=0;iDiis<numDiis;iDiis++)printf("%p\n",rhoErr[iDiis]);
+  if(myidState==0){
+    printf("Mixing: DIIS Step\n");
+  }
 
   for(iDiis=0;iDiis<numDiisNow;iDiis++){
     for(jDiis=iDiis;jDiis<numDiisNow;jDiis++){
@@ -248,39 +251,55 @@ void calcDensityDiis(CP *cp,double **rhoBank,double **rhoErr)
       }//endif myidState
     }//endfor jDiis
   }//endfor iDiis
-  // Calculate the Lagrange Multiplier part
-  for(iDiis=0;iDiis<numDiisNow;iDiis++){
-    diisMatrix[numDiisNow*(numDiisNow+1)+iDiis] = -10000.0;
-    diisMatrix[iDiis*(numDiisNow+1)+numDiisNow] = -10000.0;
-  }
-  diisMatrix[numDiisNow*(numDiisNow+1)+numDiisNow] = 0.0;
 
-  //debug
-  for(iDiis=0;iDiis<numDiisNow+1;iDiis++){
-    for(jDiis=0;jDiis<numDiisNow+1;jDiis++){
-      printf("%.16lg,",diisMatrix[iDiis*(numDiisNow+1)+jDiis]);
+  if(myidState==0){
+    //Get the largest fabs(matrix element)
+    for(iDiis=0;iDiis<numDiisNow;iDiis++){
+      for(jDiis=iDiis;jDiis<numDiisNow;jDiis++){
+	matrixElemNorm = fabs(diisMatrix[iDiis*(numDiisNow+1)+jDiis]);
+	if(matrixElemNorm>matrixElemMax){
+	  matrixElemMax = matrixElemNorm;
+	}
+      }
     }
-    printf("\n");
-  }
+    
+
+    // Calculate the Lagrange Multiplier part
+    for(iDiis=0;iDiis<numDiisNow;iDiis++){
+      diisMatrix[numDiisNow*(numDiisNow+1)+iDiis] = -matrixElemMax;
+      diisMatrix[iDiis*(numDiisNow+1)+numDiisNow] = -matrixElemMax;
+    }
+    diisMatrix[numDiisNow*(numDiisNow+1)+numDiisNow] = 0.0;
+
+    //debug
+    for(iDiis=0;iDiis<numDiisNow+1;iDiis++){
+      for(jDiis=0;jDiis<numDiisNow+1;jDiis++){
+	printf("%.16lg,",diisMatrix[iDiis*(numDiisNow+1)+jDiis]);
+      }
+      printf("\n");
+    }
   // reset the flag so that we don't do it again
 /*==========================================================================*/
 /* II) Safely reverse the diisMatrix with SVD				    */
 
-  if(myidState==0){
     for(iDiis=0;iDiis<numDiisNow;iDiis++)b[iDiis] = 0.0;
-    b[numDiisNow] = -10000.0;
+    b[numDiisNow] = -matrixElemMax;
 
     matrixInvSVD(diisMatrix,b,svdLinSol,numDiisNow+1);       
-  }
+
+    for(iDiis=0;iDiis<numDiisNow+1;iDiis++){
+      printf("%.16lg ",svdLinSol[iDiis]);
+    }
+    printf("\n");
+
+
+  }//endif myidState
+
 
   if(numProcStates>1){
     Bcast(svdLinSol,numDiisNow+1,MPI_DOUBLE,0,commStates);
   }
-
-  for(iDiis=0;iDiis<numDiisNow+1;iDiis++){
-    printf("%.16lg ",svdLinSol[iDiis]);
-  }
-  printf("\n");
+  
   for(iDiis=0;iDiis<numDiisNow;iDiis++){
     diisCoeff[iDiis] = svdLinSol[iDiis];    
   }
@@ -301,11 +320,24 @@ void calcDensityDiis(CP *cp,double **rhoBank,double **rhoErr)
   */
   
   // push stack then mix density
-  for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
-    rhoUp[iGrid+1] = 0.0;
-    for(iDiis=0;iDiis<numDiisNow;iDiis++)rhoUp[iGrid+1] += diisCoeff[iDiis]*rhoBank[iDiis][iGrid];
+  int iScf = stodftInfo->iScf;
+  double mixRatioSM = 0.1; //alpha
+  double pre = mixRatioSM-1.0;
+  if(iScf<=5){
+    for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+      rhoUp[iGrid+1] = 0.0;
+      for(iDiis=0;iDiis<numDiisNow;iDiis++){
+	rhoUp[iGrid+1] += diisCoeff[iDiis]*(rhoBank[iDiis][iGrid]+
+			    pre*rhoErr[iDiis][iGrid]);
+      }//endfor iDiis
+    }//endfor iGrid
+  }//endif iScf
+  else{
+    for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+      rhoUp[iGrid+1] = 0.0;
+      for(iDiis=0;iDiis<numDiisNow;iDiis++)rhoUp[iGrid+1] += diisCoeff[iDiis]*rhoBank[iDiis][iGrid];
+    }
   }
-  
 
   free(svdLinSol);
   free(diisMatrix);

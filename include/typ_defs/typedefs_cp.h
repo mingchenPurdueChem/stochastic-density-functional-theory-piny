@@ -270,9 +270,14 @@ typedef struct cpcoeffs_pos {
 
 } CPCOEFFS_POS;
 
+typedef struct chebyshevInfo{
+  double Smin,Smax;                 /* Num: Interpolation Min/Max values(+-1)   */
+  double scale;                     /* Num: =(Smax-Smin)/(energyDiff) (1/sigma) */
+}CHEBYSHEVINFO;
+
 typedef struct newtonInfo{
 /* option/parameter specific for Newtonian interpolation */
-  double Smin,Smax;		    /* Num: Interpolation Min/Max values	*/
+  double Smin,Smax;		    /* Num: Interpolation Min/Max values(+-2)	*/
   double scale;			    /* Num: =(Smax-Smin)/(energyDiff) (1/sigma)	*/
   void *sampPoint;		    /* Lst: Interpolation sample points.	*/
 				    /* Lth: polynormLength			*/
@@ -404,6 +409,7 @@ typedef struct stodftInfo{
 				    /*	    0 = off				*/
 				    /*	    1 = stochastic			*/
                                     /*      2 = deterministic                   */
+				    /*	    3 = read density			*/
   int reInitFlag;		    /* Opt: Flag to control realloc WF arraies  */
 				    /*	    0 = don't realloc (read sto)	*/
 				    /*	    1 = realloc (read det/gen wf)	*/
@@ -423,16 +429,11 @@ typedef struct stodftInfo{
 				    /*	    this number is 2.			*/
 
   int rhoRealGridNum;		    /* Num: Number of real space grid point on  */
-				    /*	    this process, =nfft2 for hybrid	*/
-				    /*	    = nfft2_proc for full_g		*/
-				    /*	    = nfft2_proc_dens_cp_box for dual   */
-				    /*        grid				*/
+				    /*	    this process, =nfft2_proc		*/
   int rhoRealGridTot;		    /* Num: Total number of real space density  */
 				    /*	    grid = nfft2			*/
   int rhoRealGridProc;		    /* Num: number of real space density grid   */
 				    /*	    on thid proc =nfft2_proc		*/
-  int numChemProc;                  /* Num: Number of densities stored on this  */
-                                    /*      proc. (full_g=numChemPot)           */
   int *densityMap;		    /* Lst: Map the density to different proc	*/
 				    /*	    We store the density for different  */
 				    /*	    chemical potential on different	*/
@@ -456,6 +457,10 @@ typedef struct stodftInfo{
 				    /* Lth: np_states				*/
   int *noiseDispls;		    /* Lst: noise orbital displs for scatter	*/
 				    /* Lth: np_states				*/
+
+  int numChemProc;		    /* Num: Number of densities stored on this  */
+				    /*	    proc. (full_g=numChemPot)		*/
+
   int *indexChemProc;		    /* Lst: the i'th element is the i'th chem	*/
 				    /*	    pot's index on its proc		*/
 				    /* Lth: numChemPot				*/
@@ -479,6 +484,8 @@ typedef struct stodftInfo{
   double *energyKNL;		    /* Num: Sum of kinetic and nonlocal pseudo- */
 				    /*	    potential energy for different      */
 				    /*	    chem pot.				*/
+  char densityFileName[MAXWORD];    /* Char: Name of the output density file    */
+  char densityReadFileName[MAXWORD];/* Char: Name of the input density file    */
   /* DIIS parameters */
   int densityMixFlag;		    /* Opt: Flag to control mixing density      */
 				    /*	    0 = no mixing			*/
@@ -497,6 +504,66 @@ typedef struct stodftInfo{
 				    /*	    0=no, 1=yes				*/
   double mixRatioBig;		    /* Num: What is the best ratio for mixing?  */
   double lambdaDiis;		    /* Num: Lagrange Multiplier for Diis	*/
+
+  /* adaptive chemical potential parameters */
+  int reRunFlag;		    /* Num: Flag to control whether rerun this  */
+				    /*	    step SCF calculation due to bad     */
+				    /*	    chem pot range 0=no 1=rerun         */
+
+  double *chemPotHistory;           /* Lst: Store the history of chem pot to    */
+                                    /*      guess the next values               */
+                                    /* Lth: 5 (may change)                      */
+
+  /* The following is filter diagnalization for testing diis. GL HF */
+  /* Each proc will generate filted results of one wave function. Try gaussian  */
+  /* first. Then gather to master proc for SVD.                                 */
+  /* We will focus on spin Up states since this is only a testing.              */
+  int filterDiagFlag;               /* Opt: Flag to control using filter        */
+                                    /*      diag method 0=no,1=yes              */
+  int *stowfRecvCounts;             /* Lst: number of sto wf coefficients       */
+                                    /*      received by mater proc              */
+                                    /* Lth: np_states                           */
+  int *stowfDispls;                 /* Lst: displacement while gathering wave   */
+                                    /*      functions                           */
+                                    /* Lth: np_states                           */
+  int *numStates;                   /* Lst: Number of total states on this proc */
+                                    /* Lth: np_states                           */
+  int *dsplStates;                  /* Lst: displacement of states              */
+                                    /* Lth: np_states                           */
+  int *stowfRecvCountsComplex;      /* Lst: complex version                     */
+                                    /* Lth: np_states                           */
+  int *stowfDisplsComplex;          /* Lst: complex version                     */
+                                    /* Lth: np_states                           */
+  int numStateUpIdp;                /* Num: After SVD orthogonalization, we     */
+                                    /*      shall leave the independent ones    */
+  double *numOccDetAll;             /* Lst: Number of occupation in determ      */
+                                    /*      wf. For dependent wf, set this #    */
+                                    /*      to 0.                               */
+                                    /* Lth: numStateStoUp*numChemPot            */
+  double *numOccDetProc;            /* Lst: Proc version of numOccDetAll        */
+                                    /* Lth: np_states_proc*numChemPot           */
+  int stateStartIndex;              /* Num: We need this to determine the       */
+                                    /*      occupatation of each MO             */
+  double eigValMin,eigValLUMO;      /* Num: Minimum/LUMO energy of KS H         */
+  //debug thing
+  int numStatesDet;                 /* Num: Number of deterministic MO          */
+                                    /*      =numElecTrue/2                      */
+  int *numStatesAllDet;             /* Lst: for Gatherv                         */
+                                    /* Lth: np_states                           */
+  int *dsplStatesAllDet;            /* Lst: for Gatherv                         */
+                                    /* Lth: np_states                           */
+
+  /* The following is to get the correct chemical potential */
+  int chemPotOpt;                   /* Opt: Choose the way to calculate chem    */
+                                    /*      pot 1=interpolation 2=chebyshev     */
+  int numChebyMoments;              /* Num: Number of Chebyshev chain I need to */
+                                    /*      DO ITERATION =polynormLength/2      */
+  int numFFTGridMutpl;              /* Num: Number of FFT grid multiplier       */
+  int numChebyGrid;                 /* Num: Number of FFT grid for chebyshev    */
+  double *numElecStoWf; //number of electron for each stochastic orbital
+
+  fftw_plan fftwPlanForward;
+
   /* Fragmentation parameters */
   int calcFragFlag;		    /* Opt: control fragmentation on=1,off=0	*/
   int fragOpt;			    /* Opt: Fragmentation type:			*/
@@ -512,6 +579,7 @@ typedef struct stodftInfo{
   FERMIFUNC fermiFunctionComplex;
   
   NEWTONINFO *newtonInfo;
+  CHEBYSHEVINFO *chebyshevInfo;
 }STODFTINFO;
 
 typedef struct stodftCoefPos{
@@ -535,6 +603,10 @@ typedef struct stodftCoefPos{
   
   double *chemPot;		    /* Lst: chemical potentials			*/
 				    /* Lth: numChemPot				*/
+  double *testWfMaxRe,*testWfMaxIm; /* Lst: test wave function to get min/max   */
+  double *testWfMinRe,*testWfMinIm; /*      energy. Generate at the first       */
+                                    /*      SCF step and reuse after that       */
+                                    /* Lth: ncoef                               */
   //debug only
   double *coeffReUpBackup;
   double *coeffImUpBackup;
@@ -564,6 +636,48 @@ typedef struct stodftCoefPos{
 				    /* Lth: (numDiis+1)*(numDiis+1)		*/
   double *diisCoeff;		    /* Lst: diis coeffcient			*/
 				    /* Lth: numDiis				*/
+  /* The following is filter diagnalization for testing diis. GL HF */
+
+  double *wfBfOrthUp;               /* Lst: All wave functions for orthogo-     */
+                                    /*      nalization with SVD.                */
+                                    /* Lth: numStateStoUp*ncoef                 */
+  double *wfBfOrthDn;               /* Lst: All wave functions(Dn) for ortho-   */
+                                    /*      gonalization with SVD.              */
+                                    /* Lth: numStateStoDn*ncoef                 */
+  double *wfOrthUpRe,*wfOrthUpIm;   /* Lst: Wf after SVD, used for KS-matrix    */
+                                    /*      calculation.                        */
+                                    /* Lth: numChemPot*numStateStoUp*ncoef      */
+  double *KSMatrix;                 /* Lst: Kohn-Sham Matrix                    */
+                                    /* Lth: numChemPot^2*numStateStoUp^2        */
+  double *energyLevel;              /* Lst: eigenvalues matrix for diag HKS     */
+                                    /* Lth: numChemPot*numStateStoUp            */
+  double *moUpRe,*moUpIm;           /* Lst: Molecular orbitals/bands            */
+                                    /* Lth: numChemPot*nstate_up_proc*ncoef     */
+  //debug things
+  double *wfUpReDet,*wfUpImDet;     /* Lst: Deterministic orthognormal wave fun */
+                                    /* Lth: numStatesDet*numCoeff               */
+
+  /* The following is to get the correct chemical potential */
+  double *chebyMomentsUp;           /* Lst: Chebyshev momentums                 */
+  double *chebyMomentsDn;           /* Lth: (polynormLength+1)                  */
+  double *wfUpRe0,*wfUpIm0;         /* Lst: zeroth order expension              */
+  double *wfDnRe0,*wfDnIm0;         /* Lth: nstate_up_proc*ncoef                */
+  double *wfUpRe1,*wfUpIm1;         /* Lst: n-1 wave function                   */
+                                    /* Lth: nstate_up_proc*ncoef                */
+  double *wfUpRe2,*wfUpIm2;         /* Lst: n wave function                     */
+                                    /* Lth: nstate_up_proc*ncoef                */
+  double *wfUpRe3,*wfUpIm3;         /* Lst: n+1 wave function                   */
+  double *wfDnRe1,*wfDnIm1;         /* Lst: The same thing for spin down states */
+  double *wfDnRe2,*wfDnIm2;         /* Lth: nstate_dn_proc*ncoef                */
+  double *wfDnRe3,*wfDnIm3;
+
+  double *creTest,*cimTest; // Test wave function
+
+  fftw_complex *chebyCoeffsFFT;     /* Lst: chebyshev coeffcients (after fft)   */
+                                    /* Lth: numChebyGrid                        */
+  fftw_complex *funValGridFFT;      /* Lst: the function valuefitted by         */
+                                    /*      Chebyshev polynormial on grid       */
+                                    /* Lth: numChebyGrid                        */
 }STODFTCOEFPOS;
 
 

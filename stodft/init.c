@@ -73,10 +73,8 @@ void commStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
   Bcast(&(stodftInfo->readCoeffFlag),1,MPI_INT,0,world);
   Bcast(&(stodftInfo->numStateStoUp),1,MPI_INT,0,world);
   Bcast(&(stodftInfo->numStateStoDn),1,MPI_INT,0,world);
-  //diis
-  Bcast(&(stodftInfo->densityMixFlag),1,MPI_INT,0,world);
-  Bcast(&(stodftInfo->numDiis),1,MPI_INT,0,world);
-  Bcast(&(stodftInfo->numStepMix),1,MPI_INT,0,world);
+  Bcast(&(stodftInfo->chemPotOpt),1,MPI_INT,0,world);
+  Bcast(&(stodftInfo->filterDiagFlag),1,MPI_INT,0,world);
   //frag
   Bcast(&(stodftInfo->calcFragFlag),1,MPI_INT,0,world);
   Bcast(&(stodftInfo->fragOpt),1,MPI_INT,0,world);
@@ -87,6 +85,10 @@ void commStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
   Bcast(&(stodftInfo->numElecTrue),1,MPI_DOUBLE,0,world);
   Bcast(&(stodftInfo->chemPotInit),1,MPI_DOUBLE,0,world);
   Bcast(&(stodftInfo->gapInit),1,MPI_DOUBLE,0,world);
+  Bcast(&(stodftInfo->densityMixFlag),1,MPI_DOUBLE,0,world);
+  Bcast(&(stodftInfo->numDiis),1,MPI_DOUBLE,0,world);
+  Bcast(&(stodftInfo->numStepMix),1,MPI_DOUBLE,0,world);
+  Bcast(stodftInfo->densityFileName,MAXWORD,MPI_CHAR,0,world);
 
 }/*end Routine*/
 /*==========================================================================*/
@@ -124,6 +126,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   STODFTCOEFPOS *stodftCoefPos    = cp->stodftCoefPos;
   CPSCR         *cpscr            = &(cp->cpscr);  
   NEWTONINFO    *newtonInfo;
+  CHEBYSHEVINFO *chebyshevInfo;
   FRAGINFO	*fragInfo;
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
 
@@ -141,6 +144,9 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   int numDiis	     = stodftInfo->numDiis;
   int numStepMix     = stodftInfo->numStepMix;
   int numScf	     = stodftInfo->numScf;
+  int numElecTrue    = stodftInfo->numElecTrue;
+  int chemPotOpt     = stodftInfo->chemPotOpt;
+  int filterDiagFlag = stodftInfo->filterDiagFlag;
   int calcFragFlag   = stodftInfo->calcFragFlag;
   int fragOpt	     = stodftInfo->fragOpt;
   int fragCellOpt    = stodftInfo->fragCellOpt;
@@ -168,9 +174,10 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   int numFFT            = cp_para_fft_pkg3d_lg->nfft;
   int numFFT2           = numFFT/2;
   int numFFT2Proc       = numFFTProc/2;
-  int iChem,iSamp,iCell,iProc,iCoeff,iMol;
+  int iChem,iSamp,iCell,iProc,iCoeff,iMol,iDiis;
   int div,res;
   int count,numChemProc,rhoRealGridNum,rhoRealGridTot;
+  int numChemProcMalloc;
   int numSendNoise;
   // frag
   int numMolTot;
@@ -216,12 +223,21 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   double *cpScrCoeffImDn   = cpscr->cpscr_wave.cim_dn;
   double *ptensPvtenTmp    = ptens->pvten_tmp;
 
+  FILE *densityFile;
+  Barrier(comm_states);
+
 /*==========================================================================*/
 /* I) General parameters and malloc					    */
   stodftInfo->vpsAtomListFlag = 0;
+  // Chebyshev way to calculate chem pot
+  if(chemPotOpt==2)stodftInfo->numChemPot = 1;
 
   stodftCoefPos->chemPot = (double*)cmalloc(numChemPot*sizeof(double));
   stodftInfo->energyKNL = (double*)cmalloc(numChemPot*sizeof(double));
+  stodftCoefPos->testWfMaxRe = (double*)cmalloc(numCoeff*sizeof(double));
+  stodftCoefPos->testWfMaxIm = (double*)cmalloc(numCoeff*sizeof(double));
+  stodftCoefPos->testWfMinRe = (double*)cmalloc(numCoeff*sizeof(double));
+  stodftCoefPos->testWfMinIm = (double*)cmalloc(numCoeff*sizeof(double));
 
   if(expanType==2&&filterFunType==1)stodftInfo->fermiFunctionReal = &fermiExpReal;
   if(expanType==2&&filterFunType==2)stodftInfo->fermiFunctionReal = &fermiErfcReal;
@@ -249,21 +265,28 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*==========================================================================*/
 /* II) Malloc by expension type						    */
 
-  switch(expanType){
-    case 2:
-      //stodftCoefPos->expanCoeff = (double *)cmalloc(totalPoly*sizeof(double));
-      stodftInfo->newtonInfo = (NEWTONINFO *)cmalloc(sizeof(NEWTONINFO));
-      newtonInfo = stodftInfo->newtonInfo;
-      //newtonInfo->sampPoint = (double *)cmalloc(polynormLength*sizeof(double));
-      //newtonInfo->sampPointUnscale = (double *)cmalloc(polynormLength*sizeof(double));
-      newtonInfo->Smin = Smin;
-      newtonInfo->Smax = Smax;
-      //newtonInfo->scale = (Smax-Smin)/energyDiff;      
-      
-      break;
+  if(expanType==2){
+    //stodftCoefPos->expanCoeff = (double *)cmalloc(totalPoly*sizeof(double));
+    stodftInfo->newtonInfo = (NEWTONINFO *)cmalloc(sizeof(NEWTONINFO));
+    newtonInfo = stodftInfo->newtonInfo;
+    //newtonInfo->sampPoint = (double *)cmalloc(polynormLength*sizeof(double));
+    //newtonInfo->sampPointUnscale = (double *)cmalloc(polynormLength*sizeof(double));
+    newtonInfo->Smin = Smin;
+    newtonInfo->Smax = Smax;
+    stodftCoefPos->expanCoeff = NULL;
+    newtonInfo->sampPoint = NULL;
+    newtonInfo->sampPointUnscale = NULL;
+    //newtonInfo->scale = (Smax-Smin)/energyDiff;      
+  }
+  if(expanType==1||chemPotOpt==2){
+    stodftInfo->chebyshevInfo = (CHEBYSHEVINFO *)cmalloc(sizeof(CHEBYSHEVINFO));
+    chebyshevInfo = stodftInfo->chebyshevInfo;
+    chebyshevInfo->Smin = -1.0;
+    chebyshevInfo->Smax = 1.0;
   }
 
   //For debug only
+  //stodftCoefPos->chemPot[0] = 0.4990160113690864;
   //stodftCoefPos->chemPot[0] = -0.17435045;
   //stodftCoefPos->chemPot[0] = 0.5045818049407941;
   //stodftCoefPos->chemPot[1] = 0.5045818049407941;
@@ -336,7 +359,6 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   else stodftInfo->reInitFlag = 1;
   //printf("readCoeffFlag %i reInitFlag %i\n",readCoeffFlag,stodftInfo->reInitFlag);
 
-
 /*==========================================================================*/
 /* V) Calculate the non-local pseudopotential list                          */
   /*
@@ -401,6 +423,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
   // I need to do this for both deterministic/stochastic density calculation since
   // I use similiar functions
+
   if(numProcStates>1){
     if((coefFormUp+forceCoefFormUp)!=2){
       printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
@@ -451,7 +474,6 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   gethinv(cell->hmat_cp,cell->hmati_cp,&(cell->vol_cp),iperd);
   gethinv(cell->hmat,cell->hmati,&(cell->vol),iperd);
 
-
 /*==========================================================================*/
 /* VI) Initialize density interpolation                                     */
 
@@ -468,92 +490,143 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
   //if(cpParaOpt==0)stodftInfo->rhoRealGridNum = numFFT2;
   //else stodftInfo->rhoRealGridNum = numFFT2Proc;
-  stodftInfo->rhoRealGridNum = numFFT2Proc;
-  rhoRealGridNum = stodftInfo->rhoRealGridNum;
-  stodftInfo->rhoRealGridTot = numFFT2;
-  rhoRealGridTot = numFFT2;
-  if(cpParaOpt==0){//hybrid case
-    div = numChemPot/numProcStates;
-    res = numChemPot%numProcStates;
-    if(myidState<res)stodftInfo->numChemProc = div+1;
-    else stodftInfo->numChemProc = div;
-    numChemProc = stodftInfo->numChemProc;
-    stodftInfo->densityMap = (int*)cmalloc(numChemPot*sizeof(int));
-    stodftInfo->indexChemProc = (int*)cmalloc(numChemPot*sizeof(int));
-    stodftInfo->chemProcIndexInv = (int*)cmalloc(numChemProc*sizeof(int));
-    for(iChem=0;iChem<numChemPot;iChem++){
-      if(iChem<(div+1)*res){
-	stodftInfo->densityMap[iChem] = iChem/(div+1);
-	stodftInfo->indexChemProc[iChem] = iChem%(div+1);
-      }
-      else{
-	stodftInfo->densityMap[iChem] = (iChem-(div+1)*res)/div+res;
-	stodftInfo->indexChemProc[iChem] = (iChem-(div+1)*res)%div;
+  if(chemPotOpt==1){
+    stodftInfo->rhoRealGridNum = numFFT2Proc;
+    rhoRealGridNum = stodftInfo->rhoRealGridNum;
+    stodftInfo->rhoRealGridTot = numFFT2;
+    rhoRealGridTot = numFFT2;
+    if(cpParaOpt==0){//hybrid case
+      div = numChemPot/numProcStates;
+      res = numChemPot%numProcStates;
+      if(myidState<res)stodftInfo->numChemProc = div+1;
+      else stodftInfo->numChemProc = div;
+      numChemProc = stodftInfo->numChemProc;
+      stodftInfo->densityMap = (int*)cmalloc(numChemPot*sizeof(int));
+      stodftInfo->indexChemProc = (int*)cmalloc(numChemPot*sizeof(int));
+      stodftInfo->chemProcIndexInv = (int*)cmalloc(numChemProc*sizeof(int));
+      for(iChem=0;iChem<numChemPot;iChem++){
+	if(iChem<(div+1)*res){
+	  stodftInfo->densityMap[iChem] = iChem/(div+1);
+	  stodftInfo->indexChemProc[iChem] = iChem%(div+1);
+	}
+	else{
+	  stodftInfo->densityMap[iChem] = (iChem-(div+1)*res)/div+res;
+	  stodftInfo->indexChemProc[iChem] = (iChem-(div+1)*res)%div;
+	}//endif
+      }//endfor iChem
+      if(myidState<res)count = myidState*(div+1);
+      else count = (div+1)*res+(myidState-res)*div;
+      for(iChem=0;iChem<numChemProc;iChem++){
+	stodftInfo->chemProcIndexInv[iChem] = count+iChem;
+      }//endfor iChem
+    }//endfor cpParaOpt
+    else{//full g case
+      stodftInfo->numChemProc = numChemPot;
+      numChemProc = stodftInfo->numChemProc;
+      printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+      printf("Please use hybrid option!\n");
+      printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(0);
+    }
+    
+    stodftInfo->rhoRealSendCounts = (int*)cmalloc(numProcStates*sizeof(int));
+    stodftInfo->rhoRealDispls     = (int*)cmalloc(numProcStates*sizeof(int));
+    rhoRealSendCounts = stodftInfo->rhoRealSendCounts;
+    rhoRealDispls = stodftInfo->rhoRealDispls;
+
+    if(numProcStates>1){
+      if(myidState==0){
+	rhoRealSendCounts[0] = numFFT2Proc;
+	for(iProc=1;iProc<numProcStates;iProc++){
+	  Recv(&rhoRealSendCounts[iProc],1,MPI_INT,iProc,iProc,comm_states);
+	}//endfor iProc
       }//endif
-    }//endfor iChem
-    if(myidState<res)count = myidState*(div+1);
-    else count = (div+1)*res+(myidState-res)*div;
-    for(iChem=0;iChem<numChemProc;iChem++){
-      stodftInfo->chemProcIndexInv[iChem] = count+iChem;
-    }//endfor iChem
-  }//endfor cpParaOpt
-  else{//full g case
-    stodftInfo->numChemProc = numChemPot;
-    numChemProc = stodftInfo->numChemProc;
-  }
-  
-  stodftInfo->rhoRealSendCounts = (int*)cmalloc(numProcStates*sizeof(int));
-  stodftInfo->rhoRealDispls     = (int*)cmalloc(numProcStates*sizeof(int));
-  rhoRealSendCounts = stodftInfo->rhoRealSendCounts;
-  rhoRealDispls = stodftInfo->rhoRealDispls;
-
-  if(numProcStates>1){
-    if(myidState==0){
-      rhoRealSendCounts[0] = numFFT2Proc;
+      else{
+	Send(&numFFT2Proc,1,MPI_INT,0,myidState,comm_states);
+      }
+      Barrier(comm_states);
+      Bcast(rhoRealSendCounts,numProcStates,MPI_INT,0,comm_states);
+      Barrier(comm_states);
+      rhoRealDispls[0] = 0;
       for(iProc=1;iProc<numProcStates;iProc++){
-        Recv(&rhoRealSendCounts[iProc],1,MPI_INT,iProc,iProc,comm_states);
-      }//endfor iProc
+	rhoRealDispls[iProc] = rhoRealDispls[iProc-1]+rhoRealSendCounts[iProc-1];
+      }
     }//endif
-    else{
-      Send(&numFFT2Proc,1,MPI_INT,0,myidState,comm_states);
+    
+    // We do this because MPI_Reduce will segfault if the malloc space is not large enough.
+    numChemProcMalloc = (res==0?div:div+1);
+    //for(iChem=0;iChem<numChemPot;iChem++){
+    //printf("myidState %i densityMap[0] %i indexchemproc[0] %i numChemProc %i rhoRealGridTot %i numChemProcMalloc %i\n",
+    //    myidState,stodftInfo->densityMap[0],stodftInfo->indexChemProc[0],numChemProc,rhoRealGridTot,numChemProcMalloc);
+    //}
+    stodftCoefPos->rhoUpChemPot = (double**)cmalloc(numChemProcMalloc*sizeof(double*));
+    for(iChem=0;iChem<numChemProcMalloc;iChem++){
+      stodftCoefPos->rhoUpChemPot[iChem] = (double*)cmalloc(rhoRealGridTot*sizeof(double));
     }
-    Barrier(comm_states);
-    Bcast(rhoRealSendCounts,numProcStates,MPI_INT,0,comm_states);
-    Barrier(comm_states);
-    rhoRealDispls[0] = 0;
-    for(iProc=1;iProc<numProcStates;iProc++){
-      rhoRealDispls[iProc] = rhoRealDispls[iProc-1]+rhoRealSendCounts[iProc-1];
+    stodftCoefPos->rhoUpCorrect = (double*)cmalloc(rhoRealGridNum*sizeof(double));
+    if(cpLsda==1&&numStateDnProc>0){
+      stodftCoefPos->rhoDnChemPot = (double**)cmalloc(numChemProcMalloc*sizeof(double*));
+      for(iChem=0;iChem<numChemProcMalloc;iChem++){
+	stodftCoefPos->rhoDnChemPot[iChem] = (double*)cmalloc(rhoRealGridTot*sizeof(double));
+      }
+      stodftCoefPos->rhoDnCorrect = (double*)cmalloc(rhoRealGridNum*sizeof(double));    
     }
-  }//endif
-  
- 
-  //debug
-  /*
-  if(myidState==1){
-    for(iChem=0;iChem<numChemPot;iChem++){
-      printf("iChem %i densityMap %i indexchemproc %i\n",
-	iChem,stodftInfo->densityMap[iChem],stodftInfo->indexChemProc[iChem]);
+    stodftCoefPos->numElectron = (double*)cmalloc(numChemPot*sizeof(double));
+    
+    genChemPotInterpPoints(stodftInfo,stodftCoefPos);
+    //stodftCoefPos->chemPot[0] = 0.5045818049407941;
+    /*
+    if(myidState==0){
+      for(iChem=0;iChem<numChemPot;iChem++)printf("myid %i numChemProc %i densityMap %i indexChemProc %i\n",myidState,numChemProc,stodftInfo->densityMap[iChem],stodftInfo->indexChemProc[iChem]);
+      fflush(stdout);
     }
+    exit(0);
+    if(myidState==0){
+      printf("myid %i pointer rhoUpChemPot[0] %p\n",myidState,stodftCoefPos->rhoUpChemPot[0]);
+    }
+    */
+  }else{//don't do interpolation
+    stodftInfo->rhoRealGridNum = numFFT2Proc;
+    rhoRealGridNum = stodftInfo->rhoRealGridNum;
+    stodftInfo->rhoRealGridTot = numFFT2;
+    rhoRealGridTot = numFFT2;
+    //if(myidState==0){
+    stodftCoefPos->rhoUpChemPot = (double**)cmalloc(sizeof(double*));
+    if(myidState==0){
+      stodftCoefPos->rhoUpChemPot[0] = (double*)cmalloc(rhoRealGridTot*sizeof(double));
+    }
+    stodftCoefPos->rhoUpCorrect = (double*)cmalloc(rhoRealGridNum*sizeof(double));
+    if(cpLsda==1&&numStateDnProc>0){
+      if(myidState==0){
+        stodftCoefPos->rhoDnChemPot = (double**)cmalloc(sizeof(double*));
+        stodftCoefPos->rhoDnChemPot[0] = (double*)cmalloc(rhoRealGridTot*sizeof(double));
+      }
+      stodftCoefPos->rhoDnCorrect = (double*)cmalloc(rhoRealGridNum*sizeof(double));
+    }
+    stodftInfo->rhoRealSendCounts = (int*)cmalloc(numProcStates*sizeof(int));
+    stodftInfo->rhoRealDispls     = (int*)cmalloc(numProcStates*sizeof(int));
+    rhoRealSendCounts = stodftInfo->rhoRealSendCounts;
+    rhoRealDispls = stodftInfo->rhoRealDispls;
+    if(numProcStates>1){
+      if(myidState==0){
+        rhoRealSendCounts[0] = numFFT2Proc;
+        for(iProc=1;iProc<numProcStates;iProc++){
+          Recv(&rhoRealSendCounts[iProc],1,MPI_INT,iProc,iProc,comm_states);
+        }//endfor iProc
+      }//endif
+      else{
+        Send(&numFFT2Proc,1,MPI_INT,0,myidState,comm_states);
+      }
+      Barrier(comm_states);
+      Bcast(rhoRealSendCounts,numProcStates,MPI_INT,0,comm_states);
+      Barrier(comm_states);
+      rhoRealDispls[0] = 0;
+      for(iProc=1;iProc<numProcStates;iProc++){
+        rhoRealDispls[iProc] = rhoRealDispls[iProc-1]+rhoRealSendCounts[iProc-1];
+      }
+    }//endif    
   }
-  exit(0);
-  */
-
-  stodftCoefPos->rhoUpChemPot = (double**)cmalloc(numChemProc*sizeof(double*));
-  for(iChem=0;iChem<numChemProc;iChem++){
-    stodftCoefPos->rhoUpChemPot[iChem] = (double*)cmalloc(rhoRealGridTot*sizeof(double));
-  }
-  stodftCoefPos->rhoUpCorrect = (double*)cmalloc(rhoRealGridNum*sizeof(double));
-  if(cpLsda==1&&numStateDnProc>0){
-    stodftCoefPos->rhoDnChemPot = (double**)cmalloc(numChemProc*sizeof(double*));
-    for(iChem=0;iChem<numChemProc;iChem++){
-      stodftCoefPos->rhoDnChemPot[iChem] = (double*)cmalloc(rhoRealGridTot*sizeof(double));
-    }
-    stodftCoefPos->rhoDnCorrect = (double*)cmalloc(rhoRealGridNum*sizeof(double));    
-  }
-  stodftCoefPos->numElectron = (double*)cmalloc(numChemPot*sizeof(double));
-  
-  genChemPotInterpPoints(stodftInfo,stodftCoefPos);
-  //stodftCoefPos->chemPot[0] = 0.5045818049407941;
 
 /*==========================================================================*/
 /* VII) Initialize density mixing                                           */
@@ -567,12 +640,19 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   }
   
   if(densityMixFlag>0){//do mix
-    stodftCoefPos->rhoUpBank = (double**)cmalloc(numDiis*sizeof(double*));
-    stodftCoefPos->rhoDnBank = (double**)cmalloc(numDiis*sizeof(double*));
+    stodftCoefPos->rhoUpBank = (double**)cmalloc((numDiis+1)*sizeof(double*));
+    stodftCoefPos->rhoDnBank = (double**)cmalloc((numDiis+1)*sizeof(double*));
     stodftCoefPos->rhoUpErr = (double**)cmalloc(numDiis*sizeof(double*));
     stodftCoefPos->rhoDnErr = (double**)cmalloc(numDiis*sizeof(double*));
     stodftCoefPos->rhoUpOld = (double*)cmalloc(rhoRealGridNum*sizeof(double));
     stodftCoefPos->rhoDnOld = (double*)cmalloc(rhoRealGridNum*sizeof(double));
+
+    for(iDiis=0;iDiis<numDiis;iDiis++){
+      stodftCoefPos->rhoUpBank[iDiis] = NULL;
+      stodftCoefPos->rhoDnBank[iDiis] = NULL;
+      stodftCoefPos->rhoUpErr[iDiis] = NULL;
+      stodftCoefPos->rhoDnErr[iDiis] = NULL;
+    }
 
     stodftInfo->mixRatioBig = 0.9; // Can tune this parameter
     if(densityMixFlag>1){
@@ -583,7 +663,51 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   }
 
 /*==========================================================================*/
-/* VIII) Initialize Fragmentation                                           */
+/* VII) Initialize dynamic density                                          */
+
+  stodftInfo->chemPotHistory = (double*)cmalloc(numScf*sizeof(double));
+
+
+/*==========================================================================*/
+/* VIII) Initialize density output                                          */
+
+  // master proc only check existance
+  if(myidState==0){
+    printf("%s\n",stodftInfo->densityFileName);
+    densityFile = NULL;
+    densityFile = cfopen(stodftInfo->densityFileName,"w");
+    if(densityFile!=NULL)fclose(densityFile);
+  }
+
+/*==========================================================================*/
+/* IX) Initialize backup determ wf                                          */
+
+  if(filterDiagFlag==1){
+    stodftInfo->numStatesDet = numElecTrue/2;
+    int numStatesDet = stodftInfo->numStatesDet;
+    if(myidState==0){
+      stodftCoefPos->wfUpReDet = (double*)cmalloc(numStatesDet*numCoeff*sizeof(double));
+      stodftCoefPos->wfUpImDet = (double*)cmalloc(numStatesDet*numCoeff*sizeof(double));
+    }
+    if(numProcStates>1){
+      stodftInfo->numStatesAllDet = (int*)cmalloc(numProcStates*sizeof(int));
+      int *numStatesAllDet = stodftInfo->numStatesAllDet;
+      Barrier(comm_states);
+      Allgather(&numStateUpTot,1,MPI_INT,numStatesAllDet,1,MPI_INT,0,comm_states);
+      Barrier(comm_states);
+    
+      stodftInfo->dsplStatesAllDet = (int*)cmalloc(numProcStates*sizeof(int));
+      int *dsplStatesAllDet = stodftInfo->dsplStatesAllDet;
+      dsplStatesAllDet[0] = 0;
+      for(iProc=1;iProc<numProcStates;iProc++){
+	dsplStatesAllDet[iProc] = dsplStatesAllDet[iProc-1]+numStatesAllDet[iProc-1];
+      }
+      Barrier(comm_states);
+    }
+  }
+
+/*==========================================================================*/
+/* X) Initialize Fragmentation                                           */
 
   /*
   if(calcFragFlag==1){// We don't initialize frag scf here
@@ -741,7 +865,7 @@ void reInitWaveFunMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     Barrier(comm_states);
     Bcast(noiseSendCounts,numProcStates,MPI_INT,0,comm_states);
     Barrier(comm_states);
-    printf("0 %i 1 %i 2 %i 3 %i\n",noiseSendCounts[0],noiseSendCounts[1],noiseSendCounts[2],noiseSendCounts[3]); 
+    //printf("0 %i 1 %i 2 %i 3 %i\n",noiseSendCounts[0],noiseSendCounts[1],noiseSendCounts[2],noiseSendCounts[3]); 
     noiseDispls[0] = 0;
     for(iProc=1;iProc<numProcStates;iProc++){
       noiseDispls[iProc] = noiseDispls[iProc-1]+noiseSendCounts[iProc-1];
@@ -1513,4 +1637,139 @@ void reallocScratch(CP *cp,int hess_calc)
 /*-----------------------------------------------------------------------*/
   }/* end routine */
 /*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void initFilterDiag(CP *cp)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+#include "../typ_defs/typ_mask.h"
+
+  CPCOEFFS_INFO *cpcoeffs_info    = &(cp->cpcoeffs_info);
+  STODFTINFO    *stodftInfo       = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos    = cp->stodftCoefPos;
+  COMMUNICATE *communicate      = &(cp->communicate);
+
+  int iChem,iCoeff,iState,jState,iProc;
+  int index1,index2;
+  int numChemPot     = stodftInfo->numChemPot;
+  int numStateUpProc = cpcoeffs_info->nstate_up_proc;
+  int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
+  int numStateUpTotal = stodftInfo->numStateStoUp;
+  int numCoeff       = cpcoeffs_info->ncoef;
+  int numCoeffUpTotal = numStateUpProc*numCoeff;
+  int numCoeffDnTotal = numStateDnProc*numCoeff;
+  int numCoeffUpAllChemPot = numCoeffUpTotal*numChemPot;
+  int numCoeffUpAllProc = numChemPot*numStateUpTotal*numCoeff;
+  int numStateUpAllProc = numChemPot*numStateUpTotal;
+  int numStateUpIdp = stodftInfo->numStateUpIdp;
+  int numElecTrue = stodftInfo->numElecTrue;
+  int numOccState = numElecTrue/2;
+  int numStateProcTot = numStateUpProc*numChemPot;
+  int stateIndex;
+  int myidState = communicate->myid_state;
+  int numProcStates = communicate->np_states;
+  MPI_Comm comm_states = communicate->comm_states;
+  
+  int *stowfRecvCounts,*stowfDispls;
+  int *numStates;
+  int *dsplStates;
+
+  double pre = sqrt(2.0);
+
+  double *numOccDetAll,*numOccDetProc;
+
+/*===========================================================================*/
+/* I) Malloc the vectors  */
+  //printf("numStateUpProc %i\n",numStateUpProc);
+
+  if(myidState==0){
+    printf("Start Initializing Filter Diagonalization!\n");
+    stodftCoefPos->wfBfOrthUp = (double *)cmalloc(2*numCoeffUpAllProc*
+				sizeof(double));
+    stodftCoefPos->wfOrthUpRe = (double *)cmalloc(numCoeffUpAllProc*
+				sizeof(double))-1;
+    stodftCoefPos->wfOrthUpIm = (double *)cmalloc(numCoeffUpAllProc*
+				sizeof(double))-1;
+    stodftCoefPos->KSMatrix = (double *)cmalloc(numStateUpAllProc*numStateUpAllProc*
+				sizeof(double));
+  }
+  stodftCoefPos->energyLevel = (double*)cmalloc(numStateUpAllProc*sizeof(double));
+  stodftCoefPos->moUpRe = (double*)cmalloc(numCoeffUpTotal*numChemPot*sizeof(double))-1;
+  stodftCoefPos->moUpIm = (double*)cmalloc(numCoeffUpTotal*numChemPot*sizeof(double))-1;
+/*===========================================================================*/
+/* II) MPI things  */
+
+  stodftInfo->stowfRecvCounts = (int*)cmalloc(numProcStates*sizeof(int));
+  stodftInfo->stowfDispls = (int*)cmalloc(numProcStates*sizeof(int));
+  stodftInfo->stowfRecvCountsComplex = (int*)cmalloc(numProcStates*sizeof(int));
+  stodftInfo->stowfDisplsComplex = (int*)cmalloc(numProcStates*sizeof(int));
+  stodftInfo->numStates = (int*)cmalloc(numProcStates*sizeof(int));
+  stodftInfo->dsplStates = (int*)cmalloc(numProcStates*sizeof(int));
+
+  stowfRecvCounts = stodftInfo->stowfRecvCounts;
+  stowfDispls = stodftInfo->stowfDispls;
+  numStates = stodftInfo->numStates;
+  dsplStates = stodftInfo->dsplStates;
+  Barrier(comm_states);
+
+  Allgather(&numCoeffUpAllChemPot,1,MPI_INT,stowfRecvCounts,1,MPI_INT,0,comm_states);
+  //Gather(&numCoeffUpAllProc,1,MPI_INT,stowfRecvCounts,numProcStates,MPI_INT,0,comm_states); 
+  //Bcast(stowfRecvCounts,numProcStates,MPI_INT,0,comm_states);
+  Barrier(comm_states);
+
+  stowfDispls[0] = 0;
+  for(iProc=1;iProc<numProcStates;iProc++){
+    stowfDispls[iProc] = stowfDispls[iProc-1]+stowfRecvCounts[iProc-1];
+  }
+  for(iProc=0;iProc<numProcStates;iProc++){
+    stodftInfo->stowfRecvCountsComplex[iProc ] = stowfRecvCounts[iProc]*2;
+    stodftInfo->stowfDisplsComplex[iProc] = stowfDispls[iProc]*2;
+  }
+
+  if(myidState==0){
+    stodftInfo->numOccDetAll = (double*)cmalloc(numStateUpAllProc*sizeof(double));
+    for(iState=0;iState<numStateUpAllProc;iState++){
+      if(iState<numOccState)stodftInfo->numOccDetAll[iState] = pre;
+      else stodftInfo->numOccDetAll[iState] = 0;
+    }
+  }
+  Allgather(&numStateProcTot,1,MPI_INT,numStates,1,MPI_INT,0,comm_states); 
+  dsplStates[0] = 0;
+  for(iProc=1;iProc<numProcStates;iProc++){
+    dsplStates[iProc] = dsplStates[iProc-1]+numStates[iProc-1];
+  }
+
+  if(myidState==0){
+    stodftInfo->stateStartIndex = 0;
+    stateIndex = 0;
+    for(iProc=1;iProc<numProcStates;iProc++){
+      stateIndex += numStates[iProc];
+      Send(&stateIndex,1,MPI_INT,iProc,iProc,comm_states);
+    }
+  }
+  if(myidState!=0){ 
+    Recv(&(stodftInfo->stateStartIndex),1,MPI_INT,0,myidState,comm_states);
+  }
+  Barrier(comm_states);
+  stateIndex = stodftInfo->stateStartIndex;
+  stodftInfo->numOccDetProc = (double*)cmalloc(numStateProcTot*sizeof(double));
+  for(iState=0;iState<numStateProcTot;iState++){
+    if(iState+stateIndex<numOccState)stodftInfo->numOccDetProc[iState] = pre;
+    else stodftInfo->numOccDetProc[iState] = 0;
+  }
+  if(myidState==0)printf("Finish Initializing Filter Diagonalization!\n");
+
+  //exit(0);
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
+
+
 

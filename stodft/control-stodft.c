@@ -70,6 +70,7 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int iTime;
   int ip_now = 1;
   int reInitFlag;
+  int filterDiagFlag;
   int calcFragFlag;
 
   double elecEnergy,elecEnergyOld,elecEnergyOldTemp,elecEnergyTemp;
@@ -99,7 +100,8 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
   initStodft(class,bonded,general_data,cp,ip_now);
   reInitFlag = cp->stodftInfo->reInitFlag;
-
+  stodftInfo = cp->stodftInfo;
+  stodftCoefPos = cp->stodftCoefPos;
 
   //fflush(stdout);
   //exit(0);
@@ -166,6 +168,13 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     reInitWaveFunMin(class,bonded,general_data,cp,ip_now);
   }
 
+  filterDiagFlag = 0;
+  cp->stodftInfo->filterDiagFlag = 0;
+  if(filterDiagFlag==1){
+    initFilterDiag(cp);
+  }
+
+
   //exit(0);
 /*======================================================================*/
 /* V) If needed, calculate the fragmentation                            */
@@ -194,8 +203,13 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     PRINT_LINE_STAR;
     printf("Initial SP\n");
     PRINT_LINE_DASH;
-  }  
-  scfStodft(class,bonded,general_data,cp,ip_now);
+  }
+  if(filterDiagFlag==0){
+    if(stodftInfo->chemPotOpt==1)scfStodftInterp(class,bonded,general_data,cp,ip_now);
+    else if(stodftInfo->chemPotOpt==2)scfStodftCheby(class,bonded,general_data,cp,ip_now);
+  }
+  else scfStodftFilterDiag(class,bonded,general_data,cp,ip_now);
+  //scfStodft(class,bonded,general_data,cp,ip_now);
    
 /*======================================================================*/
 /* V) Loop over the specified number of time steps for geometric	*/
@@ -225,7 +239,7 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }/*endif*/
 
   //Minimize with stochastic dft
-  scfStodft(class,bonded,general_data,cp,ip_now);
+  scfStodftInterp(class,bonded,general_data,cp,ip_now);
   elecEnergy     = stat_avg->cp_eke
 		 + stat_avg->cp_enl
 		 + stat_avg->cp_ehart

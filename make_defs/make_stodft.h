@@ -97,7 +97,7 @@ calc-chempot.o :	 $(STANDARD) $(DEFINES) \
 	$(ECHO) $@
 	$(COBJ) $(DCODE)/stodft/calc-chempot.c
 
-diis.o :                $(STANDARD) $(DEFINES) \
+diis.o :                 $(STANDARD) $(DEFINES) \
                          $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
                          $(TYP_STAT) \
                          $(TYP_CP) $(TYP_PAR) \
@@ -107,5 +107,68 @@ diis.o :                $(STANDARD) $(DEFINES) \
 
 	$(ECHO) $@
 	$(COBJ) $(DCODE)/stodft/diis.c
-                        
+
+filter-diag.o :          $(STANDARD) $(DEFINES) \
+                         $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
+                         $(TYP_STAT) \
+                         $(TYP_CP) $(TYP_PAR) \
+                         $(FRND_ENT) $(MATH) \
+                         $(STODFT_LOC) \
+                         $(DCODE)/stodft/filter-diag.c
+	$(ECHO) $@
+	$(COBJ) $(DCODE)/stodft/filter-diag.c
+
+calc-chempot-chebyshev.o:$(STANDARD) $(DEFINES) \
+                         $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
+                         $(TYP_STAT) \
+                         $(TYP_CP) $(TYP_PAR) \
+                         $(FRND_ENT) $(MATH) \
+                         $(STODFT_LOC) \
+                         $(DCODE)/stodft/calc-chempot-chebyshev.c
+	$(ECHO) $@
+	$(COBJ) $(DCODE)/stodft/calc-chempot-chebyshev.c
+
+calc-spectral-range.o :  $(STANDARD) $(DEFINES) \
+                         $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
+                         $(TYP_STAT) \
+                         $(TYP_CP) $(TYP_PAR) \
+                         $(FRND_ENT) $(MATH) \
+                         $(ENR_CP_LOC) $(ENR_CPCON_LOC) $(STODFT_LOC) \
+                         $(DCODE)/stodft/calc-spectral-range.c
+	$(ECHO) $@
+	$(COBJ) $(DCODE)/stodft/calc-spectral-range.c
+
+gen-noise.o :            $(STANDARD) $(DEFINES) \
+                         $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
+                         $(TYP_STAT) \
+                         $(TYP_CP) $(TYP_PAR) \
+                         $(FRND_ENT) $(MATH) \
+                         $(ENR_CP_LOC) $(ENR_CPCON_ENT) $(ENR_CPCON_LOC)\
+                         $(STODFT_LOC) \
+                         $(DCODE)/stodft/gen-noise.c
+	$(ECHO) $@
+	$(COBJ) $(DCODE)/stodft/gen-noise.c
+
+gen-stodft-wf.o :        $(STANDARD) $(DEFINES) \
+                         $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
+                         $(TYP_STAT) \
+                         $(TYP_CP) $(TYP_PAR) \
+                         $(FRND_ENT) $(MATH) \
+                         $(ENR_CP_LOC) $(ENR_CPCON_ENT) $(ENR_CPCON_LOC)\
+                         $(STODFT_LOC) \
+                         $(DCODE)/stodft/gen-stodft-wf.c
+	$(ECHO) $@
+	$(COBJ) $(DCODE)/stodft/gen-stodft-wf.c
+
+calc-energy.o :          $(STANDARD) $(DEFINES) \
+                         $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
+                         $(TYP_STAT) \
+                         $(TYP_CP) $(TYP_PAR) \
+                         $(FRND_ENT) $(MATH) \
+                         $(ENR_CP_LOC) $(ENR_CPCON_ENT) $(ENR_CPCON_LOC)\
+                         $(STODFT_LOC) \
+                         $(DCODE)/stodft/calc-energy.c
+	$(ECHO) $@
+	$(COBJ) $(DCODE)/stodft/calc-energy.c
+                      
 #------------------------------------------------------------------

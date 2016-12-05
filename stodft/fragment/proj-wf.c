@@ -5,84 +5,44 @@
 /*                         PI_MD:                                           */
 /*             The future of simulation technology                          */
 /*             ------------------------------------                         */
-/*                     Module: frag-scf.c                                   */
+/*                     Module: proj-wf.c                                    */
 /*                                                                          */
 /* Driver Routine for fragment SCF calculation                              */
 /*                                                                          */
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-
-
 #include "standard_include.h"
 #include "../typ_defs/typedefs_gen.h"
 #include "../typ_defs/typedefs_class.h"
 #include "../typ_defs/typedefs_bnd.h"
 #include "../typ_defs/typedefs_cp.h"
 #include "../typ_defs/typedefs_stat.h"
-#include "../proto_defs/proto_energy_cpcon_entry.h"
-#include "../proto_defs/proto_energy_cpcon_local.h"
-#include "../proto_defs/proto_energy_cp_local.h"
 #include "../proto_defs/proto_friend_lib_entry.h"
 #include "../proto_defs/proto_communicate_wrappers.h"
 #include "../proto_defs/proto_math.h"
-//#include "../proto_defs/proto_stodft_local.h"
-#include "../proto_defs/proto_integrate_cpmin_entry.h"
-#include "../proto_defs/proto_interface_frag_entry.h"
 #include "../proto_defs/proto_frag_local.h"
-
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
-            CP *cp,ANALYSIS *analysis,GENERAL_DATA *generalDataMini,
-	    CP *cpMini,CLASS *classMini,ANALYSIS *analysisMini,BONDED *bondedMini,
-	    int ip_now)
+void copyDataMini(cp,cpMini,generalDataMini)
 /*========================================================================*/
 {/*begin routine*/
 /*========================================================================*/
 /*             Local variable declarations                                */
-  STODFTINFO *stodftInfo = cp->stodftInfo;
-  FRAGINFO *fragInfo	 = stodftInfo->fragInfo;
-  
-  int numFragProc = fragInfo->numFragProc;
-  int iFrag;
-  
-  for(iFrag=0;iFrag<numFragProc;iFrag++){
-/*======================================================================*/
-/* I) Allocate Mini Structures                                          */
 
 /*======================================================================*/
-/* I) Initialize Fragment SCF					        */
-    
-    /*
-    parseFrag(class,bonded,general_data,cp,analysis,&classMini[iFrag],&bondedMini[iFrag],
-           &generalDataMini[iFrag],&cpMini[iFrag],&analysisMini[iFrag]);
-    */
+/* I) Transform fragment wf to real spaces                              */
 
 /*======================================================================*/
-/* II) SCF LOOP					                        */
+/* I) Transform fragment wf to real spaces                              */
 
-    controlCpMinFrag(classMini,bondedMini,generalDataMini,
-                     cpMini,analysisMini);      
 
-/*======================================================================*/
-/* II) Transfer Data and Free Memory				        */
-    
-    copyDataMini(cp,cpMini,generalDataMini);
-    //freeAllMini(generalDataMini,cpMini,classMini,analysisMini,bondedMini);
-  }
+
+
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/
-
-
-
-
-
-
-
-
 
 
 

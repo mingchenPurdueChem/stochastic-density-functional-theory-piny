@@ -188,6 +188,7 @@ void controlCpMinFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       else{
         if((ireset==1)&&(general_data->minopts.cp_min_cg==1)&&(elec_e-elec_e_old)>0){
           cp->cpcoeffs_info.cg_reset_flag = 1;
+	  /*
 	  printf("elec_e %lg elec_e_old %lg\n",elec_e,elec_e_old);
 	  
           if(myid==0){
@@ -195,6 +196,7 @@ void controlCpMinFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
            printf("Resetting CP Conjugate Gradient\n");
            printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
           }// endif 
+	  */
 	  
           if(iopt_cp_pw) cp_shuffle_states(cp,1);
         }/*endif:reset cg*/

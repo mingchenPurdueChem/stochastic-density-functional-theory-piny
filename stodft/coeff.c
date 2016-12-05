@@ -27,6 +27,7 @@
 #include "../proto_defs/proto_stodft_local.h"
 
 #define TIME_CP_OFF
+#define SQRTFERMI
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
@@ -38,7 +39,10 @@ void genNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
 /*************************************************************************/
 /* This routine first guess a polynormial chain by an emperical formular */
 /* The chain length is then increased to satisfied the fitting error for */
-/* ALL different chemical potentials					 */
+/* ALL different chemical potentials. I'd like to put the chemPot and	 */
+/* numChemPot in the argument since we also need this when we use cheby  */
+/* to calculate chemical potential. In this case we have numChemPot=1	 */
+/* but I want to estimate polynormLength for two chem pots.		 */
 /*************************************************************************/
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
@@ -49,13 +53,13 @@ void genNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   double fitErr;
   double beta = stodftInfo->beta;
   double energyDiff = stodftInfo->energyDiff;
-  double *chemPot          = stodftCoefPos->chemPot;
   double *sampPoint;
   double *expanCoeff;
   double *sampPointUnscale;
+  double *chemPot = stodftCoefPos->chemPot;
 
+  int polynormLength = (int)(2.0*beta*energyDiff); //initial chain length, try drop the mutiplier 4.0 2.0->1.0
   int numChemPot     = stodftInfo->numChemPot;
-  int polynormLength = (int)(2.0*beta*energyDiff); //initial chain length, try drop the mutiplier 4.0
   int totalPoly      = polynormLength*numChemPot;  //iniital total polynormial
 
   FERMIFUNR fermiFunction = stodftInfo->fermiFunctionReal;
@@ -66,15 +70,17 @@ void genNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   printf("==============================================\n");
   printf("Start Calculating Polynormial Chain Length:\n");
   stodftInfo->polynormLength = polynormLength;
-  stodftCoefPos->expanCoeff = (double *)cmalloc(totalPoly*sizeof(double));
-  newtonInfo->sampPoint = (double *)cmalloc(polynormLength*sizeof(double));
-  newtonInfo->sampPointUnscale = (double *)cmalloc(polynormLength*sizeof(double));
- 
+  stodftCoefPos->expanCoeff = (double *)crealloc(stodftCoefPos->expanCoeff,
+						totalPoly*sizeof(double));
+  newtonInfo->sampPoint = (double *)crealloc(newtonInfo->sampPoint,
+					     polynormLength*sizeof(double));
+  newtonInfo->sampPointUnscale = (double *)crealloc(newtonInfo->sampPointUnscale,
+						    polynormLength*sizeof(double));
   genSampNewtonHermit(stodftInfo,stodftCoefPos);  
   
   genCoeffNewtonHermit(stodftInfo,stodftCoefPos);
   
-  fitErr = calcFitError(stodftInfo,stodftCoefPos);
+  fitErr = calcFitErrorNewton(stodftInfo,stodftCoefPos);
   
   printf("-----------------------------------------------\n");
   printf("Polynormial Length %i\n",polynormLength);
@@ -86,24 +92,28 @@ void genNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
 /*     torlerance */
 
   while(fitErr>fitErrTol){
-    free(stodftCoefPos->expanCoeff);
-    free(newtonInfo->sampPoint);
-    free(newtonInfo->sampPointUnscale);
+    //free(stodftCoefPos->expanCoeff);
+    //free(newtonInfo->sampPoint);
+    //free(newtonInfo->sampPointUnscale);
     polynormLength += 1000;
     stodftInfo->polynormLength = polynormLength;
     totalPoly = polynormLength*numChemPot;
-    stodftCoefPos->expanCoeff = (double *)cmalloc(totalPoly*sizeof(double));
-    newtonInfo->sampPoint = (double *)cmalloc(polynormLength*sizeof(double));
-    newtonInfo->sampPointUnscale = (double *)cmalloc(polynormLength*sizeof(double));
+    stodftCoefPos->expanCoeff = (double *)crealloc(stodftCoefPos->expanCoeff,
+						    totalPoly*sizeof(double));
+    newtonInfo->sampPoint = (double *)crealloc(newtonInfo->sampPoint,
+						polynormLength*sizeof(double));
+    newtonInfo->sampPointUnscale = (double *)crealloc(newtonInfo->sampPointUnscale,
+						    polynormLength*sizeof(double));
     
     genSampNewtonHermit(stodftInfo,stodftCoefPos);
     genCoeffNewtonHermit(stodftInfo,stodftCoefPos);
-    fitErr = calcFitError(stodftInfo,stodftCoefPos);  
+    fitErr = calcFitErrorNewton(stodftInfo,stodftCoefPos);  
     printf("-----------------------------------------------\n");
     printf("Polynormial Length %i\n",polynormLength);
     printf("Fitting Error %lg Tolerance %lg\n",fitErr,fitErrTol);
     fflush(stdout);
   }
+
   printf("Finish Calculating Polynormial Chain Length.\n");
   printf("The final Polynormial Chain Length is %i.\n",polynormLength);
   printf("==============================================\n");
@@ -114,6 +124,63 @@ void genNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
 }/*end Routine*/
 /*==========================================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void genNewtonHermitTrueChemPot(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* Calculate expanCoeff for different chemical potentials                */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+
+  NEWTONINFO *newtonInfo  = stodftInfo->newtonInfo;
+
+  double fitErrTol = stodftInfo->fitErrTol;
+  double fitErr;
+  double beta = stodftInfo->beta;
+  double energyDiff = stodftInfo->energyDiff;
+  double *sampPoint;
+  double *expanCoeff;
+  double *sampPointUnscale;
+  double *chemPot = stodftCoefPos->chemPot;
+
+  int numChemPot = stodftInfo->numChemPot;
+  int polynormLength = stodftInfo->polynormLength; //initial chain length, try drop the mutiplier 4.0
+  int totalPoly      = polynormLength*numChemPot;  //iniital total polynormial
+
+  FERMIFUNR fermiFunction = stodftInfo->fermiFunctionReal;
+/*==========================================================================*/
+/* I) Generate coeffcients for initial chain length  */
+  
+  printf("chemPot %.16lg\n",chemPot[0]);
+
+  printf("==============================================\n");
+  printf("Start Calculating Polynormial Coeffcients w.r.t true Chem Pot:\n");
+  //free(stodftCoefPos->expanCoeff);
+  //free(newtonInfo->sampPoint);
+  //free(newtonInfo->sampPointUnscale);
+
+  stodftCoefPos->expanCoeff = (double *)crealloc(stodftCoefPos->expanCoeff,
+                                                totalPoly*sizeof(double));
+  newtonInfo->sampPoint = (double *)crealloc(newtonInfo->sampPoint,
+                                             polynormLength*sizeof(double));
+  newtonInfo->sampPointUnscale = (double *)crealloc(newtonInfo->sampPointUnscale,
+                                                    polynormLength*sizeof(double));
+  genSampNewtonHermit(stodftInfo,stodftCoefPos);
+
+  genCoeffNewtonHermit(stodftInfo,stodftCoefPos);
+  
+  fitErr = calcFitErrorNewton(stodftInfo,stodftCoefPos);
+  printf("fit error %.16lg\n",fitErr);
+  //exit(0);
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
 
 
 /*==========================================================================*/
@@ -162,12 +229,30 @@ void genCoeffNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   cputime(&timeStart);  
  
   for(imu=0;imu<numChemPot;imu++){
+    printf("chemPot %.16lg\n",chemPot[imu]);
+    #ifdef SQRTFERMI
+    funValue = sqrt(fermiFunction(sampPointUnscale[0],chemPot[imu],beta));
+    #else
     funValue = fermiFunction(sampPointUnscale[0],chemPot[imu],beta);
+    #endif
+
     expanCoeff[imu] = funValue;
+
+    #ifdef SQRTFERMI
+    funValue = sqrt(fermiFunction(sampPointUnscale[1],chemPot[imu],beta));
+    #else
     funValue = fermiFunction(sampPointUnscale[1],chemPot[imu],beta);
+    #endif
+
     expanCoeff[numChemPot+imu] = (funValue-expanCoeff[imu])/(sampPoint[1]-sampPoint[0]);
     for(iPoly=2;iPoly<polynormLength;iPoly++){
+
+      #ifdef SQRTFERMI
+      funValue = sqrt(fermiFunction(sampPointUnscale[iPoly],chemPot[imu],beta));
+      #else
       funValue = fermiFunction(sampPointUnscale[iPoly],chemPot[imu],beta);
+      #endif
+
       sum = funValue-expanCoeff[imu];
       prod = 1.0;
       for(jPoly=1;jPoly<iPoly;jPoly++){
@@ -186,7 +271,7 @@ void genCoeffNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   
   FILE *filecoeff = fopen("coeff-out","w");
   for(iPoly=0;iPoly<polynormLength;iPoly++){
-    fprintf(filecoeff,"%i %lg\n",iPoly,log(fabs(expanCoeff[iPoly*numChemPot])));
+    fprintf(filecoeff,"%i %.16lg\n",iPoly,expanCoeff[iPoly*numChemPot]);
   }
   fclose(filecoeff);
   
@@ -198,6 +283,7 @@ void genCoeffNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   }
   fclose(fileCoeff); 
   */
+  //exit(0);
 
 /*==========================================================================*/
 }/*end Routine*/
@@ -238,6 +324,7 @@ void genSampNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
 /* 0) Generate sample candidates in range [Smin,Smax] */
   cputime(&timeStart); 
  
+  stodftInfo->polynormLength = polynormLength;
   for(iCand=0;iCand<numSampCand;iCand++)sampCand[iCand] = Smin+iCand*delta;
 
 /*==========================================================================*/
@@ -278,13 +365,17 @@ void genSampNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   
   cputime(&timeEnd);
   printf("Samp time %lg\n",timeEnd-timeStart);
+  
   /*
   FILE *fileSampPoint = fopen("samp-point","w");
   for(iPoly=0;iPoly<polynormLength;iPoly++){
-    fprintf(fileSampPoint,"%.13lg\n",sampPoint[iPoly]);
+    fprintf(fileSampPoint,"%.16lg %.16lg\n",sampPoint[iPoly],sampPointUnscale[iPoly]);
   }
   fclose(fileSampPoint);
   */
+  
+  free(&sampCand[0]);
+  free(&objValueArray[0]);
 
 /*==========================================================================*/
 }/*end Routine*/
@@ -388,7 +479,7 @@ void genEigenOrb(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-double calcFitError(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
+double calcFitErrorNewton(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
@@ -433,7 +524,13 @@ double calcFitError(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
 	prod *= pointScale-sampPoint[iPoly-1];
 	funValue += expanCoeff[iPoly*numChemPot+iChem]*prod;
       }
+      #ifdef SQRTFERMI
+      funBM = sqrt(fermiFunction(pointTest,chemPot[iChem],beta));
+      #else
       funBM = fermiFunction(pointTest,chemPot[iChem],beta);
+      #endif
+      //funBM = fermiFunction(pointTest,chemPot[iChem],beta);
+      //funBM = sqrt(fermiFunction(pointTest,chemPot[iChem],beta));
       diff = fabs(funValue-funBM);
       if(diff>fitErr)fitErr = diff;
       //printf("TestFunExpan %lg %lg %lg %lg\n",pointTest,pointScale,funValue,funBM);
@@ -447,4 +544,126 @@ double calcFitError(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void calcChebyCoeff(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
+		    double chemPot,double *chebyCoeffs)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+  CHEBYSHEVINFO *chebyshevInfo = stodftInfo->chebyshevInfo;
+
+  int iGrid,iCoeff;
+  int polynormLength = stodftInfo->polynormLength;
+  int numChebyMoments = stodftInfo->numChebyMoments;
+  int numChebyGrid = stodftInfo->numChebyGrid;
+  double energyDiff = stodftInfo->energyDiff*0.5;
+  double energyMean = stodftInfo->energyMean;
+  double beta = stodftInfo->beta;
+  double x;
+  double pre = 2.0*M_PI;
+
+  fftw_plan fftwPlanForward = stodftInfo->fftwPlanForward;
+  fftw_complex *chebyCoeffsFFT = stodftCoefPos->chebyCoeffsFFT;
+  fftw_complex *funValGridFFT = stodftCoefPos->funValGridFFT;
+
+  FERMIFUNR fermiFunction = stodftInfo->fermiFunctionReal;
+
+  for(iGrid=0;iGrid<numChebyGrid;iGrid++){
+    x = energyDiff*cos(pre*(double)iGrid/(double)numChebyGrid)+energyMean;
+    funValGridFFT[iGrid] = fermiFunction(x,chemPot,beta);
+    //printf("x %lg funVal %lg\n",x,funValGridFFT[iGrid]);
+  }
+  
+  fftw_execute(fftwPlanForward);
+  
+  for(iCoeff=1;iCoeff<polynormLength;iCoeff++){
+    //printf("real %lg\n",creal(chebyCoeffsFFT[iCoeff]));
+    chebyCoeffs[iCoeff] = 2.0*creal(chebyCoeffsFFT[iCoeff])/(double)numChebyGrid;
+  }
+  chebyCoeffs[0] = creal(chebyCoeffsFFT[0])/(double)numChebyGrid;
+
+  //testChebyCoeff(stodftInfo,stodftCoefPos,chemPot,chebyCoeffs);
+  //exit(0);
+  
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void testChebyCoeff(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
+                    double chemPot,double *chebyCoeffs)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+  CHEBYSHEVINFO *chebyshevInfo = stodftInfo->chebyshevInfo;
+  int numPointTest = 1000;
+  int polynormLength = stodftInfo->polynormLength;
+  int iGrid,iCoeff;
+  
+  double beta       = stodftInfo->beta;
+  double energyMin  = stodftInfo->energyMin;
+  double energyMax  = stodftInfo->energyMax;
+  double energyMean = stodftInfo->energyMean;
+  double deltPoint  = (energyMax-energyMin)/numPointTest;
+  double deltaE = 2.0/(energyMax-energyMin);
+  double point,pointScale;
+  double diff,funTrue;
+  double diffMax = -100000.0;
+
+  FERMIFUNR fermiFunction = stodftInfo->fermiFunctionReal;
+  double *x = (double*)cmalloc(numPointTest*sizeof(double));
+  double *xScale = (double*)cmalloc(numPointTest*sizeof(double));
+  double *T1 = (double*)cmalloc(numPointTest*sizeof(double));
+  double *T2 = (double*)cmalloc(numPointTest*sizeof(double));
+  double *T3 = (double*)cmalloc(numPointTest*sizeof(double));
+  double *funVal = (double*)cmalloc(numPointTest*sizeof(double));
+
+  for(iGrid=0;iGrid<numPointTest;iGrid++){
+    x[iGrid] = energyMin+(iGrid+0.5)*deltPoint;
+    xScale[iGrid] = (x[iGrid]-energyMean)*deltaE;
+  }
+  for(iGrid=0;iGrid<numPointTest;iGrid++){
+    funVal[iGrid] = chebyCoeffs[0]+chebyCoeffs[1]*xScale[iGrid];
+    T1[iGrid] = 1.0;
+    T2[iGrid] = xScale[iGrid];
+  }
+  for(iCoeff=2;iCoeff<polynormLength;iCoeff++){
+    for(iGrid=0;iGrid<numPointTest;iGrid++){
+      T3[iGrid] = 2.0*xScale[iGrid]*T2[iGrid]-T1[iGrid];
+      funVal[iGrid] += chebyCoeffs[iCoeff]*T3[iGrid];
+      T1[iGrid] = T2[iGrid];
+      T2[iGrid] = T3[iGrid];
+    }
+  }
+  for(iCoeff=0;iCoeff<polynormLength;iCoeff++){
+    printf("iCoeff %i coeff %lg\n",iCoeff,chebyCoeffs[iCoeff]);
+  }
+  for(iGrid=0;iGrid<numPointTest;iGrid++){
+    funTrue = fermiFunction(x[iGrid],chemPot,beta);
+    diff = fabs(funTrue-funVal[iGrid]);
+    printf("x %lg xScale %lg funTrue %lg funVal %lg\n",x[iGrid],xScale[iGrid],funTrue,funVal[iGrid]);
+    if(diff>diffMax)diffMax = diff;
+  }
+  printf("diff %.10lg\n",diffMax);  
+
+  free(x);
+  free(xScale);
+  free(T1);
+  free(T2);
+  free(T3);
+  free(funVal);
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
 

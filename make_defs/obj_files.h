@@ -148,7 +148,8 @@ DAFED_FILES           = control_dafed.o integrate_dafed.o dafed_io.o \
                         force_Phi.o force_bias.o force_dafed_final.o 
 STODFT_FILES	      = coeff.o control-stodft.o filters.o init.o \
 			min-CP-stodft.o normh.o density.o density-init.o \
-			calc-chempot.o diis.o
+			calc-chempot.o diis.o filter-diag.o calc-chempot-chebyshev.o \
+                        calc-spectral-range.o gen-noise.o gen-stodft-wf.o calc-energy.o
 FRAG_FILES	      = frag-scf.o init-frag.o parse-frag.o copy-input.o \
 			control-cp-min-frag.o all-control-frag.o all-mall-frag.o \
 			all-read-frag.o gen-wave-frag.o init-coord-hmat-fft.o \

@@ -108,8 +108,57 @@ void gaussran(int nran, int *iseed, int *iseed2, double *qseed, double gauss[])
 }/*end routine*/
 /*========================================================================*/
 
+/*===============================================================*/
+/* Gaussian Random numbers */
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
 
+void gaussran2(int nran, int *iseed, int *iseed2, double *qseed, double gauss[])
 
+/*========================================================================*/
+{/*begin routine*/
+/*========================================================================*/
+/*             Local variable declarations                                */
+   int i,iii,loop;
+   double twopi,rad2,al,r,phi,arg;
+/*========================================================================*/
+/* I) Constants */
+    twopi = 2.0*M_PI;
+    rad2 = sqrt(2.0);
+    loop = nran/2;
+
+/*========================================================================*/
+/* II) Make nran (or nran-1 if nran odd) Gaussian random numbers          */
+    for(i=0;i<loop;i++){
+/*------------------------------------------------------------------------*/
+/* A) uniform random numbers in r and phi */
+       r   = ran_essl(qseed);
+       r   = MAX(r,1e-30);
+       r   = MIN(r,1.0);
+       phi = ran_essl(qseed);
+/*------------------------------------------------------------------------*/
+/* B) Gaussify in x and y*/
+       al  = sqrt(-log(r))*rad2;
+       arg = twopi*phi;
+       gauss[2*i] = al*cos(arg);
+       gauss[2*i+1]   = al*sin(arg);
+     }/*endfor*/
+/*========================================================================*/
+/* III) Make one more if nran is odd */
+    if((nran % 2)!=0){
+       r   = ran_essl(qseed);
+       r   = MAX(r,1e-30);
+       r   = MIN(r,1.0);
+       phi = ran_essl(qseed);
+       arg = twopi*phi;
+       al  = sqrt(-log(r))*rad2;
+       gauss[nran-1] = al*cos(arg);
+     }/*endif*/
+
+/*------------------------------------------------------------------------*/
+}/*end routine*/
+/*========================================================================*/
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
@@ -462,7 +511,14 @@ double ddot1(int n,double *a,int astep,double *b,int bstep)
 }
 /*===============================================================*/
 
+/*===============================================================*/
+/*ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*===============================================================*/
+double ddotBlasWrapper(int n,double *x,int indx,double *y,int indy){
+  return ddot_(&n,x,&indx,y,&indy);
+}
 
+/*===============================================================*/
 
 /*===============================================================*/
 /*ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/

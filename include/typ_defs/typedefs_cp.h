@@ -349,22 +349,26 @@ typedef struct fragInfo{
 				    /* Lth: numFragProc*numAtomFragProc[i]	*/
   double *skinAll;		    /* Lst: Skin of all atoms			*/
 				    /* Lth: natm_tot				*/
-  double **rhoFragProc;		    /* Lst: fragment densities, proc version	*/
+  double **rhoUpFragProc;	    /* Lst: fragment densities, proc version	*/
 				    /* Lth: numFragProc*numGridFragProc[i]	*/
-  double *rhoFragSum;		    /* Lst: Sum of all densities from fragments	*/
+  double **rhoDnFragProc;           /* Lst: fragment densities, proc version    */
+                                    /* Lth: numFragProc*numGridFragProc[i]      */
+  double *rhoUpFragSum;		    /* Lst: Sum of all densities from fragments	*/
 				    /* Lth: rhoRealGridNum			*/
-  double ***coefUpFragProc;	    /* Lst: Occupied orbitals spin up		*/
-				    /* Lth: numFragProc*numElecUpFrag*	        */
-				    /*	    numGridFrac				*/
-  double ***coefUpFragTot;	    /* Lst: Occupied orbitals spin up all frags */
-                                    /* Lth: numFragTot*numElecUpFrag*           */
-                                    /*      numGridFrac                         */
-  double ***coefDnFragProc;         /* Lst: Occupied orbitals spin dn           */
-                                    /* Lth: numFragProc*numElecUpFrag*		*/
-                                    /*      numGridFrac                         */
-  double ***coefDnFragTot;          /* Lst: Occupied orbitals spin dn all frags */
-                                    /* Lth: numFragTot*numElecUpFrag*	        */
-                                    /*      numGridFrac                         */
+  double *rhoDnFragSum;             /* Lst: Sum of all densities from fragments */
+                                    /* Lth: rhoRealGridNum                      */
+  double **coefUpFragProc;	    /* Lst: Occupied orbitals spin up		*/
+				    /* Lth: numFragProc*(numElecUpFrag*	        */
+				    /*	    numGridFrac)			*/
+  double **coefUpFragTot;	    /* Lst: Occupied orbitals spin up all frags */
+                                    /* Lth: numFragTot*(numElecUpFrag*          */
+                                    /*      numGridFrac)                        */
+  double **coefDnFragProc;          /* Lst: Occupied orbitals spin dn           */
+                                    /* Lth: numFragProc*(numElecUpFrag*		*/
+                                    /*      numGridFrac)                        */
+  double **coefDnFragTot;           /* Lst: Occupied orbitals spin dn all frags */
+                                    /* Lth: numFragTot*(numElecUpFrag*	        */
+                                    /*      numGridFrac)                        */
   double **cellHmat;		    /* Lst: cell h-matrix of all fragments	*/
 				    /* Lth: numFragProc*9			*/
   char *molSetName;		    /* Lst: molecular set file name		*/

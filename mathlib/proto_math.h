@@ -145,6 +145,8 @@ double getdeth(double *);
 
 double ddot1(int ,double *,int,double *,int);
 
+double ddotBlasWrapper(int ,double *,int,double *,int);
+
 double dsum1(int ,double *,int);
 
 double dot(double *, double *);
@@ -184,6 +186,8 @@ void  par_cpu_vomit(double ,MPI_Comm ,int ,int ,char []);
 /*----------------------------------------------------------------------*/
 
 void gaussran(int, int *, int *, double *, double *);
+
+void gaussran2(int, int *, int *, double *, double *);
 
 double ran_essl(double *);
 
@@ -297,9 +301,7 @@ void para_fft_gen3d_dvr_bck(double *, double *,PARA_FFT_PKG3D *,int );
 
 /*----------------------------------------------------------------------*/
 /* LAPACK routines */
-
-void LBFGS(int *,int *,double *,double *,double *,int *,double *,int *,
-            double *,double *,double *,int *, int *);
+#ifndef MKL_LAPACK
 
 void ZHETRD(char *,int *,zomplex *,int *,double *,double *,zomplex *,zomplex *,
              int *,int *);
@@ -310,6 +312,9 @@ void ZHEEVR(char *,char *,char *,int *,zomplex *,int *,double *,double *,int *,
              double *,int *,int *,int *,int *);  /* used in Lapack 3.0 */
 void ZHEEVD(char *,char *,int *,zomplex *,int *,double *,zomplex *,int *,double *,
              int *,int *,int *,int *);
+#endif
+void LBFGS(int *,int *,double *,double *,double *,int *,double *,int *,
+            double *,double *,double *,int *, int *);
 
 void ZSIFA(zomplex *,int *,int *,int *,int *);
 void ZSIDI(zomplex *,int *,int *,int *,zomplex *,zomplex *,int *);

@@ -57,6 +57,8 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   MPI_Comm world       = class->communicate.world;
 
   STAT_AVG *stat_avg = &(general_data->stat_avg);
+  STODFTINFO *stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos;
 
   GENERAL_DATA **generalDataMiniPoint = (GENERAL_DATA**)cmalloc(sizeof(GENERAL_DATA*));
   CP **cpMiniPoint = (CP**)cmalloc(sizeof(CP*));

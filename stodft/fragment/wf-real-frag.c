@@ -28,7 +28,7 @@
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void rhoRealCalcDriver(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,
+void rhoRealCalcDriverFrag(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,
 			CP *cp)
 /*========================================================================*/
 {/*begin routine*/
@@ -99,12 +99,12 @@ void rhoRealCalcDriver(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini
 
 
 /*======================================================================*/
-/* IV) Calculate real space wave functions and densities                */
+/* IV) Calculate real space wave functions and densities for fragments  */
 
   rho_scr = rho;
 
-/* ================================================================= */
-/*1) zero density and gradients if necessary                         */
+/*======================================================================*/
+/* V) Calculate real space noise wave function                          */
 
   for(i=1;i<= nfft2;i++){rho_scr[i] = 0.0;
  
@@ -113,6 +113,21 @@ void rhoRealCalcDriver(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void rhoRealCalcDriverFrag(GENERAL_DATA *general,CP *cp,CLASS *class)
+/*========================================================================*/
+{/*begin routine*/
+/*========================================================================*/
+/*             Local variable declarations                                */
+
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/

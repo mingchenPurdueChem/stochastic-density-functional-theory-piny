@@ -369,6 +369,9 @@ typedef struct fragInfo{
   double **coefDnFragTot;           /* Lst: Occupied orbitals spin dn all frags */
                                     /* Lth: numFragTot*(numElecUpFrag*	        */
                                     /*      numGridFrac)                        */
+  double *noiseWfUpReal;	    /* Lst: Real space noise wave function	*/
+  double *noiseWfDnReal;	    /* Lth: nstate_up_proc*rhoRealGridTot       */
+
   double **cellHmat;		    /* Lst: cell h-matrix of all fragments	*/
 				    /* Lth: numFragProc*9			*/
   char *molSetName;		    /* Lst: molecular set file name		*/

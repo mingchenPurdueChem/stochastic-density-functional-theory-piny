@@ -38,7 +38,8 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
   COMMUNICATE *commCP = &(cp->communicate);
  
-  int iFrag,iGrid,iState;
+  int iFrag,iGrid,iState,iStateFrag;
+  int gridIndex;
   int numGrid;
   int numStateUpMini;
   int numStateDn;
@@ -51,6 +52,8 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   int rhoRealGridTot	    = stodftInfo->rhoRealGridTot;
   int numStateUpProc	    = cpcoeffs_info->nstate_up_proc;
   int numStateDnProc	    = cpcoeffs_info->nstate_dn_proc;
+  int numStateStoUp     = stodftInfo->numStateStoUp;
+  int numStateStoDn     = stodftInfo->numStateStoDn;
 
   MPI_Comm commStates   =    commCP->comm_states;
 
@@ -63,7 +66,10 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 
   int **gridMapProc	    = fragInfo->gridMapProc;
  
+  double proj;
+  double pre = 1.0/(double)(numStateStoUp);
   double *rhoTemp,*rhoTempReduce;
+  double *wfTemp,*wfFragTemp,*rhoFragTemp;
   double **rhoUpFragProc;
   double **coefUpFragProc;
   double **rhoDnFragProc;
@@ -197,27 +203,118 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 
   rhoRealCalcDriverFrag(general_data,cp,class);
   numStateUpAllProc = (int*)cmalloc(numProcStates*sizeof(int));
-  numStateDnAllProc = (int*)cmalloc(numProcStates*sizeof(int));
   Allgather(&numStateUpProc,1,MPI_INT,numStateUpAllProc,1,MPI_INT,0,commStates);
   if(cpLsda==1&&numStateDn!=0){
+    numStateDnAllProc = (int*)cmalloc(numProcStates*sizeof(int));
     Allgather(&numStateDnProc,1,MPI_INT,numStateDnAllProc,1,MPI_INT,0,commStates);
   }
-
+  wfTemp = (double*)cmalloc(rhoRealGridTot*sizeof(double));
+  for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+    rhoTemp[iGrid] = 0.0;
+  }
   for(iProc=0;iProc<numProcStates;iProc++){
     for(iState=0;iState<numStateUpAllProc[iProc];iState++){
       if(myidState==iProc){
-	memcpy(rhoTemp,&noiseWfUpReal[iState*rhoRealGridTot],rhoRealGridTot*sizeof(double));
+	memcpy(wfTemp,&noiseWfUpReal[iState*rhoRealGridTot],rhoRealGridTot*sizeof(double));
       }
-      if(numProcStates>1)
-    }   
+      if(numProcStates>1)Bcast(wfTemp,rhoRealGridTot,MPI_DOUBLE,iProc,commStates);
+      for(iFrag=0;iFrag<numFragProc;iFrag++){
+	numGrid = numGridFragProc[iFrag];
+	numStateUpMini = cpMini[iFrag].cpcoeffs_info.nstate_up_proc;
+	wfFragTemp = (double*)cmalloc(numGrid*sizeof(double));
+	rhoFragTemp = (double*)cmalloc(numGrid*sizeof(double));
+	for(iGrid=0;iGrid<numGrid;iGrid++){
+	  gridIndex = gridMapProc[iFrag][iGrid];
+	  wfFragTemp[iGrid] = wfTemp[gridIndex];
+	  rhoFragTemp[iGrid] = 0.0;
+	}
+	for(iStateFrag=0;iStateFrag<numStateUpMini;iStateFrag++){
+	  proj = ddotBlasWrapper(numGrid,&wfFragTemp[0],1,&coefUpFragProc[iStateFrag*numGrid],1);
+	  daxpyBlasWrapper(numGrid,proj,&coefUpFragProc[iStateFrag*numGrid],1,&rhoFragTemp[0],1);
+	}//endfor iGrid
+	for(iGrid=0;iGrid<numGrid;iGrid++){
+	  gridIndex = gridMapProc[iFrag][iGrid];
+	  rhoTemp[gridIndex] += rhoFragTemp[iGrid]*rhoFragTemp[iGrid];
+	}
+	free(wfFragTemp);
+	free(rhoFragTemp);
+      }//endfor iFrag
+      if(numProcStates>1){
+	Barrier(commStates);
+        Reduce(rhoTemp,rhoTempReduce,rhoRealGridTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+      }
+    }//endfor iState   
+  }//endfor iProc
+  if(numProcStates>1){
+    Scatterv(rhoTempReduce,rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
+	     rhoTemp,rhoRealGridNum,MPI_DOUBLE,0,commStates);
+  } 
+
+  daxpyBlasWrapper(rhoRealGridNum,-pre,&rhoTemp[0],1,&rhoUpFragSump[0],1);
+
+  if(cpLsda==1&&numStateDn!=0){
+    for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+      rhoTemp[iGrid] = 0.0;
+    }
+    for(iProc=0;iProc<numProcStates;iProc++){
+      for(iState=0;iState<numStateDnAllProc[iProc];iState++){
+	if(myidState==iProc){
+	  memcpy(wfTemp,&noiseWfDnReal[iState*rhoRealGridTot],rhoRealGridTot*sizeof(double));
+	}
+	if(numProcStates>1)Bcast(wfTemp,rhoRealGridTot,MPI_DOUBLE,iProc,commStates);
+	for(iFrag=0;iFrag<numFragProc;iFrag++){
+	  numGrid = numGridFragProc[iFrag];
+	  numStateUpMini = cpMini[iFrag].cpcoeffs_info.nstate_dn_proc;
+	  wfFragTemp = (double*)cmalloc(numGrid*sizeof(double));
+	  rhoFragTemp = (double*)cmalloc(numGrid*sizeof(double));
+	  for(iGrid=0;iGrid<numGrid;iGrid++){
+	    gridIndex = gridMapProc[iFrag][iGrid];
+	    wfFragTemp[iGrid] = wfTemp[gridIndex];
+	    rhoFragTemp[iGrid] = 0.0;
+	  }
+	  for(iStateFrag=0;iStateFrag<numStateDnMini;iStateFrag++){
+	    proj = ddotBlasWrapper(numGrid,&wfFragTemp[0],1,&coefDnFragProc[iStateFrag*numGrid],1);
+	    daxpyBlasWrapper(numGrid,proj,&coefDnFragProc[iStateFrag*numGrid],1,&rhoFragTemp[0],1);
+	  }//endfor iGrid
+	  for(iGrid=0;iGrid<numGrid;iGrid++){
+	    gridIndex = gridMapProc[iFrag][iGrid];
+	    rhoTemp[gridIndex] += rhoFragTemp[iGrid]*rhoFragTemp[iGrid];
+	  }
+	  free(wfFragTemp);
+	  free(rhoFragTemp);
+	}//endfor iFrag
+	if(numProcStates>1){
+	  Barrier(commStates);
+	  Reduce(rhoTemp,rhoTempReduce,rhoRealGridTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+	}
+      }//endfor iState   
+    }//endfor iProc
+    if(numProcStates>1){
+      Scatterv(rhoTempReduce,rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
+	       rhoTemp,rhoRealGridNum,MPI_DOUBLE,0,commStates);
+    }
+    daxpyBlasWrapper(rhoRealGridNum,-pre,&rhoTemp[0],1,&rhoDnFragSump[0],1);
   }
   
-
-
 /*======================================================================*/
 /* V) Free memories                                                     */
 
-
+  if(numProcStates>1&&myidState==0)free(rhoTempReduce);
+  free(rhoTemp);
+  for(iFrag=0;iFrag<numFragProc;iFrag++){
+    free(coefUpFragProc[iFrag]);   
+  }
+  free(coefUpFragProc);
+  free(noiseWfUpReal);
+  free(numStateUpAllProc);
+  if(cpLsda==1&&numStateDn!=0){
+    for(iFrag=0;iFrag<numFragProc;iFrag++){
+      free(coefUpFragProc[iFrag]);
+    }
+    free(coefUpFragProc);
+    free(noiseWfUpReal);
+    free(numStateUpAllProc);
+  }
 
 
 /*==========================================================================*/

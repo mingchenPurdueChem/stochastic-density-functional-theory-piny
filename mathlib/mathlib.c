@@ -523,6 +523,15 @@ double ddotBlasWrapper(int n,double *x,int indx,double *y,int indy){
 /*===============================================================*/
 /*ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*===============================================================*/
+double daxpyBlasWrapper(int n,double a,double *x,int indx,double *y,int indy){
+  return daxpy_(&n,&a,x,&indx,y,&indy);
+}
+
+/*===============================================================*/
+
+/*===============================================================*/
+/*ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*===============================================================*/
 double dsum1(int n,double *a,int astep)
 {
   int i,j;

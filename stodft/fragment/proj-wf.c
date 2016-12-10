@@ -201,7 +201,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 /*======================================================================*/
 /* IV) Calculate the projected noise wave function                      */
 
-  rhoRealCalcDriverFrag(general_data,cp,class);
+  rhoRealCalcDriverNoise(general_data,cp,class);
   numStateUpAllProc = (int*)cmalloc(numProcStates*sizeof(int));
   Allgather(&numStateUpProc,1,MPI_INT,numStateUpAllProc,1,MPI_INT,0,commStates);
   if(cpLsda==1&&numStateDn!=0){

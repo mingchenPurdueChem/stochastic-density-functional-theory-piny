@@ -66,12 +66,14 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     controlCpMinFrag(classMini,bondedMini,generalDataMini,
                      cpMini,analysisMini);      
 
-/*======================================================================*/
-/* II) Transfer Data and Free Memory				        */
-    
-    //copyDataMini(cp,cpMini,generalDataMini);
-    //freeAllMini(generalDataMini,cpMini,classMini,analysisMini,bondedMini);
   }
+
+
+/*======================================================================*/
+/* II) Transfer Data and Free Memory                                    */
+
+  projRhoMini(cp,general_data,class,cpMini,generalDataMini,classMini,ip_now);
+
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/

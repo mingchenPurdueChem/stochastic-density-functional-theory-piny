@@ -385,31 +385,6 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*======================================================================*/
 /* 3) Malloc fragment wave functions	                                */
 
-  if(myidState==0){
-    printf("**Allocate fragment wave functions\n");
-  }
-    
-  fragInfo->rhoFragSum = (double*)cmalloc(rhoRealGridNum*sizeof(double));
-  fragInfo->coefUpFragProc = (double***)cmalloc(numFragProc*sizeof(double**));
-  fragInfo->coefUpFragTot = (double***)cmalloc(numFragTot*sizeof(double**));
-  
-  for(iFrag=0;iFrag<numFragProc;iFrag++){
-    fragInfo->coefUpFragProc[iFrag] = (double**)cmalloc(numElecUpFragProc[iFrag]*sizeof(double*));
-  }
-  for(iFrag=0;iFrag<numFragTot;iFrag++){
-    fragInfo->coefUpFragTot[iFrag] = (double**)cmalloc(numElecUpFragTot[iFrag]*sizeof(double*));
-  }
-  if(cpLsda==1){
-    fragInfo->coefDnFragProc = (double***)cmalloc(numFragProc*sizeof(double**));
-    fragInfo->coefDnFragTot = (double***)cmalloc(numFragTot*sizeof(double**));
-    for(iFrag=0;iFrag<numFragProc;iFrag++){
-      fragInfo->coefDnFragProc[iFrag] = (double**)cmalloc(numElecUpFragProc[iFrag]*sizeof(double*));
-    }
-    for(iFrag=0;iFrag<numFragTot;iFrag++){
-      fragInfo->coefDnFragTot[iFrag] = (double**)cmalloc(numElecUpFragTot[iFrag]*sizeof(double*));
-    }
-  }
-
 /*--------------------------------------------------------------------------*/
 /*  Partially Malloc Grid Mapping					    */
 

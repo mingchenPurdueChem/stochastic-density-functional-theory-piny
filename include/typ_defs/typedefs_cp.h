@@ -483,6 +483,13 @@ typedef struct stodftInfo{
   double beta;			    /* Num: 1/kT				*/
   double numElecTrue;		    /* Num: True number of electron you want to */
 				    /*	    have in the system.			*/
+  double numElecTrueFrag;	    /* Num: True number of electron while doing */
+				    /*	    fragmentation calculation		*/
+
+  /* In fact, we have rho(tot)=rho(frag)+rho(sto)-rho(proj). Also, Ne(tot)=	*/
+  /* Ne(frag). So Ne(sto)=Ne(proj). We shall calculate Ne(proj) right after	*/
+  /* having real space rho(proj)						*/
+
   double chemPotInit;		    /* Num: Input initial guess of chem pot     */
   double gapInit;		    /* Num: Input initial guess of HOMO-LUMO    */
 				    /*      gap or band gap.			*/

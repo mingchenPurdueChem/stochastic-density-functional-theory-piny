@@ -47,6 +47,12 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   
   int numFragProc = fragInfo->numFragProc;
   int iFrag;
+  //debug
+  char fileNameFragMO[100];
+  FILE *fileFragMO;
+  int iState,iGrid;
+  int *numGridFragProc = fragInfo->numGridFragProc;
+  int *numElecUpFragProc = fragInfo->numElecUpFragProc;
   
   for(iFrag=0;iFrag<numFragProc;iFrag++){
 /*======================================================================*/
@@ -63,14 +69,37 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* II) SCF LOOP					                        */
 
-    controlCpMinFrag(classMini,bondedMini,generalDataMini,
-                     cpMini,analysisMini);      
+    /*
+    controlCpMinFrag(&classMini[iFrag],&bondedMini[iFrag],&generalDataMini[iFrag],
+                     &cpMini[iFrag],&analysisMini[iFrag]);      
 
+    sprintf(fileNameFragMO,"frag-MO-%i",iFrag);
+    fileFragMO = fopen(fileNameFragMO,"w");
+    for(iState=0;iState<numElecUpFragProc[iFrag];iState++){
+      for(iGrid=1;iGrid<=numGridFragProc[iFrag];iGrid++){
+        fprintf(fileFragMO,"%.16lg %.16lg\n",cpMini[iFrag].cpcoeffs_pos[1].cre_up[iGrid],
+	       cpMini[iFrag].cpcoeffs_pos[1].cim_up[iGrid]);
+      }
+    }
+    fclose(fileFragMO);
+    */
   }
 
 
 /*======================================================================*/
 /* II) Transfer Data and Free Memory                                    */
+
+  for(iFrag=0;iFrag<numFragProc;iFrag++){
+    sprintf(fileNameFragMO,"frag-MO-%i",iFrag);
+    fileFragMO = fopen(fileNameFragMO,"r");
+    for(iState=0;iState<numElecUpFragProc[iFrag];iState++){
+      for(iGrid=1;iGrid<=numGridFragProc[iFrag];iGrid++){
+	fscanf(fileFragMO,"%lg",cpMini[iFrag].cpcoeffs_pos[1].cre_up[iGrid]);
+	fscanf(fileFragMO,"%lg",cpMini[iFrag].cpcoeffs_pos[1].cim_up[iGrid]);
+      }
+    }
+    fclose(fileFragMO);
+  }
 
   projRhoMini(cp,general_data,class,cpMini,generalDataMini,classMini,ip_now);
 

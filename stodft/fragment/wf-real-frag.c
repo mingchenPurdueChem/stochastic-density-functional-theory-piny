@@ -66,10 +66,7 @@ void rhoRealCalcDriverFrag(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *class
   double *ccimagUpMini    = cpMini->cpcoeffs_pos[1].cim_up;
   double *ccrealDnMini    = cpMini->cpcoeffs_pos[1].cre_dn;
   double *ccimagDnMini    = cpMini->cpcoeffs_pos[1].cim_dn;
-  double *rhoUpFragProc   = fragInfo->rhoUpFragProc[iFrag];
-  double *rhoDnFragProc	  = fragInfo->rhoDnFragProc[iFrag];
-  double *coefUpFragProc  = fragInfo->coefUpFragProc[iFrag];
-  double *coefDnFragProc  = fragInfo->coefDnFragProc[iFrag];
+  double *rhoUpFragProc,*rhoDnFragProc,*coefUpFragProc,*coefDnFragProc;
 
 /*======================================================================*/
 /* I) Check the forms                                                   */
@@ -100,9 +97,13 @@ void rhoRealCalcDriverFrag(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *class
 
   (*ifcoef_form_up) = 0;
   (*ifcoef_orth_up) = 1;
+  rhoUpFragProc = fragInfo->rhoUpFragProc[iFrag];
+  coefUpFragProc = fragInfo->coefUpFragProc[iFrag];
   if(cpLsda==1&&numStateDnFrag!=0){  
     (*ifcoef_form_dn) = 0;
     (*ifcoef_orth_dn) = 1;
+    rhoDnFragProc = fragInfo->rhoDnFragProc[iFrag];
+    coefDnFragProc = fragInfo->coefDnFragProc[iFrag];
   }
   //gethinv(cell->hmat_cp,cell->hmati_cp,&(cell->vol_cp),iperd);
   //gethinv(cell->hmat,cell->hmati,&(cell->vol),iperd);
@@ -149,7 +150,6 @@ void rhoRealCalcDriverNoise(GENERAL_DATA *general_data,CP *cp,CLASS *class,int i
   int numStateUpProc  = cpcoeffs_info->nstate_up_proc;
   int numStateDnProc  = cpcoeffs_info->nstate_dn_proc;
 
-
   double *ccrealUp        = cp->cpcoeffs_pos[ip_now].cre_up;
   double *ccimagUp        = cp->cpcoeffs_pos[ip_now].cim_up;
   double *ccrealDn        = cp->cpcoeffs_pos[ip_now].cim_dn;
@@ -180,6 +180,11 @@ void rhoRealCalcDriverNoise(GENERAL_DATA *general_data,CP *cp,CLASS *class,int i
   if(cpLsda==1&&numStateDnProc!=0){
     rhoRealCalcWrapper(general_data,cp,class,ccrealUp,ccimagUp,icoef_form_dn,
                        icoef_orth_dn,noiseWfDnReal,numStateDnProc);
+  }
+  int iState;
+  int rhoRealGridTot = stodftInfo->rhoRealGridTot;
+  for(iState=0;iState<numStateUpProc;iState++){
+    printf("noissss %lg\n",noiseWfUpReal[iState*rhoRealGridTot]);
   }
 
 /*==========================================================================*/
@@ -239,6 +244,7 @@ void rhoRealCalcWrapper(GENERAL_DATA *general_data,CP *cp,CLASS *class,
     the wavefunctions are reperesented in spherically cuttof 
     half g space                                                            */
 
+    printf("creal1 %lg creal2 %lg\n",ccreal[ioff+1],ccreal[ioff2+1]);
     dble_pack_coef(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
                       zfft,cp_sclr_fft_pkg3d_sm);
 
@@ -247,15 +253,17 @@ void rhoRealCalcWrapper(GENERAL_DATA *general_data,CP *cp,CLASS *class,
      convention exp(-igr)                                                   */
 
     para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+    printf("zfft %lg\n",zfft[1]);
 
 /*--------------------------------------------------------------------------*/
 /* III) Copy the real sapce wave function and add the square of the two     
         wave functions to the density(real space)                           */
 
     for(igrid=0;igrid<nfft2_proc;igrid++){
-      wfReal[ioff*nfft2+igrid] = zfft[igrid*2+1];
-      wfReal[ioff2*nfft2+igrid] = zfft[igrid*2+2];
+      wfReal[(is-1)*nfft2_proc+igrid] = zfft[igrid*2+1];
+      wfReal[is*nfft2_proc+igrid] = zfft[igrid*2+2];
     }
+    printf("wfReal %lg %lg\n",wfReal[ioff],wfReal[ioff2]);
   }/*endfor is*/
 
 /*--------------------------------------------------------------------------*/
@@ -278,10 +286,14 @@ void rhoRealCalcWrapper(GENERAL_DATA *general_data,CP *cp,CLASS *class,
       function to the density(real space)   */
 
     for(igrid=0;igrid<nfft2_proc;igrid++){
-      wfReal[ioff*nfft2+igrid] = zfft[igrid*2+1];
+      wfReal[ioff+igrid] = zfft[igrid*2+1];
     }
 
   }//endif nstat%2
+  printf("nfft2 %i\n",nfft2);
+  for(is=0;is<nstate;is++){
+    printf("wwwfReal %lg\n",wfReal[is*nfft2_proc]);
+  }
 
 /*==========================================================================*/
 }/*end Routine*/
@@ -359,8 +371,8 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
         wave functions to the density(real space)			    */
  
     for(igrid=0;igrid<nfft2_proc;igrid++){
-      wfReal[ioff*nfft2+igrid] = zfft[igrid*2+1];
-      wfReal[ioff2*nfft2+igrid] = zfft[igrid*2+2];
+      wfReal[ioff+igrid] = zfft[igrid*2+1];
+      wfReal[ioff2+igrid] = zfft[igrid*2+2];
       rho[igrid] += zfft[igrid*2+1]*zfft[igrid*2+1]+zfft[igrid*2+2]*zfft[igrid*2+2];
     }
   }/*endfor is*/

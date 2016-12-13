@@ -68,7 +68,6 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
 /*======================================================================*/
 /* II) SCF LOOP					                        */
-
     /*
     controlCpMinFrag(&classMini[iFrag],&bondedMini[iFrag],&generalDataMini[iFrag],
                      &cpMini[iFrag],&analysisMini[iFrag]);      
@@ -81,7 +80,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 	       cpMini[iFrag].cpcoeffs_pos[1].cim_up[iGrid]);
       }
     }
-    fclose(fileFragMO);
+    fclose(fileFragMO);    
     */
   }
 

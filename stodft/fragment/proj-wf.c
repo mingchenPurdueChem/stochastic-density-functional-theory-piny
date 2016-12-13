@@ -213,12 +213,18 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 /*======================================================================*/
 /* IV) Project the real space noise wave function                       */
 
-
+  
   numStateUpAllProc = (int*)cmalloc(numProcStates*sizeof(int));
-  Allgather(&numStateUpProc,1,MPI_INT,numStateUpAllProc,1,MPI_INT,0,commStates);
+  if(numProcStates>1){
+    Allgather(&numStateUpProc,1,MPI_INT,numStateUpAllProc,1,MPI_INT,0,commStates);
+  }
+  else numStateUpAllProc[0] = numStateUpProc;
   if(cpLsda==1&&numStateDn!=0){
     numStateDnAllProc = (int*)cmalloc(numProcStates*sizeof(int));
-    Allgather(&numStateDnProc,1,MPI_INT,numStateDnAllProc,1,MPI_INT,0,commStates);
+    if(numProcStates>1){
+      Allgather(&numStateDnProc,1,MPI_INT,numStateDnAllProc,1,MPI_INT,0,commStates);
+    }
+    else numStateDnAllProc[0] = numStateDnProc;
   }
   wfTemp = (double*)cmalloc(rhoRealGridTot*sizeof(double));
   for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
@@ -229,6 +235,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
       if(myidState==iProc){
 	memcpy(wfTemp,&noiseWfUpReal[iState*rhoRealGridTot],rhoRealGridTot*sizeof(double));
       }
+      printf("noise %lg\n",noiseWfUpReal[iState*rhoRealGridTot]);
       if(numProcStates>1)Bcast(wfTemp,rhoRealGridTot,MPI_DOUBLE,iProc,commStates);
       for(iFrag=0;iFrag<numFragProc;iFrag++){
 	numGrid = numGridFragProc[iFrag];
@@ -240,8 +247,10 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 	  wfFragTemp[iGrid] = wfTemp[gridIndex];
 	  rhoFragTemp[iGrid] = 0.0;
 	}
+	printf("iState %i iFrag %i wfFragTemp[0] %lg coefFrag %lg\n",iState,iFrag,wfTemp[0],coefUpFragProc[0][0]);
 	for(iStateFrag=0;iStateFrag<numStateUpMini;iStateFrag++){
 	  proj = ddotBlasWrapper(numGrid,&wfFragTemp[0],1,&coefUpFragProc[iFrag][iStateFrag*numGrid],1);
+	  printf("proj %lg\n",proj);
 	  daxpyBlasWrapper(numGrid,proj,&coefUpFragProc[iStateFrag*numGrid],1,&rhoFragTemp[0],1);
 	}//endfor iGrid
 	for(iGrid=0;iGrid<numGrid;iGrid++){
@@ -272,7 +281,6 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   } 
   for(iGrid=0;iGrid<rhoRealGridTot;iGrid++)numElecProj += rhoTemp[iGrid];
   
-
   daxpyBlasWrapper(rhoRealGridNum,-pre,&rhoTemp[0],1,&rhoUpFragSum[0],1);
 
   if(cpLsda==1&&numStateDn!=0){
@@ -325,9 +333,11 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     stodftInfo->numElecTrueFrag *= numGridTotInv;
   }
   else{
+    printf("numElecTrue %.16lg\n",stodftInfo->numElecTrueFrag);
     stodftInfo->numElecTrueFrag = numElecProj*numGridTotInv;
   }
   // I would like to seperate them, but this will make life easier
+  printf("numElecTrue %.16lg\n",stodftInfo->numElecTrueFrag);
   stodftInfo->numElecTrue = stodftInfo->numElecTrueFrag;
   
 /*======================================================================*/

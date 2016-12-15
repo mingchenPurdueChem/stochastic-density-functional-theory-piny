@@ -224,6 +224,10 @@ void rhoRealCalcWrapper(GENERAL_DATA *general_data,CP *cp,CLASS *class,
 
   double *zfft           =    cpscr->cpscr_wave.zfft;
   double *zfft_tmp       =    cpscr->cpscr_wave.zfft_tmp;
+  double *hmatCP         =    cell->hmat_cp;
+  double volCP		 = getdeth(hmatCP);
+  double invVolCP	 = 1.0/invVolCP;
+
 
 /*==========================================================================*/
 /*==========================================================================*/
@@ -325,6 +329,7 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
   int iii,ioff,ioff2;
   int is,i,j,k,iupper;
   int igrid;
+  int cp_lsda = cpopts->cp_lsda;
   int ncoef = cpcoeffs_info->ncoef;
   int   nfft_proc        =    cp_para_fft_pkg3d_lg->nfft_proc;
   int   nfft2_proc       =    nfft_proc/2;
@@ -332,6 +337,14 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
   int nfft2 = nfft/2;
 
   double *zfft           =    cpscr->cpscr_wave.zfft;
+  double *hmatCP         =    cell->hmat_cp;
+  double volFrag         = getdeth(hmatCP);
+  double invVolFrag	 = 1.0/volFrag;
+  double prefact;
+
+  prefact = 1.0/sqrt(2.0*volFrag);
+  if(cp_lsda==1)prefact = sqrt(invVolFrag);
+
 
 /* ================================================================= */
 /*1) zero density and gradients if necessary                         */
@@ -371,8 +384,8 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
         wave functions to the density(real space)			    */
  
     for(igrid=0;igrid<nfft2_proc;igrid++){
-      wfReal[ioff+igrid] = zfft[igrid*2+1];
-      wfReal[ioff2+igrid] = zfft[igrid*2+2];
+      wfReal[ioff+igrid] = zfft[igrid*2+1]*prefact;
+      wfReal[ioff2+igrid] = zfft[igrid*2+2]*prefact;
       rho[igrid] += zfft[igrid*2+1]*zfft[igrid*2+1]+zfft[igrid*2+2]*zfft[igrid*2+2];
     }
   }/*endfor is*/
@@ -397,11 +410,15 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
       function to the density(real space)   */
     
     for(igrid=0;igrid<nfft2_proc;igrid++){
-      wfReal[ioff*nfft2+igrid] = zfft[igrid*2+1];
+      wfReal[ioff*nfft2+igrid] = zfft[igrid*2+1]*prefact;
       rho[igrid] += zfft[igrid*2+1]*zfft[igrid*2+1];
     }
 
   }//endif nstat%2
+
+  for(igrid=0;igrid<nfft2_proc;igrid++){
+    rho[igrid] *= invVolFrag;
+  }
 
 /*==========================================================================*/
 }/*end Routine*/

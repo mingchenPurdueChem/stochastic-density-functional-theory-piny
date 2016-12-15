@@ -91,10 +91,11 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     sprintf(fileNameFragMO,"frag-MO-%i",iFrag);
     fileFragMO = fopen(fileNameFragMO,"r");
+    printf("%p\n",fileFragMO);
     for(iState=0;iState<numElecUpFragProc[iFrag];iState++){
       for(iGrid=1;iGrid<=numGridFragProc[iFrag];iGrid++){
-	fscanf(fileFragMO,"%lg",cpMini[iFrag].cpcoeffs_pos[1].cre_up[iGrid]);
-	fscanf(fileFragMO,"%lg",cpMini[iFrag].cpcoeffs_pos[1].cim_up[iGrid]);
+	fscanf(fileFragMO,"%lg",&(cpMini[iFrag].cpcoeffs_pos[1].cre_up[iGrid]));
+	fscanf(fileFragMO,"%lg",&(cpMini[iFrag].cpcoeffs_pos[1].cim_up[iGrid]));
       }
     }
     fclose(fileFragMO);

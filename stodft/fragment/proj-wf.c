@@ -40,6 +40,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   CPCOEFFS_INFO *cpcoeffs_info = &(cp->cpcoeffs_info);
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
   COMMUNICATE *commCP = &(cp->communicate);
+  CELL *cell	      = &(general_data->cell);
  
   int iFrag,iGrid,iState,iStateFrag,iProc;
   int gridIndex;
@@ -50,6 +51,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   int cpLsda		    = cpOpts->cp_lsda;
   int numFragProc	    = fragInfo->numFragProc;
   int numFragTot	    = fragInfo->numFragTot;
+  int occNumber		    = stodftInfo->occNumber;
   int myidState		    = commCP->myid_state;
   int numProcStates	    = commCP->np_states;
   int rhoRealGridNum	    = stodftInfo->rhoRealGridNum;
@@ -73,10 +75,12 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   double proj;
   double numElecProj = 0.0;
   double numGridTotInv = 1.0/rhoRealGridTot;
+  double vol,volInv;
 
-  double pre = 1.0/(double)(numStateStoUp);
+  double pre,preNe;
   double *rhoTemp,*rhoTempReduce;
   double *wfTemp,*wfFragTemp,*rhoFragTemp;
+  double *hmat_cp = cell->hmat_cp;
   double **rhoUpFragProc;
   double **coefUpFragProc;
   double **rhoDnFragProc;
@@ -88,6 +92,15 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 /*======================================================================*/
 /* I) Allocated memories				                */
 
+  vol = getdeth(hmat_cp);
+  volInv = 1.0/vol;
+  
+  // prefactor for prjection part
+  pre = (double)(occNumber)*vol*vol/
+	((double)(rhoRealGridTot)*(double)(rhoRealGridTot)*(double)(numStateStoUp));
+  // prefactor for number of e in proj part
+  preNe = pre*vol/(double)(rhoRealGridTot);
+  
   fragInfo->rhoUpFragProc = (double**)cmalloc(numFragProc*sizeof(double*));
   //fragInfo->rhoDnFragProc = (double**)cmalloc(numFragProc*sizeof(double*));
   fragInfo->coefUpFragProc = (double**)cmalloc(numFragProc*sizeof(double*));
@@ -131,31 +144,42 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 /*======================================================================*/
 /* III) Assemble fragments densities		                        */
 
+  // Allocate rhoTemp for each proc
   rhoTemp = (double*)cmalloc(rhoRealGridTot*sizeof(double));
   for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
     rhoTemp[iGrid] = 0.0;
-  }
+  }//endfor iGrid
+  // Reduce all fragment densities in each proc
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     numGrid = numGridFragProc[iFrag];
     for(iGrid=0;iGrid<numGrid;iGrid++){
       rhoTemp[gridMapProc[iFrag][iGrid]] += rhoUpFragProc[iFrag][iGrid];
-    }
-  }
+    }//endfor iGrid
+  }//endfor iFrag
   
+  // Allocate rhoTempReduce on the master proc
   if(myidState==0&&numProcStates>1){
     rhoTempReduce = (double*)cmalloc(rhoRealGridTot*sizeof(double));
     for(iGrid=0;iGrid<rhoRealGridTot;iGrid++)rhoTempReduce[iGrid] = 0.0;
   }
+  // Reduce fragment densities on different procs and scatter them
   if(numProcStates>1){
     Barrier(commStates);
     Reduce(rhoTemp,rhoTempReduce,rhoRealGridTot,MPI_DOUBLE,MPI_SUM,0,commStates);
     Scatterv(rhoTempReduce,rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
              rhoUpFragSum,rhoRealGridNum,MPI_DOUBLE,0,commStates);
+    // I need to multiply the density by volumn to match the |ksi(r)|^2
+    for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)rhoUpFragSum[iGrid] *= vol;
     //if(myidState==0)free(&rhoTempReduce[0]);
   }
+  // Sequential, just copy and scale the density
   else{
-    memcpy(rhoUpFragSum,rhoTemp,rhoRealGridNum*sizeof(double));
+    //memcpy(rhoUpFragSum,rhoTemp,rhoRealGridNum*sizeof(double));
+    for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+      rhoUpFragSum[iGrid] = rhoTemp[iGrid]*vol;
+    }
   }
+  // Do the same thing for spin down states
   if(cpLsda==1&&numStateDn!=0){
     for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
       rhoTemp[iGrid] = 0.0;
@@ -176,12 +200,16 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
       Reduce(rhoTemp,rhoTempReduce,rhoRealGridTot,MPI_DOUBLE,MPI_SUM,0,commStates);
       Scatterv(rhoTempReduce,rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
 	       rhoDnFragSum,rhoRealGridNum,MPI_DOUBLE,0,commStates);
+      for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)rhoUpFragSum[iGrid] *= vol;
       //if(myidState==0)free(&rhoTempReduce[0]);
     }
     else{
-      memcpy(rhoDnFragSum,rhoTemp,rhoRealGridNum*sizeof(double));
-    }
-  }
+      //memcpy(rhoDnFragSum,rhoTemp,rhoRealGridNum*sizeof(double));
+      for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+	rhoUpFragSum[iGrid] = rhoTemp[iGrid]*vol;
+      }//endfor iGrid
+    }//endif 
+  }//endif
 
 /*======================================================================*/
 /* IV) Free/allocate some memory for next step                          */
@@ -263,14 +291,6 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
       if(numProcStates>1){
 	Barrier(commStates);
         Reduce(rhoTemp,rhoTempReduce,rhoRealGridTot,MPI_DOUBLE,MPI_SUM,0,commStates);
-	for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
-	  numElecProj += rhoTempReduce[iGrid];
-	}
-      }
-      else{
-	for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
-	  numElecProj += rhoTemp[iGrid];
-	}
       }
     }//endfor iState   
   }//endfor iProc
@@ -334,7 +354,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   }
   else{
     printf("numElecTrue %.16lg\n",stodftInfo->numElecTrueFrag);
-    stodftInfo->numElecTrueFrag = numElecProj*numGridTotInv;
+    stodftInfo->numElecTrueFrag = numElecProj*preNe;
   }
   // I would like to seperate them, but this will make life easier
   printf("numElecTrue %.16lg\n",stodftInfo->numElecTrueFrag);

@@ -335,6 +335,9 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
   int   nfft2_proc       =    nfft_proc/2;
   int nfft = cp_para_fft_pkg3d_lg->nfft;
   int nfft2 = nfft/2;
+  int gridOff1,gridOff2;
+
+  printf("nfftttttt2_proc %i\n",nfft2_proc);
 
   double *zfft           =    cpscr->cpscr_wave.zfft;
   double *hmatCP         =    cell->hmat_cp;
@@ -364,6 +367,8 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
   for(is=1;is<=iupper;is=is+2){
     ioff   = (is-1)*ncoef;
     ioff2 = (is)*ncoef;
+    gridOff1 = (is-1)*nfft2_proc;
+    gridOff2 = is*nfft2_proc;
 
 /*--------------------------------------------------------------------------*/
 /*I) pack the complex zfft array with two wavefunctions (real) 
@@ -384,10 +389,11 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
         wave functions to the density(real space)			    */
  
     for(igrid=0;igrid<nfft2_proc;igrid++){
-      wfReal[ioff+igrid] = zfft[igrid*2+1]*prefact;
-      wfReal[ioff2+igrid] = zfft[igrid*2+2]*prefact;
+      wfReal[gridOff1+igrid] = zfft[igrid*2+1]*prefact;
+      wfReal[gridOff2+igrid] = zfft[igrid*2+2]*prefact;
       rho[igrid] += zfft[igrid*2+1]*zfft[igrid*2+1]+zfft[igrid*2+2]*zfft[igrid*2+2];
     }
+    printf("ioff %i ioff2 %i wfReal %lg %lg\n",ioff,ioff2,wfReal[ioff],wfReal[ioff2]);
   }/*endfor is*/
 
 /*--------------------------------------------------------------------------*/

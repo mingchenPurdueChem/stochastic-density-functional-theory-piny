@@ -405,17 +405,21 @@ void min_CG_cp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   
    orthog_control_cp(cp,ip_now);
 
-  /*
-  int istate;
+  
+  int istate,jstate;
+  int icoeff;
+  double sum_test;
   for(istate=0;istate<nstate_up;istate++){  
     sum_test = 0.0;
-    for(icoeff=0;icoeff<ncoef_up_max;icoeff++){
-      sum_test += cre_up[0*ncoef_up_max+icoeff+1]*cre_up[istate*ncoef_up_max+icoeff+1]+cim_up[0*ncoef_up_max+icoeff+1]*cim_up[istate*ncoef_up_max+icoeff+1];
+    for(icoeff=0;icoeff<ncoef_up_max-1;icoeff++){
+      sum_test += cre_up[1*ncoef_up_max+icoeff+1]*cre_up[istate*ncoef_up_max+icoeff+1]+cim_up[1*ncoef_up_max+icoeff+1]*cim_up[istate*ncoef_up_max+icoeff+1];
       //sum_test += cre_up[nstate_up*icoeff+istate+1]*cre_up[nstate_up*icoeff+istate+1]+cim_up[nstate_up*icoeff+istate+1]*cim_up[nstate_up*icoeff+istate+1];
     }
+    sum_test *= 2.0;
+    sum_test += cre_up[1*ncoef_up_max+ncoef_up_max]*cre_up[istate*ncoef_up_max+ncoef_up_max];
     printf("istate %i sum_test %lg\n",istate,sum_test);
   }
-  */
+  
 
  
 /*==========================================================================*/

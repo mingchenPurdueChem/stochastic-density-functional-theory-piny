@@ -426,6 +426,32 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
     rho[igrid] *= invVolFrag;
   }
 
+  //debug
+  double dot;
+  int js;
+  int icoef;
+  for(is=0;is<nstate;is++){
+    for(js=is;js<nstate;js++){
+      dot = 0.0;
+      for(igrid=0;igrid<nfft2_proc;igrid++){
+	dot += wfReal[is*nfft2_proc+igrid]*wfReal[js*nfft2_proc+igrid];
+      }
+      printf("is %i js %i dot %lg\n",is,js,dot);
+    }
+  }
+  for(is=0;is<nstate;is++){
+    for(js=is;js<nstate;js++){
+      dot = 0.0;
+      for(icoef=1;icoef<ncoef;icoef++){
+	dot += ccreal[is*ncoef+icoef]*ccreal[js*ncoef+icoef]+
+	       ccimag[is*ncoef+icoef]*ccimag[js*ncoef+icoef];
+      }
+      dot *= 2.0;
+      dot += ccreal[is*ncoef+ncoef]*ccreal[js*ncoef+ncoef];
+      printf("is %i js %i dot %lg\n",is,js,dot);
+    }
+  }
+
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/

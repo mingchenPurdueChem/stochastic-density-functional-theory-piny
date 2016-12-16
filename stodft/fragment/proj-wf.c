@@ -291,14 +291,14 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 	printf("iState %i iFrag %i wfFragTemp[0] %lg coefFrag %lg\n",iState,iFrag,wfTemp[0],coefUpFragProc[0][0]);
 	for(iStateFrag=0;iStateFrag<numStateUpMini;iStateFrag++){
 	  proj = ddotBlasWrapper(numGrid,&wfFragTemp[0],1,&coefUpFragProc[iFrag][iStateFrag*numGrid],1);
-	  printf("startind %i coefUpFragProc %lg proj %lg\n",
-		iStateFrag*numGrid,coefUpFragProc[iFrag][iStateFrag*numGrid],proj);
+	  printf("startind %i coefUpFragProc %lg wfFragTemp %lg proj %lg\n",
+		iStateFrag*numGrid,coefUpFragProc[iFrag][iStateFrag*numGrid],wfFragTemp[0],proj);
 	  daxpyBlasWrapper(numGrid,proj,&coefUpFragProc[iStateFrag*numGrid],1,&rhoFragTemp[0],1);
 	}//endfor iGrid
 	for(iGrid=0;iGrid<numGrid;iGrid++){
 	  gridIndex = gridMapProc[iFrag][iGrid];
 	  rhoTemp[gridIndex] += rhoFragTemp[iGrid]*rhoFragTemp[iGrid];
-	  //printf("gridIndex %i rhoTemp %lg\n",gridIndex,rhoTemp[gridIndex]);
+	  printf("gridIndex %i rhoTemp %lg\n",gridIndex,rhoTemp[gridIndex]);
 	}
 	free(wfFragTemp);
 	free(rhoFragTemp);

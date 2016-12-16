@@ -51,6 +51,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   char fileNameFragMO[100];
   FILE *fileFragMO;
   int iState,iGrid;
+  int ncoef,icoef;
   int *numGridFragProc = fragInfo->numGridFragProc;
   int *numElecUpFragProc = fragInfo->numElecUpFragProc;
   
@@ -68,22 +69,25 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
 /*======================================================================*/
 /* II) SCF LOOP					                        */
+   
     /*
     controlCpMinFrag(&classMini[iFrag],&bondedMini[iFrag],&generalDataMini[iFrag],
                      &cpMini[iFrag],&analysisMini[iFrag]);      
 
     sprintf(fileNameFragMO,"frag-MO-%i",iFrag);
     fileFragMO = fopen(fileNameFragMO,"w");
+    ncoef = cpMini[iFrag].cpcoeffs_info.ncoef;
+    printf("ncoeffff %i\n",ncoef);
     for(iState=0;iState<numElecUpFragProc[iFrag];iState++){
-      for(iGrid=1;iGrid<=numGridFragProc[iFrag];iGrid++){
-        fprintf(fileFragMO,"%.16lg %.16lg\n",cpMini[iFrag].cpcoeffs_pos[1].cre_up[iGrid],
-	       cpMini[iFrag].cpcoeffs_pos[1].cim_up[iGrid]);
+      for(icoef=1;icoef<=ncoef;icoef++){
+        fprintf(fileFragMO,"%.16lg %.16lg\n",cpMini[iFrag].cpcoeffs_pos[1].cre_up[iState*ncoef+icoef],
+	       cpMini[iFrag].cpcoeffs_pos[1].cim_up[iState*ncoef+icoef]);
       }
     }
     fclose(fileFragMO);    
     */
   }
-
+  //exit(0);
 
 /*======================================================================*/
 /* II) Transfer Data and Free Memory                                    */
@@ -92,10 +96,11 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     sprintf(fileNameFragMO,"frag-MO-%i",iFrag);
     fileFragMO = fopen(fileNameFragMO,"r");
     printf("%p\n",fileFragMO);
+    ncoef = cpMini[iFrag].cpcoeffs_info.ncoef;
     for(iState=0;iState<numElecUpFragProc[iFrag];iState++){
-      for(iGrid=1;iGrid<=numGridFragProc[iFrag];iGrid++){
-	fscanf(fileFragMO,"%lg",&(cpMini[iFrag].cpcoeffs_pos[1].cre_up[iGrid]));
-	fscanf(fileFragMO,"%lg",&(cpMini[iFrag].cpcoeffs_pos[1].cim_up[iGrid]));
+      for(icoef=1;icoef<=ncoef;icoef++){
+	fscanf(fileFragMO,"%lg",&(cpMini[iFrag].cpcoeffs_pos[1].cre_up[iState*ncoef+icoef]));
+	fscanf(fileFragMO,"%lg",&(cpMini[iFrag].cpcoeffs_pos[1].cim_up[iState*ncoef+icoef]));
       }
     }
     fclose(fileFragMO);

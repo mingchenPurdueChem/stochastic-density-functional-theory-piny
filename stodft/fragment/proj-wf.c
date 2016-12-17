@@ -99,7 +99,9 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   pre = (double)(occNumber)*vol*vol/
 	((double)(rhoRealGridTot)*(double)(rhoRealGridTot)*(double)(numStateStoUp));
   // prefactor for number of e in proj part
-  preNe = pre*vol/(double)(rhoRealGridTot);
+  preNe = pre/(double)(rhoRealGridTot);
+  printf("vol %lg\n",vol);
+  printf("rhoRealGridTot %i pre %lg preNe %lg\n",rhoRealGridTot,pre,preNe);
   
   fragInfo->rhoUpFragProc = (double**)cmalloc(numFragProc*sizeof(double*));
   //fragInfo->rhoDnFragProc = (double**)cmalloc(numFragProc*sizeof(double*));
@@ -236,13 +238,14 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 /*======================================================================*/
 /* IV) Calculate the real space noise wave function                     */
 
-  //rhoRealCalcDriverNoise(general_data,cp,class,ip_now);
+  rhoRealCalcDriverNoise(general_data,cp,class,ip_now);
 
 /*======================================================================*/
 /* IV) Project the real space noise wave function                       */
 
 
   //debug
+  /*
   for(iState=0;iState<4;iState++){
     for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
       noiseWfUpReal[iState*rhoRealGridTot+iGrid] = 0.0;
@@ -253,6 +256,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
       noiseWfUpReal[gridIndex] = coefUpFragProc[0][iState*numGrid+iGrid];
     }
   }
+  */
 
   numStateUpAllProc = (int*)cmalloc(numProcStates*sizeof(int));
   if(numProcStates>1){
@@ -293,12 +297,19 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 	  proj = ddotBlasWrapper(numGrid,&wfFragTemp[0],1,&coefUpFragProc[iFrag][iStateFrag*numGrid],1);
 	  printf("startind %i coefUpFragProc %lg wfFragTemp %lg proj %lg\n",
 		iStateFrag*numGrid,coefUpFragProc[iFrag][iStateFrag*numGrid],wfFragTemp[0],proj);
-	  daxpyBlasWrapper(numGrid,proj,&coefUpFragProc[iStateFrag*numGrid],1,&rhoFragTemp[0],1);
+	  daxpyBlasWrapper(numGrid,proj,&coefUpFragProc[iFrag][iStateFrag*numGrid],1,&rhoFragTemp[0],1);
+	  /*
+	  double sum = 0.0;
+	  for(iGrid=0;iGrid<numGrid;iGrid++){
+	    sum += rhoFragTemp[iGrid];
+	  }
+	  printf("sum %lg\n",sum);
+	  */
 	}//endfor iGrid
 	for(iGrid=0;iGrid<numGrid;iGrid++){
 	  gridIndex = gridMapProc[iFrag][iGrid];
 	  rhoTemp[gridIndex] += rhoFragTemp[iGrid]*rhoFragTemp[iGrid];
-	  printf("gridIndex %i rhoTemp %lg\n",gridIndex,rhoTemp[gridIndex]);
+	  //printf("gridIndex %i rhoTemp %lg\n",gridIndex,rhoTemp[gridIndex]);
 	}
 	free(wfFragTemp);
 	free(rhoFragTemp);

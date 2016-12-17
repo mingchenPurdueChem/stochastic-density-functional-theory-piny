@@ -90,7 +90,7 @@ void genNoiseOrbital(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
 #endif
 #ifndef MKL_RANDOM
     //whatever random number is good, I'm using Gaussian in this case
-    double seed = 8.3;
+    double seed = 18.5;
     //double seed = 2.5;
     int iseed;
     printf("numRandTot %i numStateUpTot %i numCoeff %i\n",numRandTot,numStatUpTot,numCoeff);

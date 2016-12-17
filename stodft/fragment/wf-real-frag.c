@@ -436,6 +436,7 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
       for(igrid=0;igrid<nfft2_proc;igrid++){
 	dot += wfReal[is*nfft2_proc+igrid]*wfReal[js*nfft2_proc+igrid];
       }
+      dot *= volFrag/nfft2_proc;
       printf("is %i js %i dot %lg\n",is,js,dot);
     }
   }

@@ -88,6 +88,9 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   double *rhoUpFragSum;
   double *rhoDnFragSum;
   double *noiseWfUpReal,*noiseWfDnReal;
+
+  //debug
+  double *fragWfCpy = (double*)cmalloc(rhoRealGridNum*sizeof(double));
   
 /*======================================================================*/
 /* I) Allocated memories				                */
@@ -100,8 +103,10 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 	((double)(rhoRealGridTot)*(double)(rhoRealGridTot)*(double)(numStateStoUp));
   // prefactor for number of e in proj part
   preNe = pre/(double)(rhoRealGridTot);
+  /*
   printf("vol %lg\n",vol);
   printf("rhoRealGridTot %i pre %lg preNe %lg\n",rhoRealGridTot,pre,preNe);
+  */
   
   fragInfo->rhoUpFragProc = (double**)cmalloc(numFragProc*sizeof(double*));
   //fragInfo->rhoDnFragProc = (double**)cmalloc(numFragProc*sizeof(double*));
@@ -213,6 +218,9 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     }//endif 
   }//endif
 
+  //debug
+  memcpy(fragWfCpy,rhoUpFragSum,rhoRealGridNum*sizeof(double));
+
 /*======================================================================*/
 /* IV) Free/allocate some memory for next step                          */
 
@@ -279,11 +287,11 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
       if(myidState==iProc){
 	memcpy(wfTemp,&noiseWfUpReal[iState*rhoRealGridTot],rhoRealGridTot*sizeof(double));
       }
-      printf("noise %lg\n",noiseWfUpReal[iState*rhoRealGridTot]);
+      //printf("noise %lg\n",noiseWfUpReal[iState*rhoRealGridTot]);
       if(numProcStates>1)Bcast(wfTemp,rhoRealGridTot,MPI_DOUBLE,iProc,commStates);
       for(iFrag=0;iFrag<numFragProc;iFrag++){
 	numGrid = numGridFragProc[iFrag];
-	printf("numGrid %i nfft2_proc %i\n",numGrid,cpMini[iFrag].cp_para_fft_pkg3d_lg.nfft_proc/2);
+	//printf("numGrid %i nfft2_proc %i\n",numGrid,cpMini[iFrag].cp_para_fft_pkg3d_lg.nfft_proc/2);
 	numStateUpMini = cpMini[iFrag].cpcoeffs_info.nstate_up_proc;
 	wfFragTemp = (double*)cmalloc(numGrid*sizeof(double));
 	rhoFragTemp = (double*)cmalloc(numGrid*sizeof(double));
@@ -292,11 +300,13 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 	  wfFragTemp[iGrid] = wfTemp[gridIndex];
 	  rhoFragTemp[iGrid] = 0.0;
 	}
-	printf("iState %i iFrag %i wfFragTemp[0] %lg coefFrag %lg\n",iState,iFrag,wfTemp[0],coefUpFragProc[0][0]);
+	//printf("iState %i iFrag %i wfFragTemp[0] %lg coefFrag %lg\n",iState,iFrag,wfTemp[0],coefUpFragProc[0][0]);
 	for(iStateFrag=0;iStateFrag<numStateUpMini;iStateFrag++){
 	  proj = ddotBlasWrapper(numGrid,&wfFragTemp[0],1,&coefUpFragProc[iFrag][iStateFrag*numGrid],1);
+	  /*
 	  printf("startind %i coefUpFragProc %lg wfFragTemp %lg proj %lg\n",
 		iStateFrag*numGrid,coefUpFragProc[iFrag][iStateFrag*numGrid],wfFragTemp[0],proj);
+	  */
 	  daxpyBlasWrapper(numGrid,proj,&coefUpFragProc[iFrag][iStateFrag*numGrid],1,&rhoFragTemp[0],1);
 	  /*
 	  double sum = 0.0;
@@ -326,7 +336,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 	     rhoTemp,rhoRealGridNum,MPI_DOUBLE,0,commStates);
   } 
   for(iGrid=0;iGrid<rhoRealGridTot;iGrid++)numElecProj += rhoTemp[iGrid];
-  printf("numElecProj %lg\n",numElecProj);
+  //printf("numElecProj %lg\n",numElecProj);
   
   daxpyBlasWrapper(rhoRealGridNum,-pre,&rhoTemp[0],1,&rhoUpFragSum[0],1);
 
@@ -380,12 +390,16 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     stodftInfo->numElecTrueFrag *= numGridTotInv;
   }
   else{
-    printf("numElecTrue %.16lg\n",stodftInfo->numElecTrueFrag);
+    //printf("numElecTrue %.16lg\n",stodftInfo->numElecTrueFrag);
     stodftInfo->numElecTrueFrag = numElecProj*preNe;
   }
   // I would like to seperate them, but this will make life easier
-  printf("numElecTrue %.16lg\n",stodftInfo->numElecTrueFrag);
+  //printf("numElecTrue %.16lg\n",stodftInfo->numElecTrueFrag);
   stodftInfo->numElecTrue = stodftInfo->numElecTrueFrag;
+  //debug
+  for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+    printf("rhodiffff %lg %lg\n",rhoUpFragSum[iGrid],fragWfCpy[iGrid]);
+  }
   
 /*======================================================================*/
 /* V) Free memories                                                     */

@@ -30,8 +30,8 @@
 #include "../proto_defs/proto_handle_entry.h"
 #include "../proto_defs/proto_interface_frag_local.h"
 
-//#define DEBUG_GW_OFF
-#define DEBUG_GW
+#define DEBUG_GW_OFF
+//#define DEBUG_GW
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/

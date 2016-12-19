@@ -181,11 +181,13 @@ void rhoRealCalcDriverNoise(GENERAL_DATA *general_data,CP *cp,CLASS *class,int i
     rhoRealCalcWrapper(general_data,cp,class,ccrealUp,ccimagUp,icoef_form_dn,
                        icoef_orth_dn,noiseWfDnReal,numStateDnProc);
   }
+  /*
   int iState;
   int rhoRealGridTot = stodftInfo->rhoRealGridTot;
   for(iState=0;iState<numStateUpProc;iState++){
     printf("noissss %lg\n",noiseWfUpReal[iState*rhoRealGridTot]);
   }
+  */
 
 /*==========================================================================*/
 }/*end Routine*/
@@ -248,7 +250,7 @@ void rhoRealCalcWrapper(GENERAL_DATA *general_data,CP *cp,CLASS *class,
     the wavefunctions are reperesented in spherically cuttof 
     half g space                                                            */
 
-    printf("creal1 %lg creal2 %lg\n",ccreal[ioff+1],ccreal[ioff2+1]);
+    //printf("creal1 %lg creal2 %lg\n",ccreal[ioff+1],ccreal[ioff2+1]);
     dble_pack_coef(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
                       zfft,cp_sclr_fft_pkg3d_sm);
 
@@ -257,7 +259,7 @@ void rhoRealCalcWrapper(GENERAL_DATA *general_data,CP *cp,CLASS *class,
      convention exp(-igr)                                                   */
 
     para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
-    printf("zfft %lg\n",zfft[1]);
+    //printf("zfft %lg\n",zfft[1]);
 
 /*--------------------------------------------------------------------------*/
 /* III) Copy the real sapce wave function and add the square of the two     
@@ -267,7 +269,7 @@ void rhoRealCalcWrapper(GENERAL_DATA *general_data,CP *cp,CLASS *class,
       wfReal[(is-1)*nfft2_proc+igrid] = zfft[igrid*2+1];
       wfReal[is*nfft2_proc+igrid] = zfft[igrid*2+2];
     }
-    printf("wfReal %lg %lg\n",wfReal[ioff],wfReal[ioff2]);
+    //printf("wfReal %lg %lg\n",wfReal[ioff],wfReal[ioff2]);
   }/*endfor is*/
 
 /*--------------------------------------------------------------------------*/
@@ -294,10 +296,12 @@ void rhoRealCalcWrapper(GENERAL_DATA *general_data,CP *cp,CLASS *class,
     }
 
   }//endif nstat%2
+  /*
   printf("nfft2 %i\n",nfft2);
   for(is=0;is<nstate;is++){
     printf("wwwfReal %lg\n",wfReal[is*nfft2_proc]);
   }
+  */
 
 /*==========================================================================*/
 }/*end Routine*/
@@ -337,7 +341,7 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
   int nfft2 = nfft/2;
   int gridOff1,gridOff2;
 
-  printf("nfftttttt2_proc %i\n",nfft2_proc);
+  //printf("nfftttttt2_proc %i\n",nfft2_proc);
 
   double *zfft           =    cpscr->cpscr_wave.zfft;
   double *hmatCP         =    cell->hmat_cp;
@@ -393,7 +397,7 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
       wfReal[gridOff2+igrid] = zfft[igrid*2+2]*prefact;
       rho[igrid] += zfft[igrid*2+1]*zfft[igrid*2+1]+zfft[igrid*2+2]*zfft[igrid*2+2];
     }
-    printf("ioff %i ioff2 %i wfReal %lg %lg\n",ioff,ioff2,wfReal[ioff],wfReal[ioff2]);
+    //printf("ioff %i ioff2 %i wfReal %lg %lg\n",ioff,ioff2,wfReal[ioff],wfReal[ioff2]);
   }/*endfor is*/
 
 /*--------------------------------------------------------------------------*/
@@ -426,6 +430,7 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
     rho[igrid] *= invVolFrag;
   }
 
+  /*
   //debug
   double dot;
   int js;
@@ -452,6 +457,7 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
       printf("is %i js %i dot %lg\n",is,js,dot);
     }
   }
+  */
 
 /*==========================================================================*/
 }/*end Routine*/

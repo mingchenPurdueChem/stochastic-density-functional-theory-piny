@@ -217,6 +217,7 @@ void rhoRealCalcWrapper(GENERAL_DATA *general_data,CP *cp,CLASS *class,
 
   int iii,ioff,ioff2;
   int is,i,j,k,iupper;
+  int gridoff,gridoff2;
   int igrid;
   int ncoef = cpcoeffs_info->ncoef;
   int   nfft_proc        =    cp_para_fft_pkg3d_lg->nfft_proc;
@@ -244,6 +245,8 @@ void rhoRealCalcWrapper(GENERAL_DATA *general_data,CP *cp,CLASS *class,
   for(is=1;is<=iupper;is=is+2){
     ioff   = (is-1)*ncoef;
     ioff2 = (is)*ncoef;
+    gridoff = (is-1)*nfft2;
+    gridoff2 = is*nfft2;
 
 /*--------------------------------------------------------------------------*/
 /*I) pack the complex zfft array with two wavefunctions (real) 
@@ -265,11 +268,11 @@ void rhoRealCalcWrapper(GENERAL_DATA *general_data,CP *cp,CLASS *class,
 /* III) Copy the real sapce wave function and add the square of the two     
         wave functions to the density(real space)                           */
 
-    for(igrid=0;igrid<nfft2_proc;igrid++){
-      wfReal[(is-1)*nfft2_proc+igrid] = zfft[igrid*2+1];
-      wfReal[is*nfft2_proc+igrid] = zfft[igrid*2+2];
+    for(igrid=0;igrid<nfft2;igrid++){
+      wfReal[gridoff+igrid] = zfft[igrid*2+1];
+      wfReal[gridoff2+igrid] = zfft[igrid*2+2];
     }
-    //printf("wfReal %lg %lg\n",wfReal[ioff],wfReal[ioff2]);
+    //printf("wfReal %lg %lg\n",wfReal[(is-1)*nfft2_proc],wfReal[is*nfft2_proc]);
   }/*endfor is*/
 
 /*--------------------------------------------------------------------------*/
@@ -279,6 +282,7 @@ void rhoRealCalcWrapper(GENERAL_DATA *general_data,CP *cp,CLASS *class,
 
   if(nstate%2!=0){
     ioff = (nstate-1)*ncoef;
+    gridoff = (nstate-1)*nfft2;
     sngl_pack_coef(&ccreal[ioff],&ccimag[ioff],zfft,cp_sclr_fft_pkg3d_sm);
 
 /*--------------------------------------------------------------------------*/
@@ -291,8 +295,8 @@ void rhoRealCalcWrapper(GENERAL_DATA *general_data,CP *cp,CLASS *class,
 /*VI) Copy the real sapce wave function and add the square of the last wave 
       function to the density(real space)   */
 
-    for(igrid=0;igrid<nfft2_proc;igrid++){
-      wfReal[ioff+igrid] = zfft[igrid*2+1];
+    for(igrid=0;igrid<nfft2;igrid++){
+      wfReal[gridoff+igrid] = zfft[igrid*2+1];
     }
 
   }//endif nstat%2

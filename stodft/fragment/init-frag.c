@@ -426,8 +426,6 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   if(myidState==0){
     printf("**Initialize skin\n");
   }
-
-  FILE *fileSkin;
   fragInfo->skinAll = (double*)cmalloc(numAtomTot*sizeof(double));
   fragInfo->skinFragBox = (double**)cmalloc(numFragProc*sizeof(double*));
   for(iFrag=0;iFrag<numFragProc;iFrag++){
@@ -435,6 +433,7 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   }
   double *skinAll = fragInfo->skinAll;
   if(myidState==0){
+    FILE *fileSkin;
     fileSkin = fopen("atomskin","r");
     for(iAtom=0;iAtom<numAtomTot;iAtom++){
       fscanf(fileSkin,"%lg",&skinAll[iAtom]);
@@ -449,6 +448,13 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
       fragInfo->skinFragBox[iFrag][iAtom] = skinAll[atomFragMapProc[iFrag][iAtom]-1];
     }//endfor iAtom
   }//endfor iFrag
+
+/*======================================================================*/
+/* 4) Initialize skin                                                   */
+  
+  if(myidState==0){
+    printf("**Pass control to parser\n");
+  }
   
 /*==========================================================================*/
 }/*end Routine*/

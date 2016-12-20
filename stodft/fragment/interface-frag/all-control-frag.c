@@ -1957,12 +1957,14 @@ void controlSetCpEwaldFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
    class->communicate.myid_forc_source = 0;
    class->communicate.myid_forc_target = 0;
 
+   /*
    Comm_dup(class->communicate.world,&class->communicate.comm_forc);
    Comm_dup(class->communicate.world,&class->communicate.comm_forc_source);
    Comm_dup(class->communicate.world,&class->communicate.comm_forc_target);
    Comm_dup(class->communicate.world,&class->communicate.comm_states);
    Comm_dup(class->communicate.world,&class->communicate.comm_beads);
    Comm_dup(class->communicate.world,&class->communicate.comm_faux);
+   */
 
  }/*endif*/
 
@@ -1974,7 +1976,7 @@ void controlSetCpEwaldFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
 
   class->class_comm_forc_pkg.myid     = class->communicate.myid_forc;
   class->class_comm_forc_pkg.num_proc = class->communicate.np_forc;
-  Comm_dup(class->communicate.comm_forc,&class->class_comm_forc_pkg.comm);
+  //Comm_dup(class->communicate.comm_forc,&class->class_comm_forc_pkg.comm);
 
   class->class_comm_forc_pkg.dbl_num_proc =
                             (double)(class->communicate.np_forc);
@@ -1986,9 +1988,10 @@ void controlSetCpEwaldFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
                           = class->communicate.myid_forc_source;
   class->class_comm_forc_pkg.plimpton_ind.num_proc_source
                           = class->communicate.np_forc_src;
+  /*
   Comm_dup(class->communicate.comm_forc_source,
           &(class->class_comm_forc_pkg.plimpton_ind.source));
-
+  */
  /*-----------------------------------------------------------------------*/
  /* iii) Target-Force level communicator */
 
@@ -1996,8 +1999,10 @@ void controlSetCpEwaldFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
                           = class->communicate.myid_forc_target;
   class->class_comm_forc_pkg.plimpton_ind.num_proc_target
                           = class->communicate.np_forc_trg;
+  /*
   Comm_dup(class->communicate.comm_forc_target,
           &(class->class_comm_forc_pkg.plimpton_ind.target));
+  */
 
 /*==========================================================================*/
 /* II) Set up some Bead level parallel stuff                                */
@@ -2076,11 +2081,11 @@ void controlSetCpEwaldFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
  /*-------------------------------------------------------------------------*/
  /* ii) Build the cp package */
 
-  Comm_dup(class->communicate.world,&world);
+  //Comm_dup(class->communicate.world,&world);
 
 
   if(cp->cpcoeffs_info.iopt_cp_pw==1){
-    build_cp_comm_pkg(cp,world); /* Contains no src/target stuff */
+    build_cp_comm_pkg(cp,world); //Contains no src/target stuff
   }else if (cp->cpcoeffs_info.iopt_cp_dvr==1){
     build_cp_comm_pkg_dvr(cp,world);
   }else{

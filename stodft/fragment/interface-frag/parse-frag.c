@@ -252,7 +252,6 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*   IX) Build communication groups: must be done in serial and parallel  */
 /*                                    after call to set_cp_ewald          */
 
-  
   controlGroupCommunicatorsFrag(classMini,cpMini,cp_on);
   //if(num_proc>1){ Barrier(world); }
   myid_state  = classMini->communicate.myid_state;

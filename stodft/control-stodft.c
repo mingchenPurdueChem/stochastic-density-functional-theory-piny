@@ -197,7 +197,7 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     fragScf(class,bonded,general_data,cp,analysis,*generalDataMiniPoint,
 	    *cpMiniPoint,*classMiniPoint,*analysisMiniPoint,*bondedMiniPoint,ip_now);
   }
-  exit(0);
+  //exit(0);
 
 /*======================================================================*/
 /* IV) Electronic Structure calculation for initial configuration       */

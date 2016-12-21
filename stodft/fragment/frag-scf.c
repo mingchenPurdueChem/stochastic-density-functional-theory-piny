@@ -70,10 +70,11 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* II) SCF LOOP					                        */
   
-    /* 
+     
     controlCpMinFrag(&classMini[iFrag],&bondedMini[iFrag],&generalDataMini[iFrag],
                      &cpMini[iFrag],&analysisMini[iFrag]);      
 
+    /*
     sprintf(fileNameFragMO,"frag-MO-%i",iFrag);
     fileFragMO = fopen(fileNameFragMO,"w");
     ncoef = cpMini[iFrag].cpcoeffs_info.ncoef;
@@ -86,12 +87,14 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     }
     fclose(fileFragMO);    
     */
+    
   }
   //exit(0);
 
 /*======================================================================*/
 /* II) Transfer Data and Free Memory                                    */
 
+  /*
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     sprintf(fileNameFragMO,"frag-MO-%i",iFrag);
     fileFragMO = fopen(fileNameFragMO,"r");
@@ -105,6 +108,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     }
     fclose(fileFragMO);
   }
+  */
 
   projRhoMini(cp,general_data,class,cpMini,generalDataMini,classMini,ip_now);
 

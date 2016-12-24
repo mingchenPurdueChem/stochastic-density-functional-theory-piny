@@ -104,6 +104,7 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   reInitFlag = cp->stodftInfo->reInitFlag;
   stodftInfo = cp->stodftInfo;
   stodftCoefPos = cp->stodftCoefPos;
+  //exit(0);
 
   //fflush(stdout);
   //exit(0);
@@ -111,7 +112,7 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /* III) Calculate initial density			                */
 
   calcRhoInit(class,bonded,general_data,cp,ip_now);
-
+  //exit(0);
   //debug only
   /*
   STODFTINFO *stodftInfo = cp->stodftInfo;
@@ -188,7 +189,7 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       PRINT_LINE_STAR;
       printf("Initial fragment calculation\n");
       PRINT_LINE_DASH;
-    }  
+    } 
     initFrag(class,bonded,general_data,cp,analysis,classMiniPoint,bondedMiniPoint,
 		generalDataMiniPoint,analysisMiniPoint,cpMiniPoint,ip_now);
 

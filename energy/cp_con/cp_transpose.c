@@ -759,7 +759,8 @@ void cp_transpose_fwd_prim(double *c,int *icoef_form,double *c_temp,
 
   c_pt = c+1;
   c_temp_pt  = c_temp+1;
-  Alltoall(c_pt,sendcounts,MPI_DOUBLE,c_temp_pt,recvcounts,MPI_DOUBLE,comm);
+  //Alltoall(c_pt,sendcounts,MPI_DOUBLE,c_temp_pt,recvcounts,MPI_DOUBLE,comm);
+  Alltoall(&c[1],sendcounts,MPI_DOUBLE,&c_temp[1],recvcounts,MPI_DOUBLE,comm);
 
 #ifdef DEBUG
   if(myid==0){

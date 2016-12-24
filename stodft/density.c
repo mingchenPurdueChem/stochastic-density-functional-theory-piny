@@ -1201,6 +1201,7 @@ void calcRhoStoHybridCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
   CPCOEFFS_POS  *cpcoeffs_pos   = &(cp->cpcoeffs_pos[ip_now]);
   PSEUDO        *pseudo         = &(cp->pseudo);
+  FRAGINFO *fragInfo = stodftInfo->fragInfo;
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
 
   int cpParaOpt = cpopts->cp_para_opt;
@@ -1219,6 +1220,7 @@ void calcRhoStoHybridCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
   int numFFT            = cp_para_fft_pkg3d_lg->nfft;
   int numFFT2           = numFFT/2;
   int numFFT2Proc       = numFFTProc/2;
+  int calcFragFlag	= stodftInfo->calcFragFlag;
 
   int rhoRealGridNum    = stodftInfo->rhoRealGridNum;
   int rhoRealGridTot    = stodftInfo->rhoRealGridTot;
@@ -1278,6 +1280,8 @@ void calcRhoStoHybridCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
   double *d2RhoDn        = cpscr->cpscr_grho.d2_rho_dn;
   double *chemPot = stodftCoefPos->chemPot;
   double *numElectronTemp = (double*)cmalloc(numChemPot*sizeof(double));
+  double *rhoUpFragSum;
+  double *rhoDnFragSum;
 
   double **stoWfUpRe = stodftCoefPos->stoWfUpRe;
   double **stoWfUpIm = stodftCoefPos->stoWfUpIm;
@@ -1381,9 +1385,8 @@ void calcRhoStoHybridCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
 
   if(numProcStates>1)Barrier(commStates);
 
-
 /*==========================================================================*/
-/* II) Double Check number of electrons.				    */
+/* III) Double Check number of electrons.				    */
 
   if(myidState==0){
     numElecTest = 0.0;
@@ -1419,12 +1422,24 @@ void calcRhoStoHybridCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
   }
 
 /*==========================================================================*/
-/* IV) Output the density                                                   */
+/* IV) Add the fragment contribution.                                       */
+
+  if(calcFragFlag==1){
+    rhoUpFragSum =  fragInfo->rhoUpFragSum;
+    for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)rhoUpCorrect[iGrid] += rhoUpFragSum[iGrid];
+    if(cpLsda==1&&numStateDnProc!=0){
+      rhoDnFragSum =  fragInfo->rhoDnFragSum;
+      for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)rhoDnCorrect[iGrid] += rhoDnFragSum[iGrid];
+    }
+  }
+
+/*==========================================================================*/
+/* V) Output the density                                                    */
 
   outputDensity(cp,cell);
 
 /*==========================================================================*/
-/* V) Generate the diis density						    */
+/* VI) Generate the diis density					    */
 
   if(densityMixFlag>0){
     if(myidState==0){
@@ -1437,9 +1452,11 @@ void calcRhoStoHybridCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
       fflush(stdout);
     }
   }
+
+  outputDensity(cp,cell);
  
 /*==========================================================================*/
-/* VI) Generate the reciprocal part and all the other things                */
+/* VII) Generate the reciprocal part and all the other things               */
     /*
     FILE *fileRhoReal = fopen("density-init","r");
     FILE *fileRhoRecip = fopen("density-recip-test","w");

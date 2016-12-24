@@ -78,11 +78,11 @@ if(ix_flag==0){
    for(iproc=1;iproc<np_use;iproc++){
      dest = myid + iproc;
      for(ip=1;ip<=pi_beads_proc;ip++){
-       Send(&(class->clatoms_pos[ip].x[0]),natm_tot+1,MPI_DOUBLE,dest,ip,
+       Send(&(class->clatoms_pos[ip].x[1]),natm_tot,MPI_DOUBLE,dest,ip,
                                                                      world);
-       Send(&(class->clatoms_pos[ip].y[0]),natm_tot+1,MPI_DOUBLE,dest,ip,
+       Send(&(class->clatoms_pos[ip].y[1]),natm_tot,MPI_DOUBLE,dest,ip,
                                                                      world);
-       Send(&(class->clatoms_pos[ip].z[0]),natm_tot+1,MPI_DOUBLE,dest,ip,
+       Send(&(class->clatoms_pos[ip].z[1]),natm_tot,MPI_DOUBLE,dest,ip,
                                                                      world);
      }/*endfor*/
    }/*endfor*/
@@ -92,11 +92,11 @@ if(ix_flag==0){
      if(myid_state==iproc||myid_forc==iproc){
        source = myid - iproc;
        for(ip=1;ip<=pi_beads_proc;ip++){
-         Recv(&(class->clatoms_pos[ip].x[0]),natm_tot+1,MPI_DOUBLE,source,ip,
+         Recv(&(class->clatoms_pos[ip].x[1]),natm_tot,MPI_DOUBLE,source,ip,
                                                                        world);
-         Recv(&(class->clatoms_pos[ip].y[0]),natm_tot+1,MPI_DOUBLE,source,ip,
+         Recv(&(class->clatoms_pos[ip].y[1]),natm_tot,MPI_DOUBLE,source,ip,
                                                                        world);
-         Recv(&(class->clatoms_pos[ip].z[0]),natm_tot+1,MPI_DOUBLE,source,ip,
+         Recv(&(class->clatoms_pos[ip].z[1]),natm_tot,MPI_DOUBLE,source,ip,
                                                                        world);
        }/*endfor*/
      }/*endif:myid_state*/

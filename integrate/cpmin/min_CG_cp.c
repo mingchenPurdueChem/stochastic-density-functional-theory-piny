@@ -322,7 +322,10 @@ void min_CG_cp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*==========================================================================*/
 /* II.V) Evolve gradients                                                   */
 
-   if(gamma_up>100.0)exit(0);
+   if(gamma_up>100.0){
+    printf("gamma_up %lg\n",gamma_up);
+    exit(0);
+   }
    for(i=1;i<=ncoef_up_tot; i++){
       hcre_up[i] = fcre_up[i] + gamma_up*hcre_up[i];
       hcim_up[i] = fcim_up[i] + gamma_up*hcim_up[i];

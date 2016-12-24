@@ -1546,7 +1546,7 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
        }else{
          excpot_pz_lda(v_ks_up,rho_up,&exc,&muxc,nfft,nfft_proc,vol_cp,
                       cp_lyp,cp_lypm1,pvten_cp,cp_ptens_calc);
-
+	 printf("exc %lg\n",exc);
        }/*endif cp_dual_grid_opt*/
       igo = 1;
      }/*endif*/

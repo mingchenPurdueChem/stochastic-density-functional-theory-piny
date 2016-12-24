@@ -360,7 +360,7 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
 /* ================================================================= */
 /*1) zero density and gradients if necessary                         */
 
-  for(i=1;i<=nfft2;i++)rho[i] = 0.0;
+  for(i=0;i<nfft2;i++)rho[i] = 0.0;
 
 /*==========================================================================*/
 /*==========================================================================*/

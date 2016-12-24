@@ -657,6 +657,7 @@ void parse(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*  XXV) Initialize UFED/dafed calculation                                */
 /*                (dafed/)                                                */
   DAFED_INFO *dinfo = &(class->clatoms_info.dinfo);
+  Bcast(&(dinfo->n_cv),1,MPI_INT,0,world);
   int n_cv = dinfo->n_cv;
   
   if(n_cv>0){initialize_dafed(class,general_data);}

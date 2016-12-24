@@ -87,7 +87,6 @@ void controlCpMinFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* I) Set the flags/counters                                           */
 
-
   general_data->stat_avg.write_cp_atm_flag = 0;
 
   ifirst_atm=1;

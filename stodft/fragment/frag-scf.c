@@ -44,6 +44,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*             Local variable declarations                                */
   STODFTINFO *stodftInfo = cp->stodftInfo;
   FRAGINFO *fragInfo	 = stodftInfo->fragInfo;
+  COMMUNICATE   *communicate = &(cp->communicate);
   
   int numFragProc = fragInfo->numFragProc;
   int iFrag;
@@ -52,6 +53,9 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   FILE *fileFragMO;
   int iState,iGrid;
   int ncoef,icoef;
+  int numProcStates     = communicate->np_states;
+  MPI_Comm commStates   = communicate->comm_states;
+
   int *numGridFragProc = fragInfo->numGridFragProc;
   int *numElecUpFragProc = fragInfo->numElecUpFragProc;
   
@@ -70,12 +74,12 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* II) SCF LOOP					                        */
   
-     
+    /*
     controlCpMinFrag(&classMini[iFrag],&bondedMini[iFrag],&generalDataMini[iFrag],
                      &cpMini[iFrag],&analysisMini[iFrag]);      
 
-    /*
-    sprintf(fileNameFragMO,"frag-MO-%i",iFrag);
+    
+    sprintf(fileNameFragMO,"./frag-MO-%i",iFrag);
     fileFragMO = fopen(fileNameFragMO,"w");
     ncoef = cpMini[iFrag].cpcoeffs_info.ncoef;
     printf("ncoeffff %i\n",ncoef);
@@ -89,12 +93,13 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     */
     
   }
+  if(numProcStates>1)Barrier(commStates);
   //exit(0);
 
 /*======================================================================*/
 /* II) Transfer Data and Free Memory                                    */
 
-  /*
+  
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     sprintf(fileNameFragMO,"frag-MO-%i",iFrag);
     fileFragMO = fopen(fileNameFragMO,"r");
@@ -108,7 +113,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     }
     fclose(fileFragMO);
   }
-  */
+  
 
   projRhoMini(cp,general_data,class,cpMini,generalDataMini,classMini,ip_now);
 

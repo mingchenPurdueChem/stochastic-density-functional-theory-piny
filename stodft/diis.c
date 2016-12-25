@@ -339,7 +339,14 @@ void calcDensityDiis(CP *cp,double **rhoBank,double **rhoErr)
     }
   }
 
+  /*
+  if(myidState==3){
+    for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+      printf("igrid %i rhoooooooooooo %lg\n",iGrid,rhoUp[iGrid+1]);
+    }
+  }
   memcpy(&rhoUpCorrect[0],&rhoUp[1],rhoRealGridNum*sizeof(double));
+  */
 
   free(svdLinSol);
   free(diisMatrix);

@@ -1453,7 +1453,7 @@ void calcRhoStoHybridCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
     }
   }
 
-  outputDensity(cp,cell);
+  //outputDensity(cp,cell);
  
 /*==========================================================================*/
 /* VII) Generate the reciprocal part and all the other things               */
@@ -1542,7 +1542,7 @@ void outputDensity(CP *cp,CELL *cell)
   volCP  = getdeth(hmatCP);
   volCPInv = 1.0/volCP;
 
-  if(chemPotOpt==1){// interpolation way
+  //if(chemPotOpt==1){// interpolation way
     if(numProcStates>1){
       if(myidState==0)rhoUpForOutput = (double*)cmalloc(rhoRealGridTot*sizeof(double));
       Barrier(commStates);
@@ -1583,7 +1583,8 @@ void outputDensity(CP *cp,CELL *cell)
       }//endif cpLsda
       fclose(densityOutputFile);
     }//endif sequential case
-  }
+  //}
+  /*
   else if(chemPotOpt==2){
     if(myidState==0){
       densityOutputFile = cfopen(densityFileName,"a");
@@ -1598,6 +1599,7 @@ void outputDensity(CP *cp,CELL *cell)
       fclose(densityOutputFile);
     }
   }
+  */
 
 /*==========================================================================*/
 }/*end Routine*/

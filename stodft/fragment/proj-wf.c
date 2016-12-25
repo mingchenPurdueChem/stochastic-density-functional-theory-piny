@@ -342,7 +342,27 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   } 
   for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)numElecProj += rhoTemp[iGrid];
   //printf("numElecProj %lg\n",numElecProj);
-  
+  //debug
+  /*
+  double sumElecFrag = 0.0;
+  double sumElecProj = 0.0;
+  for(iProc=0;iProc<numProcStates;iProc++){
+    if(myidState==iProc){
+      for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+	sumElecFrag += rhoUpFragSum[iGrid];
+	sumElecProj += pre*rhoTemp[iGrid];
+        printf("rhofraggggg %lg rhoproj %lg\n",rhoUpFragSum[iGrid],pre*rhoTemp[iGrid]);
+      }
+      sumElecFrag /= rhoRealGridTot;
+      sumElecProj /= rhoRealGridTot;
+    }
+    if(numProcStates>1)Barrier(commStates);
+  }
+  printf("sumElecFrag %lg sumElecProj %lg\n",sumElecFrag,sumElecProj);
+  if(numProcStates>1)Barrier(commStates);
+  exit(0);
+  */
+
   daxpyBlasWrapper(rhoRealGridNum,-pre,&rhoTemp[0],1,&rhoUpFragSum[0],1);
 
   if(cpLsda==1&&numStateDn!=0){
@@ -413,6 +433,8 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     }
     if(numProcStates>1)Barrier(commStates);
   }
+  if(numProcStates>1)Barrier(commStates);
+  exit(0);
   */
   
 /*======================================================================*/

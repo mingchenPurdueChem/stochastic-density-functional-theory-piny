@@ -1420,6 +1420,9 @@ void calcRhoStoHybridCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
       memcpy(rhoDnCorrect,rhoDnChemPot[0],rhoRealGridNum*sizeof(double));
     }
   }
+  
+  outputDensity(cp,cell);
+
 
 /*==========================================================================*/
 /* IV) Add the fragment contribution.                                       */
@@ -1436,7 +1439,7 @@ void calcRhoStoHybridCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
 /*==========================================================================*/
 /* V) Output the density                                                    */
 
-  outputDensity(cp,cell);
+  //outputDensity(cp,cell);
 
 /*==========================================================================*/
 /* VI) Generate the diis density					    */
@@ -1492,6 +1495,8 @@ void calcRhoStoHybridCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
     fclose(fileRhoReal);
     fclose(fileRhoRecip);  
     */
+
+   exit(0);
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/
@@ -1559,7 +1564,9 @@ void outputDensity(CP *cp,CELL *cell)
       if(myidState==0){
 	densityOutputFile = cfopen(densityFileName,"a");
 	for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
-	  fprintf(densityOutputFile,"%.10lg\n",rhoUpForOutput[iGrid]*volCPInv);
+	  //fprintf(densityOutputFile,"%.10lg\n",rhoUpForOutput[iGrid]*volCPInv);
+	  //debug
+	  fprintf(densityOutputFile,"%.10lg\n",rhoUpForOutput[iGrid]);
 	}//endfor iGrid
 	cfree(rhoUpForOutput);
 	if(cpLsda==1&&numStateDnProc!=0){

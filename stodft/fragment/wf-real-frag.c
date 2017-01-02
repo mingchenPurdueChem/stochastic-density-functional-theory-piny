@@ -432,6 +432,7 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
 
   for(igrid=0;igrid<nfft2_proc;igrid++){
     rho[igrid] *= invVolFrag;
+    //printf("rhoooooooooooooo %lg\n",rho[igrid]);
   }
 
   /*

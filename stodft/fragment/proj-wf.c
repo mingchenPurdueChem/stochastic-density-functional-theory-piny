@@ -343,7 +343,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)numElecProj += rhoTemp[iGrid];
   //printf("numElecProj %lg\n",numElecProj);
   //debug
-  /*
+  
   double sumElecFrag = 0.0;
   double sumElecProj = 0.0;
   for(iProc=0;iProc<numProcStates;iProc++){
@@ -360,8 +360,8 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   }
   printf("sumElecFrag %lg sumElecProj %lg\n",sumElecFrag,sumElecProj);
   if(numProcStates>1)Barrier(commStates);
-  exit(0);
-  */
+  //exit(0);
+  
 
   daxpyBlasWrapper(rhoRealGridNum,-pre,&rhoTemp[0],1,&rhoUpFragSum[0],1);
 

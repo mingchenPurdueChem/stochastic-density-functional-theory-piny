@@ -157,6 +157,7 @@ void calcRhoDetInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
   int numCoeff       = cpcoeffs_info->ncoef;
   int rhoRealGridNum = stodftInfo->rhoRealGridNum;
+  int rhoRealGridTot = stodftInfo->rhoRealGridTot;
   int filterDiagFlag = stodftInfo->filterDiagFlag;
   int iCoeff,iGrid;
   int *coefFormUp   = &(cpcoeffs_pos->icoef_form_up);
@@ -209,6 +210,11 @@ void calcRhoDetInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 	       &(cp->cp_para_fft_pkg3d_dens_cp_box),
 	       &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
 	       &(cp->cp_sclr_fft_pkg3d_sm));
+    
+   for(iCoeff=1;iCoeff<=numCoeff*numStateUpProc;iCoeff++){
+     printf("wfffffffff %.16lg %.16lg\n",coeffReUp[iCoeff],coeffImUp[iCoeff]);
+   }
+    
   }
   if(cpParaOpt==1){
     cp_rho_calc_full_g(cpewald,cpscr,cpcoeffs_info,
@@ -308,9 +314,18 @@ void calcRhoDetInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       rhoUpCorrect[0] += 0.1/(itest+1);
     }
     */
+
+    FILE *fileTestRhoInit = fopen("rho-init-sto","w");
+    for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+      fprintf(fileTestRhoInit,"%.16lg\n",rhoUpCorrect[iGrid]);
+    }
+    fclose(fileTestRhoInit);
+    fflush(stdout);
+    exit(0);
+
     
   }
-  //exit(0);
+  exit(0);
   /*
   //debug
   FILE *fileRhoInit = fopen("density-init","w");

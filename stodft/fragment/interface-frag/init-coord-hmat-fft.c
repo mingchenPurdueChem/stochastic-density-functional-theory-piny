@@ -492,7 +492,7 @@ void initFFTMap(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   
   //printf("zeroGrid %i %i %i\n",zeroGrid[0],zeroGrid[1],zeroGrid[2]);
   //printf("indexGrid %i %i %i\n",indexGrid[0],indexGrid[1],indexGrid[2]);
-  exit(0);
+  //exit(0);
   
 
 }/*end routine*/

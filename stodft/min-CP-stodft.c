@@ -542,7 +542,7 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /* i) Generate stochastic WF for different chemical potentials          */
 
     if(myidState==0)printf("**Generating Stochastic Orbitals...\n");
-    //genStoOrbitalCheby(class,bonded,general_data,cp,ip_now);
+    genStoOrbitalCheby(class,bonded,general_data,cp,ip_now);
  
     //exit(0);
     //debug
@@ -568,10 +568,10 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     for(iChem=0;iChem<numChemPot;iChem++){
       for(iState=0;iState<numStateUp;iState++){
 	for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
-	  fscanf(filePrintWF,"%lg",&stoWfUpRe[iChem][iState*numCoeff+iCoeff]);
-	  fscanf(filePrintWF,"%lg",&stoWfUpIm[iChem][iState*numCoeff+iCoeff]);
-	  //fprintf(filePrintWF,"%.16lg %.16lg\n",stoWfUpRe[iChem][iState*numCoeff+iCoeff],
-	  //	    stoWfUpIm[iChem][iState*numCoeff+iCoeff]);
+	  //fscanf(filePrintWF,"%lg",&stoWfUpRe[iChem][iState*numCoeff+iCoeff]);
+	  //fscanf(filePrintWF,"%lg",&stoWfUpIm[iChem][iState*numCoeff+iCoeff]);
+	  fprintf(filePrintWF,"%.16lg %.16lg\n",stoWfUpRe[iChem][iState*numCoeff+iCoeff],
+	  	    stoWfUpIm[iChem][iState*numCoeff+iCoeff]);
 	}//endfor iCoeff
       }//endfor iState
     }//endfor iChem

@@ -264,6 +264,13 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
     if(fftw3dFlag==0){
       para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
 
+    FILE *fileFftTest = fopen("fft-r-sparse","w");
+    for(i=0;i<nfft2_proc;i++){
+      fprintf(fileFftTest,"%.16lg %.16lg\n",zfft[i*2+1],zfft[i*2+2]);
+    }
+    fclose(fileFftTest);
+
+
     }
     else{
       para_fft_gen3d_fwd_to_r_fftw3d(zfft,cp_sclr_fft_pkg3d_sm);

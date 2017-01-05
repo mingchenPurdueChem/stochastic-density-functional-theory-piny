@@ -90,9 +90,9 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /* I) Write to Screen                                                   */
 
  if(myid==0){
-  PRINT_LINE_STAR;
-  printf("Running Stochastic DFT.\n");
-  PRINT_LINE_DASH;
+   PRINT_LINE_STAR;
+   printf("Running Stochastic DFT.\n");
+   PRINT_LINE_DASH;
  }/* endif */
 
 /*======================================================================*/

@@ -467,9 +467,16 @@ void para_fft_gen3d_fwd_to_r_fftw3d(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
   fftw_plan fftwPlan3DForward = para_fft_pkg3d->fftwPlan3DForward;
 
   //printf("nfft2_proc %i\n",nfft2_proc);
+
+#ifdef FFTW
+  for(igrid=0;igrid<nfft2_proc;igrid++){
+    fftw3DForwardIn[igrid] = zfft[igrid*2+1]-zfft[igrid*2+2]*I;
+  }
+#else
   for(igrid=0;igrid<nfft2_proc;igrid++){
     fftw3DForwardIn[igrid] = zfft[igrid*2+1]+zfft[igrid*2+2]*I;
   }
+#endif
   
   /*
   for(i=0;i<nfft2_proc;i++){

@@ -4507,6 +4507,7 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
 /*             Local variable declarations                                */
   double rka;
   int missionType,stodftOn;
+  int genericOpt = cp->cp_sclr_fft_pkg3d_lg.igeneric_opt;
   SIMOPTS *simopts = &(general_data->simopts);
   MINOPTS *minopts = &(general_data->minopts);
   CPOPTS  *cpopts  = &(cp->cpopts);
@@ -4741,6 +4742,15 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
     if(stodftInfo->gapInit<=0.0){
       printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
       printf("Band gap has to be positive. Metal is not implemented here!\n");
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(0);
+    }
+    if(stodftInfo->calcFragFlag==1&&cp->cp_sclr_fft_pkg3d_sm.igeneric_opt){
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      printf("If you turn on the generic FFT, there is a missmatch between\n");
+      printf("real space density and nuclei positions. Please change to other\n");
+      printf("FFT methods!\n");
       printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
       fflush(stdout);
       exit(0);

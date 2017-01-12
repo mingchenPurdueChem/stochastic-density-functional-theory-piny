@@ -458,6 +458,11 @@ void initFFTMap(GENERAL_DATA *generalData,CLASS *class,CP *cp,
     }//endfor jGrid
   }//endfor iGrid
 
+  //debug
+  for(iGrid=0;iGrid<numGridTotMiniBox;iGrid++){
+    fragInfo->gridMapProc[iFrag][iGrid] = iGrid;
+  }
+
 /*======================================================================*/
 /* III) Get the mini cell matrix                                        */
 

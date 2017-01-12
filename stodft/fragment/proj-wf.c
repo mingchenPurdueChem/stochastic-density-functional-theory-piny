@@ -152,6 +152,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   char fileNameFragRhoReal[100];
   FILE *fileFragMOReal,*fileFragRhoReal;
   double preTest = 1.0/sqrt(2.0*vol);
+  int junk;
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     sprintf(fileNameFragMOReal,"wf-frag-real-%i",iFrag);
     sprintf(fileNameFragRhoReal,"rho-frag-%i",iFrag);
@@ -166,6 +167,9 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
       }
     }
     for(iGrid=0;iGrid<numGrid;iGrid++){
+      fscanf(fileFragRhoReal,"%i",&junk);
+      fscanf(fileFragRhoReal,"%i",&junk);
+      fscanf(fileFragRhoReal,"%i",&junk);
       fscanf(fileFragRhoReal,"%lg",&(fragInfo->rhoUpFragProc[iFrag][iGrid]));
       fragInfo->rhoUpFragProc[iFrag][iGrid] *= volInv;
     }
@@ -374,7 +378,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
       for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
 	sumElecFrag += rhoUpFragSum[iGrid];
 	sumElecProj += pre*rhoTemp[iGrid];
-        //printf("rhofraggggg %lg rhoproj %lg\n",rhoUpFragSum[iGrid],pre*rhoTemp[iGrid]);
+        printf("rhofraggggg %lg rhoproj %lg\n",rhoUpFragSum[iGrid],pre*rhoTemp[iGrid]);
       }
       sumElecFrag /= rhoRealGridTot;
       sumElecProj /= rhoRealGridTot;

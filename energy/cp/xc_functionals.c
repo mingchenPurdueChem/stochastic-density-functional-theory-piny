@@ -314,7 +314,7 @@ void  excpot_pz_lda(double *v_ks,double *rho,double *exc_ret,double *muxc_ret,
 
    for(i=1 ; i<= nfft2_proc; i++){
      rho_r = rho[i];
-     if(rho_r<0)printf("i %i rho_r %lg\n",i,rho_r);
+     //if(rho_r<0)printf("i %i rho_r %lg\n",i,rho_r);
      fpin = fpi*rho_r;
      rs   = pow((3.0/fpin),power);
      sqtrs = sqrt(rs);

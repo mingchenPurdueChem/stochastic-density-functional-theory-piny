@@ -452,6 +452,7 @@ void para_fft_gen3d_fwd_to_r_fftw3d(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
 /*=======================================================================*/
 /*          Local variable declarations                                  */
 #include "../typ_defs/typ_mask.h"
+  int igeneric_opt = para_fft_pkg3d->igeneric_opt;
   int nfft_proc = para_fft_pkg3d->nfft_proc;
   int nfft2_proc = nfft_proc/2;
   int igrid;
@@ -460,59 +461,62 @@ void para_fft_gen3d_fwd_to_r_fftw3d(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
   int nkf2 = para_fft_pkg3d->nkf2;
   int nkf1 = para_fft_pkg3d->nkf1;
   int fftInd,fftIndTrans;
+  int fftFlag = 0; // We need to match fftw3d results to old fft in the package
+	           // depend on whether generic is used or not
 
   fftw_complex *fftw3DForwardIn = para_fft_pkg3d->fftw3DForwardIn;
   fftw_complex *fftw3DForwardOut = para_fft_pkg3d->fftw3DForwardOut;
+  fftw_complex *fftw3DBackwardIn = para_fft_pkg3d->fftw3DBackwardIn;
+  fftw_complex *fftw3DBackwardOut = para_fft_pkg3d->fftw3DBackwardOut;
+
   
   fftw_plan fftwPlan3DForward = para_fft_pkg3d->fftwPlan3DForward;
+  fftw_plan fftwPlan3DBackward = para_fft_pkg3d->fftwPlan3DBackward;
 
-  //printf("nfft2_proc %i\n",nfft2_proc);
-
-#ifdef FFTW
-  for(igrid=0;igrid<nfft2_proc;igrid++){
-    fftw3DForwardIn[igrid] = zfft[igrid*2+1]-zfft[igrid*2+2]*I;
-  }
-#else
-  for(igrid=0;igrid<nfft2_proc;igrid++){
-    fftw3DForwardIn[igrid] = zfft[igrid*2+1]+zfft[igrid*2+2]*I;
-  }
+#ifdef FFTW3
+  if(igeneric_opt==0)fftFlag = 1;
 #endif
-  
-  /*
-  for(i=0;i<nfft2_proc;i++){
-    printf("zffttttt %lg %lg\n",zfft[2*i+1],zfft[2*i+2]);
-  }
 
-  for(i=0;i<nfft2_proc;i++){
-    //printf("zffttttt %lg %lg\n",zfft[2*i+1],zfft[2*i+2]);
-    printf("zfftinnnn %lg %lg\n",creal(fftw3DForwardIn[i]),cimag(fftw3DForwardIn[i]));
-  }
-  */
+  //printf("fftFlag %i\n",fftFlag);
 
-  fftw_execute(fftwPlan3DForward);
+  if(fftFlag==0){
+    for(igrid=0;igrid<nfft2_proc;igrid++){
+      fftw3DForwardIn[igrid] = zfft[igrid*2+1]+zfft[igrid*2+2]*I;
+    }
+    
+    fftw_execute(fftwPlan3DForward);
 
-  for(i=0;i<nfft2_proc;i++){
-    //printf("zffttttt %lg %lg\n",zfft[2*i+1],zfft[2*i+2]);
-    //printf("zfftoutttt %lg %lg\n",creal(fftw3DForwardOut[i]),cimag(fftw3DForwardOut[i]));
+    for(i=0;i<nkf3;i++){
+      for(j=0;j<nkf2;j++){
+	for(k=0;k<nkf1;k++){
+	  fftInd = i*nkf2*nkf1+j*nkf1+k;
+	  fftIndTrans = k*nkf2*nkf3+j*nkf3+i;
+	  zfft[fftInd*2+1] = creal(fftw3DForwardOut[fftIndTrans]);
+	  zfft[fftInd*2+2] = cimag(fftw3DForwardOut[fftIndTrans]);
+	}
+      }
+    }
+
   }
- 
-  for(i=0;i<nkf3;i++){
-    for(j=0;j<nkf2;j++){
-      for(k=0;k<nkf1;k++){
-	fftInd = i*nkf2*nkf1+j*nkf1+k;
-	fftIndTrans = k*nkf2*nkf3+j*nkf3+i;
-	zfft[fftInd*2+1] = creal(fftw3DForwardOut[fftIndTrans]);
-	zfft[fftInd*2+2] = cimag(fftw3DForwardOut[fftIndTrans]);
+  else{
+    for(igrid=0;igrid<nfft2_proc;igrid++){
+      fftw3DBackwardIn[igrid] = zfft[igrid*2+1]+zfft[igrid*2+2]*I;
+    }
+
+    fftw_execute(fftwPlan3DBackward);
+
+    for(i=0;i<nkf3;i++){
+      for(j=0;j<nkf2;j++){
+        for(k=0;k<nkf1;k++){
+          fftInd = i*nkf2*nkf1+j*nkf1+k;
+          fftIndTrans = k*nkf2*nkf3+j*nkf3+i;
+          zfft[fftInd*2+1] = creal(fftw3DBackwardOut[fftIndTrans]);
+          zfft[fftInd*2+2] = cimag(fftw3DBackwardOut[fftIndTrans]);
+        }
       }
     }
   }
 
-  /*
-  for(igird=0;igrid<nfft2_proc;igrid++){
-    zfft[igrid*2+1] = creal(fftw3DBackwardOut[igrid]);
-    zfft[igrid*2+2] = cimag(fftw3DBackwardOut[igrid]);
-  }
-  */
 
 /*-----------------------------------------------------------------------*/
    }/*end routine*/
@@ -1183,6 +1187,7 @@ void para_fft_gen3d_bck_to_g_fftw3d(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
 /*=======================================================================*/
 /*          Local variable declarations                                  */
 #include "../typ_defs/typ_mask.h"
+  int igeneric_opt = para_fft_pkg3d->igeneric_opt;
   int nfft_proc = para_fft_pkg3d->nfft_proc;
   int nfft2_proc = nfft_proc/2;
   int igrid;
@@ -1192,28 +1197,56 @@ void para_fft_gen3d_bck_to_g_fftw3d(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
   int nkf1 = para_fft_pkg3d->nkf1;
   int fftInd,fftIndTrans;
   double nfft2Inv = 1.0/nfft2_proc;
-
+  int fftFlag = 0;
 
   fftw_complex *fftw3DBackwardIn = para_fft_pkg3d->fftw3DBackwardIn;
   fftw_complex *fftw3DBackwardOut = para_fft_pkg3d->fftw3DBackwardOut;
+  fftw_complex *fftw3DForwardIn = para_fft_pkg3d->fftw3DForwardIn;
+  fftw_complex *fftw3DForwardOut = para_fft_pkg3d->fftw3DForwardOut;
 
   fftw_plan fftwPlan3DBackward = para_fft_pkg3d->fftwPlan3DBackward;
+  fftw_plan fftwPlan3DForward = para_fft_pkg3d->fftwPlan3DForward;
 
-  for(i=0;i<nkf3;i++){
-    for(j=0;j<nkf2;j++){
-      for(k=0;k<nkf1;k++){
-        fftInd = i*nkf2*nkf1+j*nkf1+k;
-        fftIndTrans = k*nkf2*nkf3+j*nkf3+i;
-	fftw3DBackwardIn[fftIndTrans] = zfft[fftInd*2+1]+zfft[fftInd*2+2]*I;
+
+#ifdef FFTW3
+  if(igeneric_opt==0)fftFlag = 1;
+#endif
+
+  if(fftFlag==0){
+    for(i=0;i<nkf3;i++){
+      for(j=0;j<nkf2;j++){
+	for(k=0;k<nkf1;k++){
+	  fftInd = i*nkf2*nkf1+j*nkf1+k;
+	  fftIndTrans = k*nkf2*nkf3+j*nkf3+i;
+	  fftw3DBackwardIn[fftIndTrans] = zfft[fftInd*2+1]+zfft[fftInd*2+2]*I;
+	}
       }
     }
+
+    fftw_execute(fftwPlan3DBackward);
+
+    for(igrid=0;igrid<nfft2_proc;igrid++){
+      zfft[igrid*2+1] = creal(fftw3DBackwardOut[igrid])*nfft2Inv;
+      zfft[igrid*2+2] = cimag(fftw3DBackwardOut[igrid])*nfft2Inv;
+    }
   }
+  else{
+    for(i=0;i<nkf3;i++){
+      for(j=0;j<nkf2;j++){
+        for(k=0;k<nkf1;k++){
+          fftInd = i*nkf2*nkf1+j*nkf1+k;
+          fftIndTrans = k*nkf2*nkf3+j*nkf3+i;
+          fftw3DForwardIn[fftIndTrans] = zfft[fftInd*2+1]+zfft[fftInd*2+2]*I;
+        }
+      }
+    }
 
-  fftw_execute(fftwPlan3DBackward);
+    fftw_execute(fftwPlan3DForward);
 
-  for(igrid=0;igrid<nfft2_proc;igrid++){
-    zfft[igrid*2+1] = creal(fftw3DBackwardOut[igrid])*nfft2Inv;
-    zfft[igrid*2+2] = cimag(fftw3DBackwardOut[igrid])*nfft2Inv;
+    for(igrid=0;igrid<nfft2_proc;igrid++){
+      zfft[igrid*2+1] = creal(fftw3DForwardOut[igrid])*nfft2Inv;
+      zfft[igrid*2+2] = cimag(fftw3DForwardOut[igrid])*nfft2Inv;
+    }    
   }
 
 /*-----------------------------------------------------------------------*/

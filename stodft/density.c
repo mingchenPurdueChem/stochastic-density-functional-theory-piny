@@ -1137,7 +1137,6 @@ void calcRhoStoHybridInterp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_da
     for(iGrid=1;iGrid<=rhoRealGridNum;iGrid++)fscanf(fileRhoReal,"%lg",&rhoUp[iGrid]);
     for(iGrid=1;iGrid<=rhoRealGridNum;iGrid++)rhoUp[iGrid] /= 0.0009250463018013585;
     */
-
     calcRhoStoRecipFullg(cpewald,cpscr,cpcoeffs_info,ewald,cell,
 		       rhoCoeffReUp,rhoCoeffImUp,rhoUp,rhoCoeffReUpDensCpBox,rhoCoeffImUpDensCpBox,
 		       divRhoxUp,divRhoyUp,divRhozUp,d2RhoUp,cpGGA,cpDualGridOptOn,numInterpPmeDual,
@@ -1158,6 +1157,12 @@ void calcRhoStoHybridInterp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_da
 	}/* endfor */
       } /* endif */
     }/* endif */
+
+    if(myidState==0){
+      printf("Finish Calculating Reciprocal Space Density\n");
+      fflush(stdout);
+    }
+
 
     /*
     for(iCoeff=1;iCoeff<=numCoeffLargeProc;iCoeff++){
@@ -1421,7 +1426,7 @@ void calcRhoStoHybridCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
     }
   }
   
-  outputDensity(cp,cell);
+  //outputDensity(cp,cell);
 
 
 /*==========================================================================*/
@@ -1439,7 +1444,7 @@ void calcRhoStoHybridCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
 /*==========================================================================*/
 /* V) Output the density                                                    */
 
-  //outputDensity(cp,cell);
+  outputDensity(cp,cell);
 
 /*==========================================================================*/
 /* VI) Generate the diis density					    */
@@ -1496,7 +1501,7 @@ void calcRhoStoHybridCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
     fclose(fileRhoRecip);  
     */
 
-   exit(0);
+   //exit(0);
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/

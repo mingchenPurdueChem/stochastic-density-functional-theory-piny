@@ -90,7 +90,9 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       }
     }
     fclose(fileFragMO);    
-    */ 
+    */
+    
+     
     
   }
   if(numProcStates>1)Barrier(commStates);
@@ -113,6 +115,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     }
     fclose(fileFragMO);
   }
+  
   
 
   projRhoMini(cp,general_data,class,cpMini,generalDataMini,classMini,ip_now);

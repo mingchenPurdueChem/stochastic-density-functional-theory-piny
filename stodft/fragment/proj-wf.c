@@ -147,6 +147,29 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     fragInfo->iFrag = iFrag;
     rhoRealCalcDriverFrag(&generalDataMini[iFrag],&cpMini[iFrag],&classMini[iFrag],cp);
   }
+  //debug
+  char fileNameFragMOReal[100];
+  char fileNameFragRhoReal[100];
+  FILE *fileFragMOReal,*fileFragRhoReal;
+  double preTest = 1.0/sqrt(2.0*vol);
+  for(iFrag=0;iFrag<numFragProc;iFrag++){
+    sprintf(fileNameFragMOReal,"wf-frag-real-%i",iFrag);
+    sprintf(fileNameFragRhoReal,"rho-frag-%i",iFrag);
+    fileFragMOReal = fopen(fileNameFragMOReal,"r");
+    fileFragRhoReal = fopen(fileNameFragRhoReal,"r");
+    numStateUpMini = cpMini[iFrag].cpcoeffs_info.nstate_up_proc;
+    numGrid = numGridFragProc[iFrag];
+    for(iState=0;iState<numStateUpMini;iState++){
+      for(iGrid=0;iGrid<numGrid;iGrid++){
+	fscanf(fileFragMOReal,"%lg",&(fragInfo->coefUpFragProc[iFrag][iState*numGrid+iGrid]));
+	fragInfo->coefUpFragProc[iFrag][iState*numGrid+iGrid] *= preTest;
+      }
+    }
+    for(iGrid=0;iGrid<numGrid;iGrid++){
+      fscanf(fileFragRhoReal,"%lg",&(fragInfo->rhoUpFragProc[iFrag][iGrid]));
+      fragInfo->rhoUpFragProc[iFrag][iGrid] *= volInv;
+    }
+  }
 
 /*======================================================================*/
 /* III) Assemble fragments densities		                        */
@@ -351,7 +374,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
       for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
 	sumElecFrag += rhoUpFragSum[iGrid];
 	sumElecProj += pre*rhoTemp[iGrid];
-        printf("rhofraggggg %lg rhoproj %lg\n",rhoUpFragSum[iGrid],pre*rhoTemp[iGrid]);
+        //printf("rhofraggggg %lg rhoproj %lg\n",rhoUpFragSum[iGrid],pre*rhoTemp[iGrid]);
       }
       sumElecFrag /= rhoRealGridTot;
       sumElecProj /= rhoRealGridTot;

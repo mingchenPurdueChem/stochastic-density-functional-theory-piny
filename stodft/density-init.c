@@ -72,7 +72,6 @@ void calcRhoInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     PRINT_LINE_DASH;
   }
 
-  printf("readCoeffFlag %i\n",readCoeffFlag);
   if(readCoeffFlag==1) calcRhoStoInit(class,bonded,general_data,cp,cpcoeffs_pos);
   if(readCoeffFlag==2) calcRhoDetInit(class,bonded,general_data,cp,cpcoeffs_pos);
   if(readCoeffFlag==3) readRho(class,bonded,general_data,cp,cpcoeffs_pos);
@@ -210,10 +209,11 @@ void calcRhoDetInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 	       &(cp->cp_para_fft_pkg3d_dens_cp_box),
 	       &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
 	       &(cp->cp_sclr_fft_pkg3d_sm));
-    
+   /* 
    for(iCoeff=1;iCoeff<=numCoeff*numStateUpProc;iCoeff++){
      printf("wfffffffff %.16lg %.16lg\n",coeffReUp[iCoeff],coeffImUp[iCoeff]);
    }
+   */
     
   }
   if(cpParaOpt==1){
@@ -314,7 +314,7 @@ void calcRhoDetInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       rhoUpCorrect[0] += 0.1/(itest+1);
     }
     */
-
+    /*
     FILE *fileTestRhoInit = fopen("rho-init-sto","w");
     for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
       fprintf(fileTestRhoInit,"%.16lg\n",rhoUpCorrect[iGrid]);
@@ -322,10 +322,11 @@ void calcRhoDetInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     fclose(fileTestRhoInit);
     fflush(stdout);
     exit(0);
+    */
 
     
   }
-  exit(0);
+  //exit(0);
   /*
   //debug
   FILE *fileRhoInit = fopen("density-init","w");

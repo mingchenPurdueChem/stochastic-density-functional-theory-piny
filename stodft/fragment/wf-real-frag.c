@@ -435,6 +435,7 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
     //printf("rhoooooooooooooo %lg\n",rho[igrid]);
   }
 
+  //exit(0);
   /*
   //debug
   double dot;

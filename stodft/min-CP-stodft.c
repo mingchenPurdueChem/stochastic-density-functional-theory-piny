@@ -448,6 +448,7 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int numCoeff			= cpcoeffs_info->ncoef;
   int numCoeffUpTotal = numStateUp*numCoeff;
   int numCoeffDnTotal = numStateDn*numCoeff;
+  MPI_Comm commStates   =    communicate->comm_states;
 
   int *pcoefFormUp		     = &(cpcoeffs_pos->icoef_form_up);
   int *pcoefOrthUp		     = &(cpcoeffs_pos->icoef_orth_up);
@@ -559,7 +560,7 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     if(myidState==0)printf("**Finish Generating Stochastic Orbitals\n");
 
     //exit(0);
-    
+    /*
     char wfname[100];
     //sprintf(wfname,"/scratch/mingchen/tmp/sto-wf-save-%i",myidState);
     sprintf(wfname,"sto-wf-save-%i",myidState);
@@ -577,7 +578,7 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     }//endfor iChem
     fclose(filePrintWF);
     printf("myid %i finish reading in WF.\n",myidState);
-    
+    */
     
     
     /*
@@ -636,6 +637,8 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
 /*----------------------------------------------------------------------*/
 /* iv) Generate KS potential                                            */
+
+    if(numProcStates>1)Barrier(commStates);
 
     stat_avg->cp_ehart = 0.0;
     stat_avg->cp_eext = 0.0;
@@ -745,6 +748,7 @@ void scfStodftFilterDiag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int numCoeff		= cpcoeffs_info->ncoef;
   int numCoeffUpTotal = numStateUp*numCoeff;
   int numCoeffDnTotal = numStateDn*numCoeff;
+  MPI_Comm commStates   =    communicate->comm_states;
 
   int *pcoefFormUp	     = &(cpcoeffs_pos->icoef_form_up);
   int *pcoefOrthUp	     = &(cpcoeffs_pos->icoef_orth_up);

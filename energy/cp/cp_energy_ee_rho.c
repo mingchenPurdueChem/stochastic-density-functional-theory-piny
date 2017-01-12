@@ -264,11 +264,13 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
     if(fftw3dFlag==0){
       para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
 
+    /*
     FILE *fileFftTest = fopen("fft-r-sparse","w");
     for(i=0;i<nfft2_proc;i++){
       fprintf(fileFftTest,"%.16lg %.16lg\n",zfft[i*2+1],zfft[i*2+2]);
     }
     fclose(fileFftTest);
+    */
 
 
     }
@@ -277,7 +279,7 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
     }
 
     
-    if(fftw3dFlag==1){
+    if(fftw3dFlag==100){
       /*
       FILE *fileFFTTest = fopen("fftw-bck-test","w");
       for(i=0;i<nkf3;i++){
@@ -308,7 +310,11 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
       }
       printf("real space sum %i %lg\n",is,sum);
       */
-
+      //debug: output real space density
+      FILE *fileWfReal = fopen("wf-frag-real-0","a");
+      for(i=0;i<nfft2_proc;i++)fprintf(fileWfReal,"%.16lg\n",zfft[2*i+1]);
+      for(i=0;i<nfft2_proc;i++)fprintf(fileWfReal,"%.16lg\n",zfft[2*i+2]);
+      fclose(fileWfReal);
     }
 
 
@@ -431,6 +437,7 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
     */
     //exit(0);
   }
+  //exit(0);
 
 /*==========================================================================*/
 /* VII) Reduce rho in g space and get all of it in real space               */

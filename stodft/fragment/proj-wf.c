@@ -320,6 +320,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
       }
       //printf("noise %lg\n",noiseWfUpReal[iState*rhoRealGridTot]);
       if(numProcStates>1)Bcast(wfTemp,rhoRealGridTot,MPI_DOUBLE,iProc,commStates);
+      //for(iGrid=0;iGrid<rhoRealGridTot;iGrid++)rhoTemp[iGrid] = 0.0;
       for(iFrag=0;iFrag<numFragProc;iFrag++){
 	numGrid = numGridFragProc[iFrag];
 	//printf("numGrid %i nfft2_proc %i\n",numGrid,cpMini[iFrag].cp_para_fft_pkg3d_lg.nfft_proc/2);
@@ -358,13 +359,38 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 	free(wfFragTemp);
 	free(rhoFragTemp);
       }//endfor iFrag
+      //debug
+      /*
+      if(myidState==0){
+	//for(iGrid=0;iGrid<rhoRealGridTot;iGrid++)rhoTempReduce[iGrid] = 0.0;
+      }    
       if(numProcStates>1){
 	Barrier(commStates);
         Reduce(rhoTemp,rhoTempReduce,rhoRealGridTot,MPI_DOUBLE,MPI_SUM,0,commStates);
       }
+      if(myidState==0){
+        for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+          printf("rhoooo %i %i %lg\n",iProc,iState,rhoTempReduce[iGrid]);      
+	}
+      }
+      */
     }//endfor iState   
   }//endfor iProc
-
+  for(iProc=0;iProc<numProcStates;iProc++){
+    if(myidState==iProc){
+      for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+	printf("rhoooo %i %lg\n",myidState,rhoTemp[iGrid]);
+      }
+    }
+    Barrier(commStates);
+  }
+  
+  if(numProcStates>1){
+    Barrier(commStates);
+    Reduce(rhoTemp,rhoTempReduce,rhoRealGridTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+  }
+  
+  
   if(numProcStates>1){
     Scatterv(rhoTempReduce,rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
 	     rhoTemp,rhoRealGridNum,MPI_DOUBLE,0,commStates);

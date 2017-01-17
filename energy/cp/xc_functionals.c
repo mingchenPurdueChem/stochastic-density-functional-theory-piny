@@ -315,37 +315,38 @@ void  excpot_pz_lda(double *v_ks,double *rho,double *exc_ret,double *muxc_ret,
    for(i=1 ; i<= nfft2_proc; i++){
      rho_r = rho[i];
      //if(rho_r<0)printf("i %i rho_r %lg\n",i,rho_r);
+     if(rho_r<0.0)rho_r = 0.0;
      fpin = fpi*rho_r;
      rs   = pow((3.0/fpin),power);
      sqtrs = sqrt(rs);
 
-      xfact = pow(((3.0*rho_r/pi)),power);
-      xfact = -xfact;
+     xfact = pow(((3.0*rho_r/pi)),power);
+     xfact = -xfact;
 /* rs > 1  */
-   if(rs >= 1.0){
-     cf1 = 1.0 + beta1*sqtrs + beta2*rs;
-     cf2 = 1.0 + rat1*sqtrs + rat2*rs;
-     cfact = gamma/cf1;
-      mufact = cfact*(cf2/cf1);
-/*rs < 1   */
-   }else{
-    lnrs = log(rs);
-    cfact = au*lnrs + bu + cu*rs*lnrs + du*rs;
-    mufact = au*lnrs + (bu - power*au) + 2.0*power*cu*rs*lnrs
-           + power*(2.0*du - cu)*rs;
-   }/*endif*/
-       
-   cfact = cfact*lyp_fact;
-   ex = ex + xfact*rho_r;
-   ec = ec + cfact*rho_r;
-   mufact = mufact*lyp_fact;
+     if(rs >= 1.0){
+       cf1 = 1.0 + beta1*sqtrs + beta2*rs;
+       cf2 = 1.0 + rat1*sqtrs + rat2*rs;
+       cfact = gamma/cf1;
+       mufact = cfact*(cf2/cf1);
+  /*rs < 1   */
+     }else{
+       lnrs = log(rs);
+       cfact = au*lnrs + bu + cu*rs*lnrs + du*rs;
+       mufact = au*lnrs + (bu - power*au) + 2.0*power*cu*rs*lnrs
+	     + power*(2.0*du - cu)*rs;
+     }/*endif*/
+	 
+     cfact = cfact*lyp_fact;
+     ex = ex + xfact*rho_r;
+     ec = ec + cfact*rho_r;
+     mufact = mufact*lyp_fact;
 
-   v_ks[i] += (xfact + mufact);
+     v_ks[i] += (xfact + mufact);
 
-   vxc      += (xfact + mufact)*rho_r;
+     vxc      += (xfact + mufact)*rho_r;
 
-   pvx +=  xfact*rho_r;
-   pvc += (mufact - cfact)*rho_r;
+     pvx +=  xfact*rho_r;
+     pvc += (mufact - cfact)*rho_r;
 
   }/*endfor*/
 

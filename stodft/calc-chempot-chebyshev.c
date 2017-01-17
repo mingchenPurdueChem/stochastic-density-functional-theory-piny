@@ -227,10 +227,13 @@ void calcChemPotCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 	chemPotMin = chemPotNew;
 	numElecMin = numElecNew;
       }
+      /*
       chemPotNew = (numElecTrue-numElecMin)*(chemPotMax-chemPotMin)/(numElecMax-numElecMin)+
 		    chemPotMin;
+      */
+      chemPotNew = 0.5*(chemPotMin+chemPotMax);
       numElecNew = calcNumElecCheby(cp,chemPotNew,chebyCoeffs);
-      printf("chemPotNew %lg numElecNew %lg\n",chemPotNew,numElecNew);
+      //printf("chemPotNew %lg numElecNew %lg\n",chemPotNew,numElecNew);
     }//endwhile
     printf("Finish Calculating Chemical Potential\n");
     printf("The correct chemical potential is %.16lg Ne %.16lg DNe %.16lg\n",chemPotNew,numElecNew,

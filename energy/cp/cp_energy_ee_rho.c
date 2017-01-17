@@ -311,10 +311,12 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
       printf("real space sum %i %lg\n",is,sum);
       */
       //debug: output real space density
+      /*
       FILE *fileWfReal = fopen("wf-frag-real-0","a");
       for(i=0;i<nfft2_proc;i++)fprintf(fileWfReal,"%.16lg\n",zfft[2*i+1]);
       for(i=0;i<nfft2_proc;i++)fprintf(fileWfReal,"%.16lg\n",zfft[2*i+2]);
       fclose(fileWfReal);
+      */
     }
 
 

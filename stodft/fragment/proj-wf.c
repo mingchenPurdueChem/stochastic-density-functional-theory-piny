@@ -148,6 +148,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     rhoRealCalcDriverFrag(&generalDataMini[iFrag],&cpMini[iFrag],&classMini[iFrag],cp);
   }
   //debug
+  /*
   char fileNameFragMOReal[100];
   char fileNameFragRhoReal[100];
   FILE *fileFragMOReal,*fileFragRhoReal;
@@ -174,6 +175,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
       fragInfo->rhoUpFragProc[iFrag][iGrid] *= volInv;
     }
   }
+  */
 
 /*======================================================================*/
 /* III) Assemble fragments densities		                        */
@@ -387,7 +389,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   }
   printf("sumElecFrag %lg sumElecProj %lg\n",sumElecFrag,sumElecProj);
   if(numProcStates>1)Barrier(commStates);
-  //exit(0);
+  exit(0);
   
 
   daxpyBlasWrapper(rhoRealGridNum,-pre,&rhoTemp[0],1,&rhoUpFragSum[0],1);

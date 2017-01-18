@@ -213,6 +213,8 @@ typedef struct cpcoeffs_info {
   int fftw3dFlag; /* Replica from cpopts*/
   // I want to kick out the static flags 
   int itime_ks;
+  // frag ecut
+  double ecutFrag;
 } CPCOEFFS_INFO;
 
 typedef struct cpcoeffs_pos {

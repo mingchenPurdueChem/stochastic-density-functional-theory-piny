@@ -1772,36 +1772,42 @@ void controlSetCpEwaldFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
 /*    Without the dual box this is standard grid for cp/ewald          */
 /*    With the dual box this is the small box calculation              */
    
-   /*
-   calc_cutoff(kmax_ewd,&ecut_now,&(cp_parse->cp_ecut),cp_on,
+   
+  calc_cutoff(kmax_ewd,&ecut_now,&(cp_parse->cp_ecut),cp_on,
                 kmax_cp,kmaxv,hmati_ewd_cp,deth_cp);  
-   printf("!!!!!!!!!!!!!! ecut_now %lg\n",ecut_now);
 
-   countkvec3d(&(ewald->nktot),ecut_now,kmaxv,hmati_ewd_cp); 
-
-
-   nktot                   = ewald->nktot;
-   cpcoeffs_info->ecut     = ecut_now;
-   cpcoeffs_info->ncoef_l  = nktot+1;
-   ncoef_l                 = nktot+1;
-   ecor->ecut              = 4.0*ecut_now;
-   ewald->ecut             = 4.0*ecut_now;
-   ewald->nkc_max          = kmaxv[3];
-   */
-  ecor->ecut = bonded->ecor.ecut; // I don't think I need ecor but just to prevent segfault
-  ewald->ecut = general_data->ewald.ecut;
-  ecut_now = 1.0e30; // A big number so that all grids included
-
-  kmaxv[1] = numGridDim[2]/2-1; 
+  kmaxv[1] = numGridDim[2]/2-1;
   kmaxv[2] = numGridDim[1]/2-1;
   kmaxv[3] = numGridDim[0]/2-1;
-  ewald->nkc_max = kmaxv[3];
+
+  countkvec3d(&(ewald->nktot),ecut_now,kmaxv,hmati_ewd_cp);
+
+
+  nktot                   = ewald->nktot;
+  cpcoeffs_info->ecut     = ecut_now;
+  cpcoeffs_info->ncoef_l  = nktot+1;
+  ncoef_l                 = nktot+1;
+  ecor->ecut              = 4.0*ecut_now;
+  ewald->ecut             = 4.0*ecut_now;
+  ewald->nkc_max          = kmaxv[3];
+
+  //ecor->ecut              = 4.0*ecut_now;
+  //ewald->ecut             = 4.0*ecut_now;
+  //ecor->ecut = bonded->ecor.ecut; // I don't think I need ecor but just to prevent segfault
+  //ewald->ecut = general_data->ewald.ecut;
+  //ecut_now = 1.0e30; // A big number so that all grids included
+
+  //kmaxv[1] = numGridDim[2]/2-1; 
+  //kmaxv[2] = numGridDim[1]/2-1;
+  //kmaxv[3] = numGridDim[0]/2-1;
+  //old cubic
+  //ewald->nkc_max = kmaxv[3];
   kmax_cp[1] = kmaxv[1];
   kmax_cp[2] = kmaxv[2];
   kmax_cp[3] = kmaxv[3];
-  nktot = ((kmaxv[1]*2+1)*(kmaxv[2]*2+1)*(kmaxv[3]*2+1)-1)/2;
-  ewald->nktot = nktot;
-  cpcoeffs_info->ncoef_l = nktot+1;
+  //nktot = ((kmaxv[1]*2+1)*(kmaxv[2]*2+1)*(kmaxv[3]*2+1)-1)/2;
+  //ewald->nktot = nktot;
+  //cpcoeffs_info->ncoef_l = nktot+1;
   kmax_cp_dens_cp_box[1] = kmax_cp[1];
   kmax_cp_dens_cp_box[2] = kmax_cp[2];
   kmax_cp_dens_cp_box[3] = kmax_cp[3];
@@ -1861,19 +1867,21 @@ void controlSetCpEwaldFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
 
 /*--------------------------------------------------------------------*/
 /*  A)  Count the k-vectors                                           */
-      /*
-      ecut_sm = ecut_dens_cp_box_now;
-      countkvec3d_sm(&(cpewald->nktot_sm),ecut_sm,
-                     kmax_cp_dens_cp_box,hmati_ewd_cp);
-      nktot_sm = cpewald->nktot_sm;
-      cpcoeffs_info->ncoef   = nktot_sm+1;
-      ncoef                  = nktot_sm+1;
-      */    
-    ecut_sm = 1.0e30;  
+    
+    ecut_sm = ecut_now;
+    countkvec3d_sm(&(cpewald->nktot_sm),ecut_sm,
+		   kmax_cp_dens_cp_box,hmati_ewd_cp);
+    nktot_sm = cpewald->nktot_sm;
+    cpcoeffs_info->ncoef   = nktot_sm+1;
+    ncoef                  = nktot_sm+1;
+    
+    /*    
+    ecut_sm = ecut_now;  
     nktot_sm = nktot;
     cpewald->nktot_sm = nktot;
     cpcoeffs_info->ncoef = nktot_sm+1;
     ncoef = nktot_sm+1;
+    */
 /*--------------------------------------------------------------------*/
 /*  B)  Malloc                                                       */
     nmall =  (nktot_sm+1);if((nmall % 2)==0){nmall++;}

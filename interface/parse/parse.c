@@ -188,6 +188,8 @@ void parse(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   cp->cpewald.fftw3dFlag = 0;
   class->clatoms_info.ifirst_vps = 0;
   cp->cpcoeffs_info.itime_ks = 0;
+  
+  cp->cpcoeffs_info.ecutFrag = cp_parse.cp_ecut_def;
 
 /*========================================================================*/
 /*    VII) Read in hmat. Do before set_cp_ewald                           */

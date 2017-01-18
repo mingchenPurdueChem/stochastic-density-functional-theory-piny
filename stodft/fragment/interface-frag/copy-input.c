@@ -214,7 +214,7 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   /* 11)\cp_mass_cut_def{#} some random number, anyway I'll not use this */
   cpParse->cp_mass_cut_def = 15.0;
   /* 12)\cp_energy_cut_def{#} */
-  cpParse->cp_ecut_def = 2;
+  cpParse->cp_ecut_def = cp->cpcoeffs_info.ecutFrag;
   /* 13)\cp_fict_KE{#} */
   cpMini->cpopts.te_ext = cp->cpopts.te_ext;
   /*  14)\cp_ptens{on,off} */

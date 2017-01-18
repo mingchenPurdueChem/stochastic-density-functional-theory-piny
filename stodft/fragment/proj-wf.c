@@ -376,6 +376,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
       */
     }//endfor iState   
   }//endfor iProc
+  /*
   for(iProc=0;iProc<numProcStates;iProc++){
     if(myidState==iProc){
       for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
@@ -384,6 +385,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     }
     Barrier(commStates);
   }
+  */
   
   if(numProcStates>1){
     Barrier(commStates);

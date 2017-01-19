@@ -415,7 +415,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     }
     if(numProcStates>1)Barrier(commStates);
   }
-  printf("sumElecFrag %lg sumElecProj %lg\n",sumElecFrag,sumElecProj);
+  printf("sumElecFrag %lg sumElecProj %lg rhoRealGridNum %i\n",sumElecFrag,sumElecProj,rhoRealGridNum);
   if(numProcStates>1)Barrier(commStates);
   //exit(0);
   

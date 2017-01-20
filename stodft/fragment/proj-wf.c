@@ -90,7 +90,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   double *noiseWfUpReal,*noiseWfDnReal;
 
   //debug
-  double *fragWfCpy = (double*)cmalloc(rhoRealGridNum*sizeof(double));
+  //double *fragWfCpy = (double*)cmalloc(rhoRealGridNum*sizeof(double));
   
 /*======================================================================*/
 /* I) Allocated memories				                */
@@ -248,7 +248,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   }//endif
 
   //debug
-  memcpy(fragWfCpy,rhoUpFragSum,rhoRealGridNum*sizeof(double));
+  //memcpy(fragWfCpy,rhoUpFragSum,rhoRealGridNum*sizeof(double));
 
 /*======================================================================*/
 /* IV) Free/allocate some memory for next step                          */
@@ -408,7 +408,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
       for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
 	sumElecFrag += rhoUpFragSum[iGrid];
 	sumElecProj += pre*rhoTemp[iGrid];
-        //printf("rhofraggggg %lg rhoproj %lg\n",rhoUpFragSum[iGrid],pre*rhoTemp[iGrid]);
+        printf("rhofraggggg %lg rhoproj %lg\n",rhoUpFragSum[iGrid],pre*rhoTemp[iGrid]);
       }
       sumElecFrag /= rhoRealGridTot;
       sumElecProj /= rhoRealGridTot;

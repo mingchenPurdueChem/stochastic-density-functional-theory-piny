@@ -1238,7 +1238,7 @@ void calcRhoStoHybridCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
   int myidState		= commCP->myid_state;
   int numProcStates     = commCP->np_states;
 
-  int iCoeff,iChem,iGrid;
+  int iCoeff,iChem,iGrid,iProc;
   int index;
   int i,j,k;
   int reRunFlag;
@@ -1434,6 +1434,15 @@ void calcRhoStoHybridCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
 
   if(calcFragFlag==1){
     rhoUpFragSum =  fragInfo->rhoUpFragSum;
+    //debug
+    /*
+    for(iProc=0;iProc<numProcStates;iProc++){
+      if(myidState==iProc){
+        for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)printf("rhostooooo %lg %lg\n",rhoUpCorrect[iGrid],rhoUpFragSum[iGrid]);
+      }
+      if(numProcStates>1)Barrier(commStates);
+    }
+    */
     for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)rhoUpCorrect[iGrid] += rhoUpFragSum[iGrid];
     if(cpLsda==1&&numStateDnProc!=0){
       rhoDnFragSum =  fragInfo->rhoDnFragSum;

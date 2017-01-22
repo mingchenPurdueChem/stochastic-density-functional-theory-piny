@@ -315,9 +315,11 @@ void  excpot_pz_lda(double *v_ks,double *rho,double *exc_ret,double *muxc_ret,
    for(i=1 ; i<= nfft2_proc; i++){
      rho_r = rho[i];
      //if(rho_r<0)printf("i %i rho_r %lg\n",i,rho_r);
-     if(rho_r<0.0)rho_r = 0.0;
+     //printf("rho_r %.16lg\n",rho_r);
+     if(rho_r<=0.0)rho_r = 1.0e-10;
      fpin = fpi*rho_r;
      rs   = pow((3.0/fpin),power);
+     //if(isinf(rs)==1)printf("rho_r %.16lg rs %lg\n",rho_r,rs);
      sqtrs = sqrt(rs);
 
      xfact = pow(((3.0*rho_r/pi)),power);
@@ -328,6 +330,7 @@ void  excpot_pz_lda(double *v_ks,double *rho,double *exc_ret,double *muxc_ret,
        cf2 = 1.0 + rat1*sqtrs + rat2*rs;
        cfact = gamma/cf1;
        mufact = cfact*(cf2/cf1);
+       //if(isnan(mufact)==1)printf("sqtrs %lg rs %lg cf1 %lg cf2 %lg cfact %lg\n",sqtrs,rs,cf1,cf2,cfact);
   /*rs < 1   */
      }else{
        lnrs = log(rs);
@@ -342,6 +345,7 @@ void  excpot_pz_lda(double *v_ks,double *rho,double *exc_ret,double *muxc_ret,
      mufact = mufact*lyp_fact;
 
      v_ks[i] += (xfact + mufact);
+     //printf("vks------- %lg\n",v_ks[i]);
 
      vxc      += (xfact + mufact)*rho_r;
 
@@ -349,6 +353,7 @@ void  excpot_pz_lda(double *v_ks,double *rho,double *exc_ret,double *muxc_ret,
      pvc += (mufact - cfact)*rho_r;
 
   }/*endfor*/
+  //printf("vks------- %lg\n",v_ks[1]);
 
    ex *= 0.750;
    pvx *= 0.250;

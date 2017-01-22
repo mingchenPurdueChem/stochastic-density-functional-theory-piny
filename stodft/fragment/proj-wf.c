@@ -408,7 +408,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
       for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
 	sumElecFrag += rhoUpFragSum[iGrid];
 	sumElecProj += pre*rhoTemp[iGrid];
-        printf("rhofraggggg %lg rhoproj %lg\n",rhoUpFragSum[iGrid],pre*rhoTemp[iGrid]);
+        //printf("rhofraggggg %lg rhoproj %lg\n",rhoUpFragSum[iGrid],pre*rhoTemp[iGrid]);
       }
       sumElecFrag /= rhoRealGridTot;
       sumElecProj /= rhoRealGridTot;

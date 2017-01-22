@@ -1544,6 +1544,8 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
 /* V) calculate the exchange potential and add to v_ks if necessary   */
 /*    on the small grid only for dualing                              */
 
+  //printf("before xc v_ks_up[1] %lg\n",v_ks_up[1]);
+
   if(cp_nonint==0){
     igo = 0;
 /*--------------------------------------------------------------------*/
@@ -1665,6 +1667,8 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
 
 /*--------------------------------------------------------------------*/
 /*  c) add gradient corrections if necessary                          */
+
+  // printf("before gga v_ks_up[1] %lg\n",v_ks_up[1]);
 
    if(cp_gga==1){
     if(cp_lsda == 0 ){

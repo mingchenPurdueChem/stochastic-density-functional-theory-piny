@@ -570,14 +570,14 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     //sprintf(wfname,"/scratch/mingchen/tmp/sto-wf-save-%i",myidState);
     sprintf(wfname,"sto-wf-save-%i",myidState);
 
-    FILE *filePrintWF = fopen(wfname,"w");
+    FILE *filePrintWF = fopen(wfname,"r");
     for(iChem=0;iChem<numChemPot;iChem++){
       for(iState=0;iState<numStateUp;iState++){
 	for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
-	  //fscanf(filePrintWF,"%lg",&stoWfUpRe[iChem][iState*numCoeff+iCoeff]);
-	  //fscanf(filePrintWF,"%lg",&stoWfUpIm[iChem][iState*numCoeff+iCoeff]);
-	  fprintf(filePrintWF,"%.16lg %.16lg\n",stoWfUpRe[iChem][iState*numCoeff+iCoeff],
-	  	    stoWfUpIm[iChem][iState*numCoeff+iCoeff]);
+	  fscanf(filePrintWF,"%lg",&stoWfUpRe[iChem][iState*numCoeff+iCoeff]);
+	  fscanf(filePrintWF,"%lg",&stoWfUpIm[iChem][iState*numCoeff+iCoeff]);
+	  //fprintf(filePrintWF,"%.16lg %.16lg\n",stoWfUpRe[iChem][iState*numCoeff+iCoeff],
+	  //	    stoWfUpIm[iChem][iState*numCoeff+iCoeff]);
 	}//endfor iCoeff
       }//endfor iState
     }//endfor iChem
@@ -651,7 +651,17 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     if(myidState==0)printf("**Calculating Kohn-Sham Potential...\n");
     calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     calcKSForceControlWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
-
+    //debug
+    /*
+    if(myidState==0){
+      int nfft = cp->cp_sclr_fft_pkg3d_lg.nfft;
+      int nfft2 = nfft/2;
+      int iGrid;
+      for(iGrid=1;iGrid<=nfft2;iGrid++){
+	printf("vkssssss %lg\n",cp->cpscr.cpscr_rho.v_ks_up[iGrid]);
+      }
+    }
+    */
     if(myidState==0)printf("**Finish Calculating Kohn-Sham Potential\n");
 
 /*----------------------------------------------------------------------*/

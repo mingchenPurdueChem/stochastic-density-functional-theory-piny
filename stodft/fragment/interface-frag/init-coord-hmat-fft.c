@@ -480,14 +480,14 @@ void initFFTMap(GENERAL_DATA *generalData,CLASS *class,CP *cp,
 
   //printf("umGridMiniBox %i %i %i\n",numGridMiniBox[0],numGridMiniBox[1],numGridMiniBox[2]);
   //printf("agrid %lg bgrid %lg cgrid %lg\n",aGrid[0],bGrid[1],cGrid[2]);
-
+  /*
   printf("hmatMini %lg %lg %lg\n",hmatMini[1],hmatMini[2],hmatMini[3]);
   printf("hmatMini %lg %lg %lg\n",hmatMini[4],hmatMini[5],hmatMini[6]);
   printf("hmatMini %lg %lg %lg\n",hmatMini[7],hmatMini[8],hmatMini[9]);
-
+  */
 
   //Let's give a final test before this is over
-  
+  /*
   FILE *testxyz = fopen("test.xyz","w");
   fprintf(testxyz,"3\n\n");
   fprintf(testxyz,"O %lg %lg %lg\n",xMini[1]*BOHR,yMini[1]*BOHR,zMini[1]*BOHR);
@@ -497,7 +497,7 @@ void initFFTMap(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   printf("%lg %lg %lg\n",hmatMini[1]*BOHR,hmatMini[2]*BOHR,hmatMini[3]*BOHR);
   printf("%lg %lg %lg\n",hmatMini[4]*BOHR,hmatMini[5]*BOHR,hmatMini[6]*BOHR);
   printf("%lg %lg %lg\n",hmatMini[7]*BOHR,hmatMini[8]*BOHR,hmatMini[9]*BOHR);
-  
+  */
   //printf("zeroGrid %i %i %i\n",zeroGrid[0],zeroGrid[1],zeroGrid[2]);
   //printf("indexGrid %i %i %i\n",indexGrid[0],indexGrid[1],indexGrid[2]);
   //exit(0);

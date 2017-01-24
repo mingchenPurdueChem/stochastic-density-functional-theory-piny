@@ -2200,7 +2200,7 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
  /*             Local variable declarations                                */
   
   unsigned int i;
-  *num_dict = 23;
+  *num_dict = 24;
   *dict = (DICT_WORD *)cmalloc(*num_dict*sizeof(DICT_WORD))-1;
 
   for (i=1;i<=*num_dict;i++) {
@@ -2301,7 +2301,9 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
   strcpy((*dict)[23].keyword,"in_rho_file_name");
   strcpy((*dict)[23].keyarg,"density.in");
 
-
+  strcpy((*dict)[24].error_mes,"You need to input a legal name for atomic skin file");
+  strcpy((*dict)[24].keyword,"atom_skin_file");
+  strcpy((*dict)[24].keyarg,"atomskin");
 
  /*========================================================================*/
  } /* end routine set_sim_dict_harmonic */

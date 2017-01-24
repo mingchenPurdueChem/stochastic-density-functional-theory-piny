@@ -172,6 +172,11 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   int **molFragMapProc;
   int **atomFragMapProc;
 
+  char *atomSkinFile;
+
+  double *skinAll;
+  FILE *fileSkin;
+
 /*======================================================================*/
 /* I) Get number of fragments per processor                             */
 
@@ -431,13 +436,14 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     fragInfo->skinFragBox[iFrag] = (double*)cmalloc(numAtomFragProc[iFrag]*sizeof(double));
   }
-  double *skinAll = fragInfo->skinAll;
+  skinAll = fragInfo->skinAll;
   if(myidState==0){
-    FILE *fileSkin;
-    fileSkin = fopen("atomskin","r");
+    atomSkinFile = fragInfo->atomSkinFile;
+    fileSkin = fopen(atomSkinFile,"r");
     for(iAtom=0;iAtom<numAtomTot;iAtom++){
       fscanf(fileSkin,"%lg",&skinAll[iAtom]);
     }
+    fclose(atomSkinFile);
   }
   if(numProcStates>1){
     Barrier(commStates);

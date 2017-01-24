@@ -408,7 +408,7 @@ void min_CG_cp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   
    orthog_control_cp(cp,ip_now);
 
-  
+  /*
   int istate,jstate;
   int icoeff;
   double sum_test;
@@ -422,7 +422,7 @@ void min_CG_cp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     sum_test += cre_up[1*ncoef_up_max+ncoef_up_max]*cre_up[istate*ncoef_up_max+ncoef_up_max];
     printf("istate %i sum_test %lg\n",istate,sum_test);
   }
-  
+  */
 
  
 /*==========================================================================*/

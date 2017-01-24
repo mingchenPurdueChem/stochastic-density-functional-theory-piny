@@ -378,6 +378,7 @@ typedef struct fragInfo{
 				    /* Lth: numFragProc*9			*/
   char *molSetName;		    /* Lst: molecular set file name		*/
 				    /* Lth: MAXWORD				*/
+  char atomSkinFile[MAXWORD];
  /* The following parts are parameters/variables that will be passed to mini structures */
  /* 1. Mini general_data*/
   //GENERAL_DATA *generalDataMini;

@@ -27,7 +27,7 @@
 #define MAX_BOND_SITE1 5
 #define NCOEF_GHOST_MAX 5
 #define NCOEF_GHOST_MAX1 6
-#define MAXWORD 50
+#define MAXWORD 500
 #define MAXLINE 100
 
 #ifdef T3E_SCILIB

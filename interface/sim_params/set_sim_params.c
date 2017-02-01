@@ -4629,8 +4629,14 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   strcpy(stodftInfo->densityReadFileName,dict[23].keyarg);
 
   /*-----------------------------------------------------------------------*/
-  /*  23)\atom_skin_file{#} */
-  strcpy(fragInfo->atomSkinFile,dict[23].keyarg);
+  /*  24)\atom_skin_file{#} */
+  strcpy(fragInfo->atomSkinFile,dict[24].keyarg);
+  //printf("%s\n",fragInfo->atomSkinFile);
+
+  /*-----------------------------------------------------------------------*/
+  /*  25)\diis_max_ratio{#} */
+  sscanf(dict[25].keyarg,"%lg",&rka);
+  stodftInfo->mixRatioSM = rka;
 
 /*=======================================================================*/
 /* Check the conflicate options						 */

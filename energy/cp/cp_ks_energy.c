@@ -873,6 +873,7 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
     ptens_pvten[i]     += ptens_pvten_tmp[i];
   }/*endfor*/
 
+
 /*==========================================================================*/
    }/*end routine*/
 /*==========================================================================*/

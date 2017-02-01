@@ -24,7 +24,7 @@
 
 #define DEBUG_GS_OFF
 #define HAND_ROT_OFF
-
+//#define DEBUG_GS
 
 
 /*==========================================================================*/
@@ -407,10 +407,10 @@ void cp_gram_schmidt_par(double *cre,double *cim,int icoef_form,
 #endif
 /*========================================================================*/
 /* VI) Adjust the norms to the occupation numbers                         */
-
   for(is=1;is<=nstate;is++){
     scale = sqrt(occ[is]);
     i1 = ioff_vec[is]+1; i2=ioff_vec[is]+ncoef;
+    //printf("scale %lg cre %lg cim %lg\n",scale,cre[i1],cim[i1]);
     for(ig=i1;ig<=i2;ig++){
       cre[ig] *= scale;
       cim[ig] *= scale;

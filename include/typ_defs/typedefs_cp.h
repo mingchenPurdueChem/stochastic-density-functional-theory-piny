@@ -387,7 +387,19 @@ typedef struct fragInfo{
  /* 3. Mini bonded	*/
   //CLASS *bondMini;
  /* 4. Mini cp		*/
-  
+
+ // The following part is for fix one-body energy terms from fragments
+ double keCor,vnlCor;		    /* Num: Kinetic/Nonlocal Pseudopotential    */
+				    /*	    correction from fragment	        */
+ double *vnlForceCor;		    /* Lst: Nonlocal Pseudopotential correction */
+				    /*	    on nuclei force			*/
+				    /* Lth: natom_tot*3				*/
+ double **wfProjUp;		    /* Lst: Noise wave functions project on all */  
+				    /*	    fragment MOs			*/  
+				    /* Lth: numFragProc*(numStateStoUp*nstat_up)*/
+ double **wfProjDn;		    /* Lst: Same as wfProjUp but for spin down  */
+				    /*	    electrons.				*/
+				    /* Lth: numFragProc*(numStateStoUp*nstat_dn)*/
 }FRAGINFO;
 
 typedef struct stodftInfo{

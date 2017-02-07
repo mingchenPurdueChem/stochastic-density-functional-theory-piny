@@ -32,6 +32,25 @@ void energyCorrect(CP *cp,GENERAL_DATA *general_data,CLASS *class,int ip_now)
 /*========================================================================*/
 /*             Local variable declarations                                */
 #include "../typ_defs/typ_mask.h"
+  STODFTINFO *stodftInfo = cp->stodftInfo;
+  FRAGINFO *fragInfo = stodftInfo->fragInfo;
+  CPOPTS *cpOpts = &(cp->cpopts);
+  CPCOEFFS_INFO *cpcoeffs_info = &(cp->cpcoeffs_info);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
+  COMMUNICATE *commCP = &(cp->communicate);
+
+  double **keMatrixUp = fragInfo->keMatrixUp;
+  double **keMatrixDn = fragInfo->keMatrixDn;
+
+/*======================================================================*/
+/* I) Kinetic energy	                                                */
+
+/*======================================================================*/
+/* II) Non-local pseudo potential energy                                */
+
+
+/*======================================================================*/
+/* III) Non-local pseudo potential force                                */
 
 
 /*==========================================================================*/

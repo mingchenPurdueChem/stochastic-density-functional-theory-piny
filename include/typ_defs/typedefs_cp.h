@@ -379,27 +379,23 @@ typedef struct fragInfo{
   char *molSetName;		    /* Lst: molecular set file name		*/
 				    /* Lth: MAXWORD				*/
   char atomSkinFile[MAXWORD];
- /* The following parts are parameters/variables that will be passed to mini structures */
- /* 1. Mini general_data*/
-  //GENERAL_DATA *generalDataMini;
- /* 2. Mini class	*/
-  //CLASS *classMini;
- /* 3. Mini bonded	*/
-  //CLASS *bondMini;
- /* 4. Mini cp		*/
 
- // The following part is for fix one-body energy terms from fragments
- double keCor,vnlCor;		    /* Num: Kinetic/Nonlocal Pseudopotential    */
+// The following part is for fix one-body energy terms from fragments
+  double keCor,vnlCor;		    /* Num: Kinetic/Nonlocal Pseudopotential    */
 				    /*	    correction from fragment	        */
- double *vnlForceCor;		    /* Lst: Nonlocal Pseudopotential correction */
+  double *vnlForceCor;		    /* Lst: Nonlocal Pseudopotential correction */
 				    /*	    on nuclei force			*/
 				    /* Lth: natom_tot*3				*/
- double **wfProjUp;		    /* Lst: Noise wave functions project on all */  
+  double **wfProjUp;		    /* Lst: Noise wave functions project on all */  
 				    /*	    fragment MOs			*/  
 				    /* Lth: numFragProc*(numStateStoUp*nstat_up)*/
- double **wfProjDn;		    /* Lst: Same as wfProjUp but for spin down  */
+  double **wfProjDn;		    /* Lst: Same as wfProjUp but for spin down  */
 				    /*	    electrons.				*/
 				    /* Lth: numFragProc*(numStateStoUp*nstat_dn)*/
+  double **keMatrixUp;		    /* Lst: Kinetic energy matrix for spin up   */
+				    /* Lth: numFragProc*(nstat_up*nstat_up)	*/
+  double **keMatrixDn;		    /* Lst: Kinetic energy matrix for spin dn   */
+                                    /* Lth: numFragProc*(nstat_dn*nstat_dn)     */
 }FRAGINFO;
 
 typedef struct stodftInfo{

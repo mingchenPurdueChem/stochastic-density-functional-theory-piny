@@ -1822,6 +1822,8 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
       MPI_Comm comm_states = communicate->comm_states;
 
   int fftw3dFlag = cpewald->fftw3dFlag;
+  int onebodyMatrixFlag = cpewald->onebodyMatrixFlag;
+  double *keMatrix = cpewald->keMatrix;
 
 /* ================================================================= */
 /*0) Check the form of the coefficients                              */

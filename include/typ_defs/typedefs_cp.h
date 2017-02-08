@@ -112,8 +112,11 @@ typedef struct cpopts{
                                    Lth: nstate_up*nstate_up           */
   double *rocc_sum_dn;            /* Lst: reciprocal sums of occ numbers 
                                    Lth: nstate_up*nstate_up           */
-  int fftw3dFlag;		  /* fftw3d flag, usually off. Turn on when */
-				  /* you need it.			    */
+  int fftw3dFlag;		  /* Opt: fftw3d flag, usually off. Turn on when */
+				  /*      you need it. 1=on 0=off		 */
+  int onebodyMatrixFlag;	  /* Opt: The flag to control calculating onebody*/
+				  /*	  energy terms. =1 when you turn on	 */
+				  /*	  fragmentation method in stochastic dft */
 } CPOPTS;
 
 /*==========================================================================*/
@@ -269,6 +272,9 @@ typedef struct cpcoeffs_pos {
   int ivcoef_orth_up,ivcoef_orth_dn;/* Opt: PW fcoefs ortho(1)/nonortho(0) */
   int ifcoef_orth_up,ifcoef_orth_dn;/* Opt: PW fcoefs ortho(1)/nonortho(0) */
   double max_diag,max_off_diag;     /* Num: max elements of ovlap matrix   */
+
+  double *fcre_up_onebody,*fcim_up_onebody;
+  double *fcre_dn_onebody,*fcim_dn_onebody;
 
 } CPCOEFFS_POS;
 
@@ -935,7 +941,12 @@ typedef struct cpewald {
   double *ak2,*ak2_sm;         /* Square of k vectors on big and small grid */
   double *ak2_dens_cp_box;      /* Square of k vectors on big and small grid */
 
+  // I'm sorry but cpewald is the only structure passing into force calculation routine
   int fftw3dFlag; /* Replica from cpopts*/
+  int onebodyMatrixFlag; /*Replica from cpopts*/
+  double *fcre_up_onebody,*fcim_up_onebody;
+  double *fcre_dn_onebody,*fcim_dn_onebody;
+  double *keMatrix;
 } CPEWALD;
 
 

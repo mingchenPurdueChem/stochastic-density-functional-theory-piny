@@ -639,7 +639,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     stodftInfo->numDiis = 1;
   }
   if(densityMixFlag==2){//diis only
-    stodftInfo->numStepMix = 0;
+    stodftInfo->numStepMix = -1;
   }
   
   if(densityMixFlag>0){//do mix

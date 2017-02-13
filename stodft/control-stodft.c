@@ -172,8 +172,8 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     reInitWaveFunMin(class,bonded,general_data,cp,ip_now);
   }
 
-  filterDiagFlag = 0;
-  cp->stodftInfo->filterDiagFlag = 0;
+  //filterDiagFlag = 0;
+  filterDiagFlag = cp->stodftInfo->filterDiagFlag;
   if(filterDiagFlag==1){
     initFilterDiag(cp);
   }
@@ -211,6 +211,7 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     printf("Initial SP\n");
     PRINT_LINE_DASH;
   }
+  
   if(filterDiagFlag==0){
     if(stodftInfo->chemPotOpt==1)scfStodftInterp(class,bonded,general_data,cp,ip_now);
     else if(stodftInfo->chemPotOpt==2)scfStodftCheby(class,bonded,general_data,cp,ip_now);

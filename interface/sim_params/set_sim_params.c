@@ -4765,6 +4765,14 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
       fflush(stdout);
       exit(0);
     }
+    if(stodftInfo->filterDiagFlag==1&&stodftInfo->chemPotOpt==2){
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      printf("Filter Diagnolization needs more than one chemical potential.\n");
+      printf("Please change the chemical potential option to interpolation.\n");
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(0);
+    }
   }//endif stodftOn
   
 /*========================================================================*/

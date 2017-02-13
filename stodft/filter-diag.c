@@ -604,11 +604,11 @@ void buildKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     calcCoefForceWrapReduce(class,general_data,cp,cpcoeffs_pos,clatoms_pos);    
     for(iState=0;iState<numStateUpProc;iState++){
       for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
-	fcre_up[iCoeff] *= -0.5;
-	fcim_up[iCoeff] *= -0.5;
+	fcre_up[iCoeff] *= -0.25;
+	fcim_up[iCoeff] *= -0.25;
       }//endfor iCoeff
-      fcre_up[numCoeff] *= -1.0;
-      fcim_up[numCoeff] *= -1.0;
+      fcre_up[numCoeff] *= -0.5;
+      fcim_up[numCoeff] *= -0.5;
     }//endfor iState
     memcpy(&forceUpRe[iChem*numCoeffUpTotal+1],&fcre_up[1],numCoeffUpTotal*sizeof(double));
     memcpy(&forceUpIm[iChem*numCoeffUpTotal+1],&fcim_up[1],numCoeffUpTotal*sizeof(double));
@@ -707,6 +707,7 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int numStatesDet = stodftInfo->numStatesDet;
   int myidState = communicate->myid_state;
   int numProcStates         = communicate->np_states;
+  int numStatesPrint = numStatesDet+5;
   MPI_Comm comm_states = communicate->comm_states;
   
   int *stowfRecvCounts = stodftInfo->stowfRecvCounts;
@@ -825,7 +826,7 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     printf("Double Check: Calculate and Compare energy level\n");
     energyTest = (double*)cmalloc(numStateUpIdp*sizeof(double));
     missMatchFlag = 0;
-    for(iState=0;iState<numStatesDet;iState++){
+    for(iState=0;iState<numStatesPrint;iState++){
       //printf("iState %i numStateUpIdp %i\n",iState,numStateUpIdp);
       energyTest[iState] = 0.0;
       for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
@@ -852,6 +853,12 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       fflush(stdout);
       exit(0);
     }//endif missMatch
+    //print something
+    for(iState=0;iState<numStatesPrint;iState++){
+      energyMOSq = energyLevel[iState]*energyLevel[iState];
+      printf("eigvvv %i %.8lg %.8lg %.8lg\n",iState,energyLevel[iState],
+              energyMOSq,energyTest[iState]);
+    }//endfor iState
     free(&allForceRe[1]);
     free(&allForceIm[1]);
     free(energyTest);
@@ -1006,11 +1013,11 @@ void calcForceWrapper(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   calcCoefForceWrapReduce(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
   for(iState=0;iState<numStateUpProc;iState++){
     for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
-      fcre_up[iCoeff] *= -0.5;
-      fcim_up[iCoeff] *= -0.5;
+      fcre_up[iCoeff] *= -0.25;
+      fcim_up[iCoeff] *= -0.25;
     }//endfor iCoeff
-    fcre_up[numCoeff] *= -1.0;
-    fcim_up[numCoeff] *= -1.0;
+    fcre_up[numCoeff] *= -0.5;
+    fcim_up[numCoeff] *= -0.5;
   }//endfor iState
       
  

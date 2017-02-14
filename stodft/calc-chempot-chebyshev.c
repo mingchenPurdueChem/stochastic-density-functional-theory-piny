@@ -53,7 +53,8 @@ void calcChemPotCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 
   CHEBYSHEVINFO *chebyshevInfo = stodftInfo->chebyshevInfo;
 
-  int iPoly,iState;
+  int iPoly,iState,iChem;
+  int iScf = stodftInfo->iScf;
   int polynormLength = stodftInfo->polynormLength;
   int numChebyMoments = (polynormLength%2==0)?(polynormLength/2+1):((polynormLength+1)/2);
   int numFFTGridMutpl = 32;
@@ -182,8 +183,6 @@ void calcChemPotCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     }
     fclose(filecheby);
     */
-    chemPotMin = chemPotInit-gapInit*0.5;
-    chemPotMax = chemPotInit+gapInit*0.5;
     //debug
     /*
     double numChemTest = 1000;
@@ -238,6 +237,29 @@ void calcChemPotCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     printf("Finish Calculating Chemical Potential\n");
     printf("The correct chemical potential is %.16lg Ne %.16lg DNe %.16lg\n",chemPotNew,numElecNew,
 	    fabs(numElecNew-numElecTrue));
+    chemPotMin = chemPotInit-gapInit*0.5;
+    chemPotMax = chemPotInit+gapInit*0.5;
+    //test DOS
+    /*
+    double chemPot1 = chemPotNew-0.0734;
+    double chemPot2 = chemPotNew+0.0734;
+    int numChemPotTest = 100;
+    double dmu = (chemPot2-chemPot1)/numChemPotTest;
+    double *numElecMu = (double*)cmalloc(numChemPotTest*sizeof(double));
+    double x,dos;
+    double dmuInv = 0.5/dmu;
+    for(iChem=0;iChem<numChemPotTest;iChem++){
+      x = chemPot1+iChem*dmu;
+      numElecMu[iChem] = calcNumElecCheby(cp,x,chebyCoeffs);
+      printf("%i Nemuuuu %.10lg %.10lg\n",iScf,x,numElecMu[iChem]);
+    }
+    for(iChem=1;iChem<numChemPotTest-1;iChem++){
+      x = chemPot1+iChem*dmu;
+      dos = (numElecMu[iChem+1]-numElecMu[iChem-1])*dmuInv;
+      printf("%i dossssss %.10lg %.10lg\n",iScf,x,dos);
+    }
+    free(&numElecMu[0]);
+    */
   }
   if(numProcStates>1){
     Barrier(comm_states);

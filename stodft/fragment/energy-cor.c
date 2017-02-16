@@ -29,6 +29,11 @@
 void energyCorrect(CP *cp,GENERAL_DATA *general_data,CLASS *class,int ip_now)
 /*========================================================================*/
 {/*begin routine*/
+/**************************************************************************/
+/* This function calculate the energy correction, including kinetic	  */
+/* energy, non-local pseudo potential energy and nuclei forces comes from */
+/* non-local pseudo potential.						  */
+/**************************************************************************/
 /*========================================================================*/
 /*             Local variable declarations                                */
 #include "../typ_defs/typ_mask.h"
@@ -39,11 +44,14 @@ void energyCorrect(CP *cp,GENERAL_DATA *general_data,CLASS *class,int ip_now)
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
   COMMUNICATE *commCP = &(cp->communicate);
 
+
   double **keMatrixUp = fragInfo->keMatrixUp;
   double **keMatrixDn = fragInfo->keMatrixDn;
 
 /*======================================================================*/
 /* I) Kinetic energy	                                                */
+  
+
 
 /*======================================================================*/
 /* II) Non-local pseudo potential energy                                */
@@ -51,6 +59,40 @@ void energyCorrect(CP *cp,GENERAL_DATA *general_data,CLASS *class,int ip_now)
 
 /*======================================================================*/
 /* III) Non-local pseudo potential force                                */
+
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void calcKECor(CP *cpMini,CP *cp)
+/*========================================================================*/
+{/*begin routine*/
+/**************************************************************************/
+/* This function calculates the kinetic energy correction. \sum_f ke_f    */
+/* -\sum_f a_f^T B_f a_f where ke_f = \sum_i <psi_i^f|K|psi_i^f> , a_f(i) */
+/* = <kai|psi_f^i> , and B_f(i,j)=<psi_f^i|K|psi_f^j>.			  */
+/**************************************************************************/
+/*========================================================================*/
+/*             Local variable declarations                                */
+  STODFTINFO *stodftInfo = cp->stodftInfo;
+  FRAGINFO *fragInfo = stodftInfo->fragInfo;
+  CPOPTS *cpOpts = &(cpMini->cpopts);
+  CPCOEFFS_INFO *cpcoeffs_info = &(cpMini->cpcoeffs_info);
+  CPCOEFFS_POS *cpcoeffs_pos = &(cpMini->cpcoeffs_pos[1]);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cpMini->cp_para_fft_pkg3d_lg);
+  COMMUNICATE *commCP = &(cpMini->communicate);
+
+  int iState,jState,iCoeff;
+  int numStateUp = cpcoeffs_info->nstate_up_proc;
+  int numStateDn = cpcoeffs_info->nstate_dn_proc;
+
+  double 
+  
+
 
 
 /*==========================================================================*/
@@ -81,7 +123,7 @@ void calcKEMatrix(CP *cpMini,CP *cp)
   int cpLsda = cpopts->cp_lsda;
   int numCoeffUpTot = numStateUp*numCoeff;
   int numCoeffDnTot = numStateDn*numCoeff;
-  int index;
+  int index,index1,index2,index3;
   int iFrag = fragInfo->iFrag;
   
   double *cre_up = cpcoeffs_pos->cre_up;
@@ -103,17 +145,62 @@ void calcKEMatrix(CP *cpMini,CP *cp)
   coefForceIm = (double*)cmalloc(numCoeffUpTot*sizeof(double))-1;
 
   for(iState=0;iState<numStateUp;iState++){
-    for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+    for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
       index = iState*numCoeff+iCoeff;
-      coefForceRe[index] = 2.0*ak2Small[iCoeff]*cre_up[index];
-      coefForceIm[index] = 2.0*ak2Small[iCoeff]*cim_up[index];
-    }
-  }
+      coefForceRe[index] = 0.5*ak2Small[iCoeff]*cre_up[index];
+      coefForceIm[index] = 0.5*ak2Small[iCoeff]*cim_up[index];
+    }//endfor iCoeff
+    coefForceRe[iState*numCoeff+numCoeff] = 0.0;
+    coefForceIm[iState*numCoeff+numCoeff] = 0.0;
+  }//endfor iState
 
   for(iState=0;iState<numStateUp;iState++){
-    
-  }
+    for(jState=iState;jState<numStateUp;jState++){
+      index = iState*numStateUp+jState;
+      index1 = jState*numStateUp+iState;
+      keMatrixUp[index] = 0.0;
+      for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
+	index2 = iState*numCoeff+iCoeff;
+	index3 = jState*numCoeff+iCoeff;
+        // We should have *2 here since we have CC* and C*C but the wave functions
+	// are normalized to 2, so there is another 0.5 to bring it back to normal 
+	// But don't forget to scale everything by occupied number at the end of the day
+	keMatrixUp[index] += ceofForceRe[index2]*cre_up[index3]+coefForceIm[index2]*cim_up[index3];
+      }//endfor iCoeff
+      keMatrixUp[index1] = keMatrixUp[index];
+    }//endfor jState
+  }//endfor iState
   
+  if(cpLsda==1&&numStateDn!=0){// spin down
+    keMatrixDn = fragInfo->keMatrixDn[iFrag];
+    for(iState=0;iState<numStateDn;iState++){
+      for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
+	index = iState*numCoeff+iCoeff;
+	coefForceRe[index] = 0.5*ak2Small[iCoeff]*cre_dn[index];
+	coefForceIm[index] = 0.5*ak2Small[iCoeff]*cim_dn[index];
+      }
+      coefForceRe[iState*numCoeff+numCoeff] = 0.0;
+      coefForceIm[iState*numCoeff+numCoeff] = 0.0;
+    }
+
+    for(iState=0;iState<numStateDn;iState++){
+      for(jState=iState;jState<numStateDn;jState++){
+	index = iState*numStateDn+jState;
+	index1 = jState*numStateDn+iState;
+	keMatrixDn[index] = 0.0;
+	for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
+	  index2 = iState*numCoeff+iCoeff;
+	  index3 = jState*numCoeff+iCoeff;
+	  // We should have *2 here since we have CC* and C*C but the wave functions
+	  // are normalized to 2, so there is another 0.5 to bring it back to normal 
+	  // But don't forget to scale everything by occupied number at the end of the day
+	  keMatrixDn[index] += ceofForceRe[index2]*cre_dn[index3]+coefForceIm[index2]*cim_dn[index3];
+	}//endfor iCoeff
+	keMatrixDn[index1] = keMatrixDn[index];
+      }//endfor jState
+    }//endfor iState   
+  }//endif 
+
 
   /*
   //eke = 0.0;

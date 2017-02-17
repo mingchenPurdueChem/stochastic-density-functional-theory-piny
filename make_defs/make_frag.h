@@ -134,4 +134,13 @@ wf-real-frag.o :         $(STANDARD) $(DEFINES) \
 	$(ECHO) $@
 	$(COBJ) $(DCODE)/stodft/fragment/wf-real-frag.c
 
+energy-cor.o :           $(STANDARD) $(DEFINES) \
+                         $(TYP_GEN) $(TYP_CP) $(TYP_CLASS) $(TYP_BND) $(TYP_STAT)\
+                         $(MATH) $(FRND_ENT) $(COMM_WRAP) $(FRAG_INT_LOC) \
+                         $(DCODE)/stodft/fragment/energy-cor.c
+	$(ECHO) $@
+	$(COBJ) $(DCODE)/stodft/fragment/energy-cor.c
+
+
+
 #------------------------------------------------------------------

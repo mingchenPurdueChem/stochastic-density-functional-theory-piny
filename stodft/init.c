@@ -233,7 +233,8 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   if(chemPotOpt==2)stodftInfo->numChemPot = 1;
 
   stodftCoefPos->chemPot = (double*)cmalloc(numChemPot*sizeof(double));
-  stodftInfo->energyKNL = (double*)cmalloc(numChemPot*sizeof(double));
+  stodftInfo->energyKe = (double*)cmalloc(numChemPot*sizeof(double));
+  stodftInfo->energyPNL = (double*)cmalloc(numChemPot*sizeof(double));
   stodftCoefPos->testWfMaxRe = (double*)cmalloc(numCoeff*sizeof(double));
   stodftCoefPos->testWfMaxIm = (double*)cmalloc(numCoeff*sizeof(double));
   stodftCoefPos->testWfMinRe = (double*)cmalloc(numCoeff*sizeof(double));

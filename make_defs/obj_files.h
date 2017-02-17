@@ -153,7 +153,7 @@ STODFT_FILES	      = coeff.o control-stodft.o filters.o init.o \
 FRAG_FILES	      = frag-scf.o init-frag.o parse-frag.o copy-input.o \
 			control-cp-min-frag.o all-control-frag.o all-mall-frag.o \
 			all-read-frag.o gen-wave-frag.o init-coord-hmat-fft.o \
-			reinitFFT.o proj-wf.o wf-real-frag.o
+			reinitFFT.o proj-wf.o wf-real-frag.o energy-cor.o 
               
 
 

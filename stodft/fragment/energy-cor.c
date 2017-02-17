@@ -26,7 +26,8 @@
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void energyCorrect(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,CP *cp)
+void energyCorrect(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,
+		   CP *cp,int ip_now)
 /*========================================================================*/
 {/*begin routine*/
 /**************************************************************************/
@@ -44,7 +45,13 @@ void energyCorrect(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,CP 
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
   COMMUNICATE *commCP = &(cp->communicate);
 
+  int myidState             = commCP->myid_state;
+  int numProcStates         = commCP->np_states;
+  int numFragProc	    = fragInfo->numFragProc;
+  int iFrag;
   double keCorProc = 0.0;
+  MPI_Comm commStates   =    commCP->comm_states;
+
 
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     fragInfo->iFrag = iFrag;
@@ -64,6 +71,10 @@ void energyCorrect(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,CP 
 
 /*======================================================================*/
 /* I) Reduce everything                                                 */
+
+  if(numProcStates>1){
+    Reduce(&keCorProc,&(fragInfo->keCor),1,MPI_DOUBLE,MPI_SUM,0,commStates);
+  }
 
 
 /*==========================================================================*/
@@ -90,12 +101,12 @@ void calcKECor(CP *cpMini,GENERAL_DATA *generalDataMini,CP *cp,double *keCorProc
   CPCOEFFS_POS *cpcoeffs_pos = &(cpMini->cpcoeffs_pos[1]);
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cpMini->cp_para_fft_pkg3d_lg);
   COMMUNICATE *commCP = &(cpMini->communicate);
-  STAT_AVG statAvg = &(generalDataMini->stat_avg);
+  STAT_AVG *statAvg = &(generalDataMini->stat_avg);
   
 
   int iState,jState,iCoeff;
   int iFrag = fragInfo->iFrag;
-  int cpLsda = cpopts->cp_lsda;
+  int cpLsda = cpOpts->cp_lsda;
   int numFragProc           = fragInfo->numFragProc;
   int numFragTot            = fragInfo->numFragTot;
   int numStateUp = cpcoeffs_info->nstate_up_proc;
@@ -115,21 +126,21 @@ void calcKECor(CP *cpMini,GENERAL_DATA *generalDataMini,CP *cp,double *keCorProc
 /* I) Allocate Local Memory                                             */
 
   
-  keMatrixUp = fragInfo->keMatrixUp;
-  wfProjUp = fragInfo->wfProjUp;
+  keMatrixUp = fragInfo->keMatrixUp[iFrag];
+  wfProjUp = fragInfo->wfProjUp[iFrag];
   temp = (double*)cmalloc(numStateUp*sizeof(double));
   dsymvWrapper('U',numStateUp,1.0,keMatrixUp,wfProjUp,1,0.0,temp,1);
-  keCorUp = ddotBlasWrapper(numStateUp,temp,1,wfProjUp,1);
+  keCor = ddotBlasWrapper(numStateUp,temp,1,wfProjUp,1);
   free(temp);
-  if(cpLsda==1&&numStateDn1=0){
-    keMatrixDn = fragInfo->keMatrixDn;
-    wfProjDn = fragInfo->wfProjDn;
+  if(cpLsda==1&&numStateDn!=0){
+    keMatrixDn = fragInfo->keMatrixDn[iFrag];
+    wfProjDn = fragInfo->wfProjDn[iFrag];
     temp = (double*)cmalloc(numStateDn*sizeof(double));
-    dsymvWrapper('U',numStateDn,1.0,keMatrixDn,wfProjDn,1,0.0,tempUp,1);
+    dsymvWrapper('U',numStateDn,1.0,keMatrixDn,wfProjDn,1,0.0,temp,1);
     keCor += ddotBlasWrapper(numStateDn,temp,1,wfProjDn,1);
     free(temp);
   }
-  *keCorFrag += ke-keCor;
+  *keCorProc += ke-keCor;
 
 /*==========================================================================*/
 }/*end Routine*/
@@ -147,6 +158,7 @@ void calcKEMatrix(CP *cpMini,CP *cp)
   STODFTINFO *stodftInfo = cp->stodftInfo;
   FRAGINFO *fragInfo = stodftInfo->fragInfo;  
   CPOPTS *cpOpts = &(cpMini->cpopts);
+  CPEWALD *cpEwald = &(cpMini->cpewald);
   CPCOEFFS_INFO *cpcoeffs_info = &(cpMini->cpcoeffs_info);
   CPCOEFFS_POS *cpcoeffs_pos = &(cpMini->cpcoeffs_pos[1]);
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cpMini->cp_para_fft_pkg3d_lg);
@@ -156,7 +168,7 @@ void calcKEMatrix(CP *cpMini,CP *cp)
   int numStateUp = cpcoeffs_info->nstate_up_proc;
   int numStateDn = cpcoeffs_info->nstate_dn_proc;
   int numCoeff = cpcoeffs_info->ncoef;
-  int cpLsda = cpopts->cp_lsda;
+  int cpLsda = cpOpts->cp_lsda;
   int numCoeffUpTot = numStateUp*numCoeff;
   int numCoeffDnTot = numStateDn*numCoeff;
   int index,index1,index2,index3;
@@ -166,7 +178,7 @@ void calcKEMatrix(CP *cpMini,CP *cp)
   double *cim_up = cpcoeffs_pos->cim_up;
   double *cre_dn = cpcoeffs_pos->cre_dn;
   double *cim_dn = cpcoeffs_pos->cim_dn;
-  double *ak2Small = cpewald->ak2_sm;
+  double *ak2Small = cpEwald->ak2_sm;
   double *coefForceRe,*coefForceIm;
   double *keMatrixUp;
   double *keMatrixDn;
@@ -206,7 +218,7 @@ void calcKEMatrix(CP *cpMini,CP *cp)
         // We should have *2 here since we have CC* and C*C but the wave functions
 	// are normalized to 2, so there is another 0.5 to bring it back to normal 
 	// But don't forget to scale everything by occupied number at the end of the day
-	keMatrixUp[index] += ceofForceRe[index2]*cre_up[index3]+coefForceIm[index2]*cim_up[index3];
+	keMatrixUp[index] += coefForceRe[index2]*cre_up[index3]+coefForceIm[index2]*cim_up[index3];
       }//endfor iCoeff
       keMatrixUp[index1] = keMatrixUp[index];
     }//endfor jState
@@ -239,7 +251,7 @@ void calcKEMatrix(CP *cpMini,CP *cp)
 	  // We should have *2 here since we have CC* and C*C but the wave functions
 	  // are normalized to 2, so there is another 0.5 to bring it back to normal 
 	  // But don't forget to scale everything by occupied number at the end of the day
-	  keMatrixDn[index] += ceofForceRe[index2]*cre_dn[index3]+coefForceIm[index2]*cim_dn[index3];
+	  keMatrixDn[index] += coefForceRe[index2]*cre_dn[index3]+coefForceIm[index2]*cim_dn[index3];
 	}//endfor iCoeff
 	keMatrixDn[index1] = keMatrixDn[index];
       }//endfor jState

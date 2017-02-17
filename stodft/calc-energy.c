@@ -69,7 +69,8 @@ void calcEnergyChemPot(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   double chemPotTrue = stodftInfo->chemPotTrue;
   double energyKineticTemp,energyNLTemp;
 
-  double *energyKNL = stodftInfo->energyKNL;
+  double *energyKe  = stodftInfo->energyKe;
+  double *energyPNL = stodftInfo->energyPNL;
   double *cre_up = cpcoeffs_pos->cre_up;
   double *cim_up = cpcoeffs_pos->cim_up;
   double *cre_dn = cpcoeffs_pos->cre_dn;
@@ -146,9 +147,8 @@ void calcEnergyChemPot(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     }
 
     if(myidState==0){
-      energyNLTemp /= numStateStoUp;
-      energyKineticTemp /= numStateStoUp;
-      energyKNL[iChem] = energyNLTemp+energyKineticTemp;
+      energyKe[iChem] = energyKineticTemp/numStateStoUp;
+      energyPNL[iChem] = energyNLTemp/numStateStoUp;
       //printf("iChem %i chemPot %lg K %lg NL %lg\n",iChem,chemPot[iChem],energyKineticTemp,energyNLTemp);
     }
   }//endfor iChem
@@ -184,20 +184,23 @@ void calcTotEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
   COMMUNICATE *communicate      = &(cp->communicate);
   STAT_AVG *stat_avg            = &(general_data->stat_avg);
+  FRAGINFO *fragInfo		= stodftInfo->fragInfo;
 
   int numChemPot = stodftInfo->numChemPot;
   int chemPotOpt = stodftInfo->chemPotOpt;
   int myidState         = communicate->myid_state;
   int numProcStates = communicate->np_states;
+  int calcFragFlag = stodftInfo->calcFragFlag;
   int iState,iCoeff,iChem;
 
   double chemPotTrue = stodftInfo->chemPotTrue;
   double energyKineticTemp,energyNLTemp;
   double energyHartTemp,energyExtTemp,energyExcTemp;
-  double energyTrue,energyTotElec;
+  double energyKeTrue,energyPNLTrue,energyTotElec;
 
   double *chemPot = stodftCoefPos->chemPot;
-  double *energyKNL = stodftInfo->energyKNL;
+  double *energyKe = stodftInfo->energyKe;
+  double *energyPNL = stodftInfo->energyPNL;
   double *lagFunValue = (double*)cmalloc(numChemPot*sizeof(double));
 
   MPI_Comm commStates = communicate->comm_states; 
@@ -214,15 +217,25 @@ void calcTotEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 	printf("%lg %lg\n",chemPot[iChem],energyKNL[iChem]);
       }
       */
-      energyTrue = calcLagrangeInterpFun(numChemPot,chemPotTrue,chemPot,energyKNL,lagFunValue);
+      energyKeTrue = calcLagrangeInterpFun(numChemPot,chemPotTrue,chemPot,energyKe,lagFunValue);
+      energyPNLTrue = calcLagrangeInterpFun(numChemPot,chemPotTrue,chemPot,energyPNL,lagFunValue);
     }
     if(chemPotOpt==2){
-      energyTrue = energyKNL[0];
+      energyKeTrue = energyKe[0];
+      energyPNLTrue = energyPNL[0];
     }
   }
+
+/*--------------------------------------------------------------------------*/
+/* III) Add fragmentation correction		                            */
+
+  if(calcFragFlag==1&&myidState==0){
+    energyKeTrue += fragInfo->keCor;
+  }
+
   
 /*--------------------------------------------------------------------------*/
-/* III) Reduce all the other energy terms calculated from density           */
+/* IV) Reduce all the other energy terms calculated from density            */
  
   if(numProcStates>1){
     Reduce(&(stat_avg->cp_ehart),&energyHartTemp,1,MPI_DOUBLE,MPI_SUM,0,commStates);   
@@ -236,14 +249,15 @@ void calcTotEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   }
 
 /*--------------------------------------------------------------------------*/
-/* IV) Output the energy Term			            */
+/* V) Output the energy Term						    */
 
   if(myidState==0){
-    energyTotElec = energyTrue+energyHartTemp+energyExtTemp+energyExcTemp;
+    energyTotElec = energyKeTrue+energyPNLTrue+energyHartTemp+energyExtTemp+energyExcTemp;
     printf("==============================================\n");
     printf("Output Energy\n");
     printf("==============================================\n");
-    printf("Kinetic Energy+NLPP: %.16lg\n",energyTrue);
+    printf("Kinetic Energy:	 %.16lg\n",energyKeTrue);
+    printf("NL Pseudopotential:  %.16lg\n",energyPNLTrue);
     printf("Hartree Energy:      %.16lg\n",energyHartTemp);
     printf("Ext Energy:          %.16lg\n",energyExtTemp); 
     printf("Ex-Cor Energy:       %.16lg\n",energyExcTemp); 
@@ -300,7 +314,8 @@ void calcKNEEnergyFilterDiag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   double chemPotTrue = stodftInfo->chemPotTrue;
   double energyKineticTemp,energyNLTemp;
 
-  double *energyKNL = stodftInfo->energyKNL;
+  double *energyKe  = stodftInfo->energyKe;
+  double *energyPNL = stodftInfo->energyPNL;
   double *cre_up = cpcoeffs_pos->cre_up;
   double *cim_up = cpcoeffs_pos->cim_up;
   double *cre_dn = cpcoeffs_pos->cre_dn;
@@ -323,8 +338,8 @@ void calcKNEEnergyFilterDiag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /* I) Generate kinetic energy and nonlocal pseudopotential energy for       */
 /*    each chemical potential.                                              */
   if(myidState==0){
-    energyKNL[0] = 0.0;
-    energyKNL[1] = 0.0;
+    energyKe[0] = 0.0;
+    energyPNL[0] = 0.0;
   }
   Barrier(commStates);
   
@@ -383,8 +398,8 @@ void calcKNEEnergyFilterDiag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     if(myidState==0){
       //energyNLTemp /= numStateStoUp;
       //energyKineticTemp /= numStateStoUp;
-      energyKNL[0] += energyKineticTemp;
-      energyKNL[1] += energyNLTemp;
+      energyKe[0] += energyKineticTemp;
+      energyPNL[0] += energyNLTemp;
       //printf("iChem %i chemPot %lg K %lg NL %lg\n",iChem,chemPot[iChem],energyKineticTemp,energyNLTemp);
     }
   }//endfor iChem
@@ -432,7 +447,8 @@ void calcTotEnergyFilterDiag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   double energyTrue,energyTotElec;
 
   double *chemPot = stodftCoefPos->chemPot;
-  double *energyKNL = stodftInfo->energyKNL;
+  double *energyKe = stodftInfo->energyKe;
+  double *energyPNL = stodftInfo->energyPNL;
   double *lagFunValue = (double*)cmalloc(numChemPot*sizeof(double));
 
   MPI_Comm commStates = communicate->comm_states;
@@ -455,13 +471,13 @@ void calcTotEnergyFilterDiag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /* IV) Output the energy Term                                               */
 
   if(myidState==0){
-    energyTotElec = energyKNL[0]+energyKNL[1]+energyHartTemp
+    energyTotElec = energyKe[0]+energyPNL[0]+energyHartTemp
 	    +energyExtTemp+energyExcTemp;
     printf("==============================================\n");
     printf("Output Energy\n");
     printf("==============================================\n");
-    printf("Kinetic Energy:  %.20lg\n",energyKNL[0]);
-    printf("NLPP:	 %.20lg\n",energyKNL[1]);
+    printf("Kinetic Energy:      %.20lg\n",energyKe[0]);
+    printf("NLPP:	         %.20lg\n",energyPNL[0]);
     printf("Hartree Energy:      %.20lg\n",energyHartTemp);
     printf("Ext Energy:          %.20lg\n",energyExtTemp);
     printf("Ex-Cor Energy:       %.20lg\n",energyExcTemp);

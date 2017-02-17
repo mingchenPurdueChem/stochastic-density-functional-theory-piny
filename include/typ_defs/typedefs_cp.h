@@ -396,9 +396,11 @@ typedef struct fragInfo{
 				    /* Lth: natom_tot*3				*/
   double **wfProjUp;		    /* Lst: Noise wave functions project on all */  
 				    /*	    fragment MOs			*/  
+				    /* Lth: numFragProc*nstat_up		*/
 				    /* Lth: numFragProc*(numStateStoUp*nstat_up)*/
   double **wfProjDn;		    /* Lst: Same as wfProjUp but for spin down  */
 				    /*	    electrons.				*/
+				    /* Lth: numFragProc*nstat_dn		*/
 				    /* Lth: numFragProc*(numStateStoUp*nstat_dn)*/
   double **keMatrixUp;		    /* Lst: Kinetic energy matrix for spin up   */
 				    /* Lth: numFragProc*(nstat_up*nstat_up)	*/
@@ -514,8 +516,8 @@ typedef struct stodftInfo{
 				    /*      gap or band gap.			*/
   double chemPotTrue;		    /* Num: Interpolated chemical potential     */
 				    /*	    for correct number of electrons	*/
-  double *energyKNL;		    /* Num: Sum of kinetic and nonlocal pseudo- */
-				    /*	    potential energy for different      */
+  double *energyKe;		    /* Num: Sum of kinetic and nonlocal pseudo- */
+  double *energyPNL;		    /*	    potential energy for different      */
 				    /*	    chem pot.				*/
   char densityFileName[MAXWORD];    /* Char: Name of the output density file    */
   char densityReadFileName[MAXWORD];/* Char: Name of the input density file    */

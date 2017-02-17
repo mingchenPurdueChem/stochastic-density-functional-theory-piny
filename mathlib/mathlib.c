@@ -590,9 +590,6 @@ double normalize3d(double *a)
 double dsymvWrapper(char uplo,int n, double alpha,double *A,double *x,int incx,
 		    double beta,double *y,int incy)
 {
-  char uplo = 'U';
-  int incx = 1;
-  int incy = 1;
   dsymv_(&uplo,&n,&alpha,A,x,&incx,&beta,y,&incy);
 
 }

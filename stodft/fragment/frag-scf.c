@@ -138,6 +138,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }
   */
   projRhoMini(cp,general_data,class,cpMini,generalDataMini,classMini,ip_now);
+  energyCorrect(cpMini,generalDataMini,classMini,cp,ip_now);
 
 /*==========================================================================*/
 }/*end Routine*/

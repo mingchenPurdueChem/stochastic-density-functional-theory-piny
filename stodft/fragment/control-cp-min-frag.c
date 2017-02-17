@@ -244,7 +244,6 @@ void controlCpMinFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     (class->energy_ctrl.iget_res_inter) = 0;
     (class->energy_ctrl.iget_full_intra)= 1;
     (class->energy_ctrl.iget_res_intra) = 0;
-    cp->
     (general_data->simopts.cp_min)      = 1;
     (general_data->simopts.cp_wave_min) = 0;
 

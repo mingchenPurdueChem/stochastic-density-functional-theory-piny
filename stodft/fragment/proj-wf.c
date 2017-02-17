@@ -448,11 +448,6 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   */
 
 /*======================================================================*/
-/* V) Calculate the correction of energ and froce                       */
-
-  energyCorrect(cp,general_data,class,ip_now);
-  
-/*======================================================================*/
 /* VI) Free memories                                                    */
 
   if(numProcStates>1&&myidState==0)free(rhoTempReduce);

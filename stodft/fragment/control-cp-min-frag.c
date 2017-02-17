@@ -239,11 +239,12 @@ void controlCpMinFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   /*======================================================================*/
   /*  II) Final dump  : get all energyies and write EVERYTHING            */
 
-    /*
+    
     (class->energy_ctrl.iget_full_inter)= 1;
     (class->energy_ctrl.iget_res_inter) = 0;
     (class->energy_ctrl.iget_full_intra)= 1;
     (class->energy_ctrl.iget_res_intra) = 0;
+    cp->
     (general_data->simopts.cp_min)      = 1;
     (general_data->simopts.cp_wave_min) = 0;
 
@@ -259,7 +260,7 @@ void controlCpMinFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     general_data->filenames.iwrite_screen = itime;
     general_data->filenames.iwrite_dump   = itime;
     general_data->stat_avg.write_cp_atm_flag = 1;
-    */
+    
 
     //output_cp_min(class,general_data,bonded,cp,Delta_E,idum);
 

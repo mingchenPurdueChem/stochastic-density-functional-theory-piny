@@ -26,7 +26,7 @@
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void energyCorrect(CP *cp,GENERAL_DATA *general_data,CLASS *class,int ip_now)
+void energyCorrect(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,CP *cp)
 /*========================================================================*/
 {/*begin routine*/
 /**************************************************************************/
@@ -44,14 +44,15 @@ void energyCorrect(CP *cp,GENERAL_DATA *general_data,CLASS *class,int ip_now)
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
   COMMUNICATE *commCP = &(cp->communicate);
 
+  double keCorProc = 0.0;
 
-  double **keMatrixUp = fragInfo->keMatrixUp;
-  double **keMatrixDn = fragInfo->keMatrixDn;
+  for(iFrag=0;iFrag<numFragProc;iFrag++){
+    fragInfo->iFrag = iFrag;
 
 /*======================================================================*/
 /* I) Kinetic energy	                                                */
-  
-
+    
+    calcKECor(cpMini,generalDataMini,cp,&keCorProc);
 
 /*======================================================================*/
 /* II) Non-local pseudo potential energy                                */
@@ -59,6 +60,10 @@ void energyCorrect(CP *cp,GENERAL_DATA *general_data,CLASS *class,int ip_now)
 
 /*======================================================================*/
 /* III) Non-local pseudo potential force                                */
+  }
+
+/*======================================================================*/
+/* I) Reduce everything                                                 */
 
 
 /*==========================================================================*/
@@ -68,7 +73,7 @@ void energyCorrect(CP *cp,GENERAL_DATA *general_data,CLASS *class,int ip_now)
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void calcKECor(CP *cpMini,CP *cp)
+void calcKECor(CP *cpMini,GENERAL_DATA *generalDataMini,CP *cp,double *keCorProc)
 /*========================================================================*/
 {/*begin routine*/
 /**************************************************************************/
@@ -85,15 +90,46 @@ void calcKECor(CP *cpMini,CP *cp)
   CPCOEFFS_POS *cpcoeffs_pos = &(cpMini->cpcoeffs_pos[1]);
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cpMini->cp_para_fft_pkg3d_lg);
   COMMUNICATE *commCP = &(cpMini->communicate);
-
-  int iState,jState,iCoeff;
-  int numStateUp = cpcoeffs_info->nstate_up_proc;
-  int numStateDn = cpcoeffs_info->nstate_dn_proc;
-
-  double 
+  STAT_AVG statAvg = &(generalDataMini->stat_avg);
   
 
+  int iState,jState,iCoeff;
+  int iFrag = fragInfo->iFrag;
+  int cpLsda = cpopts->cp_lsda;
+  int numFragProc           = fragInfo->numFragProc;
+  int numFragTot            = fragInfo->numFragTot;
+  int numStateUp = cpcoeffs_info->nstate_up_proc;
+  int numStateDn = cpcoeffs_info->nstate_dn_proc;
+  double *keMatrixUp,*keMatrixDn;
+  double *wfProjUp,*wfProjDn;
+  double *temp;
+  double keCor;
+  double ke = statAvg->kinet_cp;
 
+/*======================================================================*/
+/* I) Calculate the matrix                                              */
+
+  calcKEMatrix(cpMini,cp);
+
+/*======================================================================*/
+/* I) Allocate Local Memory                                             */
+
+  
+  keMatrixUp = fragInfo->keMatrixUp;
+  wfProjUp = fragInfo->wfProjUp;
+  temp = (double*)cmalloc(numStateUp*sizeof(double));
+  dsymvWrapper('U',numStateUp,1.0,keMatrixUp,wfProjUp,1,0.0,temp,1);
+  keCorUp = ddotBlasWrapper(numStateUp,temp,1,wfProjUp,1);
+  free(temp);
+  if(cpLsda==1&&numStateDn1=0){
+    keMatrixDn = fragInfo->keMatrixDn;
+    wfProjDn = fragInfo->wfProjDn;
+    temp = (double*)cmalloc(numStateDn*sizeof(double));
+    dsymvWrapper('U',numStateDn,1.0,keMatrixDn,wfProjDn,1,0.0,tempUp,1);
+    keCor += ddotBlasWrapper(numStateDn,temp,1,wfProjDn,1);
+    free(temp);
+  }
+  *keCorFrag += ke-keCor;
 
 /*==========================================================================*/
 }/*end Routine*/
@@ -140,9 +176,14 @@ void calcKEMatrix(CP *cpMini,CP *cp)
 /* I) Allocate Local Memory                                             */
 
 
-  keMatrixUp = fragInfo->keMatrixUp[iFrag];
   coefForceRe = (double*)cmalloc(numCoeffUpTot*sizeof(double))-1;
   coefForceIm = (double*)cmalloc(numCoeffUpTot*sizeof(double))-1;
+
+
+/*======================================================================*/
+/* II) Calculate Spin up matrix                                         */
+
+  keMatrixUp = fragInfo->keMatrixUp[iFrag];
 
   for(iState=0;iState<numStateUp;iState++){
     for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
@@ -171,6 +212,10 @@ void calcKEMatrix(CP *cpMini,CP *cp)
     }//endfor jState
   }//endfor iState
   
+/*======================================================================*/
+/* III) Calculate Spin down matrix					*/
+
+
   if(cpLsda==1&&numStateDn!=0){// spin down
     keMatrixDn = fragInfo->keMatrixDn[iFrag];
     for(iState=0;iState<numStateDn;iState++){
@@ -217,6 +262,11 @@ void calcKEMatrix(CP *cpMini,CP *cp)
   }//endfor
   */
 
+/*======================================================================*/
+/* IV) free local memories						*/
+
+  free(coefForceRe);
+  free(coefForceIm);
 
 /*==========================================================================*/
 }/*end Routine*/

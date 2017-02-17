@@ -218,6 +218,8 @@ typedef struct cpcoeffs_info {
   int itime_ks;
   // frag ecut
   double ecutFrag;
+  int recordVNLFlag;		/*Opt: Flag to control record vnl energy */
+				/*     and vnl force 1=On 0=Off		 */
 } CPCOEFFS_INFO;
 
 typedef struct cpcoeffs_pos {

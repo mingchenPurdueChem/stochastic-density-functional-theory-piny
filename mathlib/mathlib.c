@@ -587,10 +587,10 @@ double normalize3d(double *a)
 /*========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*========================================================================*/
-double dsymvWrapper(char uplo,int n, double alpha,double *A,double *x,int incx,
+double dsymvWrapper(char uplo,int n, double alpha,double *A,int lda,double *x,int incx,
 		    double beta,double *y,int incy)
 {
-  dsymv_(&uplo,&n,&alpha,A,x,&incx,&beta,y,&incy);
+  dsymv_(&uplo,&n,&alpha,A,&lda,x,&incx,&beta,y,&incy);
 
 }
 

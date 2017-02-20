@@ -197,6 +197,7 @@ void calcTotEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   double energyKineticTemp,energyNLTemp;
   double energyHartTemp,energyExtTemp,energyExcTemp;
   double energyKeTrue,energyPNLTrue,energyTotElec;
+  double energyKeNoCor;
 
   double *chemPot = stodftCoefPos->chemPot;
   double *energyKe = stodftInfo->energyKe;
@@ -230,6 +231,7 @@ void calcTotEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /* III) Add fragmentation correction		                            */
 
   if(calcFragFlag==1&&myidState==0){
+    energyKeNoCor = energyKeTrue;
     energyKeTrue += fragInfo->keCor;
   }
 
@@ -256,7 +258,7 @@ void calcTotEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     printf("==============================================\n");
     printf("Output Energy\n");
     printf("==============================================\n");
-    printf("Kinetic Energy:	 %.16lg\n",energyKeTrue);
+    printf("Kinetic Energy:	 %.16lg %.16lg\n",energyKeNoCor,energyKeTrue);
     printf("NL Pseudopotential:  %.16lg\n",energyPNLTrue);
     printf("Hartree Energy:      %.16lg\n",energyHartTemp);
     printf("Ext Energy:          %.16lg\n",energyExtTemp); 

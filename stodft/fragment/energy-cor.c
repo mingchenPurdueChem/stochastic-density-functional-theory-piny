@@ -75,7 +75,10 @@ void energyCorrect(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,
   if(numProcStates>1){
     Reduce(&keCorProc,&(fragInfo->keCor),1,MPI_DOUBLE,MPI_SUM,0,commStates);
   }
-
+  else fragInfo->keCor = keCorProc;
+  
+  fflush(stdout);
+  //exit(0);
 
 /*==========================================================================*/
 }/*end Routine*/
@@ -115,7 +118,7 @@ void calcKECor(CP *cpMini,GENERAL_DATA *generalDataMini,CP *cp,double *keCorProc
   double *wfProjUp,*wfProjDn;
   double *temp;
   double keCor;
-  double ke = statAvg->kinet_cp;
+  double ke = statAvg->cp_eke;
 
 /*======================================================================*/
 /* I) Calculate the matrix                                              */
@@ -125,21 +128,22 @@ void calcKECor(CP *cpMini,GENERAL_DATA *generalDataMini,CP *cp,double *keCorProc
 /*======================================================================*/
 /* I) Allocate Local Memory                                             */
 
-  
+  printf("ke %lg\n",ke);
   keMatrixUp = fragInfo->keMatrixUp[iFrag];
   wfProjUp = fragInfo->wfProjUp[iFrag];
   temp = (double*)cmalloc(numStateUp*sizeof(double));
-  dsymvWrapper('U',numStateUp,1.0,keMatrixUp,wfProjUp,1,0.0,temp,1);
+  dsymvWrapper('U',numStateUp,1.0,keMatrixUp,numStateUp,wfProjUp,1,0.0,temp,1);
   keCor = ddotBlasWrapper(numStateUp,temp,1,wfProjUp,1);
   free(temp);
   if(cpLsda==1&&numStateDn!=0){
     keMatrixDn = fragInfo->keMatrixDn[iFrag];
     wfProjDn = fragInfo->wfProjDn[iFrag];
     temp = (double*)cmalloc(numStateDn*sizeof(double));
-    dsymvWrapper('U',numStateDn,1.0,keMatrixDn,wfProjDn,1,0.0,temp,1);
+    dsymvWrapper('U',numStateDn,1.0,keMatrixDn,numStateDn,wfProjDn,1,0.0,temp,1);
     keCor += ddotBlasWrapper(numStateDn,temp,1,wfProjDn,1);
     free(temp);
   }
+  printf("ke %lg keCor %lg\n",ke,keCor);
   *keCorProc += ke-keCor;
 
 /*==========================================================================*/
@@ -171,6 +175,7 @@ void calcKEMatrix(CP *cpMini,CP *cp)
   int cpLsda = cpOpts->cp_lsda;
   int numCoeffUpTot = numStateUp*numCoeff;
   int numCoeffDnTot = numStateDn*numCoeff;
+  int numAlloc = MAX(numCoeffUpTot,numCoeffDnTot);
   int index,index1,index2,index3;
   int iFrag = fragInfo->iFrag;
   
@@ -188,8 +193,8 @@ void calcKEMatrix(CP *cpMini,CP *cp)
 /* I) Allocate Local Memory                                             */
 
 
-  coefForceRe = (double*)cmalloc(numCoeffUpTot*sizeof(double))-1;
-  coefForceIm = (double*)cmalloc(numCoeffUpTot*sizeof(double))-1;
+  coefForceRe = (double*)cmalloc((numAlloc+1)*sizeof(double));
+  coefForceIm = (double*)cmalloc((numAlloc+1)*sizeof(double));
 
 
 /*======================================================================*/

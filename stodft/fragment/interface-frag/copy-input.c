@@ -382,6 +382,7 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   classMini->energy_ctrl.block_con_on;
   /* 24)\inter_PE_calc_freq */
   generalDataMini->timeinfo.iget_pe_real_inter_freq = general_data->timeinfo.iget_pe_real_inter_freq;
+  classMini->energy_ctrl.iget_pe_real_inter_freq = class->energy_ctrl.iget_pe_real_inter_freq;
   /*  25)\pme_paralell_opt{#} serial */
   classMini->part_mesh.pme_para_opt = 0;
 

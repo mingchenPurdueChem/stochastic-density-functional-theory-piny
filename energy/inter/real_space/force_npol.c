@@ -142,7 +142,6 @@ void force_npol(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 
 /*========================================================================*/
 /* Initialize variables */
-
   energy_ctrl_iget_pe_real_inter = 0;
   energy_ctrl_iget_pv_real_inter = 0;
   if(energy_ctrl_iget_full_inter==1){
@@ -194,6 +193,7 @@ void force_npol(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
      
 /*========================================================================*/
 /*  III) Distance Calculatation                                           */
+
 
   npol_dist_calc(intra_scr_dx12,intra_scr_dy12,intra_scr_dz12,
                  intra_scr_dx56,intra_scr_dy56,intra_scr_dz56,

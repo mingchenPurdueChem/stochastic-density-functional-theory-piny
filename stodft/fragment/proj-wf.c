@@ -77,11 +77,13 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   double numElecProj = 0.0;
   double numGridTotInv = 1.0/rhoRealGridTot;
   double vol,volInv;
-
+  double volMini;
   double pre,preNe;
+  double preDot;
   double *rhoTemp,*rhoTempReduce;
   double *wfTemp,*wfFragTemp,*rhoFragTemp;
   double *hmat_cp = cell->hmat_cp;
+  double *hmatCpMini;
   double **rhoUpFragProc;
   double **coefUpFragProc;
   double **rhoDnFragProc;
@@ -104,6 +106,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 	((double)(rhoRealGridTot)*(double)(rhoRealGridTot)*(double)(numStateStoUp));
   // prefactor for number of e in proj part
   preNe = pre/(double)(rhoRealGridTot);
+  preDot = 1.0/sqrt(vol);
   /*
   printf("vol %lg\n",vol);
   printf("rhoRealGridTot %i pre %lg preNe %lg\n",rhoRealGridTot,pre,preNe);
@@ -320,6 +323,9 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
       for(iFrag=0;iFrag<numFragProc;iFrag++){
 	numGrid = numGridFragProc[iFrag];
 	numStateUpMini = cpMini[iFrag].cpcoeffs_info.nstate_up_proc;
+	hmatCpMini = generalDataMini[iFrag].cell.hmat_cp;
+	volMini = getdeth(hmatCpMini);
+	volMini /= numGrid;
 	wfFragTemp = (double*)cmalloc(numGrid*sizeof(double));
 	rhoFragTemp = (double*)cmalloc(numGrid*sizeof(double));
 	for(iGrid=0;iGrid<numGrid;iGrid++){
@@ -329,7 +335,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 	}
 	for(iStateFrag=0;iStateFrag<numStateUpMini;iStateFrag++){
 	  proj = ddotBlasWrapper(numGrid,&wfFragTemp[0],1,&coefUpFragProc[iFrag][iStateFrag*numGrid],1);
-	  fragInfo->wfProjUp[iFrag][countWf*numStateUpMini+iStateFrag] = proj;
+	  fragInfo->wfProjUp[iFrag][countWf*numStateUpMini+iStateFrag] = proj*preDot*volMini;
 	  daxpyBlasWrapper(numGrid,proj,&coefUpFragProc[iFrag][iStateFrag*numGrid],1,&rhoFragTemp[0],1);
 	}//endfor iGrid
 	for(iGrid=0;iGrid<numGrid;iGrid++){
@@ -388,6 +394,9 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 	for(iFrag=0;iFrag<numFragProc;iFrag++){
 	  numGrid = numGridFragProc[iFrag];
 	  numStateDnMini = cpMini[iFrag].cpcoeffs_info.nstate_dn_proc;
+	  hmatCpMini = generalDataMini[iFrag].cell.hmat_cp;
+	  volMini = getdeth(hmatCpMini);
+	  volMini /= numGrid;
 	  wfFragTemp = (double*)cmalloc(numGrid*sizeof(double));
 	  rhoFragTemp = (double*)cmalloc(numGrid*sizeof(double));
 	  for(iGrid=0;iGrid<numGrid;iGrid++){
@@ -397,7 +406,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 	  }
 	  for(iStateFrag=0;iStateFrag<numStateDnMini;iStateFrag++){
 	    proj = ddotBlasWrapper(numGrid,&wfFragTemp[0],1,&coefDnFragProc[iFrag][iStateFrag*numGrid],1);
-	    fragInfo->wfProjUp[iFrag][countWf*numStateDnMini+iStateFrag] = proj;
+	    fragInfo->wfProjUp[iFrag][countWf*numStateDnMini+iStateFrag] = proj*preDot*volMini;
 	    daxpyBlasWrapper(numGrid,proj,&coefDnFragProc[iStateFrag*numGrid],1,&rhoFragTemp[0],1);
 	  }//endfor iGrid
 	  for(iGrid=0;iGrid<numGrid;iGrid++){

@@ -60,6 +60,7 @@ void cp_energy_control(CLASS *class, BONDED *bonded,
 /* II)  Get electron contribution to the atm force and total E          */
 /*      Get forces on basis set parameters                              */
 
+  printf("22222222222222 ke %lg\n",general_data->stat_avg.cp_eke);
   energy_control_elec(class,bonded,general_data,cp);
 
 
@@ -71,7 +72,7 @@ void cp_energy_control(CLASS *class, BONDED *bonded,
 
 /*======================================================================*/
 /* III) calculate inter_real energy                                     */
-
+ 
     energy_control_inter_real(class,bonded,general_data);
 
 /*======================================================================*/

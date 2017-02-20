@@ -87,7 +87,6 @@ void energy_control_elec(CLASS *class,BONDED *bonded,
  general_data->stat_avg.cp_ehart /= pi_beads;
  general_data->stat_avg.vrecip   /= pi_beads;
 
-
 /*======================================================================*/
 /* II)   Ewald self and background terms                                */
 

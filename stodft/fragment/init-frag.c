@@ -49,15 +49,21 @@ void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*         Local Variable declarations                                   */
   STODFTINFO    *stodftInfo       = cp->stodftInfo;
   FRAGINFO      *fragInfo;
+  COMMUNICATE   *communicate      = &(cp->communicate);
 
   int fragOpt           = stodftInfo->fragOpt;
   int numFragProc;
+  int myidState         = communicate->myid_state;
+  int numProcStates     = communicate->np_states;
   int iFrag;
+  MPI_Comm world                = communicate->world;
 
-  stodftInfo->fragInfo = (FRAGINFO*)cmalloc(sizeof(FRAGINFO));
-  fragInfo = stodftInfo->fragInfo;
-
-  printf("fragOpt %i\n",fragOpt);
+  if(myidState==0)fragInfo = stodftInfo->fragInfo;
+  else{
+    stodftInfo->fragInfo = (FRAGINFO*)cmalloc(sizeof(FRAGINFO));
+    fragInfo = stodftInfo->fragInfo;
+  }
+  if(numProcStates>1)Barrier(world);
   
   switch(fragOpt){ 
     case 1:
@@ -441,6 +447,7 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   skinAll = fragInfo->skinAll;
   if(myidState==0){
     atomSkinFile = fragInfo->atomSkinFile;
+    printf("1111111111 %s\n",atomSkinFile);
     fileSkin = fopen(atomSkinFile,"r");
     for(iAtom=0;iAtom<numAtomTot;iAtom++){
       fscanf(fileSkin,"%lg",&skinAll[iAtom]);

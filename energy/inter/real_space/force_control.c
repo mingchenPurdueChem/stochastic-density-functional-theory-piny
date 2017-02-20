@@ -36,9 +36,7 @@ void force_control(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 {/*Begin Routine*/
 /*=======================================================================*/
 /* I) Nolist option */
-
-  
-    
+   
   if((nbr_list->nolst)==1) {
     force_nolst(clatoms_info,clatoms_pos,
                 for_scr,atommaps,cell,

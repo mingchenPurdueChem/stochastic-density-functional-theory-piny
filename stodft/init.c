@@ -75,6 +75,10 @@ void commStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
   Bcast(&(stodftInfo->numStateStoDn),1,MPI_INT,0,world);
   Bcast(&(stodftInfo->chemPotOpt),1,MPI_INT,0,world);
   Bcast(&(stodftInfo->filterDiagFlag),1,MPI_INT,0,world);
+  Bcast(&(stodftInfo->densityMixFlag),1,MPI_INT,0,world);
+  Bcast(&(stodftInfo->numDiis),1,MPI_INT,0,world);
+  Bcast(&(stodftInfo->numStepMix),1,MPI_INT,0,world);
+
   //frag
   Bcast(&(stodftInfo->calcFragFlag),1,MPI_INT,0,world);
   Bcast(&(stodftInfo->fragOpt),1,MPI_INT,0,world);
@@ -85,10 +89,9 @@ void commStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
   Bcast(&(stodftInfo->numElecTrue),1,MPI_DOUBLE,0,world);
   Bcast(&(stodftInfo->chemPotInit),1,MPI_DOUBLE,0,world);
   Bcast(&(stodftInfo->gapInit),1,MPI_DOUBLE,0,world);
-  Bcast(&(stodftInfo->densityMixFlag),1,MPI_DOUBLE,0,world);
-  Bcast(&(stodftInfo->numDiis),1,MPI_DOUBLE,0,world);
-  Bcast(&(stodftInfo->numStepMix),1,MPI_DOUBLE,0,world);
+  Bcast(&(stodftInfo->mixRatioSM),1,MPI_DOUBLE,0,world);
   Bcast(stodftInfo->densityFileName,MAXWORD,MPI_CHAR,0,world);
+  
 
 }/*end Routine*/
 /*==========================================================================*/
@@ -637,7 +640,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     stodftInfo->numDiis = 1;
   }
   if(densityMixFlag==2){//diis only
-    stodftInfo->numStepMix = 0;
+    stodftInfo->numStepMix = -1;
   }
   
   if(densityMixFlag>0){//do mix

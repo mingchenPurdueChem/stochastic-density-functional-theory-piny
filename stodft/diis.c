@@ -101,7 +101,7 @@ void genDensityMix(CP *cp,int iScf)
     //updateBank(rhoDnCorrect,rhoDnBank,iScf);
     //updateErr(rhoDnBank,rhoDnErr,iScf);
 
-    if(iScf==1){//Initial Step
+    if(iScf==0){//Initial Step
       updateBank(stodftInfo,stodftCoefPos,rhoDnCorrect,rhoDnBank);
       memcpy(rhoDnOld,rhoDnCorrect,rhoRealGridNum*sizeof(double));
     }
@@ -321,9 +321,10 @@ void calcDensityDiis(CP *cp,double **rhoBank,double **rhoErr)
   
   // push stack then mix density
   int iScf = stodftInfo->iScf;
-  double mixRatioSM = 1.0; //alpha
+  double mixRatioSM = stodftInfo->mixRatioSM; //alpha
   double pre = mixRatioSM-1.0;
-  if(iScf<=5){
+  //printf("pre %lg\n",pre);
+  if(iScf<=20){
     for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
       rhoUp[iGrid+1] = 0.0;
       for(iDiis=0;iDiis<numDiisNow;iDiis++){

@@ -568,13 +568,13 @@ void readRho(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
 	fscanf(densityReadFile,"%lg",&rhoUpRead[iGrid]);
         //printf("111 %lg\n",rhoUpRead[iGrid]);
-	rhoUpRead[iGrid] *= volCP;
+	//rhoUpRead[iGrid] *= volCP;
       }
       //printf("volCP %lg rhoUp %lg\n",volCP,rhoUpRead[0]);
       if(cpLsda==1&&numStateDnProc!=0){
 	for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
 	  fscanf(densityReadFile,"%lg",&rhoDnRead[iGrid]);
-	  rhoDnRead[iGrid] *= volCP;
+	  //rhoDnRead[iGrid] *= volCP;
 	}
       }
       fclose(densityReadFile);

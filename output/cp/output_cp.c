@@ -1476,14 +1476,14 @@ void write_config_files_cp(CLASS *class,BONDED *bonded,
             }/* endfor */
             igo = 1;
             if(myid!=0){
-              Ssend(&(cre_up_tmp[0]),(ncoef+1),MPI_DOUBLE,0,0,world);
-              Ssend(&(cim_up_tmp[0]),(ncoef+1),MPI_DOUBLE,0,0,world);
+              Ssend(&(cre_up_tmp[1]),(ncoef),MPI_DOUBLE,0,0,world);
+              Ssend(&(cim_up_tmp[1]),(ncoef),MPI_DOUBLE,0,0,world);
             }/*endif*/
          }/* endif */
          if(myid==0&&igo==0){
-            Recv(&(cre_up_tmp[0]),(ncoef+1),MPI_DOUBLE,MPI_ANY_SOURCE,
+            Recv(&(cre_up_tmp[1]),(ncoef),MPI_DOUBLE,MPI_ANY_SOURCE,
                  MPI_ANY_TAG,world);
-            Recv(&(cim_up_tmp[0]),(ncoef+1),MPI_DOUBLE,MPI_ANY_SOURCE,
+            Recv(&(cim_up_tmp[1]),(ncoef),MPI_DOUBLE,MPI_ANY_SOURCE,
                  MPI_ANY_TAG,world);
           }/* endif */
           if(myid==0){
@@ -1503,14 +1503,14 @@ void write_config_files_cp(CLASS *class,BONDED *bonded,
              }/* endfor */
              igo = 1;
              if(myid!=0){
-               Ssend(&(cre_dn_tmp[0]),(ncoef+1),MPI_DOUBLE,0,0,world);
-               Ssend(&(cim_dn_tmp[0]),(ncoef+1),MPI_DOUBLE,0,0,world);
+               Ssend(&(cre_dn_tmp[1]),(ncoef),MPI_DOUBLE,0,0,world);
+               Ssend(&(cim_dn_tmp[1]),(ncoef),MPI_DOUBLE,0,0,world);
              }/*endif*/
           }/* endif */
           if(myid==0&&igo==0){
-             Recv(&(cre_dn_tmp[0]),(ncoef+1),MPI_DOUBLE,MPI_ANY_SOURCE,
+             Recv(&(cre_dn_tmp[1]),(ncoef),MPI_DOUBLE,MPI_ANY_SOURCE,
                   MPI_ANY_TAG,world);
-             Recv(&(cim_dn_tmp[0]),(ncoef+1),MPI_DOUBLE,MPI_ANY_SOURCE,
+             Recv(&(cim_dn_tmp[1]),(ncoef),MPI_DOUBLE,MPI_ANY_SOURCE,
                   MPI_ANY_TAG,world);
            }/* endif */
            if(myid==0){

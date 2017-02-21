@@ -88,6 +88,7 @@ void min_CG_cp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     int *ioff_up       = cp->cpcoeffs_info.ioff_upt;
     int *ioff_dn       = cp->cpcoeffs_info.ioff_dnt;
 
+    int icoef_off_up,icoef_off_dn;
     int nstate_up = cp->cpcoeffs_info.nstate_up;
     int nstate_dn = cp->cpcoeffs_info.nstate_dn;
     int ncoef     = cp->cpcoeffs_info.ncoef;
@@ -166,11 +167,16 @@ void min_CG_cp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
      ncoef_dn      = cp->cpcoeffs_info.ncoef;
      ncoef_up_max  = cp->cpcoeffs_info.ncoef;
      ncoef_dn_max  = cp->cpcoeffs_info.ncoef;
+     /*RLH Add icoef_off_up, icoef_off_dn */
+     icoef_off_up = cp->cpcoeffs_info.icoef_start_up-1;
+     icoef_off_dn = cp->cpcoeffs_info.icoef_start_dn-1;
     }else{
      ncoef_up     = cp->cp_comm_state_pkg_up.nstate_ncoef_proc;
      ncoef_dn     = cp->cp_comm_state_pkg_dn.nstate_ncoef_proc;
      ncoef_up_max = cp->cp_comm_state_pkg_up.nstate_ncoef_proc_max;
      ncoef_dn_max = cp->cp_comm_state_pkg_dn.nstate_ncoef_proc_max;
+     icoef_off_up=cp->cp_comm_state_pkg_up.icoef_start-1;
+     icoef_off_dn=cp->cp_comm_state_pkg_dn.icoef_start-1;
     }/*endif*/
 
     ncoef_up_tot = ncoef_up_max*nstate_up;
@@ -256,6 +262,9 @@ void min_CG_cp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
                        &(general_data->ptens),
                        &(general_data->simopts),
                        &(class->for_scr));
+
+  //debug
+  //printf("11111 fcre_up %lg fcim_up %lg\n",fcre_up[1],fcim_up[1]);
   /* Let's test how does force=H|psi> works */
   /*
   // Frist, we should check the orthogonal to make sure we got a row major matrix
@@ -342,7 +351,9 @@ void min_CG_cp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /* III) Calculate the step length                                           */
 
   //double stepMax = -100000.0;
-  ioff_hyb = (cp_para_opt == 0 ? myid_state*ncoef_up_max : 0);
+  /* RLH Fix offset for hybrid parallelization */
+  /* ioff_hyb = (cp_para_opt == 0 ? myid_state*ncoef_up_max : 0);*/
+  ioff_hyb = (cp_para_opt == 0 ? icoef_off_up : 0);
   if(cp_cg_line_min_len == 0){
     for(i=1;i<=ncoef_up;i++) {
       zeta_up[i] = 1.0/cp_hess_re_up[ioff_hyb + i];

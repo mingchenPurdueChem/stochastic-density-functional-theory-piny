@@ -193,10 +193,10 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /* iii) Calcluate <phi|H|phi>	                                            */
     
     for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
-      fcre_up[iCoeff] *= -0.5;
-      fcim_up[iCoeff] *= -0.5; 
+      fcre_up[iCoeff] *= -0.25;
+      fcim_up[iCoeff] *= -0.25; 
     }
-    fcre_up[numCoeff] *= -1;
+    fcre_up[numCoeff] *= -0.5;
     
     energyOld = energy;
     energy = 0.0;
@@ -413,10 +413,10 @@ void genEnergyMin(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /* iii) Calcluate <phi|H|phi>                                               */
 
     for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
-      fcre_up[iCoeff] *= -0.5;
-      fcim_up[iCoeff] *= -0.5;
+      fcre_up[iCoeff] *= -0.25;
+      fcim_up[iCoeff] *= -0.25;
     }
-    fcre_up[numCoeff] *= -1;
+    fcre_up[numCoeff] *= -0.5;
 
     energyOld = energy;
     energy = 0.0;

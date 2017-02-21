@@ -538,6 +538,10 @@ typedef struct stodftInfo{
   int diisMatrixCalcFullFlag;	    /* Num: Flag to calculate full diis matrix  */
 				    /*	    0=no, 1=yes				*/
   double mixRatioBig;		    /* Num: What is the best ratio for mixing?  */
+				    /*	    This is for pure mixing		*/
+  double mixRatioSM;		    /* Num: We can also combine diis with	*/
+				    /*	    mixing. This is the mixing ratio.	*/
+				    /*	    (the potion for last step)		*/
   double lambdaDiis;		    /* Num: Lagrange Multiplier for Diis	*/
 
   /* adaptive chemical potential parameters */

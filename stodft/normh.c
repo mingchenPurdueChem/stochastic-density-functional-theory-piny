@@ -59,8 +59,8 @@ void normHNewtonHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   double energyMean	= stodftInfo->energyMean;
   double energyDiff	= stodftInfo->energyDiff;
   double prefact	= -scale*energyMean-zn;
-  double scale1		= -scale*0.5;
-  double scale2		= -scale;
+  double scale1		= -scale*0.25;
+  double scale2		= -scale*0.5;
 
   int cpLsda         = cpopts->cp_lsda;
   int numStateUpProc = cpcoeffs_info->nstate_up_proc;
@@ -188,8 +188,8 @@ void normHCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   double energyMean     = stodftInfo->energyMean;
   double energyDiff     = stodftInfo->energyDiff;
   double prefact        = -scale*energyMean;
-  double scale1         = -scale*0.5;
-  double scale2         = -scale;
+  double scale1         = -scale*0.25;
+  double scale2         = -scale*0.5;
 
   int cpLsda         = cpopts->cp_lsda;
   int numStateUpProc = cpcoeffs_info->nstate_up_proc;

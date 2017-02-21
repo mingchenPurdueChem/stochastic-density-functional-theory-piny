@@ -834,6 +834,8 @@ void get_diag_cp_hess(CP *cp,int ip_now,CELL *cell,double scale)
     if(cp_hess_re_up[i] <= hess_cut) hess0 = (hess0 > cp_hess_re_up[i] ? hess0 : cp_hess_re_up[i]);
   } /* endfor */
 
+  //printf("hess0 %lg\n",hess0);
+
 
    if(np_states>1){
      hess0_tmp = hess0;
@@ -841,6 +843,8 @@ void get_diag_cp_hess(CP *cp,int ip_now,CELL *cell,double scale)
    }/*endif*/
 
 
+  //printf("hess_cut %lg cp_hess_re_up %lg cp_hess_im_up %lg\n",hess_cut,cp_hess_re_up[1947],
+  //        cp_hess_im_up[1947]);
   for(i=1;i<=ncoef_up;i++) {
     if(cp_hess_re_up[i] <= hess_cut) {cp_hess_re_up[i] = hess0; cp_hess_im_up[i] = hess0;}
   } /* endfor */
@@ -885,7 +889,12 @@ void get_diag_cp_hess(CP *cp,int ip_now,CELL *cell,double scale)
       cp_hess_im_dn[i] += 1.0;
     }/* endfor */
   }/* endif */
-
+  
+  /*
+  printf("ncoef_up %i ncoef %i\n",ncoef_up,ncoef);
+  printf("hess_cut %lg cp_hess_re_up %lg cp_hess_im_up %lg\n",hess_cut,cp_hess_re_up[2594],
+         cp_hess_im_up[2594]);
+  */
 
 /*-----------------------------------------------------------------------*/
   cfree(&(hmati[1]));

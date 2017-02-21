@@ -987,6 +987,7 @@ void gen_wave(CLASS *class,GENERAL_DATA *general_data,CP *cp,
     fprintf(stdout,"total kinetic energy dn states %lg \n",0.50*eke_tot);
    }/*endif myid*/
   }/*endif lsda*/
+  printf("cre %lg cim %lg\n",creal_up[1],cimag_up[1]);
 #endif
 
 /*===========================================================================*/

@@ -219,6 +219,12 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
       printf("coeff1111 %lg %lg %lg %lg\n",ccreal[ioff+icoef],ccimag[ioff+icoef],
 	      ccreal[ioff2+icoef],ccimag[ioff2+icoef]);
     }
+    for(icoef=1;icoef<=ncoef;icoef++){
+      if(isinf(ccreal[ioff+icoef])==1||isinf(ccimag[ioff+icoef])==1||
+	isinf(ccreal[ioff2+icoef])==1||isinf(ccimag[ioff2+icoef])==1){
+	printf("ioff %i ioff2 %i icoef %lg");
+      }
+    }
     */
     //debug
     
@@ -340,6 +346,7 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
  if((nstate % 2 ) != 0) {
     ioff = (nstate-1)*ncoef;
     if(fftw3dFlag==0){
+      //printf("ioff %i creal %lg cimag %lg\n",ioff+1,ccreal[ioff+1],ccimag[ioff+1]);
       sngl_pack_coef(&ccreal[ioff],&ccimag[ioff],zfft,cp_sclr_fft_pkg3d_sm);
     }
     else{
@@ -437,6 +444,7 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
       fprintf(fp_rho,"%i %i %i %lg %lg\n",kastr[i],kbstr[i],kcstr[i],rhocr[i],rhoci[i]);
     }
     */
+    
     //exit(0);
   }
   //exit(0);

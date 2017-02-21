@@ -48,14 +48,15 @@ void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
 #include "../typ_defs/typ_mask.h"
+
   STODFTINFO    *stodftInfo       = cp->stodftInfo;
   FRAGINFO      *fragInfo;
   COMMUNICATE   *communicate      = &(cp->communicate);
 
   int fragOpt           = stodftInfo->fragOpt;
   int numFragProc;
-  int myidState         = communicate->myid_state;
-  int numProcStates     = communicate->np_states;
+  int myidState		= communicate->myid_state;
+  int numProcStates	= communicate->np_states;
   int iFrag;
   MPI_Comm world                = communicate->world;
 
@@ -65,6 +66,7 @@ void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     fragInfo = stodftInfo->fragInfo;
   }
   if(numProcStates>1)Barrier(world);
+  //printf("fragOpt %i\n",fragOpt);
   
   switch(fragOpt){ 
     case 1:
@@ -449,7 +451,7 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   skinAll = fragInfo->skinAll;
   if(myidState==0){
     atomSkinFile = fragInfo->atomSkinFile;
-    //printf("1111111111 %s\n",atomSkinFile);
+    printf("%s\n",fragInfo->atomSkinFile);
     fileSkin = fopen(atomSkinFile,"r");
     for(iAtom=0;iAtom<numAtomTot;iAtom++){
       fscanf(fileSkin,"%lg",&skinAll[iAtom]);
@@ -579,4 +581,5 @@ void reInitFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/
+
 

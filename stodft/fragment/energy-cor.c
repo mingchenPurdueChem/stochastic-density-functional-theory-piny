@@ -77,6 +77,7 @@ void energyCorrect(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,
   }
   else fragInfo->keCor = keCorProc;
   
+  if(numProcStates>1)Barrier(commStates);
   fflush(stdout);
   //exit(0);
 
@@ -107,17 +108,20 @@ void calcKECor(CP *cpMini,GENERAL_DATA *generalDataMini,CP *cp,double *keCorProc
   STAT_AVG *statAvg = &(generalDataMini->stat_avg);
   
 
-  int iState,jState,iCoeff;
+  int iState,jState,iCoeff,iStoc;
   int iFrag = fragInfo->iFrag;
   int cpLsda = cpOpts->cp_lsda;
   int numFragProc           = fragInfo->numFragProc;
   int numFragTot            = fragInfo->numFragTot;
   int numStateUp = cpcoeffs_info->nstate_up_proc;
   int numStateDn = cpcoeffs_info->nstate_dn_proc;
+  int numStateStoUp = stodftInfo->numStateStoUp;
+  int numStateStoDn = stodftInfo->numStateStoDn;
+  int occNumber = stodftInfo->occNumber;
   double *keMatrixUp,*keMatrixDn;
   double *wfProjUp,*wfProjDn;
   double *temp;
-  double keCor;
+  double keCor,keCorUp,keCorDn;
   double ke = statAvg->cp_eke;
 
 /*======================================================================*/
@@ -128,23 +132,45 @@ void calcKECor(CP *cpMini,GENERAL_DATA *generalDataMini,CP *cp,double *keCorProc
 /*======================================================================*/
 /* I) Allocate Local Memory                                             */
 
-  printf("ke %lg\n",ke);
+  //printf("ke %lg\n",ke);
   keMatrixUp = fragInfo->keMatrixUp[iFrag];
   wfProjUp = fragInfo->wfProjUp[iFrag];
+  //debug
+  /*
+  for(iState=0;iState<numStateUp;iState++){
+    for(jState=iState;jState<numStateUp;jState++){
+      printf("iState %i jState %i Matrix %lg\n",iState,jState,keMatrixUp[iState*numStateUp+jState]);
+    }
+  }
+  for(iStoc=0;iStoc<numStateStoUp;iStoc++){
+    for(iState=0;iState<numStateUp;iState++){
+      printf("iStoch %i iState %i wfProj %lg\n",iStoc,iState,wfProjUp[iStoc*numStateUp+iState]);
+    }
+  }
+  */
   temp = (double*)cmalloc(numStateUp*sizeof(double));
-  dsymvWrapper('U',numStateUp,1.0,keMatrixUp,numStateUp,wfProjUp,1,0.0,temp,1);
-  keCor = ddotBlasWrapper(numStateUp,temp,1,wfProjUp,1);
+  keCorUp = 0.0;
+  for(iStoc=0;iStoc<numStateStoUp;iStoc++){
+    dsymvWrapper('U',numStateUp,1.0,keMatrixUp,numStateUp,&wfProjUp[iStoc*numStateUp],1,0.0,temp,1);
+    keCorUp += ddotBlasWrapper(numStateUp,temp,1,&wfProjUp[iStoc*numStateUp],1);
+  }
+  keCorUp /= numStateStoUp;
+  keCor = keCorUp;
   free(temp);
   if(cpLsda==1&&numStateDn!=0){
     keMatrixDn = fragInfo->keMatrixDn[iFrag];
     wfProjDn = fragInfo->wfProjDn[iFrag];
     temp = (double*)cmalloc(numStateDn*sizeof(double));
-    dsymvWrapper('U',numStateDn,1.0,keMatrixDn,numStateDn,wfProjDn,1,0.0,temp,1);
-    keCor += ddotBlasWrapper(numStateDn,temp,1,wfProjDn,1);
+    for(iStoc=0;iStoc<numStateStoDn;iStoc++){
+      dsymvWrapper('U',numStateDn,1.0,keMatrixDn,numStateDn,&wfProjDn[iStoc*numStateDn],1,0.0,temp,1);
+      keCorDn += ddotBlasWrapper(numStateDn,temp,1,&wfProjDn[iStoc*numStateDn],1);
+    }
+    keCorDn /= numStateStoDn;
+    keCor += keCorDn;
     free(temp);
   }
   printf("ke %lg keCor %lg\n",ke,keCor);
-  *keCorProc += ke-keCor;
+  *keCorProc += ke-occNumber*keCor;
 
 /*==========================================================================*/
 }/*end Routine*/

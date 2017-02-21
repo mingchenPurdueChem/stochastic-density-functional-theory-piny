@@ -4631,7 +4631,12 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   /*-----------------------------------------------------------------------*/
   /*  24)\atom_skin_file{#} */
   strcpy(fragInfo->atomSkinFile,dict[24].keyarg);
-  printf("%s\n",fragInfo->atomSkinFile);
+  //printf("%s\n",fragInfo->atomSkinFile);
+
+  /*-----------------------------------------------------------------------*/
+  /*  25)\diis_max_ratio{#} */
+  sscanf(dict[25].keyarg,"%lg",&rka);
+  stodftInfo->mixRatioSM = rka;
 
 /*=======================================================================*/
 /* Check the conflicate options						 */
@@ -4756,6 +4761,14 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
       printf("If you turn on the generic FFT, there is a missmatch between\n");
       printf("real space density and nuclei positions. Please change to other\n");
       printf("FFT methods!\n");
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(0);
+    }
+    if(stodftInfo->filterDiagFlag==1&&stodftInfo->chemPotOpt==2){
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      printf("Filter Diagnolization needs more than one chemical potential.\n");
+      printf("Please change the chemical potential option to interpolation.\n");
       printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
       fflush(stdout);
       exit(0);

@@ -506,7 +506,7 @@ typedef struct stodftInfo{
 				    /*	    have in the system.			*/
   double numElecTrueFrag;	    /* Num: True number of electron while doing */
 				    /*	    fragmentation calculation		*/
-
+  double randSeed;		    /* Num: Random number seed for noise orbital*/
   /* In fact, we have rho(tot)=rho(frag)+rho(sto)-rho(proj). Also, Ne(tot)=	*/
   /* Ne(frag). So Ne(sto)=Ne(proj). We shall calculate Ne(proj) right after	*/
   /* having real space rho(proj)						*/

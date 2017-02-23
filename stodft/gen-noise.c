@@ -64,7 +64,7 @@ void genNoiseOrbital(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
   int *noiseSendCounts = stodftInfo->noiseSendCounts;
   int *noiseDispls = stodftInfo->noiseDispls;
   MPI_Comm comm_states   =    communicate->comm_states;
-  
+ 
   double ranValue = 1.0/sqrt(2.0);
   double *randNumTot,*randNum;
   double *coeffReUp = cpcoeffs_pos->cre_up;
@@ -89,8 +89,10 @@ void genNoiseOrbital(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
     errcode = vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD,stream,numRandTot,randNumTot,-1.0,1.0);
 #endif
 #ifndef MKL_RANDOM
+    double seed = stodftInfo->randSeed;
+    printf("seed!!!!!!!! %lg\n",seed);
     //whatever random number is good, I'm using Gaussian in this case
-    double seed = 8.3;
+    //double seed = 8.3;
     //double seed = 2.5;
     int iseed;
     printf("numRandTot %i numStateUpTot %i numCoeff %i\n",numRandTot,numStatUpTot,numCoeff);

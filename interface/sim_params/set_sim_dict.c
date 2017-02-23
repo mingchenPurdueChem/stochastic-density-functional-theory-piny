@@ -2200,7 +2200,7 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
  /*             Local variable declarations                                */
   
   unsigned int i;
-  *num_dict = 25;
+  *num_dict = 26;
   *dict = (DICT_WORD *)cmalloc(*num_dict*sizeof(DICT_WORD))-1;
 
   for (i=1;i<=*num_dict;i++) {
@@ -2308,6 +2308,10 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
   strcpy((*dict)[25].error_mes,"Please input a real number >0 and <=1");
   strcpy((*dict)[25].keyword,"diis_max_ratio");
   strcpy((*dict)[25].keyarg,"1.0");
+
+  strcpy((*dict)[26].error_mes,"Please input a real number");
+  strcpy((*dict)[26].keyword,"stowf_seed");
+  strcpy((*dict)[26].keyarg,"10.0");
 
  /*========================================================================*/
  } /* end routine set_sim_dict_harmonic */

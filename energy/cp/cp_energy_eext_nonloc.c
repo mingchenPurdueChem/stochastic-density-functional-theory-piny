@@ -1245,7 +1245,7 @@ void getnl_pot_pv_fatm(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 
 /*-----------------------------------------------------------------------*/
 /* ii) Sum the contributions over the 2l+1 directions and the states    */
-    
+
        sumnl_pot_pv_fatm_hess(npart,nstate_up,np_nlmax,nl_chan_max,
                               np_nl[lp1],l,np_nl_rad_str[lp1][jrad],
                               irad,jrad,

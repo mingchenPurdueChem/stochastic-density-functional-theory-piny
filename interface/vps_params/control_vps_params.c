@@ -1060,6 +1060,7 @@ void make_vps_splin(char *vps_file,int loc_opt,int n_ang,
            if(fscanf(fp_vps_file,"%lf %lf\n",&v_now,&rphi_now) != 2) 
                            {vps_read_error(vps_file);}
            v_loc[ir] = v_now;
+	   printf("v_locccc %lg\n",v_now);
          }/* endfor */ 
        } /* endfor */
      }/*endif*/
@@ -1161,6 +1162,7 @@ void make_vps_splin(char *vps_file,int loc_opt,int n_ang,
           for(ir=1; ir <= nr; ir++) {
            if(fscanf(fp_vps_file,"%lf %lf\n",&v_now,&rphi_now) != 2) 
                        {vps_read_error(vps_file); }
+	    printf("vnonloccccc %lg %lg\n",v_loc[ir],v_now);
             v_rphi[ir] = (v_now-v_loc[ir])*rphi_now;
             amat += rphi_now*v_rphi[ir]*dr;
           } /* endfor */

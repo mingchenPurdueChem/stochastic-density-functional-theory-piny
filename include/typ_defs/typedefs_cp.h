@@ -406,6 +406,16 @@ typedef struct fragInfo{
 				    /* Lth: numFragProc*(nstat_up*nstat_up)	*/
   double **keMatrixDn;		    /* Lst: Kinetic energy matrix for spin dn   */
                                     /* Lth: numFragProc*(nstat_dn*nstat_dn)     */
+  double **vnlMatrixUp;		    /* Lst: vnl matrix for spin up		*/
+				    /* Lth: numFragProc*(nstat_up*nstat_up)	*/
+  double **vnlMatrixDn;		    /* Lst: numFragProc*(nstat_dn*nstat_dn)	*/
+  double **vnlFxMatrixUp;
+  double **vnlFxMatrixDn;
+  double **vnlFyMatrixUp;
+  double **vnlFyMatrixDn;
+  double **vnlFzMatrixUp;
+  double **vnlFzMatrixDn;
+
 }FRAGINFO;
 
 typedef struct stodftInfo{

@@ -310,19 +310,15 @@ void control_ewd_non_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 
   ak2_sm[ncoef] = 0.0;
   if(np_nl[1]>0){
-
     ylmr[1] = 1.0/sqrt(fpi);
     for(irad=1;irad<=nrad_max_l[1];irad++){
-
       for(ipart=1;ipart<=np_nonloc_cp_box_kb;ipart++){
         iii = n_rad_max*(iatm_typ_nl[ipart]-1) + irad;
         vtemp[ipart] = gzvps0[iii];
       }/*endfor*/
-
       for(ipart=np_nl_rad_str[1][irad];ipart<=np_nl[1];ipart++){
         vtemp_now[ipart] = vtemp[ipart]*ylmr[1];
       }/*endfor*/
-
       get_nlmat0(ncoef,ncoef,nstate_up,np_nlmax,
                  np_nl_rad_str[1][irad],np_nl[1],nl_chan_max,irad,
                  creal_up,cimag_up,vtemp_now,vnlreal_up,vnlimag_up,ylmr[1]); 
@@ -331,11 +327,8 @@ void control_ewd_non_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
                   np_nl_rad_str[1][irad],np_nl[1],nl_chan_max,irad,
                   creal_dn,cimag_dn,vtemp_now,vnlreal_dn,vnlimag_dn,ylmr[1]);
       }/*endif*/
-
     }/*endfor*/
-
   }/*endif: l=0 nonlocal*/
-
 /*======================================================================*/
    }/*end routine*/
 /*======================================================================*/
@@ -470,156 +463,146 @@ void control_nlmat(CLATOMS_INFO *clatoms_info,
 
   get_ylm(xk,yk,zk,g,ylmr,ylmi,dylmr_gx,dylmi_gx,dylmr_gy,dylmi_gy,
           dylmr_gz,dylmi_gz,ylm_cons);
-
   nl_chan_max = (nl_max + 1)*(nl_max + 1);
 /*======================================================================*/
 /* II) Calculate the nl-pseudoponential matrix elements by looping over  */
 /* the channels, l, and then the 2l+1 components of the channel         */
-
   for(l=0;l<=nl_max;l++){
-
     lp1 = l+1;
     if(np_nl[lp1]>0){
-
-     for(irad=1;irad<=nrad_max_l[lp1];irad++){
+      for(irad=1;irad<=nrad_max_l[lp1];irad++){
 /*---------------------------------------------------------------------*/
 /* i) Get the bessel transform of the pseudopotential at this g vector */
 /*    and scale the structure factor appropriately                     */
-
-      for(itype=1;itype<=natm_typ_nl;itype++){
-        itype_nl = imap_atm_typ_nl[itype];
-        index_atm[itype] =  (itype_nl-1)*nsplin_g*(n_ang_max+1)*n_rad_max
-                           + l*nsplin_g*n_rad_max +  (irad-1)*nsplin_g;
-      }/*endfor*/
-
-      get_vpsnow(index_atm,nsplin_g,gmin_spl,dg_spl,g,
-                 vps0,vps1,vps2,vps3,vtemp,iatm_typ_nl_rev,
-                 natm_typ_nl,np_nonloc_cp_box_kb,
-                 np_nl_rad_str[lp1][irad]);
-
-      i_shift  = l*npart;
-
-      if(cp_ptens==0) {
-
-        for(ipart=np_nl_rad_str[lp1][irad];ipart<=np_nl[lp1];ipart++){
-          ktemp             =  ipart+i_shift;
-          ltemp             =  ip_nl_rev[ktemp];
-          helr_now[ipart]   =  helr[ltemp]*vtemp[ltemp];
-          heli_now[ipart]   =  heli[ltemp]*vtemp[ltemp];
-        }/*endfor*/
-      }else{
-	/*PRESSURE TENSOR CALC*/
-        get_vpsnow(index_atm,nsplin_g,gmin_spl,dg_spl,g,
-                   dvps0,dvps1,dvps2,dvps3,dvtemp,iatm_typ,
-                   natm_typ,npart,np_nl_rad_str[lp1][irad]);
-        for(ipart=np_nl_rad_str[lp1][irad];ipart<=np_nl[lp1];ipart++){
-          ktemp              = ipart+i_shift;
-          ltemp             =  ip_nl_rev[ktemp];
-          helr_now[ipart]    = helr[ltemp]*vtemp[ltemp];
-          heli_now[ipart]    = heli[ltemp]*vtemp[ltemp];
-          dhelr_now[ipart]   = helr[ltemp]*dvtemp[ltemp];
-          dheli_now[ipart]   = heli[ltemp]*dvtemp[ltemp];
-        }/*endfor*/
-      }/*endif*/
-    
+	for(itype=1;itype<=natm_typ_nl;itype++){
+	  itype_nl = imap_atm_typ_nl[itype];
+	  index_atm[itype] =  (itype_nl-1)*nsplin_g*(n_ang_max+1)*n_rad_max
+			     + l*nsplin_g*n_rad_max +  (irad-1)*nsplin_g;
+	}/*endfor*/
+	get_vpsnow(index_atm,nsplin_g,gmin_spl,dg_spl,g,
+		   vps0,vps1,vps2,vps3,vtemp,iatm_typ_nl_rev,
+		   natm_typ_nl,np_nonloc_cp_box_kb,
+		   np_nl_rad_str[lp1][irad]);
+	i_shift  = l*npart;
+	if(cp_ptens==0) {
+	  for(ipart=np_nl_rad_str[lp1][irad];ipart<=np_nl[lp1];ipart++){
+	    ktemp             =  ipart+i_shift;
+	    ltemp             =  ip_nl_rev[ktemp];
+	    helr_now[ipart]   =  helr[ltemp]*vtemp[ltemp];
+	    heli_now[ipart]   =  heli[ltemp]*vtemp[ltemp];
+	  }/*endfor*/
+	}else{
+	  /*PRESSURE TENSOR CALC*/
+	  get_vpsnow(index_atm,nsplin_g,gmin_spl,dg_spl,g,
+		     dvps0,dvps1,dvps2,dvps3,dvtemp,iatm_typ,
+		     natm_typ,npart,np_nl_rad_str[lp1][irad]);
+	  for(ipart=np_nl_rad_str[lp1][irad];ipart<=np_nl[lp1];ipart++){
+	    ktemp              = ipart+i_shift;
+	    ltemp             =  ip_nl_rev[ktemp];
+	    helr_now[ipart]    = helr[ltemp]*vtemp[ltemp];
+	    heli_now[ipart]    = heli[ltemp]*vtemp[ltemp];
+	    dhelr_now[ipart]   = helr[ltemp]*dvtemp[ltemp];
+	    dheli_now[ipart]   = heli[ltemp]*dvtemp[ltemp];
+	  }/*endfor*/
+	}/*endif*/
 /*---------------------------------------------------------------------*/
 /* ii) Loop over m components of the channel and get the matrix elements */ 
 /*     vtemp,dvtemp, */
-      sgn_l = 1.0;
-      if((l%2)==1)sgn_l = -1.0;
-      for(m=1;m<=(2*l+1);m++){
-        ind_lm = m + l*l;
-        if(cp_ptens==1) {
-          get_nlmat_pv(ncoef,ismcount,nstate_up,ind_lm,irad,
-            np_nlmax,np_nl[lp1],np_nl_rad_str[lp1][irad],nl_chan_max,
-            helr_now,heli_now,
-            creal_up,cimag_up,dhelr_now,dheli_now,
-            vnlreal_up,vnlimag_up,dvnlreal_x_up,dvnlreal_y_up,
-            dvnlreal_z_up,dvnlimag_x_up,dvnlimag_y_up,
-            dvnlimag_z_up,dvnlreal_gxgx_up,dvnlreal_gxgy_up,
-            dvnlreal_gxgz_up,dvnlreal_gygy_up,dvnlreal_gygz_up,
-            dvnlreal_gzgz_up,
-            dvnlimag_gxgx_up,dvnlimag_gxgy_up,dvnlimag_gxgz_up,
-            dvnlimag_gygy_up,dvnlimag_gygz_up,dvnlimag_gzgz_up,
-            xk,yk,zk,
-            ylmr[ind_lm],ylmi[ind_lm],
-            dylmr_gx[ind_lm],dylmi_gx[ind_lm],
-            dylmr_gy[ind_lm],dylmi_gy[ind_lm],
-            dylmr_gz[ind_lm],dylmi_gz[ind_lm],
-            sgn_l,scr1,scr2,scr3);
-        }/* endif */
-        if(atm_hess_calc == 3){
-          get_nlmat_hess(ncoef,ismcount,nstate_up,ind_lm,irad,
-            np_nlmax,np_nl[lp1],np_nl_rad_str[lp1][irad],nl_chan_max,
-            helr_now,heli_now,
-            creal_up,cimag_up,dhelr_now,dheli_now,
-            vnlreal_up,vnlimag_up,dvnlreal_x_up,dvnlreal_y_up,
-            dvnlreal_z_up,dvnlimag_x_up,dvnlimag_y_up,
-            dvnlimag_z_up,dvnlreal_gxgx_up,dvnlreal_gxgy_up,
-            dvnlreal_gxgz_up,dvnlreal_gygy_up,dvnlreal_gygz_up,
-            dvnlreal_gzgz_up,
-            dvnlimag_gxgx_up,dvnlimag_gxgy_up,dvnlimag_gxgz_up,
-            dvnlimag_gygy_up,dvnlimag_gygz_up,dvnlimag_gzgz_up,
-            xk,yk,zk,
-            ylmr[ind_lm],ylmi[ind_lm],
-            sgn_l,scr1,scr2);
-        }/* endif */
-        if(atm_hess_calc != 3 && cp_ptens == 0){
-          get_nlmat(ncoef,ismcount,nstate_up,ind_lm,irad,
-            np_nlmax,np_nl[lp1],np_nl_rad_str[lp1][irad],nl_chan_max,
-            helr_now,heli_now,
-            creal_up,cimag_up,
-            vnlreal_up,vnlimag_up,
-            dvnlreal_x_up,dvnlreal_y_up,dvnlreal_z_up,
-            dvnlimag_x_up,dvnlimag_y_up,dvnlimag_z_up,
-            xk,yk,zk,
-            ylmr[ind_lm],ylmi[ind_lm],sgn_l,scr1,scr2);
-        }/*endif*/
-      
-        if(cp_lsda==1) {
-          if(cp_ptens==1) {
-            get_nlmat_pv(ncoef,ismcount,nstate_dn,ind_lm,irad,
-              np_nlmax,np_nl[lp1],np_nl_rad_str[lp1][irad],nl_chan_max,
-              helr_now,heli_now,
-              creal_dn,cimag_dn,dhelr_now,dheli_now,
-              vnlreal_dn,vnlimag_dn,
-              dvnlreal_x_dn,dvnlreal_y_dn,dvnlreal_z_dn,
-              dvnlimag_x_dn,dvnlimag_y_dn,dvnlimag_z_dn,
-              dvnlreal_gxgx_dn,dvnlreal_gxgy_dn,dvnlreal_gxgz_dn,
-              dvnlreal_gygy_dn,dvnlreal_gygz_dn,dvnlreal_gzgz_dn,
-              dvnlimag_gxgx_dn,dvnlimag_gxgy_dn,dvnlimag_gxgz_dn,
-              dvnlimag_gygy_dn,dvnlimag_gygz_dn,dvnlimag_gzgz_dn,
-              xk,yk,zk,
-              ylmr[ind_lm],ylmi[ind_lm],
-              dylmr_gx[ind_lm],dylmi_gx[ind_lm],
-              dylmr_gy[ind_lm],dylmi_gy[ind_lm],
-              dylmr_gz[ind_lm],dylmi_gz[ind_lm],sgn_l,scr1,scr2,scr3);
-          }/* endif */
-          if(atm_hess_calc == 3){
-            get_nlmat_hess(ncoef,ismcount,nstate_dn,ind_lm,irad,
-              np_nlmax,np_nl[lp1],np_nl_rad_str[lp1][irad],nl_chan_max,
-              helr_now,heli_now,
-              creal_dn,cimag_dn,dhelr_now,dheli_now,
-              vnlreal_dn,vnlimag_dn,
-              dvnlreal_x_dn,dvnlreal_y_dn,dvnlreal_z_dn,
-              dvnlimag_x_dn,dvnlimag_y_dn,dvnlimag_z_dn,
-              dvnlreal_gxgx_dn,dvnlreal_gxgy_dn,dvnlreal_gxgz_dn,
-              dvnlreal_gygy_dn,dvnlreal_gygz_dn,dvnlreal_gzgz_dn,
-              dvnlimag_gxgx_dn,dvnlimag_gxgy_dn,dvnlimag_gxgz_dn,
-              dvnlimag_gygy_dn,dvnlimag_gygz_dn,dvnlimag_gzgz_dn,
-              xk,yk,zk,
-              ylmr[ind_lm],ylmi[ind_lm],
-              sgn_l,scr1,scr2);
-          }/* endif */
-          if(atm_hess_calc != 3 && cp_ptens == 0){
-             get_nlmat(ncoef,ismcount,nstate_dn,ind_lm,irad,
-               np_nlmax,np_nl[lp1],np_nl_rad_str[lp1][irad],nl_chan_max,
-               helr_now,heli_now,
-               creal_dn,cimag_dn,
-               vnlreal_dn,vnlimag_dn,
-               dvnlreal_x_dn,dvnlreal_y_dn,dvnlreal_z_dn,
-               dvnlimag_x_dn,dvnlimag_y_dn,dvnlimag_z_dn,xk,yk,zk,
-               ylmr[ind_lm],ylmi[ind_lm],sgn_l,scr1,scr2);
+	sgn_l = 1.0;
+	if((l%2)==1)sgn_l = -1.0;
+	for(m=1;m<=(2*l+1);m++){
+	  ind_lm = m + l*l;
+	  if(cp_ptens==1) {
+	    get_nlmat_pv(ncoef,ismcount,nstate_up,ind_lm,irad,
+	      np_nlmax,np_nl[lp1],np_nl_rad_str[lp1][irad],nl_chan_max,
+	      helr_now,heli_now,
+	      creal_up,cimag_up,dhelr_now,dheli_now,
+	      vnlreal_up,vnlimag_up,dvnlreal_x_up,dvnlreal_y_up,
+	      dvnlreal_z_up,dvnlimag_x_up,dvnlimag_y_up,
+	      dvnlimag_z_up,dvnlreal_gxgx_up,dvnlreal_gxgy_up,
+	      dvnlreal_gxgz_up,dvnlreal_gygy_up,dvnlreal_gygz_up,
+	      dvnlreal_gzgz_up,
+	      dvnlimag_gxgx_up,dvnlimag_gxgy_up,dvnlimag_gxgz_up,
+	      dvnlimag_gygy_up,dvnlimag_gygz_up,dvnlimag_gzgz_up,
+	      xk,yk,zk,
+	      ylmr[ind_lm],ylmi[ind_lm],
+	      dylmr_gx[ind_lm],dylmi_gx[ind_lm],
+	      dylmr_gy[ind_lm],dylmi_gy[ind_lm],
+	      dylmr_gz[ind_lm],dylmi_gz[ind_lm],
+	      sgn_l,scr1,scr2,scr3);
+	  }/* endif */
+	  if(atm_hess_calc == 3){
+	    get_nlmat_hess(ncoef,ismcount,nstate_up,ind_lm,irad,
+	      np_nlmax,np_nl[lp1],np_nl_rad_str[lp1][irad],nl_chan_max,
+	      helr_now,heli_now,
+	      creal_up,cimag_up,dhelr_now,dheli_now,
+	      vnlreal_up,vnlimag_up,dvnlreal_x_up,dvnlreal_y_up,
+	      dvnlreal_z_up,dvnlimag_x_up,dvnlimag_y_up,
+	      dvnlimag_z_up,dvnlreal_gxgx_up,dvnlreal_gxgy_up,
+	      dvnlreal_gxgz_up,dvnlreal_gygy_up,dvnlreal_gygz_up,
+	      dvnlreal_gzgz_up,
+	      dvnlimag_gxgx_up,dvnlimag_gxgy_up,dvnlimag_gxgz_up,
+	      dvnlimag_gygy_up,dvnlimag_gygz_up,dvnlimag_gzgz_up,
+	      xk,yk,zk,
+	      ylmr[ind_lm],ylmi[ind_lm],
+	      sgn_l,scr1,scr2);
+	  }/* endif */
+	  if(atm_hess_calc != 3 && cp_ptens == 0){
+	    get_nlmat(ncoef,ismcount,nstate_up,ind_lm,irad,
+	      np_nlmax,np_nl[lp1],np_nl_rad_str[lp1][irad],nl_chan_max,
+	      helr_now,heli_now,
+	      creal_up,cimag_up,
+	      vnlreal_up,vnlimag_up,
+	      dvnlreal_x_up,dvnlreal_y_up,dvnlreal_z_up,
+	      dvnlimag_x_up,dvnlimag_y_up,dvnlimag_z_up,
+	      xk,yk,zk,
+	      ylmr[ind_lm],ylmi[ind_lm],sgn_l,scr1,scr2);
+	  }/*endif*/
+	
+	  if(cp_lsda==1) {
+	    if(cp_ptens==1) {
+	      get_nlmat_pv(ncoef,ismcount,nstate_dn,ind_lm,irad,
+		np_nlmax,np_nl[lp1],np_nl_rad_str[lp1][irad],nl_chan_max,
+		helr_now,heli_now,
+		creal_dn,cimag_dn,dhelr_now,dheli_now,
+		vnlreal_dn,vnlimag_dn,
+		dvnlreal_x_dn,dvnlreal_y_dn,dvnlreal_z_dn,
+		dvnlimag_x_dn,dvnlimag_y_dn,dvnlimag_z_dn,
+		dvnlreal_gxgx_dn,dvnlreal_gxgy_dn,dvnlreal_gxgz_dn,
+		dvnlreal_gygy_dn,dvnlreal_gygz_dn,dvnlreal_gzgz_dn,
+		dvnlimag_gxgx_dn,dvnlimag_gxgy_dn,dvnlimag_gxgz_dn,
+		dvnlimag_gygy_dn,dvnlimag_gygz_dn,dvnlimag_gzgz_dn,
+		xk,yk,zk,
+		ylmr[ind_lm],ylmi[ind_lm],
+		dylmr_gx[ind_lm],dylmi_gx[ind_lm],
+		dylmr_gy[ind_lm],dylmi_gy[ind_lm],
+		dylmr_gz[ind_lm],dylmi_gz[ind_lm],sgn_l,scr1,scr2,scr3);
+	    }/* endif */
+	    if(atm_hess_calc == 3){
+	      get_nlmat_hess(ncoef,ismcount,nstate_dn,ind_lm,irad,
+		np_nlmax,np_nl[lp1],np_nl_rad_str[lp1][irad],nl_chan_max,
+		helr_now,heli_now,
+		creal_dn,cimag_dn,dhelr_now,dheli_now,
+		vnlreal_dn,vnlimag_dn,
+		dvnlreal_x_dn,dvnlreal_y_dn,dvnlreal_z_dn,
+		dvnlimag_x_dn,dvnlimag_y_dn,dvnlimag_z_dn,
+		dvnlreal_gxgx_dn,dvnlreal_gxgy_dn,dvnlreal_gxgz_dn,
+		dvnlreal_gygy_dn,dvnlreal_gygz_dn,dvnlreal_gzgz_dn,
+		dvnlimag_gxgx_dn,dvnlimag_gxgy_dn,dvnlimag_gxgz_dn,
+		dvnlimag_gygy_dn,dvnlimag_gygz_dn,dvnlimag_gzgz_dn,
+		xk,yk,zk,
+		ylmr[ind_lm],ylmi[ind_lm],
+		sgn_l,scr1,scr2);
+	    }/* endif */
+	    if(atm_hess_calc != 3 && cp_ptens == 0){
+	       get_nlmat(ncoef,ismcount,nstate_dn,ind_lm,irad,
+		 np_nlmax,np_nl[lp1],np_nl_rad_str[lp1][irad],nl_chan_max,
+		 helr_now,heli_now,
+		 creal_dn,cimag_dn,
+		 vnlreal_dn,vnlimag_dn,
+		 dvnlreal_x_dn,dvnlreal_y_dn,dvnlreal_z_dn,
+		 dvnlimag_x_dn,dvnlimag_y_dn,dvnlimag_z_dn,xk,yk,zk,
+		 ylmr[ind_lm],ylmi[ind_lm],sgn_l,scr1,scr2);
           }/*endif:pvten*/
         }/*endif:lsda*/
       }/*endfor:m quantum number loop*/
@@ -1860,7 +1843,6 @@ void getnl_fcoef(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 /* IV) g=0 term (non-local potential,l=0 only!!!!)                      */
 
   if(np_nl[1]>0){
-
     l = 0;
     ylmr[1] = 1.0/sqrt(fpi);
     ismcount = nktot_sm + 1;

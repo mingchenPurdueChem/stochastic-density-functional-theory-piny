@@ -529,6 +529,7 @@ void control_nlmat(CLATOMS_INFO *clatoms_info,
       if((l%2)==1)sgn_l = -1.0;
       for(m=1;m<=(2*l+1);m++){
         ind_lm = m + l*l;
+	printf("111111111 cp_ptens %i atm_hess_calc %i\n",cp_ptens,atm_hess_calc);
         if(cp_ptens==1) {
           get_nlmat_pv(ncoef,ismcount,nstate_up,ind_lm,irad,
             np_nlmax,np_nl[lp1],np_nl_rad_str[lp1][irad],nl_chan_max,

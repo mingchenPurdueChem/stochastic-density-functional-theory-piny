@@ -34,7 +34,131 @@ calcNonLocalMatrix(CP *cp, CP *cpMini)
 /**************************************************************************/
 /* This function calculate non-local pseudopotential matrix w.r.t. frag-  */
 /* -ment MO, as well as the force component.				  */
+/* The mojority part of the code is copied from control_cp_eext_recip	  */
+/* Right now only KB form is included.					  */
 /**************************************************************************/
+
+/*======================================================================*/
+/* 0) Check the forms                                                   */
+
+#include "../typ_defs/typ_mask.h"
+
+  int idual_switch;
+  int i,j,iii,igh;
+  int nlmtot,ntot_up,ntot_dn;
+  int nl_max_kb,np_nlmax_kb,nl_max_gh,np_nlmax_gh,nl_max_all,np_nlmax_all;
+  double vrecip,cp_enl,cp_enl_gh;
+  double cpu1,cpu2;
+/*----------------------------------------------------------------------*/
+/*         Local Pointer declarations                                   */
+
+  int iperd     = cell->iperd;
+
+ /*-------------------------*/
+ /* Pressure local pointers */
+  int cp_ptens  = cpopts->cp_ptens_calc;
+  double *pvten = ptens->pvten_tmp;
+
+ /*------------------------------------------*/
+ /* Non-local pseudopotential local pointers */
+
+  int *np_nl            = pseudo->np_nl;
+  int *np_nl_gh         = pseudo->np_nl_gh;
+
+  int n_ang_max         = pseudo->n_ang_max;
+  int n_ang_max_kb      = pseudo->n_ang_max_kb;
+  int n_ang_max_gh      = pseudo->n_ang_max_gh;
+
+  int n_rad_max         = pseudo->n_rad_max;
+  double *vnlreal_up    = cpscr->cpscr_nonloc.vnlre_up;
+  double *vnlimag_up    = cpscr->cpscr_nonloc.vnlim_up;
+  double *vnlreal_dn    = cpscr->cpscr_nonloc.vnlre_dn;
+  double *vnlimag_dn    = cpscr->cpscr_nonloc.vnlim_dn;
+
+  double *dvnlreal_x_up = cpscr->cpscr_nonloc.dvnlre_x_up;
+  double *dvnlreal_y_up = cpscr->cpscr_nonloc.dvnlre_y_up;
+  double *dvnlreal_z_up = cpscr->cpscr_nonloc.dvnlre_z_up;
+  double *dvnlimag_x_up = cpscr->cpscr_nonloc.dvnlim_x_up;
+  double *dvnlimag_y_up = cpscr->cpscr_nonloc.dvnlim_y_up;
+  double *dvnlimag_z_up = cpscr->cpscr_nonloc.dvnlim_z_up;
+  double *dvnlreal_x_dn = cpscr->cpscr_nonloc.dvnlre_x_dn;
+  double *dvnlreal_y_dn = cpscr->cpscr_nonloc.dvnlre_y_dn;
+  double *dvnlreal_z_dn = cpscr->cpscr_nonloc.dvnlre_z_dn;
+  double *dvnlimag_x_dn = cpscr->cpscr_nonloc.dvnlim_x_dn;
+  double *dvnlimag_y_dn = cpscr->cpscr_nonloc.dvnlim_y_dn;
+  double *dvnlimag_z_dn = cpscr->cpscr_nonloc.dvnlim_z_dn;
+
+  double *dvnlreal_gxgx_up = cpscr->cpscr_nonloc.dvnlre_gxgx_up;
+  double *dvnlimag_gxgx_up = cpscr->cpscr_nonloc.dvnlim_gxgx_up;
+  double *dvnlreal_gygy_up = cpscr->cpscr_nonloc.dvnlre_gygy_up;
+  double *dvnlimag_gygy_up = cpscr->cpscr_nonloc.dvnlim_gygy_up;
+  double *dvnlreal_gzgz_up = cpscr->cpscr_nonloc.dvnlre_gzgz_up;
+  double *dvnlimag_gzgz_up = cpscr->cpscr_nonloc.dvnlim_gzgz_up;
+  double *dvnlreal_gxgy_up = cpscr->cpscr_nonloc.dvnlre_gxgy_up;
+  double *dvnlimag_gxgy_up = cpscr->cpscr_nonloc.dvnlim_gxgy_up;
+  double *dvnlreal_gygz_up = cpscr->cpscr_nonloc.dvnlre_gygz_up;
+  double *dvnlimag_gygz_up = cpscr->cpscr_nonloc.dvnlim_gygz_up;
+  double *dvnlreal_gxgz_up = cpscr->cpscr_nonloc.dvnlre_gxgz_up;
+  double *dvnlimag_gxgz_up = cpscr->cpscr_nonloc.dvnlim_gxgz_up;
+  double *dvnlreal_gxgx_dn = cpscr->cpscr_nonloc.dvnlre_gxgx_dn;
+  double *dvnlimag_gxgx_dn = cpscr->cpscr_nonloc.dvnlim_gxgx_dn;
+  double *dvnlreal_gygy_dn = cpscr->cpscr_nonloc.dvnlre_gygy_dn;
+  double *dvnlimag_gygy_dn = cpscr->cpscr_nonloc.dvnlim_gygy_dn;
+  double *dvnlreal_gzgz_dn = cpscr->cpscr_nonloc.dvnlre_gzgz_dn;
+  double *dvnlimag_gzgz_dn = cpscr->cpscr_nonloc.dvnlim_gzgz_dn;
+  double *dvnlreal_gxgy_dn = cpscr->cpscr_nonloc.dvnlre_gxgy_dn;
+  double *dvnlimag_gxgy_dn = cpscr->cpscr_nonloc.dvnlim_gxgy_dn;
+  double *dvnlreal_gygz_dn = cpscr->cpscr_nonloc.dvnlre_gygz_dn;
+  double *dvnlimag_gygz_dn = cpscr->cpscr_nonloc.dvnlim_gygz_dn;
+  double *dvnlreal_gxgz_dn = cpscr->cpscr_nonloc.dvnlre_gxgz_dn;
+  double *dvnlimag_gxgz_dn = cpscr->cpscr_nonloc.dvnlim_gxgz_dn;
+
+ /*----------------------*/
+ /* Atom local pointers */
+  int natm_tot             = clatoms_info->natm_tot;
+  double *fx_tmp           = ewd_scr->fx;
+  double *fy_tmp           = ewd_scr->fy;
+  double *fz_tmp           = ewd_scr->fz;
+  double *fx               = clatoms_pos->fx;
+  double *fy               = clatoms_pos->fy;
+  double *fz               = clatoms_pos->fz;
+  double *x                = clatoms_pos->x;
+  double *y                = clatoms_pos->y;
+  double *z                = clatoms_pos->z;
+  double *q                = clatoms_info->q;
+
+  int hess_size;
+  int hess_calc = clatoms_info->hess_calc;
+
+  double *hess_xx         = clatoms_pos->hess_xx;
+  double *hess_xy         = clatoms_pos->hess_xy;
+  double *hess_xz         = clatoms_pos->hess_xz;
+  double *hess_yy         = clatoms_pos->hess_yy;
+  double *hess_yz         = clatoms_pos->hess_yz;
+  double *hess_zz         = clatoms_pos->hess_zz;
+
+ /*-----------------------------------*/
+ /* Cp Option and form local pointers */
+  int cp_lsda   = cpopts->cp_lsda;
+  int icoef_orth_up  = cpcoeffs_pos->icoef_orth_up;
+  int icoef_form_up  = cpcoeffs_pos->icoef_form_up;
+  int ifcoef_form_up = cpcoeffs_pos->ifcoef_form_up;
+  int icoef_orth_dn  = cpcoeffs_pos->icoef_orth_dn;
+  int icoef_form_dn  = cpcoeffs_pos->icoef_form_dn;
+  int ifcoef_form_dn = cpcoeffs_pos->ifcoef_form_dn;
+
+ /*------------------------------*/
+ /* Wave function local pointers */
+  int nstate_up = cpcoeffs_info->nstate_up_proc;
+  int nstate_dn = cpcoeffs_info->nstate_dn_proc;
+
+ /*------------------------------*/
+ /* Communciation local pointers */
+  MPI_Comm comm_states = communicate->comm_states;
+  int myid_state  = communicate->myid_state;
+  int np_states   = communicate->np_states;
+  int np_forc     = communicate->np_forc;
+
 
 /*======================================================================*/
 /* 0) Check the forms                                                   */
@@ -45,7 +169,7 @@ calcNonLocalMatrix(CP *cp, CP *cpMini)
     printf("on state processor %d in control_cp_pe_recip   \n",myid_state);
     printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
     fflush(stdout);exit(1);
-  }/*endif*/
+  }//endif icoef_orth_up
   if(cp_lsda==1 && nstate_dn != 0){
     if(icoef_orth_dn!=1){
       printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
@@ -53,8 +177,8 @@ calcNonLocalMatrix(CP *cp, CP *cpMini)
       printf("on state processor %d in control_cp_pe_recip   \n",myid_state);
       printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
       fflush(stdout);exit(1);
-    }/*endif*/
-  }/*endif*/
+    }//endif icoef_orth_dn
+  }//endif cp_lsda
 
   if(np_states>1){
     if((icoef_form_up+ifcoef_form_up)!=0){
@@ -64,7 +188,7 @@ calcNonLocalMatrix(CP *cp, CP *cpMini)
       printf("on state processor %d in control_cp_pe_recip   \n",myid_state);
       printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
       fflush(stdout);exit(1);
-    }/*endif*/
+    }//endif icoef_form_up+ifcoef_form_up
     if(cp_lsda==1 && nstate_dn != 0){
       if((icoef_form_dn+ifcoef_form_dn)!=0){
         printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
@@ -72,172 +196,197 @@ calcNonLocalMatrix(CP *cp, CP *cpMini)
         printf("on state processor %d in control_cp_pe_recip   \n",myid_state);
         printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
         fflush(stdout);exit(1);
-      }/*endif*/
-    }/*endif*/
-  }/*endif*/
+      }//endif icoef_form_dn+ifcoef_form_dn
+    }//endif cp_lsda
+  }//endif np_stastes
+
 /*======================================================================*/
-/* I) Get some useful constants                                         */
-  tpi                 = 2.0*M_PI;
-  fpi                 = 4.0*M_PI;
-  ylm_cons.rt_fpi     = 1.0/sqrt(fpi);
-  ylm_cons.rt_thrfpi  = sqrt(3.0/fpi);
-  ylm_cons.rt_threpi  = sqrt(1.50/fpi);
-  ylm_cons.hrt_fivfpi = 0.50*sqrt(5.0/fpi);
-  ylm_cons.rt_fiftepi = sqrt(7.50/fpi);
-  ylm_cons.hrt_sevfpi = 0.50*sqrt(7.0/fpi);
-  ylm_cons.hrt_toepi  = 0.50*sqrt(10.50/fpi)/sqrt(2.0);
-  ylm_cons.hrt_ohffpi = 0.50*sqrt(105.0/fpi)/sqrt(2.0);
-  ylm_cons.hrt_tfepi  = 0.50*sqrt(17.50/fpi)/sqrt(2.0);
-/*======================================================================*/
-/* II) Determine the maximum open non-local angular momentum channel     */
-  nl_max = -1;
-  for(i=1;i<=(n_ang_max_kb +1);i++){
-    if(np_nl[i]>0){nl_max=i-1;}
-  }/*endfor*/
-  nl_chan_max = (nl_max + 1)*(nl_max + 1);
+/* II) Malloc a hessian scratch vector if necessary                     */
+
+  if(hess_calc==3&&np_states>1)hess_size = natm_tot*natm_tot;
+
 /*======================================================================*/
 /* III) Determine the maximum open non-local angular momentum channel   */
 /*      for Kleinman-Bylander and Goedecker pseudo potentials           */
+
   nl_max_kb = -1;
   for(i=1;i<=(n_ang_max_kb+1);i++){
     if(np_nl[i]>0){nl_max_kb=i-1;}
-  }/*endfor*/
+  }//endfor i
   nl_max_gh = -1;
   for(i=1;i<=(n_ang_max_gh+1);i++){
     if(np_nl_gh[i]>0){nl_max_gh=i-1;}
-  }/*endfor*/
+  }//endfor i
+
 /*======================================================================*/
 /* IV) Determine the maximum number of atoms in any                     */
 /*       open angular momentum channel                                  */
+
   np_nlmax_kb = 1;
-  for(i = 1;i<=(nl_max_kb+1);i++){
-    np_nlmax_kb = MAX(np_nlmax_kb,np_nl[i]);
-  }/*endfor*/
+  for(i=1;i<=(nl_max_kb+1);i++){
+   np_nlmax_kb = MAX(np_nlmax_kb,np_nl[i]);
+  }//endfor i
   np_nlmax_gh = 1;
-  for(i = 1;i<=(nl_max_gh+1);i++){
-    np_nlmax_gh = MAX(np_nlmax_gh,np_nl_gh[i]);
-  }/*endfor*/
-  np_nlmax_all = (np_nlmax_gh > np_nlmax_kb ? np_nlmax_gh : np_nlmax_kb);
+  for(i=1;i<=(nl_max_gh+1);i++){
+   np_nlmax_gh = MAX(np_nlmax_gh,np_nl_gh[i]);
+  }//endfor
+  np_nlmax_all = (np_nlmax_gh>np_nlmax_kb ? np_nlmax_gh:np_nlmax_kb);
+
 /*======================================================================*/
-/* IV) Find cos and sin of sc components of the particles               */
-/*    ( hmati rvec = svec   r=(x,y,z) s=(a,b,c) )                       */
-  for(ipart=1;ipart<= np_nonloc_cp_box_kb;ipart++){
-    iatm = ip_nl[ipart];
-    dx  = x[iatm] - cp_box_center[1];
-    dy  = y[iatm] - cp_box_center[2];
-    dz  = z[iatm] - cp_box_center[3];
-    asx = dx*hmati_big[1]+dy*hmati_big[4]+dz*hmati_big[7];
-    asy = dx*hmati_big[2]+dy*hmati_big[5]+dz*hmati_big[8];
-    asz = dx*hmati_big[3]+dy*hmati_big[6]+dz*hmati_big[9];
-    sx  = asx - NINT(asx);
-    sy  = asy - NINT(asy);
-    sz  = asz - NINT(asz);
-    dx  = sx*hmat_big[1]+sy*hmat_big[4]+sz*hmat_big[7];
-    dy  = sx*hmat_big[2]+sy*hmat_big[5]+sz*hmat_big[8];
-    dz  = sx*hmat_big[3]+sy*hmat_big[6]+sz*hmat_big[9];
-    xtemp = dx + cp_box_center_rel[1];
-    ytemp = dy + cp_box_center_rel[2];
-    ztemp = dz + cp_box_center_rel[3];
-    ewd_scr_x[ipart] = xtemp*hmati_cp[1]
-                     + ytemp*hmati_cp[4]
-                     + ztemp*hmati_cp[7];
-    ewd_scr_y[ipart] = xtemp*hmati_cp[2]
-                     + ytemp*hmati_cp[5]
-                     + ztemp*hmati_cp[8];
-    ewd_scr_z[ipart] = xtemp*hmati_cp[3]
-                     + ytemp*hmati_cp[6]
-                     + ztemp*hmati_cp[9];
-    ctemp = ewd_scr_z[ipart]*tpi;
-    cossc[ipart] = cos(ctemp);
-    sinsc[ipart] = sin(ctemp);
-  }/*endfor*/
+/* V) Zero the non-local tensors                                        */
+
+  nl_max_all = (nl_max_gh>nl_max_kb ? nl_max_gh:nl_max_kb);
+  nlmtot = (nl_max_all+1)*(nl_max_all+1);
+  ntot_up = nstate_up*np_nlmax_all*nlmtot*n_rad_max;
+  ntot_dn = 0;
+
+  if(nl_max_all>=0){
+    for(i=1;i<=ntot_up;i++){
+      vnlreal_up[i] = 0.0;
+      vnlimag_up[i] = 0.0;
+      dvnlreal_x_up[i] = 0.0;
+      dvnlreal_y_up[i] = 0.0;
+      dvnlreal_z_up[i] = 0.0;
+      dvnlimag_x_up[i] = 0.0;
+      dvnlimag_y_up[i] = 0.0;
+      dvnlimag_z_up[i] = 0.0;
+    }//endfor
+    if(cp_ptens==1||hess_calc==3){
+      for(i=1;i<=ntot_up;i++){
+        dvnlreal_gxgx_up[i] = 0.0;
+        dvnlreal_gzgz_up[i] = 0.0;
+        dvnlreal_gygy_up[i] = 0.0;
+        dvnlreal_gxgy_up[i] = 0.0;
+        dvnlreal_gxgz_up[i] = 0.0;
+        dvnlreal_gygz_up[i] = 0.0;
+        dvnlimag_gxgx_up[i] = 0.0;
+        dvnlimag_gxgy_up[i] = 0.0;
+        dvnlimag_gygy_up[i] = 0.0;
+        dvnlimag_gxgz_up[i] = 0.0;
+        dvnlimag_gygz_up[i] = 0.0;
+        dvnlimag_gzgz_up[i] = 0.0;
+      }//endfor i
+    }//endif:ptens
+    if(cp_lsda==1){
+      ntot_dn = nstate_dn*np_nlmax_all*nlmtot*n_rad_max;
+      for(i=1;i<=ntot_dn;i++){
+        vnlreal_dn[i]    = 0.0;
+        vnlimag_dn[i]    = 0.0;
+        dvnlreal_x_dn[i] = 0.0;
+        dvnlreal_y_dn[i] = 0.0;
+        dvnlreal_z_dn[i] = 0.0;
+        dvnlimag_x_dn[i] = 0.0;
+        dvnlimag_y_dn[i] = 0.0;
+        dvnlimag_z_dn[i] = 0.0;
+      }//endfor
+      if(cp_ptens==1 || hess_calc == 3){
+        for(i=1;i<=ntot_dn;i++){
+ 	  dvnlreal_gxgx_dn[i] = 0.0;
+ 	  dvnlreal_gxgy_dn[i] = 0.0;
+	  dvnlreal_gxgz_dn[i] = 0.0;
+	  dvnlreal_gygy_dn[i] = 0.0;
+	  dvnlreal_gygz_dn[i] = 0.0;
+	  dvnlreal_gzgz_dn[i] = 0.0;
+	  dvnlimag_gxgx_dn[i] = 0.0;
+	  dvnlimag_gxgy_dn[i] = 0.0;
+	  dvnlimag_gxgz_dn[i] = 0.0;
+	  dvnlimag_gygy_dn[i] = 0.0;
+	  dvnlimag_gygz_dn[i] = 0.0;
+	  dvnlimag_gzgz_dn[i] = 0.0;
+        }//endfor i
+      }//endif:ptens
+    }//endif:lsda
+  }//endif : non-local potential on
+
 /*======================================================================*/
-/* V) Perform the ewald sum/ non-local potential calculation            */
-  for(icount=1;icount<=nktot_sm;icount++){
-/*----------------------------------------------------------------------*/
-/* i) Get the k vectors                                                 */
-    aka = (double)(kastore_sm[icount]);
-    akb = (double)(kbstore_sm[icount]);
-    akc = (double)(kcstore_sm[icount]);
-    xk = (aka*hmati_cp[1]+akb*hmati_cp[2]+akc*hmati_cp[3])*tpi;
-    yk = (aka*hmati_cp[4]+akb*hmati_cp[5]+akc*hmati_cp[6])*tpi;
-    zk = (aka*hmati_cp[7]+akb*hmati_cp[8]+akc*hmati_cp[9])*tpi;
-    g2 = xk*xk+yk*yk+zk*zk;
-    g  = sqrt(g2);
-    ak2_sm[icount] = g2;
-/*----------------------------------------------------------------------*/
-/* ii) If break point number one calculate the helpful vectors          */
-    if(ibreak1_sm[icount]==1){
-     for(ipart=1;ipart<=np_nonloc_cp_box_kb;ipart++){
-       atemp = ewd_scr_x[ipart];
-       btemp = ewd_scr_y[ipart];
-       ctemp = ewd_scr_z[ipart];
-       arg = (aka*atemp + akb*btemp + akc*ctemp)*tpi;
-       helr[ipart] = cos(arg);
-       heli[ipart] = sin(arg);
-     }/*endfor*/
-   }/*endif*/
-/*----------------------------------------------------------------------*/
-/* iii) nonlocal matrix                                                 */
-/*     use structure factor and wavefunction to compute                 */
-/*     the array znl and its derivative dznl for the                    */
-/*     calculation of the nonlocal forces and energy                    */
-/*     (done separately for each angular momentum component)            */
-    controlNlmatFrag(clatoms_info,cpcoeffs_info,cpcoeffs_pos,
-                  cpscr,cpopts,pseudo,ewd_scr,atommaps,
-                  np_nlmax,nl_max,index_atm,g,xk,yk,zk,
-                  icount,&ylm_cons);
+/* VI) Perform the ewald sum/ cp local pseudopotential calculation      */
+/*     I don't know whether this parted is needed or not. Keep it just  */
+/*     to be safe.						        */
 
-/*----------------------------------------------------------------------*/
-/* iv) If break point two, increment the helpful vectors                */
 
-    if(ibreak2_sm[icount]==1){
-      for(ipart=1;ipart<=np_nonloc_cp_box_kb;ipart++){
-	temp = helr[ipart];
-	helr[ipart] = helr[ipart]*cossc[ipart] - heli[ipart]*sinsc[ipart];
-	heli[ipart] = heli[ipart]*cossc[ipart] + temp*sinsc[ipart];
-      }/*endfor*/
-    }/*endif*/
-  }/*endfor:icount loop over k vectors */
+  idual_switch = 0; // cp_dual_grid_opt<=1 : get vrecip vext on dense grid 
+                    // cp_dual_grid_opt==2 : get vrecip vext on sparse grid
+  vrecip = 0.0;
+  if(cpscr->cpscr_atom_pme.pme_on==1&&cp_dual_grid_opt==2){
+    control_ewd_loc_pme(clatoms_info,clatoms_pos,cell,ptens,ewald,cpewald,
+                        cpscr,pseudo,ewd_scr,cpopts,atommaps,
+                        &vrecip, &(cpcoeffs_info->pseud_hess_loc),communicate,
+                        for_scr,cp_dual_grid_opt,idual_switch,
+                        cp_para_fft_pkg3d_lg);
+  }
+  else{
+    control_ewd_loc(clatoms_info,clatoms_pos,cell,ptens,ewald,cpewald,
+                  cpscr,pseudo,ewd_scr,cpopts,atommaps,
+                  &vrecip,&(cpcoeffs_info->pseud_hess_loc),communicate,
+                  for_scr,cp_dual_grid_opt,idual_switch);
+  }//endif
+  if(cp_dual_grid_opt==2){
+    idual_switch = 1; //get vext on small dense grid
+    control_ewd_loc(clatoms_info,clatoms_pos,cell,ptens,ewald,cpewald,
+                    cpscr,pseudo,ewd_scr,cpopts,atommaps,
+                    &vrecip,&(cpcoeffs_info->pseud_hess_loc),communicate,
+                    for_scr,cp_dual_grid_opt,idual_switch);
+  }//endif cp_dual_grid_opt
+
 /*======================================================================*/
-/* VI) g=0 term                                                         */
+/* VII) Get the nl pe, pvten and particle forces then the coef forces   */
+  cp_enl    = 0.0;
+  cp_enl_gh = 0.0;
+  if(nl_max_all>=0&&n_rad_max>1){
+     non_loc_chng_ord(clatoms_pos,clatoms_info,atommaps, pseudo,ewd_scr,for_scr,1);
+  }//endif nl_max_all n_rad_max
+/*-------------------------------------------------------------------------*/
+/* A) KB/Goedecker NLs */
 
-  ak2_sm[ncoef] = 0.0;
-  if(np_nl[1]>0){
+  if(nl_max_kb>=0&&(ntot_up+ntot_dn)>0){
+    control_ewd_non_loc(clatoms_info,clatoms_pos,cpcoeffs_info,cpcoeffs_pos,
+                        cell,ptens,cpewald,cpscr,pseudo,ewd_scr,
+                        cpopts,atommaps,communicate,for_scr);
+  }
+  else get_ak2_sm(cpewald,cell);//endif nl_max_kb ntot_up+ntot_dn
 
-    ylmr[1] = 1.0/sqrt(fpi);
-    for(irad=1;irad<=nrad_max_l[1];irad++){
 
-      for(ipart=1;ipart<=np_nonloc_cp_box_kb;ipart++){
-        iii = n_rad_max*(iatm_typ_nl[ipart]-1) + irad;
-        vtemp[ipart] = gzvps0[iii];
-      }/*endfor*/
+  if((nl_max_kb >= 0)&&((ntot_up+ntot_dn)>0)&&(pseudo->np_nonloc_cp_box_kb>0) ){
+    getnl_pot_pv_fatm(clatoms_info,clatoms_pos,cell,cpcoeffs_info,
+                      cpscr,ewd_scr,cpopts,pseudo,atommaps,&cp_enl,
+                      np_nlmax_kb,pvten);
+    /*
+    getnl_fcoef(clatoms_info,clatoms_pos,cpcoeffs_info,cpcoeffs_pos,
+                  cpscr,ewd_scr,cpopts,pseudo,cpewald,atommaps,
+                  cell,np_nlmax_kb,pvten,for_scr);
+    */
+  }//endif
 
-      for(ipart=np_nl_rad_str[1][irad];ipart<=np_nl[1];ipart++){
-        vtemp_now[ipart] = vtemp[ipart]*ylmr[1];
-      }/*endfor*/
+/*======================================================================*/
+/* VIII) Assign the potential energy                                    */
 
-      get_nlmat0(ncoef,ncoef,nstate_up,np_nlmax,
-                 np_nl_rad_str[1][irad],np_nl[1],nl_chan_max,irad,
-                 creal_up,cimag_up,vtemp_now,vnlreal_up,vnlimag_up,ylmr[1]);
-      if(cp_lsda==1){
-        get_nlmat0(ncoef,ncoef,nstate_dn,np_nlmax,
-                  np_nl_rad_str[1][irad],np_nl[1],nl_chan_max,irad,
-                  creal_dn,cimag_dn,vtemp_now,vnlreal_dn,vnlimag_dn,ylmr[1]);
-      }/*endif*/
+  *vrecip_ret += vrecip;
+  *cp_enl_ret += cp_enl;
 
-    }/*endfor*/
+/*======================================================================*/
+/* IX) Reduce particle forces if necessary                              */
 
-  }/*endif: l=0 nonlocal*/
+  if(np_states>1 && np_forc == 1){
+    reduce_cp_atm_forc(natm_tot,fx,fy,fz,fx_tmp,fy_tmp,fz_tmp,
+                       comm_states,myid_state);
+  }/* endif:npstates */
 
-/*==========================================================================*/
-}/*end Routine*/
-/*==========================================================================*/
+/*======================================================================*/
+/* X) Reduce particle hessian if necessary                              */
+
+  if(hess_calc == 3 && np_states>1){
+    reduce_cp_hess_stuff(hess_xx,hess_yy,hess_zz,
+                         hess_xy,hess_xz,hess_yz,hess_size,
+                         myid_state,comm_states);
+  }/*endif*/
+
+/*======================================================================*/
+    }/*end routine*/
+/*======================================================================*/
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-
 void controlNlmatFrag(CLATOMS_INFO *clatoms_info,
                    CPCOEFFS_INFO *cpcoeffs_info,
                    CPCOEFFS_POS *cpcoeffs_pos,
@@ -246,14 +395,11 @@ void controlNlmatFrag(CLATOMS_INFO *clatoms_info,
                    int np_nlmax,int nl_max,int *index_atm,
                    double g,double xk,double yk,double zk,
                    int ismcount,YLM_CONS *ylm_cons)
-
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
-
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
-
   int ind_lm,ipart,lp1,irad,jrad,ipart_nl;
   double sgn_l;
   double ylmr[21], ylmi[21];

@@ -264,6 +264,7 @@ void control_ewd_non_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
    g2 = xk*xk+yk*yk+zk*zk;
    g  = sqrt(g2);
    ak2_sm[icount] = g2;
+   printf("g2 %lg\n",g2);
 
 /*----------------------------------------------------------------------*/
 /* ii) If break point number one calculate the helpful vectors          */

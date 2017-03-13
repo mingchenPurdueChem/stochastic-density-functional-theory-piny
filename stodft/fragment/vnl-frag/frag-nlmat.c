@@ -26,7 +26,7 @@
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-calcNonLocalMatrix(CP *cp, CP *cpMini)
+calcNonLocalMatrix(CP *cp, CP *cpMini, CLASS *classMini, GENERAL_DATA *generalDataMini)
 /*========================================================================*/
 {/*begin routine*/
 /*========================================================================*/
@@ -37,14 +37,34 @@ calcNonLocalMatrix(CP *cp, CP *cpMini)
 /* The mojority part of the code is copied from control_cp_eext_recip	  */
 /* Right now only KB form is included.					  */
 /**************************************************************************/
-
 /*======================================================================*/
-/* 0) Check the forms                                                   */
-
+/* Local Variable declaration                                           */
 #include "../typ_defs/typ_mask.h"
+  
+  CLATOMS_INFO *clatoms_info = &(classMini->clatoms_info);
+  CLATOMS_POS *clatoms_pos = &(classMini->clatoms_pos[1]);
+  CPCOEFFS_INFO *cpcoeffs_info = &(cpMini->cpcoeffs_info);
+  CPCOEFFS_POS *cpcoeffs_pos = &(cpMini->cpcoeffs_pos[1]);
+  CPEWALD *cpewald = &(cpMini->cpewald);
+  CPSCR *cpscr = &(cpMini->cpscr);
+  CPOPTS *cpopts = &(cpMini->cpopts);
+  PSEUDO *pseudo = &(cpMini->pseudo);
+  EWD_SCR *ewd_scr = &(classMini->ewd_scr);
+  ATOMMAPS *atommaps = &(classMini->atommaps);
+  CELL *cell = &(generalDataMini->cell);
+  EWALD *ewald = &(generalDataMini->ewald);
+  PTENS *ptens = &(generalDataMini->ptens);
+  COMMUNICATE *communicate = &(cp->communicate);
+  FOR_SCR *for_scr = &(classMini->for_scr);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cpMini->cp_para_fft_pkg3d_lg);
+  STAT_AVG *stat_avg = &(generalDataMini->stat_avg);
+  STODFTINFO *stodftInfo = cp->stodftInfo;
+  FRAGINFO *fragInfo = stodftInfo->fragInfo;
 
+  int cp_dual_grid_opt_on = cpopts->cp_dual_grid_opt_on;
   int idual_switch;
   int i,j,iii,igh;
+  int iState;
   int nlmtot,ntot_up,ntot_dn;
   int nl_max_kb,np_nlmax_kb,nl_max_gh,np_nlmax_gh,nl_max_all,np_nlmax_all;
   double vrecip,cp_enl,cp_enl_gh;
@@ -159,6 +179,8 @@ calcNonLocalMatrix(CP *cp, CP *cpMini)
   int np_states   = communicate->np_states;
   int np_forc     = communicate->np_forc;
 
+  double *vrecip_ret = &(stat_avg->vrecip);
+  double *cp_enl_ret = &(stat_avg->cp_enl);
 
 /*======================================================================*/
 /* 0) Check the forms                                                   */
@@ -297,6 +319,11 @@ calcNonLocalMatrix(CP *cp, CP *cpMini)
       }//endif:ptens
     }//endif:lsda
   }//endif : non-local potential on
+
+  // initialize matrix and force 
+  for(iState=0;iState<nstate_up;iState++){
+  }
+
 
 /*======================================================================*/
 /* VI) Perform the ewald sum/ cp local pseudopotential calculation      */

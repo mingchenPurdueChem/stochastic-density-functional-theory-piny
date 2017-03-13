@@ -415,6 +415,7 @@ typedef struct fragInfo{
   double **vnlFyMatrixDn;
   double **vnlFzMatrixUp;
   double **vnlFzMatrixDn;
+  double **Fx,**Fy,**Fz;
 
 }FRAGINFO;
 

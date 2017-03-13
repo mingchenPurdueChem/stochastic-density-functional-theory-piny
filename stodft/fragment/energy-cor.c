@@ -315,3 +315,104 @@ void calcKEMatrix(CP *cpMini,CP *cp)
 }/*end Routine*/
 /*==========================================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
+		CP *cp,double *vnlCorProc,double *vnlFxCorProc,
+		double *vnlFyCorProc,double *vnlFzCorProc)
+/*========================================================================*/
+{/*begin routine*/
+/**************************************************************************/
+/* This function use the same way to correct the non-local pseudo-	  */
+/* potential term							  */
+/**************************************************************************/
+/*========================================================================*/
+/*             Local variable declarations                                */
+  STODFTINFO *stodftInfo = cp->stodftInfo;
+  FRAGINFO *fragInfo = stodftInfo->fragInfo;
+  CPOPTS *cpOpts = &(cpMini->cpopts);
+  CPCOEFFS_INFO *cpcoeffs_info = &(cpMini->cpcoeffs_info);
+  CPCOEFFS_POS *cpcoeffs_pos = &(cpMini->cpcoeffs_pos[1]);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cpMini->cp_para_fft_pkg3d_lg);
+  COMMUNICATE *commCP = &(cpMini->communicate);
+  STAT_AVG *statAvg = &(generalDataMini->stat_avg);
+  
+
+  int iState,jState,iCoeff,iStoc;
+  int iFrag = fragInfo->iFrag;
+  int cpLsda = cpOpts->cp_lsda;
+  int numFragProc           = fragInfo->numFragProc;
+  int numFragTot            = fragInfo->numFragTot;
+  int numStateUp = cpcoeffs_info->nstate_up_proc;
+  int numStateDn = cpcoeffs_info->nstate_dn_proc;
+  int numStateStoUp = stodftInfo->numStateStoUp;
+  int numStateStoDn = stodftInfo->numStateStoDn;
+  int occNumber = stodftInfo->occNumber;
+  double *vnlMatrixUp,*vnlMatrixDn;
+  double *vnlFxMatrixUp,*vnlFxMatrixDn;
+  double *vnlFyMatrixUp,*vnlFyMatrixDn;
+  double *vnlFzMatrixUp,*vnlFzMatrixDn;
+  double *wfProjUp,*wfProjDn;
+  double *temp;
+  double vnlCor,vnlCorUp,vnlCorDn;
+  double vnl = statAvg->cp_enl;
+  double Fx = fragInfo->Fx[iFrag];
+  double Fy = fragInfo->Fy[iFrag];
+  double Fz = fragInfo->Fz[iFrag];
+  
+
+/*======================================================================*/
+/* I) Calculate the matrix                                              */
+
+  calcNonLocalMatrix(cp,cpMini,classMini,generalDataMini);
+
+/*======================================================================*/
+/* I) Allocate Local Memory                                             */
+
+  //printf("ke %lg\n",ke);
+  vnlMatrixUp = fragInfo->vnlMatrixUp[iFrag];
+  wfProjUp = fragInfo->wfProjUp[iFrag];
+  //debug
+  /*
+  for(iState=0;iState<numStateUp;iState++){
+    for(jState=iState;jState<numStateUp;jState++){
+      printf("iState %i jState %i Matrix %lg\n",iState,jState,keMatrixUp[iState*numStateUp+jState]);
+    }
+  }
+  for(iStoc=0;iStoc<numStateStoUp;iStoc++){
+    for(iState=0;iState<numStateUp;iState++){
+      printf("iStoch %i iState %i wfProj %lg\n",iStoc,iState,wfProjUp[iStoc*numStateUp+iState]);
+    }
+  }
+  */
+  temp = (double*)cmalloc(numStateUp*sizeof(double));
+  vnlCorUp = 0.0;
+  for(iStoc=0;iStoc<numStateStoUp;iStoc++){
+    dsymvWrapper('U',numStateUp,1.0,vnlMatrixUp,numStateUp,&wfProjUp[iStoc*numStateUp],1,0.0,temp,1);
+    keCorUp += ddotBlasWrapper(numStateUp,temp,1,&wfProjUp[iStoc*numStateUp],1);
+  }
+  vnlCorUp /= numStateStoUp;
+  vnlCor = vnlCorUp;
+  for(iAtom=1;iAtom<=
+  free(temp);
+  if(cpLsda==1&&numStateDn!=0){
+    keMatrixDn = fragInfo->keMatrixDn[iFrag];
+    wfProjDn = fragInfo->wfProjDn[iFrag];
+    temp = (double*)cmalloc(numStateDn*sizeof(double));
+    for(iStoc=0;iStoc<numStateStoDn;iStoc++){
+      dsymvWrapper('U',numStateDn,1.0,keMatrixDn,numStateDn,&wfProjDn[iStoc*numStateDn],1,0.0,temp,1);
+      keCorDn += ddotBlasWrapper(numStateDn,temp,1,&wfProjDn[iStoc*numStateDn],1);
+    }
+    keCorDn /= numStateStoDn;
+    keCor += keCorDn;
+    free(temp);
+  }
+  printf("ke %lg keCor %lg\n",ke,keCor);
+  *keCorProc += ke-occNumber*keCor;
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
+

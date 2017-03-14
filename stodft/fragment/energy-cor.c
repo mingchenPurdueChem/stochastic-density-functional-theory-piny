@@ -319,7 +319,7 @@ void calcKEMatrix(CP *cpMini,CP *cp)
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
-		CP *cp,double *vnlCorProc,double *vnlFxCorProc,
+		CP *cp,CLASS *class,double *vnlCorProc,double *vnlFxCorProc,
 		double *vnlFyCorProc,double *vnlFzCorProc)
 /*========================================================================*/
 {/*begin routine*/
@@ -337,6 +337,7 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cpMini->cp_para_fft_pkg3d_lg);
   COMMUNICATE *commCP = &(cpMini->communicate);
   STAT_AVG *statAvg = &(generalDataMini->stat_avg);
+  CLATOMS_INFO *clatomsInfoMini = &(classMini->clatoms_info);
   
 
   int iState,jState,iCoeff,iStoc;
@@ -349,6 +350,8 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
   int numStateStoUp = stodftInfo->numStateStoUp;
   int numStateStoDn = stodftInfo->numStateStoDn;
   int occNumber = stodftInfo->occNumber;
+  int numAtomFrag = clatomsInfo->natm_tot;
+  int *atomFragMapProc = fragInfo->atomFragMapProc[iFrag];
   double *vnlMatrixUp,*vnlMatrixDn;
   double *vnlFxMatrixUp,*vnlFxMatrixDn;
   double *vnlFyMatrixUp,*vnlFyMatrixDn;
@@ -356,6 +359,7 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
   double *wfProjUp,*wfProjDn;
   double *temp;
   double vnlCor,vnlCorUp,vnlCorDn;
+  double *vnlFxCorLoc,*vnlFyCorLoc,*vnlFzCorLoc; //local force correction
   double vnl = statAvg->cp_enl;
   double Fx = fragInfo->Fx[iFrag];
   double Fy = fragInfo->Fy[iFrag];
@@ -368,8 +372,9 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
   calcNonLocalMatrix(cp,cpMini,classMini,generalDataMini);
 
 /*======================================================================*/
-/* I) Allocate Local Memory                                             */
-
+/* I) Calculate vnl/force correction for spin up elections              */
+/*    Pay attention to the 0.25 factor					*/
+  
   //printf("ke %lg\n",ke);
   vnlMatrixUp = fragInfo->vnlMatrixUp[iFrag];
   wfProjUp = fragInfo->wfProjUp[iFrag];
@@ -390,26 +395,71 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
   vnlCorUp = 0.0;
   for(iStoc=0;iStoc<numStateStoUp;iStoc++){
     dsymvWrapper('U',numStateUp,1.0,vnlMatrixUp,numStateUp,&wfProjUp[iStoc*numStateUp],1,0.0,temp,1);
-    keCorUp += ddotBlasWrapper(numStateUp,temp,1,&wfProjUp[iStoc*numStateUp],1);
+    vnlCorUp += ddotBlasWrapper(numStateUp,temp,1,&wfProjUp[iStoc*numStateUp],1);
   }
   vnlCorUp /= numStateStoUp;
   vnlCor = vnlCorUp;
-  for(iAtom=1;iAtom<=
+  // Force from spin up electrons
+  vnlFxCorLoc = (double*)calloc(numAtomFrag,sizeof(double));
+  vnlFyCorLoc = (double*)calloc(numAtomFrag,sizeof(double));
+  vnlFzCorLoc = (double*)calloc(numAtomFrag,sizeof(double));
+
+  for(iAtom=0;iAtom<numAtomFrag;iAtom++){
+    vnlFxMatrixUp = &(fragInfo->vnlFxMatrixUp[iFrag][iAtom*numStateUp*numStateUp]);
+    vnlFyMatrixUp = &(fragInfo->vnlFyMatrixUp[iFrag][iAtom*numStateUp*numStateUp]);
+    vnlFzMatrixUp = &(fragInfo->vnlFzMatrixUp[iFrag][iAtom*numStateUp*numStateUp]);
+    for(iStoc=0;iStoc<numStateStoUp;iStoc++){
+      dsymvWrapper('U',numStateUp,1.0,vnlFxMatrixUp,numStateUp,&wfProjUp[iStoc*numStateUp],1,0.0,temp,1);
+      vnlFxCorLoc[iAtom] += ddotBlasWrapper(numStateUp,temp,1,&wfProjUp[iStoc*numStateUp],1);
+      dsymvWrapper('U',numStateUp,1.0,vnlFyMatrixUp,numStateUp,&wfProjUp[iStoc*numStateUp],1,0.0,temp,1);
+      vnlFyCorLoc[iAtom] += ddotBlasWrapper(numStateUp,temp,1,&wfProjUp[iStoc*numStateUp],1);
+      dsymvWrapper('U',numStateUp,1.0,vnlFzMatrixUp,numStateUp,&wfProjUp[iStoc*numStateUp],1,0.0,temp,1);
+      vnlFzCorLoc[iAtom] += ddotBlasWrapper(numStateUp,temp,1,&wfProjUp[iStoc*numStateUp],1);      
+    }
+    vnlFxCorProc[atomFragMapProc[iAtom]] = vnlFxCorLoc[iAtom]/numStateUp;
+    vnlFyCorProc[atomFragMapProc[iAtom]] = vnlFyCorLoc[iAtom]/numStateUp;
+    vnlFzCorProc[atomFragMapProc[iAtom]] = vnlFzCorLoc[iAtom]/numStateUp;
+  }
+
   free(temp);
+  
+/*======================================================================*/
+/* I) Calculate vnl/force correction for spin down elections            */
+
   if(cpLsda==1&&numStateDn!=0){
-    keMatrixDn = fragInfo->keMatrixDn[iFrag];
+    vnlMatrixDn = fragInfo->vnlMatrixDn[iFrag];
     wfProjDn = fragInfo->wfProjDn[iFrag];
     temp = (double*)cmalloc(numStateDn*sizeof(double));
     for(iStoc=0;iStoc<numStateStoDn;iStoc++){
-      dsymvWrapper('U',numStateDn,1.0,keMatrixDn,numStateDn,&wfProjDn[iStoc*numStateDn],1,0.0,temp,1);
-      keCorDn += ddotBlasWrapper(numStateDn,temp,1,&wfProjDn[iStoc*numStateDn],1);
+      dsymvWrapper('U',numStateDn,1.0,vnlMatrixDn,numStateDn,&wfProjDn[iStoc*numStateDn],1,0.0,temp,1);
+      vnlCorDn += ddotBlasWrapper(numStateDn,temp,1,&wfProjDn[iStoc*numStateDn],1);
     }
-    keCorDn /= numStateStoDn;
-    keCor += keCorDn;
+    vnlCorDn /= numStateStoDn;
+    vnlCor += vnlCorDn;
+    for(iAtom=0;iAtom<numAtomFrag;iAtom++){
+      vnlFxMatrixDn = &(fragInfo->vnlFxMatrixDn[iFrag][iAtom*numStateDn*numStateDn]);
+      vnlFyMatrixDn = &(fragInfo->vnlFyMatrixDn[iFrag][iAtom*numStateDn*numStateDn]);
+      vnlFzMatrixDn = &(fragInfo->vnlFzMatrixDn[iFrag][iAtom*numStateDn*numStateDn]);
+      vnlFxCorLoc[iAtom] = 0.0;
+      vnlFyCorLoc[iAtom] = 0.0;
+      vnlFzCorLoc[iAtom] = 0.0;
+      for(iStoc=0;iStoc<numStateStoDn;iStoc++){
+	dsymvWrapper('U',numStateDn,1.0,vnlFxMatrixDn,numStateDn,&wfProjDn[iStoc*numStateUp],1,0.0,temp,1);
+	vnlFxCorLoc[iAtom] += ddotBlasWrapper(numStateDn,temp,1,&wfProjDn[iStoc*numStateUp],1);
+	dsymvWrapper('U',numStateDn,1.0,vnlFyMatrixDn,numStateDn,&wfProjDn[iStoc*numStateUp],1,0.0,temp,1);
+	vnlFyCorLoc[iAtom] += ddotBlasWrapper(numStateDn,temp,1,&wfProjDn[iStoc*numStateUp],1);
+	dsymvWrapper('U',numStateDn,1.0,vnlFzMatrixDn,numStateDn,&wfProjDn[iStoc*numStateUp],1,0.0,temp,1);
+	vnlFzCorLoc[iAtom] += ddotBlasWrapper(numStateDn,temp,1,&wfProjDn[iStoc*numStateUp],1);
+      }
+      vnlFxCorProc[atomFragMapProc[iAtom]] += vnlFxCorLoc[iAtom]/numStateDn;
+      vnlFyCorProc[atomFragMapProc[iAtom]] += vnlFyCorLoc[iAtom]/numStateDn;
+      vnlFzCorProc[atomFragMapProc[iAtom]] += vnlFzCorLoc[iAtom]/numStateDn;
+    }
     free(temp);
   }
   printf("ke %lg keCor %lg\n",ke,keCor);
-  *keCorProc += ke-occNumber*keCor;
+  *vnlCorProc += vnl-occNumber*vnlCor;
+  for(iAtom=0;iAtom<numAtomTot;iAtom++)
 
 /*==========================================================================*/
 }/*end Routine*/

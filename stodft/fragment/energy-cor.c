@@ -27,7 +27,7 @@
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 void energyCorrect(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,
-		   CP *cp,int ip_now)
+		   CP *cp,CLASS *class,int ip_now)
 /*========================================================================*/
 {/*begin routine*/
 /**************************************************************************/
@@ -42,16 +42,22 @@ void energyCorrect(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,
   FRAGINFO *fragInfo = stodftInfo->fragInfo;
   CPOPTS *cpOpts = &(cp->cpopts);
   CPCOEFFS_INFO *cpcoeffs_info = &(cp->cpcoeffs_info);
+  CLATOMS_INFO *clatoms_info = &(class->clatoms_info);
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
   COMMUNICATE *commCP = &(cp->communicate);
 
   int myidState             = commCP->myid_state;
   int numProcStates         = commCP->np_states;
   int numFragProc	    = fragInfo->numFragProc;
-  int iFrag;
+  int numAtomTot	    = clatoms_info->natm_tot;
+  int iFrag,iAtom;
   double keCorProc = 0.0;
-  MPI_Comm commStates   =    commCP->comm_states;
-
+  double vnlCorProc = 0.0;
+  MPI_Comm commStates = commCP->comm_states;
+  
+  vnlFxCorProc = (double*)calloc(numAtomTot,sizeof(double));
+  vnlFyCorProc = (double*)calloc(numAtomTot,sizeof(double));
+  vnlFzCorProc = (double*)calloc(numAtomTot,sizeof(double));
 
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     fragInfo->iFrag = iFrag;
@@ -64,6 +70,10 @@ void energyCorrect(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,
 /*======================================================================*/
 /* II) Non-local pseudo potential energy                                */
 
+    calcVnlCor(classMini,cpMini,generalDataMini,
+               cp,class,&vnlCorProc,vnlFxCorProc,
+               vnlFyCorProc,vnlFzCorProc)
+
 
 /*======================================================================*/
 /* III) Non-local pseudo potential force                                */
@@ -74,10 +84,23 @@ void energyCorrect(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,
 
   if(numProcStates>1){
     Reduce(&keCorProc,&(fragInfo->keCor),1,MPI_DOUBLE,MPI_SUM,0,commStates);
+    Reduce(&vnlCorProc,&(fragInfo->vnlCor),1,MPI_DOUBLE,MPI_SUM,0,commStates);
+    Reduce(&vnlFxCorProc[0],&(fragInfo->vnlFxCor[0]),numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+    Reduce(&vnlFyCorProc[0],&(fragInfo->vnlFyCor[0]),numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+    Reduce(&vnlFzCorProc[0],&(fragInfo->vnlFzCor[0]),numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
   }
-  else fragInfo->keCor = keCorProc;
+  else{
+    fragInfo->keCor = keCorProc;
+    fragInfo->vnlCor = vnlCorProc;
+    memcpy(&(fragInfo->vnlFxCor[0]),&(vnlFxCorProc[0]),numAtomTot*sizeof(double));
+    memcpy(&(fragInfo->vnlFyCor[0]),&(vnlFyCorProc[0]),numAtomTot*sizeof(double));
+    memcpy(&(fragInfo->vnlFzCor[0]),&(vnlFzCorProc[0]),numAtomTot*sizeof(double));
+  }
   
   if(numProcStates>1)Barrier(commStates);
+  free(vnlFxCorProc);
+  free(vnlFyCorProc);
+  free(vnlFzCorProc);
   fflush(stdout);
   //exit(0);
 
@@ -338,6 +361,7 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
   COMMUNICATE *commCP = &(cpMini->communicate);
   STAT_AVG *statAvg = &(generalDataMini->stat_avg);
   CLATOMS_INFO *clatomsInfoMini = &(classMini->clatoms_info);
+  CLATOMS_INFO *clatomsInfo = &(class->clatoms_info);
   
 
   int iState,jState,iCoeff,iStoc;
@@ -350,7 +374,7 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
   int numStateStoUp = stodftInfo->numStateStoUp;
   int numStateStoDn = stodftInfo->numStateStoDn;
   int occNumber = stodftInfo->occNumber;
-  int numAtomFrag = clatomsInfo->natm_tot;
+  int numAtomFrag = clatomsInfoMini->natm_tot;
   int *atomFragMapProc = fragInfo->atomFragMapProc[iFrag];
   double *vnlMatrixUp,*vnlMatrixDn;
   double *vnlFxMatrixUp,*vnlFxMatrixDn;
@@ -459,7 +483,14 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
   }
   printf("ke %lg keCor %lg\n",ke,keCor);
   *vnlCorProc += vnl-occNumber*vnlCor;
-  for(iAtom=0;iAtom<numAtomTot;iAtom++)
+  for(iAtom=0;iAtom<numAtomTot;iAtom++){
+    vnlFxCorProc[iAtom] = Fx[iAtom]-occNumber*vnlFxCorProc[iAtom];
+    vnlFyCorProc[iAtom] = Fy[iAtom]-occNumber*vnlFyCorProc[iAtom];
+    vnlFzCorProc[iAtom] = Fz[iAtom]-occNumber*vnlFzCorProc[iAtom];
+  }
+  free(vnlFxCorLoc);
+  free(vnlFyCorLoc);
+  free(vnlFzCorLoc);
 
 /*==========================================================================*/
 }/*end Routine*/

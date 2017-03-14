@@ -391,9 +391,9 @@ typedef struct fragInfo{
 // The following part is for fix one-body energy terms from fragments
   double keCor,vnlCor;		    /* Num: Kinetic/Nonlocal Pseudopotential    */
 				    /*	    correction from fragment	        */
-  double *vnlForceCor;		    /* Lst: Nonlocal Pseudopotential correction */
-				    /*	    on nuclei force			*/
-				    /* Lth: natom_tot*3				*/
+  double *vnlFxCor;		    /* Lst: Nonlocal Pseudopotential correction */
+  double *vnlFyCor;		    /*	    on nuclei force			*/
+  double *vnlFzCor;		    /* Lth: natom_tot*3				*/
   double **wfProjUp;		    /* Lst: Noise wave functions project on all */  
 				    /*	    fragment MOs			*/  
 				    /* Lth: numFragProc*nstat_up		*/

@@ -64,7 +64,7 @@ void calcNonLocalMatrix(CP *cp, CP *cpMini, CLASS *classMini,
   STODFTINFO *stodftInfo = cp->stodftInfo;
   FRAGINFO *fragInfo = stodftInfo->fragInfo;
 
-  int cp_dual_grid_opt_on = cpopts->cp_dual_grid_opt_on;
+  int cp_dual_grid_opt = cpopts->cp_dual_grid_opt;
   int idual_switch;
   int i,j,iii,igh;
   int iState;
@@ -521,7 +521,7 @@ void getnlPotPvFatmFrag(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
   double *vnlFxMatrixUp,*vnlFxMatrixDn;
   double *vnlFyMatrixUp,*vnlFyMatrixDn;
   double *vnlFzMatrixUp,*vnlFzMatrixDn;
-  double *vnlMatrixUp,vnlMatrixDn;
+  double *vnlMatrixUp,*vnlMatrixDn;
 
   vnlFxMatrixUp = fragInfo->vnlFxMatrixUp[iFrag];
   vnlFyMatrixUp = fragInfo->vnlFyMatrixUp[iFrag];
@@ -1030,9 +1030,9 @@ void sumnlPotPvFatmHessFrag(int npart,int nstate,int np_nlmax,
 
         }// endif: atm hess calc
 	*/
-
-      }/*endfor:loop over states*/
-    }/*endfor: loop over the m channels */
+      }//endfor loop over j states
+    }//endfor:loop over i states
+  }//endfor: loop over the m channels
 
 /*==========================================================================*/
 /* II) Set the return values                                               */

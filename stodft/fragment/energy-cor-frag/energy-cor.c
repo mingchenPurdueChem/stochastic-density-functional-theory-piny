@@ -45,12 +45,15 @@ void energyCorrect(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,
   CLATOMS_INFO *clatoms_info = &(class->clatoms_info);
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
   COMMUNICATE *commCP = &(cp->communicate);
+  PSEUDO *pseudo = &(cpMini->pseudo);
 
   int myidState             = commCP->myid_state;
   int numProcStates         = commCP->np_states;
   int numFragProc	    = fragInfo->numFragProc;
   int numAtomTot	    = clatoms_info->natm_tot;
   int iFrag,iAtom;
+  int vnl_kb_flag = pseudo->vnl_kb_flag;
+  int vnl_gh_flag = pseudo->vnl_gh_flag;
   double keCorProc = 0.0;
   double vnlCorProc = 0.0;
   double *vnlFxCorProc,*vnlFyCorProc,*vnlFzCorProc;
@@ -71,10 +74,13 @@ void energyCorrect(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,
 /*======================================================================*/
 /* II) Non-local pseudo potential energy and force                      */
 
+    printf("vnl_kb_flag %i\n",vnl_kb_flag);
     /*
-    calcVnlCor(classMini,cpMini,generalDataMini,
-               cp,class,&vnlCorProc,vnlFxCorProc,
-               vnlFyCorProc,vnlFzCorProc);
+    if(vnl_kb_flag==1){
+      calcVnlCor(classMini,cpMini,generalDataMini,
+		 cp,class,&vnlCorProc,vnlFxCorProc,
+		 vnlFyCorProc,vnlFzCorProc);
+    }
     */
 
   }//endfor

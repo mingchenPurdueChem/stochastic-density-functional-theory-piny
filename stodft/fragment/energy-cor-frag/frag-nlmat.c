@@ -19,14 +19,17 @@
 #include "../typ_defs/typedefs_bnd.h"
 #include "../typ_defs/typedefs_cp.h"
 #include "../typ_defs/typedefs_stat.h"
+#include "../proto_defs/proto_energy_cp_local.h"
 #include "../proto_defs/proto_friend_lib_entry.h"
 #include "../proto_defs/proto_communicate_wrappers.h"
 #include "../proto_defs/proto_math.h"
+
 #include "../proto_defs/proto_frag_local.h"
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-calcNonLocalMatrix(CP *cp, CP *cpMini, CLASS *classMini, GENERAL_DATA *generalDataMini)
+void calcNonLocalMatrix(CP *cp, CP *cpMini, CLASS *classMini, 
+			GENERAL_DATA *generalDataMini)
 /*========================================================================*/
 {/*begin routine*/
 /*========================================================================*/

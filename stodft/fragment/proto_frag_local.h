@@ -2,7 +2,7 @@ void controlCpMinFrag(CLASS *,BONDED *,GENERAL_DATA *,CP *,ANALYSIS *);
 
 
 void initFragMol(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
-void initFragEnergy(CP *,CLASS *,CP *);
+void initFragEnergy(CP *,CLASS *,CLASS *,CP *);
 void initFragUnitCell(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 
 void projRhoMini(CP *,GENERAL_DATA *,CLASS *,
@@ -15,6 +15,20 @@ void rhoRealCalcWrapper(GENERAL_DATA *,CP *,CLASS *,double *,double *,int*,int*,
 void rhoRealCalcFragWrapper(GENERAL_DATA *,CP *,CLASS *,
                         CP *,double *,double *,int*,int*,double *,double *,int);
 
-void energyCorrect(CP *,GENERAL_DATA *,CLASS *,CP *,int);
+void energyCorrect(CP *,GENERAL_DATA *,CLASS *,CP *,CLASS *,int);
 void calcKECor(CP *,GENERAL_DATA *,CP *,double *);
 void calcKEMatrix(CP *,CP *);
+void calcVnlCor(CLASS *, CP *,GENERAL_DATA *,CP *,CLASS *,double *,double *,
+                double *,double *);
+void calcNonLocalMatrix(CP *,CP *,CLASS *, GENERAL_DATA *);
+void getnlPotPvFatmFrag(CLATOMS_INFO *clatoms_info,CLATOMS_POS *,CELL *,CPCOEFFS_INFO *,CPSCR *,
+                        EWD_SCR *,CPOPTS *,PSEUDO *,ATOMMAPS *,FRAGINFO *,double *,int,double *);
+void sumnlPotPvFatmHessFrag(int,int,int,int,int,int,int,int,int,int *,double *,
+                            double *,double *,double *,double *,double *,double *,
+                            double *,double *,double *,double *,double *,double *,
+                            double *,double *,double *,double *,double *,double *,
+                            double *,double *,double *,double *,double *,
+                            double *,double *,double *,double *,double *,double *,
+                            double *,double *,double *,int,int,double *, double *,
+                            double *,double *,double *,double *);
+

@@ -101,7 +101,7 @@ void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   */
   //exit(0);
  
-  initFragEnergy(*cpMiniPoint,class,cp);
+  initFragEnergy(*cpMiniPoint,*classMiniPoint,class,cp);
 
 /*==========================================================================*/
 }/*end Routine*/

@@ -137,9 +137,17 @@ wf-real-frag.o :         $(STANDARD) $(DEFINES) \
 energy-cor.o :           $(STANDARD) $(DEFINES) \
                          $(TYP_GEN) $(TYP_CP) $(TYP_CLASS) $(TYP_BND) $(TYP_STAT)\
                          $(MATH) $(FRND_ENT) $(COMM_WRAP) $(FRAG_INT_LOC) \
-                         $(DCODE)/stodft/fragment/energy-cor.c
+                         $(DCODE)/stodft/fragment/energy-cor-frag/energy-cor.c
 	$(ECHO) $@
-	$(COBJ) $(DCODE)/stodft/fragment/energy-cor.c
+	$(COBJ) $(DCODE)/stodft/fragment/energy-cor-frag/energy-cor.c
+
+frag-nlmat.o :           $(STANDARD) $(DEFINES) \
+                         $(TYP_GEN) $(TYP_CP) $(TYP_CLASS) $(TYP_BND) $(TYP_STAT)\
+			 $(ENR_CP_LOC) \
+                         $(MATH) $(FRND_ENT) $(COMM_WRAP) $(FRAG_INT_LOC) \
+                         $(DCODE)/stodft/fragment/energy-cor-frag/frag-nlmat.c
+	$(ECHO) $@
+	$(COBJ) $(DCODE)/stodft/fragment/energy-cor-frag/frag-nlmat.c
 
 
 

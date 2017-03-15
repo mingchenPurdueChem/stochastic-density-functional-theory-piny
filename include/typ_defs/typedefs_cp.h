@@ -1133,6 +1133,8 @@ typedef struct pseudo{
   int *b3_comm_num_fine_proc, *b3_comm_fine_map;
   int *b3_ser_num_fine, *b3_ser_fine_map;
   */
+  /* Fragmentation related */
+  int vnl_kb_flag,vnl_gh_flag; /* Opt: vnl kb/gh flag for simplicity */
 
 } PSEUDO;
 

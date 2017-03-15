@@ -416,7 +416,7 @@ void control_cp_eext_recip(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
     if(np_states>1){Barrier(comm_states);}
     cputime(&cpu1);
 #endif
-
+    pseudo->vnl_kb_flag = 1;
     getnl_pot_pv_fatm(clatoms_info,clatoms_pos,cell,cpcoeffs_info,
                       cpscr,ewd_scr,cpopts,pseudo,atommaps,&cp_enl,
                       np_nlmax_kb,pvten);
@@ -447,13 +447,14 @@ void control_cp_eext_recip(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 /* B) Gauss-Hermite NLs                                                    */
 
   if((nl_max_gh >= 0)&&((ntot_up+ntot_dn)>0)&&(pseudo->np_nonloc_cp_box_gh>0)){
+      pseudo->vnl_gh_flag = 1; 
       if(cp_ptens==1){
        printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
        printf(" CP-PTENS is not implemented for Gauss-Hermite nonlocality \n");
        printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
        fflush(stdout);
        exit(1);
-  }/* endif */
+     }/* endif */
 
  for(igh=1;igh<=pseudo->ngh;igh++){
 

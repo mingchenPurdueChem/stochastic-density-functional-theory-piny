@@ -2317,7 +2317,7 @@ void controlFFTPkgFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,CP *cpMini
 
 void controlVpsParamsFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
 	      CP *cpMini,FILENAME_PARSE *filename_parse,
-	      SPLINE_PARSE *spline_parse,CP_PARSE *cp_parse)
+	      SPLINE_PARSE *spline_parse,CP_PARSE *cp_parse,CP *cp)
 
 /*==========================================================================*/
 /*               Begin subprogram:                                          */
@@ -2332,6 +2332,8 @@ void controlVpsParamsFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
   CPOPTS *cpopts = &(cpMini->cpopts);
   COMMUNICATE *communicate = &(classMini->communicate);
   CPCOEFFS_INFO *cpcoeffs_info = &(cpMini->cpcoeffs_info);
+  STODFTINFO *stodftInfo = cp->stodftInfo;
+  FRAGINFO *fragInfo = stodftInfo->fragInfo;
   
   CVPS *cvps_typ;
   VPS_FILE *vps_file;          /* Fle:  Pseudopotential file          */
@@ -2346,6 +2348,7 @@ void controlVpsParamsFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
   int natm_ab_init = clatoms_info->nab_initio;
   int cp_ptens_calc = cpopts->cp_ptens_calc;
   int cp_dual_grid_opt = cpopts->cp_dual_grid_opt;
+  int cp_lsda = cpopts->cp_lsda;
   
   int i;                       /* Num:  For loop counters             */
   int ifound;                  /* Num:  Data base match flag          */
@@ -2359,6 +2362,7 @@ void controlVpsParamsFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
   int iopt_cp_dvr = cpcoeffs_info->iopt_cp_dvr;
   int myid      = communicate->myid;
   int num_proc  = communicate->np;
+  int iFrag = fragInfo->iFrag;
 
 
   char *filename;              /* Char: temp file name                */
@@ -2798,7 +2802,45 @@ void controlVpsParamsFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
    }
 
 /*==========================================================================*/
-/*  V) Free                                                 */
+/*  V) Asign VNL Flags                                                      */
+  int nl_max_all;
+  int nl_max_kb,nl_max_gh;
+  int ntot_up,ntot_dn;  
+  
+  nl_max_kb = -1;
+  for(i=1;i<=(n_ang_max_kb+1);i++){
+   if(np_nl[i]>0){nl_max_kb=i-1;}
+  }//endfor
+
+  nl_max_gh = -1;
+  for(i=1;i<=(n_ang_max_gh+1);i++){
+   if(np_nl_gh[i]>0){nl_max_gh=i-1;}
+  }//endfor
+
+  nl_max_all = (nl_max_gh > nl_max_kb ? nl_max_gh : nl_max_kb);
+  nlmtot = (nl_max_all+1)*(nl_max_all+1);
+
+  ntot_up = nstate_up*np_nlmax_all*nlmtot*n_rad_max;
+  ntot_dn = 0;
+  if(cp_lsda==1)ntot_dn = nstate_dn*np_nlmax_all*nlmtot*n_rad_max;
+
+  
+  fragInfo->vnlCorFlag[iFrag] = 0;  
+  if(nl_max_kb>=0&&(ntot_up+ntot_dn)>0&&pseudo->np_nonloc_cp_box_kb>0){
+    fragInfo->vnlCorFlag[iFrag] = 1;
+  }
+  if(nl_max_gh>=0&&(ntot_up+ntot_dn)>0&&pseudo->np_nonloc_cp_box_gh>0){
+    printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+    printf("Gauss-Hermite NLs currently are not supported in fragment calculation!\n");
+    printf("Maybe it will join in the family later...\n");
+    printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+    fflush(stdout);
+    exit(0);
+  }
+
+
+/*==========================================================================*/
+/*  VI) Free                                                 */
 
   if(myid==0){
     cfree(&vps_file[1]);

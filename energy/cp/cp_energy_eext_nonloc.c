@@ -2748,6 +2748,8 @@ void vps_atm_list(PSEUDO *pseudo, CELL *cell, CLATOMS_POS *clatoms_pos,
   int *n_ang            = pseudo->n_ang;
   int *loc_opt          = pseudo->loc_opt;
   int n_ang_max         = pseudo->n_ang_max;
+  int n_ang_max_kb      = pseudo->n_ang_max_kb;
+  int n_ang_max_gh      = pseudo->n_ang_max_gh;
   int n_rad_max         = pseudo->n_rad_max;
   int *nrad;
   int *nrad_0           = pseudo->nrad_0;

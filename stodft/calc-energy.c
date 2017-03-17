@@ -49,6 +49,8 @@ void calcEnergyChemPot(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   STAT_AVG *stat_avg            = &(general_data->stat_avg);
   CPEWALD *cpewald              = &(cp->cpewald);
   CELL *cell			= &(general_data->cell);
+  CLATOMS_POS *clatoms_pos	= &(class->clatoms_pos[1]);
+  CLATOMS_INFO *clatoms_info	= &(class->clatoms_info);
 
   int cpLsda         = cpopts->cp_lsda;
   int numStateStoUp  = stodftInfo->numStateStoUp;
@@ -62,7 +64,8 @@ void calcEnergyChemPot(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int occNumber = stodftInfo->occNumber;
   int myidState         = communicate->myid_state;
   int numProcStates = communicate->np_states;
-  int iState,iCoeff,iChem;
+  int numAtomTot = clatoms_info->natm_tot;
+  int iState,iCoeff,iChem,iAtom;
   int ioff,iis;
 
   double tpi = 2.0*M_PI;
@@ -82,13 +85,21 @@ void calcEnergyChemPot(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   double *fcim_dn = cpcoeffs_pos->fcim_dn;
   double *ak2_sm  =  cpewald->ak2_sm;
   double *chemPot = stodftCoefPos->chemPot;
+  double *fx = clatoms_pos->fx;
+  double *fy = clatoms_pos->fy;
+  double *fz = clatoms_pos->fz;
 
   double **stoWfUpRe = stodftCoefPos->stoWfUpRe;
   double **stoWfUpIm = stodftCoefPos->stoWfUpIm;
   double **stoWfDnRe = stodftCoefPos->stoWfDnRe;
   double **stoWfDnIm = stodftCoefPos->stoWfDnIm;
+  double **fxNl	     = stodftCoefPos->fxNl;
+  double **fyNl	     = stodftCoefPos->fxNl;
+  double **fzNl	     = stodftCoefPos->fxNl;
+
 
   MPI_Comm commStates = communicate->comm_states;
+
 
 /*--------------------------------------------------------------------------*/
 /* I) Generate kinetic energy and nonlocal pseudopotential energy for       */
@@ -140,22 +151,46 @@ void calcEnergyChemPot(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     stat_avg->cp_eke = eke;
     printf("eke 111111111 %lg\n",eke);
 
+    //pp 
+    for(iAtom=0;iAtom<numAtomTot;iAtom++){
+      fx[iAtom] = 0.0;
+      fy[iAtom] = 0.0;
+      fz[iAtom] = 0.0;
+    }
+
     calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     calcCoefForceExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     stat_avg->cp_enl *= occNumber;
+    for(iAtom=0;iAtom<numAtomTot;iAtom++){
+      fx[iAtom] *= occNumber;
+      fy[iAtom] *= occNumber;
+      fz[iAtom] *= occNumber;
+    }
 
     if(numProcStates>1){
       Reduce(&(stat_avg->cp_enl),&energyNLTemp,1,MPI_DOUBLE,MPI_SUM,0,commStates);
       Reduce(&(stat_avg->cp_eke),&energyKineticTemp,1,MPI_DOUBLE,MPI_SUM,0,commStates);
+      //force
+      Reduce(fxNl[iChem],fx,numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+      Reduce(fyNl[iChem],fy,numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+      Reduce(fzNl[iChem],fz,numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
     }
     else{
       energyNLTemp = stat_avg->cp_enl;
       energyKineticTemp = stat_avg->cp_eke;
+      memcpy(fxNl[iChem],fx,numAtomTot*sizeof(double);
+      memcpy(fyNl[iChem],fy,numAtomTot*sizeof(double);
+      memcpy(fzNl[iChem],fz,numAtomTot*sizeof(double);
     }
 
     if(myidState==0){
       energyKe[iChem] = energyKineticTemp/numStateStoUp;
       energyPNL[iChem] = energyNLTemp/numStateStoUp;
+      for(iAtom=0;iAtom<numAtomTot;iAtom++){
+	fxNl[iChem][iAtom] /= numStateStoUp;
+        fyNl[iChem][iAtom] /= numStateStoUp;
+        fzNl[iChem][iAtom] /= numStateStoUp;
+      }
       //printf("iChem %i chemPot %lg K %lg NL %lg\n",iChem,chemPot[iChem],energyKineticTemp,energyNLTemp);
     }
   }//endfor iChem

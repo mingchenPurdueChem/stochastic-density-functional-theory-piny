@@ -527,7 +527,7 @@ typedef struct stodftInfo{
 				    /*      gap or band gap.			*/
   double chemPotTrue;		    /* Num: Interpolated chemical potential     */
 				    /*	    for correct number of electrons	*/
-  double *energyKe;		    /* Num: Sum of kinetic and nonlocal pseudo- */
+  double *energyKe;		    /* Lst: Sum of kinetic and nonlocal pseudo- */
   double *energyPNL;		    /*	    potential energy for different      */
 				    /*	    chem pot.				*/
   char densityFileName[MAXWORD];    /* Char: Name of the output density file    */
@@ -728,6 +728,9 @@ typedef struct stodftCoefPos{
   fftw_complex *funValGridFFT;      /* Lst: the function valuefitted by         */
                                     /*      Chebyshev polynormial on grid       */
                                     /* Lth: numChebyGrid                        */
+  double **fxNl,**fyNl,**fzNl;      /* Lst: nuclei force from non-local pp      */
+                                    /* Lth: numChemPot                          */
+
 }STODFTCOEFPOS;
 
 

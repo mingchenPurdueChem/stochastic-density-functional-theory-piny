@@ -482,6 +482,7 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   double *cpScrCoeffImDn   = cpscr->cpscr_wave.cim_dn;
   double *ptensPvtenTmp    = ptens->pvten_tmp;
   double *chemPot          = stodftCoefPos->chemPot;
+  double *
 
   double **stoWfUpRe = stodftCoefPos->stoWfUpRe;
   double **stoWfUpIm = stodftCoefPos->stoWfUpIm;

@@ -537,6 +537,10 @@ void initFragEnergy(CP *cpMini,CLASS *classMini,CLASS *class,CP *cp)
   fragInfo->vnlFxMatrixDn = (double**)cmalloc(numFragProc*sizeof(double*));
   fragInfo->vnlFyMatrixDn = (double**)cmalloc(numFragProc*sizeof(double*));
   fragInfo->vnlFzMatrixDn = (double**)cmalloc(numFragProc*sizeof(double*));
+  fragInfo->Fx = (double**)cmalloc(numFragProc*sizeof(double*));
+  fragInfo->Fy = (double**)cmalloc(numFragProc*sizeof(double*));
+  fragInfo->Fz = (double**)cmalloc(numFragProc*sizeof(double*));
+
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     numStateUpMini = cpMini[iFrag].cpcoeffs_info.nstate_up_proc;
     fragInfo->wfProjUp[iFrag] = (double*)cmalloc(numStateUpMini*sizeof(double));
@@ -545,6 +549,9 @@ void initFragEnergy(CP *cpMini,CLASS *classMini,CLASS *class,CP *cp)
     fragInfo->vnlFxMatrixUp[iFrag] = (double*)cmalloc(numAtomFrag*numStateUpMini*numStateUpMini*sizeof(double));
     fragInfo->vnlFyMatrixUp[iFrag] = (double*)cmalloc(numAtomFrag*numStateUpMini*numStateUpMini*sizeof(double));
     fragInfo->vnlFzMatrixUp[iFrag] = (double*)cmalloc(numAtomFrag*numStateUpMini*numStateUpMini*sizeof(double));
+    fragInfo->Fx[iFrag] = (double*)cmalloc(numAtomFrag*sizeof(double));
+    fragInfo->Fy[iFrag] = (double*)cmalloc(numAtomFrag*sizeof(double));
+    fragInfo->Fz[iFrag] = (double*)cmalloc(numAtomFrag*sizeof(double));
 
   }
   if(cpLsda==1){

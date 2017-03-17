@@ -683,8 +683,8 @@ void sumnlPotPvFatmHessFrag(int npart,int nstate,int np_nlmax,
               cp_enl_now = (vnlreal[ind_loc_i_is]*vnlreal[ind_loc_i_js]
                            +vnlimag[ind_loc_i_is]*vnlimag[ind_loc_i_js])*vnorm_now[ipart];
 	      vnlMatrix[(is-1)*nstate+js-1] += cp_enl_now;
-	      vnlMatrix[(js-1)*nstate+is-1] += cp_enl_now;
               if(is==js)cp_enl += cp_enl_now;
+	      else vnlMatrix[(js-1)*nstate+is-1] += cp_enl_now;
             }//endfor
 	  }
 	  else{
@@ -697,8 +697,8 @@ void sumnlPotPvFatmHessFrag(int npart,int nstate,int np_nlmax,
                             +vnlimag[ind_loc_i_is]*vnlimag[ind_loc_j_js])
                             *vnorm_now[ipart];
 	      vnlMatrix[(is-1)*nstate+js-1] += cp_enl_now;
-	      vnlMatrix[(js-1)*nstate+is-1] += cp_enl_now;
 	      if(is==js)cp_enl += cp_enl_now;
+	      else vnlMatrix[(js-1)*nstate+is-1] += cp_enl_now;
             }//endfor
 	  }
 	  /*
@@ -853,19 +853,21 @@ void sumnlPotPvFatmHessFrag(int npart,int nstate,int np_nlmax,
           i_shift = l*npart;
           for(ipart=np_nl_rad_str;ipart<=np_nl;ipart++){
             ltemp = ip_nl[(ipart+i_shift)];
-	    if(js==is){
-              fx[ltemp] += fxtemp[ipart];
-              fy[ltemp] += fytemp[ipart];
-              fz[ltemp] += fztemp[ipart];
-	    }
 	    ind_force_mat_1 = ltemp*nstate*nstate+(is-1)*nstate+js-1;
 	    ind_force_mat_2 = ltemp*nstate*nstate+(js-1)*nstate+is-1;
 	    vnlFxMatrix[ind_force_mat_1] += fxtemp[ipart];
-	    vnlFxMatrix[ind_force_mat_2] += fxtemp[ipart];
             vnlFyMatrix[ind_force_mat_1] += fytemp[ipart];
-            vnlFyMatrix[ind_force_mat_2] += fytemp[ipart];
             vnlFzMatrix[ind_force_mat_1] += fztemp[ipart];
-            vnlFzMatrix[ind_force_mat_2] += fztemp[ipart];
+            if(js==is){
+              fx[ltemp] += fxtemp[ipart];
+              fy[ltemp] += fytemp[ipart];
+              fz[ltemp] += fztemp[ipart];
+            }
+	    else{
+	      vnlFxMatrix[ind_force_mat_2] += fxtemp[ipart];
+	      vnlFyMatrix[ind_force_mat_2] += fytemp[ipart];
+	      vnlFzMatrix[ind_force_mat_2] += fztemp[ipart];
+	    }
           }/*endfor:atomic forces*/
 
 	  /*     

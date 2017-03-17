@@ -48,6 +48,7 @@ void calcEnergyChemPot(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   COMMUNICATE *communicate      = &(cp->communicate);
   STAT_AVG *stat_avg            = &(general_data->stat_avg);
   CPEWALD *cpewald              = &(cp->cpewald);
+  CELL *cell			= &(general_data->cell);
 
   int cpLsda         = cpopts->cp_lsda;
   int numStateStoUp  = stodftInfo->numStateStoUp;
@@ -93,6 +94,8 @@ void calcEnergyChemPot(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /* I) Generate kinetic energy and nonlocal pseudopotential energy for       */
 /*    each chemical potential.                                              */
 
+  get_ak2_sm(cpewald,cell);
+
   for(iChem=0;iChem<numChemPot;iChem++){
     stat_avg->vrecip = 0.0;
     stat_avg->cp_enl = 0.0;
@@ -110,8 +113,11 @@ void calcEnergyChemPot(CP *cp,CLASS *class,GENERAL_DATA *general_data,
         fcim_dn[iCoeff] = 0.0;
       }//endfor iCoeff
     }//endif cpLsda
+    
+    
 
     eke = 0.0;
+    printf("ak2_sm %lg cre_up %lg cim_up %lg\n",ak2_sm[1],cre_up[1],cim_up[1]);
     for(iState=0;iState<numStateUpProc;iState++){
       ioff = iState*numCoeff;
       for(iCoeff=1;iCoeff<=numCoeff-1;iCoeff++){
@@ -132,6 +138,7 @@ void calcEnergyChemPot(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       eke += ekeDn*occNumber*0.5;
     }//endif cpLsda
     stat_avg->cp_eke = eke;
+    printf("eke 111111111 %lg\n",eke);
 
     calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     calcCoefForceExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
@@ -197,7 +204,7 @@ void calcTotEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   double energyKineticTemp,energyNLTemp;
   double energyHartTemp,energyExtTemp,energyExcTemp;
   double energyKeTrue,energyPNLTrue,energyTotElec;
-  double energyKeNoCor;
+  double energyKeNoCor,energyPNLNoCor;
 
   double *chemPot = stodftCoefPos->chemPot;
   double *energyKe = stodftInfo->energyKe;
@@ -233,6 +240,8 @@ void calcTotEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   if(calcFragFlag==1&&myidState==0){
     energyKeNoCor = energyKeTrue;
     energyKeTrue += fragInfo->keCor;
+    energyPNLNoCor = energyPNLTrue;
+    energyPNLTrue += fragInfo->vnlCor;
   }
 
   
@@ -259,7 +268,7 @@ void calcTotEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     printf("Output Energy\n");
     printf("==============================================\n");
     printf("Kinetic Energy:	 %.16lg %.16lg\n",energyKeNoCor,energyKeTrue);
-    printf("NL Pseudopotential:  %.16lg\n",energyPNLTrue);
+    printf("NL Pseudopotential:  %.16lg %.16lg\n",energyPNLNoCor,energyPNLTrue);
     printf("Hartree Energy:      %.16lg\n",energyHartTemp);
     printf("Ext Energy:          %.16lg\n",energyExtTemp); 
     printf("Ex-Cor Energy:       %.16lg\n",energyExcTemp); 

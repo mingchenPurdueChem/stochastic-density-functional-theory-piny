@@ -487,7 +487,7 @@ void genStoOrbitalCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }
 //debug print wave function
   //Barrier(commStates);
-  
+  /*
   char wfname[100];
   //sprintf(wfname,"/scratch/mingchen/tmp/sto-wf-save-%i",myidState);
   sprintf(wfname,"sto-wf-save-%i",myidState);
@@ -510,7 +510,7 @@ void genStoOrbitalCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     printf("myid %i I can't open files to write stochastic orbitals!\n",myidState);
     fflush(stdout);
   }
-  
+  */
   //Barrier(commStates);
 /*--------------------------------------------------------------------------*/
 }/*end routine*/

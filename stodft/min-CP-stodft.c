@@ -586,9 +586,6 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     fclose(filePrintWF);
     printf("myid %i finish reading in WF.\n",myidState);
     printf("%lg %lg\n",stoWfUpRe[0][1],stoWfUpIm[0][1]);
-    
-    
-    
     /*
     printf("Start Readin WF\n");
 

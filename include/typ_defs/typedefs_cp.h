@@ -452,6 +452,8 @@ typedef struct stodftInfo{
   int reInitFlag;		    /* Opt: Flag to control realloc WF arraies  */
 				    /*	    0 = don't realloc (read sto)	*/
 				    /*	    1 = realloc (read det/gen wf)	*/
+  int atomForceFlag;		    /* Opt: Calculate nuclei force?		*/
+				    /*	    0=No, 1=Yes				*/
   int numStateStoUp;		    /* Num: number of stochastic WF.		*/
   int numStateStoDn;
   int numRandTot;		    /* Num: number of sto WF coeff of all	*/
@@ -729,7 +731,12 @@ typedef struct stodftCoefPos{
                                     /*      Chebyshev polynormial on grid       */
                                     /* Lth: numChebyGrid                        */
   double **fxNl,**fyNl,**fzNl;      /* Lst: nuclei force from non-local pp      */
-                                    /* Lth: numChemPot                          */
+                                    /* Lth: numChemPot*natm_tot                 */
+  double *fxNlTrue,*fyNlTrue,*fzNlTrue;
+				    /* Lst: nuclei force corresponding to true  */
+				    /*	    chemical potential			*/
+				    /* Lth: natm_tot				*/
+
 
 }STODFTCOEFPOS;
 
@@ -1150,10 +1157,16 @@ typedef struct cpscr_loc{
   double *vextr,*vexti;        /* Lst: External potential on large 
                                        sphere cutoff g-space grid;  
                                   Lth: ncoef_l large sparse grid       */
+  double *vextr_loc,*vexti_loc;
+			       /* Lst: External potential from local pp 
+				       on large sphere cutoff g-space 
+				       grid;  
+                                  Lth: ncoef_l large sparse grid       */
   double *vextr_dens_cp_box,*vexti_dens_cp_box;
                                /* Lst: External potential on large 
                                        sphere cutoff g-space grid;  
                                   Lth: ncoef_l_dens_cp_box         */
+  double *vextr_dens_cp_box_loc,*vexti_dens_cp_box_loc;
   double *dvextr,*dvexti;      /* Lst: G-deriv of external potential on large 
                                        sphere cutoff g-space grid;  
                                   Lth: ncoef_l                        */

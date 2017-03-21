@@ -387,6 +387,292 @@ void calcCoefForceWrap(CLASS *class,GENERAL_DATA *general_data,
 }/*end Routine*/
 /*=======================================================================*/
 
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void calcHelpVariables(CLASS *class,GENERAL_DATA *general_data,
+                 CP *cp,CPCOEFFS_POS  *cpcoeffs_pos,CLATOMS_POS *clatoms_pos)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* A lot of variables are only calculated at the first step of SCF loop  */
+/* We calculate all of them so that they are not evaluated during SCF    */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+#include "../typ_defs/typ_mask.h"
+
+  int idens_opt,ipseud_opt;
+  int istart,ngo,irem,idiv;
+  int ipart,jpart,iii,itype,i;
+  int icount,koff,natm_use;
+  int hess_ind;
+
+  double falp2,falp_clus2,vol,rvol,pivol,fpi,arg,q_sum1,bgr;
+  double aka,akb,akc,xk,yk,zk,atemp,btemp,ctemp;
+  double xtemp,ytemp,ztemp;
+  double sumr,sumi,g2,g4,preg,prep,tpi,pi,g;
+  double sumr_h,sumi_h;
+  double srx,sry,srz,six,siy,siz,temp,smag;
+  double vrecip;
+  double dx,dy,dz;
+  double sx,sy,sz;
+  double asx,asy,asz;
+  double phase;
+  double argp,fargp,argm,fargm,area;
+
+/*--------------------------------------------*/
+/*         Local Pointer declarations         */
+
+  /*------------------*/
+  /* Atom information */
+  int natm_tot      = clatoms_info->natm_tot;
+  int hess_calc     = clatoms_info->hess_calc;
+  double *x         = clatoms_pos->x;
+  double *y         = clatoms_pos->y;
+  double *z         = clatoms_pos->z;
+  double *fx        = clatoms_pos->fx;
+  double *fy        = clatoms_pos->fy;
+  double *fz        = clatoms_pos->fz;
+  double *fx_tmp    = ewd_scr->fx2;
+  double *fy_tmp    = ewd_scr->fy2;
+  double *fz_tmp    = ewd_scr->fz2;
+  double *q         = clatoms_info->q;
+  double *hess_xx   = clatoms_pos->hess_xx;
+  double *hess_xy   = clatoms_pos->hess_xy;
+  double *hess_xz   = clatoms_pos->hess_xz;
+  double *hess_yy   = clatoms_pos->hess_yy;
+  double *hess_yz   = clatoms_pos->hess_yz;
+  double *hess_zz   = clatoms_pos->hess_zz;
+  int natm_typ      = atommaps->natm_typ;
+  int *index_atm    = for_scr->index_atm;
+  int *iatm_typ;            /*Assigned below based on flags */
+  int *iatm_typ_full;
+
+  /*--------------------------------*/
+  /* Cell and pressure information */
+  int iperd                 = cell->iperd;
+  int cp_ptens              = cpopts->cp_ptens_calc;
+  double *pvten             = ptens->pvten_tmp;
+  double *cp_box_center     = cell->cp_box_center;
+  double *cp_box_center_rel = cell->cp_box_center_rel;
+  double *hmat;             /* Assigned below based on flags */
+  double *hmati;
+  double *hmat_big          = cell->hmat;
+  double *hmati_big         = cell->hmati;
+
+  /*----------------------*/
+  /* G-vector information */
+  int *kastore;             /* Assigned below based on flags */
+  int *kbstore;
+  int *kcstore;
+  int *ibreak1;
+  int *ibreak2;
+  double *vextr;
+  double *vexti;
+  double *dvextr;
+  double *dvexti;
+  double *rhocr;
+  double *rhoci;
+  double *ak2;
+  int nktot;
+
+  /*----------------------------------------------*/
+  /* Pseudo-potential and Reduced Periodicity info*/
+  int nsplin_g         = pseudo->nsplin_g;
+  int n_rad_max        = pseudo->n_rad_max;
+  double *clus_corr_r  = ewald->clus_corr_r;
+  double *dclus_corr_r = ewald->dclus_corr_r;
+  double alpha_conv_dual = pseudo->alpha_conv_dual;
+  double dg_spl        = pseudo->dg_spl;
+  double gmin_spl      = pseudo->gmin_spl;
+  double *vps0         = pseudo->vps0;
+  double *vps1         = pseudo->vps1;
+  double *vps2         = pseudo->vps2;
+  double *vps3         = pseudo->vps3;
+  double *dvps0        = pseudo->dvps0;
+  double *dvps1        = pseudo->dvps1;
+  double *dvps2        = pseudo->dvps2;
+  double *dvps3        = pseudo->dvps3;
+  double *gzvps        = pseudo->gzvps;
+  double *q_pseud      = pseudo->q_pseud;
+  int n_ang_max        = pseudo->n_ang_max;
+  int *loc_opt         = pseudo->loc_opt;
+  int np_loc_cp_box    = pseudo->np_loc_cp_box;
+  int *ip_loc_cp_box   = pseudo->ip_loc_cp_box;
+
+  /*---------------------------------*/
+  /* Ewald and ewald scr information */
+  double alp_ewald  = ewald->alp_ewd;
+  double alp_clus   = ewald->alp_clus;
+  double *cossc     = ewd_scr->cossc;
+  double *sinsc     = ewd_scr->sinsc;
+  double *helr      = ewd_scr->helr;
+  double *heli      = ewd_scr->heli;
+  double *vtemp     = ewd_scr->temp;
+  double *dvtemp    = ewd_scr->vtemp_now;
+  double *ewd_scr_x = ewd_scr->x;
+  double *ewd_scr_y = ewd_scr->y;
+  double *ewd_scr_z = ewd_scr->z;
+  double *q_tmp     = ewd_scr->q;
+
+  /*---------------------------*/
+  /* Communication information */
+  int myid_state    = communicate->myid_state;
+  int np_states     = communicate->np_states;
+  MPI_Comm comm     = communicate->comm_states;
+
+/*======================================================================*/
+/* 0) Assign local pointers                                             */
+
+  if(cp_dual_grid_opt < 2 || idual_switch == 0){
+    /* large sparse grid when cp_dual_grid_opt == 2*/
+    idens_opt = 0;
+    ipseud_opt= (cp_dual_grid_opt==2 ? 0 : 1);
+    kastore   = ewald->kastr;
+    kbstore   = ewald->kbstr;
+    kcstore   = ewald->kcstr;
+    ibreak1   = ewald->ibrk1;
+    ibreak2   = ewald->ibrk2;
+    vextr     = cpscr->cpscr_loc.vextr;
+    vexti     = cpscr->cpscr_loc.vexti;
+    dvextr    = cpscr->cpscr_loc.dvextr;
+    dvexti    = cpscr->cpscr_loc.dvexti;
+    rhocr     = cpscr->cpscr_rho.rhocr_up;
+    rhoci     = cpscr->cpscr_rho.rhoci_up;
+    ak2       = cpewald->ak2;
+    nktot     = ewald->nktot;
+    hmat      = cell->hmat;
+    hmati     = cell->hmati;
+    natm_use  = natm_tot;
+    iatm_typ  = atommaps->iatm_atm_typ;
+  }
+  else{
+    /* small dense grid */
+    idens_opt = 1;
+    ipseud_opt= 1;
+    kastore   = cpewald->kastr_dens_cp_box;
+    kbstore   = cpewald->kbstr_dens_cp_box;
+    kcstore   = cpewald->kcstr_dens_cp_box;
+    ibreak1   = cpewald->ibrk1_dens_cp_box; /*DY edit*/
+    ibreak2   = cpewald->ibrk2_dens_cp_box; /*DY edit*/
+    vextr     = cpscr->cpscr_loc.vextr_dens_cp_box;
+    vexti     = cpscr->cpscr_loc.vexti_dens_cp_box;
+    rhocr     = cpscr->cpscr_rho.rhocr_up_dens_cp_box;
+    rhoci     = cpscr->cpscr_rho.rhoci_up_dens_cp_box;
+    ak2       = cpewald->ak2_dens_cp_box;
+    nktot     = cpewald->nktot_dens_cp_box;
+    hmat      = cell->hmat_cp;
+    hmati     = cell->hmati_cp;
+    natm_use  = np_loc_cp_box;
+    iatm_typ  = for_scr->iexcl;
+    iatm_typ_full = atommaps->iatm_atm_typ;
+  }/*endif*/
+ 
+/*======================================================================*/
+/* I) Get more useful constants                                         */
+ 
+  pi    = M_PI;
+  tpi   = 2.0*pi;
+  fpi   = 4.0*pi;
+
+  vol   = getdeth(hmat);
+  rvol  = 1.0/vol;
+  pivol = vol/4.0/pi;
+  falp2 = 4.0*alp_ewald*alp_ewald;
+  falp_clus2 = 4.0*alp_clus*alp_clus;
+
+/*======================================================================*/
+/* II) Find cos and sin of sc components of the particles               */
+/*    ( hmnati rvec = svec   r=(x,y,z) s=(a,b,c) )                       */
+
+  if(idens_opt==0){
+    for(ipart=1;ipart<=natm_use;ipart++){
+      xtemp = x[ipart];
+      ytemp = y[ipart];
+      ztemp = z[ipart];
+      q_tmp[ipart]     = q[ipart];
+      ewd_scr_x[ipart] = xtemp*hmati[1]+ytemp*hmati[4]+ztemp*hmati[7];
+      ewd_scr_y[ipart] = xtemp*hmati[2]+ytemp*hmati[5]+ztemp*hmati[8];
+      ewd_scr_z[ipart] = xtemp*hmati[3]+ytemp*hmati[6]+ztemp*hmati[9];
+      ctemp            = ewd_scr_z[ipart]*tpi;
+      cossc[ipart]     = cos(ctemp);
+      sinsc[ipart]     = sin(ctemp);
+    }/*endfor*/
+  }
+  else{
+    for(ipart=1;ipart<=natm_use;ipart++){
+      iatm_typ[ipart]  = iatm_typ_full[ip_loc_cp_box[ipart]];
+      q_tmp[ipart]     = q[ip_loc_cp_box[ipart]];
+      dx               = x[ip_loc_cp_box[ipart]]-cp_box_center[1];
+      dy               = y[ip_loc_cp_box[ipart]]-cp_box_center[2];
+      dz               = z[ip_loc_cp_box[ipart]]-cp_box_center[3];
+
+      asx              = dx*hmati_big[1]+dy*hmati_big[4]+dz*hmati_big[7];
+      asy              = dx*hmati_big[2]+dy*hmati_big[5]+dz*hmati_big[8];
+      asz              = dx*hmati_big[3]+dy*hmati_big[6]+dz*hmati_big[9];
+      sx               = asx-NINT(asx);
+      sy               = asy-NINT(asy);
+      sz               = asz-NINT(asz);
+      dx               = sx*hmat_big[1]+sy*hmat_big[4]+sz*hmat_big[7];
+      dy               = sx*hmat_big[2]+sy*hmat_big[5]+sz*hmat_big[8];
+      dz               = sx*hmat_big[3]+sy*hmat_big[6]+sz*hmat_big[9];
+      xtemp            = dx + cp_box_center_rel[1];
+      ytemp            = dy + cp_box_center_rel[2];
+      ztemp            = dz + cp_box_center_rel[3];
+      ewd_scr_x[ipart] = xtemp*hmati[1]+ytemp*hmati[4]+ztemp*hmati[7];
+      ewd_scr_y[ipart] = xtemp*hmati[2]+ytemp*hmati[5]+ztemp*hmati[8];
+      ewd_scr_z[ipart] = xtemp*hmati[3]+ytemp*hmati[6]+ztemp*hmati[9];
+      ctemp            = ewd_scr_z[ipart]*tpi;
+      cossc[ipart]     = cos(ctemp);
+      sinsc[ipart]     = sin(ctemp);
+    }/*endfor*/
+  }/*endif*/
+
+/*======================================================================*/
+/* III Get the k vectors						*/
+
+  idiv    = (nktot+1)/np_states;
+  irem    = (nktot+1) % np_states;
+  ngo     = (myid_state <  irem ? idiv+1 : idiv);
+  istart  = (myid_state <= irem ? myid_state*(idiv+1)+1 :
+                                irem*(idiv+1)+1+(myid_state-irem)*idiv);
+  koff    = istart-1;
+  if(np_states==myid_state+1){ngo--;}
+  
+  for(icount=1;icount<=ngo;icount++){
+    aka = (double)(kastore[(icount+koff)]);
+    akb = (double)(kbstore[(icount+koff)]);
+    akc = (double)(kcstore[(icount+koff)]);
+    xk = (aka*hmati[1]+akb*hmati[2]+akc*hmati[3])*tpi;
+    yk = (aka*hmati[4]+akb*hmati[5]+akc*hmati[6])*tpi;
+    zk = (aka*hmati[7]+akb*hmati[8]+akc*hmati[9])*tpi;
+    g2 = xk*xk+yk*yk+zk*zk;
+    g4 = g2*g2;
+    g  = sqrt(g2);
+    ak2[icount] = g2;
+  }
+/*======================================================================*/
+/* IV) If break point number one or you are just starting out calculate */
+/*     the helpful vectors                                              */
+
+  if(ibreak1[(icount+koff)]==1||icount==1){
+    for(ipart=1;ipart<=natm_use;ipart++){
+      atemp = ewd_scr_x[ipart];
+      btemp = ewd_scr_y[ipart];
+      ctemp = ewd_scr_z[ipart];
+      arg = (aka*atemp + akb*btemp + akc*ctemp)*tpi;
+      helr[ipart] = cos(arg);
+      heli[ipart] = sin(arg);
+    }//endfor
+  }//endif
+
+/*==========================================================================*/
+}/*end Routine*/
+/*=======================================================================*/
+
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/

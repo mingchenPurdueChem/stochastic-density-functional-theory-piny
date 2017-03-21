@@ -54,6 +54,7 @@ void calcEnergyChemPot(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 
   int cpLsda         = cpopts->cp_lsda;
   int numStateStoUp  = stodftInfo->numStateStoUp;
+  int atomForceFlag  = stodftInfo->atomForceFlag;
   int numStateUpProc = cpcoeffs_info->nstate_up_proc;
   int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
   int numCoeff       = cpcoeffs_info->ncoef;
@@ -96,7 +97,6 @@ void calcEnergyChemPot(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   double **fxNl	     = stodftCoefPos->fxNl;
   double **fyNl	     = stodftCoefPos->fxNl;
   double **fzNl	     = stodftCoefPos->fxNl;
-
 
   MPI_Comm commStates = communicate->comm_states;
 
@@ -171,25 +171,31 @@ void calcEnergyChemPot(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       Reduce(&(stat_avg->cp_enl),&energyNLTemp,1,MPI_DOUBLE,MPI_SUM,0,commStates);
       Reduce(&(stat_avg->cp_eke),&energyKineticTemp,1,MPI_DOUBLE,MPI_SUM,0,commStates);
       //force
-      Reduce(fxNl[iChem],fx,numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
-      Reduce(fyNl[iChem],fy,numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
-      Reduce(fzNl[iChem],fz,numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+      if(atomForceFlag==1){
+        Reduce(fxNl[iChem],fx,numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+        Reduce(fyNl[iChem],fy,numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+        Reduce(fzNl[iChem],fz,numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+      }
     }
     else{
       energyNLTemp = stat_avg->cp_enl;
       energyKineticTemp = stat_avg->cp_eke;
-      memcpy(fxNl[iChem],fx,numAtomTot*sizeof(double);
-      memcpy(fyNl[iChem],fy,numAtomTot*sizeof(double);
-      memcpy(fzNl[iChem],fz,numAtomTot*sizeof(double);
+      if(atomForceFlag==1){
+        memcpy(fxNl[iChem],fx,numAtomTot*sizeof(double);
+        memcpy(fyNl[iChem],fy,numAtomTot*sizeof(double);
+        memcpy(fzNl[iChem],fz,numAtomTot*sizeof(double);
+      }
     }
 
     if(myidState==0){
       energyKe[iChem] = energyKineticTemp/numStateStoUp;
       energyPNL[iChem] = energyNLTemp/numStateStoUp;
-      for(iAtom=0;iAtom<numAtomTot;iAtom++){
-	fxNl[iChem][iAtom] /= numStateStoUp;
-        fyNl[iChem][iAtom] /= numStateStoUp;
-        fzNl[iChem][iAtom] /= numStateStoUp;
+      if(atomForceFlag==1){
+	for(iAtom=0;iAtom<numAtomTot;iAtom++){
+	  fxNl[iChem][iAtom] /= numStateStoUp;
+	  fyNl[iChem][iAtom] /= numStateStoUp;
+	  fzNl[iChem][iAtom] /= numStateStoUp;
+	}
       }
       //printf("iChem %i chemPot %lg K %lg NL %lg\n",iChem,chemPot[iChem],energyKineticTemp,energyNLTemp);
     }
@@ -227,13 +233,16 @@ void calcTotEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   COMMUNICATE *communicate      = &(cp->communicate);
   STAT_AVG *stat_avg            = &(general_data->stat_avg);
   FRAGINFO *fragInfo		= stodftInfo->fragInfo;
+  CLATOMS_INFO *clatoms_info	= &(class->clatoms_info);
 
   int numChemPot = stodftInfo->numChemPot;
   int chemPotOpt = stodftInfo->chemPotOpt;
+  int atomForceFlag  = stodftInfo->atomForceFlag;
   int myidState         = communicate->myid_state;
   int numProcStates = communicate->np_states;
   int calcFragFlag = stodftInfo->calcFragFlag;
-  int iState,iCoeff,iChem;
+  int numAtomTot = clatoms_info->natm_tot;
+  int iState,iCoeff,iChem,iAtom;
 
   double chemPotTrue = stodftInfo->chemPotTrue;
   double energyKineticTemp,energyNLTemp;
@@ -245,6 +254,10 @@ void calcTotEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   double *energyKe = stodftInfo->energyKe;
   double *energyPNL = stodftInfo->energyPNL;
   double *lagFunValue = (double*)cmalloc(numChemPot*sizeof(double));
+  double *fxTemp,*fyTemp,*fzTemp;
+  double **fxNl      = stodftCoefPos->fxNl;
+  double **fyNl      = stodftCoefPos->fxNl;
+  double **fzNl      = stodftCoefPos->fxNl;
 
   MPI_Comm commStates = communicate->comm_states; 
 
@@ -262,10 +275,37 @@ void calcTotEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       */
       energyKeTrue = calcLagrangeInterpFun(numChemPot,chemPotTrue,chemPot,energyKe,lagFunValue);
       energyPNLTrue = calcLagrangeInterpFun(numChemPot,chemPotTrue,chemPot,energyPNL,lagFunValue);
+      if(atomForceFlag==1){
+	// Force from non-local pp
+	// Transpose first
+	fxTemp = (double *)cmalloc(numChemPot*sizeof(double));
+	fyTemp = (double *)cmalloc(numChemPot*sizeof(double));
+	fzTemp = (double *)cmalloc(numChemPot*sizeof(double));
+	for(iAtom=0;iAtom<numAtomTot;iAtom++){
+	  for(iChem=0;iChem<numChemPot;iChem++){
+	    fxTemp[iChem] = fxNl[iChem][iAtom];
+	    fyTemp[iChem] = fyNl[iChem][iAtom];
+	    fzTemp[iChem] = fzNl[iChem][iAtom];
+	  }
+	  fxNlTrue[iAtom] = calcLagrangeInterpFun(numChemPot,chemPotTrue,chemPot,fxTemp,lagFunValue);
+	  fyNlTrue[iAtom] = calcLagrangeInterpFun(numChemPot,chemPotTrue,chemPot,fyTemp,lagFunValue);
+	  fzNlTrue[iAtom] = calcLagrangeInterpFun(numChemPot,chemPotTrue,chemPot,fzTemp,lagFunValue);
+	}
+	free(fxTemp);
+	free(fyTemp);
+	free(fzTemp);
+      }
     }
     if(chemPotOpt==2){
       energyKeTrue = energyKe[0];
       energyPNLTrue = energyPNL[0];
+      if(atomForceFlag==1){
+	for(iAtom=0;iAtom<numAtomTot;iAtom++){
+	  fxNlTrue[iAtom] = fxNl[0][iAtom];
+	  fyNlTrue[iAtom] = fyNl[0][iAtom];
+	  fzNlTrue[iAtom] = fzNl[0][iAtom];
+	}
+      }
     }
   }
 
@@ -279,7 +319,6 @@ void calcTotEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     energyPNLTrue += fragInfo->vnlCor;
   }
 
-  
 /*--------------------------------------------------------------------------*/
 /* IV) Reduce all the other energy terms calculated from density            */
  

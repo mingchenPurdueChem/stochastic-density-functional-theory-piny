@@ -88,6 +88,8 @@ void controlEwdLocPreScf(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
   int *ibreak2;
   double *vextr;
   double *vexti;
+  double *vextr_loc;
+  double *vexti_loc;
   double *dvextr;
   double *dvexti;
   double *rhocr;
@@ -400,6 +402,12 @@ void controlEwdLocPreScf(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
   }//endif
 
 /*======================================================================*/
+/* IX) Copy and store vext */
+    
+  memcpy(&vextr_loc[1],&vextr[1],(ngo+1)*sizeof(double));
+  memcpy(&vexti_loc[1],&vextr[1],(ngo+1)*sizeof(double));
+
+/*======================================================================*/
 /* IX) Collect the forces */
 
 /*======================================================================*/
@@ -416,4 +424,205 @@ void controlEwdLocPreScf(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 /*======================================================================*/
     }/*end routine*/
 /*======================================================================*/
+
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void getNlPotPvFatmSCF(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
+		       CELL *cell,CPCOEFFS_INFO *cpcoeffs_info,CPSCR *cpscr,
+		       EWD_SCR *ewd_scr,CPOPTS *cpopts,
+		       PSEUDO *pseudo,ATOMMAPS *atommaps,
+		       double *cp_enl_ret, int np_nlmax,double *pvten)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* This is the wrapper to calculate the H|phi> without calculating K-S   */
+/* potential. This part comes from control_cp_eext_recip. This part are  */
+/* all contributions from non-local pp. Nuclei forces and related terms  */
+/* are not calculated here						 */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+  int i,l,m,i_shift,ipart,is,iii,ioff,lp1;
+  int iatm;
+  int ind_loc,nl_max,irad,jrad;
+  int nl_chan_max;
+  double rvol_cp,vol_cp,cp_enl;
+  double p11,p22,p33,p12,p13,p23;
+
+/* Local pointers */
+  int npart                = clatoms_info->natm_tot;
+  double *fx               = clatoms_pos->fx;
+  double *fy               = clatoms_pos->fy;
+  double *fz               = clatoms_pos->fz;
+  double *hess_xx          = clatoms_pos->hess_xx;
+  double *hess_xy          = clatoms_pos->hess_xy;
+  double *hess_xz          = clatoms_pos->hess_xz;
+  double *hess_yy          = clatoms_pos->hess_yy;
+  double *hess_yz          = clatoms_pos->hess_yz;
+  double *hess_zz          = clatoms_pos->hess_zz;
+  int natm_typ             = atommaps->natm_typ;
+  int *iatm_typ            = atommaps->iatm_atm_typ;
+  int *iatm_typ_nl         = atommaps->iatm_atm_typ_nl;
+  double *hmat_cp          = cell->hmat_cp;
+
+  int cp_ptens             = cpopts->cp_ptens_calc;
+  int cp_lsda              = cpopts->cp_lsda;
+  int atm_hess_calc        = clatoms_info->hess_calc;
+  int nstate_up            = cpcoeffs_info->nstate_up_proc;
+  int nstate_dn            = cpcoeffs_info->nstate_dn_proc;
+
+  int np_nonloc_cp_box_kb  = pseudo->np_nonloc_cp_box_kb;
+  double *vpsnorm          = pseudo->vpsnorm;
+  int n_ang_max            = pseudo->n_ang_max;
+  int n_ang_max_kb         = pseudo->n_ang_max_kb;
+  int n_rad_max            = pseudo->n_rad_max;
+  int *loc_opt             = pseudo->loc_opt;
+  int *ip_nl               = pseudo->ip_nl;
+  int *ip_nl_rev           = pseudo->ip_nl_rev;
+  int *np_nl               = pseudo->np_nl;
+  int *nrad_max_l          = pseudo->nrad_max_l;
+  int **np_nl_rad_str      = pseudo->np_nl_rad_str;
+
+  double *vnlreal_up       = cpscr->cpscr_nonloc.vnlre_up;
+  double *vnlimag_up       = cpscr->cpscr_nonloc.vnlim_up;
+  double *vnlreal_dn       = cpscr->cpscr_nonloc.vnlre_dn;
+  double *vnlimag_dn       = cpscr->cpscr_nonloc.vnlim_dn;
+  double *dvnlreal_x_up    = cpscr->cpscr_nonloc.dvnlre_x_up;
+  double *dvnlreal_y_up    = cpscr->cpscr_nonloc.dvnlre_y_up;
+  double *dvnlreal_z_up    = cpscr->cpscr_nonloc.dvnlre_z_up;
+  double *dvnlimag_x_up    = cpscr->cpscr_nonloc.dvnlim_x_up;
+  double *dvnlimag_y_up    = cpscr->cpscr_nonloc.dvnlim_y_up;
+  double *dvnlimag_z_up    = cpscr->cpscr_nonloc.dvnlim_z_up;
+  double *dvnlreal_x_dn    = cpscr->cpscr_nonloc.dvnlre_x_dn;
+  double *dvnlreal_y_dn    = cpscr->cpscr_nonloc.dvnlre_y_dn;
+  double *dvnlreal_z_dn    = cpscr->cpscr_nonloc.dvnlre_z_dn;
+  double *dvnlimag_x_dn    = cpscr->cpscr_nonloc.dvnlim_x_dn;
+  double *dvnlimag_y_dn    = cpscr->cpscr_nonloc.dvnlim_y_dn;
+  double *dvnlimag_z_dn    = cpscr->cpscr_nonloc.dvnlim_z_dn;
+  double *dvnlreal_gxgx_up = cpscr->cpscr_nonloc.dvnlre_gxgx_up;
+  double *dvnlimag_gxgx_up = cpscr->cpscr_nonloc.dvnlim_gxgx_up;
+  double *dvnlreal_gygy_up = cpscr->cpscr_nonloc.dvnlre_gygy_up;
+  double *dvnlimag_gygy_up = cpscr->cpscr_nonloc.dvnlim_gygy_up;
+  double *dvnlreal_gzgz_up = cpscr->cpscr_nonloc.dvnlre_gzgz_up;
+  double *dvnlimag_gzgz_up = cpscr->cpscr_nonloc.dvnlim_gzgz_up;
+  double *dvnlreal_gxgy_up = cpscr->cpscr_nonloc.dvnlre_gxgy_up;
+  double *dvnlimag_gxgy_up = cpscr->cpscr_nonloc.dvnlim_gxgy_up;
+  double *dvnlreal_gygz_up = cpscr->cpscr_nonloc.dvnlre_gygz_up;
+  double *dvnlimag_gygz_up = cpscr->cpscr_nonloc.dvnlim_gygz_up;
+  double *dvnlreal_gxgz_up = cpscr->cpscr_nonloc.dvnlre_gxgz_up;
+  double *dvnlimag_gxgz_up = cpscr->cpscr_nonloc.dvnlim_gxgz_up;
+  double *dvnlreal_gxgx_dn = cpscr->cpscr_nonloc.dvnlre_gxgx_dn;
+  double *dvnlimag_gxgx_dn = cpscr->cpscr_nonloc.dvnlim_gxgx_dn;
+  double *dvnlreal_gygy_dn = cpscr->cpscr_nonloc.dvnlre_gygy_dn;
+  double *dvnlimag_gygy_dn = cpscr->cpscr_nonloc.dvnlim_gygy_dn;
+  double *dvnlreal_gzgz_dn = cpscr->cpscr_nonloc.dvnlre_gzgz_dn;
+  double *dvnlimag_gzgz_dn = cpscr->cpscr_nonloc.dvnlim_gzgz_dn;
+  double *dvnlreal_gxgy_dn = cpscr->cpscr_nonloc.dvnlre_gxgy_dn;
+  double *dvnlimag_gxgy_dn = cpscr->cpscr_nonloc.dvnlim_gxgy_dn;
+  double *dvnlreal_gygz_dn = cpscr->cpscr_nonloc.dvnlre_gygz_dn;
+  double *dvnlimag_gygz_dn = cpscr->cpscr_nonloc.dvnlim_gygz_dn;
+  double *dvnlreal_gxgz_dn = cpscr->cpscr_nonloc.dvnlre_gxgz_dn;
+  double *dvnlimag_gxgz_dn = cpscr->cpscr_nonloc.dvnlim_gxgz_dn;
+
+  double *fxtemp           = ewd_scr->fx;
+  double *fytemp           = ewd_scr->fy;
+  double *fztemp           = ewd_scr->fz;
+  double *vscr             = ewd_scr->fx2;
+  double *vnorm            = ewd_scr->fy2;
+  double *vnorm_now        = ewd_scr->fz2;
+
+/*======================================================================*/
+/* I) Useful constants                                                  */
+
+  vol_cp   = getdeth(hmat_cp);
+  rvol_cp  = 1.0/vol_cp;
+  cp_enl   = 0.0;
+  nl_max   = -1;
+  for(i=1;i<=(n_ang_max_kb+1);i++){
+   if(np_nl[i]>0){nl_max=i-1;}
+  }/*endfor*/
+  nl_chan_max = (nl_max+1)*(nl_max+1);
+
+/*======================================================================*/
+/* II) Loop over the open channels, the states and get the nl potent,   */
+/*     pvten and  particle forces                                       */
+
+  for(l=0;l<=nl_max;l++){
+    lp1 = l+1;
+    if(np_nl[lp1]>0){
+     for(irad=1;irad<=nrad_max_l[lp1];irad++){
+     for(jrad=irad;jrad<=nrad_max_l[lp1];jrad++){
+
+/*-----------------------------------------------------------------------*/
+/* i) Get the normalization scaled by the volume                        */
+
+     get_vpsnorm(vscr,vpsnorm,vnorm,iatm_typ_nl,natm_typ,np_nonloc_cp_box_kb,l,
+               n_ang_max,irad,jrad,n_rad_max);
+
+
+      i_shift = l*npart;
+      for(ipart=np_nl_rad_str[lp1][jrad];ipart<=np_nl[lp1];ipart++){
+        vnorm_now[ipart] = vnorm[ip_nl_rev[(ipart+i_shift)]]*rvol_cp;
+      }/*endfor*/
+
+/*-----------------------------------------------------------------------*/
+/* ii) Sum the contributions over the 2l+1 directions and the states    */
+
+       sumnl_pot_pv_fatm_hess(npart,nstate_up,np_nlmax,nl_chan_max,
+                              np_nl[lp1],l,np_nl_rad_str[lp1][jrad],
+                              irad,jrad,
+                              ip_nl,vnorm_now,vnlreal_up,vnlimag_up,
+                              dvnlreal_gxgx_up,dvnlimag_gxgx_up,
+                              dvnlreal_gygy_up,dvnlimag_gygy_up,
+                              dvnlreal_gzgz_up,dvnlimag_gzgz_up,
+                              dvnlreal_gxgy_up,dvnlimag_gxgy_up,
+                              dvnlreal_gxgz_up,dvnlimag_gxgz_up,
+                              dvnlreal_gygz_up,dvnlimag_gygz_up,
+                              dvnlreal_x_up,dvnlimag_x_up,
+                              dvnlreal_y_up,dvnlimag_y_up,
+                              dvnlreal_z_up,dvnlimag_z_up,
+                              fx,fy,fz,fxtemp,fytemp,fztemp,
+                              hess_xx,hess_xy,hess_xz,hess_yy,hess_yz,hess_zz,
+                              atm_hess_calc,cp_ptens,pvten,&cp_enl);
+       if(cp_lsda==1){
+         sumnl_pot_pv_fatm_hess(npart,nstate_dn,np_nlmax,nl_chan_max,
+                                np_nl[lp1],l,np_nl_rad_str[lp1][jrad],
+                                irad,jrad,
+                                ip_nl,vnorm_now,vnlreal_dn,vnlimag_dn,
+                                dvnlreal_gxgx_dn,dvnlimag_gxgx_dn,
+                                dvnlreal_gygy_dn,dvnlimag_gygy_dn,
+                                dvnlreal_gzgz_dn,dvnlimag_gzgz_dn,
+                                dvnlreal_gxgy_dn,dvnlimag_gxgy_dn,
+                                dvnlreal_gxgz_dn,dvnlimag_gxgz_dn,
+                                dvnlreal_gygz_dn,dvnlimag_gygz_dn,
+                                dvnlreal_x_dn,dvnlimag_x_dn,
+                                dvnlreal_y_dn,dvnlimag_y_dn,
+                                dvnlreal_z_dn,dvnlimag_z_dn,
+                                fx,fy,fz,fxtemp,fytemp,fztemp,
+                                hess_xx,hess_xy,hess_xz,hess_yy,hess_yz,hess_zz,
+                                atm_hess_calc,cp_ptens,pvten,&cp_enl);
+       }/*endif*/
+     }}/*endfor: radial channels */
+    }/*endif: l channel open */
+  }/*endfor: l channels     */
+
+/*======================================================================*/
+/* III) Assign the non-local energy  and add it to the pvten            */
+
+  *cp_enl_ret = cp_enl;
+  if(cp_ptens==1){
+    pvten[1] += cp_enl;
+    pvten[5] += cp_enl;
+    pvten[9] += cp_enl;
+  }/*endif*/
+
+/*======================================================================*/
+  }/*end routine*/
+/*======================================================================*/
+
+
+
 

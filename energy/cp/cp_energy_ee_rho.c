@@ -1943,8 +1943,6 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
 /* 4) if there is an odd number of states, go through                       */
 /*      the same procedure using sng_packs                                  */
 
-
-
   if(nstate % 2 != 0){
      is = nstate;
      ioff = (is -1)*ncoef;

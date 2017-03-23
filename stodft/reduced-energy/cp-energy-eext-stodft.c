@@ -425,7 +425,6 @@ void controlEwdLocPreScf(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
     }/*end routine*/
 /*======================================================================*/
 
-
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
@@ -454,15 +453,6 @@ void getNlPotPvFatmSCF(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 
 /* Local pointers */
   int npart                = clatoms_info->natm_tot;
-  double *fx               = clatoms_pos->fx;
-  double *fy               = clatoms_pos->fy;
-  double *fz               = clatoms_pos->fz;
-  double *hess_xx          = clatoms_pos->hess_xx;
-  double *hess_xy          = clatoms_pos->hess_xy;
-  double *hess_xz          = clatoms_pos->hess_xz;
-  double *hess_yy          = clatoms_pos->hess_yy;
-  double *hess_yz          = clatoms_pos->hess_yz;
-  double *hess_zz          = clatoms_pos->hess_zz;
   int natm_typ             = atommaps->natm_typ;
   int *iatm_typ            = atommaps->iatm_atm_typ;
   int *iatm_typ_nl         = atommaps->iatm_atm_typ_nl;
@@ -490,46 +480,6 @@ void getNlPotPvFatmSCF(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
   double *vnlimag_up       = cpscr->cpscr_nonloc.vnlim_up;
   double *vnlreal_dn       = cpscr->cpscr_nonloc.vnlre_dn;
   double *vnlimag_dn       = cpscr->cpscr_nonloc.vnlim_dn;
-  double *dvnlreal_x_up    = cpscr->cpscr_nonloc.dvnlre_x_up;
-  double *dvnlreal_y_up    = cpscr->cpscr_nonloc.dvnlre_y_up;
-  double *dvnlreal_z_up    = cpscr->cpscr_nonloc.dvnlre_z_up;
-  double *dvnlimag_x_up    = cpscr->cpscr_nonloc.dvnlim_x_up;
-  double *dvnlimag_y_up    = cpscr->cpscr_nonloc.dvnlim_y_up;
-  double *dvnlimag_z_up    = cpscr->cpscr_nonloc.dvnlim_z_up;
-  double *dvnlreal_x_dn    = cpscr->cpscr_nonloc.dvnlre_x_dn;
-  double *dvnlreal_y_dn    = cpscr->cpscr_nonloc.dvnlre_y_dn;
-  double *dvnlreal_z_dn    = cpscr->cpscr_nonloc.dvnlre_z_dn;
-  double *dvnlimag_x_dn    = cpscr->cpscr_nonloc.dvnlim_x_dn;
-  double *dvnlimag_y_dn    = cpscr->cpscr_nonloc.dvnlim_y_dn;
-  double *dvnlimag_z_dn    = cpscr->cpscr_nonloc.dvnlim_z_dn;
-  double *dvnlreal_gxgx_up = cpscr->cpscr_nonloc.dvnlre_gxgx_up;
-  double *dvnlimag_gxgx_up = cpscr->cpscr_nonloc.dvnlim_gxgx_up;
-  double *dvnlreal_gygy_up = cpscr->cpscr_nonloc.dvnlre_gygy_up;
-  double *dvnlimag_gygy_up = cpscr->cpscr_nonloc.dvnlim_gygy_up;
-  double *dvnlreal_gzgz_up = cpscr->cpscr_nonloc.dvnlre_gzgz_up;
-  double *dvnlimag_gzgz_up = cpscr->cpscr_nonloc.dvnlim_gzgz_up;
-  double *dvnlreal_gxgy_up = cpscr->cpscr_nonloc.dvnlre_gxgy_up;
-  double *dvnlimag_gxgy_up = cpscr->cpscr_nonloc.dvnlim_gxgy_up;
-  double *dvnlreal_gygz_up = cpscr->cpscr_nonloc.dvnlre_gygz_up;
-  double *dvnlimag_gygz_up = cpscr->cpscr_nonloc.dvnlim_gygz_up;
-  double *dvnlreal_gxgz_up = cpscr->cpscr_nonloc.dvnlre_gxgz_up;
-  double *dvnlimag_gxgz_up = cpscr->cpscr_nonloc.dvnlim_gxgz_up;
-  double *dvnlreal_gxgx_dn = cpscr->cpscr_nonloc.dvnlre_gxgx_dn;
-  double *dvnlimag_gxgx_dn = cpscr->cpscr_nonloc.dvnlim_gxgx_dn;
-  double *dvnlreal_gygy_dn = cpscr->cpscr_nonloc.dvnlre_gygy_dn;
-  double *dvnlimag_gygy_dn = cpscr->cpscr_nonloc.dvnlim_gygy_dn;
-  double *dvnlreal_gzgz_dn = cpscr->cpscr_nonloc.dvnlre_gzgz_dn;
-  double *dvnlimag_gzgz_dn = cpscr->cpscr_nonloc.dvnlim_gzgz_dn;
-  double *dvnlreal_gxgy_dn = cpscr->cpscr_nonloc.dvnlre_gxgy_dn;
-  double *dvnlimag_gxgy_dn = cpscr->cpscr_nonloc.dvnlim_gxgy_dn;
-  double *dvnlreal_gygz_dn = cpscr->cpscr_nonloc.dvnlre_gygz_dn;
-  double *dvnlimag_gygz_dn = cpscr->cpscr_nonloc.dvnlim_gygz_dn;
-  double *dvnlreal_gxgz_dn = cpscr->cpscr_nonloc.dvnlre_gxgz_dn;
-  double *dvnlimag_gxgz_dn = cpscr->cpscr_nonloc.dvnlim_gxgz_dn;
-
-  double *fxtemp           = ewd_scr->fx;
-  double *fytemp           = ewd_scr->fy;
-  double *fztemp           = ewd_scr->fz;
   double *vscr             = ewd_scr->fx2;
   double *vnorm            = ewd_scr->fy2;
   double *vnorm_now        = ewd_scr->fz2;
@@ -553,76 +503,104 @@ void getNlPotPvFatmSCF(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
   for(l=0;l<=nl_max;l++){
     lp1 = l+1;
     if(np_nl[lp1]>0){
-     for(irad=1;irad<=nrad_max_l[lp1];irad++){
-     for(jrad=irad;jrad<=nrad_max_l[lp1];jrad++){
+      for(irad=1;irad<=nrad_max_l[lp1];irad++){
+        for(jrad=irad;jrad<=nrad_max_l[lp1];jrad++){
 
 /*-----------------------------------------------------------------------*/
 /* i) Get the normalization scaled by the volume                        */
 
-     get_vpsnorm(vscr,vpsnorm,vnorm,iatm_typ_nl,natm_typ,np_nonloc_cp_box_kb,l,
-               n_ang_max,irad,jrad,n_rad_max);
+ 	  get_vpsnorm(vscr,vpsnorm,vnorm,iatm_typ_nl,natm_typ,np_nonloc_cp_box_kb,l,
+	 	      n_ang_max,irad,jrad,n_rad_max);
 
-
-      i_shift = l*npart;
-      for(ipart=np_nl_rad_str[lp1][jrad];ipart<=np_nl[lp1];ipart++){
-        vnorm_now[ipart] = vnorm[ip_nl_rev[(ipart+i_shift)]]*rvol_cp;
-      }/*endfor*/
-
+	  i_shift = l*npart;
+	  for(ipart=np_nl_rad_str[lp1][jrad];ipart<=np_nl[lp1];ipart++){
+	    vnorm_now[ipart] = vnorm[ip_nl_rev[(ipart+i_shift)]]*rvol_cp;
+	  }//endfor
 /*-----------------------------------------------------------------------*/
 /* ii) Sum the contributions over the 2l+1 directions and the states    */
 
-       sumnl_pot_pv_fatm_hess(npart,nstate_up,np_nlmax,nl_chan_max,
-                              np_nl[lp1],l,np_nl_rad_str[lp1][jrad],
-                              irad,jrad,
-                              ip_nl,vnorm_now,vnlreal_up,vnlimag_up,
-                              dvnlreal_gxgx_up,dvnlimag_gxgx_up,
-                              dvnlreal_gygy_up,dvnlimag_gygy_up,
-                              dvnlreal_gzgz_up,dvnlimag_gzgz_up,
-                              dvnlreal_gxgy_up,dvnlimag_gxgy_up,
-                              dvnlreal_gxgz_up,dvnlimag_gxgz_up,
-                              dvnlreal_gygz_up,dvnlimag_gygz_up,
-                              dvnlreal_x_up,dvnlimag_x_up,
-                              dvnlreal_y_up,dvnlimag_y_up,
-                              dvnlreal_z_up,dvnlimag_z_up,
-                              fx,fy,fz,fxtemp,fytemp,fztemp,
-                              hess_xx,hess_xy,hess_xz,hess_yy,hess_yz,hess_zz,
-                              atm_hess_calc,cp_ptens,pvten,&cp_enl);
-       if(cp_lsda==1){
-         sumnl_pot_pv_fatm_hess(npart,nstate_dn,np_nlmax,nl_chan_max,
-                                np_nl[lp1],l,np_nl_rad_str[lp1][jrad],
-                                irad,jrad,
-                                ip_nl,vnorm_now,vnlreal_dn,vnlimag_dn,
-                                dvnlreal_gxgx_dn,dvnlimag_gxgx_dn,
-                                dvnlreal_gygy_dn,dvnlimag_gygy_dn,
-                                dvnlreal_gzgz_dn,dvnlimag_gzgz_dn,
-                                dvnlreal_gxgy_dn,dvnlimag_gxgy_dn,
-                                dvnlreal_gxgz_dn,dvnlimag_gxgz_dn,
-                                dvnlreal_gygz_dn,dvnlimag_gygz_dn,
-                                dvnlreal_x_dn,dvnlimag_x_dn,
-                                dvnlreal_y_dn,dvnlimag_y_dn,
-                                dvnlreal_z_dn,dvnlimag_z_dn,
-                                fx,fy,fz,fxtemp,fytemp,fztemp,
-                                hess_xx,hess_xy,hess_xz,hess_yy,hess_yz,hess_zz,
-                                atm_hess_calc,cp_ptens,pvten,&cp_enl);
-       }/*endif*/
-     }}/*endfor: radial channels */
-    }/*endif: l channel open */
-  }/*endfor: l channels     */
+	  sumNlPot(npart,nstate_up,np_nlmax,nl_chan_max,
+	 	   np_nl[lp1],l,np_nl_rad_str[lp1][jrad],
+	 	   irad,jrad,
+		   ip_nl,vnorm_now,vnlreal_up,vnlimag_up,,&cp_enl);
+	  if(cp_lsda==1){
+	    sumNlPot(npart,nstate_dn,np_nlmax,nl_chan_max,
+		     np_nl[lp1],l,np_nl_rad_str[lp1][jrad],
+		     irad,jrad,
+		     ip_nl,vnorm_now,vnlreal_dn,vnlimag_dn,,&cp_enl);
+	  }//endif
+        }//endfor radial channels
+      }//endfor: radial channels
+    }//endif: l channel open
+  }//endfor: l channels
 
 /*======================================================================*/
 /* III) Assign the non-local energy  and add it to the pvten            */
 
   *cp_enl_ret = cp_enl;
-  if(cp_ptens==1){
-    pvten[1] += cp_enl;
-    pvten[5] += cp_enl;
-    pvten[9] += cp_enl;
-  }/*endif*/
 
 /*======================================================================*/
   }/*end routine*/
 /*======================================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void sumNlPot(int npart,int nstate,int np_nlmax,
+              int nl_chan_max,int np_nl,int l,int np_nl_rad_str,
+              int irad, int jrad,
+              int *ip_nl,double *vnorm_now,
+              double *vnlreal,double *vnlimag,double *cp_enl_ret)
+/*========================================================================*/
+   {/*begin routine*/
+/*========================================================================*/
+/*             Local variable declarations                                */
 
+  int i,m,i_shift,ipart,is,iii,ioff,ltemp;
+  int ind_loc,ind_lm;
+  int ioff_i,ioff_j,ind_loc_i,ind_loc_j;
+  int hess_ind;
+  double p11,p22,p33,p12,p13,p23,cp_enl_now;
+  double cp_enl = *cp_enl_ret;
+/*==========================================================================*/
+/* I) Loop over the 2*l+1 directions and sum the nl contributions           */
+    for(m = 1;m<=(2*l+1);m++){
+      ind_lm = m + l*l;
+      for(is=1;is<=nstate;is++){
+/*----------------------------------------------------------------------*/
+/*  i) Get the contrib to the non-local energy                          */
+        cp_enl_now = 0.0;
+        ioff_i = (is-1)*np_nlmax +
+               +(ind_lm-1)*nstate*np_nlmax
+               +(irad-1)*nl_chan_max*nstate*np_nlmax;
+        ioff_j = (is-1)*np_nlmax +
+               +(ind_lm-1)*nstate*np_nlmax
+               +(jrad-1)*nl_chan_max*nstate*np_nlmax;
+        if(irad==jrad){
+          for(ipart=np_nl_rad_str;ipart<=np_nl;ipart++){
+            ind_loc = ipart + ioff_i;
+            cp_enl_now = (vnlreal[ind_loc]*vnlreal[ind_loc]
+                         +vnlimag[ind_loc]*vnlimag[ind_loc])*vnorm_now[ipart];
+            cp_enl += cp_enl_now;
+          }//endfor
+        }
+        else{
+          for(ipart=np_nl_rad_str;ipart<=np_nl;ipart++){
+            ind_loc_i = ipart + ioff_i;
+            ind_loc_j = ipart + ioff_j;
+            cp_enl += 2.0*(vnlreal[ind_loc_i]*vnlreal[ind_loc_j]
+                          +vnlimag[ind_loc_i]*vnlimag[ind_loc_j])
+                          *vnorm_now[ipart];
+
+          }//endfor
+        }//endif
+/*==========================================================================*/
+/* II) Set the return values                                               */
+
+  *cp_enl_ret = cp_enl;
+
+/*======================================================================*/
+  }/*end routine*/
+/*======================================================================*/
 
 

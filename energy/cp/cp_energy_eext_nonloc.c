@@ -1633,18 +1633,14 @@ void sumnl_pot_pv_fatm_hess(int npart,int nstate,int np_nlmax,
   }/*end routine*/
 /*======================================================================*/
 
-
-
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-
 void getnl_fcoef(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
                   CPCOEFFS_INFO *cpcoeffs_info,CPCOEFFS_POS *cpcoeffs_pos,
                   CPSCR *cpscr,EWD_SCR *ewd_scr,CPOPTS *cpopts,
                   PSEUDO *pseudo,CPEWALD *cpewald,ATOMMAPS *atommaps,
                   CELL *cell, int np_nlmax,double *pvten,FOR_SCR *for_scr)
-
 /*========================================================================*/
 {/*begin routine*/
 /*========================================================================*/

@@ -173,7 +173,7 @@ void scfStodftInterp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   stat_avg->cp_eext = 0.0;
   stat_avg->cp_exc = 0.0;
   if(myidState==0)printf("**Calculating Initial Kohn-Sham Potential...\n");
-  calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+  calcKSPotExtRecipWrapPreScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
   calcKSForceControlWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
 
   if(myidState==0)printf("**Finish Calculating Initial Kohn-Sham Potential\n");
@@ -336,7 +336,7 @@ void scfStodftInterp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     stat_avg->cp_eext = 0.0;
     stat_avg->cp_exc = 0.0;
     if(myidState==0)printf("**Calculating Kohn-Sham Potential...\n");
-    calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+    //calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     calcKSForceControlWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
 
     if(myidState==0)printf("**Finish Calculating Kohn-Sham Potential\n");
@@ -649,7 +649,7 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     stat_avg->cp_eext = 0.0;
     stat_avg->cp_exc = 0.0;
     if(myidState==0)printf("**Calculating Kohn-Sham Potential...\n");
-    calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+    //calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     calcKSForceControlWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     //debug
     /*
@@ -843,7 +843,7 @@ void scfStodftFilterDiag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   stat_avg->cp_eext = 0.0;
   stat_avg->cp_exc = 0.0;
   if(myidState==0)printf("**Calculating Initial Kohn-Sham Potential...\n");
-  calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+  calcKSPotExtRecipWrapPreScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
   calcKSForceControlWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
 
   if(myidState==0)printf("**Finish Calculating Initial Kohn-Sham Potential\n");
@@ -934,7 +934,7 @@ void scfStodftFilterDiag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     stat_avg->cp_eext = 0.0;
     stat_avg->cp_exc = 0.0;
     if(myidState==0)printf("**Calculating Kohn-Sham Potential...\n");
-    calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+    //calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     calcKSForceControlWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
 
     if(myidState==0)printf("**Finish Calculating Kohn-Sham Potential\n");

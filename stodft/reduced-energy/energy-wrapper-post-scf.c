@@ -131,18 +131,14 @@ void calcCoefForceWrap(CLASS *class,GENERAL_DATA *general_data,
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void calcLocExtPotScf(CLASS *class,GENERAL_DATA *general_data,
+void calcLocExtPostScf(CLASS *class,GENERAL_DATA *general_data,
 		 CP *cp,CPCOEFFS_POS  *cpcoeffs_pos,CLATOMS_POS *clatoms_pos)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
 /*************************************************************************/
-/* This is the wrapper to calculate Kohn-Sham potential	before the SCF   */
-/* loop, since the external potential from local pp doesn't relie on rho */
-/* This routine comes from control_cp_eext_recip. It will save the vext	 */
-/* and the ks potential routine should read and reset it in every step   */
-/* of SCF as well as filter step. Also, nuclei forces/hessians/pressure  */
-/* tensor calculations are not perfomed here.				 */
+/* This is the wrapper to calculate Kohn-Sham potential	after the SCF    */
+/* loop. Neuclei forces are also evaluated here.			 */
 /*************************************************************************/
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
@@ -199,14 +195,14 @@ void calcLocExtPotScf(CLASS *class,GENERAL_DATA *general_data,
                     cp_para_fft_pkg3d_lg);
   }
   else{
-    controlEwdLocPreScf(clatoms_info,clatoms_pos,cell,ptens,ewald,cpewald,
+    control_ewd_loc(clatoms_info,clatoms_pos,cell,ptens,ewald,cpewald,
 			cpscr,pseudo,ewd_scr,cpopts,atommaps,
 			&vrecip,&(cpcoeffs_info->pseud_hess_loc),communicate,
 			for_scr,cp_dual_grid_opt,idual_switch);
   }//endif
   if(cp_dual_grid_opt== 2){
     idual_switch = 1; /*get vext on small dense grid */
-    controlEwdLocPreScf(clatoms_info,clatoms_pos,cell,ptens,ewald,cpewald,
+    control_ewd_loc(clatoms_info,clatoms_pos,cell,ptens,ewald,cpewald,
 		        cpscr,pseudo,ewd_scr,cpopts,atommaps,
                         &vrecip,&(cpcoeffs_info->pseud_hess_loc),communicate,
 		        for_scr,cp_dual_grid_opt,idual_switch);
@@ -219,7 +215,7 @@ void calcLocExtPotScf(CLASS *class,GENERAL_DATA *general_data,
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void calcNlPseudoScf(CLASS *class,GENERAL_DATA *general_data,
+void calcNlPseudoPostScf(CLASS *class,GENERAL_DATA *general_data,
                  CP *cp,CPCOEFFS_POS *cpcoeffs_pos,CLATOMS_POS *clatoms_pos)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
@@ -571,164 +567,11 @@ void calcNlPseudoScf(CLASS *class,GENERAL_DATA *general_data,
 }/*end Routine*/
 /*=======================================================================*/
 
-/*==========================================================================*/
-/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
-/*==========================================================================*/
-void calcKSForceControlWrap(CLASS *class,GENERAL_DATA *general_data,
-                   CP *cp,CPCOEFFS_POS  *cpcoeffs_pos,CLATOMS_POS *clatoms_pos)
-/*==========================================================================*/
-/*         Begin Routine                                                    */
-   {/*Begin Routine*/
-/*************************************************************************/
-/* This is the wrapper to calculate the H|phi> without calculating K-S   */
-/* potential. This is the ks potential real part.		 	 */
-/*************************************************************************/
-/*=======================================================================*/
-/*         Local Variable declarations                                   */
-
-  CELL *cell                    = &(general_data->cell);
-  CLATOMS_INFO *clatoms_info    = &(class->clatoms_info);
-  EWALD *ewald                  = &(general_data->ewald);
-  EWD_SCR *ewd_scr              = &(class->ewd_scr);
-  ATOMMAPS *atommaps            = &(class->atommaps);
-  FOR_SCR *for_scr              = &(class->for_scr);
-  STAT_AVG *stat_avg            = &(general_data->stat_avg);
-  PTENS *ptens                  = &(general_data->ptens);
-  SIMOPTS *simopts              = &(general_data->simopts);
-
-
-  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
-  STODFTINFO *stodftInfo        = cp->stodftInfo;
-  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
-  CPOPTS *cpopts                = &(cp->cpopts);
-  CPEWALD *cpewald              = &(cp->cpewald);
-  CPSCR *cpscr                  = &(cp->cpscr);
-  PSEUDO *pseudo                = &(cp->pseudo);
-  COMMUNICATE *communicate      = &(cp->communicate);
-
-  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm             = &(cp->cp_sclr_fft_pkg3d_sm);
-  PARA_FFT_PKG3D *cp_para_fft_pkg3d_sm             = &(cp->cp_para_fft_pkg3d_sm);
-  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_dens_cp_box    = &(cp->cp_sclr_fft_pkg3d_dens_cp_box);
-  PARA_FFT_PKG3D *cp_para_fft_pkg3d_dens_cp_box    = &(cp->cp_para_fft_pkg3d_dens_cp_box);
-  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_lg             = &(cp->cp_sclr_fft_pkg3d_lg);
-  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg             = &(cp->cp_para_fft_pkg3d_lg);
-  CP_COMM_STATE_PKG *cp_comm_state_pkg_up          = &(cp->cp_comm_state_pkg_up);
-  CP_COMM_STATE_PKG *cp_comm_state_pkg_dn          = &(cp->cp_comm_state_pkg_dn);
-
-  int i,iii;
-  int cp_lda            = cpopts->cp_lda;
-  int cp_lsda           = cpopts->cp_lsda;
-  int cp_sic            = cpopts->cp_sic;
-  int cp_nonint         = cpopts->cp_nonint;
-  int cp_ptens_calc     = cpopts->cp_ptens_calc;
-  int cp_gga            = cpopts->cp_gga;
-  int cp_para_opt       = cpopts->cp_para_opt;
-  int nstate_up         = cpcoeffs_info->nstate_up_proc;
-  int nstate_dn         = cpcoeffs_info->nstate_dn_proc;
-  int nstate_up_tot     = cpcoeffs_info->nstate_up;
-  int nstate_dn_tot     = cpcoeffs_info->nstate_dn;
-  int laplacian_on      = cpcoeffs_info->cp_laplacian_on;
-  int cp_tau_functional = cpcoeffs_info->cp_tau_functional;
-  int alpha_conv_dual   = pseudo->alpha_conv_dual;
-  int n_interp_pme_dual = pseudo->n_interp_pme_dual;
-  int cp_dual_grid_opt  = cpopts->cp_dual_grid_opt;
-  int cp_min_on = 0; //I don't want to calculate cp_hess
-  int myid_state           =  communicate->myid_state;
-  int np_states            =  communicate->np_states;
-  int nstate_ncoef_proc_max_up = cpcoeffs_info->nstate_ncoef_proc_max_up;
-  int nstate_ncoef_proc_max_dn = cpcoeffs_info->nstate_ncoef_proc_max_dn;
-  int nstate_ncoef_proc_up     = cpcoeffs_info->nstate_ncoef_proc_up;
-  int nstate_ncoef_proc_dn     = cpcoeffs_info->nstate_ncoef_proc_dn;
-  int icoef_orth_up          =  cpcoeffs_pos->icoef_orth_up;
-  int icoef_form_up          =  cpcoeffs_pos->icoef_form_up;
-  int ifcoef_form_up         =  cpcoeffs_pos->ifcoef_form_up;
-  int icoef_orth_dn          =  cpcoeffs_pos->icoef_orth_dn;
-  int icoef_form_dn          =  cpcoeffs_pos->icoef_form_dn;
-  int ifcoef_form_dn         =  cpcoeffs_pos->ifcoef_form_dn;
-  int ncoef_l         =    cp_para_fft_pkg3d_lg->ncoef_proc;
-  int ncoef_l_dens_cp_box = cp_para_fft_pkg3d_dens_cp_box->ncoef_proc;
-
-  char *vxc_typ	             =  pseudo->vxc_typ;
-
-
-  double gc_cut         = pseudo->gga_cut;
-  double cp_eke_dn,cp_eke;
-
-  double *creal_up         =  cpcoeffs_pos->cre_up;
-  double *cimag_up         =  cpcoeffs_pos->cim_up;
-  double *cimag_dn         =  cpcoeffs_pos->cim_dn;
-  double *creal_dn         =  cpcoeffs_pos->cre_dn;
-  double *fcreal_up        =  cpcoeffs_pos->fcre_up;
-  double *fcimag_up        =  cpcoeffs_pos->fcim_up;
-  double *fcimag_dn        =  cpcoeffs_pos->fcim_dn;
-  double *fcreal_dn        =  cpcoeffs_pos->fcre_dn;
-  double *kfcre_up         =  cpcoeffs_pos->kfcre_up;
-  double *kfcim_up         =  cpcoeffs_pos->kfcim_up;
-  double *cp_hess_re_up    =  cpcoeffs_pos->cp_hess_re_up;
-  double *cp_hess_im_up    =  cpcoeffs_pos->cp_hess_im_up;
-  double *cp_hess_re_dn    =  cpcoeffs_pos->cp_hess_re_dn;
-  double *cp_hess_im_dn    =  cpcoeffs_pos->cp_hess_im_dn;
-  double *ak2_sm           =  cpewald->ak2_sm;
-  double *v_ks_up          =  cpscr->cpscr_rho.v_ks_up;
-  double *v_ks_dn          =  cpscr->cpscr_rho.v_ks_dn;
-  double *v_ks_tau_up      =  cpscr->cpscr_rho.v_ks_tau_up;
-  double *v_ks_tau_dn      =  cpscr->cpscr_rho.v_ks_tau_dn;
-  double *zfft             =  cpscr->cpscr_wave.zfft;
-  double *zfft_tmp         =  cpscr->cpscr_wave.zfft_tmp;
-  double *cre_scr          =  cpscr->cpscr_wave.cre_up;
-  double *cim_scr          =  cpscr->cpscr_wave.cim_up;
-  double *hmati_cp         =  cell->hmati_cp;
-  double *pvten_cp         =  ptens->pvten_tmp;
-  double *cp_eke_ret       =   &(stat_avg->cp_eke);
-  double *ks_offset        =   &(cpcoeffs_pos->ks_offset);
-
-
-  MPI_Comm comm_states = communicate->comm_states;
-  MPI_Comm world       = communicate->world;
-
-   double *vextr          =    cpscr->cpscr_loc.vextr;
-   double *vexti          =    cpscr->cpscr_loc.vexti;
-   double *vextr_loc      =    cpscr->cpscr_loc.vextr_loc;
-   double *vexti_loc      =    cpscr->cpscr_loc.vexti_loc;
-   double *vextr_dens_cp_box =    cpscr->cpscr_loc.vextr_dens_cp_box;
-   double *vexti_dens_cp_box =    cpscr->cpscr_loc.vexti_dens_cp_box;
-   double *vextr_dens_cp_box_loc = cpscr->cpscr_loc.vextr_dens_cp_box_loc;
-   double *vexti_dens_cp_box_loc = cpscr->cpscr_loc.vexti_dens_cp_box_loc;
-
-/*==========================================================================*/
-/* I) copy vext back                                                        */
-
-  memcpy(&vextr[1],&(vextr_loc[1]),ncoef_l*sizeof(double));
-  memcpy(&vexti[1],&(vexti_loc[1]),ncoef_l*sizeof(double));
-  if(cp_dual_grid_opt==2){
-    memcpy(&vextr_dens_cp_box[1],&vextr_dens_cp_box_loc[1],
-	    ncoef_l_dens_cp_box*sizeof(double));
-    memcpy(&vexti_dens_cp_box[1],&vexti_dens_cp_box_loc[1],
-	    ncoef_l_dens_cp_box*sizeof(double));
-  }
-
-/*==========================================================================*/
-/* II) get the ks potential                                                 */
-
-   cp_get_vks(cpopts,cpscr,cpewald,ewald,communicate,
-              cp_comm_state_pkg_up,cp_comm_state_pkg_dn,
-              stat_avg,ks_offset,cell,vxc_typ,pvten_cp,
-              gc_cut,alpha_conv_dual,n_interp_pme_dual,cp_gga,
-              cp_ptens_calc,nstate_dn_tot,
-              cp_tau_functional,laplacian_on,cp_sclr_fft_pkg3d_dens_cp_box,
-              cp_para_fft_pkg3d_dens_cp_box,cp_sclr_fft_pkg3d_lg,
-              cp_para_fft_pkg3d_lg,cp_dual_grid_opt);
-
-
-/*==========================================================================*/
-}/*end Routine*/
-/*=======================================================================*/
-
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void calcCoefForceForceControlWrap(CLASS *class,GENERAL_DATA *general_data,
+void calcCoefForcePosScf(CLASS *class,GENERAL_DATA *general_data,
                    CP *cp,CPCOEFFS_POS  *cpcoeffs_pos,CLATOMS_POS *clatoms_pos)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
@@ -836,7 +679,6 @@ void calcCoefForceForceControlWrap(CLASS *class,GENERAL_DATA *general_data,
 
   MPI_Comm comm_states = communicate->comm_states;
   MPI_Comm world       = communicate->world;
-
 
   switch(cp_para_opt){
 

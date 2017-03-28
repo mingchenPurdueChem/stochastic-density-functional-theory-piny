@@ -158,8 +158,9 @@ void calcEnergyChemPot(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       fz[iAtom] = 0.0;
     }
 
-    calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
-    calcCoefForceExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+    //calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+    calcNonLocalPseudoScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos)
+    //calcCoefForceExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     stat_avg->cp_enl *= occNumber;
     for(iAtom=0;iAtom<numAtomTot;iAtom++){
       fx[iAtom] *= occNumber;
@@ -573,4 +574,96 @@ void calcTotEnergyFilterDiag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/
+
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
+			CPCOEFFS_POS *cpcoeffs_pos,CLATOMS_POS *clatoms_pos)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* This is a routine to calculate energy and nuclei forces after SCF     */
+/* loop finishes. The fragment force correction is also included here.   */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+#include "../typ_defs/typ_mask.h"
+  STODFTINFO *stodftInfo        = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  CPOPTS *cpopts                = &(cp->cpopts);
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  COMMUNICATE *communicate      = &(cp->communicate);
+  STAT_AVG *stat_avg            = &(general_data->stat_avg);
+  CPEWALD *cpewald              = &(cp->cpewald);
+  CELL *cell                    = &(general_data->cell);
+  CLATOMS_POS *clatoms_pos      = &(class->clatoms_pos[1]);
+  CLATOMS_INFO *clatoms_info    = &(class->clatoms_info);
+
+  int cpLsda         = cpopts->cp_lsda;
+  int numStateStoUp  = stodftInfo->numStateStoUp;
+  int atomForceFlag  = stodftInfo->atomForceFlag;
+  int numStateUpProc = cpcoeffs_info->nstate_up_proc;
+  int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
+  int numCoeff       = cpcoeffs_info->ncoef;
+  int numCoeffUpTotal = numStateUpProc*numCoeff;
+  int numCoeffDnTotal = numStateDnProc*numCoeff;
+  int cpDualGridOptOn = cpopts->cp_dual_grid_opt;
+  int numChemPot = stodftInfo->numChemPot;
+  int occNumber = stodftInfo->occNumber;
+  int myidState         = communicate->myid_state;
+  int numProcStates = communicate->np_states;
+  int numAtomTot = clatoms_info->natm_tot;
+  int iState,iCoeff,iChem,iAtom;
+  int ioff,iis;
+
+  double tpi = 2.0*M_PI;
+  double eke,ekeDn;
+  double chemPotTrue = stodftInfo->chemPotTrue;
+  double energyKineticTemp,energyNLTemp;
+
+  double *energyKe  = stodftInfo->energyKe;
+  double *energyPNL = stodftInfo->energyPNL;
+  double *cre_up = cpcoeffs_pos->cre_up;
+  double *cim_up = cpcoeffs_pos->cim_up;
+  double *cre_dn = cpcoeffs_pos->cre_dn;
+  double *cim_dn = cpcoeffs_pos->cim_dn;
+  double *fcre_up = cpcoeffs_pos->fcre_up;
+  double *fcim_up = cpcoeffs_pos->fcim_up;
+  double *fcre_dn = cpcoeffs_pos->fcre_dn;
+  double *fcim_dn = cpcoeffs_pos->fcim_dn;
+  double *ak2_sm  =  cpewald->ak2_sm;
+  double *chemPot = stodftCoefPos->chemPot;
+  double *fx = clatoms_pos->fx;
+  double *fy = clatoms_pos->fy;
+  double *fz = clatoms_pos->fz;
+
+  double **stoWfUpRe = stodftCoefPos->stoWfUpRe;
+  double **stoWfUpIm = stodftCoefPos->stoWfUpIm;
+  double **stoWfDnRe = stodftCoefPos->stoWfDnRe;
+  double **stoWfDnIm = stodftCoefPos->stoWfDnIm;
+  double **fxNl      = stodftCoefPos->fxNl;
+  double **fyNl      = stodftCoefPos->fxNl;
+  double **fzNl      = stodftCoefPos->fxNl;
+
+  double **stoWfUpRe = stodftCoefPos->stoWfUpRe;
+  double **stoWfUpIm = stodftCoefPos->stoWfUpIm;
+  double **stoWfDnRe = stodftCoefPos->stoWfDnRe;
+  double **stoWfDnIm = stodftCoefPos->stoWfDnIm;
+  double **fxNl      = stodftCoefPos->fxNl;
+  double **fyNl      = stodftCoefPos->fxNl;
+  double **fzNl      = stodftCoefPos->fxNl;
+
+  MPI_Comm commStates = communicate->comm_states;
+
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
+
+
+
 

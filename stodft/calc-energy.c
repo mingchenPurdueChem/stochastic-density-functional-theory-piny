@@ -152,52 +152,23 @@ void calcEnergyChemPot(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     printf("eke 111111111 %lg\n",eke);
 
     //pp 
-    for(iAtom=0;iAtom<numAtomTot;iAtom++){
-      fx[iAtom] = 0.0;
-      fy[iAtom] = 0.0;
-      fz[iAtom] = 0.0;
-    }
-
     //calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     calcNonLocalPseudoScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos)
     //calcCoefForceExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     stat_avg->cp_enl *= occNumber;
-    for(iAtom=0;iAtom<numAtomTot;iAtom++){
-      fx[iAtom] *= occNumber;
-      fy[iAtom] *= occNumber;
-      fz[iAtom] *= occNumber;
-    }
 
     if(numProcStates>1){
       Reduce(&(stat_avg->cp_enl),&energyNLTemp,1,MPI_DOUBLE,MPI_SUM,0,commStates);
       Reduce(&(stat_avg->cp_eke),&energyKineticTemp,1,MPI_DOUBLE,MPI_SUM,0,commStates);
-      //force
-      if(atomForceFlag==1){
-        Reduce(fxNl[iChem],fx,numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
-        Reduce(fyNl[iChem],fy,numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
-        Reduce(fzNl[iChem],fz,numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
-      }
     }
     else{
       energyNLTemp = stat_avg->cp_enl;
       energyKineticTemp = stat_avg->cp_eke;
-      if(atomForceFlag==1){
-        memcpy(fxNl[iChem],fx,numAtomTot*sizeof(double);
-        memcpy(fyNl[iChem],fy,numAtomTot*sizeof(double);
-        memcpy(fzNl[iChem],fz,numAtomTot*sizeof(double);
-      }
     }
 
     if(myidState==0){
       energyKe[iChem] = energyKineticTemp/numStateStoUp;
       energyPNL[iChem] = energyNLTemp/numStateStoUp;
-      if(atomForceFlag==1){
-	for(iAtom=0;iAtom<numAtomTot;iAtom++){
-	  fxNl[iChem][iAtom] /= numStateStoUp;
-	  fyNl[iChem][iAtom] /= numStateStoUp;
-	  fzNl[iChem][iAtom] /= numStateStoUp;
-	}
-      }
       //printf("iChem %i chemPot %lg K %lg NL %lg\n",iChem,chemPot[iChem],energyKineticTemp,energyNLTemp);
     }
   }//endfor iChem
@@ -276,37 +247,10 @@ void calcTotEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       */
       energyKeTrue = calcLagrangeInterpFun(numChemPot,chemPotTrue,chemPot,energyKe,lagFunValue);
       energyPNLTrue = calcLagrangeInterpFun(numChemPot,chemPotTrue,chemPot,energyPNL,lagFunValue);
-      if(atomForceFlag==1){
-	// Force from non-local pp
-	// Transpose first
-	fxTemp = (double *)cmalloc(numChemPot*sizeof(double));
-	fyTemp = (double *)cmalloc(numChemPot*sizeof(double));
-	fzTemp = (double *)cmalloc(numChemPot*sizeof(double));
-	for(iAtom=0;iAtom<numAtomTot;iAtom++){
-	  for(iChem=0;iChem<numChemPot;iChem++){
-	    fxTemp[iChem] = fxNl[iChem][iAtom];
-	    fyTemp[iChem] = fyNl[iChem][iAtom];
-	    fzTemp[iChem] = fzNl[iChem][iAtom];
-	  }
-	  fxNlTrue[iAtom] = calcLagrangeInterpFun(numChemPot,chemPotTrue,chemPot,fxTemp,lagFunValue);
-	  fyNlTrue[iAtom] = calcLagrangeInterpFun(numChemPot,chemPotTrue,chemPot,fyTemp,lagFunValue);
-	  fzNlTrue[iAtom] = calcLagrangeInterpFun(numChemPot,chemPotTrue,chemPot,fzTemp,lagFunValue);
-	}
-	free(fxTemp);
-	free(fyTemp);
-	free(fzTemp);
-      }
     }
     if(chemPotOpt==2){
       energyKeTrue = energyKe[0];
       energyPNLTrue = energyPNL[0];
-      if(atomForceFlag==1){
-	for(iAtom=0;iAtom<numAtomTot;iAtom++){
-	  fxNlTrue[iAtom] = fxNl[0][iAtom];
-	  fyNlTrue[iAtom] = fyNl[0][iAtom];
-	  fzNlTrue[iAtom] = fzNl[0][iAtom];
-	}
-      }
     }
   }
 
@@ -671,9 +615,16 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
 
   calcLocExtPostScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
 
-  memcpy(&fxBackup[0],&fx[1],numAtomTot*sizeof(double));
-  memcpy(&fyBackup[0],&fy[1],numAtomTot*sizeof(double));
-  memcpy(&fzBackup[0],&fz[1],numAtomTot*sizeof(double));
+  if(numProcState==1){
+    memcpy(&fxBackup[0],&fx[1],numAtomTot*sizeof(double));
+    memcpy(&fyBackup[0],&fy[1],numAtomTot*sizeof(double));
+    memcpy(&fzBackup[0],&fz[1],numAtomTot*sizeof(double));
+  }
+  else{
+    Reduce(&fx[1],&fxBackup[0],,numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+    Reduce(&fy[1],&fyBackup[0],,numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+    Reduce(&fz[1],&fzBackup[0],,numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+  }
 
 /*--------------------------------------------------------------------------*/
 /* II) Calculate nl pp force+energy                                         */
@@ -785,16 +736,43 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
     if(chemPotOpt==2){
       energyKeTrue = energyKe[0];
       energyPNLTrue = energyPNL[0];
-      if(atomForceFlag==1){
-        for(iAtom=0;iAtom<numAtomTot;iAtom++){
-          fxNlTrue[iAtom] = fxNl[0][iAtom];
-          fyNlTrue[iAtom] = fyNl[0][iAtom];
-          fzNlTrue[iAtom] = fzNl[0][iAtom];
-        }
-      }
-    }
-  }
+      for(iAtom=0;iAtom<numAtomTot;iAtom++){
+	fxNlTrue[iAtom] = fxNl[0][iAtom];
+	fyNlTrue[iAtom] = fyNl[0][iAtom];
+	fzNlTrue[iAtom] = fzNl[0][iAtom];
+      }//endfor iAtom
+    }//endif chemPotOpt
+    //Correct the non local force by fragment
+        
+  }//endif myidState
  
+/*--------------------------------------------------------------------------*/
+/* III) Add fragmentation correction                                        */
+
+  if(calcFragFlag==1&&myidState==0){
+    energyKeNoCor = energyKeTrue;
+    energyKeTrue += fragInfo->keCor;
+    energyPNLNoCor = energyPNLTrue;
+    energyPNLTrue += fragInfo->vnlCor;
+  }
+
+/*--------------------------------------------------------------------------*/
+/* IV) Reduce all the other energy terms calculated from density            */
+
+  if(numProcStates>1){
+    Reduce(&(stat_avg->cp_ehart),&energyHartTemp,1,MPI_DOUBLE,MPI_SUM,0,commStates);
+    Reduce(&(stat_avg->cp_eext),&energyExtTemp,1,MPI_DOUBLE,MPI_SUM,0,commStates);
+    Reduce(&(stat_avg->cp_exc),&energyExcTemp,1,MPI_DOUBLE,MPI_SUM,0,commStates);
+  }
+  else{
+    energyHartTemp = stat_avg->cp_ehart;
+    energyExtTemp = stat_avg->cp_eext;
+    energyExcTemp = stat_avg->cp_exc;
+  }
+
+/*--------------------------------------------------------------------------*/
+/* V) Output the energy Term                                                */
+
 
 
 

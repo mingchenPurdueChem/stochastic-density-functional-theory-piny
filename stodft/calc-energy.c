@@ -262,6 +262,8 @@ void calcTotEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     energyKeTrue += fragInfo->keCor;
     energyPNLNoCor = energyPNLTrue;
     energyPNLTrue += fragInfo->vnlCor;
+    general_data->stat_avg.cp_enl = energyPNLTrue;
+    general_data->stat_avg.cp_eke = energyKeTrue;
   }
 
 /*--------------------------------------------------------------------------*/
@@ -567,6 +569,7 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
   double eke,ekeDn;
   double chemPotTrue = stodftInfo->chemPotTrue;
   double energyKineticTemp,energyNLTemp;
+  double eneTot;
 
   double *energyKe  = stodftInfo->energyKe;
   double *energyPNL = stodftInfo->energyPNL;
@@ -662,7 +665,6 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
     //calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     calcNlPseudoPostScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos)
     //calcCoefForceExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
-    stat_avg->cp_enl *= occNumber;
     for(iAtom=0;iAtom<numAtomTot;iAtom++){
       fx[iAtom] *= occNumber;
       fy[iAtom] *= occNumber;
@@ -673,9 +675,6 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
 /* iii) Reduce forces to the master proc                                    */
 
     if(numProcStates>1){
-      Reduce(&(stat_avg->cp_enl),&energyNLTemp,1,MPI_DOUBLE,MPI_SUM,0,commStates);
-      Reduce(&(stat_avg->cp_eke),&energyKineticTemp,1,MPI_DOUBLE,MPI_SUM,0,commStates);
-      //force
       if(atomForceFlag==1){
         Reduce(fxNl[iChem],fx,numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
         Reduce(fyNl[iChem],fy,numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
@@ -683,8 +682,6 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
       }
     }
     else{
-      energyNLTemp = stat_avg->cp_enl;
-      energyKineticTemp = stat_avg->cp_eke;
       if(atomForceFlag==1){
         memcpy(fxNl[iChem],fx,numAtomTot*sizeof(double);
         memcpy(fyNl[iChem],fy,numAtomTot*sizeof(double);
@@ -696,14 +693,10 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
 /* iv) Calculate the average values                                         */
 
     if(myidState==0){
-      energyKe[iChem] = energyKineticTemp/numStateStoUp;
-      energyPNL[iChem] = energyNLTemp/numStateStoUp;
-      if(atomForceFlag==1){
-        for(iAtom=0;iAtom<numAtomTot;iAtom++){
-          fxNl[iChem][iAtom] /= numStateStoUp;
-          fyNl[iChem][iAtom] /= numStateStoUp;
-          fzNl[iChem][iAtom] /= numStateStoUp;
-        }
+      for(iAtom=0;iAtom<numAtomTot;iAtom++){
+	fxNl[iChem][iAtom] /= numStateStoUp;
+	fyNl[iChem][iAtom] /= numStateStoUp;
+	fzNl[iChem][iAtom] /= numStateStoUp;
       }
       //printf("iChem %i chemPot %lg K %lg NL %lg\n",iChem,chemPot[iChem],energyKineticTemp,energyNLTemp);
     }
@@ -722,31 +715,26 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
         printf("%lg %lg\n",chemPot[iChem],energyKNL[iChem]);
       }
       */
-      energyPNLTrue = calcLagrangeInterpFun(numChemPot,chemPotTrue,chemPot,energyPNL,lagFunValue);
-      if(atomForceFlag==1){
-        // Force from non-local pp
-        // Transpose first
-        fxTemp = (double *)cmalloc(numChemPot*sizeof(double));
-        fyTemp = (double *)cmalloc(numChemPot*sizeof(double));
-        fzTemp = (double *)cmalloc(numChemPot*sizeof(double));
-        for(iAtom=0;iAtom<numAtomTot;iAtom++){
-          for(iChem=0;iChem<numChemPot;iChem++){
-            fxTemp[iChem] = fxNl[iChem][iAtom];
-            fyTemp[iChem] = fyNl[iChem][iAtom];
-            fzTemp[iChem] = fzNl[iChem][iAtom];
-          }
-          fxNlTrue[iAtom] = calcLagrangeInterpFun(numChemPot,chemPotTrue,chemPot,fxTemp,lagFunValue);
-          fyNlTrue[iAtom] = calcLagrangeInterpFun(numChemPot,chemPotTrue,chemPot,fyTemp,lagFunValue);
-          fzNlTrue[iAtom] = calcLagrangeInterpFun(numChemPot,chemPotTrue,chemPot,fzTemp,lagFunValue);
-        }
-        free(fxTemp);
-        free(fyTemp);
-        free(fzTemp);
+      // Force from non-local pp
+      // Transpose first
+      fxTemp = (double *)cmalloc(numChemPot*sizeof(double));
+      fyTemp = (double *)cmalloc(numChemPot*sizeof(double));
+      fzTemp = (double *)cmalloc(numChemPot*sizeof(double));
+      for(iAtom=0;iAtom<numAtomTot;iAtom++){
+	for(iChem=0;iChem<numChemPot;iChem++){
+	  fxTemp[iChem] = fxNl[iChem][iAtom];
+	  fyTemp[iChem] = fyNl[iChem][iAtom];
+	  fzTemp[iChem] = fzNl[iChem][iAtom];
+	}
+	fxNlTrue[iAtom] = calcLagrangeInterpFun(numChemPot,chemPotTrue,chemPot,fxTemp,lagFunValue);
+	fyNlTrue[iAtom] = calcLagrangeInterpFun(numChemPot,chemPotTrue,chemPot,fyTemp,lagFunValue);
+	fzNlTrue[iAtom] = calcLagrangeInterpFun(numChemPot,chemPotTrue,chemPot,fzTemp,lagFunValue);
       }
+      free(fxTemp);
+      free(fyTemp);
+      free(fzTemp);
     }
     if(chemPotOpt==2){
-      energyKeTrue = energyKe[0];
-      energyPNLTrue = energyPNL[0];
       for(iAtom=0;iAtom<numAtomTot;iAtom++){
 	fxNlTrue[iAtom] = fxNl[0][iAtom];
 	fyNlTrue[iAtom] = fyNl[0][iAtom];
@@ -760,10 +748,11 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
 /* IV) Add fragmentation correction                                     */
 
   if(calcFragFlag==1&&myidState==0){
-    energyKeNoCor = energyKeTrue;
-    energyKeTrue += fragInfo->keCor;
-    energyPNLNoCor = energyPNLTrue;
-    energyPNLTrue += fragInfo->vnlCor;
+    for(iAtom=0;iAtom<numAtomTot;iAtom++){
+      fxNlTrue[iAtom] += vnlFxCor[iAtom];
+      fyNlTrue[iAtom] += vnlFyCor[iAtom];
+      fzNlTrue[iAtom] += vnlFzCor[iAtom];
+    }
   }
 
 /*======================================================================*/
@@ -784,18 +773,28 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
 
 /*======================================================================*/
 /* VI) Calculate real space nuclei-nuclei interaction	                */
-
+  class->energy_ctrl.iget_full_inter = 1;
+  class->energy_ctrl.iget_res_inter = 0;
+  energy_control_inter_real(class,bonded,general_data);
   
-
-
 /*--------------------------------------------------------------------------*/
 /* V) Output the energy Term                                                */
 
-
-
-
-
-
+  if(myidState==0){
+    energyTotElec = energyKe[0]+energyPNL[0]+energyHartTemp
+            +energyExtTemp+energyExcTemp;
+    printf("==============================================\n");
+    printf("Total Energy\n");
+    printf("==============================================\n");
+    printf("Electron Kinetic Energy:      %.20lg\n",energyKe[0]);
+    printf("Electron NLPP:                %.20lg\n",energyPNL[0]);
+    printf("Electron Hartree Energy:      %.20lg\n",energyHartTemp);
+    printf("Electron Ext Energy:          %.20lg\n",energyExtTemp);
+    printf("Electron Ex-Cor Energy:       %.20lg\n",energyExcTemp);
+    printf("Electron Total Elec Energy:   %.20lg\n",energyTotElec);
+    printf("Atom Real Space Energy:	  %.20lg\n",general_data->stat_avg.vintert);
+    printf("==============================================\n");
+  }
 
 /*==========================================================================*/
 }/*end Routine*/

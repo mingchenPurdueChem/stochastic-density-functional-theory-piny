@@ -273,6 +273,10 @@ void calcTotEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     Reduce(&(stat_avg->cp_ehart),&energyHartTemp,1,MPI_DOUBLE,MPI_SUM,0,commStates);   
     Reduce(&(stat_avg->cp_eext),&energyExtTemp,1,MPI_DOUBLE,MPI_SUM,0,commStates);
     Reduce(&(stat_avg->cp_exc),&energyExcTemp,1,MPI_DOUBLE,MPI_SUM,0,commStates);
+    // Let's copy it back to stat_avg since I need to use these energies after SCF
+    stat_avg->cp_ehart = energyHartTemp;
+    stat_avg->cp_eext  = energyExtTemp;
+    stat_avg->cp_exc   = energyExcTemp;
   }
   else{
     energyHartTemp = stat_avg->cp_ehart;
@@ -568,8 +572,13 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
   double tpi = 2.0*M_PI;
   double eke,ekeDn;
   double chemPotTrue = stodftInfo->chemPotTrue;
-  double energyKineticTemp,energyNLTemp;
-  double eneTot;
+  double energyKe   = stat_avg->cp_eke;
+  double energyPnl  = stat_avg->cp_enl;
+  double energyHart = stat_avg->cp_ehart;
+  double energyEext = stat_avg->cp_eext;
+  double energyExc  = stat_avg->cp_exc;
+  double energyTotElec,energyTot;
+  double vInter;
 
   double *energyKe  = stodftInfo->energyKe;
   double *energyPNL = stodftInfo->energyPNL;
@@ -591,9 +600,9 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
   double **stoWfUpIm = stodftCoefPos->stoWfUpIm;
   double **stoWfDnRe = stodftCoefPos->stoWfDnRe;
   double **stoWfDnIm = stodftCoefPos->stoWfDnIm;
-  double **fxNl      = stodftCoefPos->fxNl;
-  double **fyNl      = stodftCoefPos->fxNl;
-  double **fzNl      = stodftCoefPos->fxNl;
+  double **fxNl;
+  double **fyNl;
+  double **fzNl;
 
   double *fxTemp;
   double *fyTemp;
@@ -601,6 +610,9 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
   double *fxBackup;
   double *fyBackup;
   double *fzBackup;
+  double *fxNlTrue;
+  double *fyNlTrue;
+  double *fzNlTrue;
 
   MPI_Comm commStates = communicate->comm_states;
 
@@ -624,13 +636,27 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
     memcpy(&fzBackup[0],&fz[1],numAtomTot*sizeof(double));
   }
   else{
-    Reduce(&fx[1],&fxBackup[0],,numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
-    Reduce(&fy[1],&fyBackup[0],,numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
-    Reduce(&fz[1],&fzBackup[0],,numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+    Reduce(&fx[1],&fxBackup[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+    Reduce(&fy[1],&fyBackup[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+    Reduce(&fz[1],&fzBackup[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
   }
 
 /*======================================================================*/
 /* II) Calculate nl pp force+energy                                     */
+/*--------------------------------------------------------------------------*/
+/* 0) Allocate temp arrays				                    */
+
+  fxNl = (double**)cmalloc(numChemPot*sizeof(double*));
+  fyNl = (double**)cmalloc(numChemPot*sizeof(double*));
+  fzNl = (double**)cmalloc(numChemPot*sizeof(double*));
+  for(iChem=0;iChem<numChemPot;iChem++){
+    fxNl[iChem] = (double*)cmalloc(numAtomTot*sizeof(double));
+    fyNl[iChem] = (double*)cmalloc(numAtomTot*sizeof(double));
+    fzNl[iChem] = (double*)cmalloc(numAtomTot*sizeof(double));
+  }
+  fxNlTrue = (double*)cmalloc(numAtomTot*sizeof(double));
+  fyNlTrue = (double*)cmalloc(numAtomTot*sizeof(double));
+  fzNlTrue = (double*)cmalloc(numAtomTot*sizeof(double));
 
 /*--------------------------------------------------------------------------*/
 /* i) Copy the stochastic wave function and reset the force		    */
@@ -653,11 +679,12 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
     }//endif cpLsda
 
     //pp 
-    for(iAtom=0;iAtom<numAtomTot;iAtom++){
+    for(iAtom=1;iAtom<=numAtomTot;iAtom++){
       fx[iAtom] = 0.0;
       fy[iAtom] = 0.0;
       fz[iAtom] = 0.0;
     }
+    
 
 /*--------------------------------------------------------------------------*/
 /* ii) Calculate nl pp and force			                    */
@@ -665,7 +692,7 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
     //calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     calcNlPseudoPostScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos)
     //calcCoefForceExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
-    for(iAtom=0;iAtom<numAtomTot;iAtom++){
+    for(iAtom=1;iAtom<=numAtomTot;iAtom++){
       fx[iAtom] *= occNumber;
       fy[iAtom] *= occNumber;
       fz[iAtom] *= occNumber;
@@ -676,9 +703,9 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
 
     if(numProcStates>1){
       if(atomForceFlag==1){
-        Reduce(fxNl[iChem],fx,numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
-        Reduce(fyNl[iChem],fy,numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
-        Reduce(fzNl[iChem],fz,numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+        Reduce(fxNl[iChem],&fx[1],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+        Reduce(fyNl[iChem],&fy[1],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+        Reduce(fzNl[iChem],&fz[1],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
       }
     }
     else{
@@ -769,32 +796,51 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
     energyExcTemp = stat_avg->cp_exc;
   }
 
-  energy_control_inter_real(class,bonded,general_data);
-
 /*======================================================================*/
 /* VI) Calculate real space nuclei-nuclei interaction	                */
   class->energy_ctrl.iget_full_inter = 1;
   class->energy_ctrl.iget_res_inter = 0;
   energy_control_inter_real(class,bonded,general_data);
   
-/*--------------------------------------------------------------------------*/
-/* V) Output the energy Term                                                */
+/*======================================================================*/ 
+/* VII) Output the energy Term                                          */
+
 
   if(myidState==0){
-    energyTotElec = energyKe[0]+energyPNL[0]+energyHartTemp
-            +energyExtTemp+energyExcTemp;
+    energyTotElec = energyKe+energyPnl+energyHart+energyEext+energyExc;
+    vInter = stat_avg->vintert;
+    energyTot = energyTotElec+vInter;
     printf("==============================================\n");
     printf("Total Energy\n");
     printf("==============================================\n");
-    printf("Electron Kinetic Energy:      %.20lg\n",energyKe[0]);
+    printf("Electron Kinetic Energy:      %.20lg\n",stat_avg->cp_eke);
     printf("Electron NLPP:                %.20lg\n",energyPNL[0]);
     printf("Electron Hartree Energy:      %.20lg\n",energyHartTemp);
     printf("Electron Ext Energy:          %.20lg\n",energyExtTemp);
     printf("Electron Ex-Cor Energy:       %.20lg\n",energyExcTemp);
     printf("Electron Total Elec Energy:   %.20lg\n",energyTotElec);
-    printf("Atom Real Space Energy:	  %.20lg\n",general_data->stat_avg.vintert);
+    printf("Atom Energy:		  %.20lg\n",vInter);
+    printf("Total Energy:		  %.20lg\n",energyTot);
     printf("==============================================\n");
   }
+
+/*======================================================================*/
+/* VII) Free all temp vectors                                           */
+
+  free(&fxBackup[0]);  
+  free(&fyBackup[0]);
+  free(&fzBackup[0]);
+  free(&fxNlTrue[0]);
+  free(&fyNlTrue[0]);
+  free(&fzNlTrue[0]);
+  for(iChem=0;iChem<numChemPot;iChem++){
+    free(&fxNl[iChem][0]);
+    free(&fyNl[iChem][0]);
+    free(&fzNl[iChem][0]);
+  }
+  free(&fxNl[0]);
+  free(&fyNl[0]);
+  free(&fzNl[0]);
 
 /*==========================================================================*/
 }/*end Routine*/

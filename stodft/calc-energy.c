@@ -601,8 +601,8 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
 
   MPI_Comm commStates = communicate->comm_states;
 
-/*--------------------------------------------------------------------------*/
-/* I) Calculate Local pp	                                            */
+/*======================================================================*/
+/* I) Calculate Local pp	                                        */
 
   fxBackup = (double *)cmalloc(numAtomTot*sizeof(double));
   fyBackup = (double *)cmalloc(numAtomTot*sizeof(double));
@@ -626,9 +626,11 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
     Reduce(&fz[1],&fzBackup[0],,numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
   }
 
-/*--------------------------------------------------------------------------*/
-/* II) Calculate nl pp force+energy                                         */
+/*======================================================================*/
+/* II) Calculate nl pp force+energy                                     */
 
+/*--------------------------------------------------------------------------*/
+/* i) Copy the stochastic wave function and reset the force		    */
   for(iChem=0;iChem<numChemPot;iChem++){
     stat_avg->vrecip = 0.0;
     stat_avg->cp_enl = 0.0;
@@ -654,6 +656,9 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
       fz[iAtom] = 0.0;
     }
 
+/*--------------------------------------------------------------------------*/
+/* ii) Calculate nl pp and force			                    */
+
     //calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     calcNlPseudoPostScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos)
     //calcCoefForceExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
@@ -663,6 +668,9 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
       fy[iAtom] *= occNumber;
       fz[iAtom] *= occNumber;
     }
+
+/*--------------------------------------------------------------------------*/
+/* iii) Reduce forces to the master proc                                    */
 
     if(numProcStates>1){
       Reduce(&(stat_avg->cp_enl),&energyNLTemp,1,MPI_DOUBLE,MPI_SUM,0,commStates);
@@ -684,6 +692,9 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
       }
     }
 
+/*--------------------------------------------------------------------------*/
+/* iv) Calculate the average values                                         */
+
     if(myidState==0){
       energyKe[iChem] = energyKineticTemp/numStateStoUp;
       energyPNL[iChem] = energyNLTemp/numStateStoUp;
@@ -698,8 +709,8 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
     }
   }//endfor iChem
 
-/*--------------------------------------------------------------------------*/
-/* III) Interpolat nl pp and force                                          */
+/*======================================================================*/
+/* III) Interpolat nl pp and force                                      */
 
 
   if(myidState==0){
@@ -742,12 +753,11 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
 	fzNlTrue[iAtom] = fzNl[0][iAtom];
       }//endfor iAtom
     }//endif chemPotOpt
-    //Correct the non local force by fragment
-        
+    //Correct the non local force by fragment       
   }//endif myidState
  
-/*--------------------------------------------------------------------------*/
-/* III) Add fragmentation correction                                        */
+/*======================================================================*/
+/* IV) Add fragmentation correction                                     */
 
   if(calcFragFlag==1&&myidState==0){
     energyKeNoCor = energyKeTrue;
@@ -756,8 +766,8 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
     energyPNLTrue += fragInfo->vnlCor;
   }
 
-/*--------------------------------------------------------------------------*/
-/* IV) Reduce all the other energy terms calculated from density            */
+/*======================================================================*/
+/* V) Reduce all the other energy terms calculated from density         */
 
   if(numProcStates>1){
     Reduce(&(stat_avg->cp_ehart),&energyHartTemp,1,MPI_DOUBLE,MPI_SUM,0,commStates);
@@ -769,6 +779,14 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
     energyExtTemp = stat_avg->cp_eext;
     energyExcTemp = stat_avg->cp_exc;
   }
+
+  energy_control_inter_real(class,bonded,general_data);
+
+/*======================================================================*/
+/* VI) Calculate real space nuclei-nuclei interaction	                */
+
+  
+
 
 /*--------------------------------------------------------------------------*/
 /* V) Output the energy Term                                                */

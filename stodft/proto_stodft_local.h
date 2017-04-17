@@ -48,12 +48,6 @@ void genNoiseOrbital(CP *,CPCOEFFS_POS *);
 void normHNewtonHerm(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,
 		     CLATOMS_POS *,double);
 void normHCheby(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,CLATOMS_POS *,int);
-void calcCoefForceWrap(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);
-void calcKSPotExtRecipWrap(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS  *,CLATOMS_POS *);
-void calcCoefForceExtRecipWrap(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS  *,CLATOMS_POS *);
-void calcKSForceControlWrap(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS  *,CLATOMS_POS *);
-void calcCoefForceForceControlWrap(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS  *,CLATOMS_POS *);
-void calcCoefForceWrapReduce(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);
 /*-----------------------------------------------------------------*/
 /* density-init.c                                                  */
 void calcRhoInit(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
@@ -117,4 +111,47 @@ void diagSymMatWrapper(int ,double *,double *);
 void genMatrixMulWrapper(int ,int ,double *,double *,double *);
 void calcForceWrapper(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,CLATOMS_POS *,
 		      double *,double *);
+// Reduced Energy Calculation
+/*-----------------------------------------------------------------*/
+/* cp-energy-ee-rho-stodft.c                                       */
+void coefForceCalcHybridSCF(CPEWALD *,int,double *,double *,double *,double  *,
+                            double *,double *,double *,double *,double *,double *,
+                            double *,double *,double *,double *,double *,
+                            int ,double *,COMMUNICATE *,int ,int ,int ,int ,int ,
+                            PARA_FFT_PKG3D *);
+/*-----------------------------------------------------------------*/
+/* cp-energy-eext-stodft.c					   */
+void controlEwdLocPreScf(CLATOMS_INFO *,CLATOMS_POS *,CELL *, PTENS *, EWALD *,
+			 CPEWALD *,CPSCR *,PSEUDO *,EWD_SCR *,CPOPTS *,
+			 ATOMMAPS *, double *,double *,COMMUNICATE *,
+                         FOR_SCR *,int ,int);
+void getNlPotPvFatmSCF(CLATOMS_INFO *,CLATOMS_POS *,CELL *,CPCOEFFS_INFO *,CPSCR *,
+                       EWD_SCR *,CPOPTS *,PSEUDO *,ATOMMAPS *,double *,int,double *);
+void sumNlPot(int,int,int,int,int,int,int,int,int,
+              int *,double *,double *,double *,double *);
+/*-----------------------------------------------------------------*/
+/* energy-wrapper-scf.c                                            */
+void calcCoefForceWrap(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);
+void calcLocalPseudoScf(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS  *,CLATOMS_POS *);
+void calcNonLocalPseudoScf(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);
+void calcKSPot(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);
+void calcCoefForceScf(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);
+void calcCoefForceWrapSCF(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);
+/*-----------------------------------------------------------------*/
+/* energy-wrapper-post-scf.c                                       */
+void calcCoefForceWrap(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);
+void calcLocExtPostScf(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS  *,CLATOMS_POS *);
+void calcNlPseudoPostScf(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);
+void calcCoefForcePosScf(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);
+void calcCoefForceWrapReduce(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);
+
+// Nuclei force calculation
+/*-----------------------------------------------------------------*/
+/* calc-nuclei-force.c	                                           */
+void calcEnergyForce(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);
+
+
+
+
+
 

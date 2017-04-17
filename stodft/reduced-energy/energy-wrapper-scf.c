@@ -5,7 +5,7 @@
 /*                         Stochastic DFT:                                  */
 /*             The future of density functional theory                      */
 /*             ------------------------------------                         */
-/*                   Module: normh.c                                        */
+/*                   Module: energy-wrapper-scf.c                           */
 /*                                                                          */
 /* This routine wrapps all functions used within SCF. Nuclei forces are not */
 /* calculated.								    */

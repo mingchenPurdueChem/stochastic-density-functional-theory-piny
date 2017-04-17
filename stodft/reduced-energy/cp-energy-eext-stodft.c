@@ -1,14 +1,43 @@
 /*==========================================================================*/
+/*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*/
+/*==========================================================================*/
+/*                                                                          */
+/*                         Stochastic DFT:                                  */
+/*             The future of density functional theory                      */
+/*             ------------------------------------                         */
+/*                   Module: cp-energy-eext-stodft.c                        */
+/*                                                                          */
+/* This routine wrapps all functions used within SCF. Nuclei forces are not */
+/* calculated.                                                              */
+/*                                                                          */
+/*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 
+#include "standard_include.h"
+#include "../typ_defs/typedefs_gen.h"
+#include "../typ_defs/typedefs_class.h"
+#include "../typ_defs/typedefs_bnd.h"
+#include "../typ_defs/typedefs_cp.h"
+#include "../proto_defs/proto_energy_cp_local.h"
+#include "../proto_defs/proto_energy_cpcon_local.h"
+#include "../proto_defs/proto_friend_lib_entry.h"
+#include "../proto_defs/proto_math.h"
+#include "../proto_defs/proto_communicate_wrappers.h"
+#include "../proto_defs/proto_stodft_local.h"
+
+#include "complex.h"
+#define TIME_CP_OFF
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
 void controlEwdLocPreScf(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
                          CELL *cell, PTENS *ptens, EWALD *ewald, CPEWALD *cpewald, 
                          CPSCR *cpscr, PSEUDO *pseudo, EWD_SCR *ewd_scr,  
                          CPOPTS *cpopts, ATOMMAPS *atommaps, double *vrecip_ret,
                          double *pseud_hess_loc,COMMUNICATE *communicate,
                          FOR_SCR *for_scr,int cp_dual_grid_opt,int idual_switch)
-
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/

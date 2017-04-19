@@ -191,7 +191,7 @@ cp-energy-ee-rho-stodft.o :  $(STANDARD) $(DEFINES) \
 	$(ECHO) $@
 	$(COBJ) $(DCODE)/stodft/reduced-energy/cp-energy-ee-rho-stodft.c
 
-cp-energy-eext-stodft.o :  $(STANDARD) $(DEFINES) 
+cp-energy-eext-stodft.o :  $(STANDARD) $(DEFINES) \
                          $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
                          $(TYP_STAT) \
                          $(TYP_CP) $(TYP_PAR) \
@@ -201,7 +201,7 @@ cp-energy-eext-stodft.o :  $(STANDARD) $(DEFINES)
 	$(ECHO) $@
 	$(COBJ) $(DCODE)/stodft/reduced-energy/cp-energy-eext-stodft.c
 
-energy-wrapper-post-scf.o :  $(STANDARD) $(DEFINES)                            
+energy-wrapper-post-scf.o :  $(STANDARD) $(DEFINES) \
                          $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
                          $(TYP_STAT) \
                          $(TYP_CP) $(TYP_PAR) \
@@ -211,7 +211,7 @@ energy-wrapper-post-scf.o :  $(STANDARD) $(DEFINES)
 	$(ECHO) $@
 	$(COBJ) $(DCODE)/stodft/reduced-energy/energy-wrapper-post-scf.c
 
-energy-wrapper-scf.o :  $(STANDARD) $(DEFINES)
+energy-wrapper-scf.o :  $(STANDARD) $(DEFINES) \
                          $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
                          $(TYP_STAT) \
                          $(TYP_CP) $(TYP_PAR) \
@@ -219,7 +219,5 @@ energy-wrapper-scf.o :  $(STANDARD) $(DEFINES)
                          $(ENR_CP_LOC) $(ENR_CPCON_LOC) $(STODFT_LOC) \
                          $(DCODE)/stodft/reduced-energy/energy-wrapper-scf.c
 	$(ECHO) $@
-	$(COBJ) $(DCODE)/stodft/reduced-energy/energy-wrapper-scf.c
-
-                      
+	$(COBJ) $(DCODE)/stodft/reduced-energy/energy-wrapper-scf.c                     
 #------------------------------------------------------------------

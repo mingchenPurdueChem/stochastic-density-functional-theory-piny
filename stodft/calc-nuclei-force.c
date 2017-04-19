@@ -49,7 +49,6 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
   STAT_AVG *stat_avg            = &(general_data->stat_avg);
   CPEWALD *cpewald              = &(cp->cpewald);
   CELL *cell                    = &(general_data->cell);
-  CLATOMS_POS *clatoms_pos      = &(class->clatoms_pos[1]);
   CLATOMS_INFO *clatoms_info    = &(class->clatoms_info);
   EWALD *ewald			= &(general_data->ewald);
   PTENS *ptens			= &(general_data->ptens);

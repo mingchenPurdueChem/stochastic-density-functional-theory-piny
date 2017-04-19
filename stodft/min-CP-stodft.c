@@ -489,7 +489,6 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   double *cpScrCoeffImDn   = cpscr->cpscr_wave.cim_dn;
   double *ptensPvtenTmp    = ptens->pvten_tmp;
   double *chemPot          = stodftCoefPos->chemPot;
-  double *
 
   double **stoWfUpRe = stodftCoefPos->stoWfUpRe;
   double **stoWfUpIm = stodftCoefPos->stoWfUpIm;
@@ -692,6 +691,13 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     }
     //exit(0);
   }//endfor iScf
+
+/*======================================================================*/
+/* VI) Calculate nuclei forces after SCF loop	                        */
+
+  calcEnergyForce(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+
+
 
 /*======================================================================*/
 /* VI) In parallel, transpose coefs and coef forces fwd                 */

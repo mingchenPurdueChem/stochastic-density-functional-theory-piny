@@ -49,7 +49,6 @@ void calcEnergyChemPot(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   STAT_AVG *stat_avg            = &(general_data->stat_avg);
   CPEWALD *cpewald              = &(cp->cpewald);
   CELL *cell			= &(general_data->cell);
-  CLATOMS_POS *clatoms_pos	= &(class->clatoms_pos[1]);
   CLATOMS_INFO *clatoms_info	= &(class->clatoms_info);
 
   int cpLsda         = cpopts->cp_lsda;
@@ -153,7 +152,7 @@ void calcEnergyChemPot(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 
     //pp 
     //calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
-    calcNonLocalPseudoScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos)
+    calcNonLocalPseudoScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     //calcCoefForceExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     stat_avg->cp_enl *= occNumber;
 

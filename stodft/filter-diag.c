@@ -600,8 +600,9 @@ void buildKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       fcim_up[iCoeff] = 0.0;
     }
     Barrier(comm_states);
-    calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
-    calcCoefForceWrapReduce(class,general_data,cp,cpcoeffs_pos,clatoms_pos);    
+    calcCoefForceWrapSCF(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+    //calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+    //calcCoefForceWrapReduce(class,general_data,cp,cpcoeffs_pos,clatoms_pos);    
     for(iState=0;iState<numStateUpProc;iState++){
       for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
 	fcre_up[iCoeff] *= -0.25;
@@ -1009,8 +1010,9 @@ void calcForceWrapper(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     fcre_up[iCoeff] = 0.0;
     fcim_up[iCoeff] = 0.0;
   }
-  calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
-  calcCoefForceWrapReduce(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+  //calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+  //calcCoefForceWrapReduce(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+  calcCoefForceWrapSCF(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
   for(iState=0;iState<numStateUpProc;iState++){
     for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
       fcre_up[iCoeff] *= -0.25;
@@ -1019,8 +1021,7 @@ void calcForceWrapper(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     fcre_up[numCoeff] *= -0.5;
     fcim_up[numCoeff] *= -0.5;
   }//endfor iState
-      
- 
+
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/

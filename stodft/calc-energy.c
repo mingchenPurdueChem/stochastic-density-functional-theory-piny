@@ -300,6 +300,8 @@ void calcTotEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     printf("==============================================\n");
   }
 
+  free(lagFunValue);
+
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/
@@ -418,8 +420,9 @@ void calcKNEEnergyFilterDiag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     }//endif cpLsda
     stat_avg->cp_eke = eke;
 
-    calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
-    calcCoefForceExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+    calcCoefForceWrapSCF(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+    //calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+    //calcCoefForceExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
 
     if(numProcStates>1){
       Reduce(&(stat_avg->cp_enl),&energyNLTemp,1,MPI_DOUBLE,MPI_SUM,0,commStates);

@@ -826,8 +826,8 @@ void calcCoefForceWrapReduce(CLASS *class,GENERAL_DATA *general_data,
 /* 1) Calculate the H/sigma|phi> */
   //control_vps_atm_list will be done somewhere else (perhaps in density calculation?)
 
-  calcCoefForceExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
-  calcCoefForceForceControlWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+  //calcCoefForceExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+  //calcCoefForceForceControlWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
 
 /*==========================================================================*/
 }/*end Routine*/

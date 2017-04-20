@@ -551,12 +551,12 @@ void getNlPotPvFatmSCF(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 	  sumNlPot(npart,nstate_up,np_nlmax,nl_chan_max,
 	 	   np_nl[lp1],l,np_nl_rad_str[lp1][jrad],
 	 	   irad,jrad,
-		   ip_nl,vnorm_now,vnlreal_up,vnlimag_up,,&cp_enl);
+		   ip_nl,vnorm_now,vnlreal_up,vnlimag_up,&cp_enl);
 	  if(cp_lsda==1){
 	    sumNlPot(npart,nstate_dn,np_nlmax,nl_chan_max,
 		     np_nl[lp1],l,np_nl_rad_str[lp1][jrad],
 		     irad,jrad,
-		     ip_nl,vnorm_now,vnlreal_dn,vnlimag_dn,,&cp_enl);
+		     ip_nl,vnorm_now,vnlreal_dn,vnlimag_dn,&cp_enl);
 	  }//endif
         }//endfor radial channels
       }//endfor: radial channels
@@ -593,36 +593,37 @@ void sumNlPot(int npart,int nstate,int np_nlmax,
   double cp_enl = *cp_enl_ret;
 /*==========================================================================*/
 /* I) Loop over the 2*l+1 directions and sum the nl contributions           */
-    for(m = 1;m<=(2*l+1);m++){
-      ind_lm = m + l*l;
-      for(is=1;is<=nstate;is++){
+  for(m = 1;m<=(2*l+1);m++){
+    ind_lm = m + l*l;
+    for(is=1;is<=nstate;is++){
 /*----------------------------------------------------------------------*/
 /*  i) Get the contrib to the non-local energy                          */
-        cp_enl_now = 0.0;
-        ioff_i = (is-1)*np_nlmax +
+      cp_enl_now = 0.0;
+      ioff_i = (is-1)*np_nlmax +
                +(ind_lm-1)*nstate*np_nlmax
                +(irad-1)*nl_chan_max*nstate*np_nlmax;
-        ioff_j = (is-1)*np_nlmax +
+      ioff_j = (is-1)*np_nlmax +
                +(ind_lm-1)*nstate*np_nlmax
                +(jrad-1)*nl_chan_max*nstate*np_nlmax;
-        if(irad==jrad){
-          for(ipart=np_nl_rad_str;ipart<=np_nl;ipart++){
-            ind_loc = ipart + ioff_i;
-            cp_enl_now = (vnlreal[ind_loc]*vnlreal[ind_loc]
-                         +vnlimag[ind_loc]*vnlimag[ind_loc])*vnorm_now[ipart];
-            cp_enl += cp_enl_now;
-          }//endfor
-        }
-        else{
-          for(ipart=np_nl_rad_str;ipart<=np_nl;ipart++){
-            ind_loc_i = ipart + ioff_i;
-            ind_loc_j = ipart + ioff_j;
-            cp_enl += 2.0*(vnlreal[ind_loc_i]*vnlreal[ind_loc_j]
-                          +vnlimag[ind_loc_i]*vnlimag[ind_loc_j])
-                          *vnorm_now[ipart];
-
-          }//endfor
-        }//endif
+      if(irad==jrad){
+        for(ipart=np_nl_rad_str;ipart<=np_nl;ipart++){
+          ind_loc = ipart + ioff_i;
+          cp_enl_now = (vnlreal[ind_loc]*vnlreal[ind_loc]
+                       +vnlimag[ind_loc]*vnlimag[ind_loc])*vnorm_now[ipart];
+          cp_enl += cp_enl_now;
+        }//endfor
+      }
+      else{
+        for(ipart=np_nl_rad_str;ipart<=np_nl;ipart++){
+          ind_loc_i = ipart + ioff_i;
+          ind_loc_j = ipart + ioff_j;
+          cp_enl += 2.0*(vnlreal[ind_loc_i]*vnlreal[ind_loc_j]
+                        +vnlimag[ind_loc_i]*vnlimag[ind_loc_j])
+                        *vnorm_now[ipart];
+        }//endfor
+      }//endif
+    }//endfor is
+  }//endfor m
 /*==========================================================================*/
 /* II) Set the return values                                               */
 

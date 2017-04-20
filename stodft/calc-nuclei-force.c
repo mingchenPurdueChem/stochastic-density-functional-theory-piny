@@ -29,7 +29,7 @@
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
+void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bonded,
 			CPCOEFFS_POS *cpcoeffs_pos,CLATOMS_POS *clatoms_pos)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
@@ -52,16 +52,20 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
   CLATOMS_INFO *clatoms_info    = &(class->clatoms_info);
   EWALD *ewald			= &(general_data->ewald);
   PTENS *ptens			= &(general_data->ptens);
-
+  FRAGINFO *fragInfo            = stodftInfo->fragInfo;
+  
   int cpLsda         = cpopts->cp_lsda;
   int numStateStoUp  = stodftInfo->numStateStoUp;
   int atomForceFlag  = stodftInfo->atomForceFlag;
+  int chemPotOpt     = stodftInfo->chemPotOpt;
+  int calcFragFlag   = stodftInfo->calcFragFlag;
   int numStateUpProc = cpcoeffs_info->nstate_up_proc;
   int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
   int numCoeff       = cpcoeffs_info->ncoef;
   int numCoeffUpTotal = numStateUpProc*numCoeff;
   int numCoeffDnTotal = numStateDnProc*numCoeff;
   int cpDualGridOptOn = cpopts->cp_dual_grid_opt;
+  int iperd	      = cell->iperd;
   int numChemPot = stodftInfo->numChemPot;
   int occNumber = stodftInfo->occNumber;
   int myidState         = communicate->myid_state;
@@ -80,12 +84,13 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
   double energyExc  = stat_avg->cp_exc;
   double vol	    = cell->vol;
   double energyTotElec,energyTot;
+  double energyExtTemp,energyExcTemp,energyHartTemp;
   double vInter;
   double vrecip;
   double vself,vbgr;
 
-  double *energyKe  = stodftInfo->energyKe;
-  double *energyPNL = stodftInfo->energyPNL;
+  //double *energyKe  = stodftInfo->energyKe;
+  //double *energyPNL = stodftInfo->energyPNL;
   double *cre_up = cpcoeffs_pos->cre_up;
   double *cim_up = cpcoeffs_pos->cim_up;
   double *cre_dn = cpcoeffs_pos->cre_dn;
@@ -99,6 +104,10 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
   double *fx = clatoms_pos->fx;
   double *fy = clatoms_pos->fy;
   double *fz = clatoms_pos->fz;
+  double *vnlFxCor = fragInfo->vnlFxCor;
+  double *vnlFyCor = fragInfo->vnlFyCor;
+  double *vnlFzCor = fragInfo->vnlFzCor;
+  double *lagFunValue = (double*)cmalloc(numChemPot*sizeof(double));
 
   double **stoWfUpRe = stodftCoefPos->stoWfUpRe;
   double **stoWfUpIm = stodftCoefPos->stoWfUpIm;
@@ -134,7 +143,7 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
 
   calcLocExtPostScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
 
-  if(numProcState==1){
+  if(numProcStates==1){
     memcpy(&fxBackup[0],&fx[1],numAtomTot*sizeof(double));
     memcpy(&fyBackup[0],&fy[1],numAtomTot*sizeof(double));
     memcpy(&fzBackup[0],&fz[1],numAtomTot*sizeof(double));
@@ -195,7 +204,7 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
 /* ii) Calculate nl pp force						    */
 
     //calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
-    calcNlPseudoPostScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos)
+    calcNlPseudoPostScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     //calcCoefForceExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     for(iAtom=1;iAtom<=numAtomTot;iAtom++){
       fx[iAtom] *= occNumber;
@@ -215,9 +224,9 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
     }
     else{
       if(atomForceFlag==1){
-        memcpy(fxNl[iChem],fx,numAtomTot*sizeof(double);
-        memcpy(fyNl[iChem],fy,numAtomTot*sizeof(double);
-        memcpy(fzNl[iChem],fz,numAtomTot*sizeof(double);
+        memcpy(fxNl[iChem],fx,numAtomTot*sizeof(double));
+        memcpy(fyNl[iChem],fy,numAtomTot*sizeof(double));
+        memcpy(fzNl[iChem],fz,numAtomTot*sizeof(double));
       }
     }
 
@@ -293,11 +302,11 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
   vself       = 0.0;
   vbgr        = 0.0;
   if(myidState==0&&iperd>0){
-    ewald3d_selfbgr_cp(&clatoms_info,&ewald,&ptens,vol,
+    ewald3d_selfbgr_cp(clatoms_info,ewald,ptens,vol,
                       &vself,&vbgr,iperd);
-    start_avg->vrecip += vself+vbgr;
-    stat_avg->vintert = start_avg->vrecip;
-    stat_avg->vcoul = start_avg->vrecip;
+    stat_avg->vrecip += vself+vbgr;
+    stat_avg->vintert = stat_avg->vrecip;
+    stat_avg->vcoul = stat_avg->vrecip;
   }//endif myid_state
 
 /*======================================================================*/
@@ -315,14 +324,15 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
     energyExtTemp = stat_avg->cp_eext;
     energyExcTemp = stat_avg->cp_exc;
 
-    energyTotElec = energyKe+energyPnl+energyHart+energyEext+energyExc;
+    energyTotElec = energyKe+energyPnl+energyHartTemp
+		    +energyExtTemp+energyExcTemp;
     vInter = stat_avg->vintert;
     energyTot = energyTotElec+vInter;
     printf("==============================================\n");
     printf("Total Energy\n");
     printf("==============================================\n");
     printf("Electron Kinetic Energy:      %.20lg\n",stat_avg->cp_eke);
-    printf("Electron NLPP:                %.20lg\n",energyPNL[0]);
+    printf("Electron NLPP:                %.20lg\n",energyPnl);
     printf("Electron Hartree Energy:      %.20lg\n",energyHartTemp);
     printf("Electron Ext Energy:          %.20lg\n",energyExtTemp);
     printf("Electron Ex-Cor Energy:       %.20lg\n",energyExcTemp);
@@ -349,6 +359,7 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,
   free(&fxNl[0]);
   free(&fyNl[0]);
   free(&fzNl[0]);
+  free(&lagFunValue[0]);
 
 /*==========================================================================*/
 }/*end Routine*/

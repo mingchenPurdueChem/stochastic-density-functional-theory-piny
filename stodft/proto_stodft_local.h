@@ -131,7 +131,6 @@ void sumNlPot(int,int,int,int,int,int,int,int,int,
               int *,double *,double *,double *,double *);
 /*-----------------------------------------------------------------*/
 /* energy-wrapper-scf.c                                            */
-void calcCoefForceWrap(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);
 void calcLocalPseudoScf(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS  *,CLATOMS_POS *);
 void calcNonLocalPseudoScf(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);
 void calcKSPot(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);
@@ -148,7 +147,7 @@ void calcCoefForceWrapReduce(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_
 // Nuclei force calculation
 /*-----------------------------------------------------------------*/
 /* calc-nuclei-force.c	                                           */
-void calcEnergyForce(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);
+void calcEnergyForce(CLASS *,GENERAL_DATA *,CP *,BONDED *,CPCOEFFS_POS *,CLATOMS_POS *);
 
 
 

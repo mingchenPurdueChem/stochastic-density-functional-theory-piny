@@ -299,7 +299,6 @@ void calcTotEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     printf("Total Elec Energy    %.16lg\n",energyTotElec);
     printf("==============================================\n");
   }
-
   free(lagFunValue);
 
 /*==========================================================================*/

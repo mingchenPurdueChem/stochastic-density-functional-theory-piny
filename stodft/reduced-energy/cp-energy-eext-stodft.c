@@ -434,7 +434,7 @@ void controlEwdLocPreScf(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 /* IX) Copy and store vext */
     
   memcpy(&vextr_loc[1],&vextr[1],(ngo+1)*sizeof(double));
-  memcpy(&vexti_loc[1],&vextr[1],(ngo+1)*sizeof(double));
+  memcpy(&vexti_loc[1],&vexti[1],(ngo+1)*sizeof(double));
 
 /*======================================================================*/
 /* IX) Collect the forces */

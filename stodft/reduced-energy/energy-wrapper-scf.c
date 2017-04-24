@@ -299,6 +299,65 @@ void calcNonLocalPseudoScf(CLASS *class,GENERAL_DATA *general_data,
   ntot_up = nstate_up*np_nlmax_all*nlmtot*n_rad_max;
   ntot_dn = 0;
 
+  if(nl_max_all>=0){
+    for(i=1;i<=ntot_up;i++){
+      vnlreal_up[i] = 0.0;
+      vnlimag_up[i] = 0.0;
+      dvnlreal_x_up[i] = 0.0;
+      dvnlreal_y_up[i] = 0.0;
+      dvnlreal_z_up[i] = 0.0;
+      dvnlimag_x_up[i] = 0.0;
+      dvnlimag_y_up[i] = 0.0;
+      dvnlimag_z_up[i] = 0.0;
+    }//endfor
+    if(cp_ptens==1||hess_calc == 3){
+      for(i=1;i<=ntot_up;i++){
+        dvnlreal_gxgx_up[i] = 0.0;
+        dvnlreal_gzgz_up[i] = 0.0;
+        dvnlreal_gygy_up[i] = 0.0;
+        dvnlreal_gxgy_up[i] = 0.0;
+        dvnlreal_gxgz_up[i] = 0.0;
+        dvnlreal_gygz_up[i] = 0.0;
+
+        dvnlimag_gxgx_up[i] = 0.0;
+        dvnlimag_gxgy_up[i] = 0.0;
+        dvnlimag_gygy_up[i] = 0.0;
+        dvnlimag_gxgz_up[i] = 0.0;
+        dvnlimag_gygz_up[i] = 0.0;
+        dvnlimag_gzgz_up[i] = 0.0;
+      }//endfor
+    }//endif:ptens
+    if(cp_lsda==1){
+      ntot_dn = nstate_dn*np_nlmax_all*nlmtot*n_rad_max;
+      for(i=1;i<=ntot_dn;i++){
+        vnlreal_dn[i]    = 0.0;
+        vnlimag_dn[i]    = 0.0;
+        dvnlreal_x_dn[i] = 0.0;
+        dvnlreal_y_dn[i] = 0.0;
+        dvnlreal_z_dn[i] = 0.0;
+        dvnlimag_x_dn[i] = 0.0;
+        dvnlimag_y_dn[i] = 0.0;
+        dvnlimag_z_dn[i] = 0.0;
+      }//endfor
+      if(cp_ptens==1 || hess_calc == 3){
+        for(i=1;i<=ntot_dn;i++){
+ 	  dvnlreal_gxgx_dn[i] = 0.0;
+	  dvnlreal_gxgy_dn[i] = 0.0;
+	  dvnlreal_gxgz_dn[i] = 0.0;
+	  dvnlreal_gygy_dn[i] = 0.0;
+	  dvnlreal_gygz_dn[i] = 0.0;
+	  dvnlreal_gzgz_dn[i] = 0.0;
+
+	  dvnlimag_gxgx_dn[i] = 0.0;
+	  dvnlimag_gxgy_dn[i] = 0.0;
+	  dvnlimag_gxgz_dn[i] = 0.0;
+	  dvnlimag_gygy_dn[i] = 0.0;
+	  dvnlimag_gygz_dn[i] = 0.0;
+	  dvnlimag_gzgz_dn[i] = 0.0;
+        }//endfor*/
+      }//endif:ptens
+    }//endif:lsda
+  }//endif : non-local potential on
 
 /*======================================================================*/
 /* VII) Get the nl pe, pvten and particle forces then the coef forces   */
@@ -866,10 +925,23 @@ void calcCoefForceWrapSCF(CLASS *class,GENERAL_DATA *general_data,
   int iState,iCoeff,iCoeffStart,index1,index2;
   int cpMinOn = 0; //I don't want to calculate cp_hess
 
+  int ncoef_l         =    cp_para_fft_pkg3d_lg->ncoef_proc;
+  int ncoef_l_dens_cp_box = cp_para_fft_pkg3d_dens_cp_box->ncoef_proc;
+
+
   double *fcre_up = cpcoeffs_pos->fcre_up;
   double *fcim_up = cpcoeffs_pos->fcim_up;
   double *fcre_dn = cpcoeffs_pos->fcre_dn;
   double *fcim_dn = cpcoeffs_pos->fcim_dn;
+
+  double *vextr          =    cpscr->cpscr_loc.vextr;
+  double *vexti          =    cpscr->cpscr_loc.vexti;
+  double *vextr_loc      =    cpscr->cpscr_loc.vextr_loc;
+  double *vexti_loc      =    cpscr->cpscr_loc.vexti_loc;
+  double *vextr_dens_cp_box =    cpscr->cpscr_loc.vextr_dens_cp_box;
+  double *vexti_dens_cp_box =    cpscr->cpscr_loc.vexti_dens_cp_box;
+  double *vextr_dens_cp_box_loc = cpscr->cpscr_loc.vextr_dens_cp_box_loc;
+  double *vexti_dens_cp_box_loc = cpscr->cpscr_loc.vexti_dens_cp_box_loc;
 
 /*==========================================================================*/
 /* 0) Copy the input wave function to CP coeff and zero the force */
@@ -884,6 +956,16 @@ void calcCoefForceWrapSCF(CLASS *class,GENERAL_DATA *general_data,
       fcim_dn[iCoeff] = 0.0;
     }
   }
+
+  memcpy(&vextr[1],&(vextr_loc[1]),ncoef_l*sizeof(double));
+  memcpy(&vexti[1],&(vexti_loc[1]),ncoef_l*sizeof(double));
+  if(cpDualGridOptOn==2){
+    memcpy(&vextr_dens_cp_box[1],&vextr_dens_cp_box_loc[1],
+            ncoef_l_dens_cp_box*sizeof(double));
+    memcpy(&vexti_dens_cp_box[1],&vexti_dens_cp_box_loc[1],
+            ncoef_l_dens_cp_box*sizeof(double));
+  }
+
 
 /*==========================================================================*/
 /* 1) Calculate the H/sigma|phi> */

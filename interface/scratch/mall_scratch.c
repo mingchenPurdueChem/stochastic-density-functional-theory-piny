@@ -1039,12 +1039,21 @@ void mall_cp_scr(CPTHERM_INFO *cptherm_info,CPOPTS *cpopts,CPEWALD *cpewald,
                         cmalloc(ncoef_l_proc_max_mall*sizeof(double))-1;
   cpscr->cpscr_loc.vexti = (double *)
                         cmalloc(ncoef_l_proc_max_mall*sizeof(double))-1;
+  cpscr->cpscr_loc.vextr_loc = (double *)
+                        cmalloc(ncoef_l_proc_max_mall*sizeof(double))-1;
+  cpscr->cpscr_loc.vexti_loc = (double *)
+                        cmalloc(ncoef_l_proc_max_mall*sizeof(double))-1;
+
   num += 2*ncoef_l_proc_max;
 
   if(cp_dual_grid_opt_on == 2){
     cpscr->cpscr_loc.vextr_dens_cp_box = (double *)
                             cmalloc(ncoef_l_proc_max_mall_cp_box*sizeof(double))-1;
     cpscr->cpscr_loc.vexti_dens_cp_box = (double *)
+                             cmalloc(ncoef_l_proc_max_mall_cp_box*sizeof(double))-1;
+    cpscr->cpscr_loc.vextr_dens_cp_box_loc = (double *)
+                            cmalloc(ncoef_l_proc_max_mall_cp_box*sizeof(double))-1;
+    cpscr->cpscr_loc.vexti_dens_cp_box_loc = (double *)
                              cmalloc(ncoef_l_proc_max_mall_cp_box*sizeof(double))-1;
     num += 2*ncoef_l_proc_max_mall_cp_box;
   }

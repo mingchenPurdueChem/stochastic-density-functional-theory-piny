@@ -554,7 +554,7 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /* i) Generate stochastic WF for different chemical potentials          */
 
     if(myidState==0)printf("**Generating Stochastic Orbitals...\n");
-    //genStoOrbitalCheby(class,bonded,general_data,cp,ip_now);
+    genStoOrbitalCheby(class,bonded,general_data,cp,ip_now);
  
     //exit(0);
     //debug
@@ -572,7 +572,7 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
     //exit(0);
     
-    
+    /*
     char wfname[100];
     //sprintf(wfname,"/scratch/mingchen/tmp/sto-wf-save-%i",myidState);
     printf("Read in stochastic orbitals...\n");
@@ -592,6 +592,7 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     fclose(filePrintWF);
     printf("myid %i finish reading in WF.\n",myidState);
     printf("%lg %lg\n",stoWfUpRe[0][1],stoWfUpIm[0][1]);
+    */
     /*
     printf("Start Readin WF\n");
 

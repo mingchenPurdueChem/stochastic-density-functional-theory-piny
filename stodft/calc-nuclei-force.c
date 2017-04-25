@@ -120,12 +120,9 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
   double *fxTemp;
   double *fyTemp;
   double *fzTemp;
-  double *fxBackup;
-  double *fyBackup;
-  double *fzBackup;
-  double *fxNlTrue;
-  double *fyNlTrue;
-  double *fzNlTrue;
+  double *fxBackup,*fyBackup,*fzBackup;
+  double *fxNlTrue,*fyNlTrue,*fzNlTrue;
+  double *fxUnCor,*fyUnCor,*fzUnCor;
 
   MPI_Comm commStates = communicate->comm_states;
 
@@ -135,6 +132,10 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
   fxBackup = (double *)cmalloc(numAtomTot*sizeof(double));
   fyBackup = (double *)cmalloc(numAtomTot*sizeof(double));
   fzBackup = (double *)cmalloc(numAtomTot*sizeof(double));
+  fxUnCor = (double *)cmalloc(numAtomTot*sizeof(double));
+  fyUnCor = (double *)cmalloc(numAtomTot*sizeof(double));
+  fzUnCor = (double *)cmalloc(numAtomTot*sizeof(double));
+
   for(iAtom=1;iAtom<=numAtomTot;iAtom++){
     fx[iAtom] = 0.0;
     fy[iAtom] = 0.0;
@@ -198,7 +199,6 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
       fy[iAtom] = 0.0;
       fz[iAtom] = 0.0;
     }
-    
 
 /*--------------------------------------------------------------------------*/
 /* ii) Calculate nl pp force						    */
@@ -286,10 +286,19 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
   }//endif myidState
  
 /*======================================================================*/
-/* IV) Add fragmentation correction                                     */
+/* IV) Add fragmentation correction and local contribution              */
 
   if(calcFragFlag==1&&myidState==0){
     for(iAtom=0;iAtom<numAtomTot;iAtom++){
+      // Add contribution from local pp
+      fxNlTrue[iAtom] += fxBackup[iAtom];
+      fyNlTrue[iAtom] += fyBackup[iAtom];
+      fzNlTrue[iAtom] += fzBackup[iAtom];
+      // backup the uncorrected	version
+      fxUnCor[iAtom] = fxNlTrue[iAtom];
+      fyUnCor[iAtom] = fyNlTrue[iAtom];
+      fzUnCor[iAtom] = fzNlTrue[iAtom];
+      // fragmentation correction
       fxNlTrue[iAtom] += vnlFxCor[iAtom];
       fyNlTrue[iAtom] += vnlFyCor[iAtom];
       fzNlTrue[iAtom] += vnlFzCor[iAtom];
@@ -301,6 +310,13 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
 
   vself       = 0.0;
   vbgr        = 0.0;
+
+  for(iAtom=1;iAtom<=numAtomTot;iAtom++){
+    fx[iAtom] = 0.0;
+    fy[iAtom] = 0.0;
+    fz[iAtom] = 0.0;
+  }
+
   if(myidState==0&&iperd>0){
     ewald3d_selfbgr_cp(clatoms_info,ewald,ptens,vol,
                       &vself,&vbgr,iperd);
@@ -314,6 +330,30 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
   class->energy_ctrl.iget_full_inter = 1;
   class->energy_ctrl.iget_res_inter = 0;
   energy_control_inter_real(class,bonded,general_data);
+
+  if(numProcStates==1){
+    memcpy(&fxBackup[0],&fx[1],numAtomTot*sizeof(double));
+    memcpy(&fyBackup[0],&fy[1],numAtomTot*sizeof(double));
+    memcpy(&fzBackup[0],&fz[1],numAtomTot*sizeof(double));
+  }
+  else{
+    Reduce(&fx[1],&fxBackup[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+    Reduce(&fy[1],&fyBackup[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+    Reduce(&fz[1],&fzBackup[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+  }
+
+  if(myidState==0){
+    for(iAtom=0;iAtom<numAtomTot;iAtom++){
+      fx[iAtom+1] = fxNlTrue[iAtom]+fxBackup[iAtom];
+      fy[iAtom+1] = fyNlTrue[iAtom]+fyBackup[iAtom];
+      fz[iAtom+1] = fzNlTrue[iAtom]+fzBackup[iAtom];
+      if(calcFragFlag==1){
+        fxUnCor[iAtom] += fxBackup[iAtom];
+        fyUnCor[iAtom] += fyBackup[iAtom];
+        fzUnCor[iAtom] += fzBackup[iAtom];
+      }//endif calcFragFlag
+    }//endfor iAtom
+  }//endif myidState
   
 /*======================================================================*/ 
 /* VII) Output the energy Term                                          */
@@ -340,6 +380,12 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
     printf("Atom Energy:		  %.20lg\n",vInter);
     printf("Total Energy:		  %.20lg\n",energyTot);
     printf("==============================================\n");
+
+    for(iAtom=0;iAtom<numAtomTot;iAtom++){
+      printf("atom %i uncor %.8lg %.8lg %.8lg cor %.8lg %.8lg %.8lg\n",
+	     iAtom,fx[iAtom+1],fy[iAtom+1],fz[iAtom+1],
+	     fxUnCor[iAtom],fyUnCor[iAtom],fzUnCor[iAtom]);
+    }
   }
 
 /*======================================================================*/
@@ -348,6 +394,10 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
   free(&fxBackup[0]);  
   free(&fyBackup[0]);
   free(&fzBackup[0]);
+  free(&fxUnCor[0]);
+  free(&fyUnCor[0]);
+  free(&fzUnCor[0]);
+
   free(&fxNlTrue[0]);
   free(&fyNlTrue[0]);
   free(&fzNlTrue[0]);

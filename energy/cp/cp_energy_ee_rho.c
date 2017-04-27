@@ -421,6 +421,15 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
   }/*endif*/
  }/*endif cp_dual_grid_opt*/
 
+  /*
+  FILE *fp_rhok = fopen("rho_bm_k","w");
+  for(i=1;i<=ncoef_l;i++){
+    fprintf(fp_rhok,"%.16lg %.16lg\n",rhocr[i],rhoci[i]);
+  }
+  fclose(fp_rhok);
+  fflush(stdout);
+  exit(0);
+  */
   
   if(fftw3dFlag==100){
     double sum = 0.0;

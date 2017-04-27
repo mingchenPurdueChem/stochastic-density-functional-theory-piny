@@ -142,6 +142,15 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
     fz[iAtom] = 0.0;
   }
 
+  //debug
+  FILE *fp_rhok = fopen("rho_bm_k","r");
+  int ncoef_l = cp->cp_para_fft_pkg3d_lg.ncoef;
+  for(iCoeff=1;iCoeff<=ncoef_l;iCoeff++){
+    fscanf(fp_rhok,"%lg",&(cp->cpscr.cpscr_rho.rhocr_up[iCoeff]));
+    fscanf(fp_rhok,"%lg",&(cp->cpscr.cpscr_rho.rhoci_up[iCoeff]));
+  }
+  fclose(fp_rhok);
+
   calcLocExtPostScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
 
   if(numProcStates==1){

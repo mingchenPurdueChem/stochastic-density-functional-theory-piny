@@ -143,13 +143,16 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
   }
 
   //debug
+  /*
   FILE *fp_rhok = fopen("rho_bm_k","r");
   int ncoef_l = cp->cp_para_fft_pkg3d_lg.ncoef;
   for(iCoeff=1;iCoeff<=ncoef_l;iCoeff++){
-    fscanf(fp_rhok,"%lg",&(cp->cpscr.cpscr_rho.rhocr_up[iCoeff]));
-    fscanf(fp_rhok,"%lg",&(cp->cpscr.cpscr_rho.rhoci_up[iCoeff]));
+    //fscanf(fp_rhok,"%lg",&(cp->cpscr.cpscr_rho.rhocr_up[iCoeff]));
+    //fscanf(fp_rhok,"%lg",&(cp->cpscr.cpscr_rho.rhoci_up[iCoeff]));
+    //printf("rho k %lg %lg\n",cp->cpscr.cpscr_rho.rhocr_up[1],cp->cpscr.cpscr_rho.rhoci_up[1]);
   }
   fclose(fp_rhok);
+  */
 
   calcLocExtPostScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
 
@@ -232,11 +235,10 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
       }
     }
     else{
-      if(atomForceFlag==1){
-        memcpy(fxNl[iChem],fx,numAtomTot*sizeof(double));
-        memcpy(fyNl[iChem],fy,numAtomTot*sizeof(double));
-        memcpy(fzNl[iChem],fz,numAtomTot*sizeof(double));
-      }
+      memcpy(fxNl[iChem],&fx[1],numAtomTot*sizeof(double));
+      memcpy(fyNl[iChem],&fy[1],numAtomTot*sizeof(double));
+      memcpy(fzNl[iChem],&fz[1],numAtomTot*sizeof(double));
+      printf("fx[1] %lg fy[1] %lg fz[1] %lg\n",fx[1],fy[1],fz[1]);
     }
 
 /*--------------------------------------------------------------------------*/
@@ -289,6 +291,7 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
 	fxNlTrue[iAtom] = fxNl[0][iAtom];
 	fyNlTrue[iAtom] = fyNl[0][iAtom];
 	fzNlTrue[iAtom] = fzNl[0][iAtom];
+	printf("fxNlTrue %lg fyNlTrue %lg fzNlTrue %lg\n",fxNlTrue[iAtom],fyNlTrue[iAtom],fzNlTrue[iAtom]);
       }//endfor iAtom
     }//endif chemPotOpt
     //Correct the non local force by fragment       

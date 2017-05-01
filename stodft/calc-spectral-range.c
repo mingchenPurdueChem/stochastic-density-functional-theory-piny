@@ -186,8 +186,11 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /* ii) Calcualte H|phi>		        */
 
     //calcCoefForceWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+    /*
     calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     calcCoefForceWrapReduce(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+    */
+    calcCoefForceWrapSCF(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
 
 /*--------------------------------------------------------------------------*/
 /* iii) Calcluate <phi|H|phi>	                                            */
@@ -406,8 +409,11 @@ void genEnergyMin(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /* ii) Calcualte H|phi>                                                     */
 
     //calcCoefForceWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+    /*
     calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     calcCoefForceWrapReduce(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+    */
+    calcCoefForceWrapSCF(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
 
 /*--------------------------------------------------------------------------*/
 /* iii) Calcluate <phi|H|phi>                                               */

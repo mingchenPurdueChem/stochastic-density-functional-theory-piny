@@ -67,7 +67,8 @@ void calcNonLocalMatrix(CP *cp, CP *cpMini, CLASS *classMini,
   int cp_dual_grid_opt = cpopts->cp_dual_grid_opt;
   int idual_switch;
   int i,j,iii,igh;
-  int iState;
+  int iState,jState;
+  int iFrag = fragInfo->iFrag;
   int nlmtot,ntot_up,ntot_dn;
   int nl_max_kb,np_nlmax_kb,nl_max_gh,np_nlmax_gh,nl_max_all,np_nlmax_all;
   double vrecip,cp_enl,cp_enl_gh;
@@ -323,17 +324,53 @@ void calcNonLocalMatrix(CP *cp, CP *cpMini, CLASS *classMini,
     }//endif:lsda
   }//endif : non-local potential on
 
-  // initialize matrix and force 
+  // initialize matrix and force
   for(iState=0;iState<nstate_up;iState++){
+    for(jState=0;jState<nstate_up;jState++){
+      fragInfo->vnlMatrixUp[iFrag][iState*nstate_up+jState] = 0.0;
+    }
+  }
+  if(cp_lsda==1 && nstate_dn != 0){
+    for(iState=0;iState<nstate_dn;iState++){
+      for(jState=0;jState<nstate_up;jState++){
+	fragInfo->vnlMatrixDn[iFrag][iState*nstate_dn+jState] = 0.0;
+      }
+    }
   }
 
+  for(i=0;i<natm_tot;i++){
+    for(iState=0;iState<nstate_up;iState++){
+      for(jState=0;jState<nstate_up;jState++){
+	fragInfo->vnlFxMatrixUp[iFrag][i*nstate_up*nstate_up+iState*nstate_up+jState] = 0.0;
+	fragInfo->vnlFyMatrixUp[iFrag][i*nstate_up*nstate_up+iState*nstate_up+jState] = 0.0;
+	fragInfo->vnlFzMatrixUp[iFrag][i*nstate_up*nstate_up+iState*nstate_up+jState] = 0.0;
+      }
+    }
+    if(cp_lsda==1 && nstate_dn != 0){
+      for(iState=0;iState<nstate_dn;iState++){
+	for(jState=0;jState<nstate_up;jState++){
+	  fragInfo->vnlFxMatrixDn[iFrag][i*nstate_dn*nstate_dn+iState*nstate_dn+jState] = 0.0;
+	  fragInfo->vnlFyMatrixDn[iFrag][i*nstate_dn*nstate_dn+iState*nstate_dn+jState] = 0.0;
+	  fragInfo->vnlFzMatrixDn[iFrag][i*nstate_dn*nstate_dn+iState*nstate_dn+jState] = 0.0;
+	}
+      }
+    }
+  }
+
+  for(i=1;i<=natm_tot;i++){
+    fx[i] = 0.0;
+    fy[i] = 0.0;
+    fz[i] = 0.0;
+  }
 
 /*======================================================================*/
 /* VI) Perform the ewald sum/ cp local pseudopotential calculation      */
 /*     I don't know whether this parted is needed or not. Keep it just  */
 /*     to be safe.						        */
 
+  // We currently don't need this for nl calculation
 
+  /*
   idual_switch = 0; // cp_dual_grid_opt<=1 : get vrecip vext on dense grid 
                     // cp_dual_grid_opt==2 : get vrecip vext on sparse grid
   vrecip = 0.0;
@@ -357,11 +394,13 @@ void calcNonLocalMatrix(CP *cp, CP *cpMini, CLASS *classMini,
                     &vrecip,&(cpcoeffs_info->pseud_hess_loc),communicate,
                     for_scr,cp_dual_grid_opt,idual_switch);
   }//endif cp_dual_grid_opt
+  */
 
 /*======================================================================*/
 /* VII) Get the nl pe, pvten and particle forces then the coef forces   */
   cp_enl    = 0.0;
   cp_enl_gh = 0.0;
+
   if(nl_max_all>=0&&n_rad_max>1){
      non_loc_chng_ord(clatoms_pos,clatoms_info,atommaps, pseudo,ewd_scr,for_scr,1);
   }//endif nl_max_all n_rad_max
@@ -853,8 +892,8 @@ void sumnlPotPvFatmHessFrag(int npart,int nstate,int np_nlmax,
           i_shift = l*npart;
           for(ipart=np_nl_rad_str;ipart<=np_nl;ipart++){
             ltemp = ip_nl[(ipart+i_shift)];
-	    ind_force_mat_1 = ltemp*nstate*nstate+(is-1)*nstate+js-1;
-	    ind_force_mat_2 = ltemp*nstate*nstate+(js-1)*nstate+is-1;
+	    ind_force_mat_1 = (ltemp-1)*nstate*nstate+(is-1)*nstate+js-1;
+	    ind_force_mat_2 = (ltemp-1)*nstate*nstate+(js-1)*nstate+is-1;
 	    vnlFxMatrix[ind_force_mat_1] += fxtemp[ipart];
             vnlFyMatrix[ind_force_mat_1] += fytemp[ipart];
             vnlFzMatrix[ind_force_mat_1] += fztemp[ipart];

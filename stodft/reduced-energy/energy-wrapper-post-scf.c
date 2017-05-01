@@ -5,7 +5,7 @@
 /*                         Stochastic DFT:                                  */
 /*             The future of density functional theory                      */
 /*             ------------------------------------                         */
-/*                   Module: normh.c                                        */
+/*                   Module: energy-wrapper-post-scf.c                      */
 /*                                                                          */
 /* This routine wrapps all functions used within SCF. Nuclei forces are not */
 /* calculated.								    */
@@ -394,7 +394,65 @@ void calcNlPseudoPostScf(CLASS *class,GENERAL_DATA *general_data,
   ntot_up = nstate_up*np_nlmax_all*nlmtot*n_rad_max;
   ntot_dn = 0;
 
+  if(nl_max_all>= 0){
+    for(i=1;i<=ntot_up;i++){
+      vnlreal_up[i] = 0.0;
+      vnlimag_up[i] = 0.0;
+      dvnlreal_x_up[i] = 0.0;
+      dvnlreal_y_up[i] = 0.0;
+      dvnlreal_z_up[i] = 0.0;
+      dvnlimag_x_up[i] = 0.0;
+      dvnlimag_y_up[i] = 0.0;
+      dvnlimag_z_up[i] = 0.0;
+    }//endfor
+    if(cp_ptens==1||hess_calc==3){
+      for(i=1;i<=ntot_up;i++){
+        dvnlreal_gxgx_up[i] = 0.0;
+        dvnlreal_gzgz_up[i] = 0.0;
+        dvnlreal_gygy_up[i] = 0.0;
+        dvnlreal_gxgy_up[i] = 0.0;
+        dvnlreal_gxgz_up[i] = 0.0;
+        dvnlreal_gygz_up[i] = 0.0;
 
+        dvnlimag_gxgx_up[i] = 0.0;
+        dvnlimag_gxgy_up[i] = 0.0;
+        dvnlimag_gygy_up[i] = 0.0;
+        dvnlimag_gxgz_up[i] = 0.0;
+        dvnlimag_gygz_up[i] = 0.0;
+        dvnlimag_gzgz_up[i] = 0.0;
+      }//endfor
+    }//endif:ptens
+    if(cp_lsda==1){
+      ntot_dn = nstate_dn*np_nlmax_all*nlmtot*n_rad_max;
+      for(i=1;i<=ntot_dn;i++){
+        vnlreal_dn[i]    = 0.0;
+        vnlimag_dn[i]    = 0.0;
+        dvnlreal_x_dn[i] = 0.0;
+        dvnlreal_y_dn[i] = 0.0;
+        dvnlreal_z_dn[i] = 0.0;
+        dvnlimag_x_dn[i] = 0.0;
+        dvnlimag_y_dn[i] = 0.0;
+        dvnlimag_z_dn[i] = 0.0;
+      }//endfor
+      if(cp_ptens==1 || hess_calc == 3){
+        for(i=1;i<=ntot_dn;i++){
+	  dvnlreal_gxgx_dn[i] = 0.0;
+	  dvnlreal_gxgy_dn[i] = 0.0;
+	  dvnlreal_gxgz_dn[i] = 0.0;
+	  dvnlreal_gygy_dn[i] = 0.0;
+	  dvnlreal_gygz_dn[i] = 0.0;
+	  dvnlreal_gzgz_dn[i] = 0.0;
+
+	  dvnlimag_gxgx_dn[i] = 0.0;
+	  dvnlimag_gxgy_dn[i] = 0.0;
+	  dvnlimag_gxgz_dn[i] = 0.0;
+	  dvnlimag_gygy_dn[i] = 0.0;
+	  dvnlimag_gygz_dn[i] = 0.0;
+	  dvnlimag_gzgz_dn[i] = 0.0;
+        }//endfor
+      }//endif:ptens
+    }//endif:lsda
+  }//endif : non-local potential on*/
 /*======================================================================*/
 /* VII) Get the nl pe, pvten and particle forces then the coef forces   */
 
@@ -826,8 +884,8 @@ void calcCoefForceWrapReduce(CLASS *class,GENERAL_DATA *general_data,
 /* 1) Calculate the H/sigma|phi> */
   //control_vps_atm_list will be done somewhere else (perhaps in density calculation?)
 
-  calcCoefForceExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
-  calcCoefForceForceControlWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+  //calcCoefForceExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+  //calcCoefForceForceControlWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
 
 /*==========================================================================*/
 }/*end Routine*/

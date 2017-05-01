@@ -1120,12 +1120,10 @@ void calcRhoStoHybridInterp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_da
     if(densityMixFlag>0){
       if(myidState==0){
 	printf("Start Mixing Density\n");
-	fflush(stdout);
       }
       genDensityMix(cp,iScf);
       if(myidState==0){
 	printf("Finish Mixing Density\n");
-	fflush(stdout);
       }
     }
     
@@ -1160,7 +1158,6 @@ void calcRhoStoHybridInterp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_da
 
     if(myidState==0){
       printf("Finish Calculating Reciprocal Space Density\n");
-      fflush(stdout);
     }
 
 
@@ -1480,6 +1477,9 @@ void calcRhoStoHybridCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
     for(iGrid=1;iGrid<=rhoRealGridNum;iGrid++)fscanf(fileRhoReal,"%lg",&rhoUp[iGrid]);
     for(iGrid=1;iGrid<=rhoRealGridNum;iGrid++)rhoUp[iGrid] /= 0.0009250463018013585;
     */
+
+  //fflush(stdout);
+  //exit(0);
 
   calcRhoStoRecipFullg(cpewald,cpscr,cpcoeffs_info,ewald,cell,
 		     rhoCoeffReUp,rhoCoeffImUp,rhoUp,rhoCoeffReUpDensCpBox,rhoCoeffImUpDensCpBox,
@@ -1834,8 +1834,8 @@ void calcRhoFilterDiagHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_d
 
 /*==========================================================================*/
 /* VI) Generate the reciprocal part and all the other things                */
-  /*
-  FILE *fileRhoReal = fopen("density-init","r");
+  
+  /*FILE *fileRhoReal = fopen("density-init","r");
   FILE *fileRhoRecip = fopen("density-recip-test","w");
   for(iGrid=1;iGrid<=rhoRealGridNum;iGrid++)fscanf(fileRhoReal,"%lg",&rhoUp[iGrid]);
   for(iGrid=1;iGrid<=rhoRealGridNum;iGrid++)rhoUp[iGrid] /= 0.0009250463018013585;

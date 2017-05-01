@@ -489,7 +489,6 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   double *cpScrCoeffImDn   = cpscr->cpscr_wave.cim_dn;
   double *ptensPvtenTmp    = ptens->pvten_tmp;
   double *chemPot          = stodftCoefPos->chemPot;
-  double *
 
   double **stoWfUpRe = stodftCoefPos->stoWfUpRe;
   double **stoWfUpIm = stodftCoefPos->stoWfUpIm;
@@ -593,6 +592,7 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     fclose(filePrintWF);
     printf("myid %i finish reading in WF.\n",myidState);
     printf("%lg %lg\n",stoWfUpRe[0][1],stoWfUpIm[0][1]);
+    
     /*
     printf("Start Readin WF\n");
 
@@ -692,6 +692,11 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     }
     //exit(0);
   }//endfor iScf
+
+/*======================================================================*/
+/* VI) Calculate nuclei forces after SCF loop	                        */
+
+  calcEnergyForce(class,general_data,cp,bonded,cpcoeffs_pos,clatoms_pos);
 
 /*======================================================================*/
 /* VI) In parallel, transpose coefs and coef forces fwd                 */
@@ -848,8 +853,11 @@ void scfStodftFilterDiag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   stat_avg->cp_eext = 0.0;
   stat_avg->cp_exc = 0.0;
   if(myidState==0)printf("**Calculating Initial Kohn-Sham Potential...\n");
-  calcKSPotExtRecipWrapPreScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
-  calcKSForceControlWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+  calcLocalPseudoScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+  calcKSPot(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+
+  //calcKSPotExtRecipWrapPreScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+  //calcKSForceControlWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
 
   if(myidState==0)printf("**Finish Calculating Initial Kohn-Sham Potential\n");
 
@@ -946,7 +954,6 @@ void scfStodftFilterDiag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
 /*----------------------------------------------------------------------*/
 /* v) Calculate the total energy	                        */
-
 
     if(myidState==0)printf("**Calculating Total Energy...\n");
     calcTotEnergyFilterDiag(cp,class,general_data,cpcoeffs_pos,clatoms_pos);

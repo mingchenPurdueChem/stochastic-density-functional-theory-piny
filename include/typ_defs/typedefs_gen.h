@@ -161,6 +161,7 @@ typedef struct stat_avg {
   double vbend_bnd_bond,vbend_bnd_bend;/* NUM: Uri Bradleys decomp   */
   double vbondt_watts,vbendt_watts,vtot_watts;/* NUM: Watts dcomp  */
   double vreal,vrecip;               /* Num: Inter mol PE              */
+  double vrecip_cl;		     /* Num: classical part of inter mol PE */
   double vvdw,vcoul;                 /* Num: Van der Waals and Coulomb */
   double vlong;                      /* Num: Long range correction to LJ*/
   double vbond_free,vbend_free,vtors_free; /* Num: Free intra pots     */

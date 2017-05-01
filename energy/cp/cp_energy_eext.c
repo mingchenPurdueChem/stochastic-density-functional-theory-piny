@@ -981,7 +981,9 @@ void control_ewd_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
      prep += dclus_corr_r[icount]*rvol;
    }/*endif*/
 
-   if( (iperd>0) &&(idens_opt==0) ){vrecip  = vrecip + smag*preg; }
+   if( (iperd>0) &&(idens_opt==0) ){
+     vrecip  = vrecip + smag*preg; 
+   }
 
    prep    = prep*smag; 
    if((cp_ptens==1) && (idens_opt==0) ) {
@@ -1211,7 +1213,9 @@ void control_ewd_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 /*======================================================================*/
 /* XII) Finally, store the final value of vrecip */
 
- if(idual_switch == 0){*vrecip_ret = vrecip;}
+  if(idual_switch == 0){
+    *vrecip_ret = vrecip;
+  }
 
 
 /*======================================================================*/

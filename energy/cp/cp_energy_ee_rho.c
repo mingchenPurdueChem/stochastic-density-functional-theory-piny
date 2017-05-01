@@ -194,6 +194,17 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
  if((nstate % 2) != 0){ 
      iupper = nstate-1; 
  }/* endif */
+
+ /*
+ FILE *filewf = fopen("wf-det","w");
+ printf("ncoef %i\n",ncoef);
+ for(is=0;is<nstate;is++){
+   for(i=1;i<=ncoef;i++){
+     fprintf(filewf,"%.16lg %.16lg\n",ccreal[is*ncoef+i],ccimag[is*ncoef+i]);
+   }
+ }
+ fclose(filewf);
+  */
   /*
   if(fftw3dFlag==0){
     for(i=1;i<=ncoef;i++){
@@ -421,6 +432,15 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
   }/*endif*/
  }/*endif cp_dual_grid_opt*/
 
+  /*
+  FILE *fp_rhok = fopen("rho_bm_k","w");
+  for(i=1;i<=ncoef_l;i++){
+    fprintf(fp_rhok,"%.16lg %.16lg\n",rhocr[i],rhoci[i]);
+  }
+  fclose(fp_rhok);
+  fflush(stdout);
+  exit(0);
+  */
   
   if(fftw3dFlag==100){
     double sum = 0.0;

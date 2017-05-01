@@ -144,6 +144,7 @@ void control_cp_min(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   /* 1) atm minimization                                                 */
 
     if(atm_step==1){
+      //debug print deterministic force
       if(calcul_freq_on == 0){
         general_data->stat_avg.write_cp_atm_flag = 1;
         if(general_data->minopts.min_std==1){
@@ -402,6 +403,10 @@ void control_cp_min(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
     cp_energy_control(class,bonded,general_data,cp);
 
+    for(i=1;i<=natm_tot;i++){
+      printf("atom %i force %.8lg %.8lg %.8lg\n",i,class->clatoms_pos[1].fx[i],
+	     class->clatoms_pos[1].fy[i],class->clatoms_pos[1].fz[i]);
+    }
     simpavg_cp(&(general_data->timeinfo),&(general_data->stat_avg),
                &(general_data->cell),&(bonded->constrnt),
                &(general_data->ensopts),&(general_data->simopts),

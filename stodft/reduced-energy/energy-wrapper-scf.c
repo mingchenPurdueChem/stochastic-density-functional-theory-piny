@@ -5,7 +5,7 @@
 /*                         Stochastic DFT:                                  */
 /*             The future of density functional theory                      */
 /*             ------------------------------------                         */
-/*                   Module: normh.c                                        */
+/*                   Module: energy-wrapper-scf.c                           */
 /*                                                                          */
 /* This routine wrapps all functions used within SCF. Nuclei forces are not */
 /* calculated.								    */
@@ -28,105 +28,6 @@
 
 #include "complex.h"
 #define TIME_CP_OFF
-
-/*==========================================================================*/
-/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
-/*==========================================================================*/
-void calcCoefForceWrap(CLASS *class,GENERAL_DATA *general_data,
-                   CP *cp,CPCOEFFS_POS  *cpcoeffs_pos,CLATOMS_POS *clatoms_pos)
-/*==========================================================================*/
-/*         Begin Routine                                                    */
-   {/*Begin Routine*/
-/*************************************************************************/
-/* This is the wrapper to calculate H|phi> given |phi>			 */
-/* |phi> are stored in cre(im)_up(dn) and H|phi> are stored in		 */
-/* fcre(im)_up(dn), for correct H|phi>, you need to scale all coeff	 */
-/* with k!=0 by -0.5, and k=0 term by -1. Since this step can be	 */
-/* combined with some other scalings, I just output the raw force.	 */
-/*************************************************************************/
-/*=======================================================================*/
-/*         Local Variable declarations                                   */
-
-  CELL *cell                    = &(general_data->cell);
-  CLATOMS_INFO *clatoms_info    = &(class->clatoms_info);
-  EWALD *ewald                  = &(general_data->ewald);
-  EWD_SCR *ewd_scr              = &(class->ewd_scr);
-  ATOMMAPS *atommaps            = &(class->atommaps);
-  FOR_SCR *for_scr              = &(class->for_scr);
-  STAT_AVG *stat_avg            = &(general_data->stat_avg);
-  PTENS *ptens                  = &(general_data->ptens);
-  SIMOPTS *simopts              = &(general_data->simopts);
-
-
-  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
-  STODFTINFO *stodftInfo        = cp->stodftInfo;
-  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
-  CPOPTS *cpopts                = &(cp->cpopts);
-  CPEWALD *cpewald              = &(cp->cpewald);
-  CPSCR *cpscr                  = &(cp->cpscr);
-  PSEUDO *pseudo                = &(cp->pseudo);
-  COMMUNICATE *communicate      = &(cp->communicate);
-
-  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm             = &(cp->cp_sclr_fft_pkg3d_sm);
-  PARA_FFT_PKG3D *cp_para_fft_pkg3d_sm             = &(cp->cp_para_fft_pkg3d_sm);
-  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_dens_cp_box    = &(cp->cp_sclr_fft_pkg3d_dens_cp_box);
-  PARA_FFT_PKG3D *cp_para_fft_pkg3d_dens_cp_box    = &(cp->cp_para_fft_pkg3d_dens_cp_box);
-  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_lg             = &(cp->cp_sclr_fft_pkg3d_lg);
-  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg             = &(cp->cp_para_fft_pkg3d_lg);
-  CP_COMM_STATE_PKG *cp_comm_state_pkg_up          = &(cp->cp_comm_state_pkg_up);
-  CP_COMM_STATE_PKG *cp_comm_state_pkg_dn          = &(cp->cp_comm_state_pkg_dn);
-
-  int cpLsda         = cpopts->cp_lsda;
-  int numStateUpProc = cpcoeffs_info->nstate_up_proc;
-  int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
-  int numCoeff       = cpcoeffs_info->ncoef;
-  int numCoeffUpTotal = numStateUpProc*numCoeff;
-  int numCoeffDnTotal = numStateDnProc*numCoeff;
-  int cpDualGridOptOn  = cpopts->cp_dual_grid_opt;
-  int iState,iCoeff,iCoeffStart,index1,index2;
-  int cpMinOn = 0; //I don't want to calculate cp_hess
-
-  double *fcre_up = cpcoeffs_pos->fcre_up;
-  double *fcim_up = cpcoeffs_pos->fcim_up;
-  double *fcre_dn = cpcoeffs_pos->fcre_dn;
-  double *fcim_dn = cpcoeffs_pos->fcim_dn;
-
-/*==========================================================================*/
-/* 0) Copy the input wave function to CP coeff and zero the force */
-
-  for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
-    fcre_up[iCoeff] = 0.0;
-    fcim_up[iCoeff] = 0.0;
-  }
-  if(cpLsda==1&&numStateDnProc!=0){
-    for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
-      fcre_dn[iCoeff] = 0.0;
-      fcim_dn[iCoeff] = 0.0;
-    }
-  }
-
-/*==========================================================================*/
-/* 1) Calculate the H/sigma|phi> */
-  //control_vps_atm_list will be done somewhere else (perhaps in density calculation?)
-
-  control_cp_eext_recip(clatoms_info,clatoms_pos,cpcoeffs_info,
-                       cpcoeffs_pos,cpewald,cpscr,cpopts,pseudo,
-                       ewd_scr,atommaps,cell,ewald,ptens,&(stat_avg->vrecip),
-                       &(stat_avg->cp_enl),communicate,for_scr,cpDualGridOptOn,
-                       cp_para_fft_pkg3d_lg);
-
-  coef_force_control(cpopts,cpcoeffs_info,cpcoeffs_pos,cpscr,ewald,cpewald,
-                    cell,stat_avg,pseudo->vxc_typ,ptens->pvten_tmp,pseudo->gga_cut,
-                    pseudo->alpha_conv_dual,pseudo->n_interp_pme_dual,cpMinOn,
-                    communicate,cp_comm_state_pkg_up,
-                     cp_comm_state_pkg_dn,cp_para_fft_pkg3d_lg,cp_sclr_fft_pkg3d_lg,
-                     cp_para_fft_pkg3d_dens_cp_box,cp_sclr_fft_pkg3d_dens_cp_box,
-                     cp_para_fft_pkg3d_sm,cp_sclr_fft_pkg3d_sm,cpDualGridOptOn);
-
-/*==========================================================================*/
-}/*end Routine*/
-/*=======================================================================*/
-
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
@@ -398,6 +299,65 @@ void calcNonLocalPseudoScf(CLASS *class,GENERAL_DATA *general_data,
   ntot_up = nstate_up*np_nlmax_all*nlmtot*n_rad_max;
   ntot_dn = 0;
 
+  if(nl_max_all>=0){
+    for(i=1;i<=ntot_up;i++){
+      vnlreal_up[i] = 0.0;
+      vnlimag_up[i] = 0.0;
+      dvnlreal_x_up[i] = 0.0;
+      dvnlreal_y_up[i] = 0.0;
+      dvnlreal_z_up[i] = 0.0;
+      dvnlimag_x_up[i] = 0.0;
+      dvnlimag_y_up[i] = 0.0;
+      dvnlimag_z_up[i] = 0.0;
+    }//endfor
+    if(cp_ptens==1||hess_calc == 3){
+      for(i=1;i<=ntot_up;i++){
+        dvnlreal_gxgx_up[i] = 0.0;
+        dvnlreal_gzgz_up[i] = 0.0;
+        dvnlreal_gygy_up[i] = 0.0;
+        dvnlreal_gxgy_up[i] = 0.0;
+        dvnlreal_gxgz_up[i] = 0.0;
+        dvnlreal_gygz_up[i] = 0.0;
+
+        dvnlimag_gxgx_up[i] = 0.0;
+        dvnlimag_gxgy_up[i] = 0.0;
+        dvnlimag_gygy_up[i] = 0.0;
+        dvnlimag_gxgz_up[i] = 0.0;
+        dvnlimag_gygz_up[i] = 0.0;
+        dvnlimag_gzgz_up[i] = 0.0;
+      }//endfor
+    }//endif:ptens
+    if(cp_lsda==1){
+      ntot_dn = nstate_dn*np_nlmax_all*nlmtot*n_rad_max;
+      for(i=1;i<=ntot_dn;i++){
+        vnlreal_dn[i]    = 0.0;
+        vnlimag_dn[i]    = 0.0;
+        dvnlreal_x_dn[i] = 0.0;
+        dvnlreal_y_dn[i] = 0.0;
+        dvnlreal_z_dn[i] = 0.0;
+        dvnlimag_x_dn[i] = 0.0;
+        dvnlimag_y_dn[i] = 0.0;
+        dvnlimag_z_dn[i] = 0.0;
+      }//endfor
+      if(cp_ptens==1 || hess_calc == 3){
+        for(i=1;i<=ntot_dn;i++){
+ 	  dvnlreal_gxgx_dn[i] = 0.0;
+	  dvnlreal_gxgy_dn[i] = 0.0;
+	  dvnlreal_gxgz_dn[i] = 0.0;
+	  dvnlreal_gygy_dn[i] = 0.0;
+	  dvnlreal_gygz_dn[i] = 0.0;
+	  dvnlreal_gzgz_dn[i] = 0.0;
+
+	  dvnlimag_gxgx_dn[i] = 0.0;
+	  dvnlimag_gxgy_dn[i] = 0.0;
+	  dvnlimag_gxgz_dn[i] = 0.0;
+	  dvnlimag_gygy_dn[i] = 0.0;
+	  dvnlimag_gygz_dn[i] = 0.0;
+	  dvnlimag_gzgz_dn[i] = 0.0;
+        }//endfor*/
+      }//endif:ptens
+    }//endif:lsda
+  }//endif : non-local potential on
 
 /*======================================================================*/
 /* VII) Get the nl pe, pvten and particle forces then the coef forces   */
@@ -965,10 +925,23 @@ void calcCoefForceWrapSCF(CLASS *class,GENERAL_DATA *general_data,
   int iState,iCoeff,iCoeffStart,index1,index2;
   int cpMinOn = 0; //I don't want to calculate cp_hess
 
+  int ncoef_l         =    cp_para_fft_pkg3d_lg->ncoef_proc;
+  int ncoef_l_dens_cp_box = cp_para_fft_pkg3d_dens_cp_box->ncoef_proc;
+
+
   double *fcre_up = cpcoeffs_pos->fcre_up;
   double *fcim_up = cpcoeffs_pos->fcim_up;
   double *fcre_dn = cpcoeffs_pos->fcre_dn;
   double *fcim_dn = cpcoeffs_pos->fcim_dn;
+
+  double *vextr          =    cpscr->cpscr_loc.vextr;
+  double *vexti          =    cpscr->cpscr_loc.vexti;
+  double *vextr_loc      =    cpscr->cpscr_loc.vextr_loc;
+  double *vexti_loc      =    cpscr->cpscr_loc.vexti_loc;
+  double *vextr_dens_cp_box =    cpscr->cpscr_loc.vextr_dens_cp_box;
+  double *vexti_dens_cp_box =    cpscr->cpscr_loc.vexti_dens_cp_box;
+  double *vextr_dens_cp_box_loc = cpscr->cpscr_loc.vextr_dens_cp_box_loc;
+  double *vexti_dens_cp_box_loc = cpscr->cpscr_loc.vexti_dens_cp_box_loc;
 
 /*==========================================================================*/
 /* 0) Copy the input wave function to CP coeff and zero the force */
@@ -983,6 +956,16 @@ void calcCoefForceWrapSCF(CLASS *class,GENERAL_DATA *general_data,
       fcim_dn[iCoeff] = 0.0;
     }
   }
+
+  memcpy(&vextr[1],&(vextr_loc[1]),ncoef_l*sizeof(double));
+  memcpy(&vexti[1],&(vexti_loc[1]),ncoef_l*sizeof(double));
+  if(cpDualGridOptOn==2){
+    memcpy(&vextr_dens_cp_box[1],&vextr_dens_cp_box_loc[1],
+            ncoef_l_dens_cp_box*sizeof(double));
+    memcpy(&vexti_dens_cp_box[1],&vexti_dens_cp_box_loc[1],
+            ncoef_l_dens_cp_box*sizeof(double));
+  }
+
 
 /*==========================================================================*/
 /* 1) Calculate the H/sigma|phi> */

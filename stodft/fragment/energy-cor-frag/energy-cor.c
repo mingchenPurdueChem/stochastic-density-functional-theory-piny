@@ -58,10 +58,11 @@ void energyCorrect(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,
   double vnlCorProc = 0.0;
   double *vnlFxCorProc,*vnlFyCorProc,*vnlFzCorProc;
   MPI_Comm commStates = commCP->comm_states;
-  
-  vnlFxCorProc = (double*)calloc(numAtomTot,sizeof(double));
-  vnlFyCorProc = (double*)calloc(numAtomTot,sizeof(double));
-  vnlFzCorProc = (double*)calloc(numAtomTot,sizeof(double));
+
+  vnlFxCorProc = (double*)cmalloc(numAtomTot*sizeof(double));
+  vnlFyCorProc = (double*)cmalloc(numAtomTot*sizeof(double));
+  vnlFzCorProc = (double*)cmalloc(numAtomTot*sizeof(double));
+ 
 
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     fragInfo->iFrag = iFrag;
@@ -368,6 +369,7 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
   STAT_AVG *statAvg = &(generalDataMini->stat_avg);
   CLATOMS_INFO *clatomsInfoMini = &(classMini->clatoms_info);
   CLATOMS_INFO *clatomsInfo = &(class->clatoms_info);
+  CLATOMS_POS *clatomsPosMini = &(classMini->clatoms_pos[1]);
   
 
   int iState,jState,iCoeff,iStoc,iAtom;
@@ -397,12 +399,22 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
   double *Fx = fragInfo->Fx[iFrag];
   double *Fy = fragInfo->Fy[iFrag];
   double *Fz = fragInfo->Fz[iFrag];
+  double *fx = clatomsPosMini->fx;
+  double *fy = clatomsPosMini->fy;
+  double *fz = clatomsPosMini->fz;
+
   
 
 /*======================================================================*/
 /* I) Calculate the matrix                                              */
 
   calcNonLocalMatrix(cp,cpMini,classMini,generalDataMini);
+
+  for(iAtom=0;iAtom<numAtomFrag;iAtom++){
+    Fx[iAtom] = fx[iAtom+1];
+    Fy[iAtom] = fy[iAtom+1];
+    Fz[iAtom] = fz[iAtom+1];
+  }
 
 /*======================================================================*/
 /* I) Calculate vnl/force correction for spin up elections              */
@@ -450,6 +462,14 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
     vnlFxMatrixUp = &(fragInfo->vnlFxMatrixUp[iFrag][iAtom*numStateUp*numStateUp]);
     vnlFyMatrixUp = &(fragInfo->vnlFyMatrixUp[iFrag][iAtom*numStateUp*numStateUp]);
     vnlFzMatrixUp = &(fragInfo->vnlFzMatrixUp[iFrag][iAtom*numStateUp*numStateUp]);
+    //debug
+    for(iState=0;iState<numStateUp;iState++){
+      for(jState=0;jState<numStateUp;jState++){
+	printf("atom %i istate %i jstate %i vnlFxMatrixUp %lg vnlFyMatrixUp %lg vnlFzMatrixUp %lg\n",
+		iAtom,iState,jState,vnlFxMatrixUp[iState*numStateUp+jState],
+		vnlFyMatrixUp[iState*numStateUp+jState],vnlFzMatrixUp[iState*numStateUp+jState]);
+      }
+    }
     
     vnlFxCorTemp = 0.0;
     vnlFyCorTemp = 0.0;
@@ -506,13 +526,20 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
   printf("vnl %lg vnlCor %lg\n",vnl,vnlCor);
   *vnlCorProc += vnl-vnlCor;
   for(iAtom=0;iAtom<numAtomFrag;iAtom++){
-    vnlFxCorProc[atomFragMapProc[iAtom]] += Fx[iAtom]-vnlFxCorFragLoc[iAtom];
-    vnlFyCorProc[atomFragMapProc[iAtom]] += Fy[iAtom]-vnlFyCorFragLoc[iAtom];
-    vnlFzCorProc[atomFragMapProc[iAtom]] += Fz[iAtom]-vnlFzCorFragLoc[iAtom];
+    printf("iAtom %i atomFragMapProc[iAtom] %i Fx[iAtom] %lg vnlFxCorFragLoc[iAtom] %lg\n",
+    	    iAtom,atomFragMapProc[iAtom],Fx[iAtom],vnlFxCorFragLoc[iAtom]);
+    printf("iAtom %i atomFragMapProc[iAtom] %i Fy[iAtom] %lg vnlFyCorFragLoc[iAtom] %lg\n",
+            iAtom,atomFragMapProc[iAtom],Fy[iAtom],vnlFyCorFragLoc[iAtom]);
+    printf("iAtom %i atomFragMapProc[iAtom] %i Fz[iAtom] %lg vnlFzCorFragLoc[iAtom] %lg\n",
+            iAtom,atomFragMapProc[iAtom],Fz[iAtom],vnlFzCorFragLoc[iAtom]);
+    vnlFxCorProc[atomFragMapProc[iAtom]-1] += Fx[iAtom]-vnlFxCorFragLoc[iAtom];
+    vnlFyCorProc[atomFragMapProc[iAtom]-1] += Fy[iAtom]-vnlFyCorFragLoc[iAtom];
+    vnlFzCorProc[atomFragMapProc[iAtom]-1] += Fz[iAtom]-vnlFzCorFragLoc[iAtom];
   }
   free(vnlFxCorFragLoc);
   free(vnlFyCorFragLoc);
   free(vnlFzCorFragLoc);
+  //exit(0);
 
 /*==========================================================================*/
 }/*end Routine*/

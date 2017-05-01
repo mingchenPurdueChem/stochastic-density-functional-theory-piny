@@ -143,6 +143,7 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
   }
 
   //debug
+<<<<<<< HEAD
   /*
   FILE *fp_rhok = fopen("rho_bm_k","r");
   int ncoef_l = cp->cp_para_fft_pkg3d_lg.ncoef;
@@ -153,6 +154,18 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
   }
   fclose(fp_rhok);
   */
+=======
+  
+  FILE *fp_rhok = fopen("rho_bm_k","r");
+  int ncoef_l = cp->cp_para_fft_pkg3d_lg.ncoef;
+  for(iCoeff=1;iCoeff<=ncoef_l;iCoeff++){
+    fscanf(fp_rhok,"%lg",&(cp->cpscr.cpscr_rho.rhocr_up[iCoeff]));
+    fscanf(fp_rhok,"%lg",&(cp->cpscr.cpscr_rho.rhoci_up[iCoeff]));
+    //printf("rho k %lg %lg\n",cp->cpscr.cpscr_rho.rhocr_up[1],cp->cpscr.cpscr_rho.rhoci_up[1]);
+  }
+  fclose(fp_rhok);
+  
+>>>>>>> fragment-onebody-new
 
   calcLocExtPostScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
 
@@ -205,6 +218,24 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
       }//endfor iCoeff
     }//endif cpLsda
 
+<<<<<<< HEAD
+=======
+    //debug
+    /*
+    for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
+      cre_up[iCoeff] = 0.0;
+      cim_up[iCoeff] = 0.0;
+    }
+    FILE *fwfread = fopen("wf-det","r");
+    for(iState=0;iState<4;iState++){
+      for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+	fscanf(fwfread,"%lg",&(cre_up[iState*numCoeff+iCoeff]));
+        fscanf(fwfread,"%lg",&(cim_up[iState*numCoeff+iCoeff]));
+      }
+    }
+    fclose(fwfread);
+    */
+>>>>>>> fragment-onebody-new
     //pp 
     for(iAtom=1;iAtom<=numAtomTot;iAtom++){
       fx[iAtom] = 0.0;
@@ -222,6 +253,10 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
       fx[iAtom] *= occNumber;
       fy[iAtom] *= occNumber;
       fz[iAtom] *= occNumber;
+<<<<<<< HEAD
+=======
+      printf("fx %lg fy %lg fz %lg\n",fx[iAtom],fy[iAtom],fz[iAtom]);
+>>>>>>> fragment-onebody-new
     }
 
 /*--------------------------------------------------------------------------*/
@@ -251,6 +286,17 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
 	fzNl[iChem][iAtom] /= numStateStoUp;
       }
       //printf("iChem %i chemPot %lg K %lg NL %lg\n",iChem,chemPot[iChem],energyKineticTemp,energyNLTemp);
+<<<<<<< HEAD
+=======
+      //debug
+      /*
+      for(iAtom=0;iAtom<numAtomTot;iAtom++){
+	fxNl[iChem][iAtom] *= numStateStoUp/(double)(occNumber);
+        fyNl[iChem][iAtom] *= numStateStoUp/(double)(occNumber);
+        fzNl[iChem][iAtom] *= numStateStoUp/(double)(occNumber);
+      }
+      */
+>>>>>>> fragment-onebody-new
     }
   }//endfor iChem
 
@@ -291,7 +337,12 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
 	fxNlTrue[iAtom] = fxNl[0][iAtom];
 	fyNlTrue[iAtom] = fyNl[0][iAtom];
 	fzNlTrue[iAtom] = fzNl[0][iAtom];
+<<<<<<< HEAD
 	printf("fxNlTrue %lg fyNlTrue %lg fzNlTrue %lg\n",fxNlTrue[iAtom],fyNlTrue[iAtom],fzNlTrue[iAtom]);
+=======
+	printf("fxNlTrue %lg fyNlTrue %lg fzNlTrue %lg vnlFxCor %lg vnlFyCor %lg vnlFzCor %lg\n",
+		fxNlTrue[iAtom],fyNlTrue[iAtom],fzNlTrue[iAtom],vnlFxCor[iAtom],vnlFyCor[iAtom],vnlFzCor[iAtom]);
+>>>>>>> fragment-onebody-new
       }//endfor iAtom
     }//endif chemPotOpt
     //Correct the non local force by fragment       
@@ -394,7 +445,11 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
     printf("==============================================\n");
 
     for(iAtom=0;iAtom<numAtomTot;iAtom++){
+<<<<<<< HEAD
       printf("atom %i uncor %.8lg %.8lg %.8lg cor %.8lg %.8lg %.8lg\n",
+=======
+      printf("atom %i cor %.8lg %.8lg %.8lg Uncor %.8lg %.8lg %.8lg\n",
+>>>>>>> fragment-onebody-new
 	     iAtom,fx[iAtom+1],fy[iAtom+1],fz[iAtom+1],
 	     fxUnCor[iAtom],fyUnCor[iAtom],fzUnCor[iAtom]);
     }

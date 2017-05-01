@@ -292,7 +292,7 @@ void calcTotEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     printf("Output Energy\n");
     printf("==============================================\n");
     printf("Kinetic Energy:	 %.16lg %.16lg\n",energyKeNoCor,energyKeTrue);
-    printf("NL Pseudopotential:  %.16lg %.16lg\n",energyPNLNoCor,energyPNLTrue);
+    printf("NL Pseudopotential:  %.16lg %.16lg %.16lg\n",energyPNLNoCor,energyPNLTrue,fragInfo->vnlCor);
     printf("Hartree Energy:      %.16lg\n",energyHartTemp);
     printf("Ext Energy:          %.16lg\n",energyExtTemp); 
     printf("Ex-Cor Energy:       %.16lg\n",energyExcTemp); 

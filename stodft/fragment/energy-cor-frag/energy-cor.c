@@ -412,8 +412,13 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
 
   for(iAtom=0;iAtom<numAtomFrag;iAtom++){
     Fx[iAtom] = fx[iAtom+1];
+<<<<<<< HEAD
     Fy[iAtom] = fx[iAtom+1];
     Fz[iAtom] = fx[iAtom+1];
+=======
+    Fy[iAtom] = fy[iAtom+1];
+    Fz[iAtom] = fz[iAtom+1];
+>>>>>>> fragment-onebody-new
   }
 
 /*======================================================================*/
@@ -467,7 +472,11 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
       for(jState=0;jState<numStateUp;jState++){
 	printf("atom %i istate %i jstate %i vnlFxMatrixUp %lg vnlFyMatrixUp %lg vnlFzMatrixUp %lg\n",
 		iAtom,iState,jState,vnlFxMatrixUp[iState*numStateUp+jState],
+<<<<<<< HEAD
 		vnlFzMatrixUp[iState*numStateUp+jState],vnlFzMatrixUp[iState*numStateUp+jState]);
+=======
+		vnlFyMatrixUp[iState*numStateUp+jState],vnlFzMatrixUp[iState*numStateUp+jState]);
+>>>>>>> fragment-onebody-new
       }
     }
     

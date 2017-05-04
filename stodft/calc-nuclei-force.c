@@ -120,18 +120,22 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
   double *fxTemp;
   double *fyTemp;
   double *fzTemp;
-  double *fxBackup,*fyBackup,*fzBackup;
+  double *fxNuclei,*fyNuclei,*fzNuclei;
   double *fxNlTrue,*fyNlTrue,*fzNlTrue;
   double *fxUnCor,*fyUnCor,*fzUnCor;
+  double *fxLoc,*fyLoc,*fzLoc;
 
   MPI_Comm commStates = communicate->comm_states;
 
 /*======================================================================*/
 /* I) Calculate Local pp	                                        */
 
-  fxBackup = (double *)cmalloc(numAtomTot*sizeof(double));
-  fyBackup = (double *)cmalloc(numAtomTot*sizeof(double));
-  fzBackup = (double *)cmalloc(numAtomTot*sizeof(double));
+  fxNuclei = (double *)cmalloc(numAtomTot*sizeof(double));
+  fyNuclei = (double *)cmalloc(numAtomTot*sizeof(double));
+  fzNuclei = (double *)cmalloc(numAtomTot*sizeof(double));
+  fxLoc = (double *)cmalloc(numAtomTot*sizeof(double));
+  fyLoc = (double *)cmalloc(numAtomTot*sizeof(double));
+  fzLoc = (double *)cmalloc(numAtomTot*sizeof(double));
   fxUnCor = (double *)cmalloc(numAtomTot*sizeof(double));
   fyUnCor = (double *)cmalloc(numAtomTot*sizeof(double));
   fzUnCor = (double *)cmalloc(numAtomTot*sizeof(double));
@@ -142,20 +146,18 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
     fz[iAtom] = 0.0;
   }
 
-  //debug
-<<<<<<< HEAD
-  /*
-  FILE *fp_rhok = fopen("rho_bm_k","r");
+  FILE *fp_rhoout = fopen("rho_k","w");
   int ncoef_l = cp->cp_para_fft_pkg3d_lg.ncoef;
   for(iCoeff=1;iCoeff<=ncoef_l;iCoeff++){
-    //fscanf(fp_rhok,"%lg",&(cp->cpscr.cpscr_rho.rhocr_up[iCoeff]));
-    //fscanf(fp_rhok,"%lg",&(cp->cpscr.cpscr_rho.rhoci_up[iCoeff]));
+    fprintf(fp_rhoout,"%.16lg %.16lg\n",cp->cpscr.cpscr_rho.rhocr_up[iCoeff],
+	    cp->cpscr.cpscr_rho.rhoci_up[iCoeff]);
     //printf("rho k %lg %lg\n",cp->cpscr.cpscr_rho.rhocr_up[1],cp->cpscr.cpscr_rho.rhoci_up[1]);
   }
-  fclose(fp_rhok);
-  */
-=======
-  
+  fclose(fp_rhoout);
+
+
+  //debug
+  /*
   FILE *fp_rhok = fopen("rho_bm_k","r");
   int ncoef_l = cp->cp_para_fft_pkg3d_lg.ncoef;
   for(iCoeff=1;iCoeff<=ncoef_l;iCoeff++){
@@ -164,20 +166,20 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
     //printf("rho k %lg %lg\n",cp->cpscr.cpscr_rho.rhocr_up[1],cp->cpscr.cpscr_rho.rhoci_up[1]);
   }
   fclose(fp_rhok);
-  
->>>>>>> fragment-onebody-new
+  */
 
   calcLocExtPostScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+  printf("fx[1] %lg fy[1] %lg fz[1] %lg\n",fx[1],fy[1],fz[1]);
 
   if(numProcStates==1){
-    memcpy(&fxBackup[0],&fx[1],numAtomTot*sizeof(double));
-    memcpy(&fyBackup[0],&fy[1],numAtomTot*sizeof(double));
-    memcpy(&fzBackup[0],&fz[1],numAtomTot*sizeof(double));
+    memcpy(&fxLoc[0],&fx[1],numAtomTot*sizeof(double));
+    memcpy(&fyLoc[0],&fy[1],numAtomTot*sizeof(double));
+    memcpy(&fzLoc[0],&fz[1],numAtomTot*sizeof(double));
   }
   else{
-    Reduce(&fx[1],&fxBackup[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
-    Reduce(&fy[1],&fyBackup[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
-    Reduce(&fz[1],&fzBackup[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+    Reduce(&fx[1],&fxLoc[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+    Reduce(&fy[1],&fyLoc[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+    Reduce(&fz[1],&fzLoc[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
     Reduce(&(stat_avg->vrecip),&vrecip,1,MPI_DOUBLE,MPI_SUM,0,commStates);
   }
 
@@ -218,8 +220,6 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
       }//endfor iCoeff
     }//endif cpLsda
 
-<<<<<<< HEAD
-=======
     //debug
     /*
     for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
@@ -235,7 +235,6 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
     }
     fclose(fwfread);
     */
->>>>>>> fragment-onebody-new
     //pp 
     for(iAtom=1;iAtom<=numAtomTot;iAtom++){
       fx[iAtom] = 0.0;
@@ -245,18 +244,34 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
 
 /*--------------------------------------------------------------------------*/
 /* ii) Calculate nl pp force						    */
-
+    //debug
+    /*
+    for(iState=0;iState<numStateUpProc;iState++){
+      cpcoeffs_info->nstate_up_proc = 1;
+      fy[1] = 0.0;
+      for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
+	cre_up[iCoeff] = 0.0;
+	cim_up[iCoeff] = 0.0;
+        fcre_up[iCoeff] = 0.0;
+        fcim_up[iCoeff] = 0.0;
+      }
+      for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+	cre_up[iCoeff] = stoWfUpRe[0][iState*numCoeff+iCoeff];
+        cim_up[iCoeff] = stoWfUpIm[0][iState*numCoeff+iCoeff];
+      }
+      calcNlPseudoPostScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+      printf("fyyyyyy %lg\n",fy[1]);
+    }
+    exit(0);
+    */
     //calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
-    calcNlPseudoPostScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+    //calcNlPseudoPostScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     //calcCoefForceExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     for(iAtom=1;iAtom<=numAtomTot;iAtom++){
       fx[iAtom] *= occNumber;
       fy[iAtom] *= occNumber;
       fz[iAtom] *= occNumber;
-<<<<<<< HEAD
-=======
-      printf("fx %lg fy %lg fz %lg\n",fx[iAtom],fy[iAtom],fz[iAtom]);
->>>>>>> fragment-onebody-new
+      //printf("fx %lg fy %lg fz %lg\n",fx[iAtom],fy[iAtom],fz[iAtom]);
     }
 
 /*--------------------------------------------------------------------------*/
@@ -286,8 +301,6 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
 	fzNl[iChem][iAtom] /= numStateStoUp;
       }
       //printf("iChem %i chemPot %lg K %lg NL %lg\n",iChem,chemPot[iChem],energyKineticTemp,energyNLTemp);
-<<<<<<< HEAD
-=======
       //debug
       /*
       for(iAtom=0;iAtom<numAtomTot;iAtom++){
@@ -296,7 +309,6 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
         fzNl[iChem][iAtom] *= numStateStoUp/(double)(occNumber);
       }
       */
->>>>>>> fragment-onebody-new
     }
   }//endfor iChem
 
@@ -337,12 +349,8 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
 	fxNlTrue[iAtom] = fxNl[0][iAtom];
 	fyNlTrue[iAtom] = fyNl[0][iAtom];
 	fzNlTrue[iAtom] = fzNl[0][iAtom];
-<<<<<<< HEAD
-	printf("fxNlTrue %lg fyNlTrue %lg fzNlTrue %lg\n",fxNlTrue[iAtom],fyNlTrue[iAtom],fzNlTrue[iAtom]);
-=======
 	printf("fxNlTrue %lg fyNlTrue %lg fzNlTrue %lg vnlFxCor %lg vnlFyCor %lg vnlFzCor %lg\n",
 		fxNlTrue[iAtom],fyNlTrue[iAtom],fzNlTrue[iAtom],vnlFxCor[iAtom],vnlFyCor[iAtom],vnlFzCor[iAtom]);
->>>>>>> fragment-onebody-new
       }//endfor iAtom
     }//endif chemPotOpt
     //Correct the non local force by fragment       
@@ -354,9 +362,11 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
   if(calcFragFlag==1&&myidState==0){
     for(iAtom=0;iAtom<numAtomTot;iAtom++){
       // Add contribution from local pp
+      /*
       fxNlTrue[iAtom] += fxBackup[iAtom];
       fyNlTrue[iAtom] += fyBackup[iAtom];
       fzNlTrue[iAtom] += fzBackup[iAtom];
+      */
       // backup the uncorrected	version
       fxUnCor[iAtom] = fxNlTrue[iAtom];
       fyUnCor[iAtom] = fyNlTrue[iAtom];
@@ -394,26 +404,28 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
   class->energy_ctrl.iget_res_inter = 0;
   energy_control_inter_real(class,bonded,general_data);
 
+
+  printf("22222222 fx %lg fy %lg fz %lg\n",fx[1],fy[1],fz[1]);
   if(numProcStates==1){
-    memcpy(&fxBackup[0],&fx[1],numAtomTot*sizeof(double));
-    memcpy(&fyBackup[0],&fy[1],numAtomTot*sizeof(double));
-    memcpy(&fzBackup[0],&fz[1],numAtomTot*sizeof(double));
+    memcpy(&fxNuclei[0],&fx[1],numAtomTot*sizeof(double));
+    memcpy(&fyNuclei[0],&fy[1],numAtomTot*sizeof(double));
+    memcpy(&fzNuclei[0],&fz[1],numAtomTot*sizeof(double));
   }
   else{
-    Reduce(&fx[1],&fxBackup[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
-    Reduce(&fy[1],&fyBackup[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
-    Reduce(&fz[1],&fzBackup[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+    Reduce(&fx[1],&fxNuclei[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+    Reduce(&fy[1],&fyNuclei[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+    Reduce(&fz[1],&fzNuclei[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
   }
 
   if(myidState==0){
     for(iAtom=0;iAtom<numAtomTot;iAtom++){
-      fx[iAtom+1] = fxNlTrue[iAtom]+fxBackup[iAtom];
-      fy[iAtom+1] = fyNlTrue[iAtom]+fyBackup[iAtom];
-      fz[iAtom+1] = fzNlTrue[iAtom]+fzBackup[iAtom];
+      fx[iAtom+1] = fxNlTrue[iAtom]+fxLoc[iAtom]+fxNuclei[iAtom];
+      fy[iAtom+1] = fyNlTrue[iAtom]+fyLoc[iAtom]+fyNuclei[iAtom];
+      fz[iAtom+1] = fzNlTrue[iAtom]+fzLoc[iAtom]+fzNuclei[iAtom];
       if(calcFragFlag==1){
-        fxUnCor[iAtom] += fxBackup[iAtom];
-        fyUnCor[iAtom] += fyBackup[iAtom];
-        fzUnCor[iAtom] += fzBackup[iAtom];
+        fxUnCor[iAtom] += fxLoc[iAtom]+fxNuclei[iAtom];
+        fyUnCor[iAtom] += fyLoc[iAtom]+fyNuclei[iAtom];
+        fzUnCor[iAtom] += fzLoc[iAtom]+fzNuclei[iAtom];
       }//endif calcFragFlag
     }//endfor iAtom
   }//endif myidState
@@ -445,22 +457,21 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
     printf("==============================================\n");
 
     for(iAtom=0;iAtom<numAtomTot;iAtom++){
-<<<<<<< HEAD
-      printf("atom %i uncor %.8lg %.8lg %.8lg cor %.8lg %.8lg %.8lg\n",
-=======
-      printf("atom %i cor %.8lg %.8lg %.8lg Uncor %.8lg %.8lg %.8lg\n",
->>>>>>> fragment-onebody-new
+      printf("atom %i cor %.8lg %.8lg %.8lg Uncor %.8lg %.8lg %.8lg loc %.8lg %.8lg %.8lg\n",
 	     iAtom,fx[iAtom+1],fy[iAtom+1],fz[iAtom+1],
-	     fxUnCor[iAtom],fyUnCor[iAtom],fzUnCor[iAtom]);
+	     fxUnCor[iAtom],fyUnCor[iAtom],fzUnCor[iAtom],fxLoc[iAtom],fyLoc[iAtom],fzLoc[iAtom]);
     }
   }
 
 /*======================================================================*/
 /* VII) Free all temp vectors                                           */
 
-  free(&fxBackup[0]);  
-  free(&fyBackup[0]);
-  free(&fzBackup[0]);
+  free(&fxNuclei[0]);  
+  free(&fyNuclei[0]);
+  free(&fzNuclei[0]);
+  free(&fxLoc[0]);
+  free(&fyLoc[0]);
+  free(&fzLoc[0]);
   free(&fxUnCor[0]);
   free(&fyUnCor[0]);
   free(&fzUnCor[0]);

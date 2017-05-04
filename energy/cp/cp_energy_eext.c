@@ -393,6 +393,8 @@ void control_cp_eext_recip(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
   pseudo->vnl_kb_flag = 0;
   pseudo->vnl_gh_flag = 0;
 
+  //debug
+  //nl_max_kb = -1;
   if( (nl_max_kb >= 0) && ((ntot_up+ntot_dn)>0) ){
 #ifdef TIME_CP
     if(np_states>1){Barrier(comm_states);}

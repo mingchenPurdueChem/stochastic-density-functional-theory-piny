@@ -204,7 +204,8 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
    }
  }
  fclose(filewf);
-  */
+ */
+  
   /*
   if(fftw3dFlag==0){
     for(i=1;i<=ncoef;i++){
@@ -442,6 +443,7 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
   exit(0);
   */
   
+  /*
   if(fftw3dFlag==100){
     double sum = 0.0;
     FILE *fp_rho = fopen("rho_bm","w");
@@ -458,7 +460,7 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
     }
     //printf("rho sum test %lg\n",sum);
     fclose(fp_rho);
-    
+    */
     /*
     for(i=1;i<=ncoef_l;i++){
       fprintf(fp_rho,"%i %i %i %lg %lg\n",kastr[i],kbstr[i],kcstr[i],rhocr[i],rhoci[i]);
@@ -466,7 +468,7 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
     */
     
     //exit(0);
-  }
+  //}
   //exit(0);
 
 /*==========================================================================*/
@@ -556,6 +558,25 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
          rho[i] *= rvol_cp;
       }/*endfor*/
      }/*endif cp_dual_grid_opt*/
+
+
+  if(fftw3dFlag==0){
+    double sum = 0.0;
+    FILE *fp_rho = fopen("rho_bm","w");
+    if(np_states == 1){
+      for(kc=1;kc<=nkf3;kc++){
+        for(kb=1;kb<=nkf2;kb++){
+          for(ka=1;ka<=nkf1;ka++){
+            i = (ka-1) + (kb-1)*nkf1 + (kc-1)*nkf1*nkf2 + 1;
+            fprintf(fp_rho,"%i %i %i %.5e\n",kc,kb,ka,rho[i]);
+            sum += rho[i];
+          }//endfor
+        }//endfor
+      }//endfor
+    }
+    //printf("rho sum test %lg\n",sum);
+    fclose(fp_rho);
+  }
 
 /*==============================================================*/
 /* VII) if doing gradient corrections, get gradient of density  */

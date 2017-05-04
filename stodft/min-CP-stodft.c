@@ -495,6 +495,11 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   double **stoWfDnRe = stodftCoefPos->stoWfDnRe;
   double **stoWfDnIm = stodftCoefPos->stoWfDnIm;
 
+  //debug
+  FILE *fileRhoRecip;
+  int numCoeffLargeProc = cp->cp_para_fft_pkg3d_lg.ncoef_proc;
+  double *rhoCoeffReUp = cpscr->cpscr_rho.rhocr_up;
+  double *rhoCoeffImUp = cpscr->cpscr_rho.rhoci_up;
 
 /*======================================================================*/
 /* I) Check the approximations in the methods				*/
@@ -593,6 +598,7 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     printf("myid %i finish reading in WF.\n",myidState);
     printf("%lg %lg\n",stoWfUpRe[0][1],stoWfUpIm[0][1]);
     
+    
     /*
     printf("Start Readin WF\n");
 
@@ -671,6 +677,13 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     */
     if(myidState==0)printf("**Finish Calculating Kohn-Sham Potential\n");
 
+    fileRhoRecip = fopen("rho_k_2","w");
+    for(iCoeff=1;iCoeff<=numCoeffLargeProc;iCoeff++){
+      fprintf(fileRhoRecip,"%.10lg %.10lg\n",rhoCoeffReUp[iCoeff],rhoCoeffImUp[iCoeff]);
+    }
+    fclose(fileRhoRecip);
+
+
 /*----------------------------------------------------------------------*/
 /* v) Calculate the total energy		                        */
 
@@ -692,6 +705,46 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     }
     //exit(0);
   }//endfor iScf
+
+  
+
+
+  /*  
+  char wfname[100];
+  //sprintf(wfname,"/scratch/mingchen/tmp/sto-wf-save-%i",myidState);
+  printf("Read in stochastic orbitals...\n");
+  sprintf(wfname,"sto-wf-save-%i",myidState);
+
+  FILE *filePrintWF = fopen(wfname,"w");
+  for(iChem=0;iChem<numChemPot;iChem++){
+    for(iState=0;iState<numStateUp;iState++){
+      for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+	//fscanf(filePrintWF,"%lg",&stoWfUpRe[iChem][iState*numCoeff+iCoeff]);
+	//fscanf(filePrintWF,"%lg",&stoWfUpIm[iChem][iState*numCoeff+iCoeff]);
+	fprintf(filePrintWF,"%.16lg %.16lg\n",stoWfUpRe[iChem][iState*numCoeff+iCoeff],
+	        stoWfUpIm[iChem][iState*numCoeff+iCoeff]);
+      }//endfor iCoeff
+    }//endfor iState
+  }//endfor iChem
+  fclose(filePrintWF);
+ 
+  FILE *fp_rhok = fopen("rho_conv","w");
+  int ncoef_l = cp->cp_para_fft_pkg3d_lg.ncoef;
+  for(iCoeff=1;iCoeff<=ncoef_l;iCoeff++){
+    //fscanf(fp_rhok,"%lg",&(cp->cpscr.cpscr_rho.rhocr_up[iCoeff]));
+    //fscanf(fp_rhok,"%lg",&(cp->cpscr.cpscr_rho.rhoci_up[iCoeff]));
+    fprintf(fp_rhok,"%.16lg %.16lg\n",cp->cpscr.cpscr_rho.rhocr_up[iCoeff],cp->cpscr.cpscr_rho.rhoci_up[iCoeff]);
+  }
+  fclose(fp_rhok);
+  */
+
+    fileRhoRecip = fopen("rho_k_3","w");
+    for(iCoeff=1;iCoeff<=numCoeffLargeProc;iCoeff++){
+      fprintf(fileRhoRecip,"%.10lg %.10lg\n",rhoCoeffReUp[iCoeff],rhoCoeffImUp[iCoeff]);
+    }
+    fclose(fileRhoRecip);  
+
+
 
 /*======================================================================*/
 /* VI) Calculate nuclei forces after SCF loop	                        */

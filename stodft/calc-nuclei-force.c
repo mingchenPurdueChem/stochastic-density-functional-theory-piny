@@ -413,7 +413,7 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
 	fxNlTrue[iAtom] = fxNl[0][iAtom];
 	fyNlTrue[iAtom] = fyNl[0][iAtom];
 	fzNlTrue[iAtom] = fzNl[0][iAtom];
-	printf("fxNlTrue %lg fyNlTrue %lg fzNlTrue %lg vnlFxCor %lg vnlFyCor %lg vnlFzCor %lg\n",
+	printf("fxNlTrue %.16lg fyNlTrue %.16lg fzNlTrue %.16lg vnlFxCor %.16lg vnlFyCor %.16lg vnlFzCor %.16lg\n",
 		fxNlTrue[iAtom],fyNlTrue[iAtom],fzNlTrue[iAtom],vnlFxCor[iAtom],vnlFyCor[iAtom],vnlFzCor[iAtom]);
       }//endfor iAtom
     }//endif chemPotOpt

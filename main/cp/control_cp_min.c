@@ -404,7 +404,7 @@ void control_cp_min(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     cp_energy_control(class,bonded,general_data,cp);
 
     for(i=1;i<=natm_tot;i++){
-      printf("atom %i force %.8lg %.8lg %.8lg\n",i,class->clatoms_pos[1].fx[i],
+      printf("atom %i force %.16lg %.16lg %.16lg\n",i,class->clatoms_pos[1].fx[i],
 	     class->clatoms_pos[1].fy[i],class->clatoms_pos[1].fz[i]);
     }
     simpavg_cp(&(general_data->timeinfo),&(general_data->stat_avg),

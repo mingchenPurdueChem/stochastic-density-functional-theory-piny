@@ -376,6 +376,8 @@ void control_cp_eext_recip(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 #endif
 
   }/*endif cp_dual_grid_opt*/
+  //debug
+  printf("after loc fx[1] %.16lg fy[1] %.16lg fz[1] %.16lg\n",fx[1],fy[1],fz[1]);
  
 /*======================================================================*/
 /* VII) Get the nl pe, pvten and particle forces then the coef forces   */
@@ -447,6 +449,8 @@ void control_cp_eext_recip(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 #endif
 
   }/*endif*/
+  //debug
+  printf("after nonloc fx[1] %.16lg fy[1] %.16lg fz[1] %.16lg\n",fx[1],fy[1],fz[1]);
 /*-------------------------------------------------------------------------*/
 /* B) Gauss-Hermite NLs                                                    */
 

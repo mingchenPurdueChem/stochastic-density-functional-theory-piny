@@ -475,6 +475,12 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
     vnlFyCorTemp = 0.0;
     vnlFzCorTemp = 0.0;
     double testfycor;
+    //debug
+    for(iState=0;iState<4;iState++){
+      for(jState=0;jState<4;jState++){
+	
+      }
+    }
     for(iStoc=0;iStoc<numStateStoUp;iStoc++){
       dsymvWrapper('U',numStateUp,1.0,vnlFxMatrixUp,numStateUp,&wfProjUp[iStoc*numStateUp],1,0.0,temp,1);
       vnlFxCorTemp += ddotBlasWrapper(numStateUp,temp,1,&wfProjUp[iStoc*numStateUp],1);

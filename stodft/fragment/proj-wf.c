@@ -35,6 +35,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 #include "../typ_defs/typ_mask.h"
 
   STODFTINFO *stodftInfo = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
   FRAGINFO *fragInfo = stodftInfo->fragInfo;
   CPOPTS *cpOpts = &(cp->cpopts);
   CPCOEFFS_INFO *cpcoeffs_info = &(cp->cpcoeffs_info);
@@ -42,7 +43,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   COMMUNICATE *commCP = &(cp->communicate);
   CELL *cell	      = &(general_data->cell);
  
-  int iFrag,iGrid,iState,iStateFrag,iProc;
+  int iFrag,iGrid,iState,jState,iStateFrag,iProc;
   int gridIndex;
   int numGrid;
   int numStateUpMini;
@@ -60,6 +61,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   int numStateDnProc	    = cpcoeffs_info->nstate_dn_proc;
   int numStateStoUp     = stodftInfo->numStateStoUp;
   int numStateStoDn     = stodftInfo->numStateStoDn;
+  int numCoeff		= cpcoeffs_info->ncoef;
   int countWf;
 
   MPI_Comm commStates   =    commCP->comm_states;
@@ -292,6 +294,33 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 /*======================================================================*/
 /* IV) Calculate the real space noise wave function                     */
 
+  //debug copy the deterministic wf here and backup the stochastic ones
+  int numCoeffTotal = numStateStoUp*numCoeff;
+  int iCoeff;
+  double *noiseReUpBackup = (double*)cmalloc(numCoeffTotal*sizeof(double));
+  double *noiseImUpBackup = (double*)cmalloc(numCoeffTotal*sizeof(double));
+  
+  for(iCoeff=0;iCoeff<numCoeffTotal;iCoeff++){
+    noiseReUpBackup[iCoeff] = cp->cpcoeffs_pos[1].cre_up[iCoeff+1];
+    noiseImUpBackup[iCoeff] = cp->cpcoeffs_pos[1].cim_up[iCoeff+1];
+  }
+  for(iState=0;iState<4;iState++){
+    FILE *fwfread = fopen("wf-det","r");
+    for(jState=0;jState<4;jState++){
+      for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+        fscanf(fwfread,"%lg",&(cp->cpcoeffs_pos[1].cre_up[iState*4*numCoeff+jState*numCoeff+iCoeff]));
+        fscanf(fwfread,"%lg",&(cp->cpcoeffs_pos[1].cim_up[iState*4*numCoeff+jState*numCoeff+iCoeff]));
+      }      
+    }
+    fclose(fwfread);
+  }
+  double presq = sqrt(2.0);
+  for(iCoeff=1;iCoeff<=numCoeffTotal;iCoeff++){
+    cp->cpcoeffs_pos[1].cre_up[iCoeff] *= presq;
+    cp->cpcoeffs_pos[1].cim_up[iCoeff] *= presq;
+  }
+
+
   rhoRealCalcDriverNoise(general_data,cp,class,ip_now);
 
 /*======================================================================*/
@@ -458,6 +487,15 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 
 /*======================================================================*/
 /* VI) Free memories                                                    */
+
+  //debug
+  for(iCoeff=0;iCoeff<numCoeffTotal;iCoeff++){
+    cp->cpcoeffs_pos[1].cre_up[iCoeff+1] = noiseReUpBackup[iCoeff];
+    cp->cpcoeffs_pos[1].cim_up[iCoeff+1] = noiseImUpBackup[iCoeff];
+  } 
+  free(noiseReUpBackup);
+  free(noiseImUpBackup);
+
 
   if(numProcStates>1&&myidState==0)free(rhoTempReduce);
   free(rhoTemp);

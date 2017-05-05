@@ -677,13 +677,6 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     */
     if(myidState==0)printf("**Finish Calculating Kohn-Sham Potential\n");
 
-    fileRhoRecip = fopen("rho_k_2","w");
-    for(iCoeff=1;iCoeff<=numCoeffLargeProc;iCoeff++){
-      fprintf(fileRhoRecip,"%.10lg %.10lg\n",rhoCoeffReUp[iCoeff],rhoCoeffImUp[iCoeff]);
-    }
-    fclose(fileRhoRecip);
-
-
 /*----------------------------------------------------------------------*/
 /* v) Calculate the total energy		                        */
 
@@ -737,15 +730,6 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }
   fclose(fp_rhok);
   */
-
-    fileRhoRecip = fopen("rho_k_3","w");
-    for(iCoeff=1;iCoeff<=numCoeffLargeProc;iCoeff++){
-      fprintf(fileRhoRecip,"%.10lg %.10lg\n",rhoCoeffReUp[iCoeff],rhoCoeffImUp[iCoeff]);
-    }
-    fclose(fileRhoRecip);  
-
-
-
 /*======================================================================*/
 /* VI) Calculate nuclei forces after SCF loop	                        */
 

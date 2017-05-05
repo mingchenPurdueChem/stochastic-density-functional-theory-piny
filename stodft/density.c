@@ -1516,14 +1516,6 @@ void calcRhoStoHybridCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
     } /* endif */
   }/* endif */
 
-    
-    FILE *fileRhoRecip = fopen("rho_k_1","w");
-    for(iCoeff=1;iCoeff<=numCoeffLargeProc;iCoeff++){
-      fprintf(fileRhoRecip,"%.10lg %.10lg\n",rhoCoeffReUp[iCoeff],rhoCoeffImUp[iCoeff]);
-    }
-    fclose(fileRhoRecip);  
-    
-
    //exit(0);
 /*==========================================================================*/
 }/*end Routine*/

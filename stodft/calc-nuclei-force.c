@@ -44,6 +44,8 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
   STODFTINFO *stodftInfo        = cp->stodftInfo;
   STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
   CPOPTS *cpopts                = &(cp->cpopts);
+  CPSCR *cpscr		        = &(cp->cpscr);
+  PSEUDO *pseudo	        = &(cp->pseudo);
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
   COMMUNICATE *communicate      = &(cp->communicate);
   STAT_AVG *stat_avg            = &(general_data->stat_avg);
@@ -55,6 +57,7 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
   FRAGINFO *fragInfo            = stodftInfo->fragInfo;
   
   int cpLsda         = cpopts->cp_lsda;
+  int cpGGA  = cpopts->cp_gga;
   int numStateStoUp  = stodftInfo->numStateStoUp;
   int atomForceFlag  = stodftInfo->atomForceFlag;
   int chemPotOpt     = stodftInfo->chemPotOpt;
@@ -64,14 +67,19 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
   int numCoeff       = cpcoeffs_info->ncoef;
   int numCoeffUpTotal = numStateUpProc*numCoeff;
   int numCoeffDnTotal = numStateDnProc*numCoeff;
+  int numCoeffLarge       = cpcoeffs_info->ncoef_l;
+  int numCoeffLargeProc   = cp->cp_para_fft_pkg3d_lg.ncoef_proc;
+  int numCoeffLargeProcDensCpBox = cp->cp_para_fft_pkg3d_dens_cp_box.ncoef_proc;
   int cpDualGridOptOn = cpopts->cp_dual_grid_opt;
+  int rhoRealGridNum    = stodftInfo->rhoRealGridNum;
+  int numInterpPmeDual = pseudo->n_interp_pme_dual;
   int iperd	      = cell->iperd;
   int numChemPot = stodftInfo->numChemPot;
   int occNumber = stodftInfo->occNumber;
   int myidState         = communicate->myid_state;
   int numProcStates = communicate->np_states;
   int numAtomTot = clatoms_info->natm_tot;
-  int iState,iCoeff,iChem,iAtom;
+  int iState,iCoeff,iChem,iAtom,iGrid;
   int ioff,iis;
 
   double tpi = 2.0*M_PI;
@@ -83,6 +91,7 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
   double energyEext = stat_avg->cp_eext;
   double energyExc  = stat_avg->cp_exc;
   double vol	    = cell->vol;
+  double volInv	    = 1.0/vol;
   double energyTotElec,energyTot;
   double energyExtTemp,energyExcTemp,energyHartTemp;
   double vInter;
@@ -99,6 +108,24 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
   double *fcim_up = cpcoeffs_pos->fcim_up;
   double *fcre_dn = cpcoeffs_pos->fcre_dn;
   double *fcim_dn = cpcoeffs_pos->fcim_dn;
+  double *rhoCoeffReUp   = cpscr->cpscr_rho.rhocr_up;
+  double *rhoCoeffImUp   = cpscr->cpscr_rho.rhoci_up;
+  double *rhoUp          = cpscr->cpscr_rho.rho_up;
+  double *rhoCoeffReUpDensCpBox = cpscr->cpscr_rho.rhocr_up_dens_cp_box;
+  double *rhoCoeffImUpDensCpBox = cpscr->cpscr_rho.rhoci_up_dens_cp_box;
+  double *divRhoxUp       = cpscr->cpscr_grho.d_rhox_up;
+  double *divRhoyUp       = cpscr->cpscr_grho.d_rhoy_up;
+  double *divRhozUp       = cpscr->cpscr_grho.d_rhoz_up;
+  double *d2RhoUp        = cpscr->cpscr_grho.d2_rho_up;
+  double *rhoCoeffReDn   = cpscr->cpscr_rho.rhocr_dn;
+  double *rhoCoeffImDn   = cpscr->cpscr_rho.rhoci_dn;
+  double *rhoDn          = cpscr->cpscr_rho.rho_dn;
+  double *rhoCoeffReDnDensCpBox = cpscr->cpscr_rho.rhocr_dn_dens_cp_box;
+  double *rhoCoeffImDnDensCpBox = cpscr->cpscr_rho.rhoci_dn_dens_cp_box;
+  double *divRhoxDn       = cpscr->cpscr_grho.d_rhox_dn;
+  double *divRhoyDn       = cpscr->cpscr_grho.d_rhoy_dn;
+  double *divRhozDn       = cpscr->cpscr_grho.d_rhoz_dn;
+  double *d2RhoDn        = cpscr->cpscr_grho.d2_rho_dn;
   double *ak2_sm  =  cpewald->ak2_sm;
   double *chemPot = stodftCoefPos->chemPot;
   double *fx = clatoms_pos->fx;
@@ -108,7 +135,8 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
   double *vnlFyCor = fragInfo->vnlFyCor;
   double *vnlFzCor = fragInfo->vnlFzCor;
   double *lagFunValue = (double*)cmalloc(numChemPot*sizeof(double));
-
+  double *hmatCP    = cell->hmat_cp;
+  
   double **stoWfUpRe = stodftCoefPos->stoWfUpRe;
   double **stoWfUpIm = stodftCoefPos->stoWfUpIm;
   double **stoWfDnRe = stodftCoefPos->stoWfDnRe;
@@ -128,6 +156,40 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
   MPI_Comm commStates = communicate->comm_states;
 
 /*======================================================================*/
+/* I) Recalculate k space density                                       */
+
+  for(iGrid=1;iGrid<=rhoRealGridNum;iGrid++){
+    rhoUp[iGrid] *= vol;
+  }
+  if(cpLsda==1&&numStateDnProc!=0){
+    for(iGrid=1;iGrid<=rhoRealGridNum;iGrid++){
+      rhoDn[iGrid] *= vol;
+    }    
+  }
+
+  calcRhoStoRecipFullg(cpewald,cpscr,cpcoeffs_info,ewald,cell,
+                     rhoCoeffReUp,rhoCoeffImUp,rhoUp,rhoCoeffReUpDensCpBox,rhoCoeffImUpDensCpBox,
+                     divRhoxUp,divRhoyUp,divRhozUp,d2RhoUp,cpGGA,cpDualGridOptOn,numInterpPmeDual,
+                     communicate,&(cp->cp_para_fft_pkg3d_lg),&(cp->cp_para_fft_pkg3d_dens_cp_box));
+  if(cpLsda==1&&numStateDnProc!=0){
+    calcRhoStoRecipFullg(cpewald,cpscr,cpcoeffs_info,ewald,cell,
+                       rhoCoeffReDn,rhoCoeffImDn,rhoDn,rhoCoeffReDnDensCpBox,rhoCoeffImDnDensCpBox,
+                       divRhoxDn,divRhoyDn,divRhozDn,d2RhoDn,cpGGA,cpDualGridOptOn,numInterpPmeDual,
+                       communicate,&(cp->cp_para_fft_pkg3d_lg),&(cp->cp_para_fft_pkg3d_dens_cp_box));
+    for(iCoeff=1;iCoeff<=numCoeffLargeProc;iCoeff++){
+      rhoCoeffReUp[iCoeff] += rhoCoeffReDn[iCoeff];
+      rhoCoeffImUp[iCoeff] += rhoCoeffImDn[iCoeff];
+    }/* endfor */
+    if(cpDualGridOptOn>=1){
+      for(iCoeff=1;iCoeff<=numCoeffLargeProcDensCpBox;iCoeff++){
+        rhoCoeffReUpDensCpBox[iCoeff] += rhoCoeffReDnDensCpBox[iCoeff];
+        rhoCoeffImUpDensCpBox[iCoeff] += rhoCoeffImDnDensCpBox[iCoeff];
+      }/* endfor */
+    } /* endif */
+  }/* endif */
+
+
+/*======================================================================*/
 /* I) Calculate Local pp	                                        */
 
   fxNuclei = (double *)cmalloc(numAtomTot*sizeof(double));
@@ -145,16 +207,6 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
     fy[iAtom] = 0.0;
     fz[iAtom] = 0.0;
   }
-
-  FILE *fp_rhoout = fopen("rho_k","w");
-  int ncoef_l = cp->cp_para_fft_pkg3d_lg.ncoef;
-  for(iCoeff=1;iCoeff<=ncoef_l;iCoeff++){
-    fprintf(fp_rhoout,"%.16lg %.16lg\n",cp->cpscr.cpscr_rho.rhocr_up[iCoeff],
-	    cp->cpscr.cpscr_rho.rhoci_up[iCoeff]);
-    //printf("rho k %lg %lg\n",cp->cpscr.cpscr_rho.rhocr_up[1],cp->cpscr.cpscr_rho.rhoci_up[1]);
-  }
-  fclose(fp_rhoout);
-
 
   //debug
   /*
@@ -221,20 +273,29 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
     }//endif cpLsda
 
     //debug
-    /*
+    int jState;
     for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
       cre_up[iCoeff] = 0.0;
       cim_up[iCoeff] = 0.0;
     }
-    FILE *fwfread = fopen("wf-det","r");
     for(iState=0;iState<4;iState++){
-      for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
-	fscanf(fwfread,"%lg",&(cre_up[iState*numCoeff+iCoeff]));
-        fscanf(fwfread,"%lg",&(cim_up[iState*numCoeff+iCoeff]));
+      FILE *fwfread = fopen("wf-det","r");
+      for(jState=0;jState<4;jState++){
+	for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+	  fscanf(fwfread,"%lg",&(stoWfUpRe[0][iState*numCoeff*4+jState*numCoeff+iCoeff]));
+	  fscanf(fwfread,"%lg",&(stoWfUpIm[0][iState*numCoeff*4+jState*numCoeff+iCoeff]));
+	}
       }
+      fclose(fwfread);
     }
-    fclose(fwfread);
-    */
+    double presq = sqrt(2.0);
+    for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
+      stoWfUpRe[0][iCoeff] *= presq;
+      stoWfUpIm[0][iCoeff] *= presq;
+      cre_up[iCoeff] = stoWfUpRe[0][iCoeff];
+      cim_up[iCoeff] = stoWfUpIm[0][iCoeff];
+    }
+    
     //pp 
     for(iAtom=1;iAtom<=numAtomTot;iAtom++){
       fx[iAtom] = 0.0;
@@ -245,6 +306,7 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
 /*--------------------------------------------------------------------------*/
 /* ii) Calculate nl pp force						    */
     //debug
+    
     /*
     for(iState=0;iState<numStateUpProc;iState++){
       cpcoeffs_info->nstate_up_proc = 1;
@@ -264,8 +326,10 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
     }
     exit(0);
     */
+    
+    
     //calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
-    //calcNlPseudoPostScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+    calcNlPseudoPostScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     //calcCoefForceExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     for(iAtom=1;iAtom<=numAtomTot;iAtom++){
       fx[iAtom] *= occNumber;

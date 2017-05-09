@@ -416,7 +416,8 @@ typedef struct fragInfo{
   double **vnlFzMatrixUp;
   double **vnlFzMatrixDn;
   double **Fx,**Fy,**Fz;
-
+// This part is to debug. Store the real space wave function, plz
+  double *projRealWF;    //nstat_up*rhoRealGridTot
 }FRAGINFO;
 
 typedef struct stodftInfo{

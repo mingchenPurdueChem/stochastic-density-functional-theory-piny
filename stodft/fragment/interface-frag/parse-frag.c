@@ -352,7 +352,13 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*   XIX)malloc scratch space                                            */
 /*                (interface/scratch/mall_scratch.c)                     */
 
+  //debug
+  cpMini->cpcoeffs_info.nstate_up = 16;
+  cpMini->cpcoeffs_info.nstate_dn = 16;
   controlMallScratchFrag(classMini,bondedMini,cpMini,generalDataMini);
+  cpMini->cpcoeffs_info.nstate_up = 4;
+  cpMini->cpcoeffs_info.nstate_dn = 4;
+
 
 /*========================================================================*/
 /* XX) Read in coeffs/velocities:                                         */

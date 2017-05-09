@@ -44,6 +44,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   CELL *cell	      = &(general_data->cell);
  
   int iFrag,iGrid,iState,jState,iStateFrag,iProc;
+  int iAtom;
   int gridIndex;
   int numGrid;
   int numStateUpMini;
@@ -295,6 +296,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 /* IV) Calculate the real space noise wave function                     */
 
   //debug copy the deterministic wf here and backup the stochastic ones
+  /*
   int numCoeffTotal = numStateStoUp*numCoeff;
   int iCoeff;
   double *noiseReUpBackup = (double*)cmalloc(numCoeffTotal*sizeof(double));
@@ -319,7 +321,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     cp->cpcoeffs_pos[1].cre_up[iCoeff] *= presq;
     cp->cpcoeffs_pos[1].cim_up[iCoeff] *= presq;
   }
-
+  */
 
   rhoRealCalcDriverNoise(general_data,cp,class,ip_now);
 
@@ -377,6 +379,47 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
       countWf += 1;
     }//endfor iState   
   }//endfor iProc
+
+  //debug
+  
+  numStateUpMini = cpMini[0].cpcoeffs_info.nstate_up_proc;
+  int iCoeff;
+  int numCoeffMini = cpMini->cpcoeffs_info.ncoef;
+  double *creComb = (double *)cmalloc(16*numCoeffMini*sizeof(double));
+  double *cimComb = (double *)cmalloc(16*numCoeffMini*sizeof(double));
+  for(iGrid=0;iGrid<16*numCoeffMini;iGrid++){
+    creComb[iGrid] = 0.0;
+    cimComb[iGrid] = 0.0;
+  }
+  for(iState=0;iState<16;iState++){
+    for(jState=0;jState<numStateUpMini;jState++){
+      for(iCoeff=0;iCoeff<numCoeffMini;iCoeff++){
+	creComb[iState*numCoeffMini+iCoeff] += 
+	    fragInfo->wfProjUp[0][iState*numStateUpMini+jState]*cpMini->cpcoeffs_pos[1].cre_up[jState*numCoeffMini+iCoeff+1];
+        cimComb[iState*numCoeffMini+iCoeff] +=             
+            fragInfo->wfProjUp[0][iState*numStateUpMini+jState]*cpMini->cpcoeffs_pos[1].cim_up[jState*numCoeffMini+iCoeff+1];
+      }
+    }
+  }
+  for(iAtom=1;iAtom<=3;iAtom++){
+    classMini->clatoms_pos[1].fx[iAtom] = 0.0;
+    classMini->clatoms_pos[1].fy[iAtom] = 0.0;
+    classMini->clatoms_pos[1].fz[iAtom] = 0.0;
+  }
+  cpMini->cpcoeffs_info.nstate_up = 16;
+  cpMini->cpcoeffs_info.nstate_dn = 16;
+  memcpy(&(cpMini->cpcoeffs_pos[1].cre_up[1]),&creComb[0],16*numCoeffMini*sizeof(double));
+  memcpy(&(cpMini->cpcoeffs_pos[1].cim_up[1]),&cimComb[0],16*numCoeffMini*sizeof(double));
+  
+  cp_ks_energy_ctrl(cpMini,1,&(generalDataMini->ewald),&(classMini->ewd_scr),
+                       &(generalDataMini->cell),&(classMini->clatoms_info),
+                       &(classMini->clatoms_pos[1]),&(classMini->atommaps),
+                       &(generalDataMini->stat_avg),&(generalDataMini->ptens),&(generalDataMini->simopts),
+                       &(classMini->for_scr));
+
+  
+    
+  //enddebug
   
   if(numProcStates>1){
     Barrier(commStates);
@@ -385,6 +428,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 	     rhoTemp,rhoRealGridNum,MPI_DOUBLE,0,commStates);
   } 
   for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)numElecProj += rhoTemp[iGrid];
+ 
   //printf("numElecProj %lg\n",numElecProj);
   //debug
   
@@ -489,29 +533,31 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 /* VI) Free memories                                                    */
 
   //debug
+  /*
   for(iCoeff=0;iCoeff<numCoeffTotal;iCoeff++){
     cp->cpcoeffs_pos[1].cre_up[iCoeff+1] = noiseReUpBackup[iCoeff];
     cp->cpcoeffs_pos[1].cim_up[iCoeff+1] = noiseImUpBackup[iCoeff];
   } 
   free(noiseReUpBackup);
   free(noiseImUpBackup);
+  */
 
 
   if(numProcStates>1&&myidState==0)free(rhoTempReduce);
   free(rhoTemp);
   for(iFrag=0;iFrag<numFragProc;iFrag++){
-    free(coefUpFragProc[iFrag]);   
+    //free(coefUpFragProc[iFrag]);   
   }
-  free(coefUpFragProc);
-  free(noiseWfUpReal);
+  //free(coefUpFragProc);
+  //free(noiseWfUpReal);
   free(numStateUpAllProc);
   if(cpLsda==1&&numStateDn!=0){
     for(iFrag=0;iFrag<numFragProc;iFrag++){
-      free(coefUpFragProc[iFrag]);
+      //free(coefDnFragProc[iFrag]);
     }
-    free(coefUpFragProc);
-    free(noiseWfUpReal);
-    free(numStateUpAllProc);
+    //free(coefDnFragProc);
+    //free(noiseWfDnReal);
+    free(numStateDnAllProc);
   }
 
 /*==========================================================================*/

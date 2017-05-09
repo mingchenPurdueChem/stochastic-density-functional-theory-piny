@@ -79,7 +79,7 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
   int myidState         = communicate->myid_state;
   int numProcStates = communicate->np_states;
   int numAtomTot = clatoms_info->natm_tot;
-  int iState,iCoeff,iChem,iAtom,iGrid;
+  int iState,jState,iCoeff,iChem,iAtom,iGrid;
   int ioff,iis;
 
   double tpi = 2.0*M_PI;
@@ -260,6 +260,7 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
     for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
       cre_up[iCoeff] = stoWfUpRe[iChem][iCoeff];
       cim_up[iCoeff] = stoWfUpIm[iChem][iCoeff];
+      //printf("1111111 Re %lg Im %lg\n",stoWfUpRe[iChem][iCoeff],stoWfUpIm[iChem][iCoeff]);
       fcre_up[iCoeff] = 0.0;
       fcim_up[iCoeff] = 0.0;
     }//endfor iCoeff
@@ -273,6 +274,31 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
     }//endif cpLsda
 
     //debug
+    /*
+    int numGrid = fragInfo->numGridFragProc[0];
+    int numGridBig = (cp->cp_para_fft_pkg3d_lg.nfft_proc)/2;
+    int *gridMapProc = fragInfo->gridMapProc[0];
+    double *projRealWF = fragInfo->projRealWF;
+    double norm1,norm2,dot;
+    double *noiseWfUpReal = fragInfo->noiseWfUpReal;
+    double *noiseWfDnReal = fragInfo->noiseWfDnReal;
+
+    rhoRealCalcDriverNoise(general_data,cp,class,1);
+    for(iState=0;iState<numStateUpProc;iState++){
+      norm1 = ddotBlasWrapper(numGrid,&projRealWF[iState*numGrid],1,&projRealWF[iState*numGrid],1);
+      norm2 = ddotBlasWrapper(numGridBig,&noiseWfUpReal[iState*numGridBig],1,&noiseWfUpReal[iState*numGridBig],1);
+      norm1 = sqrt(norm1);
+      norm2 = sqrt(norm2);
+      dot = 0.0;
+      for(iGrid=0;iGrid<numGrid;iGrid++){
+	dot += noiseWfUpReal[iState*numGridBig+gridMapProc[iGrid]]*projRealWF[iState*numGrid+iGrid];
+      }
+      printf("iState %i dot %lg\n",iState,dot/norm1/norm2);
+    }
+    */
+    
+    //debug
+    /*
     int jState;
     for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
       cre_up[iCoeff] = 0.0;
@@ -295,6 +321,7 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
       cre_up[iCoeff] = stoWfUpRe[0][iCoeff];
       cim_up[iCoeff] = stoWfUpIm[0][iCoeff];
     }
+    */
     
     //pp 
     for(iAtom=1;iAtom<=numAtomTot;iAtom++){

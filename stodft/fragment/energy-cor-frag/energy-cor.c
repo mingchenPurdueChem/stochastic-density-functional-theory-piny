@@ -430,12 +430,13 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
       printf("iState %i jState %i Matrix %lg\n",iState,jState,keMatrixUp[iState*numStateUp+jState]);
     }
   }
+  */
   for(iStoc=0;iStoc<numStateStoUp;iStoc++){
     for(iState=0;iState<numStateUp;iState++){
       printf("iStoch %i iState %i wfProj %lg\n",iStoc,iState,wfProjUp[iStoc*numStateUp+iState]);
     }
   }
-  */
+
   vnlFxCorFragLoc = (double*)cmalloc(numAtomFrag*sizeof(double));
   vnlFyCorFragLoc = (double*)cmalloc(numAtomFrag*sizeof(double));
   vnlFzCorFragLoc = (double*)cmalloc(numAtomFrag*sizeof(double));
@@ -476,11 +477,6 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
     vnlFzCorTemp = 0.0;
     double testfycor;
     //debug
-    for(iState=0;iState<4;iState++){
-      for(jState=0;jState<4;jState++){
-	
-      }
-    }
     for(iStoc=0;iStoc<numStateStoUp;iStoc++){
       dsymvWrapper('U',numStateUp,1.0,vnlFxMatrixUp,numStateUp,&wfProjUp[iStoc*numStateUp],1,0.0,temp,1);
       vnlFxCorTemp += ddotBlasWrapper(numStateUp,temp,1,&wfProjUp[iStoc*numStateUp],1);

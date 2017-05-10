@@ -385,21 +385,41 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   numStateUpMini = cpMini[0].cpcoeffs_info.nstate_up_proc;
   int iCoeff;
   int numCoeffMini = cpMini->cpcoeffs_info.ncoef;
+  double dott;
+  double presqrt2 = 1.0/sqrt(2.0);
+  //double presqrt2 = 1.0;
+  double *cree = cpMini->cpcoeffs_pos[1].cre_up;
+  double *cimm = cpMini->cpcoeffs_pos[1].cim_up;
   double *creComb = (double *)cmalloc(16*numCoeffMini*sizeof(double));
   double *cimComb = (double *)cmalloc(16*numCoeffMini*sizeof(double));
+  double *creback = (double *)cmalloc(4*numCoeffMini*sizeof(double));
+  double *cimback = (double *)cmalloc(4*numCoeffMini*sizeof(double));
+
+  memcpy(&creback[0],&(cpMini->cpcoeffs_pos[1].cre_up[1]),4*numCoeffMini*sizeof(double));
+  memcpy(&cimback[0],&(cpMini->cpcoeffs_pos[1].cim_up[1]),4*numCoeffMini*sizeof(double));
+
   for(iGrid=0;iGrid<16*numCoeffMini;iGrid++){
     creComb[iGrid] = 0.0;
     cimComb[iGrid] = 0.0;
+    
   }
   for(iState=0;iState<16;iState++){
     for(jState=0;jState<numStateUpMini;jState++){
       for(iCoeff=0;iCoeff<numCoeffMini;iCoeff++){
 	creComb[iState*numCoeffMini+iCoeff] += 
-	    fragInfo->wfProjUp[0][iState*numStateUpMini+jState]*cpMini->cpcoeffs_pos[1].cre_up[jState*numCoeffMini+iCoeff+1];
+	    fragInfo->wfProjUp[0][iState*numStateUpMini+jState]*cree[jState*numCoeffMini+iCoeff+1]*presqrt2;
         cimComb[iState*numCoeffMini+iCoeff] +=             
-            fragInfo->wfProjUp[0][iState*numStateUpMini+jState]*cpMini->cpcoeffs_pos[1].cim_up[jState*numCoeffMini+iCoeff+1];
+            fragInfo->wfProjUp[0][iState*numStateUpMini+jState]*cimm[jState*numCoeffMini+iCoeff+1]*presqrt2;
       }
     }
+    dott = 0.0;
+    for(iCoeff=0;iCoeff<numCoeffMini-1;iCoeff++){
+      dott += creComb[iState*numCoeffMini+iCoeff]*cree[iCoeff+1]*presqrt2
+	      +cimComb[iState*numCoeffMini+iCoeff]*cimm[iCoeff+1]*presqrt2;
+    }
+    dott *= 2.0;
+    dott += creComb[iState*numCoeffMini+numCoeffMini-1]*cree[numCoeffMini]*presqrt2;
+    printf("iState %i dott %lg\n",iState,dott);
   }
   for(iAtom=1;iAtom<=3;iAtom++){
     classMini->clatoms_pos[1].fx[iAtom] = 0.0;
@@ -408,8 +428,15 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   }
   cpMini->cpcoeffs_info.nstate_up = 16;
   cpMini->cpcoeffs_info.nstate_dn = 16;
-  memcpy(&(cpMini->cpcoeffs_pos[1].cre_up[1]),&creComb[0],16*numCoeffMini*sizeof(double));
-  memcpy(&(cpMini->cpcoeffs_pos[1].cim_up[1]),&cimComb[0],16*numCoeffMini*sizeof(double));
+  memcpy(&(cree[1]),&creComb[0],16*numCoeffMini*sizeof(double));
+  memcpy(&(cimm[1]),&cimComb[0],16*numCoeffMini*sizeof(double));
+  //for(iGrid=1;iGrid<=16*numCoeffMini;iGrid++){
+  //  cpMini->cpcoeffs_pos[1].cre_up[iGrid] = 0.0;
+  //  cpMini->cpcoeffs_pos[1].cim_up[iGrid] = 0.0;
+  //}
+  //memcpy(&(cpMini->cpcoeffs_pos[1].cre_up[1]),&creback[0],4*numCoeffMini*sizeof(double));
+  //memcpy(&(cpMini->cpcoeffs_pos[1].cim_up[1]),&cimback[0],4*numCoeffMini*sizeof(double));
+
   
   cp_ks_energy_ctrl(cpMini,1,&(generalDataMini->ewald),&(classMini->ewd_scr),
                        &(generalDataMini->cell),&(classMini->clatoms_info),
@@ -417,7 +444,12 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
                        &(generalDataMini->stat_avg),&(generalDataMini->ptens),&(generalDataMini->simopts),
                        &(classMini->for_scr));
 
+  cpMini->cpcoeffs_info.nstate_up = 4;
+  cpMini->cpcoeffs_info.nstate_dn = 4;
   
+  memcpy(&(cree[1]),&creback[0],4*numCoeffMini*sizeof(double));
+  memcpy(&(cimm[1]),&cimback[0],4*numCoeffMini*sizeof(double));
+
     
   //enddebug
   

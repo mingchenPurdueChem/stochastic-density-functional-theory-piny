@@ -221,7 +221,7 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
   */
 
   calcLocExtPostScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
-  printf("fx[1] %lg fy[1] %lg fz[1] %lg\n",fx[1],fy[1],fz[1]);
+  //printf("fx[1] %lg fy[1] %lg fz[1] %lg\n",fx[1],fy[1],fz[1]);
 
   if(numProcStates==1){
     memcpy(&fxLoc[0],&fx[1],numAtomTot*sizeof(double));
@@ -358,22 +358,29 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
     //calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     calcNlPseudoPostScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     //calcCoefForceExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+    // force already reduce
+    /*
     for(iAtom=1;iAtom<=numAtomTot;iAtom++){
       fx[iAtom] *= occNumber;
       fy[iAtom] *= occNumber;
       fz[iAtom] *= occNumber;
       //printf("fx %lg fy %lg fz %lg\n",fx[iAtom],fy[iAtom],fz[iAtom]);
     }
+    */
 
 /*--------------------------------------------------------------------------*/
 /* iii) Reduce forces to the master proc                                    */
 
+    // force already reduce in calcNlPseudoPostScf
+    /*
     if(numProcStates>1){
-      if(atomForceFlag==1){
-        Reduce(fxNl[iChem],&fx[1],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
-        Reduce(fyNl[iChem],&fy[1],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
-        Reduce(fzNl[iChem],&fz[1],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
-      }
+      printf("iChem %i\n",iChem);
+      Barrier(commStates);
+      Reduce(&fx[1],&fxNl[iChem][0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+      Reduce(&fy[1],&fyNl[iChem][0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+      Reduce(&fz[1],&fzNl[iChem][0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+      Barrier(commStates);
+      printf("111111 myid %i %lg %lg\n",myidState,fxNl[0][0],fx[1]);
     }
     else{
       memcpy(fxNl[iChem],&fx[1],numAtomTot*sizeof(double));
@@ -381,11 +388,22 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
       memcpy(fzNl[iChem],&fz[1],numAtomTot*sizeof(double));
       printf("fx[1] %lg fy[1] %lg fz[1] %lg\n",fx[1],fy[1],fz[1]);
     }
+    */
 
 /*--------------------------------------------------------------------------*/
 /* iv) Calculate the average values                                         */
 
     if(myidState==0){
+      for(iAtom=1;iAtom<=numAtomTot;iAtom++){
+        fx[iAtom] *= occNumber;
+        fy[iAtom] *= occNumber;
+        fz[iAtom] *= occNumber;
+        //printf("fx %lg fy %lg fz %lg\n",fx[iAtom],fy[iAtom],fz[iAtom]);
+      }
+      memcpy(fxNl[iChem],&fx[1],numAtomTot*sizeof(double));
+      memcpy(fyNl[iChem],&fy[1],numAtomTot*sizeof(double));
+      memcpy(fzNl[iChem],&fz[1],numAtomTot*sizeof(double));      
+
       for(iAtom=0;iAtom<numAtomTot;iAtom++){
 	fxNl[iChem][iAtom] /= numStateStoUp;
 	fyNl[iChem][iAtom] /= numStateStoUp;
@@ -496,7 +514,6 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
   energy_control_inter_real(class,bonded,general_data);
 
 
-  printf("22222222 fx %lg fy %lg fz %lg\n",fx[1],fy[1],fz[1]);
   if(numProcStates==1){
     memcpy(&fxNuclei[0],&fx[1],numAtomTot*sizeof(double));
     memcpy(&fyNuclei[0],&fy[1],numAtomTot*sizeof(double));

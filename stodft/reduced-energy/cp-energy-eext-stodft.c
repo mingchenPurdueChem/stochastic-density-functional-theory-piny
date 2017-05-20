@@ -432,9 +432,15 @@ void controlEwdLocPreScf(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 
 /*======================================================================*/
 /* IX) Copy and store vext */
-    
+ 
   memcpy(&vextr_loc[1],&vextr[1],(ngo+1)*sizeof(double));
   memcpy(&vexti_loc[1],&vexti[1],(ngo+1)*sizeof(double));
+  /*
+  for(i=1;i<=ngo+1;i++){ 
+    printf("11111111111 vextr %lg %lg\n",vextr[i],vextr_loc[i]);
+    printf("11111111111 vexti %lg %lg\n",vexti[i],vexti_loc[i]);
+  }
+  */
 
 /*======================================================================*/
 /* IX) Collect the forces */

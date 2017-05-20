@@ -607,7 +607,7 @@ void calcNlPseudoPostScf(CLASS *class,GENERAL_DATA *general_data,
   if(np_states>1 && np_forc == 1){
     reduce_cp_atm_forc(natm_tot,fx,fy,fz,fx_tmp,fy_tmp,fz_tmp,
                        comm_states,myid_state);
-  }/* endif:npstates */
+  }// endif:npstates 
 
 /*======================================================================*/
 /* X) Reduce particle hessian if necessary                              */

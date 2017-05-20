@@ -381,7 +381,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   }//endfor iProc
 
   //debug
-  
+  /*
   numStateUpMini = cpMini[0].cpcoeffs_info.nstate_up_proc;
   int iCoeff;
   int numCoeffMini = cpMini->cpcoeffs_info.ncoef;
@@ -449,7 +449,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   
   memcpy(&(cree[1]),&creback[0],4*numCoeffMini*sizeof(double));
   memcpy(&(cimm[1]),&cimback[0],4*numCoeffMini*sizeof(double));
-
+  */
     
   //enddebug
   

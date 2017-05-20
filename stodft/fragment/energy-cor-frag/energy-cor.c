@@ -45,15 +45,15 @@ void energyCorrect(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,
   CLATOMS_INFO *clatoms_info = &(class->clatoms_info);
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
   COMMUNICATE *commCP = &(cp->communicate);
-  PSEUDO *pseudo = &(cpMini->pseudo);
+  PSEUDO *pseudo;
 
   int myidState             = commCP->myid_state;
   int numProcStates         = commCP->np_states;
   int numFragProc	    = fragInfo->numFragProc;
   int numAtomTot	    = clatoms_info->natm_tot;
   int iFrag,iAtom;
-  int vnl_kb_flag = pseudo->vnl_kb_flag;
-  int vnl_gh_flag = pseudo->vnl_gh_flag;
+  int vnl_kb_flag;
+  int vnl_gh_flag;
   double keCorProc = 0.0;
   double vnlCorProc = 0.0;
   double *vnlFxCorProc,*vnlFyCorProc,*vnlFzCorProc;
@@ -66,6 +66,9 @@ void energyCorrect(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,
 
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     fragInfo->iFrag = iFrag;
+    pseudo = &(cpMini[iFrag].pseudo);
+    vnl_kb_flag = pseudo->vnl_kb_flag;
+    vnl_gh_flag = pseudo->vnl_gh_flag;
 
 /*======================================================================*/
 /* I) Kinetic energy	                                                */
@@ -430,12 +433,12 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
       printf("iState %i jState %i Matrix %lg\n",iState,jState,keMatrixUp[iState*numStateUp+jState]);
     }
   }
-  */
   for(iStoc=0;iStoc<numStateStoUp;iStoc++){
     for(iState=0;iState<numStateUp;iState++){
       printf("iStoch %i iState %i wfProj %lg\n",iStoc,iState,wfProjUp[iStoc*numStateUp+iState]);
     }
   }
+  */
 
   vnlFxCorFragLoc = (double*)cmalloc(numAtomFrag*sizeof(double));
   vnlFyCorFragLoc = (double*)cmalloc(numAtomFrag*sizeof(double));
@@ -444,6 +447,7 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
   temp = (double*)cmalloc(numStateUp*sizeof(double));
   vnlCorUp = 0.0;
 
+  /*
   printf("vnl matrix\n");
   for(iState=0;iState<numStateUp;iState++){
     for(jState=0;jState<numStateUp;jState++){
@@ -452,6 +456,8 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
     printf("\n");
   }
   printf("end vnl matrix\n");
+  */
+  
   for(iStoc=0;iStoc<numStateStoUp;iStoc++){
     dsymvWrapper('U',numStateUp,1.0,vnlMatrixUp,numStateUp,&wfProjUp[iStoc*numStateUp],1,0.0,temp,1);
     vnlCorUp += ddotBlasWrapper(numStateUp,temp,1,&wfProjUp[iStoc*numStateUp],1);
@@ -464,31 +470,31 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
     vnlFyMatrixUp = &(fragInfo->vnlFyMatrixUp[iFrag][iAtom*numStateUp*numStateUp]);
     vnlFzMatrixUp = &(fragInfo->vnlFzMatrixUp[iFrag][iAtom*numStateUp*numStateUp]);
     //debug
-    for(iState=0;iState<numStateUp;iState++){
-      for(jState=0;jState<numStateUp;jState++){
-	printf("atom %i istate %i jstate %i vnlFxMatrixUp %lg vnlFyMatrixUp %lg vnlFzMatrixUp %lg\n",
-		iAtom,iState,jState,vnlFxMatrixUp[iState*numStateUp+jState],
-		vnlFyMatrixUp[iState*numStateUp+jState],vnlFzMatrixUp[iState*numStateUp+jState]);
-      }
-    }
     
+    //for(iState=0;iState<numStateUp;iState++){
+    //  for(jState=0;jState<numStateUp;jState++){
+    //	printf("atom %i istate %i jstate %i vnlFxMatrixUp %lg vnlFyMatrixUp %lg vnlFzMatrixUp %lg\n",
+    //		iAtom,iState,jState,vnlFxMatrixUp[iState*numStateUp+jState],
+    //		vnlFyMatrixUp[iState*numStateUp+jState],vnlFzMatrixUp[iState*numStateUp+jState]);
+    //  }
+    //}
     vnlFxCorTemp = 0.0;
     vnlFyCorTemp = 0.0;
     vnlFzCorTemp = 0.0;
-    double testfycor;
+    //double testfycor;
     //debug
     for(iStoc=0;iStoc<numStateStoUp;iStoc++){
       dsymvWrapper('U',numStateUp,1.0,vnlFxMatrixUp,numStateUp,&wfProjUp[iStoc*numStateUp],1,0.0,temp,1);
       vnlFxCorTemp += ddotBlasWrapper(numStateUp,temp,1,&wfProjUp[iStoc*numStateUp],1);
       dsymvWrapper('U',numStateUp,1.0,vnlFyMatrixUp,numStateUp,&wfProjUp[iStoc*numStateUp],1,0.0,temp,1);
-      testfycor = ddotBlasWrapper(numStateUp,temp,1,&wfProjUp[iStoc*numStateUp],1);
-      //vnlFyCorTemp += ddotBlasWrapper(numStateUp,temp,1,&wfProjUp[iStoc*numStateUp],1);
-      vnlFyCorTemp += testfycor;
-      printf("iStoc %i testyforce %lg\n",iStoc,testfycor);
+      //testfycor = ddotBlasWrapper(numStateUp,temp,1,&wfProjUp[iStoc*numStateUp],1);
+      //vnlFyCorTemp += testfycor;
+      vnlFyCorTemp += ddotBlasWrapper(numStateUp,temp,1,&wfProjUp[iStoc*numStateUp],1);
+      //printf("iStoc %i testyforce %lg\n",iStoc,testfycor);
       dsymvWrapper('U',numStateUp,1.0,vnlFzMatrixUp,numStateUp,&wfProjUp[iStoc*numStateUp],1,0.0,temp,1);
       vnlFzCorTemp += ddotBlasWrapper(numStateUp,temp,1,&wfProjUp[iStoc*numStateUp],1);      
     }//endfor iStoc
-    printf("numStateUp %i numStateStoUp %i\n",numStateUp,numStateStoUp);
+    //printf("numStateUp %i numStateStoUp %i\n",numStateUp,numStateStoUp);
     vnlFxCorFragLoc[iAtom] = vnlFxCorTemp/numStateStoUp;
     vnlFyCorFragLoc[iAtom] = vnlFyCorTemp/numStateStoUp;
     vnlFzCorFragLoc[iAtom] = vnlFzCorTemp/numStateStoUp;
@@ -530,15 +536,17 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
     }
     free(temp);
   }//endif cpLsda
-  printf("vnl %lg vnlCor %lg\n",vnl,vnlCor);
+  //printf("vnl %lg vnlCor %lg\n",vnl,vnlCor);
   *vnlCorProc += vnl-vnlCor;
   for(iAtom=0;iAtom<numAtomFrag;iAtom++){
+    /*
     printf("iAtom %i atomFragMapProc[iAtom] %i Fx[iAtom] %lg vnlFxCorFragLoc[iAtom] %lg\n",
     	    iAtom,atomFragMapProc[iAtom],Fx[iAtom],vnlFxCorFragLoc[iAtom]);
     printf("iAtom %i atomFragMapProc[iAtom] %i Fy[iAtom] %lg vnlFyCorFragLoc[iAtom] %lg\n",
             iAtom,atomFragMapProc[iAtom],Fy[iAtom],vnlFyCorFragLoc[iAtom]);
     printf("iAtom %i atomFragMapProc[iAtom] %i Fz[iAtom] %lg vnlFzCorFragLoc[iAtom] %lg\n",
             iAtom,atomFragMapProc[iAtom],Fz[iAtom],vnlFzCorFragLoc[iAtom]);
+    */
     vnlFxCorProc[atomFragMapProc[iAtom]-1] += Fx[iAtom]-vnlFxCorFragLoc[iAtom];
     vnlFyCorProc[atomFragMapProc[iAtom]-1] += Fy[iAtom]-vnlFyCorFragLoc[iAtom];
     vnlFzCorProc[atomFragMapProc[iAtom]-1] += Fz[iAtom]-vnlFzCorFragLoc[iAtom];

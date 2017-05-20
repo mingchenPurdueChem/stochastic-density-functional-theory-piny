@@ -101,7 +101,7 @@ void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   */
   //exit(0);
  
-  initFragEnergy(*cpMiniPoint,*classMiniPoint,class,cp);
+  if(numFragProc>0)initFragEnergy(*cpMiniPoint,*classMiniPoint,class,cp);
 
 /*==========================================================================*/
 }/*end Routine*/
@@ -521,9 +521,9 @@ void initFragEnergy(CP *cpMini,CLASS *classMini,CLASS *class,CP *cp)
   int numFragProc = fragInfo->numFragProc;
   int numStateUpMini,numStateDnMini;
   
-  fragInfo->vnlFxCor = (double*)cmalloc(numAtomTot*3*sizeof(double));
-  fragInfo->vnlFyCor = (double*)cmalloc(numAtomTot*3*sizeof(double));
-  fragInfo->vnlFzCor = (double*)cmalloc(numAtomTot*3*sizeof(double));
+  fragInfo->vnlFxCor = (double*)cmalloc(numAtomTot*sizeof(double));
+  fragInfo->vnlFyCor = (double*)cmalloc(numAtomTot*sizeof(double));
+  fragInfo->vnlFzCor = (double*)cmalloc(numAtomTot*sizeof(double));
 
   fragInfo->wfProjUp = (double**)cmalloc(numFragProc*sizeof(double*));
   fragInfo->wfProjDn = (double**)cmalloc(numFragProc*sizeof(double*));

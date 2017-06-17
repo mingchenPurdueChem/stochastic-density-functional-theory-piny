@@ -548,6 +548,8 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     printf("Runing SCF Calculation\n");
     printf("-------------------------------------------------------------------------------\n");
   }
+  printf("numStateUp %i\n",numStateUp);
+  
   for(iScf=1;iScf<=numScf;iScf++){
     if(myidState==0){
       printf("********************************************************\n");

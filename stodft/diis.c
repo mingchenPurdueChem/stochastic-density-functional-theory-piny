@@ -398,7 +398,7 @@ void matrixInvSVD(double *mat,double *b,double *x,int ndim)
   
   memcpy(A,mat,ndim*ndim*sizeof(double));
 
-  DGESVD(&jobu,&jobvt,&m,&n,A,&lda,s,u,&ldu,vt,&ldvt,work,&lwork,&info);
+  dgesvd_(&jobu,&jobvt,&m,&n,A,&lda,s,u,&ldu,vt,&ldvt,work,&lwork,&info);
 
   for(i=0;i<ndim;i++){
     if(s[i]>smax)smax = s[i];
@@ -418,11 +418,11 @@ void matrixInvSVD(double *mat,double *b,double *x,int ndim)
     beta = 0.0;
     incx = 1;
     incy = 1;
-    DGEMV(&trans,&ndim,&ndim,&alpha,u,&lda,b,&incx,&beta,u_b,&incy);
+    dgemv_(&trans,&ndim,&ndim,&alpha,u,&lda,b,&incx,&beta,u_b,&incy);
     
     //for(i=0;i<ndim;i++)u_b[i] /= s[i];
     for(i=0;i<ndim;i++)u_b[i] *= sinv[i];
-    DGEMV(&trans,&ndim,&ndim,&alpha,vt,&lda,u_b,&incx,&beta,x,&incy);
+    dgemv_(&trans,&ndim,&ndim,&alpha,vt,&lda,u_b,&incx,&beta,x,&incy);
   }
   else if(info<0){
     printf("The %ith parameter is illegal.\n",info);

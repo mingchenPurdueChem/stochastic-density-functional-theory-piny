@@ -147,6 +147,7 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
 /*   I) get  v|psi> in real space                                           */
 
     cp_vpsi(zfft,v_ks,nfft);
+    //printf("v_ks %lg\n",v_ks);
 
 /*--------------------------------------------------------------------------*/
 /*  II) fourier transform  to g-space                                       */
@@ -166,11 +167,13 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
       dble_upack_coef_sum(&fccreal[ioff],&fccimag[ioff],
                           &fccreal[ioff2],&fccimag[ioff2],
                           zfft,cp_sclr_fft_pkg3d_sm);
+      //printf("fccreal %lg\n",fccreal[ioff+ncoef]);
     }
     else{
       dble_upack_coef_sum_fftw3d(&fccreal[ioff],&fccimag[ioff],
                           &fccreal[ioff2],&fccimag[ioff2],
                           zfft,cp_sclr_fft_pkg3d_sm);
+      //printf("fccreal fftw %lg\n",fccreal[ioff+ncoef]);
     }
   }//endfor is
 
@@ -277,6 +280,22 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
    nis = is*ncoef;
    fccimag[nis] = 0.0;
   }/*endfor*/
+
+  //debug
+  /*
+  double sumdebug;
+  for(is=0;is<nstate;is++){
+    ioff = is*ncoef;
+    sumdebug = 0.0;
+    for(i=1;i<ncoef;i++){
+      sumdebug += fccreal[ioff+i]*fccreal[ioff+i]+fccimag[ioff+i]*fccimag[ioff+i];
+    }
+    sumdebug *= 2.0;
+    sumdebug += fccreal[ioff+ncoef]*fccreal[ioff+ncoef];
+    printf("testtttt is %i f norm %lg\n",is,sumdebug);
+  }
+  printf("fcre %lg\n",fccreal[ncoef]);
+  */
 
   eke *= .50;
   *eke_ret = eke;

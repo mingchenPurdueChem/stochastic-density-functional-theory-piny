@@ -158,6 +158,8 @@ void calcRhoDetInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int rhoRealGridNum = stodftInfo->rhoRealGridNum;
   int rhoRealGridTot = stodftInfo->rhoRealGridTot;
   int filterDiagFlag = stodftInfo->filterDiagFlag;
+  int numProcStates = commCP->np_states;
+  int myidState = commCP->myid_state;
   int iCoeff,iGrid;
   int *coefFormUp   = &(cpcoeffs_pos->icoef_form_up);
   int *coefFormDn   = &(cpcoeffs_pos->icoef_form_dn);
@@ -272,13 +274,16 @@ void calcRhoDetInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     int *numStatesAllDet = stodftInfo->numStatesAllDet;
     int *dsplStatesAllDet = stodftInfo->dsplStatesAllDet;
 
-    Gatherv(&coeffReUp[1],numStateUpProc*numCoeff,MPI_DOUBLE,
-	    wfUpReDet,numStatesAllDet,dsplStatesAllDet,MPI_DOUBLE,
-	    0,comm_states);
+    
+    if(numProcStates>1){
+      Gatherv(&coeffReUp[1],numStateUpProc*numCoeff,MPI_DOUBLE,
+  	      wfUpReDet,numStatesAllDet,dsplStatesAllDet,MPI_DOUBLE,
+	      0,comm_states);
 
-    Gatherv(&coeffImUp[1],numStateUpProc*numCoeff,MPI_DOUBLE,
-	    wfUpImDet,numStatesAllDet,dsplStatesAllDet,MPI_DOUBLE,
-	    0,comm_states);
+      Gatherv(&coeffImUp[1],numStateUpProc*numCoeff,MPI_DOUBLE,
+	      wfUpImDet,numStatesAllDet,dsplStatesAllDet,MPI_DOUBLE,
+	      0,comm_states);
+    }
   }
 
   //debug

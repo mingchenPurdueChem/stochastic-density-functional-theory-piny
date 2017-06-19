@@ -554,7 +554,7 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
   
   // We will try to construct and diag ks_mat. Then try to rotate the MO to eigenfunctions
   //test ksmat
-  /* 
+  /*
   double *kseig_vals = (double*)cmalloc(nstate_up*sizeof(double))-1;
   double *kseig_vecs = (double*)cmalloc(nstate_up*nstate_up*sizeof(double))-1;
   double *ksmat_test = (double*)cmalloc(nstate_up*nstate_up*sizeof(double))-1;
@@ -568,6 +568,7 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
                     &(cp->cp_comm_state_pkg_up),&kseig_sum);
 
   printf("kseig_sum %lg\n",kseig_sum);
+  exit(0);
   */
   // Finish testing
   /*

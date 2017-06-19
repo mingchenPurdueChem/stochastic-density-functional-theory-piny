@@ -1124,6 +1124,14 @@ void control_ewd_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 
   }/*endif*/
 
+  /*
+  for(i=1;i<=ngo+1;i++){
+    printf("11111111111 vext %lg %lg\n",vextr[i],vexti[i]);
+  }
+  
+  exit(0);
+  */
+
 /*======================================================================*/
 /* IX) Collect the forces */
 

@@ -224,6 +224,8 @@ void genStoOrbitalInterp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }
   */
   
+  
+  
 /*======================================================================*/
 /* V) Filter the stochastic orbitals			*/
 
@@ -259,14 +261,15 @@ void genStoOrbitalInterp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }
   */
   
-  /*
+  
   double testfilter = 0.0;
   for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
     testfilter += stoWfUpRe[0][iCoeff]*stoWfUpRe[0][iCoeff]+
 		stoWfUpIm[0][iCoeff]*stoWfUpIm[0][iCoeff];
   }
   testfilter += stoWfUpRe[0][numCoeff]*stoWfUpRe[0][numCoeff];
-  */
+  printf("testfilter %lg\n",testfilter);
+  
   //Barrier(commStates);
     
   

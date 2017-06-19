@@ -147,10 +147,12 @@ void orthNormStoWf(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       iCoeff1 = iState*numCoeff+numCoeff;
       sum += stoWfUpRe[iChem][iCoeff1]*stoWfUpRe[iChem][iCoeff1];
       sum = sqrt(sum);
-      for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
-	stoWfUpRe[iChem][iCoeff] /= sum;
-	stoWfUpIm[iChem][iCoeff] /= sum;
+      for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+	iCoeff1 = iState*numCoeff+iCoeff;
+	stoWfUpRe[iChem][iCoeff1] /= sum;
+	stoWfUpIm[iChem][iCoeff1] /= sum;
       }
+      printf("1111111111 iChem %i iState %i wflnth %lg\n",iChem,iState,sum);
     }
     
     calcForceWrapper(cp,class,general_data,cpcoeffs_pos,clatoms_pos,
@@ -159,13 +161,14 @@ void orthNormStoWf(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       sum = 0.0;
       for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
 	iCoeff1 = iState*numCoeff+iCoeff;
-	sum += stoWfUpRe[iChem][iCoeff1]*fcre_up[iCoeff1]+
-		stoWfUpIm[iChem][iCoeff1]*fcim_up[iCoeff1];
+	sum += fcre_up[iCoeff1]*fcre_up[iCoeff1]+
+		fcim_up[iCoeff1]*fcim_up[iCoeff1];
       }
       sum *= 2.0;
       iCoeff1 = iState*numCoeff+numCoeff;
-      sum += stoWfUpRe[iChem][iCoeff1]*fcre_up[iCoeff1];
+      sum += fcre_up[iCoeff1]*fcre_up[iCoeff1];
       dot1[iChem*numStateUpProc+iState] = sum;
+      printf("iState %i dotttt %lg\n",iState,sum);
     }
   }
   if(myidState==0){
@@ -175,10 +178,15 @@ void orthNormStoWf(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     }
   }
 
-  Barrier(comm_states);
-  Gatherv(dot1,numChemPot*numStateUpProc,MPI_DOUBLE,dotAll,numStates,dsplStates,
-	  MPI_DOUBLE,0,comm_states);
-  Barrier(comm_states);
+  if(numProcStates>1){
+    Barrier(comm_states);
+    Gatherv(dot1,numChemPot*numStateUpProc,MPI_DOUBLE,dotAll,numStates,dsplStates,
+	    MPI_DOUBLE,0,comm_states);
+    Barrier(comm_states);
+  }
+  else{
+    memcpy(&dotAll[0],&dot1[0],numStateUpAllProc*sizeof(double));
+  }
   if(myidState==0){
     printf("before orth\n");
     for(iState=0;iState<numStateUpAllProc;iState++){
@@ -209,9 +217,14 @@ void orthNormStoWf(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*==========================================================================*/
 /* II) Gather to master proc */
 
-  Gatherv(allWF,2*numChemPot*numCoeffUpTotal,MPI_DOUBLE,
-	    wfBfOrthUp,stowfRecvCountsComplex,stowfDisplsComplex,MPI_DOUBLE,
-	    0,comm_states);  
+  if(numProcStates>1){
+    Gatherv(allWF,2*numChemPot*numCoeffUpTotal,MPI_DOUBLE,
+  	    wfBfOrthUp,stowfRecvCountsComplex,stowfDisplsComplex,MPI_DOUBLE,
+	    0,comm_states);
+  }
+  else{
+    memcpy(&wfBfOrthUp[0],&allWF[0],2*numCoeffUpAllProc*sizeof(double));
+  }
  
 /*==========================================================================*/
 /* III) SVD */
@@ -342,24 +355,29 @@ void orthNormStoWf(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     }//endfor iState
     */
   }
-  Bcast(&indexCut,1,MPI_INT,0,comm_states);
+  if(numProcStates>1)Bcast(&indexCut,1,MPI_INT,0,comm_states);
   // I need do something for indexCut
   // Save wave functios on master proc
   stodftInfo->numStateUpIdp = indexCut;
-  Barrier(comm_states);
+  if(numProcStates>1)Barrier(comm_states);
   //exit(0);
 /*==========================================================================*/
 /* IV) Scatter back to all proc */
 
   if(myidState==0)printf("Start Scatter Data\n");
 
-  Scatterv(wfBfOrthUp,stowfRecvCountsComplex,stowfDisplsComplex,MPI_DOUBLE,
-	    allWF,2*numChemPot*numCoeffUpTotal,MPI_DOUBLE,0,comm_states);
+  if(numProcStates>1){
+    Scatterv(wfBfOrthUp,stowfRecvCountsComplex,stowfDisplsComplex,MPI_DOUBLE,
+  	      allWF,2*numChemPot*numCoeffUpTotal,MPI_DOUBLE,0,comm_states);
+  }
+  else{
+    memcpy(&allWF[0],&wfBfOrthUp[0],2*numCoeffUpAllProc*sizeof(double));
+  }
 
 /*==========================================================================*/
 /* IV) Unpack all stochastic wave functions */
 
-  Barrier(comm_states);
+  if(numProcStates>1)Barrier(comm_states);
   //printf("111111111111\n");
   for(iChem=0;iChem<numChemPot;iChem++){
     //printf("myid %i iChem %i\n",myidState,iChem);
@@ -537,7 +555,7 @@ void buildKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   CPOPTS *cpopts                = &(cp->cpopts);
   COMMUNICATE *communicate      = &(cp->communicate);
 
-  int iChem,iCoeff,iState,jState;
+  int iChem,iCoeff,iState,jState,iOff;
   int index1,index2;
   int numChemPot     = stodftInfo->numChemPot;  
   int numStateUpProc = cpcoeffs_info->nstate_up_proc;
@@ -586,11 +604,11 @@ void buildKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   }
   allForceRe = (double*)malloc(numCoeffUpAllProc*sizeof(double))-1;
   allForceIm = (double*)malloc(numCoeffUpAllProc*sizeof(double))-1;
-  Barrier(comm_states);
+  //Barrier(comm_states);
   forceUpRe = (double*)cmalloc(numChemPot*numCoeffUpTotal*sizeof(double))-1;
   forceUpIm = (double*)cmalloc(numChemPot*numCoeffUpTotal*sizeof(double))-1;
 
-  Barrier(comm_states);
+  if(numProcStates>1)Barrier(comm_states);
   for(iChem=0;iChem<numChemPot;iChem++){
     for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
       cre_up[iCoeff] = stoWfUpRe[iChem][iCoeff];
@@ -599,17 +617,18 @@ void buildKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       fcre_up[iCoeff] = 0.0;
       fcim_up[iCoeff] = 0.0;
     }
-    Barrier(comm_states);
+    if(numProcStates>1)Barrier(comm_states);
     calcCoefForceWrapSCF(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     //calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     //calcCoefForceWrapReduce(class,general_data,cp,cpcoeffs_pos,clatoms_pos);    
     for(iState=0;iState<numStateUpProc;iState++){
+      iOff = iState*numCoeff;
       for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
-	fcre_up[iCoeff] *= -0.25;
-	fcim_up[iCoeff] *= -0.25;
+	fcre_up[iOff+iCoeff] *= -0.25;
+	fcim_up[iOff+iCoeff] *= -0.25;
       }//endfor iCoeff
-      fcre_up[numCoeff] *= -0.5;
-      fcim_up[numCoeff] *= -0.5;
+      fcre_up[iOff+numCoeff] *= -0.5;
+      fcim_up[iOff+numCoeff] *= -0.5;
     }//endfor iState
     memcpy(&forceUpRe[iChem*numCoeffUpTotal+1],&fcre_up[1],numCoeffUpTotal*sizeof(double));
     memcpy(&forceUpIm[iChem*numCoeffUpTotal+1],&fcim_up[1],numCoeffUpTotal*sizeof(double));
@@ -620,10 +639,18 @@ void buildKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 
   if(myidState==0)printf("Start gather force\n");
   
-  Gatherv(&forceUpRe[1],numChemPot*numCoeffUpTotal,MPI_DOUBLE,
-            &allForceRe[1],stowfRecvCounts,stowfDispls,MPI_DOUBLE,0,comm_states);
-  Gatherv(&forceUpIm[1],numChemPot*numCoeffUpTotal,MPI_DOUBLE,
-            &allForceIm[1],stowfRecvCounts,stowfDispls,MPI_DOUBLE,0,comm_states);
+  if(numProcStates>1){
+    Gatherv(&forceUpRe[1],numChemPot*numCoeffUpTotal,MPI_DOUBLE,
+            &allForceRe[1],stowfRecvCounts,stowfDispls,MPI_DOUBLE,
+	    0,comm_states);
+    Gatherv(&forceUpIm[1],numChemPot*numCoeffUpTotal,MPI_DOUBLE,
+            &allForceIm[1],stowfRecvCounts,stowfDispls,MPI_DOUBLE,
+	    0,comm_states);
+  }
+  else{
+    memcpy(&allForceRe[1],&forceUpRe[1],numCoeffUpAllProc*sizeof(double));
+    memcpy(&allForceIm[1],&forceUpIm[1],numCoeffUpAllProc*sizeof(double));
+  }
 
 /*==========================================================================*/
 /* III)  Construct KS matrix  */
@@ -772,13 +799,19 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*==========================================================================*/
 /* III) Scatter the wave functions  */
 
-  Bcast(energyLevel,numStateUpAllProc,MPI_DOUBLE,0,comm_states);
+  if(numProcStates>1){
+    Bcast(energyLevel,numStateUpAllProc,MPI_DOUBLE,0,comm_states);
 
-  Scatterv(&moUpReAll[1],stowfRecvCounts,stowfDispls,MPI_DOUBLE,
-           &moUpRe[1],numChemPot*numCoeffUpTotal,MPI_DOUBLE,0,comm_states);
+    Scatterv(&moUpReAll[1],stowfRecvCounts,stowfDispls,MPI_DOUBLE,
+             &moUpRe[1],numChemPot*numCoeffUpTotal,MPI_DOUBLE,0,comm_states);
 
-  Scatterv(&moUpImAll[1],stowfRecvCounts,stowfDispls,MPI_DOUBLE,
-           &moUpIm[1],numChemPot*numCoeffUpTotal,MPI_DOUBLE,0,comm_states);
+    Scatterv(&moUpImAll[1],stowfRecvCounts,stowfDispls,MPI_DOUBLE,
+             &moUpIm[1],numChemPot*numCoeffUpTotal,MPI_DOUBLE,0,comm_states);
+  }
+  else{
+    memcpy(&moUpRe[1],&moUpReAll[1],numCoeffUpAllProc*sizeof(double));
+    memcpy(&moUpIm[1],&moUpImAll[1],numCoeffUpAllProc*sizeof(double));
+  }
 
 /*==========================================================================*/
 /* IV) Double check the MO energy */
@@ -809,16 +842,21 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*--------------------------------------------------------------------------*/
 /* ii)  Gather all forces to the master proc  */
 
-  Barrier(comm_states);
+  if(numProcStates>1)Barrier(comm_states);
   if(myidState==0)printf("Double Check: gather force\n");
 
-  Gatherv(&forceUpRe[1],numChemPot*numCoeffUpTotal,MPI_DOUBLE,
-            &allForceRe[1],stowfRecvCounts,stowfDispls,MPI_DOUBLE,0,comm_states);
-  Gatherv(&forceUpIm[1],numChemPot*numCoeffUpTotal,MPI_DOUBLE,
-            &allForceIm[1],stowfRecvCounts,stowfDispls,MPI_DOUBLE,0,comm_states);
-
+  if(numProcStates>1){
+    Gatherv(&forceUpRe[1],numChemPot*numCoeffUpTotal,MPI_DOUBLE,
+              &allForceRe[1],stowfRecvCounts,stowfDispls,MPI_DOUBLE,0,comm_states);
+    Gatherv(&forceUpIm[1],numChemPot*numCoeffUpTotal,MPI_DOUBLE,
+              &allForceIm[1],stowfRecvCounts,stowfDispls,MPI_DOUBLE,0,comm_states);
+  }
+  else{
+    memcpy(&allForceRe[1],&forceUpRe[1],numCoeffUpAllProc*sizeof(double));
+    memcpy(&allForceIm[1],&forceUpIm[1],numCoeffUpAllProc*sizeof(double));
+  }
   //printf("11111111111111111\n");
-  Barrier(comm_states);
+  if(numProcStates>1)Barrier(comm_states);
 
 /*--------------------------------------------------------------------------*/
 /* iii)  Calculate <phi|H|phi> and compare with KS   */
@@ -873,7 +911,7 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   if(numStateUpIdp>numStatesDet)stodftInfo->eigValLUMO = energyLevel[numStatesDet];
   else stodftInfo->eigValLUMO = energyLevel[numStatesDet-1]+0.1;
     
-  Barrier(comm_states);
+  if(numProcStates>1)Barrier(comm_states);
 
 /*--------------------------------------------------------------------------*/
 /* iv) Scale by occupied number */
@@ -889,7 +927,7 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       }
     }
   }
-  Barrier(comm_states);
+  if(numProcStates>1)Barrier(comm_states);
   //debug
   /*
   for(iProc=0;iProc<numProcStates;iProc++){
@@ -925,7 +963,7 @@ void diagSymMatWrapper(int n,double *A,double *w)
   int info;
   double *work = (double*)cmalloc(lwork*sizeof(double));
   
-  DSYEV(&jobz,&uplo,&n,&A[0],&lda,&w[0],&work[0],&lwork,&info);  
+  dsyev_(&jobz,&uplo,&n,&A[0],&lda,&w[0],&work[0],&lwork,&info);  
 
   //dsyev_("V","U",&ist.ms,&H[0],&ist.ms,&eval[0],&work[0],&lwk,&info);
 
@@ -984,7 +1022,7 @@ void calcForceWrapper(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   CPOPTS *cpopts                = &(cp->cpopts);
   COMMUNICATE *communicate      = &(cp->communicate);
 
-  int iChem,iCoeff,iState,jState,iComb;
+  int iChem,iCoeff,iState,jState,iComb,iOff;
   int index1,index2;
   int numStateUpProc = cpcoeffs_info->nstate_up_proc;
   int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
@@ -1010,17 +1048,50 @@ void calcForceWrapper(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     fcre_up[iCoeff] = 0.0;
     fcim_up[iCoeff] = 0.0;
   }
+  //debug
+  /*
+  double sum;
+  for(iState=0;iState<numStateUpProc;iState++){
+    sum = 0.0;
+    for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
+      sum += cre_up[iState*numCoeff+iCoeff]*cre_up[iState*numCoeff+iCoeff]+
+	     cim_up[iState*numCoeff+iCoeff]*cim_up[iState*numCoeff+iCoeff];
+    }
+    sum *= 2.0;
+    sum += cre_up[iState*numCoeff+numCoeff]*cre_up[iState*numCoeff+numCoeff];
+    printf("sum sum %lg\n",sum);
+  }
+  */
   //calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
   //calcCoefForceWrapReduce(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
   calcCoefForceWrapSCF(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
   for(iState=0;iState<numStateUpProc;iState++){
+    iOff = iState*numCoeff;
     for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
-      fcre_up[iCoeff] *= -0.25;
-      fcim_up[iCoeff] *= -0.25;
+      fcre_up[iOff+iCoeff] *= -0.25;
+      fcim_up[iOff+iCoeff] *= -0.25;
     }//endfor iCoeff
-    fcre_up[numCoeff] *= -0.5;
-    fcim_up[numCoeff] *= -0.5;
+    fcre_up[iOff+numCoeff] *= -0.5;
+    fcim_up[iOff+numCoeff] *= -0.5;
   }//endfor iState
+
+  //printf("fcre %lg\n",fcre_up[numCoeff]);
+  /*
+  double sum;
+  int ioff;
+  for(iState=0;iState<numStateUpProc;iState++){
+    sum = 0.0;
+    ioff = iState*numCoeff;
+    for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
+      sum += fcre_up[ioff+iCoeff]*fcre_up[ioff+iCoeff]+fcim_up[ioff+iCoeff]*fcim_up[ioff+iCoeff];
+      //printf("force test 111111111111 %lg %lg\n",fcre_up[iCoeff],fcim_up[iCoeff]);
+    }
+    sum *= 2.0;
+    sum += fcre_up[ioff+numCoeff]*fcre_up[ioff+numCoeff];
+    printf("force dot force %lg\n",sum);
+  }
+  */
+  //exit(0);
 
 /*==========================================================================*/
 }/*end Routine*/

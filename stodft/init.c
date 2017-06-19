@@ -1721,7 +1721,9 @@ void initFilterDiag(CP *cp)
   dsplStates = stodftInfo->dsplStates;
   Barrier(comm_states);
 
-  Allgather(&numCoeffUpAllChemPot,1,MPI_INT,stowfRecvCounts,1,MPI_INT,0,comm_states);
+  if(numProcStates>1){
+    Allgather(&numCoeffUpAllChemPot,1,MPI_INT,stowfRecvCounts,1,MPI_INT,0,comm_states);
+  }
   //Gather(&numCoeffUpAllProc,1,MPI_INT,stowfRecvCounts,numProcStates,MPI_INT,0,comm_states); 
   //Bcast(stowfRecvCounts,numProcStates,MPI_INT,0,comm_states);
   Barrier(comm_states);
@@ -1742,7 +1744,9 @@ void initFilterDiag(CP *cp)
       else stodftInfo->numOccDetAll[iState] = 0;
     }
   }
-  Allgather(&numStateProcTot,1,MPI_INT,numStates,1,MPI_INT,0,comm_states); 
+  if(numProcStates>1){
+    Allgather(&numStateProcTot,1,MPI_INT,numStates,1,MPI_INT,0,comm_states); 
+  }
   dsplStates[0] = 0;
   for(iProc=1;iProc<numProcStates;iProc++){
     dsplStates[iProc] = dsplStates[iProc-1]+numStates[iProc-1];

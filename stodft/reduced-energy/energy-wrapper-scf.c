@@ -112,6 +112,7 @@ void calcLocalPseudoScf(CLASS *class,GENERAL_DATA *general_data,
                         &vrecip,&(cpcoeffs_info->pseud_hess_loc),communicate,
 		        for_scr,cp_dual_grid_opt,idual_switch);
   }//endif cp_dual_grid_opt
+  printf("vrecip %lg\n",vrecip);
   *vrecip_ret += vrecip;
 /*==========================================================================*/
 }/*end Routine*/
@@ -928,7 +929,6 @@ void calcCoefForceWrapSCF(CLASS *class,GENERAL_DATA *general_data,
   int ncoef_l         =    cp_para_fft_pkg3d_lg->ncoef_proc;
   int ncoef_l_dens_cp_box = cp_para_fft_pkg3d_dens_cp_box->ncoef_proc;
 
-
   double *fcre_up = cpcoeffs_pos->fcre_up;
   double *fcim_up = cpcoeffs_pos->fcim_up;
   double *fcre_dn = cpcoeffs_pos->fcre_dn;
@@ -959,6 +959,7 @@ void calcCoefForceWrapSCF(CLASS *class,GENERAL_DATA *general_data,
 
   memcpy(&vextr[1],&(vextr_loc[1]),ncoef_l*sizeof(double));
   memcpy(&vexti[1],&(vexti_loc[1]),ncoef_l*sizeof(double));
+  //printf("vextr %.8lg vexti %.8lg\n",vextr[2],vexti[2]);
   if(cpDualGridOptOn==2){
     memcpy(&vextr_dens_cp_box[1],&vextr_dens_cp_box_loc[1],
             ncoef_l_dens_cp_box*sizeof(double));

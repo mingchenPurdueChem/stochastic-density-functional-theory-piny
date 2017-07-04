@@ -452,7 +452,15 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   if(myidState==0){
     atomSkinFile = fragInfo->atomSkinFile;
     printf("%s\n",fragInfo->atomSkinFile);
+    fileSkin = NULL;
     fileSkin = fopen(atomSkinFile,"r");
+    if(fileSkin==NULL){
+      printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+      printf("Skin file doesn't exist!\n");
+      printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(0);
+    }
     for(iAtom=0;iAtom<numAtomTot;iAtom++){
       fscanf(fileSkin,"%lg",&skinAll[iAtom]);
     }

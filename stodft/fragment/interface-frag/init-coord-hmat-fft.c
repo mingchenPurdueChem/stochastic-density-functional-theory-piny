@@ -436,6 +436,7 @@ void initFFTMap(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   numGridTotMiniBox = numGridMiniBox[2]*numGridMiniBox[1]*numGridMiniBox[0];
 
   fragInfo->numGridFragProc[iFrag] = numGridTotMiniBox;
+
   fragInfo->gridMapProc[iFrag] = (int*)cmalloc(numGridTotMiniBox*sizeof(int));
  
   for(iGrid=0;iGrid<numGridMiniBox[2];iGrid++){//c

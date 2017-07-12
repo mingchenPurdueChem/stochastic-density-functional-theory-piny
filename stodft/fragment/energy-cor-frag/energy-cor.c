@@ -536,7 +536,7 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
     }
     free(temp);
   }//endif cpLsda
-  //printf("vnl %lg vnlCor %lg\n",vnl,vnlCor);
+  printf("vnl %lg vnlCor %lg\n",vnl,vnlCor);
   *vnlCorProc += vnl-vnlCor;
   for(iAtom=0;iAtom<numAtomFrag;iAtom++){
     /*

@@ -475,7 +475,6 @@ void genEnergyMin(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   }
   stodftInfo->eigValMin = energy;
 
-  printf("eigValMin %.8lg\n",energy);
   if(energy>0.0)stodftInfo->energyMin = energy*0.9;
   else stodftInfo->energyMin = energy*1.1;
 

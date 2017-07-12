@@ -141,9 +141,11 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   }
 
   fragInfo->rhoUpFragSum = (double*)cmalloc(rhoRealGridNum*sizeof(double));
+  fragInfo->rhoUpFragSumCpy = (double*)cmalloc(rhoRealGridNum*sizeof(double));
   rhoUpFragSum = fragInfo->rhoUpFragSum;
   if(cpLsda==1&&numStateDn!=0){
     fragInfo->rhoDnFragSum = (double*)cmalloc(rhoRealGridNum*sizeof(double));
+    fragInfo->rhoDnFragSumCpy = (double*)cmalloc(rhoRealGridNum*sizeof(double));
     rhoDnFragSum = fragInfo->rhoDnFragSum;
   }
 
@@ -222,6 +224,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
       rhoUpFragSum[iGrid] = rhoTemp[iGrid]*vol;
     }
   }
+  memcpy(&(fragInfo->rhoUpFragSumCpy[0]),rhoUpFragSum,rhoRealGridNum*sizeof(double));
   // Do the same thing for spin down states
   if(cpLsda==1&&numStateDn!=0){
     for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
@@ -252,6 +255,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 	rhoUpFragSum[iGrid] = rhoTemp[iGrid]*vol;
       }//endfor iGrid
     }//endif 
+    memcpy(&(fragInfo->rhoDnFragSumCpy[0]),rhoDnFragSum,rhoRealGridNum*sizeof(double));
   }//endif
 
   //debug

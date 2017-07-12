@@ -112,7 +112,7 @@ void calcLocalPseudoScf(CLASS *class,GENERAL_DATA *general_data,
                         &vrecip,&(cpcoeffs_info->pseud_hess_loc),communicate,
 		        for_scr,cp_dual_grid_opt,idual_switch);
   }//endif cp_dual_grid_opt
-  printf("vrecip %lg\n",vrecip);
+  //printf("vrecip %lg\n",vrecip);
   *vrecip_ret += vrecip;
 /*==========================================================================*/
 }/*end Routine*/

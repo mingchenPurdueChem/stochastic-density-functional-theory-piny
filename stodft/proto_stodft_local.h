@@ -54,6 +54,7 @@ void calcRhoInit(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 void calcRhoDetInit(CLASS *,BONDED *,GENERAL_DATA *,CP *,CPCOEFFS_POS *);
 void calcRhoStoInit(CLASS *,BONDED *,GENERAL_DATA *,CP *,CPCOEFFS_POS *);
 void readRho(CLASS *,BONDED *,GENERAL_DATA *,CP *,CPCOEFFS_POS *);
+void calcRhoFragInit(CLASS *,BONDED *,GENERAL_DATA *,CP *,CPCOEFFS_POS *);
 /*-----------------------------------------------------------------*/
 /* density.c                                                       */
 void rhoCalcRealStoHybrid(CPSCR *,CPCOEFFS_INFO *,CELL *,STODFTINFO *,

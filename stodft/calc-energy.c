@@ -127,7 +127,6 @@ void calcEnergyChemPot(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     
 
     eke = 0.0;
-    printf("ak2_sm %lg cre_up %lg cim_up %lg\n",ak2_sm[1],cre_up[1],cim_up[1]);
     for(iState=0;iState<numStateUpProc;iState++){
       ioff = iState*numCoeff;
       for(iCoeff=1;iCoeff<=numCoeff-1;iCoeff++){
@@ -148,7 +147,6 @@ void calcEnergyChemPot(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       eke += ekeDn*occNumber*0.5;
     }//endif cpLsda
     stat_avg->cp_eke = eke;
-    printf("eke 111111111 %lg\n",eke);
 
     //pp 
     //calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
@@ -398,12 +396,19 @@ void calcKNEEnergyFilterDiag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     }//endif cpLsda
 
     eke = 0.0;
+    double sum;
+    printf("numStateUpProc %i\n",numStateUpProc);
     for(iState=0;iState<numStateUpProc;iState++){
       ioff = iState*numCoeff;
+      sum = 0.0;
       for(iCoeff=1;iCoeff<=numCoeff-1;iCoeff++){
         iis = ioff+iCoeff;
         eke += 2.0*ak2_sm[iCoeff]*(cre_up[iis]*cre_up[iis]+cim_up[iis]*cim_up[iis]);
+	sum += cre_up[iis]*cre_up[iis]+cim_up[iis]*cim_up[iis];
       }//endfor iCoeff
+      sum *= 2.0;
+      sum += cre_up[ioff+numCoeff]*cre_up[ioff+numCoeff];
+      printf("iState %i sum %lg\n",iState,sum);
     }//endfor iState
     eke *= 0.5;
     if(cpLsda==1&&numStateDnProc!=0){

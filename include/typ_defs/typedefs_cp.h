@@ -367,6 +367,12 @@ typedef struct fragInfo{
 				    /* Lth: rhoRealGridNum			*/
   double *rhoDnFragSum;             /* Lst: Sum of all densities from fragments */
                                     /* Lth: rhoRealGridNum                      */
+  double *rhoUpFragSumCpy;	    /* Lst: A copy of rhoUpFragSum for initial  */
+				    /*	    density.				*/
+				    /* Lth: rhoRealGridNum			*/
+  double *rhoDnFragSumCpy;	    /* Lst: A copy of rhoDnFragSum for initial  */
+                                    /*      density.                            */
+                                    /* Lth: rhoRealGridNum                      */
   double **coefUpFragProc;	    /* Lst: Occupied orbitals spin up		*/
 				    /* Lth: numFragProc*(numElecUpFrag*	        */
 				    /*	    numGridFrac)			*/

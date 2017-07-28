@@ -190,7 +190,7 @@ void force_npol(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
                      xmod,ymod,zmod,intra_scr_q2,clatoms_q,
                      num_brk,for_scr_num_brk_i,iperd,pi_beads,lst_typ,&icoul,
                      intact_now,nchrg,natm_typ);
-     
+    
 /*========================================================================*/
 /*  III) Distance Calculatation                                           */
 

@@ -73,15 +73,15 @@ void energyCorrect(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,
 /*======================================================================*/
 /* I) Kinetic energy	                                                */
     
-    calcKECor(cpMini,generalDataMini,cp,&keCorProc);
+    calcKECor(&cpMini[iFrag],&generalDataMini[iFrag],cp,&keCorProc);
 
 /*======================================================================*/
 /* II) Non-local pseudo potential energy and force                      */
 
-    printf("vnl_kb_flag %i\n",vnl_kb_flag);
+    //printf("vnl_kb_flag %i\n",vnl_kb_flag);
     
     if(vnl_kb_flag==1){
-      calcVnlCor(classMini,cpMini,generalDataMini,
+      calcVnlCor(&classMini[iFrag],&cpMini[iFrag],&generalDataMini[iFrag],
 		 cp,class,&vnlCorProc,vnlFxCorProc,
 		 vnlFyCorProc,vnlFzCorProc);
     }
@@ -202,7 +202,7 @@ void calcKECor(CP *cpMini,GENERAL_DATA *generalDataMini,CP *cp,double *keCorProc
     keCor += keCorDn;
     free(temp);
   }
-  printf("ke %lg keCor %lg\n",ke,keCor);
+  //printf("ke %lg keCor %lg\n",ke,keCor);
   *keCorProc += ke-occNumber*keCor;
 
 /*==========================================================================*/
@@ -536,7 +536,7 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
     }
     free(temp);
   }//endif cpLsda
-  printf("vnl %lg vnlCor %lg\n",vnl,vnlCor);
+  //printf("vnl %lg vnlCor %lg\n",vnl,vnlCor);
   *vnlCorProc += vnl-vnlCor;
   for(iAtom=0;iAtom<numAtomFrag;iAtom++){
     /*

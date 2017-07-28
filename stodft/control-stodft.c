@@ -60,6 +60,7 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   STODFTINFO *stodftInfo;
   STODFTCOEFPOS *stodftCoefPos;
   FRAGINFO *fragInfo;
+  CPOPTS *cpOpts = &(cp->cpopts);
 
   GENERAL_DATA **generalDataMiniPoint = (GENERAL_DATA**)cmalloc(sizeof(GENERAL_DATA*));
   CP **cpMiniPoint = (CP**)cmalloc(sizeof(CP*));
@@ -67,6 +68,7 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   ANALYSIS **analysisMiniPoint = (ANALYSIS**)cmalloc(sizeof(ANALYSIS*));
   BONDED **bondedMiniPoint = (BONDED**)cmalloc(sizeof(BONDED*));
   
+  int cpLsda = cpOpts->cp_lsda;
   int myid = class->communicate.myid;
   int numProc = cp->communicate.np;
   int numTime = general_data->timeinfo.ntime;
@@ -114,9 +116,8 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /* III) Calculate initial density			                */
 
   readCoeffFlag = stodftInfo->readCoeffFlag;
-  if(readCoeffFlag!=4){
-    calcRhoInit(class,bonded,general_data,cp,ip_now);
-  }
+  //printf("readCoeffFlag %i\n",readCoeffFlag);
+  calcRhoInit(class,bonded,general_data,cp,ip_now);
   //exit(0);
   //debug only
   /*
@@ -202,8 +203,8 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     genNoiseOrbital(cp,&(cp->cpcoeffs_pos[ip_now]));
     fragScf(class,bonded,general_data,cp,analysis,*generalDataMiniPoint,
 	    *cpMiniPoint,*classMiniPoint,*analysisMiniPoint,*bondedMiniPoint,ip_now);
-    if(readCoeffFlag==4){
-      calcRhoInit(class,bonded,general_data,cp,ip_now);
+    if(readCoeffFlag==-1){
+      calcRhoFragInit(class,bonded,general_data,cp,ip_now);
     }
   }
   //exit(0);

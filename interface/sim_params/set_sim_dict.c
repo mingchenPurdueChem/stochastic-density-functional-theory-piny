@@ -2200,7 +2200,7 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
  /*             Local variable declarations                                */
   
   unsigned int i;
-  *num_dict = 26;
+  *num_dict = 27;
   *dict = (DICT_WORD *)cmalloc(*num_dict*sizeof(DICT_WORD))-1;
 
   for (i=1;i<=*num_dict;i++) {
@@ -2312,6 +2312,10 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
   strcpy((*dict)[26].error_mes,"Please input a real number");
   strcpy((*dict)[26].keyword,"stowf_seed");
   strcpy((*dict)[26].keyarg,"10.0");
+
+  strcpy((*dict)[27].error_mes,"Please input a positive real number");
+  strcpy((*dict)[27].keyword,"scf_energy_tol");
+  strcpy((*dict)[27].keyarg,"1.0e-8");
 
  /*========================================================================*/
  } /* end routine set_sim_dict_harmonic */

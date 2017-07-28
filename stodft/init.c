@@ -90,6 +90,8 @@ void commStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
   Bcast(&(stodftInfo->chemPotInit),1,MPI_DOUBLE,0,world);
   Bcast(&(stodftInfo->gapInit),1,MPI_DOUBLE,0,world);
   Bcast(&(stodftInfo->mixRatioSM),1,MPI_DOUBLE,0,world);
+  Bcast(&(stodftInfo->energyTol),1,MPI_DOUBLE,0,world);
+
   Bcast(stodftInfo->densityFileName,MAXWORD,MPI_CHAR,0,world);
   
 
@@ -361,6 +363,10 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
   if(readCoeffFlag==1)stodftInfo->reInitFlag = 0;
   else stodftInfo->reInitFlag = 1;
+
+  stodftInfo->energyElecTot = 0.0;
+  stodftInfo->energyElecTotOld = 0.0;
+
   //printf("readCoeffFlag %i reInitFlag %i\n",readCoeffFlag,stodftInfo->reInitFlag);
 
 /*==========================================================================*/
@@ -482,6 +488,8 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /* VI) Initialize density interpolation                                     */
 
   //Set occupitation number
+  //This is only used in reading wave functions. occNumber will be 
+  //changed to normal after reading wave functions. 
   stodftInfo->occNumber = 1;
   if(readCoeffFlag==1&&cpLsda==0)stodftInfo->occNumber = 2;
   

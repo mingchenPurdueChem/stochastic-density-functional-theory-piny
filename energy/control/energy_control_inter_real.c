@@ -123,7 +123,6 @@ void energy_control_inter_real(CLASS *class, BONDED *bonded,
                      &(bonded->intra_scr),&(general_data->stat_avg),
                      &(class->communicate),error_check_on,
                      &(class->class_comm_forc_pkg));
-
     for(ip=1;ip<=pi_beads_proc;ip++){
        force_control(&(class->clatoms_info), &(class->clatoms_pos[ip]),
                      &(class->for_scr),
@@ -134,7 +133,6 @@ void energy_control_inter_real(CLASS *class, BONDED *bonded,
                      &vvdw,&vcoul,error_check_on,
                      &(class->class_comm_forc_pkg));
     }/*endfor*/
-
     vreal /=pi_beads;
     vvdw  /=pi_beads;
     vcoul /=pi_beads;

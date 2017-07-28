@@ -97,6 +97,7 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
   double vInter;
   double vrecip;
   double vself,vbgr;
+  double vrecipLocal;
 
   //double *energyKe  = stodftInfo->energyKe;
   //double *energyPNL = stodftInfo->energyPNL;
@@ -154,6 +155,18 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
   double *fxLoc,*fyLoc,*fzLoc;
 
   MPI_Comm commStates = communicate->comm_states;
+
+/*======================================================================*/
+/* 0) Initialize force calculation                                      */
+
+  if(myidState==0){
+    energyHartTemp = stat_avg->cp_ehart;
+    energyExtTemp = stat_avg->cp_eext;
+    energyExcTemp = stat_avg->cp_exc;
+  }
+  class->energy_ctrl.iget_full_inter = 1;
+  class->energy_ctrl.iget_res_inter = 0;
+  energy_control_initial(class,bonded,general_data);
 
 /*======================================================================*/
 /* I) Recalculate k space density                                       */
@@ -222,6 +235,7 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
 
   calcLocExtPostScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
   //printf("fx[1] %lg fy[1] %lg fz[1] %lg\n",fx[1],fy[1],fz[1]);
+  vrecipLocal = stat_avg->vrecip;
 
   if(numProcStates==1){
     memcpy(&fxLoc[0],&fx[1],numAtomTot*sizeof(double));
@@ -233,6 +247,13 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
     Reduce(&fy[1],&fyLoc[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
     Reduce(&fz[1],&fzLoc[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
     Reduce(&(stat_avg->vrecip),&vrecip,1,MPI_DOUBLE,MPI_SUM,0,commStates);
+  }
+  //debug
+  if(myidState==0){
+    for(iAtom=0;iAtom<numAtomTot;iAtom++){
+      printf("fxloc %lg fyloc %lg fzloc %lg\n",
+	      fxLoc[iAtom],fyLoc[iAtom],fzLoc[iAtom]);
+    }
   }
 
 /*======================================================================*/
@@ -493,6 +514,7 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
 
   vself       = 0.0;
   vbgr        = 0.0;
+  stat_avg->vrecip = vrecipLocal;
 
   for(iAtom=1;iAtom<=numAtomTot;iAtom++){
     fx[iAtom] = 0.0;
@@ -503,6 +525,7 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
   if(myidState==0&&iperd>0){
     ewald3d_selfbgr_cp(clatoms_info,ewald,ptens,vol,
                       &vself,&vbgr,iperd);
+    //printf("vrecip %lg vself %lg vbgr %lg\n",stat_avg->vrecip,vself,vbgr);
     stat_avg->vrecip += vself+vbgr;
     stat_avg->vintert = stat_avg->vrecip;
     stat_avg->vcoul = stat_avg->vrecip;
@@ -510,10 +533,8 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
 
 /*======================================================================*/
 /* VI) Calculate real space nuclei-nuclei interaction	                */
-  class->energy_ctrl.iget_full_inter = 1;
-  class->energy_ctrl.iget_res_inter = 0;
+  /*
   energy_control_inter_real(class,bonded,general_data);
-
 
   if(numProcStates==1){
     memcpy(&fxNuclei[0],&fx[1],numAtomTot*sizeof(double));
@@ -525,8 +546,14 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
     Reduce(&fy[1],&fyNuclei[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
     Reduce(&fz[1],&fzNuclei[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
   }
+  */
 
   if(myidState==0){
+    energy_control_inter_real(class,bonded,general_data);
+    memcpy(&fxNuclei[0],&fx[1],numAtomTot*sizeof(double));
+    memcpy(&fyNuclei[0],&fy[1],numAtomTot*sizeof(double));
+    memcpy(&fzNuclei[0],&fz[1],numAtomTot*sizeof(double));
+
     for(iAtom=0;iAtom<numAtomTot;iAtom++){
       fx[iAtom+1] = fxNlTrue[iAtom]+fxLoc[iAtom]+fxNuclei[iAtom];
       fy[iAtom+1] = fyNlTrue[iAtom]+fyLoc[iAtom]+fyNuclei[iAtom];
@@ -544,10 +571,6 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
 
 
   if(myidState==0){
-    energyHartTemp = stat_avg->cp_ehart;
-    energyExtTemp = stat_avg->cp_eext;
-    energyExcTemp = stat_avg->cp_exc;
-
     energyTotElec = energyKe+energyPnl+energyHartTemp
 		    +energyExtTemp+energyExcTemp;
     vInter = stat_avg->vintert;
@@ -555,7 +578,7 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
     printf("==============================================\n");
     printf("Total Energy\n");
     printf("==============================================\n");
-    printf("Electron Kinetic Energy:      %.20lg\n",stat_avg->cp_eke);
+    printf("Electron Kinetic Energy:      %.20lg\n",energyKe);
     printf("Electron NLPP:                %.20lg\n",energyPnl);
     printf("Electron Hartree Energy:      %.20lg\n",energyHartTemp);
     printf("Electron Ext Energy:          %.20lg\n",energyExtTemp);
@@ -565,11 +588,14 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
     printf("Total Energy:		  %.20lg\n",energyTot);
     printf("==============================================\n");
 
+
+    FILE *fileForce = fopen("atom-force","w");
     for(iAtom=0;iAtom<numAtomTot;iAtom++){
-      printf("atom %i cor %.8lg %.8lg %.8lg Uncor %.8lg %.8lg %.8lg loc %.8lg %.8lg %.8lg\n",
+      fprintf(fileForce,"atom %i cor %.16lg %.16lg %.16lg Uncor %.8lg %.8lg %.8lg loc %.8lg %.8lg %.8lg\n",
 	     iAtom,fx[iAtom+1],fy[iAtom+1],fz[iAtom+1],
 	     fxUnCor[iAtom],fyUnCor[iAtom],fzUnCor[iAtom],fxLoc[iAtom],fyLoc[iAtom],fzLoc[iAtom]);
     }
+    fclose(fileForce);
   }
 
 /*======================================================================*/

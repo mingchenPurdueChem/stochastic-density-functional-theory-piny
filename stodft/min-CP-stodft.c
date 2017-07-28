@@ -81,6 +81,7 @@ void scfStodftInterp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int numCoeff			= cpcoeffs_info->ncoef;
   int numCoeffUpTotal = numStateUp*numCoeff;
   int numCoeffDnTotal = numStateDn*numCoeff;
+  int scfStopFlag = 0; // 0=do scf 1=stop scf
   MPI_Comm commStates = communicate->comm_states;
 
   int *pcoefFormUp		     = &(cpcoeffs_pos->icoef_form_up);
@@ -95,7 +96,7 @@ void scfStodftInterp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
   double tolEdgeDist 		= cpopts->tol_edge_dist;
   double energyDiff		= -1.0;
-  double energyTol		= 1.0;
+  double energyTol		= stodftInfo->energyTol;
 
   double *coeffReUp        = cpcoeffs_pos->cre_up;
   double *coeffImUp        = cpcoeffs_pos->cim_up;
@@ -172,6 +173,8 @@ void scfStodftInterp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   stat_avg->cp_ehart = 0.0;
   stat_avg->cp_eext = 0.0;
   stat_avg->cp_exc = 0.0;
+  stodftInfo->energyElecTot = 0.0;
+  stodftInfo->energyElecTotOld = 0.0;
   if(myidState==0)printf("**Calculating Initial Kohn-Sham Potential...\n");
   calcLocalPseudoScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
   calcKSPot(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
@@ -190,13 +193,16 @@ void scfStodftInterp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     printf("Runing SCF Calculation\n");
     printf("-------------------------------------------------------------------------------\n");
   }
-  for(iScf=1;iScf<=numScf;iScf++){
+  //for(iScf=1;iScf<=numScf;iScf++){
+  iScf = 0;
+  while(scfStopFlag==0){ 
+    iScf += 1;
+    stodftInfo->iScf = iScf;
     if(myidState==0){
       printf("********************************************************\n");
       printf("SCF Step %i\n",iScf);
       printf("--------------------------------------------------------\n");
     }
-    stodftInfo->iScf = iScf;
 
 /*----------------------------------------------------------------------*/
 /* i) Generate KS potential                                             */    
@@ -346,7 +352,9 @@ void scfStodftInterp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
 
     if(myidState==0)printf("**Calculating Total Energy...\n");
+    stodftInfo->energyElecTotOld = stodftInfo->energyElecTot;
     calcTotEnergy(cp,class,general_data,cpcoeffs_pos,clatoms_pos);
+    energyDiff = fabs(stodftInfo->energyElecTot-stodftInfo->energyElecTotOld);
     if(myidState==0)printf("**Finish Calculating Total Energy\n");
 
     //exit(0);   
@@ -372,8 +380,9 @@ void scfStodftInterp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       printf("********************************************************\n");
       printf("\n");
     }
+    if(energyDiff<energyTol||iScf>=numScf)scfStopFlag = 1;
     //exit(0);
-  }//endfor iScf
+  }//endwhile scfStopFlag
 
 /*======================================================================*/
 /* VI) Calcualte energy wih nuclei forces                 		*/
@@ -459,6 +468,7 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int numCoeff			= cpcoeffs_info->ncoef;
   int numCoeffUpTotal = numStateUp*numCoeff;
   int numCoeffDnTotal = numStateDn*numCoeff;
+  int scfStopFlag     = 0;
   MPI_Comm commStates   =    communicate->comm_states;
 
   int *pcoefFormUp		     = &(cpcoeffs_pos->icoef_form_up);
@@ -473,7 +483,7 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
   double tolEdgeDist		= cpopts->tol_edge_dist;
   double energyDiff		= -1.0;
-  double energyTol		= 1.0;
+  double energyTol		= stodftInfo->energyTol;
 
   double *coeffReUp        = cpcoeffs_pos->cre_up;
   double *coeffImUp        = cpcoeffs_pos->cim_up;
@@ -548,15 +558,19 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     printf("Runing SCF Calculation\n");
     printf("-------------------------------------------------------------------------------\n");
   }
-  printf("numStateUp %i\n",numStateUp);
+  //printf("numStateUp %i\n",numStateUp);
   
-  for(iScf=1;iScf<=numScf;iScf++){
+  //for(iScf=1;iScf<=numScf;iScf++){
+  iScf = 0;
+  while(scfStopFlag==0){
+    iScf += 1;
+    stodftInfo->iScf = iScf;
+
     if(myidState==0){
       printf("********************************************************\n");
       printf("SCF Step %i\n",iScf);
       printf("--------------------------------------------------------\n");
     }
-    stodftInfo->iScf = iScf;
 /*----------------------------------------------------------------------*/
 /* i) Generate stochastic WF for different chemical potentials          */
 
@@ -585,7 +599,7 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     printf("Read in stochastic orbitals...\n");
     sprintf(wfname,"sto-wf-save-%i",myidState);
 
-    FILE *filePrintWF = fopen(wfname,"r");
+    FILE *filePrintWF = fopen(wfname,"w");
     for(iChem=0;iChem<numChemPot;iChem++){
       for(iState=0;iState<numStateUp;iState++){
 	for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
@@ -684,7 +698,9 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
 
     if(myidState==0)printf("**Calculating Total Energy...\n");
+    stodftInfo->energyElecTotOld = stodftInfo->energyElecTot;
     calcTotEnergy(cp,class,general_data,cpcoeffs_pos,clatoms_pos);
+    energyDiff = fabs(stodftInfo->energyElecTot-stodftInfo->energyElecTotOld);
     if(myidState==0)printf("**Finish Calculating Total Energy\n");
 
     //exit(0);   
@@ -698,6 +714,7 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       printf("********************************************************\n");
       printf("\n");
     }
+    if(energyDiff<energyTol||iScf>=numScf)scfStopFlag = 1;
     //exit(0);
   }//endfor iScf
 

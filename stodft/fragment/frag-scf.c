@@ -95,7 +95,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     }
     fclose(fileFragMO);  
     */
-  }
+  }//endfor iFrag
   /*
   if(numProcStates>1)Barrier(commStates);
   

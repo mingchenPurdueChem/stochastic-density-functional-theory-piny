@@ -521,6 +521,10 @@ typedef struct stodftInfo{
 				    /*	    energy.				*/ 
   double energyDiff;		    /* Num: energy range=energyMax-energyMin	*/
   double energyMean;		    /* Num: mean energy=(energyMax+energyMin)/2 */
+  double energyElecTot;		    /* Num: Total electronic energy		*/
+  double energyElecTotOld;	    /* Num: Total electronic energy of the last */
+				    /*	    SCF step				*/
+  double energyTol;		    /* Num: Energy Tolerance in SCF		*/
   double beta;			    /* Num: 1/kT				*/
   double numElecTrue;		    /* Num: True number of electron you want to */
 				    /*	    have in the system.			*/

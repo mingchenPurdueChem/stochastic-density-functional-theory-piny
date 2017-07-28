@@ -75,7 +75,7 @@ void calcRhoInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   if(readCoeffFlag==1) calcRhoStoInit(class,bonded,general_data,cp,cpcoeffs_pos);
   if(readCoeffFlag==2) calcRhoDetInit(class,bonded,general_data,cp,cpcoeffs_pos);
   if(readCoeffFlag==3) readRho(class,bonded,general_data,cp,cpcoeffs_pos);
-  if(readCoeffFlag==4) calcRhoFragInit(class,bonded,general_data,cp,cpcoeffs_pos);
+  //if(readCoeffFlag==-1) calcRhoFragInit(class,bonded,general_data,cp,cpcoeffs_pos);
   
 
   if(myid==0){
@@ -659,7 +659,7 @@ void readRho(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 void calcRhoFragInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
-           CP *cp,CPCOEFFS_POS  *cpcoeffs_pos)
+           CP *cp,int ip_now)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
@@ -681,6 +681,7 @@ void calcRhoFragInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   PSEUDO        *pseudo         = &(cp->pseudo);
   FRAGINFO	*fragInfo	= stodftInfo->fragInfo;
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
+  CPCOEFFS_POS *cpcoeffs_pos    = &(cp->cpcoeffs_pos[ip_now]);
 
 
   int cpParaOpt = cpopts->cp_para_opt;
@@ -723,9 +724,6 @@ void calcRhoFragInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int *coefOrthDn   = &(cpcoeffs_pos->icoef_orth_dn);
   int *rhoRealSendCounts = stodftInfo->rhoRealSendCounts;
   int *rhoRealDispls = stodftInfo->rhoRealDispls;
-
-  char *densityReadFileName = stodftInfo->densityReadFileName;
-  FILE *densityReadFile;
 
   double volCP,rvolCP;
 

@@ -58,6 +58,13 @@ void control_min(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   MPI_Comm world = class->communicate.world;
 
 /*======================================================================*/
+/* 0) Prelimary output                                                  */
+
+  general_data->filenames.ifile_open = 1;
+  general_data->timeinfo.itime       = 0;
+  output_md(class,general_data,bonded);
+
+/*======================================================================*/
 /* I) Write to Screen                                                   */
 
   PRINT_LINE_STAR;

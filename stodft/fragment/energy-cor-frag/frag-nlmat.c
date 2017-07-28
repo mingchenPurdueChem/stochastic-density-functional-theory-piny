@@ -426,7 +426,7 @@ void calcNonLocalMatrix(CP *cp, CP *cpMini, CLASS *classMini,
                   cell,np_nlmax_kb,pvten,for_scr);
     */
   }//endif
-  printf("111111 fx[1] %lg fx[2] %lg fx[3] %lg\n",fx[1],fx[2],fx[3]);
+  //printf("111111 fx[1] %lg fx[2] %lg fx[3] %lg\n",fx[1],fx[2],fx[3]);
 
 /*======================================================================*/
 /* VIII) Assign the potential energy                                    */

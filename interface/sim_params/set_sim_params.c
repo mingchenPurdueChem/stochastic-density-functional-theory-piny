@@ -4559,6 +4559,7 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   if(strcasecmp(dict[8].keyarg,"sto")==0)stodftInfo->readCoeffFlag = 1;
   if(strcasecmp(dict[8].keyarg,"det")==0)stodftInfo->readCoeffFlag = 2;
   if(strcasecmp(dict[8].keyarg,"rho")==0)stodftInfo->readCoeffFlag = 3;
+  if(strcasecmp(dict[8].keyarg,"frag")==0)stodftInfo->readCoeffFlag = -1;
 
   /*-----------------------------------------------------------------------*/
   /*  9)\num_sto_state_up{#} */
@@ -4642,6 +4643,11 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   /*  26)\stowf_seed{#} */
   sscanf(dict[26].keyarg,"%lg",&rka);
   stodftInfo->randSeed = rka;
+
+  /*-----------------------------------------------------------------------*/
+  /*  27)\scf_energy_tol{#} */
+  sscanf(dict[27].keyarg,"%lg",&rka);
+  stodftInfo->energyTol = rka;
 
 /*=======================================================================*/
 /* Check the conflicate options						 */
@@ -4774,6 +4780,14 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
       printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
       printf("Filter Diagnolization needs more than one chemical potential.\n");
       printf("Please change the chemical potential option to interpolation.\n");
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(0);
+    }
+    if(stodftInfo->readCoeffFlag==-1&&stodftInfo->calcFragFlag==0){
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      printf("You can not calculate initial density from fragments\n");
+      printf("with fragmentation calculation turned off!\n");
       printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
       fflush(stdout);
       exit(0);

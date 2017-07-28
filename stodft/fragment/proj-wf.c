@@ -482,7 +482,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     }
     if(numProcStates>1)Barrier(commStates);
   }
-  printf("sumElecFrag %lg sumElecProj %lg rhoRealGridNum %i\n",sumElecFrag,sumElecProj,rhoRealGridNum);
+  //printf("sumElecFrag %lg sumElecProj %lg rhoRealGridNum %i\n",sumElecFrag,sumElecProj,rhoRealGridNum);
   if(numProcStates>1)Barrier(commStates);
   //exit(0);
   
@@ -538,18 +538,20 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     daxpyBlasWrapper(rhoRealGridNum,-pre,&rhoTemp[0],1,&rhoDnFragSum[0],1);
   }
 
+  
   if(numProcStates>1){
-    printf("numElecProj %lg\n",numElecProj*preNe);
+    //printf("numElecProj %lg\n",numElecProj*preNe);
     Allreduce(&numElecProj,&(stodftInfo->numElecTrueFrag),1,MPI_DOUBLE,MPI_SUM,0,commStates);
     stodftInfo->numElecTrueFrag *= preNe;
-    printf("numElecTrue %.16lg\n",stodftInfo->numElecTrueFrag);
+    if(myidState==0)printf("Number of Electron for StoWf is %.16lg\n",stodftInfo->numElecTrueFrag);
   }
   else{
-    printf("numElecTrue %.16lg\n",stodftInfo->numElecTrueFrag);
+    //printf("numElecTrue %.16lg\n",stodftInfo->numElecTrueFrag);
     stodftInfo->numElecTrueFrag = numElecProj*preNe;
+    printf("Number of Electron for StoWf is %.16lg\n",stodftInfo->numElecTrueFrag);
   }
+  
   // I would like to seperate them, but this will make life easier
-  printf("numElecTrue %.16lg\n",stodftInfo->numElecTrueFrag);
   stodftInfo->numElecTrue = stodftInfo->numElecTrueFrag;
   //debug
   /*

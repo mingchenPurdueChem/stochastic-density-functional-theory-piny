@@ -184,7 +184,10 @@ void min_CG(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,int ireset)
             + clatoms_fy[i]*clatoms_fy[i]
             + clatoms_fz[i]*clatoms_fz[i];
    }
-   if(ireset != 1) {gamma = fovlap/fovlap_old;}
+   if(ireset != 1) {
+     if(gamma>0)gamma = fovlap/fovlap_old;
+     else gamma = 0.0;
+   }
 
 /*==========================================================================*/
 /* II.V) Evolve gradients                                                   */
@@ -199,7 +202,7 @@ void min_CG(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,int ireset)
 /* III) Calculate the step length                                           */
 
    for(i=1;i<=natm_tot;i++) {
-    zeta[i] = dt/clatoms_mass[i];
+     zeta[i] = dt/clatoms_mass[i];
    }/* endfor */
 
 /*==========================================================================*/

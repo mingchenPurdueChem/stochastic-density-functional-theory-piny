@@ -221,7 +221,11 @@ void move_atm_cg(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
             + clatoms_fy[i]*clatoms_fy[i]
             + clatoms_fz[i]*clatoms_fz[i];
    }
-   if(ifirst != 1) {gamma = fovlap/fovlap_old;}
+   if(ifirst != 1) {
+    //gamma = fovlap/fovlap_old;
+     if(gamma>0)gamma = fovlap/fovlap_old;
+     else gamma = 0.0;
+   }
 
 /*==========================================================================*/
 /* II.V) Evolve gradients                                                   */
@@ -256,6 +260,9 @@ void move_atm_cg(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /* IV) Evolve positions                                                     */ 
 
   for(i=1;i<=natm_tot;i++){
+    //clatoms_x[i] += dt*grad_x[i]/clatoms_mass[i];
+    //clatoms_y[i] += dt*grad_y[i]/clatoms_mass[i];
+    //clatoms_z[i] += dt*grad_z[i]/clatoms_mass[i];
     clatoms_x[i] += dt*grad_x[i];
     clatoms_y[i] += dt*grad_y[i];
     clatoms_z[i] += dt*grad_z[i];

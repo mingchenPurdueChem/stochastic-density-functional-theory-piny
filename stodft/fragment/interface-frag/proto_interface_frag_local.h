@@ -91,7 +91,7 @@ void initCoordHmatFFT(GENERAL_DATA *,CLASS *class,CP *,GENERAL_DATA *,
 void passAtomCoord(GENERAL_DATA *,CLASS *,CP *,GENERAL_DATA *,CLASS *,
 		    CP *,int ,double *);
 
-void initFFTMap(GENERAL_DATA *,CLASS *,CP *,GENERAL_DATA *,CLASS *,CP *,
+void initFFTMapMol(GENERAL_DATA *,CLASS *,CP *,GENERAL_DATA *,CLASS *,CP *,
 		int ,double *);
 
 double calcMiniBoxLength(int,double *,double *,double *,

@@ -8,7 +8,7 @@ void initFragUnitCell(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 void projRhoMini(CP *,GENERAL_DATA *,CLASS *,
                  CP *,GENERAL_DATA *,CLASS *,int);
 
-void rhoRealCalcDriverFrag(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *,CP *);
+void rhoRealCalcDriverFragMol(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *,CP *);
 void rhoRealCalcDriverNoise(GENERAL_DATA *,CP *,CLASS *,int);
 
 void rhoRealCalcWrapper(GENERAL_DATA *,CP *,CLASS *,double *,double *,int*,int*,double *,int);
@@ -31,4 +31,9 @@ void sumnlPotPvFatmHessFrag(int,int,int,int,int,int,int,int,int,int *,double *,
                             double *,double *,double *,double *,double *,double *,
                             double *,double *,double *,int,int,double *, double *,
                             double *,double *,double *,double *);
+void rhoRealCalcDriverFragUnitCell(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *,CP *);
+void embedWfReal(GENERAL_DATA *,CP *,CLASS *,CP *,double *,double *);
+void qrWrapper(double *,int,int);
+
+
 

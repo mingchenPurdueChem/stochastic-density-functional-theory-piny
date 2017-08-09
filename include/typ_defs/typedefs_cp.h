@@ -424,6 +424,34 @@ typedef struct fragInfo{
   double **Fx,**Fy,**Fz;
 // This part is to debug. Store the real space wave function, plz
   double *projRealWF;    //nstat_up*rhoRealGridTot
+// Unit Cell Fragment
+// We have two different box size. All we've claimed are served for "bigger" cell 
+// where we shall define variables for "small" cell. The small cell is used in 
+// actual fragment SCF calculations and the wave functions will convolute with 
+// Gaussian such that the wave functions will decay to 0. 
+//                **************************
+//                *                        *
+//                *  *******************   *
+//                *  *                 *   *
+//                *  *                 *   *
+//                *  *                 *   *
+//                *  *                 *   *
+//                *  *                 *   *
+//                *  *                 *   *
+//                *  *                 *   *
+//                *  *******************   *
+//                *  |<-      Ls     ->|   *
+//                **************************
+//		  |<-         Lb         ->|
+// (Lb-Ls)/2 should be at least 2*sigma of gaussian such that the convoluted 
+// wave functions decay to 0. The convoluted wave functions are then send to Grand-Schmidt 
+// for orthorgonalization. 
+  int *numGridFragProcSmall;         /* Lst: number of grid point in small cell */  
+				     /* Lth: numFragProc			*/
+  int **gridMapProcSmall;	     /* Lst: map the number of grid point in	*/
+				     /*	     the small cell to the big cell	*/
+				     /* Lth: numFragProc*numGridFragProcSmall	*/
+  double gaussianSigma;		     /* Num: convolution gaussian std		*/
 }FRAGINFO;
 
 typedef struct stodftInfo{

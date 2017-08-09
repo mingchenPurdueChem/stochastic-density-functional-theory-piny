@@ -28,7 +28,7 @@
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void rhoRealCalcDriverFrag(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,
+void rhoRealCalcDriverFragMol(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,
 			CP *cp)
 /*========================================================================*/
 {/*begin routine*/
@@ -124,6 +124,141 @@ void rhoRealCalcDriverFrag(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *class
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void rhoRealCalcDriverFragUnitCell(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,
+			CP *cp)
+/*========================================================================*/
+{/*begin routine*/
+/*========================================================================*/
+/*             Local variable declarations                                */
+  CPEWALD *cpewald = &(cpMini->cpewald);
+  CPSCR *cpscr = &(cpMini->cpscr);
+  CPOPTS *cpopts = &(cpMini->cpopts);
+  CPCOEFFS_INFO *cpcoeffs_info = &(cpMini->cpcoeffs_info);
+  CPCOEFFS_POS *cpcoeffs_pos = &(cpMini->cpcoeffs_pos[1]);
+  COMMUNICATE *communicate = &(cpMini->communicate);
+  EWALD *ewald = &(generalDataMini->ewald);
+  CELL *cell = &(generalDataMini->cell);
+  STODFTINFO *stodftInfo = cp->stodftInfo;
+  FRAGINFO *fragInfo = stodftInfo->fragInfo;
+
+  int iState,iGrid;
+  int cp_norb         = cpopts->cp_norb;
+  int cpLsda         = cpopts->cp_lsda;
+  int myidState      = communicate->myid_state;
+  int numStateUpFrag    = cpcoeffs_info->nstate_up_proc;
+  int numStateDnFrag    = cpcoeffs_info->nstate_dn_proc;
+  int iFrag		= fragInfo->iFrag;
+  int numGridFragSmall	= fragInfo->numGridFragProcSmall[iFrag];
+  int *gridMapSmall	= fragInfo->gridMapProcSmall[iFrag];
+  int numGridFrag	= fragInfo->numGridFragProc[iFrag];
+
+  int *icoef_orth_up    = &(cpMini->cpcoeffs_pos[1].icoef_orth_up);
+  int *icoef_form_up    = &(cpMini->cpcoeffs_pos[1].icoef_form_up);
+  int *ifcoef_orth_up   = &(cpMini->cpcoeffs_pos[1].ifcoef_orth_up);
+  int *ifcoef_form_up   = &(cpMini->cpcoeffs_pos[1].ifcoef_form_up);
+  int *icoef_orth_dn    = &(cpMini->cpcoeffs_pos[1].icoef_orth_dn);
+  int *icoef_form_dn    = &(cpMini->cpcoeffs_pos[1].icoef_form_dn);
+  int *ifcoef_orth_dn   = &(cpMini->cpcoeffs_pos[1].ifcoef_orth_dn);
+  int *ifcoef_form_dn   = &(cpMini->cpcoeffs_pos[1].ifcoef_form_dn);
+
+  double *ccrealUpMini    = cpMini->cpcoeffs_pos[1].cre_up;
+  double *ccimagUpMini    = cpMini->cpcoeffs_pos[1].cim_up;
+  double *ccrealDnMini    = cpMini->cpcoeffs_pos[1].cre_dn;
+  double *ccimagDnMini    = cpMini->cpcoeffs_pos[1].cim_dn;
+  double *rhoUpFragProc,*rhoDnFragProc,*coefUpFragProc,*coefDnFragProc;
+  double *wfRealUpSmall,*wfRealDnSmall,*rhoFake;
+
+/*======================================================================*/
+/* I) Check the forms                                                   */
+
+  if(cp_norb>0){
+    if((*icoef_orth_up)!=0){
+      printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+      printf("Up Coefs must be in nonorthonormal form under norb \n");
+      printf("on state processor %d in cp_elec_energy_ctrl \n",myidState);
+      printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(1);
+    }/*endif*/
+    if(cpLsda==1){
+      if((*icoef_orth_dn)!=0){
+	printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+	printf("Dn Coefs must be in nonorthonormal form under norb \n");
+	printf("on state processor %d in cp_elec_energy_ctrl \n",myidState);
+	printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+	fflush(stdout);
+	exit(1);
+      }/*endif*/
+    }/*endif*/
+  }/*endif*/
+  wfRealUpSmall = (double*)cmalloc(numStateUpFrag*numGridFragSmall*sizeof(double));
+  if(cpLsda==1&&numStateDnFrag!=0){
+    wfRealDnSmall = (double*)cmalloc(numStateUpFrag*numGridFragSmall*sizeof(double));
+  }
+  //fake density
+  rhoFake = (double*)cmalloc(numGridFragSmall*sizeof(double));
+
+/*======================================================================*/
+/* III) Initialize Flags, inverse hmat			                */
+
+  (*ifcoef_form_up) = 0;
+  (*ifcoef_orth_up) = 1;
+  rhoUpFragProc = fragInfo->rhoUpFragProc[iFrag];
+  coefUpFragProc = fragInfo->coefUpFragProc[iFrag];
+  if(cpLsda==1&&numStateDnFrag!=0){  
+    (*ifcoef_form_dn) = 0;
+    (*ifcoef_orth_dn) = 1;
+    rhoDnFragProc = fragInfo->rhoDnFragProc[iFrag];
+    coefDnFragProc = fragInfo->coefDnFragProc[iFrag];
+  }
+  //gethinv(cell->hmat_cp,cell->hmati_cp,&(cell->vol_cp),iperd);
+  //gethinv(cell->hmat,cell->hmati,&(cell->vol),iperd);
+
+  for(iGrid=0;iGrid<numGridFrag;iGrid++)rhoUpFragProc[iGrid] = 0.0;
+  if(cpLsda==1&&numStateDnFrag!=0){
+    for(iGrid=0;iGrid<numGridFrag;iGrid++)rhoDnFragProc[iGrid] = 0.0;
+  }
+  for(iState=0;iState<numStateUpFrag;iState++){
+    for(iGrid=0;iGrid<numGridFrag;iGrid++)coefUpFragProc[iState*numGridFrag+iGrid] = 0.0;
+  }
+  if(cpLsda==1&&numStateDnFrag!=0){
+    for(iState=0;iState<numStateDnFrag;iState++){
+      for(iGrid=0;iGrid<numGridFrag;iGrid++)coefDnFragProc[iState*numGridFrag+iGrid] = 0.0;
+    }  
+  }
+
+/*======================================================================*/
+/* IV) Calculate real space wave functions and densities for fragments  */
+
+  rhoRealCalcFragWrapper(generalDataMini,cpMini,classMini,
+                     cp,ccrealUpMini,ccimagUpMini,icoef_form_up,icoef_orth_up,
+                     rhoFake,wfRealUpSmall,numStateUpFrag);
+  if(cpLsda==1&&numStateDnFrag!=0){
+    rhoRealCalcFragWrapper(generalDataMini,cpMini,classMini,
+		       cp,ccrealDnMini,ccimagDnMini,icoef_form_dn,icoef_orth_dn,
+		       rhoFake,wfRealDnSmall,numStateDnFrag);    
+  }
+
+/*======================================================================*/
+/* V) Embed the real space wave functions to the bigger cell	        */
+  
+  embedWfReal(generalDataMini,cpMini,classMini,cp,wfRealUpSmall,wfRealDnSmall); 
+
+/*======================================================================*/
+/* VI) Clean up local memory allocation			                */
+  free(wfRealUpSmall);
+  if(cpLsda==1&&numStateDnFrag!=0)free(wfRealDnSmall);
+  free(rhoFake);
+
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
@@ -464,6 +599,224 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
     }
   }
   */
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void embedWfReal(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,
+		 CP *cp,double *wfRealUpSmall,double *wfRealDnSmall)
+/*========================================================================*/
+{/*begin routine*/
+/* Loop all grid points in small box and calculate the gaussian conv with */
+/* respect to the nbhd in the bigger box.				  */
+/*========================================================================*/
+/*             Local variable declarations                                */
+  CELL *cellMini = &(generalDataMini->cell);
+  CPCOEFFS_INFO *cpcoeffsInfoMini = &(cpMini->cpcoeffs_info);
+  CPOPTS *cpOptsMini = &(cpMini->cpopts);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cpMini->cp_para_fft_pkg3d_lg);
+
+  STODFTINFO *stodftInfo = cp->stodftInfo;
+  FRAGINFO *fragInfo            = stodftInfo->fragInfo;
+
+  int nkf1    = cp_para_fft_pkg3d_lg->nkf1;
+  int nkf2    = cp_para_fft_pkg3d_lg->nkf2;
+  int nkf3    = cp_para_fft_pkg3d_lg->nkf3;
+  int iState,iGrid,jGrid,kGrid;
+  int numGridNbhd = 3;
+  int iiGrid,jjGrid,kkGrid,indexa,indexb,indexc;
+  int indexaNbhd,indexbNbhd,indexcNbhd;
+  int indexaFold,indexbFold,indexcFold,indexFold;
+  int indexSmall;
+  int cpLsda		= cpOptsMini->cp_lsda;
+  int iFrag		= fragInfo->iFrag;
+  int numStateUpFrag    = cpcoeffsInfoMini->nstate_up_proc;
+  int numStateDnFrag    = cpcoeffsInfoMini->nstate_dn_proc;
+  int numGridFragSmall  = fragInfo->numGridFragProcSmall[iFrag];
+  int numGridFrag       = fragInfo->numGridFragProc[iGrid];
+
+  int *gridMapSmall     = fragInfo->gridMapProcSmall[iFrag];
+  int *numGridFragDim	= fragInfo->numGridFragDim[iFrag];
+
+  double sigma		= fragInfo->gaussianSigma;
+  double pre		= -0.5/(sigma*sigma);
+  double volMini,volElem,volsqrt;
+  double occnumber;
+
+  double *hmatMini = cellMini->hmat;
+  double aGrid[3],bGrid[3],cGrid[3];
+  double diff[3],distsq;
+  double *rhoUpFragProc,*rhoDnFragProc,*coefUpFragProc,*coefDnFragProc;
+
+/*--------------------------------------------------------------------------*/
+/*VI) Get the grid vector						    */
+
+  aGrid[0] = hmatMini[1]/nkf1;
+  aGrid[1] = hmatMini[2]/nkf1;
+  aGrid[2] = hmatMini[3]/nkf1;
+  bGrid[0] = hmatMini[4]/nkf2;
+  bGrid[1] = hmatMini[5]/nkf2;
+  bGrid[2] = hmatMini[6]/nkf2;
+  cGrid[0] = hmatMini[7]/nkf3;
+  cGrid[1] = hmatMini[8]/nkf3;
+  cGrid[2] = hmatMini[9]/nkf3;
+
+/*--------------------------------------------------------------------------*/
+/*II) Calculate the convoluted wave functions                               */
+
+  rhoUpFragProc = fragInfo->rhoUpFragProc[iFrag];
+  coefUpFragProc = fragInfo->coefUpFragProc[iFrag];
+  if(cpLsda==1&&numStateDnFrag!=0){
+    rhoDnFragProc = fragInfo->rhoDnFragProc[iFrag];
+    coefDnFragProc = fragInfo->coefDnFragProc[iFrag];
+  }
+
+  for(iState=0;iState<numStateUpFrag;iState++){
+    for(iGrid=0;iGrid<nkf3;iGrid++){
+      indexc = iGrid+2;
+      for(jGrid=0;jGrid<nkf2;jGrid++){
+	indexb = jGrid+2;
+	for(kGrid=0;kGrid<nkf1;kGrid++){
+	  indexa = kGrid+2;
+	  indexSmall = iState*numGridFrag+iGrid*nkf2*nkf1+jGrid*nkf1+kGrid;
+	  for(iiGrid=-numGridNbhd;iiGrid<=numGridNbhd;iiGrid++){
+	    indexcFold = indexc+iiGrid;
+	    if(indexcFold<0)indexcFold += numGridFragDim[2];
+	    if(indexcFold>=numGridFragDim[2]) indexcFold -= numGridFragDim[2];
+	    for(jjGrid=-numGridNbhd;jjGrid<=numGridNbhd;jjGrid++){
+	      indexbFold = indexb+jjGrid;
+	      if(indexbFold<0)indexbFold += numGridFragDim[1];
+	      if(indexbFold>=numGridFragDim[1]) indexbFold -= numGridFragDim[1];
+	      for(kkGrid=numGridNbhd;kkGrid<=numGridNbhd;kkGrid++){
+	        indexaFold = indexa+kkGrid;
+		if(indexaFold<0)indexaFold += numGridFragDim[0];
+		if(indexaFold>=numGridFragDim[0]) indexaFold -= numGridFragDim[0];
+		diff[0] = iiGrid*cGrid[0]+jjGrid*bGrid[0]+kkGrid*aGrid[0];
+                diff[1] = iiGrid*cGrid[1]+jjGrid*bGrid[1]+kkGrid*aGrid[1];
+                diff[2] = iiGrid*cGrid[2]+jjGrid*bGrid[2]+kkGrid*aGrid[2];
+		distsq = diff[0]*diff[0]+diff[1]*diff[1]+diff[2]*diff[2];
+		indexFold = indexcFold*numGridFragDim[1]*numGridFragDim[0]+
+			    indexbFold*numGridFragDim[0]+indexaFold;
+		coefUpFragProc[iState*numGridFrag+indexFold] += exp(distsq*pre)*wfRealUpSmall[indexSmall];
+	      }//endfor kkGrid
+	    }//endfor jjGrid
+	  }//endfor iiGrid
+	}//endfor kGrid
+      }//endfor jGrid
+    }//endfor iGrid
+  }//endfor iState
+  if(cpLsda==1&&numStateDnFrag!=0){
+    for(iState=0;iState<numStateDnFrag;iState++){
+      for(iGrid=0;iGrid<nkf3;iGrid++){
+	indexc = iGrid+2;
+	for(jGrid=0;jGrid<nkf2;jGrid++){
+	  indexb = jGrid+2;
+	  for(kGrid=0;kGrid<nkf1;kGrid++){
+	    indexa = kGrid+2;
+	    indexSmall = iState*numGridFrag+iGrid*nkf2*nkf1+jGrid*nkf1+kGrid;
+	    for(iiGrid=-numGridNbhd;iiGrid<=numGridNbhd;iiGrid++){
+	      indexcFold = indexc+iiGrid;
+	      if(indexcFold<0)indexcFold += numGridFragDim[2];
+	      if(indexcFold>=numGridFragDim[2]) indexcFold -= numGridFragDim[2];
+	      for(jjGrid=-numGridNbhd;jjGrid<=numGridNbhd;jjGrid++){
+		indexbFold = indexb+jjGrid;
+		if(indexbFold<0)indexbFold += numGridFragDim[1];
+		if(indexbFold>=numGridFragDim[1]) indexbFold -= numGridFragDim[1];
+		for(kkGrid=numGridNbhd;kkGrid<=numGridNbhd;kkGrid++){
+		  indexaFold = indexa+kkGrid;
+		  if(indexaFold<0)indexaFold += numGridFragDim[0];
+		  if(indexaFold>=numGridFragDim[0]) indexaFold -= numGridFragDim[0];
+		  diff[0] = iiGrid*cGrid[0]+jjGrid*bGrid[0]+kkGrid*aGrid[0];
+		  diff[1] = iiGrid*cGrid[1]+jjGrid*bGrid[1]+kkGrid*aGrid[1];
+		  diff[2] = iiGrid*cGrid[2]+jjGrid*bGrid[2]+kkGrid*aGrid[2];
+		  distsq = diff[0]*diff[0]+diff[1]*diff[1]+diff[2]*diff[2];
+		  indexFold = indexcFold*numGridFragDim[1]*numGridFragDim[0]+
+			      indexbFold*numGridFragDim[0]+indexaFold;
+		  coefDnFragProc[iState*numGridFrag+indexFold] += exp(distsq*pre)*wfRealDnSmall[indexSmall];
+		}//endfor kkGrid
+	      }//endfor jjGrid
+	    }//endfor iiGrid
+	  }//endfor kGrid
+	}//endfor jGrid
+      }//endfor iGrid
+    }//endfor iState
+  }//endif
+
+/*--------------------------------------------------------------------------*/
+/* II) Orthonormal by QR decomposition	                                    */
+   
+  qrWrapper(coefUpFragProc,numStateUpFrag,numGridFrag);
+
+  volMini  = getdeth(hmatMini);
+  volElem = volMini/numGridFragSmall;
+  volsqrt = 1.0/sqrt(volElem);
+  for(iGrid=0;iGrid<numStateUpFrag*numGridFrag;iGrid++)coefUpFragProc[iGrid]*volsqrt;
+  if(cpLsda==1&&numStateDnFrag!=0){
+    qrWrapper(coefDnFragProc,numStateDnFrag,numGridFrag);
+    for(iGrid=0;iGrid<numStateDnFrag*numGridFrag;iGrid++)coefDnFragProc[iGrid]*volsqrt;
+  }
+
+/*--------------------------------------------------------------------------*/
+/* III) Calculate density	                                            */
+
+  occnumber = 2;
+  if(cpLsda==0)occnumber = 1;
+  for(iState=0;iState<numStateUpFrag;iState++){
+    for(iGrid=0;iGrid<numGridFrag;iGrid++){
+      rhoUpFragProc[iGrid] += occnumber*coefUpFragProc[iGrid]*coefUpFragProc[iGrid];
+    }//endfor iGrid
+  }//endfor iState
+  if(cpLsda==1&&numStateDnFrag!=0){
+    for(iState=0;iState<numStateDnFrag;iState++){
+      for(iGrid=0;iGrid<numGridFrag;iGrid++){
+	rhoDnFragProc[iGrid] += occnumber*coefDnFragProc[iGrid]*coefDnFragProc[iGrid];
+      }//endfor iGrid
+    }//endfor iState
+  }//endif  
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void qrWrapper(double *waveFun, int nstate,int ngrid) 
+/*========================================================================*/
+{/*begin routine*/
+/*========================================================================*/
+/*             Local variable declarations                                */
+  int m = ngrid;
+  int n = nstate;
+  int lda = m;
+  int lwork = 64*n;
+  int info;
+  double *work = (double*)cmalloc(lwork*sizeof(double));
+  double *A = (double*)cmalloc(m*n*sizeof(double));
+  double *tau = (double*)cmalloc(n*sizeof(double));
+
+  memcpy(A,waveFun,m*n*sizeof(double));
+  dgeqrf_(&m,&n,A,&lda,tau,work,&lwork,&info);
+  if(info<0){
+    printf("In qr decomposition, the %i'th element has illegal value!\n",-info);
+    fflush(stdout);
+    exit(0);
+  } 
+  // generate q matrix
+  dorgqr_(&m,&m,&n,A,&lda,tau,work,&lwork,&info);
+  if(info<0){
+    printf("In q calculation, the %i'th element has illegal value!\n",-info);
+    fflush(stdout);
+    exit(0);
+  }
+  memcpy(waveFun,A,m*n*sizeof(double));
+  free(work);
+  free(A);
+  free(tau);
 
 /*==========================================================================*/
 }/*end Routine*/

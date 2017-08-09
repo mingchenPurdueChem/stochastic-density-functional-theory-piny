@@ -73,7 +73,7 @@ void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
       initFragMol(class,bonded,general_data,cp,ip_now);
       break;
     case 4:
-      initFragUnitCell(class,bonded,general_data,cp,ip_now);
+      initFragMol(class,bonded,general_data,cp,ip_now); // Use the same initialization
       break;
   }
 
@@ -418,6 +418,11 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     fragInfo->numGridFragDim[iFrag] = (int*)cmalloc(3*sizeof(int));
   }
+  // Only used for unit cell fragment
+  if(fragOpt==4){
+    fragInfo->numGridFragProcSmall = (int*)cmalloc(numFragProc*sizeof(int));
+    fragInfo->gridMapProcSmall = (int**)cmalloc(numFragProc*sizeof(int*));
+  }
 
 /*======================================================================*/
 /* 3) Initialize other things	                                        */
@@ -610,7 +615,7 @@ void reInitFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*======================================================================*/
 /* 2) Recalculate fragment box size		                        */
 
-  initFFTMap(general_data,class,cp,generalDataMini,classMini,cpMini,1,geoCnt);
+  //initFFTMap(general_data,class,cp,generalDataMini,classMini,cpMini,1,geoCnt);
 
 /*======================================================================*/
 /* 2) Reinitialize FFT for fragments box size				*/

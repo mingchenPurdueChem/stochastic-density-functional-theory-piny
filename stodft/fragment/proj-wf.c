@@ -64,6 +64,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   int numStateStoDn     = stodftInfo->numStateStoDn;
   int numCoeff		= cpcoeffs_info->ncoef;
   int countWf;
+  int fragOpt		    = stodftInfo->fragOpt;
 
   MPI_Comm commStates   =    commCP->comm_states;
 
@@ -154,7 +155,12 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     fragInfo->iFrag = iFrag;
-    rhoRealCalcDriverFrag(&generalDataMini[iFrag],&cpMini[iFrag],&classMini[iFrag],cp);
+    if(fragOpt==1){
+      rhoRealCalcDriverFragMol(&generalDataMini[iFrag],&cpMini[iFrag],&classMini[iFrag],cp);
+    }
+    if(fragOpt==4){
+      rhoRealCalcDriverFragUnitCell(&generalDataMini[iFrag],&cpMini[iFrag],&classMini[iFrag],cp);
+    }
   }
   //debug
   /*

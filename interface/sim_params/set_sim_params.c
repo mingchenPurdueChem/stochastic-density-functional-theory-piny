@@ -4605,6 +4605,7 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   /*  18)\frag_opt{#} */
   if(strcasecmp(dict[18].keyarg,"mol")==0)stodftInfo->fragOpt = 1;
   if(strcasecmp(dict[18].keyarg,"group")==0)stodftInfo->fragOpt = 2;
+  if(strcasecmp(dict[18].keyarg,"unit_cell")==0)stodftInfo->fragOpt = 3; // unit cell
 
   /*-----------------------------------------------------------------------*/
   /*  19)\frag_box_opt{#} */

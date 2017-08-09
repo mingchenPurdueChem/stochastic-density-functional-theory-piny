@@ -56,11 +56,11 @@ void initCoordHmatFFT(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   passAtomCoord(generalData,class,cp,generalDataMini,
 		classMini,cpMini,1,geoCnt);
  
-  if(fragOpt==3){ 
+  if(fragOpt==1){ 
     initFFTMapMol(generalData,class,cp,
 	       generalDataMini,classMini,cpMini,1,geoCnt);
   }
-  else{
+  if(fragOpt==3){
     initFFTMapUnitCell(generalData,class,cp,
                generalDataMini,classMini,cpMini,1,geoCnt);
   }
@@ -547,6 +547,7 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   int iGrid,jGrid,kGrid;
   int iFrag = fragInfo->iFrag;
   int numAtomFrag       = fragInfo->numAtomFragProc[iFrag];
+  int numGridSkin	= fragInfo->numGridSkin;
   int numGridBigBoxC = cpParaFftPkg3dLgBigBox->nkf3;
   int numGridBigBoxB = cpParaFftPkg3dLgBigBox->nkf2;
   int numGridBigBoxA = cpParaFftPkg3dLgBigBox->nkf1;
@@ -660,8 +661,9 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   
   numGridMiniBoxSmall[2] = (int)((distProjAxis+1.0e-3)/cGridLen);
   if(numGridMiniBoxSmall[2]%2!=0)numGridMiniBoxSmall[2] += 1;
-  numGridMiniBox[2] = numGridMiniBoxSmall[2]+4;
-  fragInfo->numGridFragDim[iFrag][2] = numGridMiniBox[2];
+  numGridMiniBox[2] = numGridMiniBoxSmall[2]+numGridSkin*2;
+  fragInfo->numGridFragDim[iFrag][2] = numGridMiniBoxSmall[2];
+  fragInfo->numGridFragDimBig[iFrag][2] = numGridMiniBox[2];
   //numGridMiniBox[2] = 72;
   negativeGridNum = numGridMiniBoxSmall[2]/2;
   zeroGrid[2] = indexGrid[2]-negativeGridNum;
@@ -679,8 +681,9 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
 
   numGridMiniBoxSmall[1] = (int)((distProjAxis+1.0e-3)/bGridLen);
   if(numGridMiniBoxSmall[1]%2!=0)numGridMiniBoxSmall[1] += 1;
-  numGridMiniBox[1] = numGridMiniBoxSmall[1]+4;
-  fragInfo->numGridFragDim[iFrag][1] = numGridMiniBox[1];
+  numGridMiniBox[1] = numGridMiniBoxSmall[1]+numGridSkin*2;
+  fragInfo->numGridFragDim[iFrag][1] = numGridMiniBoxSmall[1];
+  fragInfo->numGridFragDimBig[iFrag][1] = numGridMiniBox[1];
   //numGridMiniBox[1] = 72;
   negativeGridNum = numGridMiniBoxSmall[1]/2;
   zeroGrid[1] = indexGrid[1]-negativeGridNum;
@@ -696,8 +699,9 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
 
   numGridMiniBoxSmall[0] = (int)((distProjAxis+1.0e-3)/aGridLen);
   if(numGridMiniBoxSmall[0]%2!=0)numGridMiniBoxSmall[0] += 1;
-  numGridMiniBox[0] = numGridMiniBoxSmall[0]+4;
-  fragInfo->numGridFragDim[iFrag][0] = numGridMiniBox[0];
+  numGridMiniBox[0] = numGridMiniBoxSmall[0]+numGridSkin*2;
+  fragInfo->numGridFragDim[iFrag][0] = numGridMiniBoxSmall[0];
+  fragInfo->numGridFragDimBig[iFrag][0] = numGridMiniBox[0];
   //numGridMiniBox[0] = 72;
   negativeGridNum = numGridMiniBoxSmall[0]/2;
   zeroGrid[0] = indexGrid[0]-negativeGridNum;
@@ -763,8 +767,8 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
       for(kGrid=0;kGrid<numGridMiniBoxSmall[0];kGrid++){
 	index = iGrid*numGridMiniBoxSmall[1]*numGridMiniBoxSmall[0]
                 +jGrid*numGridMiniBoxSmall[0]+kGrid;
-	indexBig = (iGrid+2)*numGridMiniBox[1]*numGridMiniBox[0]
-		    +(jGrid+2)*numGridMiniBox[0]+kGrid+2;
+	indexBig = (iGrid+numGridSkin)*numGridMiniBox[1]*numGridMiniBox[0]
+		    +(jGrid+numGridSkin)*numGridMiniBox[0]+kGrid+numGridSkin;
 	fragInfo->gridMapProcSmall[iFrag][index] = indexBig;
       }//endfor kGrid
     }//endfor jGrid

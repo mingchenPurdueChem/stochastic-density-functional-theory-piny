@@ -158,7 +158,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     if(fragOpt==1){
       rhoRealCalcDriverFragMol(&generalDataMini[iFrag],&cpMini[iFrag],&classMini[iFrag],cp);
     }
-    if(fragOpt==4){
+    if(fragOpt==3){
       rhoRealCalcDriverFragUnitCell(&generalDataMini[iFrag],&cpMini[iFrag],&classMini[iFrag],cp);
     }
   }
@@ -228,6 +228,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     //memcpy(rhoUpFragSum,rhoTemp,rhoRealGridNum*sizeof(double));
     for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
       rhoUpFragSum[iGrid] = rhoTemp[iGrid]*vol;
+      printf("111111 rhofrag %.8lg\n",rhoUpFragSum[iGrid]);
     }
   }
   memcpy(&(fragInfo->rhoUpFragSumCpy[0]),rhoUpFragSum,rhoRealGridNum*sizeof(double));

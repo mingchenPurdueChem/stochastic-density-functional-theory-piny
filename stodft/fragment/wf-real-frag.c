@@ -174,7 +174,6 @@ void rhoRealCalcDriverFragUnitCell(GENERAL_DATA *generalDataMini,CP *cpMini,CLAS
 
 /*======================================================================*/
 /* I) Check the forms                                                   */
-
   if(cp_norb>0){
     if((*icoef_orth_up)!=0){
       printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
@@ -634,13 +633,14 @@ void embedWfReal(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,
   int indexSmall;
   int cpLsda		= cpOptsMini->cp_lsda;
   int iFrag		= fragInfo->iFrag;
+  int numGridSkin	= fragInfo->numGridSkin;
   int numStateUpFrag    = cpcoeffsInfoMini->nstate_up_proc;
   int numStateDnFrag    = cpcoeffsInfoMini->nstate_dn_proc;
   int numGridFragSmall  = fragInfo->numGridFragProcSmall[iFrag];
-  int numGridFrag       = fragInfo->numGridFragProc[iGrid];
+  int numGridFrag       = fragInfo->numGridFragProc[iFrag];
 
   int *gridMapSmall     = fragInfo->gridMapProcSmall[iFrag];
-  int *numGridFragDim	= fragInfo->numGridFragDim[iFrag];
+  int *numGridFragDim	= fragInfo->numGridFragDimBig[iFrag];
 
   double sigma		= fragInfo->gaussianSigma;
   double pre		= -0.5/(sigma*sigma);
@@ -651,6 +651,11 @@ void embedWfReal(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,
   double aGrid[3],bGrid[3],cGrid[3];
   double diff[3],distsq;
   double *rhoUpFragProc,*rhoDnFragProc,*coefUpFragProc,*coefDnFragProc;
+
+  //debug
+  int i,j,k;
+  double sum;
+  FILE *fileA;
 
 /*--------------------------------------------------------------------------*/
 /*VI) Get the grid vector						    */
@@ -674,15 +679,33 @@ void embedWfReal(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,
     rhoDnFragProc = fragInfo->rhoDnFragProc[iFrag];
     coefDnFragProc = fragInfo->coefDnFragProc[iFrag];
   }
+  //printf("sigma %lg\n",sigma);
+  //printf("alen %lg blen %lg clen %lg\n",aGrid[0],bGrid[1],cGrid[2]);
+  /*
+  fileA = fopen("test-wf-sm","w");
+  for(i=0;i<numGridFragSmall;i++){
+    sum = 0.0;
+    for(j=0;j<numStateUpFrag;j++){
+      fprintf(fileA,"%lg ",wfRealUpSmall[j*numGridFragSmall+i]);
+      //sum += wfRealUpSmall[j*numGridFragSmall+i]*wfRealUpSmall[j*numGridFragSmall+i];
+    }
+    fprintf(fileA,"\n");
+    //printf("11111111 rhosm %lg\n",sum);
+  }
+  fclose(fileA);
+  */
+
+  //sigma = 1.0e-3;
+  //pre = -0.5/(sigma*sigma);
 
   for(iState=0;iState<numStateUpFrag;iState++){
     for(iGrid=0;iGrid<nkf3;iGrid++){
-      indexc = iGrid+2;
+      indexc = iGrid+numGridSkin;
       for(jGrid=0;jGrid<nkf2;jGrid++){
-	indexb = jGrid+2;
+	indexb = jGrid+numGridSkin;
 	for(kGrid=0;kGrid<nkf1;kGrid++){
-	  indexa = kGrid+2;
-	  indexSmall = iState*numGridFrag+iGrid*nkf2*nkf1+jGrid*nkf1+kGrid;
+	  indexa = kGrid+numGridSkin;
+	  indexSmall = iState*numGridFragSmall+iGrid*nkf2*nkf1+jGrid*nkf1+kGrid;
 	  for(iiGrid=-numGridNbhd;iiGrid<=numGridNbhd;iiGrid++){
 	    indexcFold = indexc+iiGrid;
 	    if(indexcFold<0)indexcFold += numGridFragDim[2];
@@ -691,7 +714,7 @@ void embedWfReal(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,
 	      indexbFold = indexb+jjGrid;
 	      if(indexbFold<0)indexbFold += numGridFragDim[1];
 	      if(indexbFold>=numGridFragDim[1]) indexbFold -= numGridFragDim[1];
-	      for(kkGrid=numGridNbhd;kkGrid<=numGridNbhd;kkGrid++){
+	      for(kkGrid=-numGridNbhd;kkGrid<=numGridNbhd;kkGrid++){
 	        indexaFold = indexa+kkGrid;
 		if(indexaFold<0)indexaFold += numGridFragDim[0];
 		if(indexaFold>=numGridFragDim[0]) indexaFold -= numGridFragDim[0];
@@ -749,27 +772,62 @@ void embedWfReal(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,
 /*--------------------------------------------------------------------------*/
 /* II) Orthonormal by QR decomposition	                                    */
    
+  //qrWrapper(coefUpFragProc,numStateUpFrag,numGridFrag);
+  /*
+  fileA = fopen("test-wf","w");
+  for(i=0;i<numGridFrag;i++){
+    for(j=0;j<numStateUpFrag;j++)fprintf(fileA,"%lg ",coefUpFragProc[j*numGridFrag+i]);
+    fprintf(fileA,"\n");
+  }
+  fclose(fileA);
+  */
   qrWrapper(coefUpFragProc,numStateUpFrag,numGridFrag);
 
   volMini  = getdeth(hmatMini);
   volElem = volMini/numGridFragSmall;
   volsqrt = 1.0/sqrt(volElem);
-  for(iGrid=0;iGrid<numStateUpFrag*numGridFrag;iGrid++)coefUpFragProc[iGrid]*volsqrt;
+  for(iGrid=0;iGrid<numStateUpFrag*numGridFrag;iGrid++)coefUpFragProc[iGrid] *= volsqrt;
   if(cpLsda==1&&numStateDnFrag!=0){
     qrWrapper(coefDnFragProc,numStateDnFrag,numGridFrag);
     for(iGrid=0;iGrid<numStateDnFrag*numGridFrag;iGrid++)coefDnFragProc[iGrid]*volsqrt;
   }
+  //test orthonormal
+  /*
+  int jState;
+  double sum;
+  for(iState=0;iState<numStateUpFrag;iState++){
+    for(jState=iState;jState<numStateUpFrag;jState++){
+      sum = 0.0;    
+      for(iGrid=0;iGrid<numGridFrag;iGrid++){
+        sum += coefUpFragProc[iState*numGridFrag+iGrid]*coefUpFragProc[jState*numGridFrag+iGrid];
+      }
+      sum *= volElem;
+      printf("iState %i jState %i sum %lg\n",iState,jState,sum);
+    }
+  }
+  */
 
 /*--------------------------------------------------------------------------*/
 /* III) Calculate density	                                            */
 
-  occnumber = 2;
-  if(cpLsda==0)occnumber = 1;
+  occnumber = 1;
+  if(cpLsda==0)occnumber = 2;
   for(iState=0;iState<numStateUpFrag;iState++){
     for(iGrid=0;iGrid<numGridFrag;iGrid++){
-      rhoUpFragProc[iGrid] += occnumber*coefUpFragProc[iGrid]*coefUpFragProc[iGrid];
+      rhoUpFragProc[iGrid] += occnumber*coefUpFragProc[iState*numGridFrag+iGrid]*
+				coefUpFragProc[iState*numGridFrag+iGrid];
     }//endfor iGrid
   }//endfor iState
+  /*
+  sum = 0.0;
+  for(iGrid=0;iGrid<numGridFrag;iGrid++){
+    printf("111111 rhoFrag %lg\n",rhoUpFragProc[iGrid]);
+    sum += rhoUpFragProc[iGrid];
+  }
+  printf("sum %lg\n",sum*volElem);
+  fflush(stdout);
+  exit(0);  
+  */
   if(cpLsda==1&&numStateDnFrag!=0){
     for(iState=0;iState<numStateDnFrag;iState++){
       for(iGrid=0;iGrid<numGridFrag;iGrid++){
@@ -800,23 +858,69 @@ void qrWrapper(double *waveFun, int nstate,int ngrid)
   double *tau = (double*)cmalloc(n*sizeof(double));
 
   memcpy(A,waveFun,m*n*sizeof(double));
+  
+  /*
+  FILE *fileA = fopen("test-wf","w");
+  int i,j,k;
+  for(i=0;i<m;i++){
+    for(j=0;j<n;j++)fprintf(fileA,"%lg ",A[j*m+i]);
+    fprintf(fileA,"\n");
+  }
+  fclose(fileA);
+  fflush(stdout);
+  exit(0);
+  */
+
   dgeqrf_(&m,&n,A,&lda,tau,work,&lwork,&info);
   if(info<0){
     printf("In qr decomposition, the %i'th element has illegal value!\n",-info);
     fflush(stdout);
     exit(0);
-  } 
+  }
+  
+  /*
+  FILE *fileA = fopen("test-wf","w");
+  int i,j,k;
+  for(i=0;i<m;i++){
+    for(j=0;j<n;j++)fprintf(fileA,"%lg ",A[j*m+i]);
+    fprintf(fileA,"\n");
+  }
+  fclose(fileA);
+  fflush(stdout);
+  exit(0);
+  */
+  
+  //int i;
+  //for(i=0;i<n;i++)printf("tau %lg\n",tau[i]);
   // generate q matrix
-  dorgqr_(&m,&m,&n,A,&lda,tau,work,&lwork,&info);
+
+
+  int lwork2 = m*32;
+  double *work2 = (double*)cmalloc(2*lwork2*sizeof(double));
+  dorgqr_(&m,&n,&n,A,&lda,tau,&work2[0],&lwork2,&info);
   if(info<0){
     printf("In q calculation, the %i'th element has illegal value!\n",-info);
     fflush(stdout);
     exit(0);
   }
+
+  
+  /*
+  FILE *fileA = fopen("test-wf","w");
+  int i,j,k;
+  for(i=0;i<m;i++){
+    for(j=0;j<n;j++)fprintf(fileA,"%lg ",A[j*m+i]);
+    fprintf(fileA,"\n");
+  }
+  fclose(fileA);
+  fflush(stdout);
+  exit(0);
+  */
   memcpy(waveFun,A,m*n*sizeof(double));
   free(work);
   free(A);
   free(tau);
+  free(work2);
 
 /*==========================================================================*/
 }/*end Routine*/

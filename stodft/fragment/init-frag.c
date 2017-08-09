@@ -72,7 +72,7 @@ void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     case 1:
       initFragMol(class,bonded,general_data,cp,ip_now);
       break;
-    case 4:
+    case 3:
       initFragMol(class,bonded,general_data,cp,ip_now); // Use the same initialization
       break;
   }
@@ -419,9 +419,15 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     fragInfo->numGridFragDim[iFrag] = (int*)cmalloc(3*sizeof(int));
   }
   // Only used for unit cell fragment
-  if(fragOpt==4){
+  printf("fragOpt %i\n",fragOpt);
+  if(fragOpt==3){
+    fragInfo->numGridSkin = 3;
     fragInfo->numGridFragProcSmall = (int*)cmalloc(numFragProc*sizeof(int));
     fragInfo->gridMapProcSmall = (int**)cmalloc(numFragProc*sizeof(int*));
+    fragInfo->numGridFragDimBig = (int**)cmalloc(numFragProc*sizeof(int*));
+    for(iFrag=0;iFrag<numFragProc;iFrag++){
+      fragInfo->numGridFragDimBig[iFrag] = (int*)cmalloc(3*sizeof(int));
+    }
   }
 
 /*======================================================================*/

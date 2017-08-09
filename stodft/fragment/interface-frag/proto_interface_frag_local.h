@@ -94,6 +94,9 @@ void passAtomCoord(GENERAL_DATA *,CLASS *,CP *,GENERAL_DATA *,CLASS *,
 void initFFTMapMol(GENERAL_DATA *,CLASS *,CP *,GENERAL_DATA *,CLASS *,CP *,
 		int ,double *);
 
+void initFFTMapUnitCell(GENERAL_DATA *,CLASS *,CP *,GENERAL_DATA *,CLASS *,CP *,
+                int ,double *);
+
 double calcMiniBoxLength(int,double *,double *,double *,
                          double *,double *,double *,double *,double *);
 

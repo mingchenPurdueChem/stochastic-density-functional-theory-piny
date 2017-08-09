@@ -446,12 +446,16 @@ typedef struct fragInfo{
 // (Lb-Ls)/2 should be at least 2*sigma of gaussian such that the convoluted 
 // wave functions decay to 0. The convoluted wave functions are then send to Grand-Schmidt 
 // for orthorgonalization. 
-  int *numGridFragProcSmall;         /* Lst: number of grid point in small cell */  
-				     /* Lth: numFragProc			*/
-  int **gridMapProcSmall;	     /* Lst: map the number of grid point in	*/
-				     /*	     the small cell to the big cell	*/
-				     /* Lth: numFragProc*numGridFragProcSmall	*/
-  double gaussianSigma;		     /* Num: convolution gaussian std		*/
+  int numGridSkin;		    /* Num: number of grid in (Lb-Ls)/2		*/
+  int *numGridFragProcSmall;        /* Lst: number of grid point in small cell  */  
+				    /* Lth: numFragProc				*/
+  int **gridMapProcSmall;	    /* Lst: map the number of grid point in	*/
+				    /*	     the small cell to the big cell	*/
+				    /* Lth: numFragProc*numGridFragProcSmall	*/
+  int **numGridFragDimBig;          /* Lst: numof Grid point per dimension for  */
+                                    /*      each mini Big box.                  */
+                                    /* Lth: numFragProc*3                       */
+  double gaussianSigma;		    /* Num: convolution gaussian std		*/
 }FRAGINFO;
 
 typedef struct stodftInfo{

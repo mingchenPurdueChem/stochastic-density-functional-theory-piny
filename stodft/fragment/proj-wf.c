@@ -228,9 +228,11 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     //memcpy(rhoUpFragSum,rhoTemp,rhoRealGridNum*sizeof(double));
     for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
       rhoUpFragSum[iGrid] = rhoTemp[iGrid]*vol;
-      printf("111111 rhofrag %.8lg\n",rhoUpFragSum[iGrid]);
+      //printf("111111 rhofrag %.8lg\n",rhoUpFragSum[iGrid]);
     }
   }
+  //fflush(stdout);
+  //exit(0);
   memcpy(&(fragInfo->rhoUpFragSumCpy[0]),rhoUpFragSum,rhoRealGridNum*sizeof(double));
   // Do the same thing for spin down states
   if(cpLsda==1&&numStateDn!=0){

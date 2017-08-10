@@ -384,7 +384,7 @@ void initFFTMapMol(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   numGridMiniBox[2] = (int)(distProjAxis/cGridLen);
   if(numGridMiniBox[2]%2!=0)numGridMiniBox[2] += 1;
   numGridMiniBox[2] += 2; 
-  //numGridMiniBox[2] = 72;
+  //numGridMiniBox[2] = 24;
   negativeGridNum = numGridMiniBox[2]/2;
   zeroGrid[2] = indexGrid[2]-negativeGridNum;
   for(iDim=0;iDim<3;iDim++)zeroShift[iDim] -= negativeGridNum*cGrid[iDim];
@@ -402,7 +402,7 @@ void initFFTMapMol(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   numGridMiniBox[1] = (int)(distProjAxis/bGridLen);
   if(numGridMiniBox[1]%2!=0)numGridMiniBox[1] += 1;
   numGridMiniBox[1] += 2;
-  //numGridMiniBox[1] = 72;
+  //numGridMiniBox[1] = 24;
   negativeGridNum = numGridMiniBox[1]/2;
   zeroGrid[1] = indexGrid[1]-negativeGridNum;
   for(iDim=0;iDim<3;iDim++)zeroShift[iDim] -= negativeGridNum*bGrid[iDim];
@@ -418,7 +418,7 @@ void initFFTMapMol(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   numGridMiniBox[0] = (int)(distProjAxis/aGridLen);
   if(numGridMiniBox[0]%2!=0)numGridMiniBox[0] += 1;
   numGridMiniBox[0] += 2;
-  //numGridMiniBox[0] = 72;
+  //numGridMiniBox[0] = 24;
   negativeGridNum = numGridMiniBox[0]/2;
   zeroGrid[0] = indexGrid[0]-negativeGridNum;
   for(iDim=0;iDim<3;iDim++)zeroShift[iDim] -= negativeGridNum*aGrid[iDim];
@@ -552,7 +552,7 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   int numGridBigBoxB = cpParaFftPkg3dLgBigBox->nkf2;
   int numGridBigBoxA = cpParaFftPkg3dLgBigBox->nkf1;
   int numGridBigBox[3];
-  int indexGrid[3],zeroGrid[3];
+  int indexGrid[3],zeroGrid[3],zeroGridBig[3];
   int negativeGridNum;
   int numGridTotMiniBox;
   int numGridTotMiniBoxSmall;
@@ -667,8 +667,10 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   //numGridMiniBox[2] = 72;
   negativeGridNum = numGridMiniBoxSmall[2]/2;
   zeroGrid[2] = indexGrid[2]-negativeGridNum;
+  zeroGridBig[2] = zeroGrid[2]-numGridSkin;
   for(iDim=0;iDim<3;iDim++)zeroShift[iDim] -= negativeGridNum*cGrid[iDim];
   if(zeroGrid[2]<0)zeroGrid[2] += numGridBigBoxC;
+  if(zeroGridBig[2]<0)zeroGridBig[2] += numGridBigBoxC;
   // round it if necessary
 
 /*--------------------------------------------------------------------------*/
@@ -687,8 +689,10 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   //numGridMiniBox[1] = 72;
   negativeGridNum = numGridMiniBoxSmall[1]/2;
   zeroGrid[1] = indexGrid[1]-negativeGridNum;
+  zeroGridBig[1] = zeroGrid[1]-numGridSkin;
   for(iDim=0;iDim<3;iDim++)zeroShift[iDim] -= negativeGridNum*bGrid[iDim];
   if(zeroGrid[1]<0)zeroGrid[1] += numGridBigBoxB;
+  if(zeroGridBig[1]<0)zeroGridBig[1] += numGridBigBoxB;
   // round it if necessary
 /*--------------------------------------------------------------------------*/
 /*  Along a direction                                                       */
@@ -705,8 +709,10 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   //numGridMiniBox[0] = 72;
   negativeGridNum = numGridMiniBoxSmall[0]/2;
   zeroGrid[0] = indexGrid[0]-negativeGridNum;
+  zeroGridBig[0] = zeroGrid[0]-numGridSkin;
   for(iDim=0;iDim<3;iDim++)zeroShift[iDim] -= negativeGridNum*aGrid[iDim];
   if(zeroGrid[0]<0)zeroGrid[0] += numGridBigBoxA;
+  if(zeroGridBig[0]<0)zeroGridBig[0] += numGridBigBoxA;
   // round it if necessary
 
 /*--------------------------------------------------------------------------*/
@@ -742,9 +748,9 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
       for(kGrid=0;kGrid<numGridMiniBox[0];kGrid++){//a
 	index = iGrid*numGridMiniBox[1]*numGridMiniBox[0]
 		+jGrid*numGridMiniBox[0]+kGrid;    
-	indexc = zeroGrid[2]+iGrid;
-	indexb = zeroGrid[1]+jGrid;
-	indexa = zeroGrid[0]+kGrid;	
+	indexc = zeroGridBig[2]+iGrid;
+	indexb = zeroGridBig[1]+jGrid;
+	indexa = zeroGridBig[0]+kGrid;	
 	if(indexc<0)indexc += numGridBigBox[2];
 	if(indexc>=numGridBigBox[2])indexc -= numGridBigBox[2];
 	if(indexb<0)indexb += numGridBigBox[1];
@@ -762,7 +768,7 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   fragInfo->numGridFragProcSmall[iFrag] = numGridTotMiniBoxSmall;
   fragInfo->gridMapProcSmall[iFrag] = (int*)cmalloc(numGridTotMiniBoxSmall*sizeof(int));
   fragInfo->numGridFragProcSmall[iFrag] = numGridTotMiniBoxSmall;
-  for(iGrid=0;iGrid<numGridMiniBoxSmall[0];iGrid++){
+  for(iGrid=0;iGrid<numGridMiniBoxSmall[2];iGrid++){
     for(jGrid=0;jGrid<numGridMiniBoxSmall[1];jGrid++){
       for(kGrid=0;kGrid<numGridMiniBoxSmall[0];kGrid++){
 	index = iGrid*numGridMiniBoxSmall[1]*numGridMiniBoxSmall[0]

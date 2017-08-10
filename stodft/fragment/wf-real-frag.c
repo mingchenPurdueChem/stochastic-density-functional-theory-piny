@@ -733,7 +733,7 @@ void embedWfReal(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,
     }//endfor iGrid
     // Test. Let's recover the wave fun values in small box
     for(iGrid=0;iGrid<numGridFragSmall;iGrid++){
-      coefUpFragProc[iState*numGridFrag+gridMapSmall[iGrid]] = wfRealUpSmall[iState*numGridFragSmall+iGrid];
+      //coefUpFragProc[iState*numGridFrag+gridMapSmall[iGrid]] = wfRealUpSmall[iState*numGridFragSmall+iGrid];
     }
   }//endfor iState
   if(cpLsda==1&&numStateDnFrag!=0){

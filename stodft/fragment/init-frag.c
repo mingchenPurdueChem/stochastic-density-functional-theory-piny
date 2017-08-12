@@ -421,7 +421,7 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   // Only used for unit cell fragment
   printf("fragOpt %i\n",fragOpt);
   if(fragOpt==3){
-    fragInfo->numGridSkin = 2;
+    fragInfo->numGridSkin = 3;
     fragInfo->numGridFragProcSmall = (int*)cmalloc(numFragProc*sizeof(int));
     fragInfo->gridMapProcSmall = (int**)cmalloc(numFragProc*sizeof(int*));
     fragInfo->numGridFragDimBig = (int**)cmalloc(numFragProc*sizeof(int*));

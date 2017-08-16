@@ -949,7 +949,7 @@ void noiseRealReGen(GENERAL_DATA *general_data,CP *cp,CLASS *class,int ip_now)
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
   PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm = &(cp->cp_sclr_fft_pkg3d_sm);
 
-  int iStat,iGrid,iOff,iOff2,iSeed;
+  int iStat,iGrid,iOff,iOff2,iProc;
   int cpLsda = cpopts->cp_lsda;
   int numRandNum;
   int numStatUpProc = cpcoeffs_info->nstate_up_proc;
@@ -973,6 +973,40 @@ void noiseRealReGen(GENERAL_DATA *general_data,CP *cp,CLASS *class,int ip_now)
   numRandNum = numStatUpProc*nfft2;
   if(cpLsda==1)numRandNum += numStatDnProc*nfft2;
   randNum = (double*)cmalloc(numRandNum*sizeof(double));
+
+  // Generate the random number seeds from the given random number seed
+  if(myidState==0){
+#ifdef MKL_RANDOM
+    VSLStreamStatePtr stream;
+    int errcode;
+    int seed = (int)(seed = stodftInfo->randSeed);
+    errcode = vslNewStream(&stream,VSL_BRNG_MCG31,seed);
+    errcode = vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD,stream,
+                            numProcStates,randNumSeedTot,0.0,100000.0);
+#endif
+#ifndef MKL_RANDOM
+    double seed = stodftInfo->randSeed;
+    printf("seed!!!!!!!! %lg\n",seed);
+    //whatever random number is good, I'm using Gaussian in this case
+    //double seed = 8.3;
+    //double seed = 2.5;
+    int iseed;
+    //printf("numRandTot %i numStateUpTot %i numCoeff %i\n",numRandTot,numStatUpTot,numCoeff);
+    //fflush(stdout);
+    double x;
+    gaussran2(numProcStates,&iseed,&iseed,&seed,randNumSeedTot);
+    for(iProc=0;iProc<numProcStates;iProc++){
+      x = randNumSeedTot[iProc]*randNumSeedTot[iProc];
+      if(x>=1.0)randNumSeedTot[iProc] = x*100.0;
+      else randNumSeedTot[iProc] = 100.0/x;
+    }
+#endif
+  }
+  // Bcast the random number seeds
+  if(numProcStates>1){
+    Bcast(randNumSeedTot,numProcStates,MPI_DOUBLE,0,comm_states);
+    Barrier(comm_states);
+  }
 
 #ifdef MKL_RANDOM
   VSLStreamStatePtr streamNew;

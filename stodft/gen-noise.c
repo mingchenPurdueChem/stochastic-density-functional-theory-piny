@@ -51,7 +51,7 @@ void genNoiseOrbital(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
   STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
   COMMUNICATE   *communicate      = &(cp->communicate);
  
-  int iStat,iCoeff,iOff,iOff2,iSeed;
+  int iStat,iCoeff,iOff,iOff2,iProc;
   int cpLsda = cpopts->cp_lsda;
   int numRandNum;
   int numStatUpProc = cpcoeffs_info->nstate_up_proc;
@@ -95,8 +95,8 @@ void genNoiseOrbital(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
     //printf("numRandTot %i numStateUpTot %i numCoeff %i\n",numRandTot,numStatUpTot,numCoeff);
     //fflush(stdout);
     gaussran2(numProcStates,&iseed,&iseed,&seed,randNumSeedTot);
-    for(iSeed=0;iSeed<numRandNum;iSeed++){
-      randNumSeedTot[iSeed] = randNumSeedTot[iSeed]*randNumSeedTot[iSeed]*100.0;
+    for(iProc=0;iProc<numProcStates;iProc++){
+      randNumSeedTot[iProc] = randNumSeedTot[iProc]*randNumSeedTot[iProc]*10000.0;
     }
 #endif
   }
@@ -118,6 +118,7 @@ void genNoiseOrbital(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
 #ifndef MKL_RANDOM
   double seedNew = randNumSeedTot[myidState];
   int iseedNew;
+  printf("seedNew %p\n",randNumSeedTot);
   gaussran2(numRandNum,&iseedNew,&iseedNew,&seedNew,randNum);
 #endif
 
@@ -177,7 +178,7 @@ void genNoiseOrbitalReal(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
   PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm = &(cp->cp_sclr_fft_pkg3d_sm);
  
-  int iStat,iGrid,iOff,iOff2,iSeed,iCoeff;
+  int iStat,iGrid,iOff,iOff2,iProc,iCoeff;
   int cpLsda = cpopts->cp_lsda;
   int numRandNum;
   int numStatUpProc = cpcoeffs_info->nstate_up_proc;
@@ -217,16 +218,19 @@ void genNoiseOrbitalReal(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
 #endif
 #ifndef MKL_RANDOM
     double seed = stodftInfo->randSeed;
-    //printf("seed!!!!!!!! %lg\n",seed);
+    printf("seed!!!!!!!! %lg\n",seed);
     //whatever random number is good, I'm using Gaussian in this case
     //double seed = 8.3;
     //double seed = 2.5;
     int iseed;
     //printf("numRandTot %i numStateUpTot %i numCoeff %i\n",numRandTot,numStatUpTot,numCoeff);
     //fflush(stdout);
+    double x;
     gaussran2(numProcStates,&iseed,&iseed,&seed,randNumSeedTot);
-    for(iSeed=0;iSeed<numRandNum;iSeed++){
-      randNumSeedTot[iSeed] = randNumSeedTot[iSeed]*randNumSeedTot[iSeed]*100.0;
+    for(iProc=0;iProc<numProcStates;iProc++){
+      x = randNumSeedTot[iProc]*randNumSeedTot[iProc];
+      if(x>=1.0)randNumSeedTot[iProc] = x*100.0;
+      else randNumSeedTot[iProc] = 100.0/x;
     }
 #endif
   }
@@ -247,6 +251,7 @@ void genNoiseOrbitalReal(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
 #endif
 #ifndef MKL_RANDOM
   double seedNew = randNumSeedTot[myidState];
+  printf("proc %i seed %lg\n",myidState,seedNew);
   int iseedNew;
   gaussran2(numRandNum,&iseedNew,&iseedNew,&seedNew,randNum);
 #endif

@@ -369,7 +369,7 @@ void calcChebyMoments(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*==========================================================================*/
 /* 1) Generate noise wave function */
 
-  genNoiseOrbital(cp,cpcoeffs_pos);
+  genNoiseOrbitalReal(cp,cpcoeffs_pos);
 
   //debug
   /*

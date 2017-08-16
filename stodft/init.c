@@ -383,6 +383,8 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*==========================================================================*/
 /* VI) Initialize noise orbital scattering	                            */
 
+  stodftInfo->randSeedTot = (double*)cmalloc(numProcStates*sizeof(double));
+
   /*
   stodftInfo->noiseSendCounts = (int*)cmalloc(numProcStates*sizeof(int));
   stodftInfo->noiseDispls     = (int*)cmalloc(numProcStates*sizeof(int));
@@ -896,8 +898,6 @@ void reInitWaveFunMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     stodftInfo->numRandTot = numStateUpTot*2;
     if(cpLsda==1)stodftInfo->numRandTot += numStateDnTot*2;
   }
-   
-  stodftInfo->randSeedTot = (double*)cmalloc(numProcStates*sizeof(double));
 
 /*==========================================================================*/
 /* VI) Reset some flags so that the program will not crash                  */

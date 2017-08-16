@@ -478,7 +478,7 @@ void genStoOrbitalCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* IV) Generate random orbital                                          */
 
-  genNoiseOrbital(cp,cpcoeffs_pos);
+  genNoiseOrbitalReal(cp,cpcoeffs_pos);
 
 /*======================================================================*/
 /* V) Filter the stochastic orbitals			*/

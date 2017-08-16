@@ -51,8 +51,9 @@ void genNoiseOrbital(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
   STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
   COMMUNICATE   *communicate      = &(cp->communicate);
  
-  int iStat,iCoeff,iOff;
+  int iStat,iCoeff,iOff,iOff2,iSeed;
   int cpLsda = cpopts->cp_lsda;
+  int numRandNum;
   int numStatUpProc = cpcoeffs_info->nstate_up_proc;
   int numStatDnProc = cpcoeffs_info->nstate_dn_proc;
   int numCoeff = cpcoeffs_info->ncoef;
@@ -60,52 +61,65 @@ void genNoiseOrbital(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
   int numStatDnTot = numStatDnProc*numCoeff;
   int numProcStates             = communicate->np_states;
   int myidState                 = communicate->myid_state;
-  int numRandTot = stodftInfo->numRandTot;
-  int *noiseSendCounts = stodftInfo->noiseSendCounts;
-  int *noiseDispls = stodftInfo->noiseDispls;
   MPI_Comm comm_states   =    communicate->comm_states;
  
   double ranValue = 1.0/sqrt(2.0);
-  double *randNumTot,*randNum;
+  double *randNumSeedTot = stodftInfo->randSeedTot;
+  double *randNum;
   double *coeffReUp = cpcoeffs_pos->cre_up;
   double *coeffImUp = cpcoeffs_pos->cim_up;
   double *coeffReDn = cpcoeffs_pos->cre_dn;
   double *coeffImDn = cpcoeffs_pos->cim_dn;
 
-  if(myidState==0)randNumTot = (double*)cmalloc(numRandTot*sizeof(double));
-  if(numProcStates>1){
-    randNum = (double*)cmalloc(noiseSendCounts[myidState]*sizeof(double));
-  }
-  else{
-    randNum = randNumTot;
-  }
+  numRandNum = numStatUpTot*2;
+  if(cpLsda==1)numRandNum += numStatDnTot*2;
+  randNum = (double*)cmalloc(numRandNum*sizeof(double));
 
+  // Generate the random number seeds from the given random number seed
   if(myidState==0){  
 #ifdef MKL_RANDOM
     VSLStreamStatePtr stream;
     int errcode;
-    int seed = 1;
+    int seed = (int)(seed = stodftInfo->randSeed);
     errcode = vslNewStream(&stream,VSL_BRNG_MCG31,seed);
-    errcode = vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD,stream,numRandTot,randNumTot,-1.0,1.0);
+    errcode = vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD,stream,
+			    numProcStates,randNumSeedTot,0.0,100000.0);
 #endif
 #ifndef MKL_RANDOM
     double seed = stodftInfo->randSeed;
-    printf("seed!!!!!!!! %lg\n",seed);
+    //printf("seed!!!!!!!! %lg\n",seed);
     //whatever random number is good, I'm using Gaussian in this case
     //double seed = 8.3;
     //double seed = 2.5;
     int iseed;
-    printf("numRandTot %i numStateUpTot %i numCoeff %i\n",numRandTot,numStatUpTot,numCoeff);
-    fflush(stdout);
-    gaussran2(numRandTot,&iseed,&iseed,&seed,randNumTot);
+    //printf("numRandTot %i numStateUpTot %i numCoeff %i\n",numRandTot,numStatUpTot,numCoeff);
+    //fflush(stdout);
+    gaussran2(numProcStates,&iseed,&iseed,&seed,randNumSeedTot);
+    for(iSeed=0;iSeed<numRandNum;iSeed++){
+      randNumSeedTot[iSeed] = randNumSeedTot[iSeed]*randNumSeedTot[iSeed]*100.0;
+    }
 #endif
   }
+  // Bcast the random number seeds
   if(numProcStates>1){
-    Scatterv(randNumTot,noiseSendCounts,noiseDispls,MPI_DOUBLE,
-             randNum,noiseSendCounts[myidState],MPI_DOUBLE,0,comm_states);
+    Bcast(randNumSeedTot,numProcStates,MPI_DOUBLE,0,comm_states);
     Barrier(comm_states);
-    if(myidState==0)free(randNumTot);
   }
+  
+  // Generate random orbital
+#ifdef MKL_RANDOM
+  VSLStreamStatePtr streamNew;
+  int errcodeNew;
+  int seedNew = (int)randNumSeedTot[myidState];
+  errcode = vslNewStream(&streamNew,VSL_BRNG_MCG31,seedNew);
+  errcode = vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD,streamNew,
+			  numRandNum,randNum,-1.0,1.0);
+#endif
+#ifndef MKL_RANDOM
+  double seedNew = randNumSeedTot[myidState];
+  int iseedNew;
+  gaussran2(numRandNum,&iseedNew,&iseedNew,&seedNew,randNum);
+#endif
 
   for(iStat=0;iStat<numStatUpProc;iStat++){
     iOff = iStat*numCoeff;
@@ -119,9 +133,172 @@ void genNoiseOrbital(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
     else coeffReUp[iStat*numCoeff+numCoeff] = -1.0;
     coeffImUp[iStat*numCoeff+numCoeff] = 0.0;
   }
+  if(cpLsda==1){
+    for(iStat=0;iStat<numStatDnProc;iStat++){
+      iOff = iStat*numCoeff;
+      iOff2 = numStatUpProc*numCoeff+iStat*numCoeff;
+      for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
+	if(randNum[2*(iOff2+iCoeff-1)]>0)coeffReDn[iOff+iCoeff] = ranValue;
+	else coeffReDn[iOff+iCoeff] = -ranValue;
+	if(randNum[2*(iOff2+iCoeff-1)+1]>0)coeffImDn[iOff+iCoeff] = ranValue;
+	else coeffImDn[iOff+iCoeff] = -ranValue;
+      }
+      if(randNum[2*(iOff2+numCoeff-1)]>0)coeffReDn[iStat*numCoeff+numCoeff] = 1.0;
+      else coeffReDn[iStat*numCoeff+numCoeff] = -1.0;
+      coeffImDn[iStat*numCoeff+numCoeff] = 0.0;
+    }
+  }
   
   free(randNum);
 
 /*--------------------------------------------------------------------------*/  
 }/*end routine*/
 /*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void genNoiseOrbitalReal(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
+/*========================================================================*/
+{/*begin routine*/
+/**************************************************************************/
+/* Let's try to work on real space (put +-1) and FFT transform to k space */
+/**************************************************************************/
+/*========================================================================*/
+/*             Local variable declarations                                */
+/*------------------------------------------------------------------------*/
+#include "../typ_defs/typ_mask.h"
+  CPOPTS       *cpopts       = &(cp->cpopts);
+  CPSCR        *cpscr        = &(cp->cpscr);
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  STODFTINFO   *stodftInfo   = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  COMMUNICATE   *communicate      = &(cp->communicate);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm = &(cp->cp_sclr_fft_pkg3d_sm);
+ 
+  int iStat,iGrid,iOff,iOff2,iSeed,iCoeff;
+  int cpLsda = cpopts->cp_lsda;
+  int numRandNum;
+  int numStatUpProc = cpcoeffs_info->nstate_up_proc;
+  int numStatDnProc = cpcoeffs_info->nstate_dn_proc;
+  int nfft	    = cp_para_fft_pkg3d_lg->nfft;
+  int nfft2	    = nfft/2;
+  int numCoeff = cpcoeffs_info->ncoef;
+  int numStatUpTot = numStatUpProc*numCoeff;
+  int numStatDnTot = numStatDnProc*numCoeff;
+  int numProcStates             = communicate->np_states;
+  int myidState                 = communicate->myid_state;
+  MPI_Comm comm_states   =    communicate->comm_states;
+ 
+  double ranValue = sqrt(nfft2);
+  double *randNumSeedTot = stodftInfo->randSeedTot;
+  double *randNum;
+  double *coeffReUp = cpcoeffs_pos->cre_up;
+  double *coeffImUp = cpcoeffs_pos->cim_up;
+  double *coeffReDn = cpcoeffs_pos->cre_dn;
+  double *coeffImDn = cpcoeffs_pos->cim_dn;
+  double *zfft      = cpscr->cpscr_wave.zfft;
+  double *zfft_temp = cpscr->cpscr_wave.zfft_tmp;
+
+  numRandNum = numStatUpProc*nfft2;
+  if(cpLsda==1)numRandNum += numStatDnProc*nfft2;
+  randNum = (double*)cmalloc(numRandNum*sizeof(double));
+
+  // Generate the random number seeds from the given random number seed
+  if(myidState==0){  
+#ifdef MKL_RANDOM
+    VSLStreamStatePtr stream;
+    int errcode;
+    int seed = (int)(seed = stodftInfo->randSeed);
+    errcode = vslNewStream(&stream,VSL_BRNG_MCG31,seed);
+    errcode = vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD,stream,
+			    numProcStates,randNumSeedTot,0.0,100000.0);
+#endif
+#ifndef MKL_RANDOM
+    double seed = stodftInfo->randSeed;
+    //printf("seed!!!!!!!! %lg\n",seed);
+    //whatever random number is good, I'm using Gaussian in this case
+    //double seed = 8.3;
+    //double seed = 2.5;
+    int iseed;
+    //printf("numRandTot %i numStateUpTot %i numCoeff %i\n",numRandTot,numStatUpTot,numCoeff);
+    //fflush(stdout);
+    gaussran2(numProcStates,&iseed,&iseed,&seed,randNumSeedTot);
+    for(iSeed=0;iSeed<numRandNum;iSeed++){
+      randNumSeedTot[iSeed] = randNumSeedTot[iSeed]*randNumSeedTot[iSeed]*100.0;
+    }
+#endif
+  }
+  // Bcast the random number seeds
+  if(numProcStates>1){
+    Bcast(randNumSeedTot,numProcStates,MPI_DOUBLE,0,comm_states);
+    Barrier(comm_states);
+  }
+  
+  // Generate random orbital
+#ifdef MKL_RANDOM
+  VSLStreamStatePtr streamNew;
+  int errcodeNew;
+  int seedNew = (int)randNumSeedTot[myidState];
+  errcode = vslNewStream(&streamNew,VSL_BRNG_MCG31,seedNew);
+  errcode = vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD,streamNew,
+			  numRandNum,randNum,-1.0,1.0);
+#endif
+#ifndef MKL_RANDOM
+  double seedNew = randNumSeedTot[myidState];
+  int iseedNew;
+  gaussran2(numRandNum,&iseedNew,&iseedNew,&seedNew,randNum);
+#endif
+  for(iStat=1;iStat<=numStatUpTot;iStat++){
+    coeffReUp[iStat] = 0.0;
+    coeffImUp[iStat] = 0.0;
+  }
+  for(iStat=0;iStat<numStatUpProc;iStat++){
+    for(iGrid=0;iGrid<nfft2;iGrid++){
+      if(randNum[iStat*nfft2+iGrid]<0.0)zfft[iGrid*2+1] = -ranValue;
+      else zfft[iGrid*2+1] = ranValue;
+      zfft[iGrid*2+2] = 0.0;
+    }
+    iOff = iStat*numCoeff;
+    para_fft_gen3d_bck_to_g(zfft,zfft_temp,cp_sclr_fft_pkg3d_sm);
+    sngl_upack_coef_sum(&coeffReUp[iOff],&coeffImUp[iOff],zfft,
+                            cp_sclr_fft_pkg3d_sm);
+    for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
+      coeffReUp[iOff+iCoeff] *= 0.25;
+      coeffImUp[iOff+iCoeff] *= 0.25;
+    }
+    coeffReUp[iOff+numCoeff] *= 0.5;
+    coeffImUp[iOff+numCoeff] = 0.0;
+  }
+  if(cpLsda==1){
+    for(iStat=1;iStat<=numStatDnTot;iStat++){
+      coeffReDn[iStat] = 0.0;
+      coeffImDn[iStat] = 0.0;
+    }
+    for(iStat=0;iStat<numStatDnProc;iStat++){
+      iOff = numStatUpProc*nfft2+iStat*nfft2;
+      for(iGrid=0;iGrid<nfft2;iGrid++){
+	if(randNum[iOff+iGrid]<0.0)zfft[iGrid*2+1] = -ranValue;
+	else zfft[iGrid*2+1] = ranValue;
+	zfft[iGrid*2+2] = 0.0;
+      }
+      iOff = iStat*numCoeff;
+      para_fft_gen3d_bck_to_g(zfft,zfft_temp,cp_sclr_fft_pkg3d_sm);
+      sngl_upack_coef_sum(&coeffReDn[iOff],&coeffImDn[iOff],zfft,
+			      cp_sclr_fft_pkg3d_sm);
+      for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
+	coeffReUp[iOff+iCoeff] *= 0.25;
+	coeffImUp[iOff+iCoeff] *= 0.25;
+      }
+      coeffReUp[iOff+numCoeff] *= 0.5;
+      coeffImUp[iOff+numCoeff] = 0.0;
+    }
+  }
+  
+  free(randNum);
+
+/*--------------------------------------------------------------------------*/
+}/*end routine*/
+/*==========================================================================*/
+

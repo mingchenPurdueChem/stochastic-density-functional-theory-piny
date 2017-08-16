@@ -200,7 +200,7 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 		generalDataMiniPoint,analysisMiniPoint,cpMiniPoint,ip_now);
 
     // We need to generate noise wave function one time before we do the projection
-    genNoiseOrbital(cp,&(cp->cpcoeffs_pos[ip_now]));
+    //genNoiseOrbital(cp,&(cp->cpcoeffs_pos[ip_now]));
     fragScf(class,bonded,general_data,cp,analysis,*generalDataMiniPoint,
 	    *cpMiniPoint,*classMiniPoint,*analysisMiniPoint,*bondedMiniPoint,ip_now);
     if(readCoeffFlag==-1){

@@ -34,6 +34,7 @@ void sumnlPotPvFatmHessFrag(int,int,int,int,int,int,int,int,int,int *,double *,
 void rhoRealCalcDriverFragUnitCell(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *,CP *);
 void embedWfReal(GENERAL_DATA *,CP *,CLASS *,CP *,double *,double *);
 void qrWrapper(double *,int,int);
+void noiseRealReGen(GENERAL_DATA *,CP *,CLASS *,int);
 
 
 

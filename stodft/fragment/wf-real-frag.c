@@ -930,3 +930,76 @@ void qrWrapper(double *waveFun, int nstate,int ngrid)
 }/*end Routine*/
 /*==========================================================================*/
 
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void noiseRealReGen(GENERAL_DATA *general_data,CP *cp,CLASS *class,int ip_now)
+/*========================================================================*/
+{/*begin routine*/
+/*========================================================================*/
+/*             Local variable declarations                                */
+  CPOPTS       *cpopts       = &(cp->cpopts);
+  CPSCR        *cpscr        = &(cp->cpscr);
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  STODFTINFO   *stodftInfo   = cp->stodftInfo;
+  FRAGINFO	*fragInfo    = stodftInfo->fragInfo;	
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  COMMUNICATE   *communicate      = &(cp->communicate);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm = &(cp->cp_sclr_fft_pkg3d_sm);
+
+  int iStat,iGrid,iOff,iOff2,iSeed;
+  int cpLsda = cpopts->cp_lsda;
+  int numRandNum;
+  int numStatUpProc = cpcoeffs_info->nstate_up_proc;
+  int numStatDnProc = cpcoeffs_info->nstate_dn_proc;
+  int nfft          = cp_para_fft_pkg3d_lg->nfft;
+  int nfft2         = nfft/2;
+  int numCoeff = cpcoeffs_info->ncoef;
+  int numStatUpTot = numStatUpProc*numCoeff;
+  int numStatDnTot = numStatDnProc*numCoeff;
+  int numProcStates             = communicate->np_states;
+  int myidState                 = communicate->myid_state;
+  MPI_Comm comm_states   =    communicate->comm_states;
+
+  double ranValue = sqrt(nfft2);
+  double *randNumSeedTot = stodftInfo->randSeedTot;
+  double *randNum;
+  double *noiseWfUpReal = fragInfo->noiseWfUpReal;
+  double *noiseWfDnReal = fragInfo->noiseWfDnReal;
+
+
+  numRandNum = numStatUpProc*nfft2;
+  if(cpLsda==1)numRandNum += numStatDnProc*nfft2;
+  randNum = (double*)cmalloc(numRandNum*sizeof(double));
+
+#ifdef MKL_RANDOM
+  VSLStreamStatePtr streamNew;
+  int errcodeNew;
+  int seedNew = (int)randNumSeedTot[myidState];
+  errcode = vslNewStream(&streamNew,VSL_BRNG_MCG31,seedNew);
+  errcode = vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD,streamNew,
+                          numRandNum,randNum,-1.0,1.0);
+#endif
+#ifndef MKL_RANDOM
+  double seedNew = randNumSeedTot[myidState];
+  int iseedNew;
+  gaussran2(numRandNum,&iseedNew,&iseedNew,&seedNew,randNum);
+#endif
+  for(iGrid=0;iGrid<numStatUpProc*nfft2;iGrid++){
+    if(randNum[iGrid]<0.0)noiseWfUpReal[iGrid] = -ranValue;
+    else noiseWfUpReal[iGrid] = ranValue;
+  }
+  if(cpLsda==1){
+    for(iGrid=0;iGrid<numStatDnProc*nfft2;iGrid++){
+      if(randNum[iGrid]<0.0)noiseWfDnReal[iGrid] = -ranValue;
+      else noiseWfDnReal[iGrid] = ranValue;
+    }
+  }
+  free(randNum);
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+

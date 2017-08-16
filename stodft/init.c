@@ -760,6 +760,7 @@ void reInitWaveFunMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   COMMUNICATE  *communicate     = &(cp->communicate);
   CPOPTS       *cpopts          = &(cp->cpopts);
   CPSCR        *cpscr           = &(cp->cpscr);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_sclr_fft_pkg3d_lg);
 
   int numStateStoUp = stodftInfo->numStateStoUp;
   int numStateStoDn = stodftInfo->numStateStoDn;
@@ -774,10 +775,14 @@ void reInitWaveFunMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int numChemPot = stodftInfo->numChemPot;
   int numSendNoise;
   int iState,iChem,iProc;
-  MPI_Comm comm_states   =    communicate->comm_states;
+  int nfft             = cp_para_fft_pkg3d_lg->nfft;
+  int nfft2	       = nfft/2; 
+  MPI_Comm comm_states = communicate->comm_states;
 
   int *noiseSendCounts;
   int *noiseDispls;
+  int *randSeedSendCounts;
+  int *randSeedDispls;
 
 /*==========================================================================*/
 /* I) Initialize Check                                                      */
@@ -891,6 +896,8 @@ void reInitWaveFunMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     stodftInfo->numRandTot = numStateUpTot*2;
     if(cpLsda==1)stodftInfo->numRandTot += numStateDnTot*2;
   }
+   
+  stodftInfo->randSeedTot = (double*)cmalloc(numProcStates*sizeof(double));
 
 /*==========================================================================*/
 /* VI) Reset some flags so that the program will not crash                  */

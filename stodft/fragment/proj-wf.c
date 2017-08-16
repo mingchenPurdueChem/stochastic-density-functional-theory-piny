@@ -336,7 +336,8 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   }
   */
 
-  rhoRealCalcDriverNoise(general_data,cp,class,ip_now);
+  //rhoRealCalcDriverNoise(general_data,cp,class,ip_now);
+  noiseRealReGen(general_data,cp,class,ip_now);
 
 /*======================================================================*/
 /* IV) Project the real space noise wave function                       */

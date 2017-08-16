@@ -43,6 +43,7 @@ void genStoOrbitalCheby(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 /*-----------------------------------------------------------------*/
 /* gen-noise.c							   */
 void genNoiseOrbital(CP *,CPCOEFFS_POS *);
+void genNoiseOrbitalReal(CP *,CPCOEFFS_POS *);
 /*-----------------------------------------------------------------*/
 /* normh.c                                                         */
 void normHNewtonHerm(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,

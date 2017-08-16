@@ -537,7 +537,6 @@ typedef struct stodftInfo{
 				    /* Lth: np_states				*/
   int *noiseDispls;		    /* Lst: noise orbital displs for scatter	*/
 				    /* Lth: np_states				*/
-
   int numChemProc;		    /* Num: Number of densities stored on this  */
 				    /*	    proc. (full_g=numChemPot)		*/
 
@@ -563,6 +562,9 @@ typedef struct stodftInfo{
   double numElecTrueFrag;	    /* Num: True number of electron while doing */
 				    /*	    fragmentation calculation		*/
   double randSeed;		    /* Num: Random number seed for noise orbital*/
+  double *randSeedTot;		    /* Lst: Random number seed stored on each   */
+				    /*	    processor				*/
+				    /* Lth: np_states				*/
   /* In fact, we have rho(tot)=rho(frag)+rho(sto)-rho(proj). Also, Ne(tot)=	*/
   /* Ne(frag). So Ne(sto)=Ne(proj). We shall calculate Ne(proj) right after	*/
   /* having real space rho(proj)						*/

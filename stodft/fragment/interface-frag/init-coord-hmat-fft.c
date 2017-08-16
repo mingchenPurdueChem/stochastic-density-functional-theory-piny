@@ -634,7 +634,7 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   aGridLen = normalized3d(aNorm);
   bGridLen = normalized3d(bNorm);
   cGridLen = normalized3d(cNorm);
-  sigma = MIN(aGridLen,MIN(bGridLen,cGridLen))*0.5;
+  sigma = MIN(aGridLen,MIN(bGridLen,cGridLen));
   fragInfo->gaussianSigma = sigma;
 
   //printf("aGridLen %lg bGridLen %lg cGridLen %lg\n",aGridLen,bGridLen,cGridLen);

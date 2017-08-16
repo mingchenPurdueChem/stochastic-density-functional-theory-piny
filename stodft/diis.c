@@ -325,7 +325,11 @@ void calcDensityDiis(CP *cp,double **rhoBank,double **rhoErr)
   double pre = mixRatioSM-1.0;
   printf("mixRatioSM %lg pre %lg\n",mixRatioSM,pre);
   //printf("pre %lg\n",pre);
+<<<<<<< HEAD
   if(iScf<=100){
+=======
+  if(iScf<=4){
+>>>>>>> fe9de1de7d1329e760595fc57fb940199bdb574d
     for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
       rhoUp[iGrid+1] = 0.0;
       for(iDiis=0;iDiis<numDiisNow;iDiis++){
@@ -334,12 +338,24 @@ void calcDensityDiis(CP *cp,double **rhoBank,double **rhoErr)
       }//endfor iDiis
     }//endfor iGrid
   }//endif iScf
+  
+  else{
+    mixRatioSM = 0.5;
+    pre = mixRatioSM-1.0;
+    for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+      rhoUp[iGrid+1] = 0.0;
+      for(iDiis=0;iDiis<numDiisNow;iDiis++)rhoUp[iGrid+1] += diisCoeff[iDiis]*(rhoBank[iDiis][iGrid]+pre*rhoErr[iDiis][iGrid]);
+    }
+  }
+  
+  /*
   else{
     for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
       rhoUp[iGrid+1] = 0.0;
-      for(iDiis=0;iDiis<numDiisNow;iDiis++)rhoUp[iGrid+1] += diisCoeff[iDiis]*rhoBank[iDiis][iGrid];
+      for(iDiis=0;iDiis<numDiisNow;iDiis++)rhoUp[iGrid+1] += diisCoeff[iDiis]*(rhoBank[iDiis][iGrid]);
     }
   }
+  */
 
   /*
   if(myidState==3){

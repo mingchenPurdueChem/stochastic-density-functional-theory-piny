@@ -603,16 +603,18 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     for(iChem=0;iChem<numChemPot;iChem++){
       for(iState=0;iState<numStateUp;iState++){
 	for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
-	  fscanf(filePrintWF,"%lg",&stoWfUpRe[iChem][iState*numCoeff+iCoeff]);
-	  fscanf(filePrintWF,"%lg",&stoWfUpIm[iChem][iState*numCoeff+iCoeff]);
-	  //fprintf(filePrintWF,"%.16lg %.16lg\n",stoWfUpRe[iChem][iState*numCoeff+iCoeff],
-	  //	    stoWfUpIm[iChem][iState*numCoeff+iCoeff]);
+	  //fscanf(filePrintWF,"%lg",&stoWfUpRe[iChem][iState*numCoeff+iCoeff]);
+	  //fscanf(filePrintWF,"%lg",&stoWfUpIm[iChem][iState*numCoeff+iCoeff]);
+	  fprintf(filePrintWF,"%.16lg %.16lg\n",stoWfUpRe[iChem][iState*numCoeff+iCoeff],
+	  	    stoWfUpIm[iChem][iState*numCoeff+iCoeff]);
 	}//endfor iCoeff
       }//endfor iState
     }//endfor iChem
     fclose(filePrintWF);
     printf("myid %i finish reading in WF.\n",myidState);
     printf("%lg %lg\n",stoWfUpRe[0][1],stoWfUpIm[0][1]);
+    fflush(stdout);
+    exit(0);
     */
     
     /*

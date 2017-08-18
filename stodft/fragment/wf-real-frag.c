@@ -315,6 +315,7 @@ void rhoRealCalcDriverNoise(GENERAL_DATA *general_data,CP *cp,CLASS *class,int i
     rhoRealCalcWrapper(general_data,cp,class,ccrealUp,ccimagUp,icoef_form_dn,
                        icoef_orth_dn,noiseWfDnReal,numStateDnProc);
   }
+    
   /*
   int iState;
   int rhoRealGridTot = stodftInfo->rhoRealGridTot;
@@ -438,6 +439,16 @@ void rhoRealCalcWrapper(GENERAL_DATA *general_data,CP *cp,CLASS *class,
   printf("nfft2 %i\n",nfft2);
   for(is=0;is<nstate;is++){
     printf("wwwfReal %lg\n",wfReal[is*nfft2_proc]);
+  }
+  */
+
+  /*
+  for(is=0;is<nstate;is++){
+    char fname[100]; 
+    sprintf(fname,"wf-stodft-%i",is);
+    FILE *fout = fopen(fname,"w");
+    for(igrid=0;igrid<nfft2;igrid++)fprintf(fout,"%i %.16lg\n",igrid,wfReal[is*nfft2+igrid]);
+    fclose(fout);
   }
   */
 
@@ -939,6 +950,8 @@ void noiseRealReGen(GENERAL_DATA *general_data,CP *cp,CLASS *class,int ip_now)
 {/*begin routine*/
 /*========================================================================*/
 /*             Local variable declarations                                */
+#include "../typ_defs/typ_mask.h"
+
   CPOPTS       *cpopts       = &(cp->cpopts);
   CPSCR        *cpscr        = &(cp->cpscr);
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);

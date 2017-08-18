@@ -228,7 +228,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     //memcpy(rhoUpFragSum,rhoTemp,rhoRealGridNum*sizeof(double));
     for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
       rhoUpFragSum[iGrid] = rhoTemp[iGrid]*vol;
-      //printf("111111 rhofrag %.8lg\n",rhoUpFragSum[iGrid]);
+      //printf("111111 rhofrag %.8lg\n",rhoTemp[iGrid]);
     }
   }
   //fflush(stdout);
@@ -336,7 +336,28 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   }
   */
 
-  //rhoRealCalcDriverNoise(general_data,cp,class,ip_now);
+  /*
+  char wfname[100];
+  //sprintf(wfname,"/scratch/mingchen/tmp/sto-wf-save-%i",myidState);
+  printf("Read in stochastic orbitals...\n");
+  sprintf(wfname,"sto-wf-save-%i",myidState);
+
+  FILE *filePrintWF = fopen(wfname,"r");
+  int iCoeff;
+  for(iState=0;iState<numStateUpProc;iState++){
+    for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+      fscanf(filePrintWF,"%lg",&(cp->cpcoeffs_pos[1].cre_up[iState*numCoeff+iCoeff]));
+      fscanf(filePrintWF,"%lg",&(cp->cpcoeffs_pos[1].cim_up[iState*numCoeff+iCoeff]));
+    }//endfor iCoeff
+  }//endfor iState
+  fclose(filePrintWF);
+  printf("myid %i finish reading in WF.\n",myidState);
+
+  rhoRealCalcDriverNoise(general_data,cp,class,ip_now);
+  fflush(stdout);
+  exit(0);
+  */
+
   noiseRealReGen(general_data,cp,class,ip_now);
 
 /*======================================================================*/
@@ -382,7 +403,17 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 	  proj = ddotBlasWrapper(numGrid,&wfFragTemp[0],1,&coefUpFragProc[iFrag][iStateFrag*numGrid],1);
 	  fragInfo->wfProjUp[iFrag][countWf*numStateUpMini+iStateFrag] = proj*preDot*volMini;
 	  daxpyBlasWrapper(numGrid,proj,&coefUpFragProc[iFrag][iStateFrag*numGrid],1,&rhoFragTemp[0],1);
-	}//endfor iGrid
+	}//endfor iStateFrag
+	/*
+	char fname[100];
+	sprintf(fname,"wf-%i",iState);
+	FILE *testwf = fopen(fname,"w");
+	double *temp = (double*)calloc(numGrid,sizeof(double));
+	for(iGrid=0;iGrid<numGrid;iGrid++)temp[gridMapProc[iFrag][iGrid]] = rhoFragTemp[iGrid];
+	for(iGrid=0;iGrid<numGrid;iGrid++)fprintf(testwf,"%i %.16lg\n",iGrid,-temp[iGrid]*volMini);
+	fclose(testwf);
+	free(temp);
+	*/
 	for(iGrid=0;iGrid<numGrid;iGrid++){
 	  gridIndex = gridMapProc[iFrag][iGrid];
 	  rhoTemp[gridIndex] += rhoFragTemp[iGrid]*rhoFragTemp[iGrid];
@@ -393,7 +424,8 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
       countWf += 1;
     }//endfor iState   
   }//endfor iProc
-
+  //fflush(stdout);
+  //exit(0);
   //debug
   /*
   numStateUpMini = cpMini[0].cpcoeffs_info.nstate_up_proc;

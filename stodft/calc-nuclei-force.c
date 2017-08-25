@@ -132,9 +132,9 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
   double *fx = clatoms_pos->fx;
   double *fy = clatoms_pos->fy;
   double *fz = clatoms_pos->fz;
-  double *vnlFxCor = fragInfo->vnlFxCor;
-  double *vnlFyCor = fragInfo->vnlFyCor;
-  double *vnlFzCor = fragInfo->vnlFzCor;
+  double *vnlFxCor;
+  double *vnlFyCor;
+  double *vnlFzCor;
   double *lagFunValue = (double*)cmalloc(numChemPot*sizeof(double));
   double *hmatCP    = cell->hmat_cp;
   
@@ -167,6 +167,11 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
   class->energy_ctrl.iget_full_inter = 1;
   class->energy_ctrl.iget_res_inter = 0;
   energy_control_initial(class,bonded,general_data);
+  if(calcFragFlag==1){
+    vnlFxCor = fragInfo->vnlFxCor;
+    vnlFyCor = fragInfo->vnlFyCor;
+    vnlFzCor = fragInfo->vnlFzCor;
+  }
 
 /*======================================================================*/
 /* I) Recalculate k space density                                       */

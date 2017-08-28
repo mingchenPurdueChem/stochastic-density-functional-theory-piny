@@ -456,6 +456,8 @@ typedef struct fragInfo{
                                     /*      each mini Big box.                  */
                                     /* Lth: numFragProc*3                       */
   double gaussianSigma;		    /* Num: convolution gaussian std		*/
+  //debug
+  double *wfDetBackup;
 }FRAGINFO;
 
 typedef struct stodftInfo{

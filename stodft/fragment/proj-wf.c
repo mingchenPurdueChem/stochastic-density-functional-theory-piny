@@ -380,6 +380,11 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     rhoTemp[iGrid] = 0.0;
   }
   countWf = 0;
+  //debug
+  double **fix_frag = (double**)cmalloc(numFragProc*sizeof(double*));
+  for(iFrag=0;iFrag<numFragProc;iFrag++){
+    fix_frag[iFrag] = (double*)calloc(rhoRealGridTot,sizeof(double));
+  }
   for(iProc=0;iProc<numProcStates;iProc++){
     for(iState=0;iState<numStateUpAllProc[iProc];iState++){
       if(myidState==iProc){
@@ -417,6 +422,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 	for(iGrid=0;iGrid<numGrid;iGrid++){
 	  gridIndex = gridMapProc[iFrag][iGrid];
 	  rhoTemp[gridIndex] += rhoFragTemp[iGrid]*rhoFragTemp[iGrid];
+	  fix_frag[iFrag][gridIndex] += rhoFragTemp[iGrid]*rhoFragTemp[iGrid]*pre;
 	}
 	free(wfFragTemp);
 	free(rhoFragTemp);
@@ -427,6 +433,15 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   //fflush(stdout);
   //exit(0);
   //debug
+  for(iFrag=0;iFrag<numFragProc;iFrag++){
+    char fname[100];
+    sprintf(fname,"proj-%i",iFrag);
+    FILE *test_proj = fopen(fname,"w");
+    for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+      fprintf(test_proj,"%.8lg\n",fix_frag[iFrag][iGrid]);
+    }
+    fclose(test_proj);
+  }
   /*
   numStateUpMini = cpMini[0].cpcoeffs_info.nstate_up_proc;
   int iCoeff;
@@ -527,8 +542,19 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   //printf("sumElecFrag %lg sumElecProj %lg rhoRealGridNum %i\n",sumElecFrag,sumElecProj,rhoRealGridNum);
   if(numProcStates>1)Barrier(commStates);
   //exit(0);
+    
+  //debug
+  FILE *file_test = fopen("rho-test","w");
+  double sum1 = 0.0;
+  double sum2 = 0.0;
+  for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+    fprintf(file_test,"%.8lg %.8lg\n",rhoUpFragSum[iGrid],rhoTemp[iGrid]*pre);
+    sum1 += rhoUpFragSum[iGrid];
+    sum2 += rhoTemp[iGrid]*pre;
+  }
+  printf("sum1 %.8lg sum2 %.8lg\n",sum1,sum2);
+  fclose(file_test);
   
-
   daxpyBlasWrapper(rhoRealGridNum,-pre,&rhoTemp[0],1,&rhoUpFragSum[0],1);
 
   if(cpLsda==1&&numStateDn!=0){
@@ -639,6 +665,8 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     //free(noiseWfDnReal);
     free(numStateDnAllProc);
   }
+  fflush(stdout);
+  exit(0);
 
 /*==========================================================================*/
 }/*end Routine*/

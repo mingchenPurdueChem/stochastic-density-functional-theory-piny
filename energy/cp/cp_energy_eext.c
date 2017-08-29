@@ -561,6 +561,7 @@ void control_cp_eext_recip(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
       non_loc_restore_ord(clatoms_pos,clatoms_info,
                           atommaps, pseudo,ewd_scr,for_scr);
     }/*endif*/
+ 
 
 /*======================================================================*/
 /* VIII) Assign the potential energy                                    */
@@ -1140,6 +1141,7 @@ void control_ewd_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
       fx[ipart] += fx_tmp[ipart];
       fy[ipart] += fy_tmp[ipart];
       fz[ipart] += fz_tmp[ipart];
+      //printf("11111111 floc %.8lg %.8lg %.8lg\n",fx_tmp[ipart],fy_tmp[ipart],fz_tmp[ipart]);
     }/*endfor*/
   }else{
     for(ipart=1;ipart<=natm_use;ipart++){
@@ -1228,7 +1230,7 @@ void control_ewd_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
   if(idual_switch == 0){
     *vrecip_ret = vrecip;
   }
-
+  
 
 /*======================================================================*/
     }/*end routine*/

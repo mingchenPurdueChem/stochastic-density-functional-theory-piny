@@ -106,6 +106,19 @@ void energy_control_inter_real(CLASS *class, BONDED *bonded,
   vvdw             = 0.0;
   vcoul            = 0.0;
   vreal            = 0.0;
+  //debug
+  /*
+  double *fx              = class->clatoms_pos[1].fx;
+  double *fy              = class->clatoms_pos[1].fy;
+  double *fz              = class->clatoms_pos[1].fz;
+  int i;
+
+  for(i=1;i<=natm_tot;i++){
+    fx[i] = 0.0;
+    fy[i] = 0.0;
+    fz[i] = 0.0;
+  }
+  */
 
 /*======================================================================*/
 /* III) Get intermolecular real space force and  PE   */
@@ -185,6 +198,13 @@ void energy_control_inter_real(CLASS *class, BONDED *bonded,
     }/*endif*/
 
   }/*endif*/
+
+  /*
+  for(i=1;i<=natm_tot;i++){
+    printf("1111111 fnuclei %.8lg %.8lg %.8lg\n",fx[i],fy[i],fz[i]);
+  }
+  */
+
 
 /*-----------------------------------------------------------------------*/
    }/*end routine */

@@ -510,8 +510,12 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
       fxNlTrue[iAtom] += vnlFxCor[iAtom];
       fyNlTrue[iAtom] += vnlFyCor[iAtom];
       fzNlTrue[iAtom] += vnlFzCor[iAtom];
-      printf("NL cor force %.16lg %.16lg %.16lg\n",fxNlTrue[iAtom],fyNlTrue[iAtom],fzNlTrue[iAtom]);
+      //printf("NL cor force %.16lg %.16lg %.16lg\n",fxNlTrue[iAtom],fyNlTrue[iAtom],fzNlTrue[iAtom]);
     }
+  }
+
+  for(iAtom=0;iAtom<numAtomTot;iAtom++){
+    printf("NL cor force %.16lg %.16lg %.16lg\n",fxNlTrue[iAtom],fyNlTrue[iAtom],fzNlTrue[iAtom]);
   }
 
 /*======================================================================*/

@@ -381,10 +381,12 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   }
   countWf = 0;
   //debug
+  /*
   double **fix_frag = (double**)cmalloc(numFragProc*sizeof(double*));
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     fix_frag[iFrag] = (double*)calloc(rhoRealGridTot,sizeof(double));
   }
+  */
   for(iProc=0;iProc<numProcStates;iProc++){
     for(iState=0;iState<numStateUpAllProc[iProc];iState++){
       if(myidState==iProc){
@@ -422,7 +424,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 	for(iGrid=0;iGrid<numGrid;iGrid++){
 	  gridIndex = gridMapProc[iFrag][iGrid];
 	  rhoTemp[gridIndex] += rhoFragTemp[iGrid]*rhoFragTemp[iGrid];
-	  fix_frag[iFrag][gridIndex] += rhoFragTemp[iGrid]*rhoFragTemp[iGrid]*pre;
+	  //fix_frag[iFrag][gridIndex] += rhoFragTemp[iGrid]*rhoFragTemp[iGrid]*pre;
 	}
 	free(wfFragTemp);
 	free(rhoFragTemp);
@@ -433,6 +435,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   //fflush(stdout);
   //exit(0);
   //debug
+  /*
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     char fname[100];
     sprintf(fname,"proj-%i",iFrag);
@@ -442,6 +445,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     }
     fclose(test_proj);
   }
+  */
   /*
   numStateUpMini = cpMini[0].cpcoeffs_info.nstate_up_proc;
   int iCoeff;
@@ -665,8 +669,8 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     //free(noiseWfDnReal);
     free(numStateDnAllProc);
   }
-  fflush(stdout);
-  exit(0);
+  //fflush(stdout);
+  //exit(0);
 
 /*==========================================================================*/
 }/*end Routine*/

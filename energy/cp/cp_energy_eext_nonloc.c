@@ -1340,6 +1340,14 @@ void sumnl_pot_pv_fatm_hess(int npart,int nstate,int np_nlmax,
   /* Local pointers */
   double cp_enl = *cp_enl_ret;
 
+  //debug
+  /*
+  double *fxtest,*fytest,*fztest;
+  fxtest = (double*)calloc((npart+1),sizeof(double));
+  fytest = (double*)calloc((npart+1),sizeof(double));
+  fztest = (double*)calloc((npart+1),sizeof(double));
+  */
+
 /*==========================================================================*/
 /* I) Loop over the 2*l+1 directions and sum the nl contributions           */
 
@@ -1503,6 +1511,11 @@ void sumnl_pot_pv_fatm_hess(int npart,int nstate,int np_nlmax,
           fx[ltemp] += fxtemp[ipart];
           fy[ltemp] += fytemp[ipart];
           fz[ltemp] += fztemp[ipart];
+	  /*
+	  fxtest[ltemp] += fxtemp[ipart];
+          fytest[ltemp] += fytemp[ipart];
+          fztest[ltemp] += fztemp[ipart];
+	  */
         }/*endfor:atomic forces*/
 
 /*----------------------------------------------------------------------*/
@@ -1628,6 +1641,12 @@ void sumnl_pot_pv_fatm_hess(int npart,int nstate,int np_nlmax,
 /* II) Set the return values                                               */
 
  *cp_enl_ret = cp_enl;
+
+  /*
+  for(ipart=1;ipart<=npart;ipart++){
+    printf("1111111 fnl %.8lg %.8lg %.8lg\n",fxtest[ipart],fytest[ipart],fztest[ipart]);
+  }
+  */
 
 /*======================================================================*/
   }/*end routine*/

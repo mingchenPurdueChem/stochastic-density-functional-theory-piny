@@ -307,7 +307,7 @@ void rhoRealCalcDriverNoise(GENERAL_DATA *general_data,CP *cp,CLASS *class,int i
 
 /*======================================================================*/
 /* IV) Calculate real space wave functions				*/
-
+  //debug
 
   rhoRealCalcWrapper(general_data,cp,class,ccrealUp,ccimagUp,icoef_form_up,
 		     icoef_orth_up,noiseWfUpReal,numStateUpProc);

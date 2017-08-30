@@ -336,6 +336,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   }
   */
 
+  
   /*
   char wfname[100];
   //sprintf(wfname,"/scratch/mingchen/tmp/sto-wf-save-%i",myidState);
@@ -352,13 +353,22 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   }//endfor iState
   fclose(filePrintWF);
   printf("myid %i finish reading in WF.\n",myidState);
+  */
+  // Copy the deterministic wf to the stochastic wf
+  //memcpy(&(cp->cpcoeffs_pos[1].cre_up[1]),&(stodftCoefPos->wfDetBackupUpRe[0]),numStateUpProc*numCoeff*sizeof(double));
+  //memcpy(&(cp->cpcoeffs_pos[1].cim_up[1]),&(stodftCoefPos->wfDetBackupUpIm[0]),numStateUpProc*numCoeff*sizeof(double));
+  int iCoeff;
+  for(iCoeff=0;iCoeff<numStateUpProc*numCoeff;iCoeff++){
+    cp->cpcoeffs_pos[1].cre_up[iCoeff+1] = stodftCoefPos->wfDetBackupUpRe[iCoeff];
+    cp->cpcoeffs_pos[1].cim_up[iCoeff+1] = stodftCoefPos->wfDetBackupUpIm[iCoeff];
+  }
 
   rhoRealCalcDriverNoise(general_data,cp,class,ip_now);
-  fflush(stdout);
-  exit(0);
-  */
+  //fflush(stdout);
+  //exit(0);
+  
 
-  noiseRealReGen(general_data,cp,class,ip_now);
+  //noiseRealReGen(general_data,cp,class,ip_now);
 
 /*======================================================================*/
 /* IV) Project the real space noise wave function                       */
@@ -387,6 +397,60 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     fix_frag[iFrag] = (double*)calloc(rhoRealGridTot,sizeof(double));
   }
   */
+  //debug
+  double *projMatrixTest = (double*)calloc(numStateUpAllProc[iProc]*numStateUpAllProc[iProc],sizeof(double));
+  for(iState=0;iState<numStateUpAllProc[iProc];iState++){
+    if(myidState==iProc){
+      memcpy(wfTemp,&noiseWfUpReal[iState*rhoRealGridTot],rhoRealGridTot*sizeof(double));
+    }
+    if(numProcStates>1)Bcast(wfTemp,rhoRealGridTot,MPI_DOUBLE,iProc,commStates);
+    for(iFrag=0;iFrag<numFragProc;iFrag++){
+      numGrid = numGridFragProc[iFrag];
+      numStateUpMini = cpMini[iFrag].cpcoeffs_info.nstate_up_proc;
+      hmatCpMini = generalDataMini[iFrag].cell.hmat_cp;
+      volMini = getdeth(hmatCpMini);
+      volMini /= numGrid;
+      wfFragTemp = (double*)cmalloc(numGrid*sizeof(double));
+      rhoFragTemp = (double*)cmalloc(numGrid*sizeof(double));
+      for(iGrid=0;iGrid<numGrid;iGrid++){
+	gridIndex = gridMapProc[iFrag][iGrid];
+	wfFragTemp[iGrid] = wfTemp[gridIndex];
+	rhoFragTemp[iGrid] = 0.0;
+      }
+      for(iStateFrag=0;iStateFrag<numStateUpMini;iStateFrag++){
+	proj = ddotBlasWrapper(numGrid,&wfFragTemp[0],1,&coefUpFragProc[iFrag][iStateFrag*numGrid],1);
+	fragInfo->wfProjUp[iFrag][countWf*numStateUpMini+iStateFrag] = proj*preDot*volMini;
+	daxpyBlasWrapper(numGrid,proj,&coefUpFragProc[iFrag][iStateFrag*numGrid],1,&rhoFragTemp[0],1);
+      }//endfor iStateFrag
+      for(jState=iState;jState<numStateUpAllProc[iProc];jState++){
+	for(iGrid=0;iGrid<numGrid;iGrid++){
+	  gridIndex = gridMapProc[iFrag][iGrid];
+	  //rhoTemp[gridIndex] += rhoFragTemp[iGrid]*rhoFragTemp[iGrid];
+	  projMatrixTest[iState*numStateUpAllProc[iProc]+jState] += noiseWfUpReal[jState*rhoRealGridTot+gridIndex]*rhoFragTemp[iGrid]*volMini*volMini;
+	  //fix_frag[iFrag][gridIndex] += rhoFragTemp[iGrid]*rhoFragTemp[iGrid]*pre;
+	}
+      }//endfor jState
+      free(wfFragTemp);
+      free(rhoFragTemp);
+    }//endfor iFrag
+    countWf += 1;
+    for(jState=iState;jState<numStateUpAllProc[iProc];jState++){
+      projMatrixTest[iState*numStateUpAllProc[iProc]+jState] *= 0.5*volInv;
+      projMatrixTest[jState*numStateUpAllProc[iProc]+iState] = projMatrixTest[iState*numStateUpAllProc[iProc]+jState];
+    }
+  }//endfor iState
+  FILE *testMatrix = fopen("test-matrix","w");
+  for(iState=0;iState<numStateUpAllProc[iProc];iState++){
+    for(jState=0;jState<numStateUpAllProc[iProc];jState++){
+      fprintf(testMatrix,"%.8lg ",projMatrixTest[iState*numStateUpAllProc[iProc]+jState]);
+    }
+    fprintf(testMatrix,"\n");
+    printf("111111 matrix diag %.8lg\n",projMatrixTest[iState*numStateUpAllProc[iProc]+iState]);
+  }
+  fflush(stdout);
+  exit(0);   
+  //end debug  
+
   for(iProc=0;iProc<numProcStates;iProc++){
     for(iState=0;iState<numStateUpAllProc[iProc];iState++){
       if(myidState==iProc){

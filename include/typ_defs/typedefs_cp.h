@@ -456,8 +456,7 @@ typedef struct fragInfo{
                                     /*      each mini Big box.                  */
                                     /* Lth: numFragProc*3                       */
   double gaussianSigma;		    /* Num: convolution gaussian std		*/
-  //debug
-  double *wfDetBackup;
+
 }FRAGINFO;
 
 typedef struct stodftInfo{
@@ -783,10 +782,11 @@ typedef struct stodftCoefPos{
 				    /* Lst: nuclei force corresponding to true  */
 				    /*	    chemical potential			*/
 				    /* Lth: natm_tot				*/
-
+  //debug
+  double *wfDetBackupUpRe;
+  double *wfDetBackupUpIm;
 
 }STODFTCOEFPOS;
-
 
 typedef struct cpcoeffs_pos_dvr {
 

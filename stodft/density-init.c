@@ -195,7 +195,15 @@ void calcRhoDetInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   double *hmatCP	 = cell->hmat_cp;
   double *rhoUpCorrect   = stodftCoefPos->rhoUpCorrect;
   double *rhoDnCorrect   = stodftCoefPos->rhoDnCorrect;
+  //debug
 
+  stodftCoefPos->wfDetBackupUpRe = (double*)cmalloc(numCoeff*numStateUpProc*sizeof(double));
+  stodftCoefPos->wfDetBackupUpIm = (double*)cmalloc(numCoeff*numStateUpProc*sizeof(double));
+  memcpy(&(stodftCoefPos->wfDetBackupUpRe[0]),&(coeffReUp[1]),
+	numCoeff*numStateUpProc*sizeof(double));
+  memcpy(&(stodftCoefPos->wfDetBackupUpIm[0]),&(coeffImUp[1]),
+        numCoeff*numStateUpProc*sizeof(double));
+  
 /*======================================================================*/
 /* I) Calculate the density			                        */
 

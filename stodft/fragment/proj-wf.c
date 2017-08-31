@@ -398,11 +398,9 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   }
   */
   //debug
-  double *projMatrixTest = (double*)calloc(numStateUpAllProc[iProc]*numStateUpAllProc[iProc],sizeof(double));
-  for(iState=0;iState<numStateUpAllProc[iProc];iState++){
-    if(myidState==iProc){
-      memcpy(wfTemp,&noiseWfUpReal[iState*rhoRealGridTot],rhoRealGridTot*sizeof(double));
-    }
+  double *projMatrixTest = (double*)calloc(numStateUpProc*numStateUpProc,sizeof(double));
+  for(iState=0;iState<numStateUpProc;iState++){
+    memcpy(wfTemp,&noiseWfUpReal[iState*rhoRealGridTot],rhoRealGridTot*sizeof(double));
     if(numProcStates>1)Bcast(wfTemp,rhoRealGridTot,MPI_DOUBLE,iProc,commStates);
     for(iFrag=0;iFrag<numFragProc;iFrag++){
       numGrid = numGridFragProc[iFrag];
@@ -422,11 +420,11 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 	fragInfo->wfProjUp[iFrag][countWf*numStateUpMini+iStateFrag] = proj*preDot*volMini;
 	daxpyBlasWrapper(numGrid,proj,&coefUpFragProc[iFrag][iStateFrag*numGrid],1,&rhoFragTemp[0],1);
       }//endfor iStateFrag
-      for(jState=iState;jState<numStateUpAllProc[iProc];jState++){
+      for(jState=iState;jState<numStateUpProc;jState++){
 	for(iGrid=0;iGrid<numGrid;iGrid++){
 	  gridIndex = gridMapProc[iFrag][iGrid];
 	  //rhoTemp[gridIndex] += rhoFragTemp[iGrid]*rhoFragTemp[iGrid];
-	  projMatrixTest[iState*numStateUpAllProc[iProc]+jState] += noiseWfUpReal[jState*rhoRealGridTot+gridIndex]*rhoFragTemp[iGrid]*volMini*volMini;
+	  projMatrixTest[iState*numStateUpProc+jState] += noiseWfUpReal[jState*rhoRealGridTot+gridIndex]*rhoFragTemp[iGrid]*volMini*volMini;
 	  //fix_frag[iFrag][gridIndex] += rhoFragTemp[iGrid]*rhoFragTemp[iGrid]*pre;
 	}
       }//endfor jState
@@ -434,18 +432,18 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
       free(rhoFragTemp);
     }//endfor iFrag
     countWf += 1;
-    for(jState=iState;jState<numStateUpAllProc[iProc];jState++){
-      projMatrixTest[iState*numStateUpAllProc[iProc]+jState] *= 0.5*volInv;
-      projMatrixTest[jState*numStateUpAllProc[iProc]+iState] = projMatrixTest[iState*numStateUpAllProc[iProc]+jState];
+    for(jState=iState;jState<numStateUpProc;jState++){
+      projMatrixTest[iState*numStateUpProc+jState] *= 0.5*volInv;
+      projMatrixTest[jState*numStateUpProc+iState] = projMatrixTest[iState*numStateUpProc+jState];
     }
   }//endfor iState
   FILE *testMatrix = fopen("test-matrix","w");
-  for(iState=0;iState<numStateUpAllProc[iProc];iState++){
-    for(jState=0;jState<numStateUpAllProc[iProc];jState++){
-      fprintf(testMatrix,"%.8lg ",projMatrixTest[iState*numStateUpAllProc[iProc]+jState]);
+  for(iState=0;iState<numStateUpProc;iState++){
+    for(jState=0;jState<numStateUpProc;jState++){
+      fprintf(testMatrix,"%.8lg ",log(fabs(projMatrixTest[iState*numStateUpProc+jState])));
     }
     fprintf(testMatrix,"\n");
-    printf("111111 matrix diag %.8lg\n",projMatrixTest[iState*numStateUpAllProc[iProc]+iState]);
+    printf("111111 matrix diag %.8lg\n",projMatrixTest[iState*numStateUpProc+iState]);
   }
   fflush(stdout);
   exit(0);   

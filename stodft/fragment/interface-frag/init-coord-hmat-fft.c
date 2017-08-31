@@ -384,7 +384,7 @@ void initFFTMapMol(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   numGridMiniBox[2] = (int)(distProjAxis/cGridLen);
   if(numGridMiniBox[2]%2!=0)numGridMiniBox[2] += 1;
   numGridMiniBox[2] += 2; 
-  numGridMiniBox[2] = 24;
+  //numGridMiniBox[2] = 24;
   negativeGridNum = numGridMiniBox[2]/2;
   zeroGrid[2] = indexGrid[2]-negativeGridNum;
   for(iDim=0;iDim<3;iDim++)zeroShift[iDim] -= negativeGridNum*cGrid[iDim];
@@ -402,7 +402,7 @@ void initFFTMapMol(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   numGridMiniBox[1] = (int)(distProjAxis/bGridLen);
   if(numGridMiniBox[1]%2!=0)numGridMiniBox[1] += 1;
   numGridMiniBox[1] += 2;
-  numGridMiniBox[1] = 24;
+  //numGridMiniBox[1] = 24;
   negativeGridNum = numGridMiniBox[1]/2;
   zeroGrid[1] = indexGrid[1]-negativeGridNum;
   for(iDim=0;iDim<3;iDim++)zeroShift[iDim] -= negativeGridNum*bGrid[iDim];
@@ -418,7 +418,7 @@ void initFFTMapMol(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   numGridMiniBox[0] = (int)(distProjAxis/aGridLen);
   if(numGridMiniBox[0]%2!=0)numGridMiniBox[0] += 1;
   numGridMiniBox[0] += 2;
-  numGridMiniBox[0] = 24;
+  //numGridMiniBox[0] = 24;
   negativeGridNum = numGridMiniBox[0]/2;
   zeroGrid[0] = indexGrid[0]-negativeGridNum;
   for(iDim=0;iDim<3;iDim++)zeroShift[iDim] -= negativeGridNum*aGrid[iDim];

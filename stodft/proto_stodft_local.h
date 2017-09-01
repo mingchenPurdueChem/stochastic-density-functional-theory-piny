@@ -40,6 +40,7 @@ void scfStodftFilterDiag(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 /* gen-stodft-wf.c						   */
 void genStoOrbitalInterp(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 void genStoOrbitalCheby(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
+void genStoOrbitalFake(CLASS *,BONDED *,GENERAL_DATA *,CP *,int );
 /*-----------------------------------------------------------------*/
 /* gen-noise.c							   */
 void genNoiseOrbital(CP *,CPCOEFFS_POS *);

@@ -440,7 +440,8 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   FILE *testMatrix = fopen("test-matrix","w");
   for(iState=0;iState<numStateUpProc;iState++){
     for(jState=0;jState<numStateUpProc;jState++){
-      fprintf(testMatrix,"%.8lg ",log(fabs(projMatrixTest[iState*numStateUpProc+jState])));
+      if(iState==jState)projMatrixTest[iState*numStateUpProc+jState] -= 1.0;
+      fprintf(testMatrix,"%.8lg ",projMatrixTest[iState*numStateUpProc+jState]);
     }
     fprintf(testMatrix,"\n");
     printf("111111 matrix diag %.8lg\n",projMatrixTest[iState*numStateUpProc+iState]);

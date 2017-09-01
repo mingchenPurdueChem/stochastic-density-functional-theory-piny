@@ -678,6 +678,7 @@ typedef struct stodftInfo{
   
   NEWTONINFO *newtonInfo;
   CHEBYSHEVINFO *chebyshevInfo;
+  
 }STODFTINFO;
 
 typedef struct stodftCoefPos{

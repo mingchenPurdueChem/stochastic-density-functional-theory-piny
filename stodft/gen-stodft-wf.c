@@ -519,3 +519,83 @@ void genStoOrbitalCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 }/*end routine*/
 /*==========================================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void genStoOrbitalFake(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
+            CP *cp,int ip_now)
+/*========================================================================*/
+{/*begin routine*/
+/* When we do the filtering for test cases, we can construct the filter   */
+/* by deterministic orbitals. DEBUG ONLY NO PARALLEL			  */
+/*========================================================================*/
+/*             Local variable declarations                                */
+#include "../typ_defs/typ_mask.h"
+  CLATOMS_INFO *clatoms_info = &(class->clatoms_info);
+  CLATOMS_POS  *clatoms_pos  = &(class->clatoms_pos[ip_now]);
+  CPOPTS       *cpopts       = &(cp->cpopts);
+  CPSCR        *cpscr        = &(cp->cpscr);
+  STODFTINFO   *stodftInfo   = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  NEWTONINFO   *newtonInfo      = stodftInfo->newtonInfo;
+  COMMUNICATE   *commCP         = &(cp->communicate);
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  CPCOEFFS_POS  *cpcoeffs_pos   = &(cp->cpcoeffs_pos[ip_now]);
+  MPI_Comm commStates = commCP->comm_states;
+  
+  int iPoly,iState,jState,iCoeff,iChem,iOff,iOff2;
+  int numChemPot = stodftInfo->numChemPot;
+  int polynormLength = stodftInfo->polynormLength;
+  int expanType = stodftInfo->expanType;
+  int numProcStates = commCP->np_states;
+  int myidState = commCP->myid_state;
+  int cpLsda = cpopts->cp_lsda;
+  int cpGGA  = cpopts->cp_gga;
+  int cpDualGridOptOn = cpopts->cp_dual_grid_opt;
+  int numStateUpProc = cpcoeffs_info->nstate_up_proc;
+  int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
+  int numCoeff       = cpcoeffs_info->ncoef;
+  int totalPoly;
+  int numCoeffUpTot   = numStateUpProc*numCoeff;
+  int numCoeffDnTot   = numStateDnProc*numCoeff;
+  int numStatesDet = stodftInfo->numStatesDet;
+ 
+  double dot;
+  double *coeffReUp = cpcoeffs_pos->cre_up;
+  double *coeffImUp = cpcoeffs_pos->cim_up;
+  double *coeffReDn = cpcoeffs_pos->cre_dn;
+  double *coeffImDn = cpcoeffs_pos->cim_dn;
+  double *wfDetBackupUpRe = stodftCoefPos->wfDetBackupUpRe;
+  double *wfDetBackupUpIm = stodftCoefPos->wfDetBackupUpIm;
+ 
+  double **stoWfUpRe = stodftCoefPos->stoWfUpRe;
+  double **stoWfUpIm = stodftCoefPos->stoWfUpIm;
+  double **stoWfDnRe = stodftCoefPos->stoWfDnRe;
+  double **stoWfDnIm = stodftCoefPos->stoWfDnIm;
+  
+  //double *wfNow = (double*)calloc(numCoeff*sizeof(double));
+  for(iState=0;iState<numStateUpProc;iState++){
+    for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+      stoWfUpRe[0][iCoeff] = 0.0; //Chebyshev 
+      stoWfUpIm[0][iCoeff] = 0.0;
+    }
+    iOff = iState*numCoeff;
+    for(jState=0;jState<numStatesDet;jState++){
+      dot = 0.0;
+      iOff2 = jState*numCoeff;
+      for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
+	dot += wfDetBackupUpRe[iOff2+iCoeff]*coeffReUp[iOff+iCoeff]+
+	       wfDetBackupUpIm[iOff2+iCoeff]*coeffImUp[iOff+iCoeff];
+      }
+      dot = dot*2.0+wfDetBackupUpRe[iOff2+numCoeff]*coeffReUp[iOff+numCoeff];
+      for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+	stoWfUpRe[0][iCoeff] += wfDetBackupUpRe[iOff2+iCoeff]*dot;
+	stoWfUpIm[0][iCoeff] += wfDetBackupUpIm[iOff2+iCoeff]*dot;
+      }
+    }
+  }
+
+/*--------------------------------------------------------------------------*/
+}/*end routine*/
+/*==========================================================================*/
+

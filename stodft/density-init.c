@@ -203,7 +203,7 @@ void calcRhoDetInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 	numCoeff*numStateUpProc*sizeof(double));
   memcpy(&(stodftCoefPos->wfDetBackupUpIm[0]),&(coeffImUp[1]),
         numCoeff*numStateUpProc*sizeof(double));
-  
+  stodftInfo->numStatesDet = numStateUpProc;
 /*======================================================================*/
 /* I) Calculate the density			                        */
 

@@ -97,6 +97,7 @@ void passAtomCoord(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   int numFragProc	= fragInfo->numFragProc;
   int iFrag		= fragInfo->iFrag;
   int iAtom,iProj,iDim;
+  int fragOpt        = stodftInfo->fragOpt;
   
   int numAtomFrag	= fragInfo->numAtomFragProc[iFrag];
   int *atomFragMap	= fragInfo->atomFragMapProc[iFrag];
@@ -154,13 +155,17 @@ void passAtomCoord(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   // Remove the PBC. I assume the fragment is no bigger then half of the box.
   // If it is, then a better way is to make it into even smaller pieces and remove pbc
   // for those small pieces. 
-  for(iAtom=1;iAtom<=numAtomFrag;iAtom++){
-    if(xTemp[iAtom]>0.5)xTemp[iAtom] -= 1.0;
-    if(yTemp[iAtom]>0.5)yTemp[iAtom] -= 1.0;
-    if(zTemp[iAtom]>0.5)zTemp[iAtom] -= 1.0;
-    if(xTemp[iAtom]<-0.5)xTemp[iAtom] += 1.0;
-    if(yTemp[iAtom]<-0.5)yTemp[iAtom] += 1.0;
-    if(zTemp[iAtom]<-0.5)zTemp[iAtom] += 1.0;
+  if(fragOpt==1){
+    /*
+    for(iAtom=1;iAtom<=numAtomFrag;iAtom++){
+      if(xTemp[iAtom]>0.5)xTemp[iAtom] -= 1.0;
+      if(yTemp[iAtom]>0.5)yTemp[iAtom] -= 1.0;
+      if(zTemp[iAtom]>0.5)zTemp[iAtom] -= 1.0;
+      if(xTemp[iAtom]<-0.5)xTemp[iAtom] += 1.0;
+      if(yTemp[iAtom]<-0.5)yTemp[iAtom] += 1.0;
+      if(zTemp[iAtom]<-0.5)zTemp[iAtom] += 1.0;
+    }
+    */
   }
 
   // Rescale to Big box
@@ -370,6 +375,7 @@ void initFFTMapMol(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   geoCntBox[2] = aGrid[2]*indexGrid[0]+bGrid[2]*indexGrid[1]+cGrid[2]*indexGrid[2];
 
   // Reshift mini coords
+
   for(iAtom=1;iAtom<=numAtomFrag;iAtom++){
     xMini[iAtom] += geoCnt[0]-geoCntBox[0];
     yMini[iAtom] += geoCnt[1]-geoCntBox[1];
@@ -384,7 +390,7 @@ void initFFTMapMol(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   numGridMiniBox[2] = (int)(distProjAxis/cGridLen);
   if(numGridMiniBox[2]%2!=0)numGridMiniBox[2] += 1;
   numGridMiniBox[2] += 2; 
-  //numGridMiniBox[2] = 24;
+  numGridMiniBox[2] = 48;
   negativeGridNum = numGridMiniBox[2]/2;
   zeroGrid[2] = indexGrid[2]-negativeGridNum;
   for(iDim=0;iDim<3;iDim++)zeroShift[iDim] -= negativeGridNum*cGrid[iDim];
@@ -402,7 +408,7 @@ void initFFTMapMol(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   numGridMiniBox[1] = (int)(distProjAxis/bGridLen);
   if(numGridMiniBox[1]%2!=0)numGridMiniBox[1] += 1;
   numGridMiniBox[1] += 2;
-  //numGridMiniBox[1] = 24;
+  numGridMiniBox[1] = 48;
   negativeGridNum = numGridMiniBox[1]/2;
   zeroGrid[1] = indexGrid[1]-negativeGridNum;
   for(iDim=0;iDim<3;iDim++)zeroShift[iDim] -= negativeGridNum*bGrid[iDim];
@@ -418,7 +424,7 @@ void initFFTMapMol(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   numGridMiniBox[0] = (int)(distProjAxis/aGridLen);
   if(numGridMiniBox[0]%2!=0)numGridMiniBox[0] += 1;
   numGridMiniBox[0] += 2;
-  //numGridMiniBox[0] = 24;
+  numGridMiniBox[0] = 48;
   negativeGridNum = numGridMiniBox[0]/2;
   zeroGrid[0] = indexGrid[0]-negativeGridNum;
   for(iDim=0;iDim<3;iDim++)zeroShift[iDim] -= negativeGridNum*aGrid[iDim];
@@ -437,6 +443,7 @@ void initFFTMapMol(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   */
 
   for(iAtom=1;iAtom<=numAtomFrag;iAtom++){
+    //printf("11111 Final mini x %lg y %lg z %lg\n",xMini[iAtom],yMini[iAtom],zMini[iAtom]);
     xMini[iAtom] -= zeroShift[0];
     yMini[iAtom] -= zeroShift[1];
     zMini[iAtom] -= zeroShift[2];
@@ -499,7 +506,11 @@ void initFFTMapMol(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   printf("hmatMini %lg %lg %lg\n",hmatMini[4],hmatMini[5],hmatMini[6]);
   printf("hmatMini %lg %lg %lg\n",hmatMini[7],hmatMini[8],hmatMini[9]);
   */
-
+  /*
+  for(iAtom=1;iAtom<=16;iAtom++){
+    printf("iAtom %i %lg %lg %lg\n",iAtom,xMini[iAtom]*BOHR,yMini[iAtom]*BOHR,zMini[iAtom]*BOHR);
+  }
+  */
   //Let's give a final test before this is over
   /*
   FILE *testxyz = fopen("test.xyz","w");

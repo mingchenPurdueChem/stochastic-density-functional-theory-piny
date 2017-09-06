@@ -560,7 +560,17 @@ void genStoOrbitalFake(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int numCoeffDnTot   = numStateDnProc*numCoeff;
   int numStatesDet = stodftInfo->numStatesDet;
  
+  int *coefFormUp   = &(cpcoeffs_pos->icoef_form_up);
+  int *forceFormUp  = &(cpcoeffs_pos->ifcoef_form_up);
+  int *coefFormDn   = &(cpcoeffs_pos->icoef_form_dn);
+  int *forceFormDn  = &(cpcoeffs_pos->ifcoef_form_dn);
+  int *coefOrthUp   = &(cpcoeffs_pos->icoef_orth_up);
+  int *forceOrthUp  = &(cpcoeffs_pos->ifcoef_orth_up);
+  int *coefOrthDn   = &(cpcoeffs_pos->icoef_orth_dn);
+  int *forceOrthDn  = &(cpcoeffs_pos->ifcoef_orth_dn);
+
   double dot;
+
   double *coeffReUp = cpcoeffs_pos->cre_up;
   double *coeffImUp = cpcoeffs_pos->cim_up;
   double *coeffReDn = cpcoeffs_pos->cre_dn;
@@ -572,28 +582,68 @@ void genStoOrbitalFake(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   double **stoWfUpIm = stodftCoefPos->stoWfUpIm;
   double **stoWfDnRe = stodftCoefPos->stoWfDnRe;
   double **stoWfDnIm = stodftCoefPos->stoWfDnIm;
-  
+ 
+/*======================================================================*/
+/* I) Set flags                     */
+
+  *forceFormUp = 0;
+  cpcoeffs_pos->ifcoef_orth_up = 1; // temp keep this flag for debug filter
+  if(cpLsda==1&&numStateDnProc!=0){
+    *forceFormDn = 0;
+    cpcoeffs_pos->ifcoef_orth_dn = 1;
+  }
+
+/*======================================================================*/
+/* IV) Generate random orbital                                          */
+
+  genNoiseOrbitalReal(cp,cpcoeffs_pos);
+
+/*======================================================================*/
+/* II) Filtering by deterministic orbitals                     */
+
   //double *wfNow = (double*)calloc(numCoeff*sizeof(double));
+  //printf("Test proj %i %lg %lg\n",numStatesDet,wfDetBackupUpRe[0],wfDetBackupUpIm[0]);
+  //printf("Test proj 2 %lg %lg\n",coeffReUp[1],coeffImUp[1]);
   for(iState=0;iState<numStateUpProc;iState++){
-    for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
-      stoWfUpRe[0][iCoeff] = 0.0; //Chebyshev 
-      stoWfUpIm[0][iCoeff] = 0.0;
-    }
     iOff = iState*numCoeff;
+    for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+      stoWfUpRe[0][iOff+iCoeff] = 0.0; //Chebyshev 
+      stoWfUpIm[0][iOff+iCoeff] = 0.0;
+    }
     for(jState=0;jState<numStatesDet;jState++){
       dot = 0.0;
-      iOff2 = jState*numCoeff;
+      iOff2 = jState*numCoeff-1;
       for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
 	dot += wfDetBackupUpRe[iOff2+iCoeff]*coeffReUp[iOff+iCoeff]+
 	       wfDetBackupUpIm[iOff2+iCoeff]*coeffImUp[iOff+iCoeff];
       }
-      dot = dot*2.0+wfDetBackupUpRe[iOff2+numCoeff]*coeffReUp[iOff+numCoeff];
+      dot = (dot*2.0+wfDetBackupUpRe[iOff2+numCoeff]*coeffReUp[iOff+numCoeff])*0.5;
+      //printf("iState %i jState %i dot %lg\n",iState,jState,dot*sqrt(2.0));
       for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
-	stoWfUpRe[0][iCoeff] += wfDetBackupUpRe[iOff2+iCoeff]*dot;
-	stoWfUpIm[0][iCoeff] += wfDetBackupUpIm[iOff2+iCoeff]*dot;
+	stoWfUpRe[0][iOff+iCoeff] += wfDetBackupUpRe[iOff2+iCoeff]*dot;
+	stoWfUpIm[0][iOff+iCoeff] += wfDetBackupUpIm[iOff2+iCoeff]*dot;
       }
     }
   }
+  /*
+  FILE *ftest = fopen("wf-test","w");
+  for(iCoeff=1;iCoeff<=numStateUpProc*numCoeff;iCoeff++){
+    fprintf(ftest,"%.16lg %.16lg\n",stoWfUpRe[0][iCoeff],stoWfUpIm[0][iCoeff]);
+  }
+  fclose(ftest);
+  for(iState=0;iState<numStateUpProc;iState++){
+    for(jState=0;jState<numStatesDet;jState++){
+      dot = 0.0;
+      for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
+	dot += stoWfUpRe[0][iState*numCoeff+iCoeff]*wfDetBackupUpRe[jState*numCoeff+iCoeff-1]+
+	       stoWfUpIm[0][iState*numCoeff+iCoeff]*wfDetBackupUpIm[jState*numCoeff+iCoeff-1];
+      }
+      dot *= 2.0;
+      dot += stoWfUpRe[0][iState*numCoeff+numCoeff]*wfDetBackupUpRe[jState*numCoeff+numCoeff-1];
+      printf("11111111 iState %i jState %i dot %lg\n",iState,jState,dot*sqrt(0.5));
+    }
+  }
+  */
 
 /*--------------------------------------------------------------------------*/
 }/*end routine*/

@@ -821,6 +821,8 @@ void control_ewd_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
       ctemp            = ewd_scr_z[ipart]*tpi;
       cossc[ipart]     = cos(ctemp);
       sinsc[ipart]     = sin(ctemp);
+      //printf("ipart %i ewd_scr %lg %lg %lg\n",ipart,ewd_scr_x[ipart],ewd_scr_y[ipart],ewd_scr_z[ipart]);
+
     }/*endfor*/
   }else{
     for(ipart=1;ipart<=natm_use;ipart++){
@@ -891,12 +893,15 @@ void control_ewd_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 /* II) If break point number one or you are just starting out calculate */
 /*     the helpful vectors                                              */
 
+   //printf("aka %lg akb %lg akc %lg\n",aka,akb,akc);
    if(ibreak1[(icount+koff)]==1||icount==1){
     for(ipart=1;ipart<=natm_use;ipart++){
       atemp = ewd_scr_x[ipart];
       btemp = ewd_scr_y[ipart];
       ctemp = ewd_scr_z[ipart];
       arg = (aka*atemp + akb*btemp + akc*ctemp)*tpi;
+      //printf("aka %lg akb %lg akc %lg\n",aka,akb,akc);
+      //printf("arg %lg\n",arg);
       helr[ipart] = cos(arg);
       heli[ipart] = sin(arg);
     }/*endfor*/
@@ -949,6 +954,7 @@ void control_ewd_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 
     vextr[icount]  =  ddot1(natm_use,helr,1,vtemp,1)*rvol;
     vexti[icount]  = -ddot1(natm_use,heli,1,vtemp,1)*rvol;
+    //printf("icount %i vext %lg %lg\n",icount,vextr[icount],vexti[icount]);
 
    if( (cp_ptens==1) && (idens_opt==0) ) {
      dvextr[icount] =  ddot1(natm_use,helr,1,dvtemp,1)*rvol;

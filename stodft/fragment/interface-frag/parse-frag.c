@@ -193,9 +193,15 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   iopt_cp_pw  = cpMini->cpcoeffs_info.iopt_cp_pw;
   iopt_cp_dvr = cpMini->cpcoeffs_info.iopt_cp_dvr;
   
-  cpMini->cpopts.fftw3dFlag = 1;
-  cpMini->cpcoeffs_info.fftw3dFlag = 1;
-  cpMini->cpewald.fftw3dFlag = 1;
+  //cpMini->cpopts.fftw3dFlag = 1;
+  //cpMini->cpcoeffs_info.fftw3dFlag = 1;
+  //cpMini->cpewald.fftw3dFlag = 1;
+  // For non-cubic box, the fft in this package doesn't use all grid. Thus it's hard to 
+  // predict fftw output
+  cpMini->cpopts.fftw3dFlag = 0;
+  cpMini->cpcoeffs_info.fftw3dFlag = 0;
+  cpMini->cpewald.fftw3dFlag = 0;
+
   classMini->clatoms_info.ifirst_vps = 0;
   cpMini->cpcoeffs_info.itime_ks = 0;
 

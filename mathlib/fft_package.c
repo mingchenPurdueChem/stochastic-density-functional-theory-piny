@@ -1211,6 +1211,7 @@ void para_fft_gen3d_bck_to_g_fftw3d(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
 #ifdef FFTW3
   if(igeneric_opt==0)fftFlag = 1;
 #endif
+  printf("fftFlag %i\n",fftFlag);
 
   if(fftFlag==0){
     for(i=0;i<nkf3;i++){
@@ -1231,12 +1232,14 @@ void para_fft_gen3d_bck_to_g_fftw3d(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
     }
   }
   else{
+    //printf("111111111111111111111111111\n");
     for(i=0;i<nkf3;i++){
       for(j=0;j<nkf2;j++){
         for(k=0;k<nkf1;k++){
           fftInd = i*nkf2*nkf1+j*nkf1+k;
           fftIndTrans = k*nkf2*nkf3+j*nkf3+i;
           fftw3DForwardIn[fftIndTrans] = zfft[fftInd*2+1]+zfft[fftInd*2+2]*I;
+	  //fftw3DForwardIn[fftInd] = zfft[fftInd*2+1]+zfft[fftInd*2+2]*I;
         }
       }
     }
@@ -1277,6 +1280,7 @@ void sngl_upack_coef(double *cre,double *cim,double *zfft,
 /*  Unpack the data : Top half of k space only */
 
   for(i=1;i<=ncoef_use;i++){
+    //printf("map_proc %i zfft %lg %lg\n",map_proc[i],zfft[map_proc[i]],zfft[(map_proc[i]+1)]);
     cre[i]=zfft[map_proc[i]];
     cim[i]=zfft[(map_proc[i]+1)];
   }/*endfor*/

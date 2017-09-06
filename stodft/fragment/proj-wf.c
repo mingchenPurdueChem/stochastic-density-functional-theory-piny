@@ -201,9 +201,19 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     rhoTemp[iGrid] = 0.0;
   }//endfor iGrid
   // Reduce all fragment densities in each proc
+  /*
+  for(iGrid=0;iGrid<numGrid;iGrid++){
+    printf("1111111 rhofrag1 %lg\n",rhoUpFragProc[0][iGrid]);
+    //rhoTemp[gridMapProc[iFrag][iGrid]] += rhoUpFragProc[0][iGrid];
+  }//endfor iGrid
+  fflush(stdout);
+  exit(0);
+  */
+
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     numGrid = numGridFragProc[iFrag];
     for(iGrid=0;iGrid<numGrid;iGrid++){
+      //printf("1111111 rhofrag1 %lg\n",rhoUpFragProc[iFrag][iGrid]);
       rhoTemp[gridMapProc[iFrag][iGrid]] += rhoUpFragProc[iFrag][iGrid];
     }//endfor iGrid
   }//endfor iFrag
@@ -357,6 +367,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   // Copy the deterministic wf to the stochastic wf
   //memcpy(&(cp->cpcoeffs_pos[1].cre_up[1]),&(stodftCoefPos->wfDetBackupUpRe[0]),numStateUpProc*numCoeff*sizeof(double));
   //memcpy(&(cp->cpcoeffs_pos[1].cim_up[1]),&(stodftCoefPos->wfDetBackupUpIm[0]),numStateUpProc*numCoeff*sizeof(double));
+  /*
   int iCoeff;
   for(iCoeff=0;iCoeff<numStateUpProc*numCoeff;iCoeff++){
     cp->cpcoeffs_pos[1].cre_up[iCoeff+1] = stodftCoefPos->wfDetBackupUpRe[iCoeff];
@@ -364,11 +375,12 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   }
 
   rhoRealCalcDriverNoise(general_data,cp,class,ip_now);
+  */
   //fflush(stdout);
   //exit(0);
   
 
-  //noiseRealReGen(general_data,cp,class,ip_now);
+  noiseRealReGen(general_data,cp,class,ip_now);
 
 /*======================================================================*/
 /* IV) Project the real space noise wave function                       */
@@ -398,6 +410,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   }
   */
   //debug
+  /*
   double *projMatrixTest = (double*)calloc(numStateUpProc*numStateUpProc,sizeof(double));
   for(iState=0;iState<numStateUpProc;iState++){
     memcpy(wfTemp,&noiseWfUpReal[iState*rhoRealGridTot],rhoRealGridTot*sizeof(double));
@@ -448,6 +461,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   }
   fflush(stdout);
   exit(0);   
+  */
   //end debug  
 
   for(iProc=0;iProc<numProcStates;iProc++){
@@ -611,6 +625,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   //exit(0);
     
   //debug
+  /*
   FILE *file_test = fopen("rho-test","w");
   double sum1 = 0.0;
   double sum2 = 0.0;
@@ -621,6 +636,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   }
   printf("sum1 %.8lg sum2 %.8lg\n",sum1,sum2);
   fclose(file_test);
+  */
   
   daxpyBlasWrapper(rhoRealGridNum,-pre,&rhoTemp[0],1,&rhoUpFragSum[0],1);
 

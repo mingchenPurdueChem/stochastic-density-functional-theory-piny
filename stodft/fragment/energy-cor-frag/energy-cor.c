@@ -111,8 +111,8 @@ void energyCorrect(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,
   free(vnlFxCorProc);
   free(vnlFyCorProc);
   free(vnlFzCorProc);
-  fflush(stdout);
-  exit(0);
+  //fflush(stdout);
+  //exit(0);
 
 /*==========================================================================*/
 }/*end Routine*/
@@ -471,6 +471,7 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
     vnlFzMatrixUp = &(fragInfo->vnlFzMatrixUp[iFrag][iAtom*numStateUp*numStateUp]);
     
     //debug
+    /*
     double sum = 0.0;
     for(iState=0;iState<numStateUp;iState++){
       //sum += vnlFxMatrixUp[iState*numStateUp+iState];
@@ -480,6 +481,7 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
       }
     }
     printf("iAtom %i sum %.8lg\n",iAtom,sum);
+    */
 
     /*
     for(iState=0;iState<numStateUp;iState++){
@@ -562,9 +564,11 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
     vnlFxCorProc[atomFragMapProc[iAtom]-1] += Fx[iAtom]-vnlFxCorFragLoc[iAtom];
     vnlFyCorProc[atomFragMapProc[iAtom]-1] += Fy[iAtom]-vnlFyCorFragLoc[iAtom];
     vnlFzCorProc[atomFragMapProc[iAtom]-1] += Fz[iAtom]-vnlFzCorFragLoc[iAtom];
+    /*
     printf("111111111 fnlfrag %.8lg %.8lg %.8lg %.8lg %.8lg %.8lg\n",
 	    Fx[iAtom],Fy[iAtom],Fz[iAtom],
 	    vnlFxCorFragLoc[iAtom],vnlFyCorFragLoc[iAtom],vnlFzCorFragLoc[iAtom]);
+    */
   }
   free(vnlFxCorFragLoc);
   free(vnlFyCorFragLoc);

@@ -493,6 +493,7 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
   //printf("nfftttttt2_proc %i\n",nfft2_proc);
 
   double *zfft           =    cpscr->cpscr_wave.zfft;
+  double *zfft_tmp       =    cpscr->cpscr_wave.zfft_tmp;
   double *hmatCP         =    cell->hmat_cp;
   double volFrag         = getdeth(hmatCP);
   double invVolFrag	 = 1.0/volFrag;
@@ -528,14 +529,18 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
     the wavefunctions are reperesented in spherically cuttof 
     half g space                                                            */
 
-    dble_pack_coef_fftw3d(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
+    dble_pack_coef(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
                       zfft,cp_sclr_fft_pkg3d_sm);
+
+    //dble_pack_coef_fftw3d(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
+    //                  zfft,cp_sclr_fft_pkg3d_sm);
 
 /*--------------------------------------------------------------------------*/
 /*II) fourier transform the two wavefunctions to real space
      convention exp(-igr)                                                   */
 
-    para_fft_gen3d_fwd_to_r_fftw3d(zfft,cp_sclr_fft_pkg3d_sm);
+    //para_fft_gen3d_fwd_to_r_fftw3d(zfft,cp_sclr_fft_pkg3d_sm);
+    para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
 
 /*--------------------------------------------------------------------------*/
 /* III) Copy the real sapce wave function and add the square of the two     
@@ -556,13 +561,15 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
 
   if(nstate%2!=0){
     ioff = (nstate-1)*ncoef;
-    sngl_pack_coef_fftw3d(&ccreal[ioff],&ccimag[ioff],zfft,cp_sclr_fft_pkg3d_sm);
+    //sngl_pack_coef_fftw3d(&ccreal[ioff],&ccimag[ioff],zfft,cp_sclr_fft_pkg3d_sm);
+    sngl_pack_coef(&ccreal[ioff],&ccimag[ioff],zfft,cp_sclr_fft_pkg3d_sm);
 
 /*--------------------------------------------------------------------------*/
 /* V) fourier transform the last wavefunction to real space
        convention exp(-igr)                                                 */
     
-    para_fft_gen3d_fwd_to_r_fftw3d(zfft,cp_sclr_fft_pkg3d_sm);
+    //para_fft_gen3d_fwd_to_r_fftw3d(zfft,cp_sclr_fft_pkg3d_sm);
+    para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
 
 /*--------------------------------------------------------------------------*/
 /*VI) Copy the real sapce wave function and add the square of the last wave 

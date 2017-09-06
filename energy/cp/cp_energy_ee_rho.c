@@ -392,15 +392,48 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
 /*  I)  pack it up                                                         */
 /*  rho_scr = rho in scalar                                                */
 
+   /* 
+    vol_cp  = getdeth(hmat_cp);
+    FILE *fp_rho = fopen("rho-test","r");
+    int junk;
+    if(np_states == 1){
+      for(kc=1;kc<=nkf3;kc++){
+        for(kb=1;kb<=nkf2;kb++){
+          for(ka=1;ka<=nkf1;ka++){
+            i = (ka-1) + (kb-1)*nkf1 + (kc-1)*nkf1*nkf2 + 1;
+	    fscanf(fp_rho,"%i",&junk);
+            fscanf(fp_rho,"%i",&junk);
+            fscanf(fp_rho,"%i",&junk);
+            fscanf(fp_rho,"%lg\n",&rho_scr[i]);
+            rho_scr[i] *= vol_cp;
+          }//endfor
+        }//endfor
+      }//endfor
+    }
+    printf("rho_scr %lg\n",rho_scr[1]);
+    fclose(fp_rho);
+ */
+
  if(cp_dual_grid_opt >= 1){ 
   sngl_pack_rho(zfft,rho_scr,cp_sclr_fft_pkg3d_dens_cp_box); 
  }else{
   sngl_pack_rho(zfft,rho_scr,cp_sclr_fft_pkg3d_lg); 
  }/*endif cp_dual_grid_opt*/
-
+  /*
+  for(i=1;i<=nfft2;i++){
+    printf("000000000 zfft %lg %lg\n",zfft[2*i+1],zfft[2*i+2]);
+  }
+  */
 
 /*--------------------------------------------------------------------------*/
 /*  II) back transform to g-space  convention exp(igr)                      */
+ 
+ /*
+ int fragFlag = 0;
+ if(fftw3dFlag==1)fragFlag = 1;
+ fftw3dFlag = 0;
+ */
+ 
 
  if(cp_dual_grid_opt >= 1){ 
   para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_dens_cp_box); 
@@ -415,6 +448,16 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
 
 /*==========================================================================*/
 /*  III) unpack the density                                                 */ 
+
+  /*  
+  if(fragFlag==0){
+    for(i=1;i<=nfft2;i++){
+      printf("1111 zfft %i %lg %lg\n",2*i+1,zfft[2*i+1],zfft[2*i+2]);
+    }
+    //fflush(stdout);
+    //exit(0);
+  }
+  */
 
  if(cp_dual_grid_opt == 0){
   if(np_states == 1){
@@ -432,7 +475,16 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
                     cp_sclr_fft_pkg3d_dens_cp_box);
   }/*endif*/
  }/*endif cp_dual_grid_opt*/
-
+ 
+ /*
+ if(fftw3dFlag==0){
+   for(i=1;i<=ncoef_l;i++){
+     printf("rho recip %lg %lg\n",rhocr[i],rhoci[i]);
+   }
+   fflush(stdout);
+   exit(0);
+ }
+ */
   /*
   FILE *fp_rhok = fopen("rho_bm_k","w");
   for(i=1;i<=ncoef_l;i++){
@@ -443,8 +495,8 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
   exit(0);
   */
   
-  /*
-  if(fftw3dFlag==100){
+  
+  if(fftw3dFlag==0){
     double sum = 0.0;
     FILE *fp_rho = fopen("rho_bm","w");
     if(np_states == 1){
@@ -459,16 +511,9 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
       }//endfor
     }
     //printf("rho sum test %lg\n",sum);
-    fclose(fp_rho);
-    */
-    /*
-    for(i=1;i<=ncoef_l;i++){
-      fprintf(fp_rho,"%i %i %i %lg %lg\n",kastr[i],kbstr[i],kcstr[i],rhocr[i],rhoci[i]);
-    }
-    */
-    
+    fclose(fp_rho);    
     //exit(0);
-  //}
+  }
   //exit(0);
 
 /*==========================================================================*/
@@ -560,15 +605,16 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
      }/*endif cp_dual_grid_opt*/
 
 
-  if(fftw3dFlag==0){
-    double sum = 0.0;
+  if(fftw3dFlag==100){
+    //double sum = 0.0;
+    sum = 0.0;
     FILE *fp_rho = fopen("rho_bm","w");
     if(np_states == 1){
       for(kc=1;kc<=nkf3;kc++){
         for(kb=1;kb<=nkf2;kb++){
           for(ka=1;ka<=nkf1;ka++){
             i = (ka-1) + (kb-1)*nkf1 + (kc-1)*nkf1*nkf2 + 1;
-            fprintf(fp_rho,"%i %i %i %.5e\n",kc,kb,ka,rho[i]);
+            fprintf(fp_rho,"%i %i %i %.16g\n",kc,kb,ka,rho[i]);
             sum += rho[i];
           }//endfor
         }//endfor
@@ -1325,6 +1371,8 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
         ghfact    = fpi*exp(-ak2[i]*pre)/(ak2[i]*vol);  
         eh       +=  0.50*ghfact*(rhocr[i]*rhocr[i] + rhoci[i]*rhoci[i]); 
         eext     +=  vextr[i]*rhocr[i] + vexti[i]*rhoci[i];
+        //printf("11111 vext %lg %lg rhocr %lg %lg\n",vextr[i],vexti[i],rhocr[i],rhoci[i]);
+
         vextr[i] +=  ghfact*rhocr[i];
         vexti[i] +=  ghfact*rhoci[i]; 
       }/*endfor*/

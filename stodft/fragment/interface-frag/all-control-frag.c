@@ -1654,7 +1654,7 @@ void controlSetCpEwaldFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
 /*            Begin subprogram:                                          */
    {/*begin routine*/
 /*************************************************************************/
-/* Our FFT grid is numGridDim[0](c)*numGridDim[1](b)*numGridDim[2](a)	 */
+/* Our FFT grid is numGridDim[2](c)*numGridDim[1](b)*numGridDim[0](a)	 */
 /* The k space coef number should be 2n+1 for each dimension, from -n to */
 /* n. and n=numGridDim[i]-1. The total k space coef number is ((2na+1)*	 */
 /* (2nb+1)*(2nc+1)-1)/2. Wf and density share the same k space	     */
@@ -1776,9 +1776,10 @@ void controlSetCpEwaldFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
   calc_cutoff(kmax_ewd,&ecut_now,&(cp_parse->cp_ecut),cp_on,
                 kmax_cp,kmaxv,hmati_ewd_cp,deth_cp);  
 
-  kmaxv[1] = numGridDim[2]/2-1;
+  kmaxv[1] = numGridDim[0]/2-1;
   kmaxv[2] = numGridDim[1]/2-1;
-  kmaxv[3] = numGridDim[0]/2-1;
+  kmaxv[3] = numGridDim[2]/2-1;
+  printf("kmaxv %i %i %i\n",kmaxv[1],kmaxv[2],kmaxv[3]);
 
   countkvec3d(&(ewald->nktot),ecut_now,kmaxv,hmati_ewd_cp);
 
@@ -2179,9 +2180,9 @@ void controlFFTPkgFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,CP *cpMini
 /*=========================================================================*/
 /* 0.1) Set CP FFT Size  */
 
-  nkf1 = numGridDim[2];
+  nkf1 = numGridDim[0];
   nkf2 = numGridDim[1];
-  nkf3 = numGridDim[0];
+  nkf3 = numGridDim[2];
   printf("nkf1 %i nkf2 %i nkf3 %i\n",nkf1,nkf2,nkf3);
   //nkf1 = 4*(kmax_cp_dens_cp_box[1]+1);
   //nkf2 = 4*(kmax_cp_dens_cp_box[2]+1);

@@ -367,7 +367,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   // Copy the deterministic wf to the stochastic wf
   //memcpy(&(cp->cpcoeffs_pos[1].cre_up[1]),&(stodftCoefPos->wfDetBackupUpRe[0]),numStateUpProc*numCoeff*sizeof(double));
   //memcpy(&(cp->cpcoeffs_pos[1].cim_up[1]),&(stodftCoefPos->wfDetBackupUpIm[0]),numStateUpProc*numCoeff*sizeof(double));
-  
+  /*
   int iCoeff;
   for(iCoeff=0;iCoeff<numStateUpProc*numCoeff;iCoeff++){
     cp->cpcoeffs_pos[1].cre_up[iCoeff+1] = stodftCoefPos->wfDetBackupUpRe[iCoeff];
@@ -375,12 +375,13 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   }
 
   rhoRealCalcDriverNoise(general_data,cp,class,ip_now);
+  */
   
   //fflush(stdout);
   //exit(0);
   
 
-  //noiseRealReGen(general_data,cp,class,ip_now);
+  noiseRealReGen(general_data,cp,class,ip_now);
 
 /*======================================================================*/
 /* IV) Project the real space noise wave function                       */
@@ -410,7 +411,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   }
   */
   //debug
-  
+  /*
   double *projMatrixTest = (double*)calloc(numStateUpProc*numStateUpProc,sizeof(double));
   double *wfProjjTemp = (double*)calloc(rhoRealGridTot,sizeof(double));
   for(iState=0;iState<numStateUpProc;iState++){
@@ -451,14 +452,12 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 	}
       }//endfor iStateFrag
       for(jState=iState;jState<numStateUpProc;jState++){
-	/*
-	for(iGrid=0;iGrid<numGrid;iGrid++){
-	  gridIndex = gridMapProc[iFrag][iGrid];
-	  //rhoTemp[gridIndex] += rhoFragTemp[iGrid]*rhoFragTemp[iGrid];
-	  projMatrixTest[iState*numStateUpProc+jState] += noiseWfUpReal[jState*rhoRealGridTot+gridIndex]*rhoFragTemp[iGrid]*volMini*volMini;
-	  //fix_frag[iFrag][gridIndex] += rhoFragTemp[iGrid]*rhoFragTemp[iGrid]*pre;
-	}
-	*/
+	//for(iGrid=0;iGrid<numGrid;iGrid++){
+	  //gridIndex = gridMapProc[iFrag][iGrid];
+	  ////rhoTemp[gridIndex] += rhoFragTemp[iGrid]*rhoFragTemp[iGrid];
+	  //projMatrixTest[iState*numStateUpProc+jState] += noiseWfUpReal[jState*rhoRealGridTot+gridIndex]*rhoFragTemp[iGrid]*volMini*volMini;
+	  ////fix_frag[iFrag][gridIndex] += rhoFragTemp[iGrid]*rhoFragTemp[iGrid]*pre;
+	//}
 	for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
 	  projMatrixTest[iState*numStateUpProc+jState] += noiseWfUpReal[jState*rhoRealGridTot+iGrid]*wfProjjTemp[iGrid]*volMini*volMini;
 	}
@@ -484,7 +483,7 @@ void projRhoMini(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   }
   fflush(stdout);
   exit(0);   
-  
+  */
   //end debug  
 
   for(iProc=0;iProc<numProcStates;iProc++){

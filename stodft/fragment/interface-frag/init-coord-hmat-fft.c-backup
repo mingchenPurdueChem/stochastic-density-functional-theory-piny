@@ -557,7 +557,6 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   STODFTINFO *stodftInfo = cp->stodftInfo;
   FRAGINFO *fragInfo            = stodftInfo->fragInfo; 
   CLATOMS_POS *clatomsPosMini   = &(classMini->clatoms_pos[1]);
-  CLATOMS_POS *clatomsPos	= &(class-> clatoms_pos[1]);
 
   int iAtom,iProj,iDim;
   int iGrid,jGrid,kGrid;
@@ -573,7 +572,8 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   int numGridTotMiniBox;
   int numGridTotMiniBoxSmall;
   int index,indexBig,indexa,indexb,indexc;
-  int *numGridMiniBox = fragInfo->numGridFragDim[iFrag];
+  int numGridMiniBox[3];
+  int numGridMiniBoxSmall[3];
 
   int *numUnitCellDim = fragInfo->numUnitCellDim;
 
@@ -815,148 +815,10 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   hmatMini[8] = numGridMiniBoxSmall[2]*cGrid[1];
   hmatMini[9] = numGridMiniBoxSmall[2]*cGrid[2];
 
-/*======================================================================*/
-/* I) Get the number of grid points in each unit cell                   */
-
-  int numGridUCA,numGridUCB,numGridUCC;
-  int fragStIndA = fragInfo->fragStInd[iFrag*3];
-  int fragStIndB = fragInfo->fragStInd[iFrag*3+1];
-  int fragStIndC = fragInfo->fragStInd[iFrag*3+2];
-  int fragLengthIndA = fragInfo->fragLengthInd[iFrag*3];
-  int fragLengthIndB = fragInfo->fragLengthInd[iFrag*3+1];
-  int fragLengthIndC = fragInfo->fragLengthInd[iFrag*3+2];
-  int fragRootIndA = fragInfo->fragRootInd[iFrag*3];
-  int fragRootIndB = fragInfo->fragRootInd[iFrag*3+1];
-  int fragRootIndC = fragInfo->fragRootInd[iFrag*3+2];
-  int skinUCNum = fragInfo->skinUCNum;
-  int numGridUC[3];
-  int *numUnitCellDim = fragInfo->numUnitCellDim;
-
-  double *xTemp,*yTemp,*zTemp;
-  double *xDiff,*yDiff,*zDiff;
-  double *x = clatomsPos->x;
-  double *y = clatomsPos->y;
-  double *z = clatomsPos->z;
-  double rootCoord[3];
-
-  xTemp = (double *)cmalloc(numAtomFrag*sizeof(double));
-  yTemp = (double *)cmalloc(numAtomFrag*sizeof(double));
-  zTemp = (double *)cmalloc(numAtomFrag*sizeof(double));
- 
-  xDiff = (double *)cmalloc(numAtomFrag*sizeof(double));
-  yDiff = (double *)cmalloc(numAtomFrag*sizeof(double));
-  zDiff = (double *)cmalloc(numAtomFrag*sizeof(double));
   
-  numGridBigBox[0] = cpParaFftPkg3dLgBigBox->nkf1; //a
-  numGridBigBox[1] = cpParaFftPkg3dLgBigBox->nkf2; //b
-  numGridBigBox[2] = cpParaFftPkg3dLgBigBox->nkf3; //c
-  numGridUC[0] = numGridBigBox[0]/numUnitCellDim[0];
-  numGridUC[1] = numGridBigBox[1]/numUnitCellDim[1];
-  numGridUC[2] = numGridBigBox[2]/numUnitCellDim[2];
 
-  numGridFragDim[0] = numGridUC[0]*(fragLengthIndA+2*skinUCNum);
-  numGridFragDim[1] = numGridUC[1]*(fragLengthIndB+2*skinUCNum);
-  numGridFragDim[2] = numGridUC[2]*(fragLengthIndC+2*skinUCNum);
-  
-/*======================================================================*/
-/* II) Get the hmatrix				                        */
-  
-  aBig[0] = hmat[1];aBig[1] = hmat[2];aBig[2] = hmat[3];
-  bBig[0] = hmat[4];bBig[1] = hmat[5];bBig[2] = hmat[6];
-  cBig[0] = hmat[7];cBig[1] = hmat[8];cBig[2] = hmat[9];
-  aGrid[0] = aBig[0]/numGridBigBox[0];
-  aGrid[1] = aBig[1]/numGridBigBox[0];
-  aGrid[2] = aBig[2]/numGridBigBox[0];
-  bGrid[0] = bBig[0]/numGridBigBox[1];
-  bGrid[1] = bBig[1]/numGridBigBox[1];
-  bGrid[2] = bBig[2]/numGridBigBox[1];
-  cGrid[0] = cBig[0]/numGridBigBox[2];
-  cGrid[1] = cBig[1]/numGridBigBox[2];
-  cGrid[2] = cBig[2]/numGridBigBox[2];
-
-  hmatMini[1] = (fragLengthIndA+2*skinUCNum)*aGrid[0];
-  hmatMini[2] = (fragLengthIndA+2*skinUCNum)*aGrid[1];
-  hmatMini[3] = (fragLengthIndA+2*skinUCNum)*aGrid[2];
-  hmatMini[4] = (fragLengthIndB+2*skinUCNum)*bGrid[0];
-  hmatMini[5] = (fragLengthIndB+2*skinUCNum)*bGrid[1];
-  hmatMini[6] = (fragLengthIndB+2*skinUCNum)*bGrid[2];
-  hmatMini[7] = (fragLengthIndC+2*skinUCNum)*cGrid[0];
-  hmatMini[8] = (fragLengthIndC+2*skinUCNum)*cGrid[1];
-  hmatMini[9] = (fragLengthIndC+2*skinUCNum)*cGrid[2];
-
-/*======================================================================*/
-/* III) Get the atom coordinates                                        */
-  rootCoord[0] = fragRootIndA*aGrid[0]+fragRootIndB*bGrid[0]+fragRootIndC*cGrid[0];
-  rootCoord[1] = fragRootIndA*aGrid[1]+fragRootIndB*bGrid[1]+fragRootIndC*cGrid[1];
-  rootCoord[2] = fragRootIndA*aGrid[2]+fragRootIndB*bGrid[2]+fragRootIndC*cGrid[2];
- 
-
-  for(iAtom=0;iAtom<numAtomFrag;iAtom++){
-    xDiff[iAtom] = x[atomFragMap[iAtom]]-rootCoord[0];
-    yDiff[iAtom] = y[atomFragMap[iAtom]]-rootCoord[1];
-    zDiff[iAtom] = z[atomFragMap[iAtom]]-rootCoord[2]; 
-    xTemp[iAtom] = xDiff[iAtom]*hmati[1]+yDiff[iAtom]*hmati[4]+zDiff[iAtom]*hmati[7];
-    yTemp[iAtom] = xDiff[iAtom]*hmati[2]+yDiff[iAtom]*hmati[5]+zDiff[iAtom]*hmati[8];
-    zTemp[iAtom] = xDiff[iAtom]*hmati[3]+yDiff[iAtom]*hmati[6]+zDiff[iAtom]*hmati[9];
-    if(xTemp[iAtom]<0.0)xTemp[iAtom] += 1.0;
-    if(yTemp[iAtom]<0.0)yTemp[iAtom] += 1.0;
-    if(zTemp[iAtom]<0.0)zTemp[iAtom] += 1.0;
-    xMini[iAtom+1] = xTemp[iAtom]*hmat[1]+yTemp[iAtom]*hmat[4]+zTemp[iAtom]*hmat[7];
-    yMini[iAtom+1] = xTemp[iAtom]*hmat[2]+yTemp[iAtom]*hmat[5]+zTemp[iAtom]*hmat[8];
-    zMini[iAtom+1] = xTemp[iAtom]*hmat[3]+yTemp[iAtom]*hmat[6]+zTemp[iAtom]*hmat[9];
-  }
-  
-/*======================================================================*/
-/* IV) Map the grid points	                                        */
-  
-  numGridTotMiniBox = numGridMiniBox[2]*numGridMiniBox[1]*numGridMiniBox[0];
-
-  fragInfo->numGridFragProc[iFrag] = numGridTotMiniBox;
-
-  fragInfo->gridMapProc[iFrag] = (int*)cmalloc(numGridTotMiniBox*sizeof(int));
-
-  for(iGrid=0;iGrid<numGridMiniBox[2];iGrid++){//c
-    for(jGrid=0;jGrid<numGridMiniBox[1];jGrid++){//b
-      for(kGrid=0;kGrid<numGridMiniBox[0];kGrid++){//a
-        index = iGrid*numGridMiniBox[1]*numGridMiniBox[0]
-                +jGrid*numGridMiniBox[0]+kGrid;
-        indexc = zeroGridBig[2]+iGrid;
-        indexb = zeroGridBig[1]+jGrid;
-        indexa = zeroGridBig[0]+kGrid;
-        if(indexc<0)indexc += numGridBigBox[2];
-        if(indexc>=numGridBigBox[2])indexc -= numGridBigBox[2];
-        if(indexb<0)indexb += numGridBigBox[1];
-        if(indexb>=numGridBigBox[1])indexb -= numGridBigBox[1];
-        if(indexa<0)indexa += numGridBigBox[0];
-        if(indexa>=numGridBigBox[0])indexa -= numGridBigBox[0];
-        fragInfo->gridMapProc[iFrag][index] = indexc*numGridBigBox[1]*numGridBigBox[0]+
-                    indexb*numGridBigBox[0]+indexa;
-      }//endfor kGrid
-    }//endfor jGrid
-  }//endfor iGrid
-
-  // map the mini small box to the mini big box
-  numGridTotMiniBoxSmall = numGridMiniBoxSmall[2]*numGridMiniBoxSmall[1]*numGridMiniBoxSmall[0];
-  fragInfo->numGridFragProcSmall[iFrag] = numGridTotMiniBoxSmall;
-  fragInfo->gridMapProcSmall[iFrag] = (int*)cmalloc(numGridTotMiniBoxSmall*sizeof(int));
-  fragInfo->numGridFragProcSmall[iFrag] = numGridTotMiniBoxSmall;
-  for(iGrid=0;iGrid<numGridMiniBoxSmall[2];iGrid++){
-    for(jGrid=0;jGrid<numGridMiniBoxSmall[1];jGrid++){
-      for(kGrid=0;kGrid<numGridMiniBoxSmall[0];kGrid++){
-        index = iGrid*numGridMiniBoxSmall[1]*numGridMiniBoxSmall[0]
-                +jGrid*numGridMiniBoxSmall[0]+kGrid;
-        indexBig = (iGrid+numGridSkin)*numGridMiniBox[1]*numGridMiniBox[0]
-                    +(jGrid+numGridSkin)*numGridMiniBox[0]+kGrid+numGridSkin;
-        fragInfo->gridMapProcSmall[iFrag][index] = indexBig;
-      }//endfor kGrid
-    }//endfor jGrid
-  }//endfor iGrid
-
-/*==========================================================================*/
 }/*end routine*/
 /*==========================================================================*/
- 
-
 
 
 /*==========================================================================*/

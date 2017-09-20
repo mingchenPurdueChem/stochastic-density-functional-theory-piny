@@ -456,7 +456,20 @@ typedef struct fragInfo{
                                     /*      each mini Big box.                  */
                                     /* Lth: numFragProc*3                       */
   double gaussianSigma;		    /* Num: convolution gaussian std		*/
-
+// Try overlap box
+  int *numUnitCellDim;		    /* Lst: number of unit cell per dimension	*/
+				    /* Lth: 3					*/
+  int skinUCNum;		    /* Num: How many unit cells in fragment skin*/
+  int *sysRootInd;
+  int *fragRootInd;
+  int *molNumUC;
+  int **molIndexUC;
+  int *fragStInd;		    /* Lst: starting index of each fragment	*/
+				    /*	    (without skin)			*/
+				    /* Lth: numFragTot*3			*/
+  int *fragLengthInd;		    /* Lst: length of fragment side/length of   */
+				    /*	    unit cell length(without skin)	*/
+				    /* Lth: numFragTot*3			*/
 }FRAGINFO;
 
 typedef struct stodftInfo{

@@ -2,6 +2,14 @@ void controlCpMinFrag(CLASS *,BONDED *,GENERAL_DATA *,CP *,ANALYSIS *);
 
 
 void initFragMol(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
+void initFragUnitCell(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
+void shiftSystem(int ,int ,int ,int *,int *,int *,double *,int *,double *,int *,int *,int *,
+                 int *,double *,double *,double *,CELL *);
+void partMolUC(double *,int,int *,COMMUNICATE *,FRAGINFO *);
+void mapFragMol(FRAGINFO *,COMMUNICATE *,int,int *,int *);
+void reorderMol(FRAGINFO *,int,int,int *,int *,int *,int);
+int checkInList(int,int *,int);
+
 void initFragEnergy(CP *,CLASS *,CLASS *,CP *);
 void initFragUnitCell(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 

@@ -956,6 +956,7 @@ void controlSetMolParamsFrag(CP_PARSE *cp_parse,CLASS_PARSE *class_parse,
     sprintf(dictMolFrag[iType].mol_dict[2].keyarg,"%i",molNumTypeFragNow[iType]);
     //printf("typeInd %i\n",typeInd);
     for(iKey=3;iKey<=numMolDict;iKey++){
+      //printf("typeInd %i\n",typeInd);
       strcpy(dictMolFrag[iType].mol_dict[iKey].keyarg,dictMolAll[typeInd-1].mol_dict[iKey].keyarg);
     }
     for(iKey=1;iKey<=numMolDict;iKey++)dictMolFrag[iType].mol_dict[iKey].iuset = 1;

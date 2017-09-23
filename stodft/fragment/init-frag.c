@@ -100,9 +100,13 @@ void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   printf("xyz %lg %lg %lg\n",classMini[0].clatoms_pos[1].x[3],
         classMini[0].clatoms_pos[1].y[3],classMini[0].clatoms_pos[1].z[3]);
   */
-  exit(0);
+  //exit(0);
  
-  if(numFragProc>0)initFragEnergy(*cpMiniPoint,*classMiniPoint,class,cp);
+  if(numFragProc>0){
+    if(fragOpt==1){
+      initFragEnergy(*cpMiniPoint,*classMiniPoint,class,cp);
+    }
+  }
 
 /*==========================================================================*/
 }/*end Routine*/
@@ -420,26 +424,6 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     fragInfo->numGridFragDim[iFrag] = (int*)cmalloc(3*sizeof(int));
   }
   // Only used for unit cell fragment
-  printf("fragOpt %i\n",fragOpt);
-  if(fragOpt==3){
-    fragInfo->numGridSkin = 3;
-    fragInfo->numGridFragProcSmall = (int*)cmalloc(numFragProc*sizeof(int));
-    fragInfo->gridMapProcSmall = (int**)cmalloc(numFragProc*sizeof(int*));
-    fragInfo->numGridFragDimBig = (int**)cmalloc(numFragProc*sizeof(int*));
-    for(iFrag=0;iFrag<numFragProc;iFrag++){
-      fragInfo->numGridFragDimBig[iFrag] = (int*)cmalloc(3*sizeof(int));
-    }
-    // Test for overlap
-    fragInfo->numUnitCellDim = (int*)cmalloc(3*sizeof(int));
-    if(myidState==0){
-      fileNumUC = fopen("NUC-dim","r");
-      for(iFrag=0;iFrag<3;iFrag++){
-	fscanf(fileNumUC,"%i",&(fragInfo->numUnitCellDim[iFrag]));
-      }
-      fclose(fileNumUC);
-    }
-    Bcast(&(fragInfo->numUnitCellDim[0]),3,MPI_INT,0,commStates);
-  }
 
 /*======================================================================*/
 /* 3) Initialize other things	                                        */
@@ -642,6 +626,7 @@ void initFragUnitCell(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP 
 
   partMolUC(&comMolReduce[0],numMolTot,&numGridBox[0],communicate,fragInfo);
   numFragTot = fragInfo->numFragTot;
+
   
 /*======================================================================*/
 /* II) Combine the unit cell to fragment cell and partition molecules   */
@@ -652,6 +637,7 @@ void initFragUnitCell(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP 
   molFragMapProc = fragInfo->molFragMapProc;
   numMolFragProc = fragInfo->numMolFragProc;
   numFragProc = fragInfo->numFragProc;
+
 
 /*======================================================================*/
 /* 2) Get atoms map in each fragments                                   */
@@ -764,9 +750,13 @@ void initFragUnitCell(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP 
   fragInfo->numGridFragTot = (int*)cmalloc(numFragTot*sizeof(int));
   fragInfo->gridMapProc = (int**)cmalloc(numFragProc*sizeof(int*));
   fragInfo->gridMapTot  = (int**)cmalloc(numFragTot*sizeof(int*));
+  fragInfo->gridMapProcSmall = (int**)cmalloc(numFragProc*sizeof(int*));
   fragInfo->numGridFragDim = (int**)cmalloc(numFragProc*sizeof(int*));
+  fragInfo->numGridFragDimSmall = (int**)cmalloc(numFragProc*sizeof(int*));
+  fragInfo->numGridFragProcSmall = (int*)cmalloc(numFragProc*sizeof(int));
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     fragInfo->numGridFragDim[iFrag] = (int*)cmalloc(3*sizeof(int));
+    fragInfo->numGridFragDimSmall[iFrag] = (int*)cmalloc(3*sizeof(int));
   }
   // Only used for unit cell fragment
 
@@ -1216,15 +1206,23 @@ void partMolUC(double *comMolReduce,int numMolTot,int *numGridBox,
       molIndexUC[indUC] = (int*)realloc(molIndexUC[indUC],
 				            (molNumUC[indUC]+100)*sizeof(double));
     }
-    molIndexUC[indUC][molNumUC[indUC]-1] = iMol;
+    molIndexUC[indUC][molNumUC[indUC]-1] = iMol+1;
   }
   /*
   for(iCell=0;iCell<numUCTot;iCell++){
     printf("iCell %i molNumUC %i\n",iCell,molNumUC[iCell]);
   }
   */
-  
-  
+  /*
+  for(iCell=0;iCell<27;iCell++){
+    for(iMol=0;iMol<8;iMol++){
+      printf("iCell %i iMol %i molIndexUC %i\n",iCell,iMol,molIndexUC[iCell][iMol]);
+    }
+  }
+  fflush(stdout);
+  exit(0);
+  */
+
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/
@@ -1307,9 +1305,6 @@ void mapFragMol(FRAGINFO *fragInfo,COMMUNICATE *communicate,
     if(iGrid<0)iGrid += numGridBox[0];
     if(jGrid<0)jGrid += numGridBox[1];
     if(kGrid<0)kGrid += numGridBox[2];
-    printf("numGridUCDim %i %i %i gridroot %i %i %i\n",
-            numGridUCDim[0],numGridUCDim[1],numGridUCDim[2],iGrid,jGrid,kGrid);
-
     fragInfo->fragRootInd[iFrag*3] = iGrid;
     fragInfo->fragRootInd[iFrag*3+1] = jGrid;
     fragInfo->fragRootInd[iFrag*3+2] = kGrid;
@@ -1349,7 +1344,7 @@ void mapFragMol(FRAGINFO *fragInfo,COMMUNICATE *communicate,
 	  molIndFragCent = (int*)crealloc(molIndFragCent,numMolFragCent*sizeof(int));
 	  for(iMol=0;iMol<molNumUC[ucInd];iMol++){
 	    molInd = molIndexUC[ucInd][iMol];
-	    molTypeInd = molType[molInd];
+	    molTypeInd = molType[molInd-1];
 	    //printf("molTypeInd %i\n",molTypeInd);
 	    if(checkInList(molTypeInd,molTypeFragTemp,molTypeNumFragTemp)==0){
 	      molTypeNumFragTemp += 1;
@@ -1377,7 +1372,12 @@ void mapFragMol(FRAGINFO *fragInfo,COMMUNICATE *communicate,
       printf("iMol %i molFragMapProc %i\n",iMol,fragInfo->molFragMapProc[iFrag][iMol]);
     }
     */
-    //exit(0);
+    /*
+    for(iMol=0;iMol<216;iMol++){
+      printf("iMol %i molFragMapProc %i %i\n",iMol,fragInfo->molFragMapProc[iFrag][iMol],molIndFragTemp[iMol]);
+    }
+    exit(0);
+    */
   }//endfor iFrag
 
 /*==========================================================================*/
@@ -1422,12 +1422,12 @@ void reorderMol(FRAGINFO *fragInfo,int molTypeNumFragTemp,int molNumFragTemp,
     //printf("iType %i molTypeFrag %i molTypeFragTemp %i\n",iType,molTypeFrag[iType],molTypeFragTemp[iType]);
     molNumTypeFrag[iType] = 0;
     for(iMol=0;iMol<molNumFragTemp;iMol++){
-      if(molType[molIndFragTemp[iMol]]==molTypeFragTemp[iType]){
+      if(molType[molIndFragTemp[iMol]-1]==molTypeFragTemp[iType]){
 	molFragMapProc[countMol] = molIndFragTemp[iMol];	
 	molNumTypeFrag[iType] += 1;
 	//printf("iType %i iMol %i countMol %i,molNumTypeFrag %i molFragMapProc %i molTypeFrag %i\n",iType,iMol,countMol,molNumTypeFrag[iType],molFragMapProc[countMol],molTypeFrag[0]);
+        countMol += 1;
       }
-      countMol += 1;
     }//endfor iMol
   }//endfor iType
   //printf("local %i molTypeFrag %i global %i\n",molTypeFragTemp[0],molTypeFrag[0],fragInfo->molTypeFrag[iFrag][0]);

@@ -13,8 +13,10 @@ int checkInList(int,int *,int);
 void initFragEnergy(CP *,CLASS *,CLASS *,CP *);
 void initFragUnitCell(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 
-void projRhoMini(CP *,GENERAL_DATA *,CLASS *,
-                 CP *,GENERAL_DATA *,CLASS *,int);
+void projRhoMiniMol(CP *,GENERAL_DATA *,CLASS *,
+                    CP *,GENERAL_DATA *,CLASS *,int);
+void projRhoMiniUnitCell(CP *,GENERAL_DATA *,CLASS *,
+                    CP *,GENERAL_DATA *,CLASS *,int);
 
 void rhoRealCalcDriverFragMol(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *,CP *);
 void rhoRealCalcDriverNoise(GENERAL_DATA *,CP *,CLASS *,int);

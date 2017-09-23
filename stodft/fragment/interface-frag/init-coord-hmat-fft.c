@@ -561,263 +561,11 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
 
   int iAtom,iProj,iDim;
   int iGrid,jGrid,kGrid;
+  int numGridTotFrag;
+  int numGridTotFragSmall; //small cell
+  int index,indexBig,indexa,indexb,indexc;
   int iFrag = fragInfo->iFrag;
   int numAtomFrag       = fragInfo->numAtomFragProc[iFrag];
-  int numGridSkin	= fragInfo->numGridSkin;
-  int numGridBigBoxC = cpParaFftPkg3dLgBigBox->nkf3;
-  int numGridBigBoxB = cpParaFftPkg3dLgBigBox->nkf2;
-  int numGridBigBoxA = cpParaFftPkg3dLgBigBox->nkf1;
-  int numGridBigBox[3];
-  int indexGrid[3],zeroGrid[3],zeroGridBig[3];
-  int negativeGridNum;
-  int numGridTotMiniBox;
-  int numGridTotMiniBoxSmall;
-  int index,indexBig,indexa,indexb,indexc;
-  int *numGridMiniBox = fragInfo->numGridFragDim[iFrag];
-
-  int *numUnitCellDim = fragInfo->numUnitCellDim;
-
-  double geoCntBox[3],geoCntDiff[3],gridSize[3];
-  double zeroShift[3] = {0};
-  double aBig[3],bBig[3],cBig[3];
-  double aGrid[3],bGrid[3],cGrid[3];
-  double aNorm[3],bNorm[3],cNorm[3];
-  double aGridLen,bGridLen,cGridLen;
-  double crossProd[3];
-  double norm,dotProd;
-  double projMin,projMax;
-  double distVert,distProjAxis;
-  double negativeLength;
-  double sigma;
-
-  double *hmat  = cell->hmat;
-  double *hmati = cell->hmati;
-  double *skinFrag = fragInfo->skinFragBox[iFrag];
-  double *xMini = clatomsPosMini->x;
-  double *yMini = clatomsPosMini->y;
-  double *zMini = clatomsPosMini->z;
-  double *hmatMini = cellMini->hmat;
-  double *projList;
-
-/*======================================================================*/
-/* I) Rescale the geometric center into unit box	                */
-
-  geoCntBox[0] = geoCnt[0]*hmati[1]+geoCnt[1]*hmati[4]+geoCnt[2]*hmati[7];
-  geoCntBox[1] = geoCnt[0]*hmati[2]+geoCnt[1]*hmati[5]+geoCnt[2]*hmati[8];
-  geoCntBox[2] = geoCnt[0]*hmati[3]+geoCnt[1]*hmati[6]+geoCnt[2]*hmati[9];
-/*======================================================================*/
-/* II) Find the closest FFT grid point in the system box.               */
- 
-  // Get the Bin index
-  numGridBigBox[0] = cpParaFftPkg3dLgBigBox->nkf1; //a
-  numGridBigBox[1] = cpParaFftPkg3dLgBigBox->nkf2; //b
-  numGridBigBox[2] = cpParaFftPkg3dLgBigBox->nkf3; //c
-  
-  indexGrid[0] = NINT(geoCntBox[0]*numGridBigBox[0]);
-  indexGrid[1] = NINT(geoCntBox[1]*numGridBigBox[1]);
-  indexGrid[2] = NINT(geoCntBox[2]*numGridBigBox[2]);
-
-/*======================================================================*/
-/* Find the Base point(zero point of this fragment).			*/
-/* 1. Shift the COM of the whole system to the center of the box	*/
-/* 2. Find the atom that is cloest to (0,0,0) calculate its position	*/
-/* 3. Round the position to integer multiplication (l,m,n) of FFT grid	*/
-/* 4. -l*agrid-m*bgrid-n*cgrid is the first base point			*/
-/* 5. Generate all the other base point					*/
-/* 6. Calculate the COM of this "molecule" and asign the base point	*/
-/* 7. Get all the neighbourhood unit cells (3*3*3)			*/
-/* 8. Combine the */
-  aBig[0] = hmat[1];aBig[1] = hmat[2];aBig[2] = hmat[3];
-  bBig[0] = hmat[4];bBig[1] = hmat[5];bBig[2] = hmat[6];
-  cBig[0] = hmat[7];cBig[1] = hmat[8];cBig[2] = hmat[9];
-  aGrid[0] = aBig[0]/numGridBigBox[0];
-  aGrid[1] = aBig[1]/numGridBigBox[0];
-  aGrid[2] = aBig[2]/numGridBigBox[0];
-  bGrid[0] = bBig[0]/numGridBigBox[1];
-  bGrid[1] = bBig[1]/numGridBigBox[1];
-  bGrid[2] = bBig[2]/numGridBigBox[1];
-  cGrid[0] = cBig[0]/numGridBigBox[2];
-  cGrid[1] = cBig[1]/numGridBigBox[2];
-  cGrid[2] = cBig[2]/numGridBigBox[2];
-  
-  for(iDim=0;iDim<3;iDim++){
-    aNorm[iDim] = aGrid[iDim];
-    bNorm[iDim] = bGrid[iDim];
-    cNorm[iDim] = cGrid[iDim];
-  } 
-  aGridLen = normalized3d(aNorm);
-  bGridLen = normalized3d(bNorm);
-  cGridLen = normalized3d(cNorm);
-  //sigma = MIN(aGridLen,MIN(bGridLen,cGridLen));
-  //fragInfo->gaussianSigma = sigma;
-  
-
-  //printf("aGridLen %lg bGridLen %lg cGridLen %lg\n",aGridLen,bGridLen,cGridLen);
-  
-  //double boxlen = sqrt(hmat[1]*hmat[1]+hmat[2]*hmat[2]+hmat[3]*hmat[3]);
-  //printf("genCnt %lg %lg %lg\n",geoCntBox[0]*boxlen,geoCntBox[1]*boxlen,geoCntBox[2]*boxlen);
-
-  //update the center to the grid point
-  geoCntBox[0] = aGrid[0]*indexGrid[0]+bGrid[0]*indexGrid[1]+cGrid[0]*indexGrid[2];
-  geoCntBox[1] = aGrid[1]*indexGrid[0]+bGrid[1]*indexGrid[1]+cGrid[1]*indexGrid[2];
-  geoCntBox[2] = aGrid[2]*indexGrid[0]+bGrid[2]*indexGrid[1]+cGrid[2]*indexGrid[2];
-
-  // Reshift mini coords
-  for(iAtom=1;iAtom<=numAtomFrag;iAtom++){
-    xMini[iAtom] += geoCnt[0]-geoCntBox[0];
-    yMini[iAtom] += geoCnt[1]-geoCntBox[1];
-    zMini[iAtom] += geoCnt[2]-geoCntBox[2];
-  }
-/*--------------------------------------------------------------------------*/
-/*  Along c direction					                    */
-  negativeLength = 0.0;
-  distProjAxis = calcMiniBoxLength(numAtomFrag,&xMini[1],&yMini[1],&zMini[1],
-				    aNorm,bNorm,cNorm,skinFrag,&negativeLength);
-  
-  numGridMiniBoxSmall[2] = (int)((distProjAxis+1.0e-3)/cGridLen);
-  if(numGridMiniBoxSmall[2]%2!=0)numGridMiniBoxSmall[2] += 1;
-  numGridMiniBox[2] = numGridMiniBoxSmall[2]+numGridSkin*2;
-  fragInfo->numGridFragDim[iFrag][2] = numGridMiniBoxSmall[2];
-  fragInfo->numGridFragDimBig[iFrag][2] = numGridMiniBox[2];
-  //numGridMiniBox[2] = 72;
-  negativeGridNum = numGridMiniBoxSmall[2]/2;
-  zeroGrid[2] = indexGrid[2]-negativeGridNum;
-  zeroGridBig[2] = zeroGrid[2]-numGridSkin;
-  for(iDim=0;iDim<3;iDim++)zeroShift[iDim] -= negativeGridNum*cGrid[iDim];
-  if(zeroGrid[2]<0)zeroGrid[2] += numGridBigBoxC;
-  if(zeroGridBig[2]<0)zeroGridBig[2] += numGridBigBoxC;
-  // round it if necessary
-
-/*--------------------------------------------------------------------------*/
-/*  Along b direction                                                       */
-
-  negativeLength = 0.0;
-  distProjAxis = calcMiniBoxLength(numAtomFrag,&xMini[1],&yMini[1],&zMini[1],
-                                    cNorm,aNorm,bNorm,skinFrag,&negativeLength);
-
-
-  numGridMiniBoxSmall[1] = (int)((distProjAxis+1.0e-3)/bGridLen);
-  if(numGridMiniBoxSmall[1]%2!=0)numGridMiniBoxSmall[1] += 1;
-  numGridMiniBox[1] = numGridMiniBoxSmall[1]+numGridSkin*2;
-  fragInfo->numGridFragDim[iFrag][1] = numGridMiniBoxSmall[1];
-  fragInfo->numGridFragDimBig[iFrag][1] = numGridMiniBox[1];
-  //numGridMiniBox[1] = 72;
-  negativeGridNum = numGridMiniBoxSmall[1]/2;
-  zeroGrid[1] = indexGrid[1]-negativeGridNum;
-  zeroGridBig[1] = zeroGrid[1]-numGridSkin;
-  for(iDim=0;iDim<3;iDim++)zeroShift[iDim] -= negativeGridNum*bGrid[iDim];
-  if(zeroGrid[1]<0)zeroGrid[1] += numGridBigBoxB;
-  if(zeroGridBig[1]<0)zeroGridBig[1] += numGridBigBoxB;
-  // round it if necessary
-/*--------------------------------------------------------------------------*/
-/*  Along a direction                                                       */
-
-  negativeLength = 0.0;
-  distProjAxis = calcMiniBoxLength(numAtomFrag,&xMini[1],&yMini[1],&zMini[1],
-                                    bNorm,cNorm,aNorm,skinFrag,&negativeLength);
-
-  numGridMiniBoxSmall[0] = (int)((distProjAxis+1.0e-3)/aGridLen);
-  if(numGridMiniBoxSmall[0]%2!=0)numGridMiniBoxSmall[0] += 1;
-  numGridMiniBox[0] = numGridMiniBoxSmall[0]+numGridSkin*2;
-  fragInfo->numGridFragDim[iFrag][0] = numGridMiniBoxSmall[0];
-  fragInfo->numGridFragDimBig[iFrag][0] = numGridMiniBox[0];
-  //numGridMiniBox[0] = 72;
-  negativeGridNum = numGridMiniBoxSmall[0]/2;
-  zeroGrid[0] = indexGrid[0]-negativeGridNum;
-  zeroGridBig[0] = zeroGrid[0]-numGridSkin;
-  for(iDim=0;iDim<3;iDim++)zeroShift[iDim] -= negativeGridNum*aGrid[iDim];
-  if(zeroGrid[0]<0)zeroGrid[0] += numGridBigBoxA;
-  if(zeroGridBig[0]<0)zeroGridBig[0] += numGridBigBoxA;
-  // round it if necessary
-
-/*--------------------------------------------------------------------------*/
-/*  shift the zero point from central Grid to corner Grid                   */
-
-  /*
-  double zeroPoint[3];
-  zeroPoint[0] = zeroGrid[0]*aGrid[0];
-  zeroPoint[1] = zeroGrid[1]*bGrid[1];
-  zeroPoint[2] = zeroGrid[2]*cGrid[2];
-  printf("zero Point %lg %lg %lg\n",zeroPoint[0],zeroPoint[1],zeroPoint[2]);
-  */
-
-  for(iAtom=1;iAtom<=numAtomFrag;iAtom++){
-    xMini[iAtom] -= zeroShift[0];
-    yMini[iAtom] -= zeroShift[1];
-    zMini[iAtom] -= zeroShift[2];
-    //printf("Final mini x %lg y %lg z %lg\n",xMini[iAtom],yMini[iAtom],zMini[iAtom]);
-  }
-
-/*======================================================================*/
-/* II) Map the grid.					                */
-  
-  // map the mini big box to the system box
-  numGridTotMiniBox = numGridMiniBox[2]*numGridMiniBox[1]*numGridMiniBox[0];
-
-  fragInfo->numGridFragProc[iFrag] = numGridTotMiniBox;
-
-  fragInfo->gridMapProc[iFrag] = (int*)cmalloc(numGridTotMiniBox*sizeof(int));
- 
-  for(iGrid=0;iGrid<numGridMiniBox[2];iGrid++){//c
-    for(jGrid=0;jGrid<numGridMiniBox[1];jGrid++){//b
-      for(kGrid=0;kGrid<numGridMiniBox[0];kGrid++){//a
-	index = iGrid*numGridMiniBox[1]*numGridMiniBox[0]
-		+jGrid*numGridMiniBox[0]+kGrid;    
-	indexc = zeroGridBig[2]+iGrid;
-	indexb = zeroGridBig[1]+jGrid;
-	indexa = zeroGridBig[0]+kGrid;	
-	if(indexc<0)indexc += numGridBigBox[2];
-	if(indexc>=numGridBigBox[2])indexc -= numGridBigBox[2];
-	if(indexb<0)indexb += numGridBigBox[1];
-	if(indexb>=numGridBigBox[1])indexb -= numGridBigBox[1];
-        if(indexa<0)indexa += numGridBigBox[0];
-        if(indexa>=numGridBigBox[0])indexa -= numGridBigBox[0];
-	fragInfo->gridMapProc[iFrag][index] = indexc*numGridBigBox[1]*numGridBigBox[0]+
-		    indexb*numGridBigBox[0]+indexa;
-      }//endfor kGrid
-    }//endfor jGrid
-  }//endfor iGrid
-
-  // map the mini small box to the mini big box
-  numGridTotMiniBoxSmall = numGridMiniBoxSmall[2]*numGridMiniBoxSmall[1]*numGridMiniBoxSmall[0];
-  fragInfo->numGridFragProcSmall[iFrag] = numGridTotMiniBoxSmall;
-  fragInfo->gridMapProcSmall[iFrag] = (int*)cmalloc(numGridTotMiniBoxSmall*sizeof(int));
-  fragInfo->numGridFragProcSmall[iFrag] = numGridTotMiniBoxSmall;
-  for(iGrid=0;iGrid<numGridMiniBoxSmall[2];iGrid++){
-    for(jGrid=0;jGrid<numGridMiniBoxSmall[1];jGrid++){
-      for(kGrid=0;kGrid<numGridMiniBoxSmall[0];kGrid++){
-	index = iGrid*numGridMiniBoxSmall[1]*numGridMiniBoxSmall[0]
-                +jGrid*numGridMiniBoxSmall[0]+kGrid;
-	indexBig = (iGrid+numGridSkin)*numGridMiniBox[1]*numGridMiniBox[0]
-		    +(jGrid+numGridSkin)*numGridMiniBox[0]+kGrid+numGridSkin;
-	fragInfo->gridMapProcSmall[iFrag][index] = indexBig;
-      }//endfor kGrid
-    }//endfor jGrid
-  }//endfor iGrid
-
-  //debug
-  /*
-  for(iGrid=0;iGrid<numGridTotMiniBox;iGrid++){
-    fragInfo->gridMapProc[iFrag][iGrid] = iGrid;
-  }
-  */
-
-/*======================================================================*/
-/* III) Get the mini cell matrix                                        */
-
-  hmatMini[1] = numGridMiniBoxSmall[0]*aGrid[0];
-  hmatMini[2] = numGridMiniBoxSmall[0]*aGrid[1];
-  hmatMini[3] = numGridMiniBoxSmall[0]*aGrid[2];
-  hmatMini[4] = numGridMiniBoxSmall[1]*bGrid[0];
-  hmatMini[5] = numGridMiniBoxSmall[1]*bGrid[1];
-  hmatMini[6] = numGridMiniBoxSmall[1]*bGrid[2];
-  hmatMini[7] = numGridMiniBoxSmall[2]*cGrid[0];
-  hmatMini[8] = numGridMiniBoxSmall[2]*cGrid[1];
-  hmatMini[9] = numGridMiniBoxSmall[2]*cGrid[2];
-
-/*======================================================================*/
-/* I) Get the number of grid points in each unit cell                   */
-
   int numGridUCA,numGridUCB,numGridUCC;
   int fragStIndA = fragInfo->fragStInd[iFrag*3];
   int fragStIndB = fragInfo->fragStInd[iFrag*3+1];
@@ -829,15 +577,46 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   int fragRootIndB = fragInfo->fragRootInd[iFrag*3+1];
   int fragRootIndC = fragInfo->fragRootInd[iFrag*3+2];
   int skinUCNum = fragInfo->skinUCNum;
+  int numGridSmall;
+  int numGrid;
   int numGridUC[3];
-  int *numUnitCellDim = fragInfo->numUnitCellDim;
+  int numGridBigBox[3];
+  //int indexGrid[3],zeroGrid[3],zeroGridBig[3];
 
+  int *numGridFragDim = fragInfo->numGridFragDim[iFrag];
+  int *numUnitCellDim = fragInfo->numUnitCellDim;
+  int *numGridFragDimSmall = fragInfo->numGridFragDimSmall[iFrag];
+  int *atomFragMap = fragInfo->atomFragMapProc[iFrag];
+
+  //double geoCntBox[3],geoCntDiff[3],gridSize[3];
+  //double zeroShift[3] = {0};
+  double aBig[3],bBig[3],cBig[3];
+  double aGrid[3],bGrid[3],cGrid[3];
+  double rootCoord[3];
+  //double aNorm[3],bNorm[3],cNorm[3];
+  //double aGridLen,bGridLen,cGridLen;
+  //double crossProd[3];
+  //double norm,dotProd;
+  //double projMin,projMax;
+  //double distVert,distProjAxis;
+  //double negativeLength;
+  //double sigma;
+
+  double *hmat  = cell->hmat;
+  double *hmati = cell->hmati;
+  //double *skinFrag = fragInfo->skinFragBox[iFrag];
+  double *xMini = clatomsPosMini->x;
+  double *yMini = clatomsPosMini->y;
+  double *zMini = clatomsPosMini->z;
+  double *hmatMini = cellMini->hmat;
+  //double *projList;
   double *xTemp,*yTemp,*zTemp;
   double *xDiff,*yDiff,*zDiff;
   double *x = clatomsPos->x;
   double *y = clatomsPos->y;
   double *z = clatomsPos->z;
-  double rootCoord[3];
+/*======================================================================*/
+/* I) Get the number of grid points in each unit cell                   */
 
   xTemp = (double *)cmalloc(numAtomFrag*sizeof(double));
   yTemp = (double *)cmalloc(numAtomFrag*sizeof(double));
@@ -858,6 +637,16 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   numGridFragDim[1] = numGridUC[1]*(fragLengthIndB+2*skinUCNum);
   numGridFragDim[2] = numGridUC[2]*(fragLengthIndC+2*skinUCNum);
   
+  numGridFragDimSmall[0] = numGridUC[0]*fragLengthIndA;
+  numGridFragDimSmall[1] = numGridUC[1]*fragLengthIndB;
+  numGridFragDimSmall[2] = numGridUC[2]*fragLengthIndC;
+
+  numGridSmall = numGridFragDimSmall[0]*numGridFragDimSmall[1]*numGridFragDimSmall[2]; 
+  fragInfo->numGridFragProcSmall[iFrag] = numGridSmall;
+  numGrid = numGridFragDim[0]*numGridFragDim[1]*numGridFragDim[2];
+  fragInfo->numGridFragProc[iFrag] = numGrid;
+  
+  
 /*======================================================================*/
 /* II) Get the hmatrix				                        */
   
@@ -874,15 +663,21 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   cGrid[1] = cBig[1]/numGridBigBox[2];
   cGrid[2] = cBig[2]/numGridBigBox[2];
 
-  hmatMini[1] = (fragLengthIndA+2*skinUCNum)*aGrid[0];
-  hmatMini[2] = (fragLengthIndA+2*skinUCNum)*aGrid[1];
-  hmatMini[3] = (fragLengthIndA+2*skinUCNum)*aGrid[2];
-  hmatMini[4] = (fragLengthIndB+2*skinUCNum)*bGrid[0];
-  hmatMini[5] = (fragLengthIndB+2*skinUCNum)*bGrid[1];
-  hmatMini[6] = (fragLengthIndB+2*skinUCNum)*bGrid[2];
-  hmatMini[7] = (fragLengthIndC+2*skinUCNum)*cGrid[0];
-  hmatMini[8] = (fragLengthIndC+2*skinUCNum)*cGrid[1];
-  hmatMini[9] = (fragLengthIndC+2*skinUCNum)*cGrid[2];
+  //printf("%i %i %i %i\n",fragLengthIndA,fragLengthIndB,fragLengthIndC,skinUCNum);
+  //printf("aGrid %lg %lg %lg\n",aGrid[0],aGrid[1],aGrid[2]);
+  hmatMini[1] = (fragLengthIndA+2*skinUCNum)*aGrid[0]*numGridUC[0];
+  hmatMini[2] = (fragLengthIndA+2*skinUCNum)*aGrid[1]*numGridUC[0];
+  hmatMini[3] = (fragLengthIndA+2*skinUCNum)*aGrid[2]*numGridUC[0];
+  hmatMini[4] = (fragLengthIndB+2*skinUCNum)*bGrid[0]*numGridUC[1];
+  hmatMini[5] = (fragLengthIndB+2*skinUCNum)*bGrid[1]*numGridUC[1];
+  hmatMini[6] = (fragLengthIndB+2*skinUCNum)*bGrid[2]*numGridUC[1];
+  hmatMini[7] = (fragLengthIndC+2*skinUCNum)*cGrid[0]*numGridUC[2];
+  hmatMini[8] = (fragLengthIndC+2*skinUCNum)*cGrid[1]*numGridUC[2];
+  hmatMini[9] = (fragLengthIndC+2*skinUCNum)*cGrid[2]*numGridUC[2];
+  //printf("%lg %lg %lg\n",hmatMini[1],hmatMini[2],hmatMini[3]);
+  //printf("%lg %lg %lg\n",hmatMini[4],hmatMini[5],hmatMini[6]);
+  //printf("%lg %lg %lg\n",hmatMini[7],hmatMini[8],hmatMini[9]);
+
 
 /*======================================================================*/
 /* III) Get the atom coordinates                                        */
@@ -890,7 +685,7 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   rootCoord[1] = fragRootIndA*aGrid[1]+fragRootIndB*bGrid[1]+fragRootIndC*cGrid[1];
   rootCoord[2] = fragRootIndA*aGrid[2]+fragRootIndB*bGrid[2]+fragRootIndC*cGrid[2];
  
-
+  //printf("numAtomFrag %i\n",numAtomFrag);
   for(iAtom=0;iAtom<numAtomFrag;iAtom++){
     xDiff[iAtom] = x[atomFragMap[iAtom]]-rootCoord[0];
     yDiff[iAtom] = y[atomFragMap[iAtom]]-rootCoord[1];
@@ -909,20 +704,37 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
 /*======================================================================*/
 /* IV) Map the grid points	                                        */
   
-  numGridTotMiniBox = numGridMiniBox[2]*numGridMiniBox[1]*numGridMiniBox[0];
+  // map the small frag grid to the large frag
 
-  fragInfo->numGridFragProc[iFrag] = numGridTotMiniBox;
+  fragInfo->gridMapProcSmall[iFrag] = (int*)cmalloc(numGridSmall*sizeof(int));
+  
+  for(iGrid=0;iGrid<numGridFragDimSmall[2];iGrid++){
+    for(jGrid=0;jGrid<numGridFragDimSmall[1];jGrid++){
+      for(kGrid=0;kGrid<numGridFragDimSmall[0];kGrid++){
+	index = iGrid*numGridFragDimSmall[1]*numGridFragDimSmall[0]+
+	        jGrid*numGridFragDimSmall[0]+kGrid;
+	indexc = iGrid+numGridUC[2]*skinUCNum;
+	indexb = jGrid+numGridUC[1]*skinUCNum;
+	indexa = kGrid+numGridUC[0]*skinUCNum;
+	fragInfo->gridMapProcSmall[iFrag][index] 
+	    = indexc*numGridFragDim[1]*numGridFragDim[0]+indexb*numGridFragDim[0]+indexa;
+      }//endfor kGrid
+    }//endfor jGrid
+  }//endfor iGrid 
+  //printf("iFrag %i map0 %i\n",iFrag,fragInfo->gridMapProcSmall[iFrag][0]);
+  
+  // map the large frag grid to the sys grid
 
-  fragInfo->gridMapProc[iFrag] = (int*)cmalloc(numGridTotMiniBox*sizeof(int));
+  fragInfo->gridMapProc[iFrag] = (int*)cmalloc(numGrid*sizeof(int));
 
-  for(iGrid=0;iGrid<numGridMiniBox[2];iGrid++){//c
-    for(jGrid=0;jGrid<numGridMiniBox[1];jGrid++){//b
-      for(kGrid=0;kGrid<numGridMiniBox[0];kGrid++){//a
-        index = iGrid*numGridMiniBox[1]*numGridMiniBox[0]
-                +jGrid*numGridMiniBox[0]+kGrid;
-        indexc = zeroGridBig[2]+iGrid;
-        indexb = zeroGridBig[1]+jGrid;
-        indexa = zeroGridBig[0]+kGrid;
+  for(iGrid=0;iGrid<numGridFragDim[2];iGrid++){//c
+    for(jGrid=0;jGrid<numGridFragDim[1];jGrid++){//b
+      for(kGrid=0;kGrid<numGridFragDim[0];kGrid++){//a
+        index = iGrid*numGridFragDim[1]*numGridFragDim[0]
+                +jGrid*numGridFragDim[0]+kGrid;
+        indexc = fragRootIndC+iGrid;
+        indexb = fragRootIndB+jGrid;
+        indexa = fragRootIndA+kGrid;
         if(indexc<0)indexc += numGridBigBox[2];
         if(indexc>=numGridBigBox[2])indexc -= numGridBigBox[2];
         if(indexb<0)indexb += numGridBigBox[1];
@@ -934,30 +746,11 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
       }//endfor kGrid
     }//endfor jGrid
   }//endfor iGrid
-
-  // map the mini small box to the mini big box
-  numGridTotMiniBoxSmall = numGridMiniBoxSmall[2]*numGridMiniBoxSmall[1]*numGridMiniBoxSmall[0];
-  fragInfo->numGridFragProcSmall[iFrag] = numGridTotMiniBoxSmall;
-  fragInfo->gridMapProcSmall[iFrag] = (int*)cmalloc(numGridTotMiniBoxSmall*sizeof(int));
-  fragInfo->numGridFragProcSmall[iFrag] = numGridTotMiniBoxSmall;
-  for(iGrid=0;iGrid<numGridMiniBoxSmall[2];iGrid++){
-    for(jGrid=0;jGrid<numGridMiniBoxSmall[1];jGrid++){
-      for(kGrid=0;kGrid<numGridMiniBoxSmall[0];kGrid++){
-        index = iGrid*numGridMiniBoxSmall[1]*numGridMiniBoxSmall[0]
-                +jGrid*numGridMiniBoxSmall[0]+kGrid;
-        indexBig = (iGrid+numGridSkin)*numGridMiniBox[1]*numGridMiniBox[0]
-                    +(jGrid+numGridSkin)*numGridMiniBox[0]+kGrid+numGridSkin;
-        fragInfo->gridMapProcSmall[iFrag][index] = indexBig;
-      }//endfor kGrid
-    }//endfor jGrid
-  }//endfor iGrid
-
+  //fflush(stdout);
+  //exit(0);
 /*==========================================================================*/
 }/*end routine*/
 /*==========================================================================*/
- 
-
-
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/

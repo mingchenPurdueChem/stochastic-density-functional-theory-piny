@@ -1773,7 +1773,6 @@ void controlSetCpEwaldFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
 /*    Without the dual box this is standard grid for cp/ewald          */
 /*    With the dual box this is the small box calculation              */
    
-   
   calc_cutoff(kmax_ewd,&ecut_now,&(cp_parse->cp_ecut),cp_on,
                 kmax_cp,kmaxv,hmati_ewd_cp,deth_cp);  
 

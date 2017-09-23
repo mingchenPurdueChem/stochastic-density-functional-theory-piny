@@ -55,6 +55,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int ncoef,icoef;
   int myidState		= communicate->myid_state;
   int numProcStates     = communicate->np_states;
+  int fragOpt		= stodftInfo->fragOpt;
   MPI_Comm commStates   = communicate->comm_states;
 
   int *numGridFragProc = fragInfo->numGridFragProc;
@@ -137,7 +138,15 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     fclose(fileFragMO);
   }
   */
-  projRhoMini(cp,general_data,class,cpMini,generalDataMini,classMini,ip_now);
+  if(fragOpt==1){
+    projRhoMiniMol(cp,general_data,class,cpMini,generalDataMini,classMini,ip_now);
+  }
+  if(fragOpt==3){
+    printf("11111111111111111\n");
+    projRhoMiniUnitCell(cp,general_data,class,cpMini,generalDataMini,classMini,ip_now);
+  }
+  fflush(stdout);
+  exit(0);
   energyCorrect(cpMini,generalDataMini,classMini,cp,class,ip_now);
 
 /*==========================================================================*/

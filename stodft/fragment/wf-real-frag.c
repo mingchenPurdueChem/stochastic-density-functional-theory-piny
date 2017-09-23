@@ -108,6 +108,18 @@ void rhoRealCalcDriverFragMol(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *cl
   //gethinv(cell->hmat_cp,cell->hmati_cp,&(cell->vol_cp),iperd);
   //gethinv(cell->hmat,cell->hmati,&(cell->vol),iperd);
 
+  //debug
+  char name[100];
+  FILE *fwf;
+  int nstate_up = cpcoeffs_info->nstate_up_proc;
+  int ncoef = cpcoeffs_info->ncoef;
+  sprintf(name,"fragwf-%i",iFrag);
+  fwf = fopen(name,"w");
+  for(i=1;i<=nstate_up*ncoef;i++){
+    fprintf(fwf,"%.16lg %.16lg\n",ccrealUpMini[i],ccimagUpMini[i]);
+  }
+  fclose(fwf);
+
 
 /*======================================================================*/
 /* IV) Calculate real space wave functions and densities for fragments  */
@@ -245,10 +257,11 @@ void rhoRealCalcDriverFragUnitCell(GENERAL_DATA *generalDataMini,CP *cpMini,CLAS
 /*======================================================================*/
 /* V) Embed the real space wave functions to the bigger cell	        */
   
-  embedWfReal(generalDataMini,cpMini,classMini,cp,wfRealUpSmall,wfRealDnSmall); 
+  //embedWfReal(generalDataMini,cpMini,classMini,cp,wfRealUpSmall,wfRealDnSmall); 
 
 /*======================================================================*/
 /* VI) Clean up local memory allocation			                */
+
   free(wfRealUpSmall);
   if(cpLsda==1&&numStateDnFrag!=0)free(wfRealDnSmall);
   free(rhoFake);
@@ -658,7 +671,7 @@ void embedWfReal(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,
   int numGridFrag       = fragInfo->numGridFragProc[iFrag];
 
   int *gridMapSmall     = fragInfo->gridMapProcSmall[iFrag];
-  int *numGridFragDim	= fragInfo->numGridFragDimBig[iFrag];
+  int *numGridFragDim	= fragInfo->numGridFragDim[iFrag];
 
   double sigma		= fragInfo->gaussianSigma;
   double pre		= -0.5/(sigma*sigma);

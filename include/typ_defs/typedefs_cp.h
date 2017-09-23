@@ -452,7 +452,7 @@ typedef struct fragInfo{
   int **gridMapProcSmall;	    /* Lst: map the number of grid point in	*/
 				    /*	     the small cell to the big cell	*/
 				    /* Lth: numFragProc*numGridFragProcSmall	*/
-  int **numGridFragDimBig;          /* Lst: numof Grid point per dimension for  */
+  int **numGridFragDimSmall;        /* Lst: numof Grid point per dimension for  */
                                     /*      each mini Big box.                  */
                                     /* Lth: numFragProc*3                       */
   double gaussianSigma;		    /* Num: convolution gaussian std		*/

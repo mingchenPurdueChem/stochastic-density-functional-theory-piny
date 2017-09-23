@@ -959,6 +959,7 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     free(fragInfo->rhoUpFragProc[iFrag]);
     free(fragInfo->coefUpFragProc[iFrag]);
   }//endfor iFrag
+  Barrier(commStates);
   fflush(stdout);
   exit(0);
   //debug

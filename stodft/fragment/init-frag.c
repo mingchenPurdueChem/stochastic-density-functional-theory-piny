@@ -552,8 +552,6 @@ void initFragUnitCell(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP 
   int numFragA,numFragB,numFragC;
   int indx,indy,indz;
 
-  int numGridBox[3];
-
   MPI_Comm commStates   = communicate->comm_states;
 
   int *sysRootInd;
@@ -572,6 +570,7 @@ void initFragUnitCell(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP 
   int *numElecUpFragTot,*numElecDnFragTot,*numElecUpFragProc,*numElecDnFragProc;
   int *molTypeMapAll,*molTypeMapFrag,*numMolTypeFrag;
   int *molType;
+  int *numGridBox;
 
   int **molTypeFrag,**molNumTypeFrag;
   int **molFragMapProc;
@@ -583,7 +582,7 @@ void initFragUnitCell(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP 
   double xDiff,yDiff,zDiff,xTemp,yTemp,zTemp;
   double comSys[3],boxCnt[3];
   double aBig[3],bBig[3],cBig[3];
-  double sysRoot[3];
+  double *sysRoot;
 
   double *xTot = clatoms_pos->x;
   double *yTot = clatoms_pos->y;
@@ -612,6 +611,8 @@ void initFragUnitCell(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP 
   atomNumMol = (int*)cmalloc(numMolTot*sizeof(int));
   fragInfo->sysRootInd = (int*)cmalloc(3*sizeof(int));
   sysRootInd = fragInfo->sysRootInd;
+  sysRoot = (double*)cmalloc(3*sizeof(double));
+  numGridBox = (int*)cmalloc(3*sizeof(int));
   
   numGridBox[2] = cp_para_fft_pkg3d_lg->nkf3;
   numGridBox[1] = cp_para_fft_pkg3d_lg->nkf2;
@@ -620,6 +621,7 @@ void initFragUnitCell(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP 
   shiftSystem(numMolTot,numAtomTot,numMolType,&molType[0],&atomIndStart[0],&atomNumMol[0],
               &comMolReduce[0],&sysRootInd[0],&sysRoot[0],&numGridBox[0],
               numAtomJmolType,jatomJmolTypeStart,numMolJmolType,xTot,yTot,zTot,cell);
+  //for(iMol=0;iMol<100;iMol++)printf("11111111111111111 comMolReduce %lg\n",comMolReduce[iMol]);
 
 /*======================================================================*/
 /* II) Read the fragment file and partition molecule to unit cells      */
@@ -930,7 +932,7 @@ void shiftSystem(int numMolTot,int numAtomTot,int numMolType,int *molType,
 
   double xRoot,yRoot,zRoot,x,y,z;
   double xDiff,yDiff,zDiff,xTemp,yTemp,zTemp;
-  double comSys[3],boxCnt[3];
+  double comSys[3] = {0.0};
   double aBig[3],bBig[3],cBig[3];
   double rate;
 
@@ -944,6 +946,7 @@ void shiftSystem(int numMolTot,int numAtomTot,int numMolType,int *molType,
   xTotTemp = (double*)cmalloc(numAtomTot*sizeof(double));
   yTotTemp = (double*)cmalloc(numAtomTot*sizeof(double));
   zTotTemp = (double*)cmalloc(numAtomTot*sizeof(double));
+  for(iMol=0;iMol<3*numMolTot;iMol++)comMol[iMol] = 0.0;
 
   countMol = 0;
   for(iType=1;iType<=numMolType;iType++){
@@ -1044,21 +1047,25 @@ void shiftSystem(int numMolTot,int numAtomTot,int numMolType,int *molType,
   x = comSys[0]*hmati[1]+comSys[1]*hmati[4]+comSys[2]*hmati[7];
   y = comSys[0]*hmati[2]+comSys[1]*hmati[5]+comSys[2]*hmati[8];
   z = comSys[0]*hmati[3]+comSys[1]*hmati[6]+comSys[2]*hmati[9];
-
+  //printf("x %lg\n",x);
   // 9. Calculate the difference between com and box center
   // These values are prototype of root point of the fragmentation
   sysRoot[0] = x-0.5;sysRoot[1] = y-0.5;sysRoot[2] = z-0.5;
   // 10. Round the root point to the grid point
+  //printf("sysRoot %lg\n",sysRoot[0]);
   rate = sysRoot[0]*numGridBox[0];
   sysRootInd[0] = NINT(rate);
   rate = sysRoot[1]*numGridBox[1];
   sysRootInd[1] = NINT(rate);
   rate = sysRoot[2]*numGridBox[2];
   sysRootInd[2] = NINT(rate);
-  sysRoot[0] = sysRootInd[0]/numGridBox[0];
-  sysRoot[1] = sysRootInd[1]/numGridBox[1];
-  sysRoot[2] = sysRootInd[2]/numGridBox[2];
+  printf("sysRootInd[0] %i numGridBox %i\n",sysRootInd[0],numGridBox[0]);
+  sysRoot[0] = ((double)sysRootInd[0])/numGridBox[0];
+  sysRoot[1] = ((double)sysRootInd[1])/numGridBox[1];
+  sysRoot[2] = ((double)sysRootInd[2])/numGridBox[2];
   // 11. Shift all COMs so that they are in the middle of the box
+  printf("comMolReduce %lg sysRoot %lg\n",comMolReduce[0],sysRoot[0]);
+
   for(iMol=0;iMol<numMolTot;iMol++){
     comMolReduce[iMol*3] -= sysRoot[0];
     comMolReduce[iMol*3+1] -= sysRoot[1];
@@ -1068,6 +1075,7 @@ void shiftSystem(int numMolTot,int numAtomTot,int numMolType,int *molType,
   free(xTotTemp);
   free(yTotTemp);
   free(zTotTemp);
+  printf("comMolReduce %lg\n",comMolReduce[0]);
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/

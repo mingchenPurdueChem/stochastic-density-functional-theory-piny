@@ -911,8 +911,8 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     for(iFrag=0;iFrag<numFragProc;iFrag++){
       numGrid = numGridFragProc[iFrag];
       numStateDnMini = cpMini[iFrag].cpcoeffs_info.nstate_dn_proc;
-      fragInfo->rhoUpFragProc[iFrag] = (double*)cmalloc(numGrid*sizeof(double));
-      fragInfo->coefUpFragProc[iFrag] = (double*)cmalloc(numStateDnMini*numGrid*sizeof(double));
+      fragInfo->rhoDnFragProc[iFrag] = (double*)cmalloc(numGrid*sizeof(double));
+      fragInfo->coefDnFragProc[iFrag] = (double*)cmalloc(numStateDnMini*numGrid*sizeof(double));
     }
     rhoDnFragProc = fragInfo->rhoDnFragProc;
     coefDnFragProc = fragInfo->coefDnFragProc;
@@ -960,13 +960,14 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     free(fragInfo->coefUpFragProc[iFrag]);
   }//endfor iFrag
   Barrier(commStates);
-  fflush(stdout);
-  exit(0);
+  //fflush(stdout);
+  //exit(0);
   //debug
 
 /*======================================================================*/
 /* III) Assemble fragments densities		                        */
 
+  /*
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     //numGrid = numGridFragProc[iFrag];
     numGrid = numGridFragProcSmall[iFrag];
@@ -975,6 +976,15 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 		rhoUpFragProc[iFrag][gridMapProcSmall[iFrag][iGrid]];
     }//endfor iGrid
   }//endfor iFrag
+  */
+  /*
+  for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+    printf("111111 rhofrag %.8lg\n",rhoTemp[iGrid]*vol);
+  }
+  */
+  //fflush(stdout);
+  //exit(0);
+  
   
   // Allocate rhoTempReduce on the master proc
   if(myidState==0&&numProcStates>1){
@@ -1032,14 +1042,16 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
       }//endfor iGrid
     }//endif 
     memcpy(&(fragInfo->rhoDnFragSumCpy[0]),rhoDnFragSum,rhoRealGridNum*sizeof(double));
-  }//endif
+  }//endif cpLsda
 
 /*======================================================================*/
 /* IV) Free/allocate some memory for next step                          */
 
+  /*
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     free(fragInfo->rhoUpFragProc[iFrag]);
   }
+  
   free(fragInfo->rhoUpFragProc);
   if(cpLsda==1&&numStateDn!=0){
     for(iFrag=0;iFrag<numFragProc;iFrag++){
@@ -1047,6 +1059,7 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     }
     free(fragInfo->rhoDnFragProc);   
   }
+  */
   fragInfo->noiseWfUpReal = (double*)cmalloc(numStateUpProc*rhoRealGridTot*sizeof(double));
   noiseWfUpReal = fragInfo->noiseWfUpReal;
   if(cpLsda==1&&numStateDn!=0){
@@ -1055,10 +1068,12 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   }
   
   fragInfo->wfProjUp = (double**)cmalloc(numFragProc*sizeof(double*));
+  
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     numStateUpMini = cpMini[iFrag].cpcoeffs_info.nstate_up_proc;
     fragInfo->wfProjUp[iFrag] = (double*)cmalloc(numStateStoUp*numStateUpMini*sizeof(double));
   }
+  
   if(cpLsda==1&&numStateDn!=0){
     fragInfo->wfProjDn = (double**)cmalloc(numFragProc*sizeof(double*));
     for(iFrag=0;iFrag<numFragProc;iFrag++){
@@ -1092,7 +1107,7 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
     rhoTemp[iGrid] = 0.0;
   }
-  countWf = 0;
+  //countWf = 0;
   //end debug  
 
   int res = numFragTot%numProcStates;
@@ -1102,14 +1117,16 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   else numFragProcMax = numFragProc+1;
 
   for(iFrag=0;iFrag<numFragProcMax;iFrag++){
+    printf("iiiiiFrag %i\n",iFrag);
     if(iFrag<numFragProc){
+      fragInfo->iFrag = iFrag;
       numGrid = numGridFragProc[iFrag];
       numStateUpMini = cpMini[iFrag].cpcoeffs_info.nstate_up_proc;
       fragInfo->rhoUpFragProc[iFrag] = (double*)cmalloc(numGrid*sizeof(double));
       fragInfo->coefUpFragProc[iFrag] = (double*)cmalloc(numStateUpMini*numGrid*sizeof(double));
       rhoRealCalcDriverFragMol(&generalDataMini[iFrag],&cpMini[iFrag],&classMini[iFrag],cp);
-    }
-
+    }//endif iFrag
+    countWf = 0;
     for(iProc=0;iProc<numProcStates;iProc++){
       for(iState=0;iState<numStateUpAllProc[iProc];iState++){
 	if(myidState==iProc){
@@ -1130,10 +1147,15 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 	  for(iGrid=0;iGrid<numGrid;iGrid++){
 	    gridIndex = gridMapProc[iFrag][iGrid];
 	    wfFragTemp[iGrid] = wfTemp[gridIndex];
+	    //wfFragTemp[iGrid] = coefUpFragProc[iFrag][iGrid];
 	  }
 	  for(iGrid=0;iGrid<numGridSmall;iGrid++)rhoFragTemp[iGrid] = 0.0;
 	  for(iStateFrag=0;iStateFrag<numStateUpMini;iStateFrag++){
-	    proj = ddotBlasWrapper(numGrid,&wfFragTemp[0],1,&coefUpFragProc[iFrag][iStateFrag*numGrid],1);
+	    //proj = ddotBlasWrapper(numGrid,&wfFragTemp[0],1,&coefUpFragProc[iFrag][iStateFrag*numGrid],1);
+	    proj = 0.0;
+	    for(iGrid=0;iGrid<numGrid;iGrid++){
+	      proj += wfFragTemp[iGrid]*coefUpFragProc[iFrag][iStateFrag*numGrid+iGrid];
+	    }
 	    fragInfo->wfProjUp[iFrag][countWf*numStateUpMini+iStateFrag] = proj*preDot*volMini;
 	    //daxpyBlasWrapper(numGrid,proj,&coefUpFragProc[iFrag][iStateFrag*numGrid],1,&rhoFragTemp[0],1);
 	    for(iGrid=0;iGrid<numGridSmall;iGrid++){
@@ -1156,6 +1178,13 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
       free(fragInfo->rhoUpFragProc[iFrag]);
       free(fragInfo->coefUpFragProc[iFrag]);
     }
+    /*
+    for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+      printf("222222222 rhoTemp %lg\n",rhoTemp[iGrid]);
+    }
+    fflush(stdout);
+    exit(0);
+    */
   }//endfor iFrag
   if(numProcStates>1){
     Barrier(commStates);
@@ -1181,6 +1210,11 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   if(numProcStates>1)Barrier(commStates);
   
   daxpyBlasWrapper(rhoRealGridNum,-pre,&rhoTemp[0],1,&rhoUpFragSum[0],1);
+  for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+    printf("111111111111 rhofix %i %lg %lg\n",iGrid,rhoUpFragSum[iGrid],rhoTemp[iGrid]);
+  }
+  //fflush(stdout);
+  //exit(0);
 
   if(cpLsda==1&&numStateDn!=0){
     for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
@@ -1261,6 +1295,8 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   if(cpLsda==1&&numStateDn!=0){
     free(numStateDnAllProc);
   }
+  //fflush(stdout);
+  //exit(0);
 
 /*==========================================================================*/
 }/*end Routine*/

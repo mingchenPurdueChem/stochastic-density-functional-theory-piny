@@ -544,6 +544,7 @@ void genStoOrbitalFake(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   MPI_Comm commStates = commCP->comm_states;
   
   int iPoly,iState,jState,iCoeff,iChem,iOff,iOff2;
+  int iProc;
   int numChemPot = stodftInfo->numChemPot;
   int polynormLength = stodftInfo->polynormLength;
   int expanType = stodftInfo->expanType;
@@ -568,6 +569,7 @@ void genStoOrbitalFake(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int *forceOrthUp  = &(cpcoeffs_pos->ifcoef_orth_up);
   int *coefOrthDn   = &(cpcoeffs_pos->icoef_orth_dn);
   int *forceOrthDn  = &(cpcoeffs_pos->ifcoef_orth_dn);
+  int *numStateUpAllProc;
 
   double dot;
 
@@ -577,6 +579,8 @@ void genStoOrbitalFake(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   double *coeffImDn = cpcoeffs_pos->cim_dn;
   double *wfDetBackupUpRe = stodftCoefPos->wfDetBackupUpRe;
   double *wfDetBackupUpIm = stodftCoefPos->wfDetBackupUpIm;
+  double *wfReTemp,*wfImTemp;
+  double *wfReProjTemp,*wfImProjTemp;
  
   double **stoWfUpRe = stodftCoefPos->stoWfUpRe;
   double **stoWfUpIm = stodftCoefPos->stoWfUpIm;
@@ -601,30 +605,77 @@ void genStoOrbitalFake(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* II) Filtering by deterministic orbitals                     */
 
-  //double *wfNow = (double*)calloc(numCoeff*sizeof(double));
-  //printf("Test proj %i %lg %lg\n",numStatesDet,wfDetBackupUpRe[0],wfDetBackupUpIm[0]);
-  //printf("Test proj 2 %lg %lg\n",coeffReUp[1],coeffImUp[1]);
-  for(iState=0;iState<numStateUpProc;iState++){
-    iOff = iState*numCoeff;
-    for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
-      stoWfUpRe[0][iOff+iCoeff] = 0.0; //Chebyshev 
-      stoWfUpIm[0][iOff+iCoeff] = 0.0;
-    }
-    for(jState=0;jState<numStatesDet;jState++){
-      dot = 0.0;
-      iOff2 = jState*numCoeff-1;
-      for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
-	dot += wfDetBackupUpRe[iOff2+iCoeff]*coeffReUp[iOff+iCoeff]+
-	       wfDetBackupUpIm[iOff2+iCoeff]*coeffImUp[iOff+iCoeff];
-      }
-      dot = (dot*2.0+wfDetBackupUpRe[iOff2+numCoeff]*coeffReUp[iOff+numCoeff])*0.5;
-      //printf("iState %i jState %i dot %lg\n",iState,jState,dot*sqrt(2.0));
-      for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
-	stoWfUpRe[0][iOff+iCoeff] += wfDetBackupUpRe[iOff2+iCoeff]*dot;
-	stoWfUpIm[0][iOff+iCoeff] += wfDetBackupUpIm[iOff2+iCoeff]*dot;
-      }
-    }
+  numStateUpAllProc = (int*)cmalloc(numProcStates*sizeof(int));
+  if(numProcStates>1){
+    Allgather(&numStateUpProc,1,MPI_INT,numStateUpAllProc,1,MPI_INT,0,commStates);
   }
+  else numStateUpAllProc[0] = numStateUpProc;
+  wfReTemp = (double*)cmalloc(numCoeff*sizeof(double));
+  wfImTemp = (double*)cmalloc(numCoeff*sizeof(double));
+  wfReProjTemp = (double*)cmalloc(numCoeff*sizeof(double));
+  wfImProjTemp = (double*)cmalloc(numCoeff*sizeof(double));
+
+  for(iCoeff=1;iCoeff<=numCoeffUpTot;iCoeff++){
+    stoWfUpRe[0][iCoeff] = 0.0;
+    stoWfUpIm[0][iCoeff] = 0.0;
+  }
+
+  //printf("11111111 numStatesDet %i\n",numStatesDet);
+  //double *wfNow = (double*)calloc(numCoeff*sizeof(double));
+  //printf("Test projjjjj %i %lg %lg\n",numStatesDet,wfDetBackupUpRe[0],wfDetBackupUpIm[0]);
+  //printf("Test proj 2 %lg %lg\n",coeffReUp[1],coeffImUp[1]);
+  for(iProc=0;iProc<numProcStates;iProc++){
+    for(iState=0;iState<numStateUpAllProc[iProc];iState++){
+      iOff = iState*numCoeff;
+      if(myidState==iProc){
+        memcpy(wfReTemp,&coeffReUp[iOff+1],numCoeff*sizeof(double));
+        memcpy(wfImTemp,&coeffImUp[iOff+1],numCoeff*sizeof(double));      
+	//printf("iState %i iProc %i wfReTemp %lg\n",iState,iProc,wfReTemp[0]);
+      }
+      if(numProcStates>1){
+	Bcast(wfReTemp,numCoeff,MPI_DOUBLE,iProc,commStates);
+        Bcast(wfImTemp,numCoeff,MPI_DOUBLE,iProc,commStates);
+      }
+      //printf("wfReTemppppp %lg\n",wfReTemp[0]);
+      for(iCoeff=0;iCoeff<numCoeff;iCoeff++){
+        wfReProjTemp[iCoeff] = 0.0;
+        wfImProjTemp[iCoeff] = 0.0;
+      }
+      for(jState=0;jState<numStatesDet;jState++){
+	dot = 0.0;
+	iOff2 = jState*numCoeff;
+	for(iCoeff=0;iCoeff<numCoeff-1;iCoeff++){
+	  dot += wfDetBackupUpRe[iOff2+iCoeff]*wfReTemp[iCoeff]+
+	  	 wfDetBackupUpIm[iOff2+iCoeff]*wfImTemp[iCoeff];
+	}
+	dot = (dot*2.0+wfDetBackupUpRe[iOff2+numCoeff-1]*wfReTemp[numCoeff-1])*0.5;
+        for(iCoeff=0;iCoeff<numCoeff;iCoeff++){
+          wfReProjTemp[iCoeff] += wfDetBackupUpRe[iOff2+iCoeff]*dot;
+          wfImProjTemp[iCoeff] += wfDetBackupUpIm[iOff2+iCoeff]*dot;
+        }
+	/*
+	for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+	  stoWfUpRe[0][iOff+iCoeff] += wfDetBackupUpRe[iOff2+iCoeff]*dot;
+	  stoWfUpIm[0][iOff+iCoeff] += wfDetBackupUpIm[iOff2+iCoeff]*dot;
+	}
+	*/
+      }//endfor jState
+      if(numProcStates>1){
+	Reduce(wfReProjTemp,&stoWfUpRe[0][iOff+1],numCoeff,MPI_DOUBLE,
+	       MPI_SUM,iProc,commStates);
+	Reduce(wfImProjTemp,&stoWfUpIm[0][iOff+1],numCoeff,MPI_DOUBLE,
+	       MPI_SUM,iProc,commStates);
+      }
+      else{
+	memcpy(&stoWfUpRe[0][iOff+1],wfReProjTemp,numCoeff*sizeof(double));
+	memcpy(&stoWfUpIm[0][iOff+1],wfImProjTemp,numCoeff*sizeof(double));
+      }
+    }//endfor iState
+  }//endfor iProc
+  free(wfReTemp);
+  free(wfImTemp);
+  free(wfReProjTemp);
+  free(wfImProjTemp);
   /*
   FILE *ftest = fopen("wf-test","w");
   for(iCoeff=1;iCoeff<=numStateUpProc*numCoeff;iCoeff++){

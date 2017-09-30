@@ -732,11 +732,11 @@ void initFragUnitCell(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP 
     }//endfor iAtom
   }//endfor iFrag
   
-  /*
+  
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     printf("iFrag %i numElecUpFragProc %i numElecDnFragProc %i\n",iFrag,numElecUpFragProc[iFrag],numElecDnFragProc[iFrag]);
   }
-  */
+    
 
 /*======================================================================*/
 /* 3) Malloc fragment wave functions	                                */
@@ -1059,12 +1059,10 @@ void shiftSystem(int numMolTot,int numAtomTot,int numMolType,int *molType,
   sysRootInd[1] = NINT(rate);
   rate = sysRoot[2]*numGridBox[2];
   sysRootInd[2] = NINT(rate);
-  printf("sysRootInd[0] %i numGridBox %i\n",sysRootInd[0],numGridBox[0]);
   sysRoot[0] = ((double)sysRootInd[0])/numGridBox[0];
   sysRoot[1] = ((double)sysRootInd[1])/numGridBox[1];
   sysRoot[2] = ((double)sysRootInd[2])/numGridBox[2];
   // 11. Shift all COMs so that they are in the middle of the box
-  printf("comMolReduce %lg sysRoot %lg\n",comMolReduce[0],sysRoot[0]);
 
   for(iMol=0;iMol<numMolTot;iMol++){
     comMolReduce[iMol*3] -= sysRoot[0];
@@ -1205,8 +1203,9 @@ void partMolUC(double *comMolReduce,int numMolTot,int *numGridBox,
     y = comMolReduce[iMol*3+1];
     z = comMolReduce[iMol*3+2];
     indx = (int)(x/xBin);
-    indy = (int)(y/xBin);
-    indz = (int)(z/xBin);
+    indy = (int)(y/yBin);
+    indz = (int)(z/zBin);
+    printf("indx %i indy %i indz %i\n",indx,indy,indz);
     indUC = indz*numUCB*numUCA+indy*numUCA+indx;
     //printf("indx %i indy %i indz %i indUC %i\n",indx,indy,indz,indUC);
     molNumUC[indUC] += 1;
@@ -1216,11 +1215,13 @@ void partMolUC(double *comMolReduce,int numMolTot,int *numGridBox,
     }
     molIndexUC[indUC][molNumUC[indUC]-1] = iMol+1;
   }
-  /*
-  for(iCell=0;iCell<numUCTot;iCell++){
-    printf("iCell %i molNumUC %i\n",iCell,molNumUC[iCell]);
+  if(numProcStates>1)Barrier(commStates);
+  if(myidState==0){
+    for(iCell=0;iCell<numUCTot;iCell++){
+      printf("iCell %i molNumUC %i\n",iCell,molNumUC[iCell]);
+    }
   }
-  */
+  
   /*
   for(iCell=0;iCell<27;iCell++){
     for(iMol=0;iMol<8;iMol++){

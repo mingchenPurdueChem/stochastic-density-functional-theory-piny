@@ -1113,8 +1113,8 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   int res = numFragTot%numProcStates;
   int div = numFragTot/numProcStates;
   int numFragProcMax;
-  if(res==0)numFragProcMax = numFragProc;
-  else numFragProcMax = numFragProc+1;
+  if(res==0)numFragProcMax = div;
+  else numFragProcMax = div+1;
 
   for(iFrag=0;iFrag<numFragProcMax;iFrag++){
     printf("iiiiiFrag %i\n",iFrag);
@@ -1210,8 +1210,14 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   if(numProcStates>1)Barrier(commStates);
   
   daxpyBlasWrapper(rhoRealGridNum,-pre,&rhoTemp[0],1,&rhoUpFragSum[0],1);
-  for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
-    printf("111111111111 rhofix %i %lg %lg\n",iGrid,rhoUpFragSum[iGrid],rhoTemp[iGrid]);
+  if(numProcStates>1)Barrier(commStates);
+  for(iProc=0;iProc<numProcStates;iProc++){
+    if(myidState==iProc){
+      for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+        printf("111111111111 rhofix %i %lg %lg\n",iGrid,rhoUpFragSum[iGrid],rhoTemp[iGrid]*pre);
+      }
+    }
+    if(numProcStates>1)Barrier(commStates);
   }
   //fflush(stdout);
   //exit(0);

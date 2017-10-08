@@ -145,8 +145,8 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     printf("11111111111111111\n");
     projRhoMiniUnitCell(cp,general_data,class,cpMini,generalDataMini,classMini,ip_now);
   }
-  fflush(stdout);
-  exit(0);
+  //fflush(stdout);
+  //exit(0);
   //energyCorrect(cpMini,generalDataMini,classMini,cp,class,ip_now);
 
 /*==========================================================================*/

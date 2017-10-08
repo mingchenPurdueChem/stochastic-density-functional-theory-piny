@@ -460,6 +460,7 @@ typedef struct fragInfo{
   int *numUnitCellDim;		    /* Lst: number of unit cell per dimension	*/
 				    /* Lth: 3					*/
   int skinUCNum;		    /* Num: How many unit cells in fragment skin*/
+				    /*	    >0: number of UC -1: 0.5 UC		*/
   int *sysRootInd;
   int *fragRootInd;
   int *molNumUC;
@@ -470,6 +471,10 @@ typedef struct fragInfo{
   int *fragLengthInd;		    /* Lst: length of fragment side/length of   */
 				    /*	    unit cell length(without skin)	*/
 				    /* Lth: numFragTot*3			*/
+  int *gridShift;		    /* Lst: If skin=0.5UC, this tells the diff  */
+				    /*	    of big/small frag box origin in	*/
+				    /*	    FFT grid.				*/
+				    /* Lth: numFragProc*3			*/
 }FRAGINFO;
 
 typedef struct stodftInfo{

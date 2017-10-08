@@ -125,11 +125,11 @@ void rhoRealCalcDriverFragMol(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *cl
   //printf("res %i div %i indStart %i indFrag %i\n",res,div,indStart,indFrag);
   sprintf(name,"fragwf-%i",indFrag);
   //fwf = fopen(name,"w");
-  fwf = fopen(name,"w");
+  fwf = fopen(name,"r");
   for(i=1;i<=nstate_up*ncoef;i++){
-    fprintf(fwf,"%.16lg %.16lg\n",ccrealUpMini[i],ccimagUpMini[i]);
-    //fscanf(fwf,"%lg",&ccrealUpMini[i]);
-    //fscanf(fwf,"%lg",&ccimagUpMini[i]);
+    //fprintf(fwf,"%.16lg %.16lg\n",ccrealUpMini[i],ccimagUpMini[i]);
+    fscanf(fwf,"%lg",&ccrealUpMini[i]);
+    fscanf(fwf,"%lg",&ccimagUpMini[i]);
   }
   fclose(fwf);
 

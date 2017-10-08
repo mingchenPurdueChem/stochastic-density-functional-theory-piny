@@ -581,12 +581,14 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   int numGrid;
   int numGridUC[3];
   int numGridBigBox[3];
+  int skinA,skinB,skinC;
   //int indexGrid[3],zeroGrid[3],zeroGridBig[3];
 
   int *numGridFragDim = fragInfo->numGridFragDim[iFrag];
   int *numUnitCellDim = fragInfo->numUnitCellDim;
   int *numGridFragDimSmall = fragInfo->numGridFragDimSmall[iFrag];
   int *atomFragMap = fragInfo->atomFragMapProc[iFrag];
+  int *gridShift = fragInfo->gridShift;
 
   //double geoCntBox[3],geoCntDiff[3],gridSize[3];
   //double zeroShift[3] = {0};
@@ -633,9 +635,16 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   numGridUC[1] = numGridBigBox[1]/numUnitCellDim[1];
   numGridUC[2] = numGridBigBox[2]/numUnitCellDim[2];
 
-  numGridFragDim[0] = numGridUC[0]*(fragLengthIndA+2*skinUCNum);
-  numGridFragDim[1] = numGridUC[1]*(fragLengthIndB+2*skinUCNum);
-  numGridFragDim[2] = numGridUC[2]*(fragLengthIndC+2*skinUCNum);
+  if(skinUCNum>=0){
+    numGridFragDim[0] = numGridUC[0]*(fragLengthIndA+2*skinUCNum);
+    numGridFragDim[1] = numGridUC[1]*(fragLengthIndB+2*skinUCNum);
+    numGridFragDim[2] = numGridUC[2]*(fragLengthIndC+2*skinUCNum);
+  }
+  else{
+    numGridFragDim[0] = numGridUC[0]*(fragLengthIndA+1);
+    numGridFragDim[1] = numGridUC[1]*(fragLengthIndB+1);
+    numGridFragDim[2] = numGridUC[2]*(fragLengthIndC+1);
+  }
   
   numGridFragDimSmall[0] = numGridUC[0]*fragLengthIndA;
   numGridFragDimSmall[1] = numGridUC[1]*fragLengthIndB;
@@ -665,15 +674,28 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
 
   //printf("%i %i %i %i\n",fragLengthIndA,fragLengthIndB,fragLengthIndC,skinUCNum);
   //printf("aGrid %lg %lg %lg\n",aGrid[0],aGrid[1],aGrid[2]);
-  hmatMini[1] = (fragLengthIndA+2*skinUCNum)*aGrid[0]*numGridUC[0];
-  hmatMini[2] = (fragLengthIndA+2*skinUCNum)*aGrid[1]*numGridUC[0];
-  hmatMini[3] = (fragLengthIndA+2*skinUCNum)*aGrid[2]*numGridUC[0];
-  hmatMini[4] = (fragLengthIndB+2*skinUCNum)*bGrid[0]*numGridUC[1];
-  hmatMini[5] = (fragLengthIndB+2*skinUCNum)*bGrid[1]*numGridUC[1];
-  hmatMini[6] = (fragLengthIndB+2*skinUCNum)*bGrid[2]*numGridUC[1];
-  hmatMini[7] = (fragLengthIndC+2*skinUCNum)*cGrid[0]*numGridUC[2];
-  hmatMini[8] = (fragLengthIndC+2*skinUCNum)*cGrid[1]*numGridUC[2];
-  hmatMini[9] = (fragLengthIndC+2*skinUCNum)*cGrid[2]*numGridUC[2];
+  if(skinUCNum>=0){
+    hmatMini[1] = (fragLengthIndA+2*skinUCNum)*aGrid[0]*numGridUC[0];
+    hmatMini[2] = (fragLengthIndA+2*skinUCNum)*aGrid[1]*numGridUC[0];
+    hmatMini[3] = (fragLengthIndA+2*skinUCNum)*aGrid[2]*numGridUC[0];
+    hmatMini[4] = (fragLengthIndB+2*skinUCNum)*bGrid[0]*numGridUC[1];
+    hmatMini[5] = (fragLengthIndB+2*skinUCNum)*bGrid[1]*numGridUC[1];
+    hmatMini[6] = (fragLengthIndB+2*skinUCNum)*bGrid[2]*numGridUC[1];
+    hmatMini[7] = (fragLengthIndC+2*skinUCNum)*cGrid[0]*numGridUC[2];
+    hmatMini[8] = (fragLengthIndC+2*skinUCNum)*cGrid[1]*numGridUC[2];
+    hmatMini[9] = (fragLengthIndC+2*skinUCNum)*cGrid[2]*numGridUC[2];
+  }
+  else{
+    hmatMini[1] = (fragLengthIndA+1)*aGrid[0]*numGridUC[0];
+    hmatMini[2] = (fragLengthIndA+1)*aGrid[1]*numGridUC[0];
+    hmatMini[3] = (fragLengthIndA+1)*aGrid[2]*numGridUC[0];
+    hmatMini[4] = (fragLengthIndB+1)*bGrid[0]*numGridUC[1];
+    hmatMini[5] = (fragLengthIndB+1)*bGrid[1]*numGridUC[1];
+    hmatMini[6] = (fragLengthIndB+1)*bGrid[2]*numGridUC[1];
+    hmatMini[7] = (fragLengthIndC+1)*cGrid[0]*numGridUC[2];
+    hmatMini[8] = (fragLengthIndC+1)*cGrid[1]*numGridUC[2];
+    hmatMini[9] = (fragLengthIndC+1)*cGrid[2]*numGridUC[2];
+  }
   //printf("%lg %lg %lg\n",hmatMini[1],hmatMini[2],hmatMini[3]);
   //printf("%lg %lg %lg\n",hmatMini[4],hmatMini[5],hmatMini[6]);
   //printf("%lg %lg %lg\n",hmatMini[7],hmatMini[8],hmatMini[9]);
@@ -707,12 +729,22 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   // map the small frag grid to the large frag
 
   fragInfo->gridMapProcSmall[iFrag] = (int*)cmalloc(numGridSmall*sizeof(int));
+  if(skinUCNum>=0){
+    skinA = skinUCNum;
+    skinB = skinUCNum;
+    skinC = skinUCNum;
+  }
+  else{
+    skinA = gridShift[iFrag*3];
+    skinB = gridShift[iFrag*3+1];
+    skinC = gridShift[iFrag*3+2];
+  }
   
   for(iGrid=0;iGrid<numGridFragDimSmall[2];iGrid++){
     for(jGrid=0;jGrid<numGridFragDimSmall[1];jGrid++){
       for(kGrid=0;kGrid<numGridFragDimSmall[0];kGrid++){
 	index = iGrid*numGridFragDimSmall[1]*numGridFragDimSmall[0]+
-	        jGrid*numGridFragDimSmall[0]+kGrid;
+		jGrid*numGridFragDimSmall[0]+kGrid;
 	indexc = iGrid+numGridUC[2]*skinUCNum;
 	indexb = jGrid+numGridUC[1]*skinUCNum;
 	indexa = kGrid+numGridUC[0]*skinUCNum;
@@ -721,6 +753,7 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
       }//endfor kGrid
     }//endfor jGrid
   }//endfor iGrid 
+    
   //printf("iFrag %i map0 %i\n",iFrag,fragInfo->gridMapProcSmall[iFrag][0]);
   
   // map the large frag grid to the sys grid

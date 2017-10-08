@@ -538,6 +538,7 @@ void initFragUnitCell(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP 
   int fragOpt           = stodftInfo->fragOpt;
   int fragCellOpt       = stodftInfo->fragCellOpt;
   int rhoRealGridNum	= stodftInfo->rhoRealGridNum;
+  int skinUCNum;
   int cpLsda		= cpopts->cp_lsda;
   int numMolTot;
   int numMolType        = atommaps->nmol_typ;
@@ -628,6 +629,7 @@ void initFragUnitCell(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP 
 
   partMolUC(&comMolReduce[0],numMolTot,&numGridBox[0],communicate,fragInfo);
   numFragTot = fragInfo->numFragTot;
+  skinUCNum = fragInfo->skinUCNum;
 
   
 /*======================================================================*/
@@ -635,7 +637,13 @@ void initFragUnitCell(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP 
 
   if(myidState==0)printf("**Get mol map\n");
   
-  mapFragMol(fragInfo,communicate,numMolType,molType,&numGridBox[0]);
+  if(skinUCNum>=0){
+    mapFragMol(fragInfo,communicate,numMolType,molType,&numGridBox[0]);
+  }
+  else{//skin=0.5*UC_siez
+    mapFragMolHalf(fragInfo,communicate,numMolType,molType,
+		    &numGridBox[0],comMolReduce);
+  }
   molFragMapProc = fragInfo->molFragMapProc;
   numMolFragProc = fragInfo->numMolFragProc;
   numFragProc = fragInfo->numFragProc;
@@ -1109,6 +1117,7 @@ void partMolUC(double *comMolReduce,int numMolTot,int *numGridBox,
     
   double xBin,yBin,zBin;
   double x,y,z;
+  double readTemp;
 
   fragInfo->numUnitCellDim = (int*)cmalloc(3*sizeof(int));
   if(myidState==0){
@@ -1117,7 +1126,18 @@ void partMolUC(double *comMolReduce,int numMolTot,int *numGridBox,
     // (frag 1 start UC index along a) ('' b) ('' c) (frag length/uc length in a) ('' b) ('' c)
     fileNumUC = fopen("NUC-dim","r");
     fscanf(fileNumUC,"%i",&(fragInfo->numFragTot));
-    fscanf(fileNumUC,"%i",&(fragInfo->skinUCNum));
+    //fscanf(fileNumUC,"%i",&(fragInfo->skinUCNum));
+    fscanf(fileNumUC,"%lg",&readTemp);
+    if(readTemp!=0.5&&(double)((int)(readTemp))!=readTemp){
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      printf("We can only accept skin as integer multiplication of unit cell\n");
+      printf("or half of the unit cell. Please set it to integer of 0.5!\n");
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(0);
+    }
+    if(readTemp==0.5)fragInfo->skinUCNum = -1;
+    else fragInfo->skinUCNum = (int)readTemp;
     fscanf(fileNumUC,"%i",&(fragInfo->numUnitCellDim[0]));
     fscanf(fileNumUC,"%i",&(fragInfo->numUnitCellDim[1]));
     fscanf(fileNumUC,"%i",&(fragInfo->numUnitCellDim[2]));
@@ -1473,4 +1493,184 @@ int checkInList(int indNew,int *typeList,int numTypeList)
 }/*end Routine*/
 /*==========================================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void mapFragMolHalf(FRAGINFO *fragInfo,COMMUNICATE *communicate,
+	int numMolType,int *molType,int *numGridBox,double *comMolReduce)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* Partition all molecules to unit cells                                 */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+  int iFrag,iuc,juc,kuc,iMol;
+  int iGrid,jGrid,kGrid;
+  int iGridSmall,jGridSmall,kGridSmall;
+  int div,res;
+  int numFragTot = fragInfo->numFragTot;
+  int numFragProc;
+  int numMolFragCent;
+  int startFragInd,fragIndNow;
+  int ucIndA,ucIndB,ucIndC;
+  int ucInd,molInd,molTypeInd;
+  int myidState         = communicate->myid_state;
+  int numProcStates     = communicate->np_states;
+  int skinUCNum	    = fragInfo->skinUCNum;
+  int countMol;
+
+  int *molTypeFragTemp;
+  int *molIndFragTemp;
+  int molNumFragTemp;
+  int molTypeNumFragTemp;
+  int inFragFlag;
+  int *fragInd;
+  int *numUnitCellDim = fragInfo->numUnitCellDim;
+  int *molNumUC = fragInfo->molNumUC;
+  int *fragStInd = fragInfo->fragStInd;
+  int *fragLengthInd = fragInfo->fragLengthInd;
+  int *sysRootInd = fragInfo->sysRootInd;
+  int *molIndFragCent;
+  int *fragRootInd;
+  int *gridShift;
+  int numGridUCDim[3];
+
+  int **molIndexUC = fragInfo->molIndexUC;
+
+  double iGridF,jGridF,kGridF;
+  double xBase,yBase,zBase,x,y,z;
+  double aFragLength,bFragLength,cFragLength;
+
+  div = numFragTot/numProcStates;
+  res = numFragTot%numProcStates;
+  if(myidState<res){
+    fragInfo->numFragProc = div+1;
+    startFragInd = (div+1)*myidState;
+  }
+  else{
+    fragInfo->numFragProc = div;
+    startFragInd = (div+1)*res+div*(myidState-res);
+  }
+  numFragProc = fragInfo->numFragProc;
+  fragInd = (int*)cmalloc(numFragProc*sizeof(int));
+  for(iFrag=0;iFrag<numFragProc;iFrag++){
+    fragInd[iFrag] = startFragInd+iFrag;
+  }
+  fragInfo->numMolTypeFrag = (int*)cmalloc(numFragProc*sizeof(int));
+  fragInfo->numMolFragProc = (int*)cmalloc(numFragProc*sizeof(int));
+  fragInfo->molTypeFrag = (int**)cmalloc(numFragProc*sizeof(int*));
+  fragInfo->molNumTypeFrag = (int**)cmalloc(numFragProc*sizeof(int*));
+  fragInfo->molFragMapProc = (int**)cmalloc(numFragProc*sizeof(int*));
+  fragInfo->fragRootInd = (int*)cmalloc(3*numFragProc*sizeof(int));
+  fragInfo->gridShift = (int*)cmalloc(3*numFragProc*sizeof(int));
+  fragRootInd = fragInfo->fragRootInd;
+  gridShift = fragInfo->gridShift;
+  numGridUCDim[0] = numGridBox[0]/numUnitCellDim[0];
+  numGridUCDim[1] = numGridBox[1]/numUnitCellDim[1];
+  numGridUCDim[2] = numGridBox[2]/numUnitCellDim[2];
+
+  for(iFrag=0;iFrag<numFragProc;iFrag++){
+    fragIndNow = fragInd[iFrag];
+    iuc = fragStInd[fragIndNow*3];
+    juc = fragStInd[fragIndNow*3+1];
+    kuc = fragStInd[fragIndNow*3+2];
+
+    iGridSmall = iuc*numGridUCDim[0]+sysRootInd[0];
+    jGridSmall = juc*numGridUCDim[1]+sysRootInd[1];
+    kGridSmall = kuc*numGridUCDim[2]+sysRootInd[2];
+
+    iGridF = (iuc-0.5)*numGridUCDim[0]+sysRootInd[0];
+    jGridF = (juc-0.5)*numGridUCDim[1]+sysRootInd[1];
+    kGridF = (kuc-0.5)*numGridUCDim[2]+sysRootInd[2];
+    iGrid = NINT(iGrid);
+    jGrid = NINT(jGrid);
+    kGrid = NINT(kGrid);
+    gridShift[3*iFrag] = iGridSmall-iGrid;
+    gridShift[3*iFrag+1] = jGridSmall-jGrid;
+    gridShift[3*iFrag+2] = kGridSmall-kGrid;
+    if(iGrid<0)iGrid += numGridBox[0];
+    if(jGrid<0)jGrid += numGridBox[1];
+    if(kGrid<0)kGrid += numGridBox[2];
+    fragRootInd[iFrag*3] = iGrid;
+    fragRootInd[iFrag*3+1] = jGrid;
+    fragRootInd[iFrag*3+2] = kGrid;
+  }
+
+  // Start build Fragment
+  for(iFrag=0;iFrag<numFragProc;iFrag++){
+    fragIndNow = fragInd[iFrag];
+    molNumFragTemp = 0;
+    molTypeNumFragTemp = 0;
+    molTypeFragTemp = (int*)cmalloc(numMolType*sizeof(int));
+    molIndFragTemp = NULL;
+    molIndFragCent = NULL;
+    inFragFlag = 0;
+    numMolFragCent = 0;
+    
+    xBase = ((double)fragRootInd[iFrag*3])/numGridBox[0];
+    yBase = ((double)fragRootInd[iFrag*3+1])/numGridBox[1];
+    zBase = ((double)fragRootInd[iFrag*3+2])/numGridBox[2];
+    aFragLength = 1.0/numUnitCellDim[0]*(fragLengthInd[fragInd[iFrag]*3]+1.0);
+    bFragLength = 1.0/numUnitCellDim[1]*(fragLengthInd[fragInd[iFrag]*3+1]+1.0);
+    cFragLength = 1.0/numUnitCellDim[2]*(fragLengthInd[fragInd[iFrag]*3+2]+1.0);
+    countMol = 0;
+    for(iuc=-1;iuc<fragLengthInd[fragIndNow*3]+1;iuc++){
+      if(iuc>0&&iuc<fragLengthInd[fragIndNow*3])inFragFlag += 1;
+      ucIndA = iuc+fragStInd[fragIndNow*3];
+      if(ucIndA<0)ucIndA += numUnitCellDim[0];
+      if(ucIndA>=numUnitCellDim[0])ucIndA -= numUnitCellDim[0];
+      for(juc=-1;juc<fragLengthInd[fragIndNow*3+1]+1;juc++){
+	if(juc>0&&juc<fragLengthInd[fragIndNow*3+1])inFragFlag += 1;
+	ucIndB = juc+fragStInd[fragIndNow*3+1];
+	if(ucIndB<0)ucIndB += numUnitCellDim[1];
+	if(ucIndB>=numUnitCellDim[1])ucIndB -= numUnitCellDim[1];
+	for(kuc=-1;kuc<fragLengthInd[fragIndNow*3+2]+1;kuc++){
+	  if(kuc>0&&kuc<fragLengthInd[fragIndNow*3+2])inFragFlag += 1;
+	  if(inFragFlag==3)numMolFragCent += molNumUC[ucInd];
+	  ucIndC = kuc+fragStInd[fragIndNow*3+2];
+	  if(ucIndC<0)ucIndC += numUnitCellDim[2];
+	  if(ucIndC>=numUnitCellDim[2])ucIndC -= numUnitCellDim[2];
+	  ucInd = ucIndC*numUnitCellDim[1]*numUnitCellDim[0]+ucIndB*numUnitCellDim[0]+ucIndA;
+	  molNumFragTemp += molNumUC[ucInd];
+	  //printf("iuc %i juc %i kuc %i\n",iuc,juc,kuc);
+	  //printf("ucInd %i molNumUC %i\n",ucInd,molNumUC[ucInd]);
+	  molIndFragTemp = (int*)crealloc(molIndFragTemp,molNumFragTemp*sizeof(int));
+	  molIndFragCent = (int*)crealloc(molIndFragCent,numMolFragCent*sizeof(int));
+	  for(iMol=0;iMol<molNumUC[ucInd];iMol++){
+	    molInd = molIndexUC[ucInd][iMol];
+	    molTypeInd = molType[molInd-1];
+	    x = comMolReduce[3*(molInd-1)]-xBase;
+	    y = comMolReduce[3*(molInd-1)+1]-yBase;
+	    z = comMolReduce[3*(molInd-1)+2]-zBase;
+	    if(x<0.0)x += 1.0;
+	    if(y<0.0)y += 1.0;
+	    if(z<0.0)z += 1.0;
+	    if(x<aFragLength&&y<bFragLength&&z<cFragLength){
+	      //printf("molTypeInd %i\n",molTypeInd);
+	      if(checkInList(molTypeInd,molTypeFragTemp,molTypeNumFragTemp)==0){
+		molTypeNumFragTemp += 1;
+		molTypeFragTemp[molTypeNumFragTemp-1] = molTypeInd;
+	      }
+	      //printf("iuc %i juc %i kuc %i ucInd %i iMol %i molInd %i\n",iuc,juc,kuc,ucInd,iMol,molInd);
+	      molIndFragTemp[countMol] = molInd;
+	      if(inFragFlag==3)molIndFragCent[countMol] = molInd;
+	      countMol += 1;
+	    }//endif
+	  }//endfor iMol
+	}//endfor kuc
+      }//endfor juc
+    }//endfor iuc
+    // Reorder the molecule
+    fragInfo->numMolFragProc[iFrag] = countMol;
+    reorderMol(fragInfo,molTypeNumFragTemp,molNumFragTemp,
+           molType,molTypeFragTemp,molIndFragTemp,iFrag);
+    free(molTypeFragTemp);
+    free(molIndFragTemp);
+  }//endfor iFrag
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
 

@@ -97,9 +97,9 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     fclose(fileFragMO);  
     */
   }//endfor iFrag
-  /*
-  if(numProcStates>1)Barrier(commStates);
   
+  if(numProcStates>1)Barrier(commStates);
+  /*
   sprintf(fileNameFragMO,"./frag-MO-%i",myidState);
   fileFragMO = fopen(fileNameFragMO,"w");
   for(iFrag=0;iFrag<numFragProc;iFrag++){
@@ -114,6 +114,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }
   fclose(fileFragMO);    
   */
+  
 
   if(numProcStates>1)Barrier(commStates);
   //exit(0);

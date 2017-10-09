@@ -7,6 +7,7 @@ void shiftSystem(int ,int ,int ,int *,int *,int *,double *,int *,double *,int *,
                  int *,double *,double *,double *,CELL *);
 void partMolUC(double *,int,int *,COMMUNICATE *,FRAGINFO *);
 void mapFragMol(FRAGINFO *,COMMUNICATE *,int,int *,int *);
+void mapFragMolHalf(FRAGINFO *,COMMUNICATE *,int,int *,int *,double *);
 void reorderMol(FRAGINFO *,int,int,int *,int *,int *,int);
 int checkInList(int,int *,int);
 

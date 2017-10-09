@@ -730,9 +730,9 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
 
   fragInfo->gridMapProcSmall[iFrag] = (int*)cmalloc(numGridSmall*sizeof(int));
   if(skinUCNum>=0){
-    skinA = skinUCNum;
-    skinB = skinUCNum;
-    skinC = skinUCNum;
+    skinA = numGridUC[0]*skinUCNum;
+    skinB = numGridUC[1]*skinUCNum;
+    skinC = numGridUC[2]*skinUCNum;
   }
   else{
     skinA = gridShift[iFrag*3];
@@ -745,9 +745,9 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
       for(kGrid=0;kGrid<numGridFragDimSmall[0];kGrid++){
 	index = iGrid*numGridFragDimSmall[1]*numGridFragDimSmall[0]+
 		jGrid*numGridFragDimSmall[0]+kGrid;
-	indexc = iGrid+numGridUC[2]*skinUCNum;
-	indexb = jGrid+numGridUC[1]*skinUCNum;
-	indexa = kGrid+numGridUC[0]*skinUCNum;
+	indexc = iGrid+skinC;
+	indexb = jGrid+skinB;
+	indexa = kGrid+skinA;
 	fragInfo->gridMapProcSmall[iFrag][index] 
 	    = indexc*numGridFragDim[1]*numGridFragDim[0]+indexb*numGridFragDim[0]+indexa;
       }//endfor kGrid

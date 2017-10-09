@@ -660,6 +660,7 @@ void initFragUnitCell(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP 
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     numAtomFragProc[iFrag] = 0;
     for(iMol=0;iMol<numMolFragProc[iFrag];iMol++){
+      //printf("iMol %i %i\n",iMol,molFragMapProc[iFrag][iMol]);
       numAtomFragProc[iFrag] += atomNumMol[molFragMapProc[iFrag][iMol]-1];
     }
   }
@@ -718,6 +719,7 @@ void initFragUnitCell(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP 
   numElecUpFragProc = fragInfo->numElecUpFragProc;
   numElecDnFragProc = fragInfo->numElecDnFragProc;
   // The following part is only correct for molecule fragment
+  /*
   countAtom = 0;
   for(iMol=0;iMol<numFragTot;iMol++){
     numElecUpFragTot[iMol] = 0;
@@ -729,12 +731,14 @@ void initFragUnitCell(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP 
     }
     countAtom += atomNumMol[iMol];
   }
+  */
   //end molecule fragment only part
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     numElecUpFragProc[iFrag] = 0;
     numElecDnFragProc[iFrag] = 0;
     for(iAtom=0;iAtom<numAtomFragProc[iFrag];iAtom++){
       atomInd = atomFragMapProc[iFrag][iAtom];
+      //printf("iAtom %i %i\n",iAtom,atomInd);
       numElecUpFragProc[iFrag] += atomVlncUpAll[atomInd-1];
       numElecDnFragProc[iFrag] += atomVlncDnAll[atomInd-1];
     }//endfor iAtom
@@ -981,6 +985,7 @@ void shiftSystem(int numMolTot,int numAtomTot,int numMolType,int *molType,
 	xTemp = xDiff*hmati[1]+yDiff*hmati[4]+zDiff*hmati[7];
 	yTemp = xDiff*hmati[2]+yDiff*hmati[5]+zDiff*hmati[8];
 	zTemp = xDiff*hmati[3]+yDiff*hmati[6]+zDiff*hmati[9];
+	//printf("%lg %lg %lg\n",xTemp,yTemp,zTemp);
 	if(xTemp>0.5)xTemp -= 1.0;
 	if(yTemp>0.5)yTemp -= 1.0;
 	if(zTemp>0.5)zTemp -= 1.0;
@@ -1034,6 +1039,7 @@ void shiftSystem(int numMolTot,int numAtomTot,int numMolType,int *molType,
       comMol[(countMol+iMol)*3+2] = z;
       // 6. Shift the whole molecule w.r.t. updated COM      
       for(iAtom=0;iAtom<numAtomJmolType[iType];iAtom++){
+	//printf("relativeCoord %lg %lg %lg %lg %lg %lg\n",relativeCoord[iAtom*3],relativeCoord[iAtom*3+1],relativeCoord[iAtom*3+2],x,y,z);
 	xTotTemp[atomIndStart[countMol+iMol]-1] = relativeCoord[iAtom*3]+x;
         yTotTemp[atomIndStart[countMol+iMol]-1] = relativeCoord[iAtom*3+1]+y;
         zTotTemp[atomIndStart[countMol+iMol]-1] = relativeCoord[iAtom*3+2]+z;
@@ -1046,7 +1052,7 @@ void shiftSystem(int numMolTot,int numAtomTot,int numMolType,int *molType,
   for(iAtom=0;iAtom<numAtomTot;iAtom++){
     comSys[0] += xTotTemp[iAtom];
     comSys[1] += yTotTemp[iAtom];
-    comSys[2] += zTotTemp[iAtom];    
+    comSys[2] += zTotTemp[iAtom];
   }
   comSys[0] /= (double)numAtomTot;
   comSys[1] /= (double)numAtomTot;
@@ -1060,7 +1066,6 @@ void shiftSystem(int numMolTot,int numAtomTot,int numMolType,int *molType,
   // These values are prototype of root point of the fragmentation
   sysRoot[0] = x-0.5;sysRoot[1] = y-0.5;sysRoot[2] = z-0.5;
   // 10. Round the root point to the grid point
-  //printf("sysRoot %lg\n",sysRoot[0]);
   rate = sysRoot[0]*numGridBox[0];
   sysRootInd[0] = NINT(rate);
   rate = sysRoot[1]*numGridBox[1];
@@ -1081,7 +1086,6 @@ void shiftSystem(int numMolTot,int numAtomTot,int numMolType,int *molType,
   free(xTotTemp);
   free(yTotTemp);
   free(zTotTemp);
-  printf("comMolReduce %lg\n",comMolReduce[0]);
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/
@@ -1225,7 +1229,7 @@ void partMolUC(double *comMolReduce,int numMolTot,int *numGridBox,
     indx = (int)(x/xBin);
     indy = (int)(y/yBin);
     indz = (int)(z/zBin);
-    printf("indx %i indy %i indz %i\n",indx,indy,indz);
+    //printf("indx %i indy %i indz %i\n",indx,indy,indz);
     indUC = indz*numUCB*numUCA+indy*numUCA+indx;
     //printf("indx %i indy %i indz %i indUC %i\n",indx,indy,indz,indUC);
     molNumUC[indUC] += 1;
@@ -1236,11 +1240,13 @@ void partMolUC(double *comMolReduce,int numMolTot,int *numGridBox,
     molIndexUC[indUC][molNumUC[indUC]-1] = iMol+1;
   }
   if(numProcStates>1)Barrier(commStates);
+  /*
   if(myidState==0){
     for(iCell=0;iCell<numUCTot;iCell++){
       printf("iCell %i molNumUC %i\n",iCell,molNumUC[iCell]);
     }
   }
+  */
   
   /*
   for(iCell=0;iCell<27;iCell++){
@@ -1520,12 +1526,14 @@ void mapFragMolHalf(FRAGINFO *fragInfo,COMMUNICATE *communicate,
   int numProcStates     = communicate->np_states;
   int skinUCNum	    = fragInfo->skinUCNum;
   int countMol;
-
-  int *molTypeFragTemp;
-  int *molIndFragTemp;
   int molNumFragTemp;
   int molTypeNumFragTemp;
   int inFragFlag;
+  int aFragLengthUse,bFragLengthUse,cFragLengthUse;
+
+
+  int *molTypeFragTemp;
+  int *molIndFragTemp;
   int *fragInd;
   int *numUnitCellDim = fragInfo->numUnitCellDim;
   int *molNumUC = fragInfo->molNumUC;
@@ -1584,9 +1592,11 @@ void mapFragMolHalf(FRAGINFO *fragInfo,COMMUNICATE *communicate,
     iGridF = (iuc-0.5)*numGridUCDim[0]+sysRootInd[0];
     jGridF = (juc-0.5)*numGridUCDim[1]+sysRootInd[1];
     kGridF = (kuc-0.5)*numGridUCDim[2]+sysRootInd[2];
-    iGrid = NINT(iGrid);
-    jGrid = NINT(jGrid);
-    kGrid = NINT(kGrid);
+
+    iGrid = NINT(iGridF);
+    jGrid = NINT(jGridF);
+    kGrid = NINT(kGridF);
+    //printf("iGrid %i jGrid %i kGrid %i\n",iGrid,jGrid,kGrid);
     gridShift[3*iFrag] = iGridSmall-iGrid;
     gridShift[3*iFrag+1] = jGridSmall-jGrid;
     gridShift[3*iFrag+2] = kGridSmall-kGrid;
@@ -1612,21 +1622,53 @@ void mapFragMolHalf(FRAGINFO *fragInfo,COMMUNICATE *communicate,
     xBase = ((double)fragRootInd[iFrag*3])/numGridBox[0];
     yBase = ((double)fragRootInd[iFrag*3+1])/numGridBox[1];
     zBase = ((double)fragRootInd[iFrag*3+2])/numGridBox[2];
+    //printf("fragRootInd %i %i %i %i %i %i\n",fragRootInd[iFrag*3],fragRootInd[iFrag*3+1],fragRootInd[iFrag*3+2],numGridBox[0],numGridBox[1],numGridBox[2]);
     aFragLength = 1.0/numUnitCellDim[0]*(fragLengthInd[fragInd[iFrag]*3]+1.0);
     bFragLength = 1.0/numUnitCellDim[1]*(fragLengthInd[fragInd[iFrag]*3+1]+1.0);
     cFragLength = 1.0/numUnitCellDim[2]*(fragLengthInd[fragInd[iFrag]*3+2]+1.0);
+    // Test if a is too small
+    if(numUnitCellDim[0]<fragLengthInd[fragIndNow*3]+1){
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      printf("System size (a) can not be smaller then fragment size!\n");
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(0);
+    }
+    else if(numUnitCellDim[0]==fragLengthInd[fragIndNow*3]+1)aFragLengthUse = fragLengthInd[fragIndNow*3];
+    else aFragLengthUse = fragLengthInd[fragIndNow*3]+1;
+    // Test if b is too small
+    if(numUnitCellDim[1]<fragLengthInd[fragIndNow*3+1]+1){
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      printf("System size (b) can not be smaller then fragment size!\n");
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(0);
+    }
+    else if(numUnitCellDim[1]==fragLengthInd[fragIndNow*3+1]+1)bFragLengthUse = fragLengthInd[fragIndNow*3+1];
+    else bFragLengthUse = fragLengthInd[fragIndNow*3+1]+1;
+    // Test if c is too small
+    if(numUnitCellDim[2]<fragLengthInd[fragIndNow*3+2]+1){
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      printf("System size (a) can not be smaller then fragment size!\n");
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(0);
+    }
+    else if(numUnitCellDim[2]==fragLengthInd[fragIndNow*3+2]+1)cFragLengthUse = fragLengthInd[fragIndNow*3+2];
+    else cFragLengthUse = fragLengthInd[fragIndNow*3+2]+1;
+
     countMol = 0;
-    for(iuc=-1;iuc<fragLengthInd[fragIndNow*3]+1;iuc++){
+    for(iuc=-1;iuc<aFragLengthUse;iuc++){
       if(iuc>0&&iuc<fragLengthInd[fragIndNow*3])inFragFlag += 1;
       ucIndA = iuc+fragStInd[fragIndNow*3];
       if(ucIndA<0)ucIndA += numUnitCellDim[0];
       if(ucIndA>=numUnitCellDim[0])ucIndA -= numUnitCellDim[0];
-      for(juc=-1;juc<fragLengthInd[fragIndNow*3+1]+1;juc++){
+      for(juc=-1;juc<bFragLengthUse;juc++){
 	if(juc>0&&juc<fragLengthInd[fragIndNow*3+1])inFragFlag += 1;
 	ucIndB = juc+fragStInd[fragIndNow*3+1];
 	if(ucIndB<0)ucIndB += numUnitCellDim[1];
 	if(ucIndB>=numUnitCellDim[1])ucIndB -= numUnitCellDim[1];
-	for(kuc=-1;kuc<fragLengthInd[fragIndNow*3+2]+1;kuc++){
+	for(kuc=-1;kuc<cFragLengthUse;kuc++){
 	  if(kuc>0&&kuc<fragLengthInd[fragIndNow*3+2])inFragFlag += 1;
 	  if(inFragFlag==3)numMolFragCent += molNumUC[ucInd];
 	  ucIndC = kuc+fragStInd[fragIndNow*3+2];
@@ -1641,12 +1683,14 @@ void mapFragMolHalf(FRAGINFO *fragInfo,COMMUNICATE *communicate,
 	  for(iMol=0;iMol<molNumUC[ucInd];iMol++){
 	    molInd = molIndexUC[ucInd][iMol];
 	    molTypeInd = molType[molInd-1];
+	    //printf("comMolReduce %lg %lg %lg %lg %lg %lg\n",comMolReduce[3*(molInd-1)],comMolReduce[3*(molInd-1)+1],comMolReduce[3*(molInd-1)+2],xBase,yBase,zBase);
 	    x = comMolReduce[3*(molInd-1)]-xBase;
 	    y = comMolReduce[3*(molInd-1)+1]-yBase;
 	    z = comMolReduce[3*(molInd-1)+2]-zBase;
 	    if(x<0.0)x += 1.0;
 	    if(y<0.0)y += 1.0;
 	    if(z<0.0)z += 1.0;
+	    //printf("x %lg y %lg z %lg al %lg bl %lg cl %lg\n",x,y,z,aFragLength,bFragLength,cFragLength);
 	    if(x<aFragLength&&y<bFragLength&&z<cFragLength){
 	      //printf("molTypeInd %i\n",molTypeInd);
 	      if(checkInList(molTypeInd,molTypeFragTemp,molTypeNumFragTemp)==0){
@@ -1668,8 +1712,11 @@ void mapFragMolHalf(FRAGINFO *fragInfo,COMMUNICATE *communicate,
            molType,molTypeFragTemp,molIndFragTemp,iFrag);
     free(molTypeFragTemp);
     free(molIndFragTemp);
+    //fflush(stdout);
+    //exit(0);
   }//endfor iFrag
-
+  //fflush(stdout);
+  //exit(0);
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/

@@ -644,6 +644,9 @@ void initFragUnitCell(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP 
     mapFragMolHalf(fragInfo,communicate,numMolType,molType,
 		    &numGridBox[0],comMolReduce);
   }
+  printf("myidState %i 1111111111111\n",myidState);
+  Barrier(commStates);
+  
   molFragMapProc = fragInfo->molFragMapProc;
   numMolFragProc = fragInfo->numMolFragProc;
   numFragProc = fragInfo->numFragProc;
@@ -1443,7 +1446,7 @@ void reorderMol(FRAGINFO *fragInfo,int molTypeNumFragTemp,int molNumFragTemp,
   numMolTypeFrag[iFrag] = molTypeNumFragTemp;
   numMolFragProc[iFrag] = molNumFragTemp;
 
-  //printf("iFrag %i molNumFragTemp %i\n",iFrag,molNumFragTemp);
+  printf("iFrag %i molNumFragTemp %i\n",iFrag,molNumFragTemp);
   fragInfo->molTypeFrag[iFrag] = (int*)cmalloc(molTypeNumFragTemp*sizeof(int));
   fragInfo->molNumTypeFrag[iFrag] = (int*)cmalloc(molTypeNumFragTemp*sizeof(int));
   fragInfo->molFragMapProc[iFrag] = (int*)cmalloc(molNumFragTemp*sizeof(int));
@@ -1579,6 +1582,7 @@ void mapFragMolHalf(FRAGINFO *fragInfo,COMMUNICATE *communicate,
   numGridUCDim[1] = numGridBox[1]/numUnitCellDim[1];
   numGridUCDim[2] = numGridBox[2]/numUnitCellDim[2];
 
+  printf("111111111111111111111\n");
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     fragIndNow = fragInd[iFrag];
     iuc = fragStInd[fragIndNow*3];
@@ -1608,6 +1612,7 @@ void mapFragMolHalf(FRAGINFO *fragInfo,COMMUNICATE *communicate,
     fragRootInd[iFrag*3+2] = kGrid;
   }
 
+  printf("222222222222222222222\n");
   // Start build Fragment
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     fragIndNow = fragInd[iFrag];
@@ -1658,6 +1663,7 @@ void mapFragMolHalf(FRAGINFO *fragInfo,COMMUNICATE *communicate,
     else cFragLengthUse = fragLengthInd[fragIndNow*3+2]+1;
 
     countMol = 0;
+    printf("myidState %i iFrag %i\n",myidState,iFrag);
     for(iuc=-1;iuc<aFragLengthUse;iuc++){
       if(iuc>0&&iuc<fragLengthInd[fragIndNow*3])inFragFlag += 1;
       ucIndA = iuc+fragStInd[fragIndNow*3];
@@ -1676,7 +1682,7 @@ void mapFragMolHalf(FRAGINFO *fragInfo,COMMUNICATE *communicate,
 	  if(ucIndC>=numUnitCellDim[2])ucIndC -= numUnitCellDim[2];
 	  ucInd = ucIndC*numUnitCellDim[1]*numUnitCellDim[0]+ucIndB*numUnitCellDim[0]+ucIndA;
 	  molNumFragTemp += molNumUC[ucInd];
-	  //printf("iuc %i juc %i kuc %i\n",iuc,juc,kuc);
+	  //printf("myidState %i iuc %i juc %i kuc %i\n",myidState,iuc,juc,kuc);
 	  //printf("ucInd %i molNumUC %i\n",ucInd,molNumUC[ucInd]);
 	  molIndFragTemp = (int*)crealloc(molIndFragTemp,molNumFragTemp*sizeof(int));
 	  molIndFragCent = (int*)crealloc(molIndFragCent,numMolFragCent*sizeof(int));
@@ -1708,8 +1714,10 @@ void mapFragMolHalf(FRAGINFO *fragInfo,COMMUNICATE *communicate,
     }//endfor iuc
     // Reorder the molecule
     fragInfo->numMolFragProc[iFrag] = countMol;
+    printf("myidState %i 11111111 iFrag %i\n",myidState,iFrag);
     reorderMol(fragInfo,molTypeNumFragTemp,molNumFragTemp,
            molType,molTypeFragTemp,molIndFragTemp,iFrag);
+    printf("myidState %i 222222222 iFrag %i\n",myidState,iFrag);
     free(molTypeFragTemp);
     free(molIndFragTemp);
     //fflush(stdout);

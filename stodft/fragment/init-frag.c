@@ -1582,7 +1582,6 @@ void mapFragMolHalf(FRAGINFO *fragInfo,COMMUNICATE *communicate,
   numGridUCDim[1] = numGridBox[1]/numUnitCellDim[1];
   numGridUCDim[2] = numGridBox[2]/numUnitCellDim[2];
 
-  printf("111111111111111111111\n");
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     fragIndNow = fragInd[iFrag];
     iuc = fragStInd[fragIndNow*3];
@@ -1612,7 +1611,6 @@ void mapFragMolHalf(FRAGINFO *fragInfo,COMMUNICATE *communicate,
     fragRootInd[iFrag*3+2] = kGrid;
   }
 
-  printf("222222222222222222222\n");
   // Start build Fragment
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     fragIndNow = fragInd[iFrag];
@@ -1663,7 +1661,6 @@ void mapFragMolHalf(FRAGINFO *fragInfo,COMMUNICATE *communicate,
     else cFragLengthUse = fragLengthInd[fragIndNow*3+2]+1;
 
     countMol = 0;
-    printf("myidState %i iFrag %i\n",myidState,iFrag);
     for(iuc=-1;iuc<aFragLengthUse;iuc++){
       if(iuc>0&&iuc<fragLengthInd[fragIndNow*3])inFragFlag += 1;
       ucIndA = iuc+fragStInd[fragIndNow*3];
@@ -1714,10 +1711,9 @@ void mapFragMolHalf(FRAGINFO *fragInfo,COMMUNICATE *communicate,
     }//endfor iuc
     // Reorder the molecule
     fragInfo->numMolFragProc[iFrag] = countMol;
-    printf("myidState %i 11111111 iFrag %i\n",myidState,iFrag);
+    molNumFragTemp = countMol;
     reorderMol(fragInfo,molTypeNumFragTemp,molNumFragTemp,
            molType,molTypeFragTemp,molIndFragTemp,iFrag);
-    printf("myidState %i 222222222 iFrag %i\n",myidState,iFrag);
     free(molTypeFragTemp);
     free(molIndFragTemp);
     //fflush(stdout);

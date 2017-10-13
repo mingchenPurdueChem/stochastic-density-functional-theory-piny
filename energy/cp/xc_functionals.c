@@ -513,20 +513,38 @@ void excpot_pz_lsda(double *v_ks_up,double *v_ks_dn,
    double fzeta,fpzeta,opzeta,omzeta,rden,sqtrs;
    double pvx,pvc,vscale;
    double lyp_fact;
+   double logrs;
+   double coeff1f,coeff2f,coeff3f;
+   double coeff1p,coeff2p,coeff3p;
    int i,kk;
    int nfft2 = nfft/2;
    int nfft2_proc = nfft_proc/2;
 
 /*lsda correlation parameters   */
 /* Static variables             */
+/* _p means U(unpolorized) & _f means P(polorized) */
    static double cf = 0.57730;
    static double cp = 0.45820;
    static double gammaf = -0.08430;
    static double gammap = -0.14230;
+   /*
    static double beta1f = 1.05290;
    static double beta1p = 1.39810;
    static double beta2f = 0.33340;
    static double beta2p = 0.26110;
+   */
+   static double beta1f = 1.39810;
+   static double beta1p = 1.05290;
+   static double beta2f = 0.26110;
+   static double beta2p = 0.33340;
+   static double Ap = 0.0311;
+   static double Bp = -0.048;
+   static double Cp = 0.0020;
+   static double Dp = -0.0116;
+   static double Af = 0.01555;
+   static double Bf = -0.0269;
+   static double Cf = 0.0007;
+   static double Df = -0.0048;
 
 /*=======================================================================*/
 /* I) Assign useful constants                                            */
@@ -542,6 +560,13 @@ void excpot_pz_lsda(double *v_ks_up,double *v_ks_dn,
    power = 1.0/3.0;
    rden = 1.0/( pow(2.0,rat2) - 2.0);
    lyp_fact = (double)(1-(cp_lyp || cp_lypm1));
+
+   coeff1f = Bf-1.0/3.0*Af;
+   coeff2f = 2.0/3.0*Cf;
+   coeff3f = 1.0/3.0*(2.0*Df-Cf);
+   coeff1p = Bp-1.0/3.0*Ap;
+   coeff2p = 2.0/3.0*Cp;
+   coeff3p = 1.0/3.0*(2.0*Dp-Cp);
 
    ex = 0.0;
    ec = 0.0;
@@ -562,18 +587,28 @@ void excpot_pz_lsda(double *v_ks_up,double *v_ks_dn,
      fpin = fpi*rho_r;
      rs = pow((3.0/fpin),power);
      sqtrs = sqrt(rs);
+      
      xff = -cf/rs;
      xfp = -cp/rs;
      muxf = rat2*xff;
      muxp = rat2*xfp;
-     cff1 = 1.0 + beta1f*sqtrs + beta2f*rs;
-     cff2 = 1.0 + ratbf1*sqtrs + ratbf2*rs;
-     cfp1 = 1.0 + beta1p*sqtrs + beta2p*rs;
-     cfp2 = 1.0 + ratbp1*sqtrs + ratbp2*rs;
-     cff = gammaf/cff1;
-     cfp = gammap/cfp1;
-     mucf = cff*(cff2/cff1);
-     mucp = cfp*(cfp2/cfp1);
+     if(rs>=1.0){
+       cff1 = 1.0 + beta1f*sqtrs + beta2f*rs;
+       cff2 = 1.0 + ratbf1*sqtrs + ratbf2*rs;
+       cfp1 = 1.0 + beta1p*sqtrs + beta2p*rs;
+       cfp2 = 1.0 + ratbp1*sqtrs + ratbp2*rs;
+       cff = gammaf/cff1;
+       cfp = gammap/cfp1;
+       mucf = cff*(cff2/cff1);
+       mucp = cfp*(cfp2/cfp1);
+     }
+     else{
+       logrs = log(rs);
+       cff = Af*logrs+Bf+Cf*rs*logrs+Df*rs;
+       cfp = Ap*logrs+Bp+Cp*rs*logrs+Dp*rs;
+       mucf = Af*logrs+coeff1f+coeff2f*rs*logrs+coeff3f*rs;
+       mucp = Ap*logrs+coeff1p+coeff2p*rs*logrs+coeff3p*rs;
+     }
      fzeta = rden*(pow(opzeta,rat2) + pow(omzeta,rat2) - 2.0);
      fpzeta = rat2*rden*(pow(opzeta,power) - pow(omzeta,power));
      xfact = xfp + fzeta*(xff - xfp);

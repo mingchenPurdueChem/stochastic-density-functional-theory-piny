@@ -183,10 +183,12 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   int *atomVlncUpAll,*atomVlncDnAll;
   int *numElecUpFragTot,*numElecDnFragTot,*numElecUpFragProc,*numElecDnFragProc;
   int *molTypeMapAll,*molTypeMapFrag,*numMolTypeFrag;
+  int *numAtmFragVnlCalc;
 
   int **molTypeFrag,**molNumTypeFrag;
   int **molFragMapProc;
   int **atomFragMapProc;
+  int **atmFragVnlCalcMap;
 
   char *atomSkinFile;
 
@@ -315,15 +317,23 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   }
   // Get Atom number per fragment
   fragInfo->numAtomFragProc = (int*)cmalloc(numFragProc*sizeof(int));
+  fragInfo->numAtmFragVnlCalc = (int*)cmalloc(numFragProc*sizeof(int));
   numAtomFragProc = fragInfo->numAtomFragProc;
+  numAtmFragVnlCalc = fragInfo->numAtmFragVnlCalc;
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     numAtomFragProc[iFrag] = 0;
     for(iMol=0;iMol<numMolFragProc[iFrag];iMol++){
       numAtomFragProc[iFrag] += atomNumMol[molFragMapProc[iFrag][iMol]-1];
     }
+    numAtmFragVnlCalc[iFrag] = numAtomFragProc[iFrag];
   }
   // Get Atom Map
   fragInfo->atomFragMapProc = (int**)cmalloc(numFragProc*sizeof(int*));
+  fragInfo->atmFragVnlCalcMap = (int**)cmalloc(numFragProc*sizeof(int*));
+  for(iFrag=0;iFrag<numFragProc;iFrag++){
+    fragInfo->atmFragVnlCalcMap[iFrag] = (int*)cmalloc(numAtmFragVnlCalc[iFrag]*sizeof(int));
+  }
+  atmFragVnlCalcMap = fragInfo->atmFragVnlCalcMap;
   atomFragMapProc = fragInfo->atomFragMapProc;
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     atomFragMapProc[iFrag] = (int*)cmalloc(numAtomFragProc[iFrag]*sizeof(int));
@@ -335,7 +345,11 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 	atomFragMapProc[iFrag][countAtom+iAtom] = atomIndStart[molFragMapProc[iFrag][iMol]-1]+iAtom;
       }//endfor iAtom
       countAtom += atomNumMol[molFragMapProc[iFrag][iMol]-1];
+      numAtmFragVnlCalc[iFrag] += atomNumMol[molFragMapProc[iFrag][iMol]-1];
     }//endfor iMol
+    for(iAtom=0;iAtom<numAtmFragVnlCalc[iFrag];iAtom++){
+      atomFragMapProc[iFrag][iAtom] = iAtom+1;
+    }
   }//endfor iFrag
 
   /*

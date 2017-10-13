@@ -395,6 +395,16 @@ typedef struct fragInfo{
   char atomSkinFile[MAXWORD];
 
 // The following part is for fix one-body energy terms from fragments
+  int *numAtmFragVnlCalc;           /* Lst: number of atoms used to fix vnl     */
+                                    /*      nuclear force, =number of atom in   */
+                                    /*      molecule for molecular fragmentation*/
+                                    /*      =number of atoms in small fragment  */
+                                    /*      for unit cell fragmentation         */
+				    /* Lth: numFragProc				*/
+  int **atmFragVnlCalcMap;	    /* Lst: atom indices for the ones you want  */
+				    /*	    to calculate vnl force/energy	*/
+				    /*	    correction.				*/
+				    /* Lth: numFragProc*numAtmFragVnlCalc[iFrag]*/
   double keCor,vnlCor;		    /* Num: Kinetic/Nonlocal Pseudopotential    */
 				    /*	    correction from fragment	        */
   double *vnlFxCor;		    /* Lst: Nonlocal Pseudopotential correction */
@@ -420,7 +430,9 @@ typedef struct fragInfo{
   double **vnlFyMatrixUp;
   double **vnlFyMatrixDn;
   double **vnlFzMatrixUp;
-  double **vnlFzMatrixDn;
+  double **vnlFzMatrixDn;	    /* Lst: vnl force matrix for spin up/dn	*/
+				    /* Lth: numAtmFragVnlCalc[iFrag]*nstat_up*  */
+				    /*	    nstat_up				*/
   double **Fx,**Fy,**Fz;
 // This part is to debug. Store the real space wave function, plz
   double *projRealWF;    //nstat_up*rhoRealGridTot

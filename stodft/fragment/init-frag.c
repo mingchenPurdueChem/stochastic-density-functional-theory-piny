@@ -330,22 +330,22 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   // Get Atom Map
   fragInfo->atomFragMapProc = (int**)cmalloc(numFragProc*sizeof(int*));
   fragInfo->atmFragVnlCalcMap = (int**)cmalloc(numFragProc*sizeof(int*));
-  for(iFrag=0;iFrag<numFragProc;iFrag++){
-    fragInfo->atmFragVnlCalcMap[iFrag] = (int*)cmalloc(numAtmFragVnlCalc[iFrag]*sizeof(int));
-  }
   atmFragVnlCalcMap = fragInfo->atmFragVnlCalcMap;
   atomFragMapProc = fragInfo->atomFragMapProc;
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     atomFragMapProc[iFrag] = (int*)cmalloc(numAtomFragProc[iFrag]*sizeof(int));
+    atmFragVnlCalcMap[iFrag] = (int*)cmalloc(numAtomFragProc[iFrag]*sizeof(int));
   }
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     countAtom = 0;
+    for(iAtom=0;iAtom<numAtomFragProc[iFrag];iAtom++){
+      atmFragVnlCalcMap[iFrag] = 1;
+    }
     for(iMol=0;iMol<numMolFragProc[iFrag];iMol++){
       for(iAtom=0;iAtom<atomNumMol[molFragMapProc[iFrag][iMol]-1];iAtom++){
 	atomFragMapProc[iFrag][countAtom+iAtom] = atomIndStart[molFragMapProc[iFrag][iMol]-1]+iAtom;
       }//endfor iAtom
       countAtom += atomNumMol[molFragMapProc[iFrag][iMol]-1];
-      numAtmFragVnlCalc[iFrag] += atomNumMol[molFragMapProc[iFrag][iMol]-1];
     }//endfor iMol
     for(iAtom=0;iAtom<numAtmFragVnlCalc[iFrag];iAtom++){
       atomFragMapProc[iFrag][iAtom] = iAtom+1;
@@ -696,6 +696,11 @@ void initFragUnitCell(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP 
       countAtom += atomNumMol[molFragMapProc[iFrag][iMol]-1];
     }//endfor iMol
   }//endfor iFrag
+
+  //Find the central fragment atoms
+  fragInfo->numAtmFragVnlCalc = (int*)cmalloc(numFragProc*sizeof(int));
+  
+  
 
   /*
   for(iFrag=0;iFrag<numFragProc;iFrag++){

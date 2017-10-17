@@ -8,7 +8,7 @@ void shiftSystem(int ,int ,int ,int *,int *,int *,double *,int *,double *,int *,
 void partMolUC(double *,int,int *,COMMUNICATE *,FRAGINFO *);
 void mapFragMol(FRAGINFO *,COMMUNICATE *,int,int *,int *);
 void mapFragMolHalf(FRAGINFO *,COMMUNICATE *,int,int *,int *,double *);
-void reorderMol(FRAGINFO *,int,int,int *,int *,int *,int);
+void reorderMol(FRAGINFO *,int,int,int *,int *,int *,int*,int);
 int checkInList(int,int *,int);
 
 void initFragEnergy(CP *,CLASS *,CLASS *,CP *);
@@ -41,7 +41,7 @@ void sumnlPotPvFatmHessFrag(int,int,int,int,int,int,int,int,int,int *,double *,
                             double *,double *,double *,double *,double *,
                             double *,double *,double *,double *,double *,double *,
                             double *,double *,double *,int,int,double *, double *,
-                            double *,double *,double *,double *);
+                            double *,double *,double *,double *,int *,int *);
 void rhoRealCalcDriverFragUnitCell(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *,CP *);
 void embedWfReal(GENERAL_DATA *,CP *,CLASS *,CP *,double *,double *);
 void qrWrapper(double *,int,int);

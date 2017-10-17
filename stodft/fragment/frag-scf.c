@@ -77,8 +77,8 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /* II) SCF LOOP					                        */
   
     
-    //controlCpMinFrag(&classMini[iFrag],&bondedMini[iFrag],&generalDataMini[iFrag],
-    //                 &cpMini[iFrag],&analysisMini[iFrag]);      
+    controlCpMinFrag(&classMini[iFrag],&bondedMini[iFrag],&generalDataMini[iFrag],
+                     &cpMini[iFrag],&analysisMini[iFrag]);      
     
 
     /*
@@ -148,7 +148,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }
   //fflush(stdout);
   //exit(0);
-  //energyCorrect(cpMini,generalDataMini,classMini,cp,class,ip_now);
+  energyCorrect(cpMini,generalDataMini,classMini,cp,class,ip_now);
 
 /*==========================================================================*/
 }/*end Routine*/

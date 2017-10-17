@@ -2495,6 +2495,7 @@ void controlVpsParamsFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
 
          }/*endif*/
       }/*endif*/
+      printf("vnl_kb_flag %i\n",pseudo->vnl_kb_flag);
 /*--------------------------------------------------------------------------*/
 /*     C) Make sure you have now found this puppy, if not exit              */
 

@@ -71,6 +71,7 @@ void calcNonLocalMatrix(CP *cp, CP *cpMini, CLASS *classMini,
   int iFrag = fragInfo->iFrag;
   int nlmtot,ntot_up,ntot_dn;
   int nl_max_kb,np_nlmax_kb,nl_max_gh,np_nlmax_gh,nl_max_all,np_nlmax_all;
+  int numAtomCalc = fragInfo->numAtomFragVnlCalc[iFrag];
   double vrecip,cp_enl,cp_enl_gh;
   double cpu1,cpu2;
 /*----------------------------------------------------------------------*/
@@ -338,7 +339,7 @@ void calcNonLocalMatrix(CP *cp, CP *cpMini, CLASS *classMini,
     }
   }
 
-  for(i=0;i<natm_tot;i++){
+  for(i=0;i<numAtomCalc;i++){
     for(iState=0;iState<nstate_up;iState++){
       for(jState=0;jState<nstate_up;jState++){
 	fragInfo->vnlFxMatrixUp[iFrag][i*nstate_up*nstate_up+iState*nstate_up+jState] = 0.0;
@@ -347,11 +348,13 @@ void calcNonLocalMatrix(CP *cp, CP *cpMini, CLASS *classMini,
       }
     }
     if(cp_lsda==1 && nstate_dn != 0){
-      for(iState=0;iState<nstate_dn;iState++){
-	for(jState=0;jState<nstate_dn;jState++){
-	  fragInfo->vnlFxMatrixDn[iFrag][i*nstate_dn*nstate_dn+iState*nstate_dn+jState] = 0.0;
-	  fragInfo->vnlFyMatrixDn[iFrag][i*nstate_dn*nstate_dn+iState*nstate_dn+jState] = 0.0;
-	  fragInfo->vnlFzMatrixDn[iFrag][i*nstate_dn*nstate_dn+iState*nstate_dn+jState] = 0.0;
+      for(i=0;i<numAtomCalc;i++){
+	for(iState=0;iState<nstate_dn;iState++){
+	  for(jState=0;jState<nstate_dn;jState++){
+	    fragInfo->vnlFxMatrixDn[iFrag][i*nstate_dn*nstate_dn+iState*nstate_dn+jState] = 0.0;
+	    fragInfo->vnlFyMatrixDn[iFrag][i*nstate_dn*nstate_dn+iState*nstate_dn+jState] = 0.0;
+	    fragInfo->vnlFzMatrixDn[iFrag][i*nstate_dn*nstate_dn+iState*nstate_dn+jState] = 0.0;
+	  }
 	}
       }
     }
@@ -563,6 +566,9 @@ void getnlPotPvFatmFrag(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 
   // Fragment related
   int iFrag = fragInfo->iFrag;
+  int *atomVnlCalcMapInv = fragInfo->atomFragVnlCalcMapInv[iFrag];
+  int *atomVnlCalcFlag = fragInfo->atomFragVnlCalcFlag[iFrag];
+
   double *vnlFxMatrixUp,*vnlFxMatrixDn;
   double *vnlFyMatrixUp,*vnlFyMatrixDn;
   double *vnlFzMatrixUp,*vnlFzMatrixDn;
@@ -627,7 +633,8 @@ void getnlPotPvFatmFrag(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 				  fx,fy,fz,fxtemp,fytemp,fztemp,
 				  hess_xx,hess_xy,hess_xz,hess_yy,hess_yz,hess_zz,
 				  atm_hess_calc,cp_ptens,pvten,&cp_enl,
-				  vnlFxMatrixUp,vnlFyMatrixUp,vnlFzMatrixUp,vnlMatrixUp);
+				  vnlFxMatrixUp,vnlFyMatrixUp,vnlFzMatrixUp,vnlMatrixUp,
+				  atomVnlCalcMapInv,atomVnlCalcFlag);
 	   if(cp_lsda==1){
 	     sumnlPotPvFatmHessFrag(npart,nstate_dn,np_nlmax,nl_chan_max,
 				    np_nl[lp1],l,np_nl_rad_str[lp1][jrad],
@@ -645,7 +652,8 @@ void getnlPotPvFatmFrag(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 				    fx,fy,fz,fxtemp,fytemp,fztemp,
 				    hess_xx,hess_xy,hess_xz,hess_yy,hess_yz,hess_zz,
 				    atm_hess_calc,cp_ptens,pvten,&cp_enl,
-				    vnlFxMatrixDn,vnlFyMatrixDn,vnlFzMatrixDn,vnlMatrixDn);
+				    vnlFxMatrixDn,vnlFyMatrixDn,vnlFzMatrixDn,vnlMatrixDn,
+				    atomVnlCalcMapInv,atomVnlCalcFlag);
 	   }//endif
 	}//endfor jrad
       }//endfor: radial channels irad
@@ -690,7 +698,8 @@ void sumnlPotPvFatmHessFrag(int npart,int nstate,int np_nlmax,
 				int atm_hess_calc,
 				int cp_ptens,double *pvten, double *cp_enl_ret,
 				double *vnlFxMatrix,double *vnlFyMatrix,
-				double *vnlFzMatrix,double *vnlMatrix)
+				double *vnlFzMatrix,double *vnlMatrix,
+				int *atomVnlCalcMapInv,int *atomVnlCalcFlag)
 /*========================================================================*/
    {/*begin routine*/
 /*========================================================================*/
@@ -702,6 +711,7 @@ void sumnlPotPvFatmHessFrag(int npart,int nstate,int np_nlmax,
   int ind_loc_i_is,ind_loc_i_js,ind_loc_j_is,ind_loc_j_js;
   int hess_ind;
   int ind_force_mat_1,ind_force_mat_2;
+  int atomInd,countAtom;
   double p11,p22,p33,p12,p13,p23,cp_enl_now;
   double cp_enl = *cp_enl_ret;
 /*==========================================================================*/
@@ -722,34 +732,50 @@ void sumnlPotPvFatmHessFrag(int npart,int nstate,int np_nlmax,
           ioff_j_js = (js-1)*np_nlmax+(ind_lm-1)*nstate*np_nlmax
                    +(jrad-1)*nl_chan_max*nstate*np_nlmax;
 	  if(irad==jrad){
+	    i_shift = l*npart;
             for(ipart=np_nl_rad_str;ipart<=np_nl;ipart++){
-              ind_loc_i_is = ipart + ioff_i_is;
-	      ind_loc_i_js = ipart + ioff_i_js;
-              cp_enl_now = (vnlreal[ind_loc_i_is]*vnlreal[ind_loc_i_js]
-                           +vnlimag[ind_loc_i_is]*vnlimag[ind_loc_i_js])*vnorm_now[ipart];
-	      vnlMatrix[(is-1)*nstate+js-1] += cp_enl_now;
-              if(is==js){
-		cp_enl += cp_enl_now;
-		//printf("vnlreal %lg vnlimag %lg\n",vnlreal[ind_loc_i_is],vnlimag[ind_loc_i_is]);
-	      }
-	      else vnlMatrix[(js-1)*nstate+is-1] += cp_enl_now;
+	      atomInd = ip_nl[(ipart+i_shift)]-1;
+	      //printf("atomInd %i\n",atomInd);
+	      if(atomVnlCalcFlag[atomInd]==1){
+		//printf("atomInd %i\n",atomInd);
+		ind_loc_i_is = ipart + ioff_i_is;
+		ind_loc_i_js = ipart + ioff_i_js;
+		cp_enl_now = (vnlreal[ind_loc_i_is]*vnlreal[ind_loc_i_js]
+			     +vnlimag[ind_loc_i_is]*vnlimag[ind_loc_i_js])*vnorm_now[ipart];
+		vnlMatrix[(is-1)*nstate+js-1] += cp_enl_now;
+                //printf("vnlreal %lg vnlimag %lg\n",vnlreal[ind_loc_i_is],vnlimag[ind_loc_i_is]);
+
+		if(is==js){
+		  cp_enl += cp_enl_now;
+		  //if(ipart>=16&&atomInd<24)cp_enl += cp_enl_now;
+		  //printf("cp_enl_now %lg\n",cp_enl_now);
+		}
+		else vnlMatrix[(js-1)*nstate+is-1] += cp_enl_now;
+		//printf("atomInd %i cp_enl %lg is %i js %i vnlMatrix %lg %lg\n",atomInd,cp_enl,is,js,vnlMatrix[(is-1)*nstate+js-1],vnlMatrix[(js-1)*nstate+is-1]);
+	      }//endif
             }//endfor
-	  }
+	  }//endif
 	  else{
+	    i_shift = l*npart;
             for(ipart=np_nl_rad_str;ipart<=np_nl;ipart++){
-              ind_loc_i_is = ipart + ioff_i_is;
-              ind_loc_i_js = ipart + ioff_i_js;
-              ind_loc_j_is = ipart + ioff_j_is;
-              ind_loc_j_js = ipart + ioff_j_js;
-              cp_enl_now = 2.0*(vnlreal[ind_loc_i_is]*vnlreal[ind_loc_j_js]
-                            +vnlimag[ind_loc_i_is]*vnlimag[ind_loc_j_js])
-                            *vnorm_now[ipart];
-	      vnlMatrix[(is-1)*nstate+js-1] += cp_enl_now;
-	      if(is==js){
-		cp_enl += cp_enl_now;
-		//printf("vnlreal %lg vnlimag %lg\n",vnlreal[ind_loc_i_is],vnlimag[ind_loc_i_is]);
-	      }
-	      else vnlMatrix[(js-1)*nstate+is-1] += cp_enl_now;
+	      atomInd = ip_nl[(ipart+i_shift)]-1;
+	      //printf("atomInd %i\n",atomInd);
+	      if(atomVnlCalcFlag[atomInd]==1){
+		ind_loc_i_is = ipart + ioff_i_is;
+		ind_loc_i_js = ipart + ioff_i_js;
+		ind_loc_j_is = ipart + ioff_j_is;
+		ind_loc_j_js = ipart + ioff_j_js;
+		cp_enl_now = 2.0*(vnlreal[ind_loc_i_is]*vnlreal[ind_loc_j_js]
+			      +vnlimag[ind_loc_i_is]*vnlimag[ind_loc_j_js])
+			      *vnorm_now[ipart];
+		vnlMatrix[(is-1)*nstate+js-1] += cp_enl_now;
+		if(is==js){
+		  cp_enl += cp_enl_now;
+		  //printf("vnlreal %lg vnlimag %lg\n",vnlreal[ind_loc_i_is],vnlimag[ind_loc_i_is]);
+		}
+		else vnlMatrix[(js-1)*nstate+is-1] += cp_enl_now;
+		//printf("atomInd %i cp_enl %lg is %i js %i vnlMatrix %i\n",atomInd,cp_enl,is,js,vnlMatrix[(js-1)*nstate+is-1]);
+	      }//endif
             }//endfor
 	  }
 	  /*
@@ -912,23 +938,29 @@ void sumnlPotPvFatmHessFrag(int npart,int nstate,int np_nlmax,
             }//endfor
           }//endif
           i_shift = l*npart;
+	  countAtom = 0;
           for(ipart=np_nl_rad_str;ipart<=np_nl;ipart++){
-            ltemp = ip_nl[(ipart+i_shift)];
-	    ind_force_mat_1 = (ltemp-1)*nstate*nstate+(is-1)*nstate+js-1;
-	    ind_force_mat_2 = (ltemp-1)*nstate*nstate+(js-1)*nstate+is-1;
-	    vnlFxMatrix[ind_force_mat_1] += fxtemp[ipart];
-            vnlFyMatrix[ind_force_mat_1] += fytemp[ipart];
-            vnlFzMatrix[ind_force_mat_1] += fztemp[ipart];
-            if(js==is){
-              fx[ltemp] += fxtemp[ipart];
-              fy[ltemp] += fytemp[ipart];
-              fz[ltemp] += fztemp[ipart];
-            }
-	    else{
-	      vnlFxMatrix[ind_force_mat_2] += fxtemp[ipart];
-	      vnlFyMatrix[ind_force_mat_2] += fytemp[ipart];
-	      vnlFzMatrix[ind_force_mat_2] += fztemp[ipart];
-	    }
+            atomInd = ip_nl[(ipart+i_shift)]-1;
+	    if(atomVnlCalcFlag[atomInd]==1){
+	      //printf("countAtom %i\n",countAtom);
+	      ind_force_mat_1 = countAtom*nstate*nstate+(is-1)*nstate+js-1;
+	      ind_force_mat_2 = countAtom*nstate*nstate+(js-1)*nstate+is-1;
+	      vnlFxMatrix[ind_force_mat_1] += fxtemp[ipart];
+	      vnlFyMatrix[ind_force_mat_1] += fytemp[ipart];
+	      vnlFzMatrix[ind_force_mat_1] += fztemp[ipart];
+	      if(js==is){
+		fx[countAtom+1] += fxtemp[ipart];
+		fy[countAtom+1] += fytemp[ipart];
+		fz[countAtom+1] += fztemp[ipart];
+	      }
+	      else{
+		vnlFxMatrix[ind_force_mat_2] += fxtemp[ipart];
+		vnlFyMatrix[ind_force_mat_2] += fytemp[ipart];
+		vnlFzMatrix[ind_force_mat_2] += fztemp[ipart];
+	      }
+	      countAtom += 1;
+	      //printf("atomInd %i vnlFxMatrix %lg vnlFyMatrix %lg vnlFzMatrix %lg\n",atomInd,vnlFxMatrix[ind_force_mat_1],vnlFyMatrix[ind_force_mat_1],vnlFzMatrix[ind_force_mat_1]);
+	    }//endif atomVnlCalcFlag
           }/*endfor:atomic forces*/
 
 	  /*     
@@ -1099,6 +1131,8 @@ void sumnlPotPvFatmHessFrag(int npart,int nstate,int np_nlmax,
 
 /*==========================================================================*/
 /* II) Set the return values                                               */
+
+ printf("cp_enl %lg\n",cp_enl);
 
  *cp_enl_ret = cp_enl;
 

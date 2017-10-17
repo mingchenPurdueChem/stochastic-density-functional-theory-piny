@@ -395,16 +395,31 @@ typedef struct fragInfo{
   char atomSkinFile[MAXWORD];
 
 // The following part is for fix one-body energy terms from fragments
-  int *numAtmFragVnlCalc;           /* Lst: number of atoms used to fix vnl     */
+  int *numAtomFragVnlCalc;          /* Lst: number of atoms used to fix vnl     */
                                     /*      nuclear force, =number of atom in   */
                                     /*      molecule for molecular fragmentation*/
                                     /*      =number of atoms in small fragment  */
                                     /*      for unit cell fragmentation         */
 				    /* Lth: numFragProc				*/
-  int **atmFragVnlCalcMap;	    /* Lst: atom indices for the ones you want  */
+  int **atomFragVnlCalcMap;	    /* Lst: atom indices for the ones you want  */
 				    /*	    to calculate vnl force/energy	*/
 				    /*	    correction.				*/
 				    /* Lth: numFragProc*numAtmFragVnlCalc[iFrag]*/
+  int **atomFragVnlCalcMapInv;	    /* Lst: Inverse map of the vnl calculation  */
+				    /*	    if an atom is not in the central	*/
+				    /*	    frag, the value is -1, otherwise the*/
+				    /*	    value is the atom index in the	*/
+				    /*	    central frag			*/
+				    /* Lth: numFragProc*numAtomFragProc[iFrag]  */
+  int **atomFragVnlCalcFlag;	    /* Lst: flags whether an atom is in the	*/
+				    /*	    central fragment			*/
+				    /* Lth: numFragProc*numAtomFragProc[iFrag]  */
+  int *numMolFragCent;		    /* Lst: number of molecules in the central  */
+				    /*	    fragment				*/
+				    /* Lth: numFragProc				*/
+  int **molIndFragCent;		    /* Lst: flags of molecules in the central   */
+				    /*	    fragment 0=not cent,1=cent		*/  
+				    /* Lth: numFragProc*numMolFragProc[iFrag]	*/
   double keCor,vnlCor;		    /* Num: Kinetic/Nonlocal Pseudopotential    */
 				    /*	    correction from fragment	        */
   double *vnlFxCor;		    /* Lst: Nonlocal Pseudopotential correction */
@@ -609,7 +624,7 @@ typedef struct stodftInfo{
   double *energyPNL;		    /*	    potential energy for different      */
 				    /*	    chem pot.				*/
   char densityFileName[MAXWORD];    /* Char: Name of the output density file    */
-  char densityReadFileName[MAXWORD];/* Char: Name of the input density file    */
+  char densityReadFileName[MAXWORD];/* Char: Name of the input density file     */
   /* DIIS parameters */
   int densityMixFlag;		    /* Opt: Flag to control mixing density      */
 				    /*	    0 = no mixing			*/

@@ -1086,10 +1086,24 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 /*======================================================================*/
 /* IV) Calculate the real space noise wave function                     */
 
-  noiseRealReGen(general_data,cp,class,ip_now);
+  // Copy the deterministic wf to the stochastic wf
+  //memcpy(&(cp->cpcoeffs_pos[1].cre_up[1]),&(stodftCoefPos->wfDetBackupUpRe[0]),numStateUpProc*numCoeff*sizeof(double));
+  //memcpy(&(cp->cpcoeffs_pos[1].cim_up[1]),&(stodftCoefPos->wfDetBackupUpIm[0]),numStateUpProc*numCoeff*sizeof(double));
+  
+  int iCoeff;
+  for(iCoeff=0;iCoeff<numStateUpProc*numCoeff;iCoeff++){
+    cp->cpcoeffs_pos[1].cre_up[iCoeff+1] = stodftCoefPos->wfDetBackupUpRe[iCoeff];
+    cp->cpcoeffs_pos[1].cim_up[iCoeff+1] = stodftCoefPos->wfDetBackupUpIm[iCoeff];
+  }
+
+  rhoRealCalcDriverNoise(general_data,cp,class,ip_now);
+  
+
+  //noiseRealReGen(general_data,cp,class,ip_now);
 
 /*======================================================================*/
 /* IV) Project the real space noise wave function                       */
+
 
   numStateUpAllProc = (int*)cmalloc(numProcStates*sizeof(int));
   if(numProcStates>1){
@@ -1108,6 +1122,103 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     rhoTemp[iGrid] = 0.0;
   }
   //countWf = 0;
+  //end debug  
+  //debug
+  for(iFrag=0;iFrag<numFragProc;iFrag++){
+    fragInfo->rhoUpFragProc[iFrag] = (double*)cmalloc(numGrid*sizeof(double));
+    fragInfo->coefUpFragProc[iFrag] = (double*)cmalloc(numStateUpMini*numGrid*sizeof(double));
+    rhoRealCalcDriverFragMol(&generalDataMini[iFrag],&cpMini[iFrag],&classMini[iFrag],cp);
+  }
+  
+  double *projMatrixTest = (double*)calloc(numStateUpProc*numStateUpProc,sizeof(double));
+  double *wfProjjTemp;
+  double *coefUpFragExt;
+  double preCopyFrag = sqrt(volInv);
+  for(iState=0;iState<numStateUpProc;iState++){
+    printf("iState %i\n",iState);
+    memcpy(wfTemp,&noiseWfUpReal[iState*rhoRealGridTot],rhoRealGridTot*sizeof(double));
+    if(numProcStates>1)Bcast(wfTemp,rhoRealGridTot,MPI_DOUBLE,iProc,commStates);
+    for(iFrag=0;iFrag<numFragProc;iFrag++){
+      numGrid = numGridFragProc[iFrag];
+      numGridSmall = numGridFragProcSmall[iFrag];
+
+      wfProjjTemp = (double*)calloc(numGridSmall,sizeof(double));
+      //coefUpFragExt = (double*)calloc(numStateUpMini*numGridSmall,sizeof(double));
+
+      numStateUpMini = cpMini[iFrag].cpcoeffs_info.nstate_up_proc;
+      hmatCpMini = generalDataMini[iFrag].cell.hmat_cp;
+      volMini = getdeth(hmatCpMini);
+      volMini /= numGrid;
+      wfFragTemp = (double*)cmalloc(numGrid*sizeof(double));
+      rhoFragTemp = (double*)cmalloc(numGrid*sizeof(double));
+      //rhoRealCalcDriverFragMol(&generalDataMini[iFrag],&cpMini[iFrag],&classMini[iFrag],cp);
+      for(iGrid=0;iGrid<numGrid;iGrid++){
+        gridIndex = gridMapProc[iFrag][iGrid];
+        wfFragTemp[iGrid] = wfTemp[gridIndex];
+        rhoFragTemp[iGrid] = 0.0;
+      }
+      for(iStateFrag=0;iStateFrag<numStateUpMini;iStateFrag++){
+        //double *tempExt = (double*)calloc(rhoRealGridTot,sizeof(double));
+        //double preCopyFrag = 1.0/sqrt(numFragProc);
+	//for(iGrid=0;iGrid<numGrid;iGrid++){
+	  //gridIndex = gridMapProc[jFrag][iGrid];
+	  //coefUpFragExt[iStateFrag*rhoRealGridTot+gridIndex] = coefUpFragProc[iFrag][iStateFrag*numGrid+iGrid]*preCopyFrag;
+	  //coefUpFragExt[iStateFrag*numGrid+iGrid] = coefUpFragProc[iFrag][iStateFrag*numGrid+gridIndex]*preCopyFrag;
+	//}
+
+        //proj = ddotBlasWrapper(numGrid,&wfFragTemp[0],1,&coefUpFragProc[iFrag][iStateFrag*numGrid],1)*volMini;
+	proj = 0.0;
+	for(iGrid=0;iGrid<numGrid;iGrid++){
+	  proj += wfFragTemp[iGrid]*coefUpFragProc[iFrag][iStateFrag*numGrid+iGrid];
+	}
+	proj *= volMini;
+        //free(tempExt); 
+        //proj = ddotBlasWrapper(numGrid,&wfFragTemp[0],1,&coefUpFragProc[iFrag][iStateFrag*numGrid],1);
+        //fragInfo->wfProjUp[iFrag][countWf*numStateUpMini+iStateFrag] = proj*preDot*volMini;
+        //for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+        //  wfProjjTemp[iGrid] += proj*coefUpFragExt[iStateFrag*rhoRealGridTot+iGrid];
+        //}
+	for(iGrid=0;iGrid<numGridSmall;iGrid++){
+	  gridIndex = gridMapProcSmall[iFrag][iGrid];
+	  wfProjjTemp[iGrid] += proj*coefUpFragProc[iFrag][iStateFrag*numGrid+gridIndex];
+	}
+      }//endfor iStateFrag
+      for(jState=iState;jState<numStateUpProc;jState++){
+        //for(iGrid=0;iGrid<numGrid;iGrid++){
+          //gridIndex = gridMapProc[iFrag][iGrid];
+          ////rhoTemp[gridIndex] += rhoFragTemp[iGrid]*rhoFragTemp[iGrid];
+          //projMatrixTest[iState*numStateUpProc+jState] += noiseWfUpReal[jState*rhoRealGridTot+gridIndex]*rhoFragTemp[iGrid]*volMini*volMini;
+          ////fix_frag[iFrag][gridIndex] += rhoFragTemp[iGrid]*rhoFragTemp[iGrid]*pre;
+        //}
+        for(iGrid=0;iGrid<numGridSmall;iGrid++){
+	  gridIndex = gridMapProc[iFrag][gridMapProcSmall[iFrag][iGrid]];
+          projMatrixTest[iState*numStateUpProc+jState] += noiseWfUpReal[jState*rhoRealGridTot+gridIndex]*wfProjjTemp[iGrid]*volMini;
+        }
+      }//endfor jState
+      free(wfFragTemp);
+      free(rhoFragTemp);
+      free(wfProjjTemp);
+      free(fragInfo->rhoUpFragProc[iFrag]);
+      free(fragInfo->coefUpFragProc[iFrag]);
+    }//endfor iFrag
+    countWf += 1;
+    for(jState=iState;jState<numStateUpProc;jState++){
+      projMatrixTest[iState*numStateUpProc+jState] *= 0.5*volInv;
+      projMatrixTest[jState*numStateUpProc+iState] = projMatrixTest[iState*numStateUpProc+jState];
+    }
+  }//endfor iState
+  FILE *testMatrix = fopen("test-matrix","w");
+  for(iState=0;iState<numStateUpProc;iState++){
+    for(jState=0;jState<numStateUpProc;jState++){
+      if(iState==jState)projMatrixTest[iState*numStateUpProc+jState] -= 1.0;
+      fprintf(testMatrix,"%.8lg ",projMatrixTest[iState*numStateUpProc+jState]);
+    }
+    fprintf(testMatrix,"\n");
+    printf("111111 matrix diag %.8lg\n",projMatrixTest[iState*numStateUpProc+iState]+1.0);
+  }
+  fflush(stdout);
+  exit(0);   
+  
   //end debug  
 
   int res = numFragTot%numProcStates;

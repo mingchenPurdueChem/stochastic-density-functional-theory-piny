@@ -956,8 +956,8 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
       rhoTemp[gridMapProc[iFrag][gridMapProcSmall[iFrag][iGrid]]] +=
                 rhoUpFragProc[iFrag][gridMapProcSmall[iFrag][iGrid]];
     }//endfor iGrid
-    free(fragInfo->rhoUpFragProc[iFrag]);
-    free(fragInfo->coefUpFragProc[iFrag]);
+    //free(fragInfo->rhoUpFragProc[iFrag]);
+    //free(fragInfo->coefUpFragProc[iFrag]);
   }//endfor iFrag
   Barrier(commStates);
   //fflush(stdout);
@@ -1124,11 +1124,13 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   //countWf = 0;
   //end debug  
   //debug
+  /*
   for(iFrag=0;iFrag<numFragProc;iFrag++){
-    fragInfo->rhoUpFragProc[iFrag] = (double*)cmalloc(numGrid*sizeof(double));
-    fragInfo->coefUpFragProc[iFrag] = (double*)cmalloc(numStateUpMini*numGrid*sizeof(double));
+    fragInfo->rhoUpFragProc[iFrag] = (double*)calloc(numGrid,sizeof(double));
+    fragInfo->coefUpFragProc[iFrag] = (double*)calloc(numStateUpMini*numGrid,sizeof(double));
     rhoRealCalcDriverFragMol(&generalDataMini[iFrag],&cpMini[iFrag],&classMini[iFrag],cp);
   }
+  */
   
   double *projMatrixTest = (double*)calloc(numStateUpProc*numStateUpProc,sizeof(double));
   double *wfProjjTemp;
@@ -1167,11 +1169,13 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 	//}
 
         //proj = ddotBlasWrapper(numGrid,&wfFragTemp[0],1,&coefUpFragProc[iFrag][iStateFrag*numGrid],1)*volMini;
+	
 	proj = 0.0;
 	for(iGrid=0;iGrid<numGrid;iGrid++){
 	  proj += wfFragTemp[iGrid]*coefUpFragProc[iFrag][iStateFrag*numGrid+iGrid];
 	}
 	proj *= volMini;
+	
         //free(tempExt); 
         //proj = ddotBlasWrapper(numGrid,&wfFragTemp[0],1,&coefUpFragProc[iFrag][iStateFrag*numGrid],1);
         //fragInfo->wfProjUp[iFrag][countWf*numStateUpMini+iStateFrag] = proj*preDot*volMini;
@@ -1198,8 +1202,8 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
       free(wfFragTemp);
       free(rhoFragTemp);
       free(wfProjjTemp);
-      free(fragInfo->rhoUpFragProc[iFrag]);
-      free(fragInfo->coefUpFragProc[iFrag]);
+      //free(fragInfo->rhoUpFragProc[iFrag]);
+      //free(fragInfo->coefUpFragProc[iFrag]);
     }//endfor iFrag
     countWf += 1;
     for(jState=iState;jState<numStateUpProc;jState++){

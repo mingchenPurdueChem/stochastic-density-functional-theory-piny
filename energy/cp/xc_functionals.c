@@ -516,6 +516,8 @@ void excpot_pz_lsda(double *v_ks_up,double *v_ks_dn,
    double logrs;
    double coeff1f,coeff2f,coeff3f;
    double coeff1p,coeff2p,coeff3p;
+   double vexup,vexdn,eexup,eexdn;
+   double preex;
    int i,kk;
    int nfft2 = nfft/2;
    int nfft2_proc = nfft_proc/2;
@@ -588,10 +590,16 @@ void excpot_pz_lsda(double *v_ks_up,double *v_ks_dn,
      rs = pow((3.0/fpin),power);
      sqtrs = sqrt(rs);
       
-     xff = -cf/rs;
-     xfp = -cp/rs;
-     muxf = rat2*xff;
-     muxp = rat2*xfp;
+     //xff = -cf/rs;
+     //xfp = -cp/rs;
+     //muxf = rat2*xff;
+     //muxp = rat2*xfp;
+     muxfact_up = -pow(3.0/pi*2.0*rho_ru,power);
+     muxfact_dn = -pow(3.0/pi*2.0*rho_rd,power);
+     // exchange energy kernel
+     eexup = muxfact_up*1.5*rho_ru/rho_r;
+     eexdn = muxfact_dn*1.5*rho_rd/rho_r;
+     xfact = 0.5*(eexup+eexdn);
      if(rs>=1.0){
        cff1 = 1.0 + beta1f*sqtrs + beta2f*rs;
        cff2 = 1.0 + ratbf1*sqtrs + ratbf2*rs;
@@ -611,13 +619,16 @@ void excpot_pz_lsda(double *v_ks_up,double *v_ks_dn,
      }
      fzeta = rden*(pow(opzeta,rat2) + pow(omzeta,rat2) - 2.0);
      fpzeta = rat2*rden*(pow(opzeta,power) - pow(omzeta,power));
-     xfact = xfp + fzeta*(xff - xfp);
+     
+     //xfact = xfp + fzeta*(xff - xfp);
      cfact = cfp + fzeta*(cff - cfp);
 
+     /*
      muxfact_up = muxp + fzeta*(muxf-muxp) + 
                      omzeta*fpzeta*(xff - xfp);
      muxfact_dn = muxp + fzeta*(muxf-muxp) - 
                      opzeta*fpzeta*(xff - xfp);
+     */
 
      mucfact_up = mucp + fzeta*(mucf-mucp) + 
                      omzeta*fpzeta*(cff - cfp);
@@ -625,6 +636,7 @@ void excpot_pz_lsda(double *v_ks_up,double *v_ks_dn,
                      opzeta*fpzeta*(cff - cfp);
 
      cfact = cfact*lyp_fact;
+     
      ex += xfact*rho_r;
      ec += cfact*rho_r;
      mucfact_up *= lyp_fact;

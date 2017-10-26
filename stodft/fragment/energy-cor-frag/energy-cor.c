@@ -51,6 +51,7 @@ void energyCorrect(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,
   int numProcStates         = commCP->np_states;
   int numFragProc	    = fragInfo->numFragProc;
   int numAtomTot	    = clatoms_info->natm_tot;
+  int fragOpt		    = stodftInfo->fragOpt;
   int iFrag,iAtom;
   int vnl_kb_flag;
   int vnl_gh_flag;
@@ -73,7 +74,15 @@ void energyCorrect(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,
 /*======================================================================*/
 /* I) Kinetic energy	                                                */
     
-    calcKECor(&cpMini[iFrag],&generalDataMini[iFrag],cp,&keCorProc);
+    switch(fragOpt){
+      case 1:
+	calcKECorMol(&cpMini[iFrag],&generalDataMini[iFrag],cp,&keCorProc);
+	break;
+      case 3:
+	calcKECorUC(&cpMini[iFrag],&generalDataMini[iFrag],cp,&keCorProc);
+	break;
+    }//end switch
+    
 
 /*======================================================================*/
 /* II) Non-local pseudo potential energy and force                      */
@@ -121,7 +130,7 @@ void energyCorrect(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void calcKECor(CP *cpMini,GENERAL_DATA *generalDataMini,CP *cp,double *keCorProc)
+void calcKECorMol(CP *cpMini,GENERAL_DATA *generalDataMini,CP *cp,double *keCorProc)
 /*========================================================================*/
 {/*begin routine*/
 /**************************************************************************/

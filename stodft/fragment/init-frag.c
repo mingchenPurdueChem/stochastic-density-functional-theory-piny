@@ -681,7 +681,6 @@ void initFragUnitCell(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP 
   numMolFragProc = fragInfo->numMolFragProc;
   numFragProc = fragInfo->numFragProc;
 
-
 /*======================================================================*/
 /* 2) Get atoms map in each fragments                                   */
 

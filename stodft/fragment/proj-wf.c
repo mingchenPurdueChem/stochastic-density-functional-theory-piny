@@ -895,6 +895,7 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   
   fragInfo->rhoUpFragProc = (double**)cmalloc(numFragProc*sizeof(double*));
   fragInfo->coefUpFragProc = (double**)cmalloc(numFragProc*sizeof(double*));
+  fragInfo->coefUpFragCoreProc = (double**)cmalloc(numFragProc*sizeof(double*));
   /*
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     numGrid = numGridFragProc[iFrag];
@@ -908,6 +909,7 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   if(cpLsda==1&&numStateDn!=0){
     fragInfo->rhoDnFragProc = (double**)cmalloc(numFragProc*sizeof(double*));
     fragInfo->coefDnFragProc = (double**)cmalloc(numFragProc*sizeof(double*));
+    fragInfo->coefDnFragCoreProc = (double**)cmalloc(numFragProc*sizeof(double*));
     for(iFrag=0;iFrag<numFragProc;iFrag++){
       numGrid = numGridFragProc[iFrag];
       numStateDnMini = cpMini[iFrag].cpcoeffs_info.nstate_dn_proc;

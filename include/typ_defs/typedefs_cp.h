@@ -385,6 +385,12 @@ typedef struct fragInfo{
   double **coefDnFragTot;           /* Lst: Occupied orbitals spin dn all frags */
                                     /* Lth: numFragTot*(numElecUpFrag*	        */
                                     /*      numGridFrac)                        */
+  double **coefUpFragCoreProc;      /* Lst: Occupied orbitals spin up           */
+                                    /* Lth: numFragProc*(numElecUpFrag*         */
+                                    /*      numGridFragProcSmall[iFrag])        */
+  double **coefDnFragCoreProc;      /* Lst: Occupied orbitals spin dn           */
+                                    /* Lth: numFragProc*(numElecUpFrag*         */
+                                    /*      numGridFragProcSmall[iFrag])        */
   double *noiseWfUpReal;	    /* Lst: Real space noise wave function	*/
   double *noiseWfDnReal;	    /* Lth: nstate_up_proc*rhoRealGridTot       */
 

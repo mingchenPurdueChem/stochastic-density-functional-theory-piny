@@ -109,6 +109,7 @@ void rhoRealCalcDriverFragMol(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *cl
   //gethinv(cell->hmat,cell->hmati,&(cell->vol),iperd);
 
   //debug
+  /*
   char name[100];
   FILE *fwf;
   int nstate_up = cpcoeffs_info->nstate_up_proc;
@@ -132,6 +133,7 @@ void rhoRealCalcDriverFragMol(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *cl
     fscanf(fwf,"%lg",&ccimagUpMini[i]);
   }
   fclose(fwf);
+  */
 
 
 /*======================================================================*/

@@ -109,32 +109,33 @@ void rhoRealCalcDriverFragMol(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *cl
   //gethinv(cell->hmat,cell->hmati,&(cell->vol),iperd);
 
   //debug
-  /*
-  char name[100];
-  FILE *fwf;
-  int nstate_up = cpcoeffs_info->nstate_up_proc;
-  int ncoef = cpcoeffs_info->ncoef;
-  int numProcStatesSys = cp->communicate.np_states; 
-  int myidStateSys = cp->communicate.myid_state;
-  int numFragTot = fragInfo->numFragTot;
-  int res = numFragTot%numProcStatesSys;
-  int div = numFragTot/numProcStatesSys;
-  int indStart,indFrag;
-  if(myidStateSys<res)indStart = (div+1)*myidStateSys;
-  else indStart = (myidStateSys-res)*div+res*(div+1);
-  indFrag = indStart+iFrag;
-  //printf("res %i div %i indStart %i indFrag %i\n",res,div,indStart,indFrag);
-  sprintf(name,"fragwf-%i",indFrag);
-  //fwf = fopen(name,"w");
-  fwf = fopen(name,"r");
-  for(i=1;i<=nstate_up*ncoef;i++){
-    //fprintf(fwf,"%.16lg %.16lg\n",ccrealUpMini[i],ccimagUpMini[i]);
-    fscanf(fwf,"%lg",&ccrealUpMini[i]);
-    fscanf(fwf,"%lg",&ccimagUpMini[i]);
-  }
-  fclose(fwf);
-  */
 
+  if(stodftInfo->stodftOn!=-1){
+    char name[100];
+    FILE *fwf;
+    int nstate_up = cpcoeffs_info->nstate_up_proc;
+    int ncoef = cpcoeffs_info->ncoef;
+    int numProcStatesSys = cp->communicate.np_states; 
+    int myidStateSys = cp->communicate.myid_state;
+    int numFragTot = fragInfo->numFragTot;
+    int res = numFragTot%numProcStatesSys;
+    int div = numFragTot/numProcStatesSys;
+    int indStart,indFrag;
+    if(myidStateSys<res)indStart = (div+1)*myidStateSys;
+    else indStart = (myidStateSys-res)*div+res*(div+1);
+    indFrag = indStart+iFrag;
+    //printf("res %i div %i indStart %i indFrag %i\n",res,div,indStart,indFrag);
+    sprintf(name,"fragwf-%i",indFrag);
+    //fwf = fopen(name,"w");
+    fwf = fopen(name,"r");
+    for(i=1;i<=nstate_up*ncoef;i++){
+      //fprintf(fwf,"%.16lg %.16lg\n",ccrealUpMini[i],ccimagUpMini[i]);
+      fscanf(fwf,"%lg",&ccrealUpMini[i]);
+      fscanf(fwf,"%lg",&ccimagUpMini[i]);
+    }
+    fclose(fwf);
+  }
+  
 
 /*======================================================================*/
 /* IV) Calculate real space wave functions and densities for fragments  */

@@ -42,6 +42,8 @@ void sumnlPotPvFatmHessFrag(int,int,int,int,int,int,int,int,int,int *,double *,
                             double *,double *,double *,double *,double *,double *,
                             double *,double *,double *,int,int,double *, double *,
                             double *,double *,double *,double *,int *,int *);
+void calcKECorUC(CP *,GENERAL_DATA *,CLASS *,CP *,double *);
+void calcKEMatrixUC(GENERAL_DATA *,CP *,CLASS *,CP *, double *);
 void rhoRealCalcDriverFragUnitCell(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *,CP *);
 void embedWfReal(GENERAL_DATA *,CP *,CLASS *,CP *,double *,double *);
 void qrWrapper(double *,int,int);

@@ -27,7 +27,8 @@
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void calcKECorUC(CP *cpMini,GENERAL_DATA *generalDataMini,CP *cp,double *keCorProc)
+void calcKECorUC(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini, 
+		 CP *cp,double *keCorProc)
 /*========================================================================*/
 {/*begin routine*/
 /**************************************************************************/
@@ -67,7 +68,7 @@ void calcKECorUC(CP *cpMini,GENERAL_DATA *generalDataMini,CP *cp,double *keCorPr
 /*======================================================================*/
 /* I) Calculate the matrix                                              */
 
-  calcKEMatrixUC(cpMini,cp,&ke);
+  calcKEMatrixUC(generalDataMini,cpMini,classMini,cp,&ke);
 
 /*======================================================================*/
 /* I) Allocate Local Memory                                             */
@@ -109,7 +110,7 @@ void calcKECorUC(CP *cpMini,GENERAL_DATA *generalDataMini,CP *cp,double *keCorPr
     keCor += keCorDn;
     free(temp);
   }
-  //printf("ke %lg keCor %lg\n",ke,keCor);
+  printf("ke %lg keCor %lg\n",ke,keCor);
   *keCorProc += ke-occNumber*keCor;
 
 /*==========================================================================*/
@@ -119,7 +120,8 @@ void calcKECorUC(CP *cpMini,GENERAL_DATA *generalDataMini,CP *cp,double *keCorPr
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void calcKEMatrix(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,CP *cp)
+void calcKEMatrixUC(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini, 
+		    CP *cp, double *ke)
 /*========================================================================*/
 {/*begin routine*/
 /*========================================================================*/
@@ -134,23 +136,25 @@ void calcKEMatrix(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,CP *
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cpMini->cp_para_fft_pkg3d_lg);
   COMMUNICATE *commCP = &(cpMini->communicate);
 
-  int iState,jState,iCoeff;
+  int iState,jState,iCoeff,iGrid;
   int numStateUp = cpcoeffs_info->nstate_up_proc;
   int numStateDn = cpcoeffs_info->nstate_dn_proc;
   int numCoeff = cpcoeffs_info->ncoef;
   int cpLsda = cpOpts->cp_lsda;
   int numCoeffUpTot = numStateUp*numCoeff;
   int numCoeffDnTot = numStateDn*numCoeff;
-  int numGrid = fragInfo->numGridFragProc[iFrag];
-  int numGridSmall = fragInfo->numGridFragProcSmall[iFrag];
   int numAlloc = MAX(numCoeffUpTot,numCoeffDnTot);
   int index,index1,index2,index3;
   int iFrag = fragInfo->iFrag;
+  int numGrid = fragInfo->numGridFragProc[iFrag];
+  int numGridSmall = fragInfo->numGridFragProcSmall[iFrag];
+  int occNumber = stodftInfo->occNumber;
+
   int *gridMapProcSmall    = fragInfo->gridMapProcSmall[iFrag];
 
   double tpi = 2.0*M_PI;
   double volMini;
-  double occNum;
+  double keLocal;
   double *cre_up = cpcoeffs_pos->cre_up;
   double *cim_up = cpcoeffs_pos->cim_up;
   double *cre_dn = cpcoeffs_pos->cre_dn;
@@ -161,12 +165,13 @@ void calcKEMatrix(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,CP *
   double *fcim_dn = cpcoeffs_pos->fcim_dn;
   double *ak2Small = cpEwald->ak2_sm;
   double *coefForceRe,*coefForceIm;
-  double *coefTemp,wfTemp;
+  double *coefTemp,*wfTemp;
   double *keMatrixUp;
   double *keMatrixDn;
   double *coefUpFragCoreProc;
   double *coefDnFragCoreProc;
-  double *coefUpFragProc,coefDnFragProc;
+  double *coefUpFragProc,*coefDnFragProc;
+  double *coefUpTemp,*coefDnTemp;
   double *hmatCpMini = generalDataMini->cell.hmat_cp;
   
 
@@ -176,24 +181,37 @@ void calcKEMatrix(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,CP *
   fragInfo->rhoUpFragProc[iFrag] = (double*)cmalloc(numGrid*sizeof(double));
   fragInfo->coefUpFragProc[iFrag] = (double*)cmalloc(numStateUp*numGrid*sizeof(double));
   coefUpFragProc = fragInfo->coefUpFragProc[iFrag];
+  coefUpFragCoreProc = fragInfo->coefUpFragCoreProc[iFrag];  
   if(cpLsda==1&&numStateDn!=0){
     fragInfo->rhoDnFragProc[iFrag] = (double*)cmalloc(numGrid*sizeof(double));
     fragInfo->coefDnFragProc[iFrag] = (double*)cmalloc(numStateDn*numGrid*sizeof(double));
     coefDnFragProc = fragInfo->coefDnFragProc[iFrag];
+    coefDnFragCoreProc = fragInfo->coefDnFragCoreProc[iFrag];
   }
 
   coefTemp = (double*)cmalloc(numCoeff*sizeof(double));
   wfTemp = (double*)cmalloc(numGridSmall*sizeof(double));
   //coefForceRe = (double*)cmalloc((numAlloc+1)*sizeof(double));
   //coefForceIm = (double*)cmalloc((numAlloc+1)*sizeof(double));
+  //debug
+  /*
+  coefUpTemp = (double*)cmalloc(numStateUp*numGrid*sizeof(double));
+  if(cpLsda==1&&numStateDn!=0)coefDnTemp = (double*)cmalloc(numStateUp*numGrid*sizeof(double));
+
+  rhoRealCalcDriverFragMol(generalDataMini,cpMini,classMini,cp);
+  
+  memcpy(coefUpTemp,coefUpFragProc,numStateUp*numGrid*sizeof(double));
+  if(cpLsda==1&&numStateDn!=0)memcpy(coefDnTemp,coefDnFragProc,numStateUp*numGrid*sizeof(double));
+  */
 
 /*======================================================================*/
 /* II) Calculate kinetic energy density                                 */
 
   keMatrixUp = fragInfo->keMatrixUp[iFrag];
-  occNum = 2.0;
-  if(cpLsda==1&&numStateDn!=0) occNum = 1.0;
+  keLocal = 0;
 
+  //printf("cre %lg\n",cre_up[1]);
+  //printf("ak2Small %lg\n",ak2Small[1]);
   for(iState=0;iState<numStateUp;iState++){
     for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
       index = iState*numCoeff+iCoeff;
@@ -205,7 +223,11 @@ void calcKEMatrix(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,CP *
     memcpy(coefTemp,&fcre_up[iState*numCoeff+1],numCoeff*sizeof(double));
     memcpy(&fcre_up[iState*numCoeff+1],&cre_up[iState*numCoeff+1],numCoeff*sizeof(double));
     memcpy(&cre_up[iState*numCoeff+1],coefTemp,numCoeff*sizeof(double));    
+    memcpy(coefTemp,&fcim_up[iState*numCoeff+1],numCoeff*sizeof(double));
+    memcpy(&fcim_up[iState*numCoeff+1],&cim_up[iState*numCoeff+1],numCoeff*sizeof(double));
+    memcpy(&cim_up[iState*numCoeff+1],coefTemp,numCoeff*sizeof(double));
   }//endfor iState
+  //printf("cre %lg fcre %lg\n",cim_up[2],fcim_up[1]);
   if(cpLsda==1&&numStateDn!=0){
     for(iState=0;iState<numStateDn;iState++){
       for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
@@ -218,20 +240,38 @@ void calcKEMatrix(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,CP *
       memcpy(coefTemp,&fcre_dn[iState*numCoeff+1],numCoeff*sizeof(double));
       memcpy(&fcre_dn[iState*numCoeff+1],&cre_dn[iState*numCoeff+1],numCoeff*sizeof(double));
       memcpy(&cre_dn[iState*numCoeff+1],coefTemp,numCoeff*sizeof(double));
+      memcpy(coefTemp,&fcim_dn[iState*numCoeff+1],numCoeff*sizeof(double));
+      memcpy(&fcim_dn[iState*numCoeff+1],&cim_dn[iState*numCoeff+1],numCoeff*sizeof(double));
+      memcpy(&cim_dn[iState*numCoeff+1],coefTemp,numCoeff*sizeof(double));
     }//endfor iState
   }
 
+  int stodftOnTemp = stodftInfo->stodftOn;
+  stodftInfo->stodftOn = -1;
   rhoRealCalcDriverFragMol(generalDataMini,cpMini,classMini,cp);
+  stodftInfo->stodftOn = stodftOnTemp;
 
   memcpy(&cre_up[1],&fcre_up[1],numStateUp*numCoeff*sizeof(double));
+  memcpy(&cim_up[1],&fcim_up[1],numStateUp*numCoeff*sizeof(double));
   if(cpLsda==1&&numStateDn!=0){
     memcpy(&cre_dn[1],&fcre_dn[1],numStateUp*numCoeff*sizeof(double));
+    memcpy(&cim_dn[1],&fcim_dn[1],numStateUp*numCoeff*sizeof(double));
   }
 
 /*======================================================================*/
 /* III) Calculate Spin up matrix                                        */
 
   volMini = getdeth(hmatCpMini)/numGrid;
+
+  /*
+  printf("coefUpFragProc %lg\n",coefUpFragProc[0]);
+
+  double test = 0.0;
+  for(iState=0;iState<numStateUp;iState++){
+    test += ddotBlasWrapper(numGrid,&coefUpFragProc[iState*numGrid],1,&coefUpTemp[iState*numGrid],1)*volMini;
+  }
+  printf("testke %lg\n",test*2.0);
+  */
 
   for(iState=0;iState<numStateUp;iState++){
     for(iGrid=0;iGrid<numGridSmall;iGrid++){
@@ -240,10 +280,17 @@ void calcKEMatrix(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,CP *
     for(jState=iState;jState<numStateUp;jState++){
       index = iState*numStateUp+jState;
       index1 = jState*numStateUp+iState;
-      keMatrixUp[index] = ddotBlasWrapper(numGridSmall,&wfTemp[0],1,&coefUpFragCoreProc[jState*numGridSmall],1)*occNum*volMini;
+      keMatrixUp[index] = ddotBlasWrapper(numGridSmall,&wfTemp[0],1,&coefUpFragCoreProc[jState*numGridSmall],1)*volMini;
+      if(jState==iState){
+	keLocal += keMatrixUp[index];
+	//printf("iState %i keLocal %lg\n",iState,keMatrixUp[index]);
+      }
       keMatrixUp[index1] = keMatrixUp[index];
     }//endfor jState
   }//endfor iState
+  printf("iFrag %i keLocal %lg\n",iFrag,keLocal);  
+  //fflush(stdout);
+  //exit(0);
 
 /*======================================================================*/
 /* III) Calculate Spin down matrix                                      */
@@ -252,28 +299,14 @@ void calcKEMatrix(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,CP *
   if(cpLsda==1&&numStateDn!=0){// spin down
     keMatrixDn = fragInfo->keMatrixDn[iFrag];
     for(iState=0;iState<numStateDn;iState++){
-      for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
-        index = iState*numCoeff+iCoeff;
-        coefForceRe[index] = 0.5*ak2Small[iCoeff]*cre_dn[index];
-        coefForceIm[index] = 0.5*ak2Small[iCoeff]*cim_dn[index];
+      for(iGrid=0;iGrid<numGridSmall;iGrid++){
+        wfTemp[iGrid] = coefDnFragProc[iState*numGrid+gridMapProcSmall[iGrid]];
       }
-      coefForceRe[iState*numCoeff+numCoeff] = 0.0;
-      coefForceIm[iState*numCoeff+numCoeff] = 0.0;
-    }
-
-    for(iState=0;iState<numStateDn;iState++){
       for(jState=iState;jState<numStateDn;jState++){
         index = iState*numStateDn+jState;
         index1 = jState*numStateDn+iState;
-        keMatrixDn[index] = 0.0;
-        for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
-          index2 = iState*numCoeff+iCoeff;
-          index3 = jState*numCoeff+iCoeff;
-          // We should have *2 here since we have CC* and C*C but the wave functions
-          // are normalized to 2, so there is another 0.5 to bring it back to normal 
-          // But don't forget to scale everything by occupied number at the end of the day
-          keMatrixDn[index] += coefForceRe[index2]*cre_dn[index3]+coefForceIm[index2]*cim_dn[index3];
-        }//endfor iCoeff
+        keMatrixDn[index] = ddotBlasWrapper(numGridSmall,&wfTemp[0],1,&coefDnFragCoreProc[jState*numGridSmall],1)*volMini;
+        if(jState==iState)keLocal += keMatrixDn[index];
         keMatrixDn[index1] = keMatrixDn[index];
       }//endfor jState
     }//endfor iState   
@@ -293,111 +326,18 @@ void calcKEMatrix(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,CP *
    fccimag[nis] = 0.0;
   }//endfor
   */
+  *ke = keLocal*occNumber;
 
 /*======================================================================*/
 /* IV) free local memories                                              */
 
-  free(coefForceRe);
-  free(coefForceIm);
+  //free(coefForceRe);
+  //free(coefForceIm);
+  free(fragInfo->rhoUpFragProc[iFrag]);
+  free(fragInfo->coefUpFragProc[iFrag]);
 
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/
 
-/*==========================================================================*/
-/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
-/*==========================================================================*/
-void genKeDensity(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,
-		  CP *cpMini)
-/*========================================================================*/
-{/*begin routine*/
-/*========================================================================*/
-/*             Local variable declarations                                */
-  CPEWALD *cpewald = &(cpMini->cpewald);
-  CPSCR *cpscr = &(cpMini->cpscr);
-  CPOPTS *cpopts = &(cpMini->cpopts);
-  CPCOEFFS_INFO *cpcoeffs_info = &(cpMini->cpcoeffs_info);
-  CPCOEFFS_POS *cpcoeffs_pos = &(cpMini->cpcoeffs_pos[1]);
-  COMMUNICATE *communicate = &(cpMini->communicate);
-  EWALD *ewald = &(generalDataMini->ewald);
-  CELL *cell = &(generalDataMini->cell);
-  STODFTINFO *stodftInfo = cp->stodftInfo;
-  FRAGINFO *fragInfo = stodftInfo->fragInfo;
-
-  int i;
-  int cp_norb         = cpopts->cp_norb;
-  int cpLsda         = cpopts->cp_lsda;
-  int myidState      = communicate->myid_state;
-  int numStateUpFrag    = cpcoeffs_info->nstate_up_proc;
-  int numStateDnFrag    = cpcoeffs_info->nstate_dn_proc;
-  int iFrag             = fragInfo->iFrag;
-
-  int *icoef_orth_up    = &(cpMini->cpcoeffs_pos[1].icoef_orth_up);
-  int *icoef_form_up    = &(cpMini->cpcoeffs_pos[1].icoef_form_up);
-  int *ifcoef_orth_up   = &(cpMini->cpcoeffs_pos[1].ifcoef_orth_up);
-  int *ifcoef_form_up   = &(cpMini->cpcoeffs_pos[1].ifcoef_form_up);
-  int *icoef_orth_dn    = &(cpMini->cpcoeffs_pos[1].icoef_orth_dn);
-  int *icoef_form_dn    = &(cpMini->cpcoeffs_pos[1].icoef_form_dn);
-  int *ifcoef_orth_dn   = &(cpMini->cpcoeffs_pos[1].ifcoef_orth_dn);
-  int *ifcoef_form_dn   = &(cpMini->cpcoeffs_pos[1].ifcoef_form_dn);
-
-  double *ccrealUpMini    = cpMini->cpcoeffs_pos[1].cre_up;
-  double *ccimagUpMini    = cpMini->cpcoeffs_pos[1].cim_up;
-  double *ccrealDnMini    = cpMini->cpcoeffs_pos[1].cre_dn;
-  double *ccimagDnMini    = cpMini->cpcoeffs_pos[1].cim_dn;
-  double *rhoUpFragProc,*rhoDnFragProc,*coefUpFragProc,*coefDnFragProc;
-
-/*======================================================================*/
-/* I) Check the forms                                                   */
-
-  if(cp_norb>0){
-    if((*icoef_orth_up)!=0){
-      printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
-      printf("Up Coefs must be in nonorthonormal form under norb \n");
-      printf("on state processor %d in cp_elec_energy_ctrl \n",myidState);
-      printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
-      fflush(stdout);
-      exit(1);
-    }/*endif*/
-    if(cpLsda==1){
-      if((*icoef_orth_dn)!=0){
-        printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
-        printf("Dn Coefs must be in nonorthonormal form under norb \n");
-        printf("on state processor %d in cp_elec_energy_ctrl \n",myidState);
-        printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
-        fflush(stdout);
-        exit(1);
-      }/*endif*/
-    }/*endif*/
-  }/*endif*/
-
-/*======================================================================*/
-/* III) Initialize Flags, inverse hmat                                  */
-
-  (*ifcoef_form_up) = 0;
-  (*ifcoef_orth_up) = 1;
-  rhoUpFragProc = fragInfo->rhoUpFragProc[iFrag];
-  coefUpFragProc = fragInfo->coefUpFragProc[iFrag];
-  if(cpLsda==1&&numStateDnFrag!=0){
-    (*ifcoef_form_dn) = 0;
-    (*ifcoef_orth_dn) = 1;
-    rhoDnFragProc = fragInfo->rhoDnFragProc[iFrag];
-    coefDnFragProc = fragInfo->coefDnFragProc[iFrag];
-  }
-
-/*======================================================================*/
-/* IV) Calculate real space wave functions and densities for fragments  */
-
-  rhoRealCalcFragWrapper(generalDataMini,cpMini,classMini,
-                     cp,ccrealUpMini,ccimagUpMini,icoef_form_up,icoef_orth_up,
-                     rhoUpFragProc,coefUpFragProc,numStateUpFrag);
-  if(cpLsda==1&&numStateDnFrag!=0){
-    rhoRealCalcFragWrapper(generalDataMini,cpMini,classMini,
-                       cp,ccrealDnMini,ccimagDnMini,icoef_form_dn,icoef_orth_dn,
-                       rhoDnFragProc,coefDnFragProc,numStateDnFrag);
-  }
-
-/*==========================================================================*/
-}/*end Routine*/
-/*==========================================================================*/
 

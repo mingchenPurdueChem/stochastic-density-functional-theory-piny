@@ -128,7 +128,9 @@ void RS(int *,int *,double [],double [],int *,double [],
 void RSG(int *,int *,double [],double [],double [],int *,double [],
          double [],double [],int *);
 
+#ifndef MKL_LAPACK
 double DDOT(int *,double *,int *,double *,int *);
+#endif
 
 void DAXPY(int *,double *,double *,int *,double *,int *);
 

@@ -79,7 +79,7 @@ void energyCorrect(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,
 	calcKECorMol(&cpMini[iFrag],&generalDataMini[iFrag],cp,&keCorProc);
 	break;
       case 3:
-	calcKECorUC(&cpMini[iFrag],&generalDataMini[iFrag],cp,&keCorProc);
+	calcKECorUC(&cpMini[iFrag],&generalDataMini[iFrag],&classMini[iFrag],cp,&keCorProc);
 	break;
     }//end switch
     
@@ -87,7 +87,6 @@ void energyCorrect(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,
 /*======================================================================*/
 /* II) Non-local pseudo potential energy and force                      */
 
-    printf("vnl_kb_flag %i\n",vnl_kb_flag);
     
     if(vnl_kb_flag==1){
       calcVnlCor(&classMini[iFrag],&cpMini[iFrag],&generalDataMini[iFrag],

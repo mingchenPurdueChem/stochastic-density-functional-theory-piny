@@ -77,8 +77,8 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /* II) SCF LOOP					                        */
   
     
-    //controlCpMinFrag(&classMini[iFrag],&bondedMini[iFrag],&generalDataMini[iFrag],
-    //                 &cpMini[iFrag],&analysisMini[iFrag]);      
+    controlCpMinFrag(&classMini[iFrag],&bondedMini[iFrag],&generalDataMini[iFrag],
+                     &cpMini[iFrag],&analysisMini[iFrag]);      
     
 
     /*

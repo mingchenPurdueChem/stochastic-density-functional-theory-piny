@@ -951,6 +951,7 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     numGrid = numGridFragProc[iFrag];
     numGridSmall = numGridFragProcSmall[iFrag];
     numStateUpMini = cpMini[iFrag].cpcoeffs_info.nstate_up_proc;
+    numStateDnMini = cpMini[iFrag].cpcoeffs_info.nstate_dn_proc;
     fragInfo->rhoUpFragProc[iFrag] = (double*)cmalloc(numGrid*sizeof(double));
     fragInfo->coefUpFragProc[iFrag] = (double*)cmalloc(numStateUpMini*numGrid*sizeof(double));
     coefUpFragCoreProc[iFrag] = (double*)cmalloc(numStateUpMini*numGridSmall*sizeof(double));
@@ -962,17 +963,20 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     }
 
     rhoRealCalcDriverFragMol(&generalDataMini[iFrag],&cpMini[iFrag],&classMini[iFrag],cp);
-    numGrid = numGridFragProcSmall[iFrag];
-    for(iGrid=0;iGrid<numGrid;iGrid++){
+    for(iGrid=0;iGrid<numGridSmall;iGrid++){
       rhoTemp[gridMapProc[iFrag][gridMapProcSmall[iFrag][iGrid]]] +=
                 rhoUpFragProc[iFrag][gridMapProcSmall[iFrag][iGrid]];
     }//endfor iGrid
-    for(iGrid=0;iGrid<numGridSmall;iGrid++){
-      coefUpFragCoreProc[iFrag][iGrid] = coefUpFragProc[iFrag][gridMapProcSmall[iFrag][iGrid]];
+    for(iState=0;iState<numStateUpMini;iState++){
+      for(iGrid=0;iGrid<numGridSmall;iGrid++){
+	coefUpFragCoreProc[iFrag][iState*numGridSmall+iGrid] = coefUpFragProc[iFrag][iState*numGrid+gridMapProcSmall[iFrag][iGrid]];
+      }
     }
     if(cpLsda==1&&numStateDn!=0){
-      for(iGrid=0;iGrid<numGridSmall;iGrid++){
-	coefDnFragCoreProc[iFrag][iGrid] = coefDnFragProc[iFrag][gridMapProcSmall[iFrag][iGrid]];
+      for(iState=0;iState<numStateDnMini;iState++){
+	for(iGrid=0;iGrid<numGridSmall;iGrid++){
+	  coefDnFragCoreProc[iFrag][iState*numGridSmall+iGrid] = coefDnFragProc[iFrag][iState*numGrid+gridMapProcSmall[iFrag][iGrid]];
+	}
       }
     }
     free(fragInfo->rhoUpFragProc[iFrag]);

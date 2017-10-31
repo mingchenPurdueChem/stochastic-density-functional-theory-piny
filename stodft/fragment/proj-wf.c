@@ -1114,6 +1114,7 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   //memcpy(&(cp->cpcoeffs_pos[1].cim_up[1]),&(stodftCoefPos->wfDetBackupUpIm[0]),numStateUpProc*numCoeff*sizeof(double));
   
 #ifdef DMAT
+  printf("Test Density Matrix\n");
   int iCoeff;
   for(iCoeff=0;iCoeff<numStateUpProc*numCoeff;iCoeff++){
     cp->cpcoeffs_pos[1].cre_up[iCoeff+1] = stodftCoefPos->wfDetBackupUpRe[iCoeff];

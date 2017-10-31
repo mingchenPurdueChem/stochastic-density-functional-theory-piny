@@ -89,6 +89,7 @@ void calcKECorUC(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,
     }
   }
   */
+  printf("wfProjUp %lg %lg %lg\n",wfProjUp[0],wfProjUp[1],wfProjUp[2]);
   temp = (double*)cmalloc(numStateUp*sizeof(double));
   keCorUp = 0.0;
   for(iStoc=0;iStoc<numStateStoUp;iStoc++){
@@ -194,7 +195,7 @@ void calcKEMatrixUC(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,
   //coefForceRe = (double*)cmalloc((numAlloc+1)*sizeof(double));
   //coefForceIm = (double*)cmalloc((numAlloc+1)*sizeof(double));
   //debug
-  /*
+  
   coefUpTemp = (double*)cmalloc(numStateUp*numGrid*sizeof(double));
   if(cpLsda==1&&numStateDn!=0)coefDnTemp = (double*)cmalloc(numStateUp*numGrid*sizeof(double));
 
@@ -202,7 +203,7 @@ void calcKEMatrixUC(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,
   
   memcpy(coefUpTemp,coefUpFragProc,numStateUp*numGrid*sizeof(double));
   if(cpLsda==1&&numStateDn!=0)memcpy(coefDnTemp,coefDnFragProc,numStateUp*numGrid*sizeof(double));
-  */
+  
 
 /*======================================================================*/
 /* II) Calculate kinetic energy density                                 */
@@ -272,7 +273,20 @@ void calcKEMatrixUC(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,
   }
   printf("testke %lg\n",test*2.0);
   */
+  //debug
+  for(iState=0;iState<numStateUp;iState++){
+    for(jState=iState;jState<numStateUp;jState++){
+      index = iState*numStateUp+jState;
+      index1 = jState*numStateUp+iState;
+      keMatrixUp[index] = ddotBlasWrapper(numGrid,&coefUpFragProc[iState*numGrid],1,&coefUpTemp[jState*numGrid],1)*volMini;	
+      if(jState==iState)keLocal += keMatrixUp[index];
+    }
+    keMatrixUp[index1] = keMatrixUp[index];
+  } 
+  printf("iFrag %i keLocal %lg\n",iFrag,keLocal);
+  printf("keMatrixUp %lg %lg\n",keMatrixUp[0],keMatrixUp[1]);
 
+  /*
   for(iState=0;iState<numStateUp;iState++){
     for(iGrid=0;iGrid<numGridSmall;iGrid++){
       wfTemp[iGrid] = coefUpFragProc[iState*numGrid+gridMapProcSmall[iGrid]];
@@ -291,6 +305,7 @@ void calcKEMatrixUC(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,
   printf("iFrag %i keLocal %lg\n",iFrag,keLocal);  
   //fflush(stdout);
   //exit(0);
+  */
 
 /*======================================================================*/
 /* III) Calculate Spin down matrix                                      */

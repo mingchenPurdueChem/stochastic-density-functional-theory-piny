@@ -1266,6 +1266,7 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 	    //wfFragTemp[iGrid] = coefUpFragProc[iFrag][iGrid];
 	  }
 	  for(iGrid=0;iGrid<numGridSmall;iGrid++)rhoFragTemp[iGrid] = 0.0;
+	  //double testsum = 0.0;
 	  for(iStateFrag=0;iStateFrag<numStateUpMini;iStateFrag++){
 	    //proj = ddotBlasWrapper(numGrid,&wfFragTemp[0],1,&coefUpFragProc[iFrag][iStateFrag*numGrid],1);
 	    proj = 0.0;
@@ -1277,7 +1278,9 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 	    for(iGrid=0;iGrid<numGridSmall;iGrid++){
 	      rhoFragTemp[iGrid] += proj*coefUpFragProc[iFrag][iStateFrag*numGrid+gridMapProcSmall[iFrag][iGrid]];
 	    }
+	    //testsum += proj*coefUpFragProc[iFrag][iStateFrag*numGrid+gridMapProcSmall[iFrag][0]];
 	  }//endfor iStateFrag
+	  //printf("iFrag %i testsum %lg\n",iFrag,testsum*testsum);
 	  for(iGrid=0;iGrid<numGridSmall;iGrid++){
 	    gridIndex = gridMapProc[iFrag][gridMapProcSmall[iFrag][iGrid]];
 	    rhoTemp[gridIndex] += rhoFragTemp[iGrid]*rhoFragTemp[iGrid];

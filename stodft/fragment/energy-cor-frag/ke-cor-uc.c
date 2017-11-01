@@ -274,6 +274,8 @@ void calcKEMatrixUC(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,
   printf("testke %lg\n",test*2.0);
   */
   //debug
+  
+  /*
   for(iState=0;iState<numStateUp;iState++){
     for(jState=iState;jState<numStateUp;jState++){
       index = iState*numStateUp+jState;
@@ -284,9 +286,10 @@ void calcKEMatrixUC(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,
     keMatrixUp[index1] = keMatrixUp[index];
   } 
   printf("iFrag %i keLocal %lg\n",iFrag,keLocal);
-  printf("keMatrixUp %lg %lg\n",keMatrixUp[0],keMatrixUp[1]);
+  printf("keMatrixUp %lg %lg\n",keMatrixUp[0],keMatrixUp[127]);
+  */
 
-  /*
+  
   for(iState=0;iState<numStateUp;iState++){
     for(iGrid=0;iGrid<numGridSmall;iGrid++){
       wfTemp[iGrid] = coefUpFragProc[iState*numGrid+gridMapProcSmall[iGrid]];
@@ -299,13 +302,13 @@ void calcKEMatrixUC(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,
 	keLocal += keMatrixUp[index];
 	//printf("iState %i keLocal %lg\n",iState,keMatrixUp[index]);
       }
-      keMatrixUp[index1] = keMatrixUp[index];
+      else keMatrixUp[index1] = keMatrixUp[index];
     }//endfor jState
   }//endfor iState
   printf("iFrag %i keLocal %lg\n",iFrag,keLocal);  
   //fflush(stdout);
   //exit(0);
-  */
+  
 
 /*======================================================================*/
 /* III) Calculate Spin down matrix                                      */

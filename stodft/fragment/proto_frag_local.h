@@ -27,7 +27,7 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *,CP *,CLASS *,
                         CP *,double *,double *,int*,int*,double *,double *,int);
 
 void energyCorrect(CP *,GENERAL_DATA *,CLASS *,CP *,CLASS *,int);
-void calcKECor(CP *,GENERAL_DATA *,CP *,double *);
+void calcKECorMol(CP *,GENERAL_DATA *,CP *,double *);
 void calcKEMatrix(CP *,CP *);
 void calcVnlCor(CLASS *, CP *,GENERAL_DATA *,CP *,CLASS *,double *,double *,
                 double *,double *);

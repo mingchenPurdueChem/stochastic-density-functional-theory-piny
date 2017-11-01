@@ -1232,6 +1232,8 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   if(res==0)numFragProcMax = div;
   else numFragProcMax = div+1;
 
+  //debug, output all wf filtered by frag wf
+  double *stowffrag = (double*)cmalloc(numStateUpAllProc[0]*rhoRealGridTot*sizeof(double));
   for(iFrag=0;iFrag<numFragProcMax;iFrag++){
     printf("iiiiiFrag %i\n",iFrag);
     if(iFrag<numFragProc){
@@ -1276,10 +1278,15 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 	    fragInfo->wfProjUp[iFrag][countWf*numStateUpMini+iStateFrag] = proj*preDot*volMini;
 	    //daxpyBlasWrapper(numGrid,proj,&coefUpFragProc[iFrag][iStateFrag*numGrid],1,&rhoFragTemp[0],1);
 	    for(iGrid=0;iGrid<numGridSmall;iGrid++){
-	      rhoFragTemp[iGrid] += proj*coefUpFragProc[iFrag][iStateFrag*numGrid+gridMapProcSmall[iFrag][iGrid]];
+	      rhoFragTemp[iGrid] += proj*coefUpFragProc[iFrag][iStateFrag*numGrid+gridMapProcSmall[iFrag][iGrid]]*volMini;
 	    }
 	    //testsum += proj*coefUpFragProc[iFrag][iStateFrag*numGrid+gridMapProcSmall[iFrag][0]];
 	  }//endfor iStateFrag
+	  //debug
+	  for(iGrid=0;iGrid<numGridSmall;iGrid++){
+	    gridIndex = gridMapProc[iFrag][gridMapProcSmall[iFrag][iGrid]];
+	    stowffrag[iState*rhoRealGridTot+gridIndex] = rhoFragTemp[iGrid];
+	  }
 	  //printf("iFrag %i testsum %lg\n",iFrag,testsum*testsum);
 	  for(iGrid=0;iGrid<numGridSmall;iGrid++){
 	    gridIndex = gridMapProc[iFrag][gridMapProcSmall[iFrag][iGrid]];
@@ -1305,6 +1312,18 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     exit(0);
     */
   }//endfor iFrag
+
+  char name[100];
+  FILE *fstowf;
+  for(iState=0;iState<numStateUpAllProc[0];iState++){
+    sprintf(name,"stowf-frag-%i",iState);
+    fstowf = fopen(name,"w");
+    for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+      fprintf(fstowf,"%.16lg\n",stowffrag[iState*rhoRealGridTot+iGrid]);
+    }
+    fclose(fstowf);
+  }
+  
   if(numProcStates>1){
     Barrier(commStates);
     Reduce(rhoTemp,rhoTempReduce,rhoRealGridTot,MPI_DOUBLE,MPI_SUM,0,commStates);

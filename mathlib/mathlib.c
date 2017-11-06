@@ -594,6 +594,17 @@ double dsymvWrapper(char uplo,int n, double alpha,double *A,int lda,double *x,in
 
 }
 
+/*========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*========================================================================*/
+double dgemvWrapper(char trans,int m,int n, double alpha,double *A,int lda,double *x,int incx,
+                    double beta,double *y,int incy)
+{
+  dgemv_(&trans,&m,&n,&alpha,A,&lda,x,&incx,&beta,y,&incy);
+
+}
+
+
 /*===============================================================*/
 /*ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*===============================================================*/

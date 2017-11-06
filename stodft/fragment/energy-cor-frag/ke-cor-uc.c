@@ -89,11 +89,12 @@ void calcKECorUC(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,
     }
   }
   */
+  //debug
   printf("wfProjUp %lg %lg %lg\n",wfProjUp[0],wfProjUp[1],wfProjUp[2]);
   temp = (double*)cmalloc(numStateUp*sizeof(double));
   keCorUp = 0.0;
   for(iStoc=0;iStoc<numStateStoUp;iStoc++){
-    dsymvWrapper('U',numStateUp,1.0,keMatrixUp,numStateUp,&wfProjUp[iStoc*numStateUp],1,0.0,temp,1);
+    dgemvWrapper('T',numStateUp,numStateUp,1.0,keMatrixUp,numStateUp,&wfProjUp[iStoc*numStateUp],1,0.0,temp,1);
     keCorUp += ddotBlasWrapper(numStateUp,temp,1,&wfProjUp[iStoc*numStateUp],1);
   }
   keCorUp /= numStateStoUp;
@@ -104,7 +105,7 @@ void calcKECorUC(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,
     wfProjDn = fragInfo->wfProjDn[iFrag];
     temp = (double*)cmalloc(numStateDn*sizeof(double));
     for(iStoc=0;iStoc<numStateStoDn;iStoc++){
-      dsymvWrapper('U',numStateDn,1.0,keMatrixDn,numStateDn,&wfProjDn[iStoc*numStateDn],1,0.0,temp,1);
+      dgemvWrapper('T',numStateDn,numStateDn,1.0,keMatrixDn,numStateDn,&wfProjDn[iStoc*numStateDn],1,0.0,temp,1);
       keCorDn += ddotBlasWrapper(numStateDn,temp,1,&wfProjDn[iStoc*numStateDn],1);
     }
     keCorDn /= numStateStoDn;
@@ -151,6 +152,7 @@ void calcKEMatrixUC(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,
   int numGridSmall = fragInfo->numGridFragProcSmall[iFrag];
   int occNumber = stodftInfo->occNumber;
 
+  int *gridMapProc         = fragInfo->gridMapProc[iFrag];
   int *gridMapProcSmall    = fragInfo->gridMapProcSmall[iFrag];
 
   double tpi = 2.0*M_PI;
@@ -210,6 +212,102 @@ void calcKEMatrixUC(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,
 
   keMatrixUp = fragInfo->keMatrixUp[iFrag];
   keLocal = 0;
+
+  //debug
+  /*
+  CPEWALD *cpewald = &(cpMini->cpewald);
+  CPSCR *cpscr = &(cpMini->cpscr);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm = &(cpMini->cp_sclr_fft_pkg3d_sm);
+  CELL *cell = &(generalDataMini->cell);
+
+  int numStateStoUp = stodftInfo->numStateStoUp;
+  int rhoRealGridTot = stodftInfo->rhoRealGridTot;
+  int istowf,gridInd;
+  int fftw3dFlag = 0;
+  char name[100];
+  FILE *filestowf;
+  double ke_frag = 0.0;
+  double *stowf_frag_re = (double*)calloc((numCoeff+1),sizeof(double));
+  double *stowf_frag_im = (double*)calloc((numCoeff+1),sizeof(double));
+  double *ked_frag_re = (double*)calloc((numCoeff+1),sizeof(double));
+  double *ked_frag_im = (double*)calloc((numCoeff+1),sizeof(double));
+  double *zfft = cpscr->cpscr_wave.zfft;
+  double *zfft_tmp = cpscr->cpscr_wave.zfft_tmp;
+  double *wfProjUp = fragInfo->wfProjUp[iFrag];
+  double *ak2_sm  =  cpewald->ak2_sm;
+  double *stowf_real = (double*)calloc(numGridSmall,sizeof(double));
+  double *ked_real = (double*)calloc(numGridSmall,sizeof(double));
+  double *hmat_cp = cell->hmat_cp;
+  double vol = getdeth(hmat_cp);
+
+  volMini = vol/rhoRealGridTot;
+  
+  for(istowf=0;istowf<numStateStoUp;istowf++){
+    for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+      stowf_frag_re[iCoeff] = 0.0;
+      stowf_frag_im[iCoeff] = 0.0;
+    }
+    for(iState=0;iState<numStateUp;iState++){
+      for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+	stowf_frag_re[iCoeff] += wfProjUp[istowf*numStateUp+iState]*cre_up[iState*numCoeff+iCoeff];
+	stowf_frag_im[iCoeff] += wfProjUp[istowf*numStateUp+iState]*cim_up[iState*numCoeff+iCoeff];      
+      }
+      //if(istowf==0)printf("stowf_frag_re %lg %lg\n",stowf_frag_re[1],stowf_frag_im[1]);
+    }
+    //printf("wfProjUp %lg\n",wfProjUp[0]);
+    //if(istowf==0){
+    //  for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+    //	printf("iFrag %i stowf_frag_re %lg %lg\n",iFrag,stowf_frag_re[iCoeff],stowf_frag_im[iCoeff]);
+    //  }
+    //}
+    for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
+      ked_frag_re[iCoeff] = 0.5*ak2_sm[iCoeff]*stowf_frag_re[iCoeff];
+      ked_frag_im[iCoeff] = 0.5*ak2_sm[iCoeff]*stowf_frag_im[iCoeff];
+    }
+    ked_frag_re[numCoeff] = 0.0;
+    ked_frag_im[numCoeff] = 0.0;
+    if(fftw3dFlag==0){
+      sngl_pack_coef(&stowf_frag_re[0],&stowf_frag_im[0],zfft,cp_sclr_fft_pkg3d_sm);
+    }
+    else{
+      sngl_pack_coef_fftw3d(&stowf_frag_re[0],&stowf_frag_im[0],zfft,cp_sclr_fft_pkg3d_sm);
+    }
+    if(fftw3dFlag==0)para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+    else para_fft_gen3d_fwd_to_r_fftw3d(zfft,cp_sclr_fft_pkg3d_sm);
+    for(iGrid=0;iGrid<numGridSmall;iGrid++){
+      gridInd = gridMapProcSmall[iGrid];
+      stowf_real[iGrid] = zfft[2*gridInd+1];
+    }
+    //printf("stowf_real %lg\n",stowf_real[0]);
+    if(fftw3dFlag==0){
+      sngl_pack_coef(&ked_frag_re[0],&ked_frag_im[0],zfft,cp_sclr_fft_pkg3d_sm);
+    }
+    else{
+      sngl_pack_coef_fftw3d(&ked_frag_re[0],&ked_frag_im[0],zfft,cp_sclr_fft_pkg3d_sm);
+    }
+    if(fftw3dFlag==0)para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+    else para_fft_gen3d_fwd_to_r_fftw3d(zfft,cp_sclr_fft_pkg3d_sm);
+    for(iGrid=0;iGrid<numGridSmall;iGrid++){
+      gridInd = gridMapProcSmall[iGrid];
+      ked_real[iGrid] += zfft[2*gridInd+1]*stowf_real[iGrid];
+    }
+  }
+  for(iGrid=0;iGrid<numGridSmall;iGrid++)ke_frag += ked_real[iGrid]/vol;
+  printf("iFrag %i ke_frag %lg\n",iFrag,ke_frag*volMini/numStateStoUp);
+  sprintf(name,"ked-frag-%i",iFrag);
+  filestowf = fopen(name,"w");
+  for(iGrid=0;iGrid<numGridSmall;iGrid++){
+    fprintf(filestowf,"%.8lg\n",ked_real[iGrid]/numStateStoUp);
+  }
+  fclose(filestowf);
+  free(ked_frag_re);
+  free(ked_frag_im);
+  free(stowf_frag_re);
+  free(stowf_frag_im);
+  free(stowf_real);
+  free(ked_real);
+  */
+
 
   //printf("cre %lg\n",cre_up[1]);
   //printf("ak2Small %lg\n",ak2Small[1]);
@@ -294,7 +392,8 @@ void calcKEMatrixUC(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,
     for(iGrid=0;iGrid<numGridSmall;iGrid++){
       wfTemp[iGrid] = coefUpFragProc[iState*numGrid+gridMapProcSmall[iGrid]];
     }
-    for(jState=iState;jState<numStateUp;jState++){
+    //for(jState=iState;jState<numStateUp;jState++){
+    for(jState=0;jState<numStateUp;jState++){
       index = iState*numStateUp+jState;
       index1 = jState*numStateUp+iState;
       keMatrixUp[index] = ddotBlasWrapper(numGridSmall,&wfTemp[0],1,&coefUpFragCoreProc[jState*numGridSmall],1)*volMini;
@@ -302,10 +401,19 @@ void calcKEMatrixUC(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,
 	keLocal += keMatrixUp[index];
 	//printf("iState %i keLocal %lg\n",iState,keMatrixUp[index]);
       }
-      else keMatrixUp[index1] = keMatrixUp[index];
+      //else keMatrixUp[index1] = keMatrixUp[index];
     }//endfor jState
   }//endfor iState
+  /*
+  for(iState=0;iState<numStateUp;iState++){
+    for(jState=iState;jState<numStateUp;jState++){
+      index = iState*numStateUp+jState;
+      index1 = jState*numStateUp+iState;
+      printf("iState %i jState %i keMatrixUp %lg %lg\n",iState,jState,keMatrixUp[index],keMatrixUp[index1]);
+    }
+  }
   printf("iFrag %i keLocal %lg\n",iFrag,keLocal);  
+  */
   //fflush(stdout);
   //exit(0);
   

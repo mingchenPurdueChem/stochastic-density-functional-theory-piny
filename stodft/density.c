@@ -77,8 +77,8 @@ void rhoCalcRealStoHybrid(CPSCR *cpscr,
   double *hmati_cp       =    cell->hmati_cp;
   double *hmat_cp        =    cell->hmat_cp;
   //debug
-  char name[100];
-  FILE *fstowf;
+  //char name[100];
+  //FILE *fstowf;
 
   MPI_Comm comm_states   =    communicate->comm_states;
 
@@ -161,6 +161,7 @@ void rhoCalcRealStoHybrid(CPSCR *cpscr,
     }else{
       sum_rho(zfft,rho_scr,cp_sclr_fft_pkg3d_lg);
     }/*endif cp_dual_grid_opt*/
+    /*
     sprintf(name,"stowf-%i",is-1);
     fstowf = fopen(name,"w");
     for(i=1;i<=nfft2;i++)fprintf(fstowf,"%.16lg\n",-zfft[2*i-1]);
@@ -169,6 +170,7 @@ void rhoCalcRealStoHybrid(CPSCR *cpscr,
     fstowf = fopen(name,"w");
     for(i=1;i<=nfft2;i++)fprintf(fstowf,"%.16lg\n",-zfft[2*i]);
     fclose(fstowf);
+    */
   }/*endfor is*/
 
 /*--------------------------------------------------------------------------*/

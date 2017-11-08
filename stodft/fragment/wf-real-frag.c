@@ -109,7 +109,7 @@ void rhoRealCalcDriverFragMol(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *cl
   //gethinv(cell->hmat,cell->hmati,&(cell->vol),iperd);
 
   //debug
-
+  /*
   if(stodftInfo->stodftOn!=-1){
     char name[100];
     FILE *fwf;
@@ -135,7 +135,7 @@ void rhoRealCalcDriverFragMol(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *cl
     }
     fclose(fwf);
   }
-  
+  */
 
 /*======================================================================*/
 /* IV) Calculate real space wave functions and densities for fragments  */

@@ -71,8 +71,8 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   generalDataMini->ensopts.nst = general_data->ensopts.nst;
   /* 3) \num_time_step */
   //debug
-  //generalDataMini->timeinfo.ntime = general_data->timeinfo.ntime;
-  generalDataMini->timeinfo.ntime = 1;
+  generalDataMini->timeinfo.ntime = general_data->timeinfo.ntime;
+  //generalDataMini->timeinfo.ntime = 1;
   //generalDataMini->timeinfo.ntime = 2;
   /* 4) \time_step */ 
   generalDataMini->timeinfo.dt = general_data->timeinfo.dt;

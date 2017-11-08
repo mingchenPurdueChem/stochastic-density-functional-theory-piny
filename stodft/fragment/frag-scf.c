@@ -143,7 +143,6 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     projRhoMiniMol(cp,general_data,class,cpMini,generalDataMini,classMini,ip_now);
   }
   if(fragOpt==3){
-    printf("11111111111111111\n");
     projRhoMiniUnitCell(cp,general_data,class,cpMini,generalDataMini,classMini,ip_now);
   }
   //fflush(stdout);

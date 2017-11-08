@@ -1354,6 +1354,7 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   daxpyBlasWrapper(rhoRealGridNum,-pre,&rhoTemp[0],1,&rhoUpFragSum[0],1);
   if(numProcStates>1)Barrier(commStates);
   
+  /*
   for(iProc=0;iProc<numProcStates;iProc++){
     if(myidState==iProc){
       for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
@@ -1362,6 +1363,7 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     }
     if(numProcStates>1)Barrier(commStates);
   }
+  */
   
   //fflush(stdout);
   //exit(0);

@@ -1444,13 +1444,14 @@ void calcRhoStoHybridCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
   if(calcFragFlag==1){
     rhoUpFragSum =  fragInfo->rhoUpFragSum;
     //debug
-    
+    /*
     for(iProc=0;iProc<numProcStates;iProc++){
       if(myidState==iProc){
         for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)printf("rhostooooo %lg %lg %lg\n",rhoUpCorrect[iGrid],rhoUpFragSum[iGrid],rhoUpCorrect[iGrid]+rhoUpFragSum[iGrid]);
       }
       if(numProcStates>1)Barrier(commStates);
     }
+    */
     
     for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)rhoUpCorrect[iGrid] += rhoUpFragSum[iGrid];
     if(cpLsda==1&&numStateDnProc!=0){

@@ -85,6 +85,12 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 
   double *expanCoeff = (double*)stodftCoefPos->expanCoeff;
   double timeStart,timeEnd; 
+
+  // performance
+  stodftInfo->cputime1 = 0.0;
+  stodftInfo->cputime2 = 0.0;
+  stodftInfo->cputime3 = 0.0;
+
  
 //debug
 /*  
@@ -163,6 +169,8 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   if(myidState==0){
     printf("Total Filter time is %lg\n",timeTot);
     printf("0th process filter time is %lg\n",timeProc);
+    printf("non-local pp time %.8lg\n",stodftInfo->cputime1);
+    printf("calc force(fft) time %.8lg\n",stodftInfo->cputime2);
   }
   //debug
   /*

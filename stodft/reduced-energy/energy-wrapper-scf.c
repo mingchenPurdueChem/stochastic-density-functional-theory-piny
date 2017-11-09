@@ -925,9 +925,11 @@ void calcCoefForceWrapSCF(CLASS *class,GENERAL_DATA *general_data,
   int cpDualGridOptOn  = cpopts->cp_dual_grid_opt;
   int iState,iCoeff,iCoeffStart,index1,index2;
   int cpMinOn = 0; //I don't want to calculate cp_hess
+  int myidState = communicate->myid_state;
 
   int ncoef_l         =    cp_para_fft_pkg3d_lg->ncoef_proc;
   int ncoef_l_dens_cp_box = cp_para_fft_pkg3d_dens_cp_box->ncoef_proc;
+  double time_st,time_end;
 
   double *fcre_up = cpcoeffs_pos->fcre_up;
   double *fcim_up = cpcoeffs_pos->fcim_up;
@@ -975,8 +977,15 @@ void calcCoefForceWrapSCF(CLASS *class,GENERAL_DATA *general_data,
   //calcCoefForceExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos); //nl ps
   //calcCoefForceForceControlWrapSCF(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
 
+  cputime(&time_st);
   calcNonLocalPseudoScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+  cputime(&time_end);
+  stodftInfo->cputime1 += time_end-time_st;
+
+  cputime(&time_st);
   calcCoefForceScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+  cputime(&time_end);
+  stodftInfo->cputime2 += time_end-time_st;
 
 /*==========================================================================*/
 }/*end Routine*/

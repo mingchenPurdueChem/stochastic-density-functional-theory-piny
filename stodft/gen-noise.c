@@ -251,7 +251,7 @@ void genNoiseOrbitalReal(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
 #endif
 #ifndef MKL_RANDOM
   double seedNew = randNumSeedTot[myidState];
-  printf("proc %i seed %lg\n",myidState,seedNew);
+  //printf("proc %i seed %lg\n",myidState,seedNew);
   int iseedNew;
   gaussran2(numRandNum,&iseedNew,&iseedNew,&seedNew,randNum);
 #endif

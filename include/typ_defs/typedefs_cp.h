@@ -729,6 +729,8 @@ typedef struct stodftInfo{
   
   NEWTONINFO *newtonInfo;
   CHEBYSHEVINFO *chebyshevInfo;
+  /* Monitering performance */
+  double cputime1,cputime2,cputime3;
   
 }STODFTINFO;
 

@@ -383,6 +383,7 @@ void genStoOrbitalCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     *forceFormDn = 0;
     cpcoeffs_pos->ifcoef_orth_dn = 1;
   }
+  stodftInfo->filterFlag = 1;
 
 /*======================================================================*/
 /* II) Calculate Emax and Emin                                          */
@@ -390,6 +391,7 @@ void genStoOrbitalCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   //if(myidState==0){
   genEnergyMax(cp,class,general_data,cpcoeffs_pos,clatoms_pos);
   genEnergyMin(cp,class,general_data,cpcoeffs_pos,clatoms_pos);
+  
   //}
   if(numProcStates>1){
     Barrier(commStates);
@@ -488,6 +490,7 @@ void genStoOrbitalCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       filterNewtonPolyHerm(cp,class,general_data,ip_now);
       break;
   }
+  stodftInfo->filterFlag = 0;
 //debug print wave function
   //Barrier(commStates);
   /*

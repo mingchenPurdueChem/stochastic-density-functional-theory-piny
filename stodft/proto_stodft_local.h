@@ -132,6 +132,17 @@ void getNlPotPvFatmSCF(CLATOMS_INFO *,CLATOMS_POS *,CELL *,CPCOEFFS_INFO *,CPSCR
                        EWD_SCR *,CPOPTS *,PSEUDO *,ATOMMAPS *,double *,int,double *);
 void sumNlPot(int,int,int,int,int,int,int,int,int,
               int *,double *,double *,double *,double *);
+void controlEwdNonlocFilter(CLATOMS_INFO *,CLATOMS_POS *,CPCOEFFS_INFO *,CPCOEFFS_POS *,
+                      CELL *, PTENS *, CPEWALD *,CPSCR *, PSEUDO *, EWD_SCR *,
+                      CPOPTS *, ATOMMAPS *,COMMUNICATE *,FOR_SCR *);
+void controlNlmatFilter(CLATOMS_INFO *,CPCOEFFS_INFO *,CPCOEFFS_POS *,
+                   CPSCR *,CPOPTS *,PSEUDO *,EWD_SCR *,ATOMMAPS *,
+                   int ,int ,int *,double ,double ,double ,double ,
+                   int ,YLM_CONS *);
+void getNlmatFilter(int,int,int,int,int,int,int,int,int,
+               double *,double *,double *,double *,double *,double *,
+               double,double,double,double,double,double ,double *,double *);
+void getYlmOnly(double,double,double,double,double *,double *,YLM_CONS *);
 /*-----------------------------------------------------------------*/
 /* energy-wrapper-scf.c                                            */
 void calcLocalPseudoScf(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS  *,CLATOMS_POS *);

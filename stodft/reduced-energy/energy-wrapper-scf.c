@@ -181,6 +181,7 @@ void calcNonLocalPseudoScf(CLASS *class,GENERAL_DATA *general_data,
   int np_states   = communicate->np_states;
   int np_forc     = communicate->np_forc;
   int ncoef	  = cpcoeffs_info->ncoef;
+  int filterFlag = stodftInfo->filterFlag;
 
   MPI_Comm comm_states = communicate->comm_states;
 
@@ -253,6 +254,9 @@ void calcNonLocalPseudoScf(CLASS *class,GENERAL_DATA *general_data,
   double *fcim_dn = cpcoeffs_pos->fcim_dn;
 
   double *cp_enl_ret = &(stat_avg->cp_enl);
+
+  // test performance
+  double time_st,time_end;
 
 /*======================================================================*/
 /* II) Malloc a hessian scratch vector if necessary                     */
@@ -373,23 +377,40 @@ void calcNonLocalPseudoScf(CLASS *class,GENERAL_DATA *general_data,
 
 /*-------------------------------------------------------------------------*/
 /* A) KB/Goedecker NLs */
-
+  
+  cputime(&time_st);  
   if( (nl_max_kb >= 0) && ((ntot_up+ntot_dn)>0) ){
-    control_ewd_non_loc(clatoms_info,clatoms_pos,cpcoeffs_info,cpcoeffs_pos,
+    if(filterFlag==1){
+      controlEwdNonlocFilter(clatoms_info,clatoms_pos,cpcoeffs_info,cpcoeffs_pos,
                         cell,ptens,cpewald,cpscr,pseudo,ewd_scr,
                         cpopts,atommaps,communicate,for_scr);
+    }
+    else{
+      control_ewd_non_loc(clatoms_info,clatoms_pos,cpcoeffs_info,cpcoeffs_pos,
+                        cell,ptens,cpewald,cpscr,pseudo,ewd_scr,
+                        cpopts,atommaps,communicate,for_scr);
+    }
   }else{
     get_ak2_sm(cpewald,cell);
   }/*endif*/
+  cputime(&time_end);
+  stodftInfo->cputime3 += time_end-time_st;
   
   if((nl_max_kb >= 0)&&((ntot_up+ntot_dn)>0)&&(pseudo->np_nonloc_cp_box_kb>0) ){
+
+    cputime(&time_st);
     getNlPotPvFatmSCF(clatoms_info,clatoms_pos,cell,cpcoeffs_info,
                       cpscr,ewd_scr,cpopts,pseudo,atommaps,&cp_enl,
                       np_nlmax_kb,pvten);
+    cputime(&time_end);
+    stodftInfo->cputime4 += time_end-time_st;
+    cputime(&time_st);
     getnl_fcoef(clatoms_info,clatoms_pos,cpcoeffs_info,cpcoeffs_pos,
                   cpscr,ewd_scr,cpopts,pseudo,cpewald,atommaps,
                   cell,np_nlmax_kb,pvten,for_scr);
-
+    cputime(&time_end);
+    stodftInfo->cputime5 += time_end-time_st;
+    
   }/*endif*/
 
 /*-------------------------------------------------------------------------*/

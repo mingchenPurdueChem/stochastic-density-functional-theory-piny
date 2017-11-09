@@ -730,7 +730,9 @@ typedef struct stodftInfo{
   NEWTONINFO *newtonInfo;
   CHEBYSHEVINFO *chebyshevInfo;
   /* Monitering performance */
-  double cputime1,cputime2,cputime3;
+  int filterFlag;		    /* Opt:Use simplied energy routine for      */
+				    /*	   massive H|phi> calculations		*/
+  double cputime1,cputime2,cputime3,cputime4,cputime5,cputime6;
   
 }STODFTINFO;
 

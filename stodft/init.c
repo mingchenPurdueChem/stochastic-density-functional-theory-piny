@@ -848,11 +848,12 @@ void reInitWaveFunMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     stodftCoefPos->stoWfUpIm[iChem] = (double*)cmalloc(numStateUpTot*sizeof(double))-1;
   }
   if(cpLsda==1&&numStateDnProc!=0){
-    stodftCoefPos->stoWfUpRe = (double**)cmalloc(numChemPot*sizeof(double*));
-    stodftCoefPos->stoWfUpIm = (double**)cmalloc(numChemPot*sizeof(double*));
+    //printf("11111111111111111\n");
+    stodftCoefPos->stoWfDnRe = (double**)cmalloc(numChemPot*sizeof(double*));
+    stodftCoefPos->stoWfDnIm = (double**)cmalloc(numChemPot*sizeof(double*));
     for(iChem=0;iChem<numChemPot;iChem++){
-      stodftCoefPos->stoWfDnRe[iChem] = (double*)cmalloc(numStateUpTot*sizeof(double))-1;
-      stodftCoefPos->stoWfDnIm[iChem] = (double*)cmalloc(numStateUpTot*sizeof(double))-1;
+      stodftCoefPos->stoWfDnRe[iChem] = (double*)cmalloc(numStateDnTot*sizeof(double))-1;
+      stodftCoefPos->stoWfDnIm[iChem] = (double*)cmalloc(numStateDnTot*sizeof(double))-1;
     }//endfor iChem
   }//endif
 

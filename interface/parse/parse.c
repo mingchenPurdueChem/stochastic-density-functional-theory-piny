@@ -377,6 +377,7 @@ void parse(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
 
    if(myid_state<np_states){
+    //printf("11111111111 typ %i\n",class->atommaps.iatm_atm_typ[63]);
     control_vps_params(&(cp->pseudo),&(general_data->cell),&filename_parse,
                        &spline_parse,class->atommaps.natm_typ,
                        class->atommaps.atm_typ,

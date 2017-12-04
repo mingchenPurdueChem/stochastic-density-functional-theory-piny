@@ -56,7 +56,7 @@ void control_vps_params(PSEUDO *pseudo,CELL *cell,
 /*==========================================================================*/
 /*               Local variable declarations                                */
 #include "../typ_defs/typ_mask.h"
-
+  
    int i;                       /* Num:  For loop counters             */
    int ifound;                  /* Num:  Data base match flag          */
    int ishift,ishift2,ishift3;  /* Num:  Angular momentum shifts       */
@@ -126,6 +126,7 @@ void control_vps_params(PSEUDO *pseudo,CELL *cell,
   if(myid==0){
    filename_parse->vps_name = (NAME *) cmalloc(natm_typ*sizeof(NAME))-1;
    vps_file  = (VPS_FILE *) cmalloc(natm_typ*sizeof(VPS_FILE))-1;
+   pseudo->vps_file = (VPS_FILE *) cmalloc(natm_typ*sizeof(VPS_FILE))-1;
    fun_key   = (char *)cmalloc(MAXWORD*sizeof(char));  
    filename  = (char *)cmalloc(MAXWORD*sizeof(char));  
    word      = (DICT_WORD *)cmalloc(sizeof(DICT_WORD))-1;  
@@ -176,6 +177,7 @@ void control_vps_params(PSEUDO *pseudo,CELL *cell,
    pseudo->n_ang_max_kb = 0;
    pseudo->n_ang_max_gh = 0;
    ngh_max = 0;
+   
    for(i=1;i<=natm_typ;i++) {
 /*--------------------------------------------------------------------------*/
 /*     A) First search the user defined data base                           */
@@ -269,10 +271,13 @@ void control_vps_params(PSEUDO *pseudo,CELL *cell,
 
       strcpy(vps_file[i].name,filename);
       strcpy(filename_parse->vps_name[i],filename);
+      strcpy(pseudo->vps_file[i].name,filename);
    }/*endfor natm_typ*/
       pseudo->ngh = ngh_max;
       pseudo->natm_typ_gh  = natm_typ_gh;
  }/*endif : myid==0*/
+
+ printf("n_ang %i %i %i\n",pseudo->n_ang[1],pseudo->n_ang[2],pseudo->n_ang[3]);
 
  if(num_proc>1){
     Bcast(&(pseudo->ivps_label[1]),natm_typ,MPI_INT,0,comm);
@@ -1062,8 +1067,8 @@ void make_vps_splin(char *vps_file,int loc_opt,int n_ang,
            v_loc[ir] = v_now;
          }/* endfor */ 
        } /* endfor */
+       //printf("vlocccccccccc %lg %lg\n",v_loc[1],v_loc[2]);
      }/*endif*/
-
    }else{ /*GOEDECKER TYPE */
 
     if(myid==0){
@@ -1162,6 +1167,7 @@ void make_vps_splin(char *vps_file,int loc_opt,int n_ang,
            if(fscanf(fp_vps_file,"%lf %lf\n",&v_now,&rphi_now) != 2) 
                        {vps_read_error(vps_file); }
             v_rphi[ir] = (v_now-v_loc[ir])*rphi_now;
+	    printf("111111111 diff %i %.16lg\n",ir,v_now-v_loc[ir]);
             amat += rphi_now*v_rphi[ir]*dr;
           } /* endfor */
          }/*endif*/

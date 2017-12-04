@@ -186,6 +186,7 @@ void calc_cutoff(int kmax_ewd, double *ecut,double *ecut_cp,int cp_on,
       kmaxv[1] = kmax_cp[1] << 1;  /* <<1 multiply by 2 */
       kmaxv[2] = kmax_cp[2] << 1;
       kmaxv[3] = kmax_cp[3] << 1;
+      //printf("ecut %lg try1 %lg temp1 %lg kmax_cp %i kmaxv %i\n",*ecut,try1,temp1,kmax_cp[1],kmaxv[1]);
    }else{
       kmaxv[1] = (int) ( 2.0*temp1);
       kmaxv[2] = (int) ( 2.0*temp2);

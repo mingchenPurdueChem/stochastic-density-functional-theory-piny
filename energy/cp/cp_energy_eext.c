@@ -334,6 +334,8 @@ void control_cp_eext_recip(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 
   vrecip = 0.0;
 
+  printf("pme_on %i\n",cpscr->cpscr_atom_pme.pme_on);
+
  if(cpscr->cpscr_atom_pme.pme_on == 1 && cp_dual_grid_opt ==2){
 
   control_ewd_loc_pme(clatoms_info, clatoms_pos, cell, ptens, ewald, cpewald, 

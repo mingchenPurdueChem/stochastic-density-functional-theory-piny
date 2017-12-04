@@ -992,7 +992,7 @@ void controlNlmatFilter(CLATOMS_INFO *clatoms_info,
 
   nl_chan_max = (nl_max + 1)*(nl_max + 1);
 /*======================================================================*/
-/* II) Calculate the nl-pseudoponential matrix elements by looping over  */
+/* II) Calculate the nl-pseudoponential matrix elements by looping over */
 /* the channels, l, and then the 2l+1 components of the channel         */
 
   for(l=0;l<=nl_max;l++){

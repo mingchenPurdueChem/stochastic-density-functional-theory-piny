@@ -62,12 +62,14 @@ void nlppKBRealFilter(CP *cp,CLASS *class,GENERAL_DATA *general_data,double *wfR
   int nkc = cpParaFftPkg3dLgBigBox->nkf3;
   int nkb = cpParaFftPkg3dLgBigBox->nkf2;
   int nka = cpParaFftPkg3dLgBigBox->nkf1;
+  int numGridTot = nka*nkb*nkc;
   int div,res;
 
   int *gridMap;
   int *iAtomAtomType = atommaps->iatm_atm_typ;
   int *atomLMax = pseudoReal->numLMax; //max L for each atom
   int *atomGridTot = pseudoReal->atomGridTot;
+  int **gridShift = pseudoReal->gridShift;
   int **atomLRadNum; //num of radical functions for each atom and each L
   int **atomRadMap;  //map of radical functions for each atom, starting from l=0 to l=lmax
   int **numRadFun = pseudoReal->numRadFun;
@@ -75,6 +77,8 @@ void nlppKBRealFilter(CP *cp,CLASS *class,GENERAL_DATA *general_data,double *wfR
   int **gridNlppMap = pseudoReal->gridNlppMap;
 
   double vpsNorm;
+  double vol;
+  double volElem;
   double dotRe,dotIm;
 
   double *trig; // sin(theta),cos(theta),sin(phi),cos(phi)
@@ -93,6 +97,9 @@ void nlppKBRealFilter(CP *cp,CLASS *class,GENERAL_DATA *general_data,double *wfR
   double *forceTemp;
   double *pseudoFunTemp;
 
+  double **vnlPhiAtomGridRe = pseudoReal->vnlPhiAtomGridRe;
+  double **vnlPhiAtomGridIm = pseudoReal->vnlPhiAtomGridIm;
+
 /*======================================================================*/
 /* I) Allocate local memory                                             */
 
@@ -100,69 +107,67 @@ void nlppKBRealFilter(CP *cp,CLASS *class,GENERAL_DATA *general_data,double *wfR
   for(iPart=0;iPart<numAtom;iPart++){
     if(numGridNlppMap[iPart]>numGridMax)numGridMax = numGridNlppMap[iPart];
   }
-  gridAtomNbhd = (double*)cmalloc(numGridMax*3*sizeof(double));
   wfNbhd = (double*)cmalloc(numGridMax*sizeof(double));
-  radFun = (double*)cmalloc(numGridMax*sizeof(double));
   forceTemp = (double*)cmalloc(numGridMax*sizeof(double));
-  trig = (double*)cmalloc(4*numGridMax*sizeof(double));
-  a[0] = hmat[1];a[1] = hmat[2];a[2] = hmat[3];
-  b[0] = hmat[4];b[1] = hmat[5];b[2] = hmat[6];
-  c[0] = hmat[7];c[1] = hmat[8];c[2] = hmat[9];
-  aGrid[0] = a[0]/nka;aGrid[1] = a[1]/nka;aGrid[2] = a[2]/nka;
-  bGrid[0] = b[0]/nkb;bGrid[1] = b[1]/nkb;bGrid[2] = b[2]/nkb;
-  cGrid[0] = c[0]/nkc;cGrid[1] = c[1]/nkc;cGrid[2] = c[2]/nkc;
+  volElem = getdeth(hmat)/numGridTot;
 
 /*======================================================================*/
 /* II) Loop over iPart/irad/ipart/m                                 */
 
+  gridShiftNowRe = 0;
+  gridShiftNowIm = 0;
   for(iAtom=0;iAtom<numAtom;iAtom++){
     atomType = iAtomAtomType[iAtom+1]-1;
     numGrid = numGridNlppMap[atomType];
-    nucleiCoord[0] = x[iAtom+1];
-    nucleiCoord[1] = y[iAtom+1];
-    nucleiCoord[2] = z[iAtom+1];
     countRad = 0;
-    /* cpy the coordinates */
+    /* cpy the wave function */
     if(numGrid>0){ //if numGrid=0, only local pp will be calculated
       for(iGrid=0;iGrid<numGrid;iGrid++){
 	gridIndex = gridNlppMap[iAtom][iGrid];
-	cIndex = gridIndex/(nka*nkb);
-	res = gridIndex%(nka*nkb);
-	bIndex = res/nkb;
-	cIndex = res%nkb;
-	gridAtomNbhd[iGrid*3] = aGrid[0]*aIndex+bGrid[0]*bIndex+cGrid[0]*cIndex;
-	gridAtomNbhd[iGrid*3+1] = aGrid[1]*aIndex+bGrid[1]*bIndex+cGrid[1]*cIndex;
-	gridAtomNbhd[iGrid*3+2] = aGrid[2]*aIndex+bGrid[2]*bIndex+cGrid[2]*cIndex;
 	wfNbhd[iGrid] = wfReal[gridIndex];
 	forceTemp[iGrid] = 0.0;
       }
-      calcTrig(gridAtomNbhd,numGrid,trig);
       for(l=0;l<numLMax;l++){
-        /* calculate sherical harmonic */
-        ylm = (double*)cmalloc((2*l+1)*numGrid*sizeof(double));
-        calcSpHarm(ylm,l,gridAtomNbhd,numGrid,&nucleiCoord[0]);
 	for(iRad=0;iRad<atomLRadNum[atomType][l]){
 	  radIndex = atomRadMap[atomType][countRad+iRad];
-	  /* calculate radial fun u*phi */
-	  calcRadFun(gridAtomNbhd,radIndex,pseudoReal,radFun);
 	  for(m=0;m<=l;m++){
-	    ylmShift = ((m=0)?0:(m*2-1)*numGrid);
-	    calcDotNlpp(wfNbhd,radFun,&ylm[ylmShift],&dotRe,&dotIm);
+	    //calcDotNlpp(wfNbhd,radFun,&ylm[ylmShift],&dotRe,&dotIm);
 	    if(m!=0){
+	      dotRe = ddotBlasWrapper(numGrid,WfNhbd,1,
+		      &vnlPhiAtomGridRe[gridShiftNowRe],1);
+	      dotIm = ddotBlasWrapper(numGrid,WfNhbd,1,
+                      &vnlPhiAtomGridIm[gridShiftNowIm],1);
+	      dotRe *= 2.0*vpsNormList[radIndex];
+	      dotIm *= -2.0*vpsNormList[radIndex];
+	      daxpyBlasWrapper(numGrid,dotRe,&vnlPhiAtomGridRe[gridShiftNowRe],
+			       forceTemp);
+	      daxpyBlasWrapper(numGrid,dotIm,&vnlPhiAtomGridIm[gridShiftNowIm],
+                               forceTemp);
+	      /*
 	      for(iGrid=0;iGrid<numGrid;iGrid++){
 		forceTemp[iGrid] += 2.0*radFun[iGrid]*(ylm[ylmShift+iGrid]*dotRe-
 				    ylm[ylmShift+numGrid+iGrid]*dotIm)*vpsNormList[radIndex];
 	      }//endfor iGrid
+	      */
+	      gridShiftNowRe += numGrid;
+	      gridShiftNowIm += numGrid;
 	    }
 	    else{
+              dotRe = ddotBlasWrapper(numGrid,WfNhbd,1,
+                      &vnlPhiAtomGridRe[gridShiftNowRe],1);
+	      /*
 	      for(iGrid=0;iGrid<numGrid;iGrid++){
 		forceTemp[iGrid] += radFun[iGrid]*ylm[ylmShift+iGrid]*dotRe*vpsNormList[radIndex];
 	      }//endfor iGrid
+	      */
+	      dotRe *= vpsNormList[radIndex];
+	      daxpyBlasWrapper(numGrid,dotRe,&vnlPhiAtomGridRe[gridShiftNowRe],
+			       forceTemp);
+	      gridShiftNowRe += numGrid;
 	    }//endif m
 	  }//endfor m
 	}//endfor iRad
         countRad += atomLRadNum[iAtom][l];
-        free(ylm);
       }//endfor l
       for(iGrid=0;iGrid<numGrid;iGrid++){
 	gridIndex = gridNlppMap[iAtom][iGrid];
@@ -174,9 +179,7 @@ void nlppKBRealFilter(CP *cp,CLASS *class,GENERAL_DATA *general_data,double *wfR
 /*======================================================================*/
 /* III) free local memory                                               */
 
-  free(gridAtomNbhd);
   free(wfNbhd);
-  free(radFun);
   free(forceTemp);
 
 /*--------------------------------------------------------------------------*/

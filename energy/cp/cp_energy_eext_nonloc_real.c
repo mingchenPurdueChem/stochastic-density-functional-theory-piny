@@ -190,7 +190,7 @@ void nlppKBRealFilter(CP *cp,CLASS *class,GENERAL_DATA *general_data,double *wfR
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 void calcPseudoWf(CP *cp,CLASS *class,GENERAL_DATA *general_data,
-		  double *nlWf,int iAtom)
+		  double *nlWf)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
@@ -209,6 +209,7 @@ void calcPseudoWf(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   ATOMMAPS *atommaps = &(class->atommaps);
 
   int numAtomType = atommaps->natm_typ;
+  int iAtom;
   int numGrid;
   int numGridMax;
   int countRad;
@@ -217,7 +218,7 @@ void calcPseudoWf(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int aIndex,bIndex,cIndex;
   int atomType;
   int countWfTot;
-  int gridShift;
+  int gridShiftRe,gridShiftIm;
   int nkc = cpParaFftPkg3dLgBigBox->nkf3;
   int nkb = cpParaFftPkg3dLgBigBox->nkf2;
   int nka = cpParaFftPkg3dLgBigBox->nkf1;
@@ -227,8 +228,8 @@ void calcPseudoWf(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int *iAtomAtomType = atommaps->iatm_atm_typ;
   int *atomLMax = pseudoReal->numLMax; //max L for each atom
   int *atomGridTot = pseudoReal->atomGridTot;
-  int **atomLRadNum; //num of radical functions for each atom and each L
-  int **atomRadMap;  //map of radical functions for each atom, starting from l=0 to l=lmax
+  int **atomLRadNum = pseudoReal->atomLRadNum; //num of radical functions for each atom and each L
+  int **atomRadMap = pseudoReal->atomRadMap;  //map of radical functions for each atom, starting from l=0 to l=lmax
   int **numRadFun = pseudoReal->numRadFun;
   int *numGridNlppMap = pseudoReal->numgridNlppMap;
   int **gridNlppMap = pseudoReal->gridNlppMap;
@@ -252,8 +253,8 @@ void calcPseudoWf(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   double *forceTemp;
   double *pseudoFunTemp;
 
-  double *vnlPhiAtomGridRe = pseudoReal->vnlPhiAtomGridRe[iAtom];
-  double *vnlPhiAtomGridIm = pseudoReal->vnlPhiAtomGridIm[iAtom];
+  double **vnlPhiAtomGridRe = pseudoReal->vnlPhiAtomGridRe;
+  double **vnlPhiAtomGridIm = pseudoReal->vnlPhiAtomGridIm;
 
   numGridMax = numGridNlppMap[0];
   for(iPart=0;iPart<numAtom;iPart++){
@@ -286,26 +287,37 @@ void calcPseudoWf(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   }
   calcTrig(gridAtomNbhd,numGrid,trig);
   countWfTot = 0;
-  for(l=0;l<numLMax;l++){
-    /* calculate sherical harmonic */
-    ylm = (double*)cmalloc((2*l+1)*numGrid*sizeof(double));
-    calcSpHarm(ylm,l,gridAtomNbhd,numGrid,&nucleiCoord[0]);
-    for(iRad=0;iRad<atomLRadNum[atomType][l]){
-      radIndex = atomRadMap[atomType][countRad+iRad];
-      /* calculate radial fun u*phi */
-      calcRadFun(gridAtomNbhd,radIndex,pseudoReal,radFun);
-      for(m=0;m<=l;m++){
-	ylmShift = ((m=0)?0:(m*2-1)*numGrid);
-	gridShift = countWfTot*numGrid;
-	for(iGrid=0;iGrid<numGrid;iGrid++){
-	  vnlPhiAtomGridRe[gridShift+iGrid] = radFun[iGrid]*ylm[ylmShift+iGrid*2];
-          vnlPhiAtomGridIm[gridShift+iGrid] = radFun[iGrid]*ylm[ylmShift+iGrid*2+1];
-	}//endfor iGrid
-      }//endfor m
-    }//endfor iRad
-    countRad += atomLRadNum[iAtom][l];
-    free(ylm);
-  }//endfor l
+  gridShiftRe = 0;
+  gridShiftIm = 0;
+  for(iAtom=0;iAtom<numAtomTot;iAtom++){
+    atomType = iAtomAtomType[iAtom+1]-1;
+    for(l=0;l<numLMax;l++){
+      /* calculate sherical harmonic */
+      ylm = (double*)cmalloc((2*l+1)*numGrid*sizeof(double));
+      calcSpHarm(ylm,l,gridAtomNbhd,numGrid,&nucleiCoord[0]);
+      for(iRad=0;iRad<atomLRadNum[atomType][l]){
+	radIndex = atomRadMap[atomType][countRad+iRad];
+	/* calculate radial fun u*phi */
+	calcRadFun(gridAtomNbhd,radIndex,pseudoReal,radFun);
+	for(m=0;m<=l;m++){
+	  if(m!=0){
+	    ylmShift = (m*2-1)*numGrid;
+	    for(iGrid=0;iGrid<numGrid;iGrid++){
+	      vnlPhiAtomGridRe[gridShiftRe+iGrid] = radFun[iGrid]*ylm[ylmShift+iGrid*2];
+	      vnlPhiAtomGridIm[gridShiftIm+iGrid] = radFun[iGrid]*ylm[ylmShift+iGrid*2+1];
+	    }//endfor iGrid
+	    gridShiftRe += numGrid;
+	    gridShiftIm += numGrid;
+	  }else{
+	    vnlPhiAtomGridRe[gridShiftRe+iGrid] = radFun[iGrid]*ylm[iGrid];
+	    gridShiftRe += numGrid;
+	  }//endif m
+	}//endfor m
+      }//endfor iRad
+      countRad += atomLRadNum[iAtom][l];
+      free(ylm);
+    }//endfor l
+  }//endfor iAtom
 
 /*--------------------------------------------------------------------------*/
    }/* end routine */

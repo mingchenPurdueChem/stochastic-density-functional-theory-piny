@@ -1086,36 +1086,28 @@ typedef struct pseudo_real{
 /* extended KB in the future.								*/
   int pseudoRealFlag;       /* Opt: real space nlpp flag, 0=off, 1=partial, 2=full  */
   int numInterpGridTot;     /* Num: Total number of interpolation grid              */
-
-  int numAtomProc;	    /* Num: partition the atom for storing real space nlpp  */
-			    /*	|V_nl Phi_nl>					*/
-  int *atomProcMap;	    /* Lst: map the processor that store this atom		*/
-			    /* Lth: numAtomProc					*/
-  int *atomProcInd;	    /* Lst: map the index of this atom stored on a proc	*/
-			    /* Lth: numAtomProc					*/
   int *numLMax;		    /* Lst: number of angular channel			*/
 			    /* Lth: natm_typ					*/
-  int *numRadMax;	    /* Lst: number of radial function for each atom type	*/
+  int *numRadMax;	    /* Lst: number of radial function for each atom type*/
 			    /* Lth: natm_typ					*/
   int *numInterpGrid;	    /* Lst: number of interpolation Grid		*/
 			    /* Lth: numRadTot					*/
   int *interpGridSt;	    /* Lst: Start index of interp coeff for each radial	*/
 			    /* Lth: numRadTot					*/
   int *numvnlPhiAtomGrid;   /* Lst: length of vnlPhiAtomGridRe			*/
-			    /* Lth: numAtomProc*/
+			    /* Lth: natm_tot					*/
   int **vnlPhiAtomGridRe;   /* Lst: pseudo wave fun value |V_nl Phi_nl> on FFT grids*/
   int **vnlPhiAtomGridIm;   /*	around each atom				*/
-			    /* Lth: numAtomProc*numvnlPhiAtomGrid[iAtom]	*/
+			    /* Lth: natm_tot*numvnlPhiAtomGrid[iAtom]		*/
  
   int **atomLRadNum;	    /* Lst: number of radial functions for each l channel*/
 			    /* Lth: natm_typ*numLMax[iType]			*/
   int **atomRadMap;	    /* Lst: map of radial functions for each l channel	*/
 			    /* Lth: natm_typ*numRadMax[iType]			*/
+  int **gridNlppMap	    /* Lst: map the nbhd grid point back to the system	*/
   double *vpsReal0,*vpsReal1,*vpsReal2,*vpsReal3; 
 			    /* Lst: Spline interp coeff of radial function	*/
 			    /* Lth:	numInterpGridTot			*/
-  double *gridAtomNbhd,*wfNbhd,*radFun,*forceTemp,*trig;
-			    /* Lst: temp arrays*/
 }PSEUDO_REAL;
 
 

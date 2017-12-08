@@ -59,7 +59,7 @@ void controlNlppRealSpline(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   int iType,iRad,iAng,rGrid;
   int numAtomType = atommaps->natm_typ;
   int countRad;
-  int numR,angNow
+  int numR,angNow,numRadTot;
 
   int *iAtomAtomType = atommaps->iatm_atm_typ;
   int *numLMax,*numRadMax;
@@ -72,10 +72,18 @@ void controlNlppRealSpline(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 
   int **atomLRadNum,**atomRadMap;
 
+  double radCutRatio = pseudoReal->radCutRatio;
+  double rCutoffMax;
   double junk1,junk2;
   double z1,z2,alpha1,alpha2;
   double zPol,gamma;
+  double dr,rMax,rMin,r;
+  double aLength,bLength,cLength;
+  double a[3],b[3],c[3];
   double *vLoc,*vNl,*phiNl;
+  double *hmat = cell->hmat;
+  double *ppRealCut;
+  double *vpsNormList;
   
   FILE *fvps;
 /*==========================================================================*/
@@ -85,10 +93,12 @@ void controlNlppRealSpline(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   pseudoReal->numRadMax = (int*)cmalloc(numAtomType*sizeof(int));
   pseudoReal->atomLRadNum = (int**)cmalloc(numAtomType*sizeof(int*));
   pseudoReal->atomRadMap = (int**)cmalloc(numAtomType*sizeof(int*));
+  pseudoReal->ppRealCut = (double*)cmalloc(numAtomType*sizeof(double));
   numLMax = pseudoReal->numLMax;
   numRadMax = pseudoReal->numRadMax;
   atomLRadNum = pseudoReal->atomLRadNum;
   atomRadMap = pseudoReal->atomRadMap;
+  ppRealCut = pseudoReal->ppRealCut;
 
   countRad = 0;
   for(iType=0;iType<numAtomType;iType++){
@@ -131,14 +141,27 @@ void controlNlppRealSpline(CP *cp,CLASS *class,GENERAL_DATA *generalData,
     }
     countRad += numRadMax[iType];
   }
+  numRadTot = countRad;
+  pseudoReal->numRadTot = numRadTot;
+
+  pseudoReal->vpsNormList = (double*)cmalloc(numRadTot*sizeof(double));
+  
 
 /*==========================================================================*/
 /* I) Read and smooth Radial function			                    */
+  
+  // Calcualte the minimum surface distance of the box
+  a[0] = hmat[1];a[1] = hmat[2];a[2] = hmat[3];
+  b[0] = hmat[4];b[1] = hmat[5];b[2] = hmat[6];
+  c[0] = hmat[7];c[1] = hmat[8];c[2] = hmat[9];
+  aLength = sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]);
+  bLength = sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]);
+  cLength = sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]);
  
-
-  /* Read the radial functions and determine the cutoff */
+  // Read the radial functions and determine the cutoff 
   for(iType=0;iType<numAtomType;iType++){
     fvps = fopen(vpsFile[iType+1].name,"r");
+    rCutoffMax = -100000.0;
     if(ivpsLabel[iType+1]==1){// KB
       fscanf(fvps,"%i %lg %i\n",&numR,&rMax,&angNow);
       fscanf(fvps,"%lg %lg %lg %lg\n",&z1,&alpha1,&z2,&alpha2);
@@ -146,6 +169,7 @@ void controlNlppRealSpline(CP *cp,CLASS *class,GENERAL_DATA *generalData,
       vLoc = (double*)cmalloc((numR+1)*sizeof(double));
       vNl = (double*)cmalloc((numR*angNow+1)*sizeof(double));
       phiNl = (double*)cmalloc((numR*angNow+1)*sizeof(double));
+      dr = rMax/(double)numR;
       // get the non-local part
       for(iAng=0;iAng<angNow;iAng++){
 	for(rGrid=0;rGrid<numR;rGrid++){
@@ -159,16 +183,41 @@ void controlNlppRealSpline(CP *cp,CLASS *class,GENERAL_DATA *generalData,
       // Substract the nonlocal part from local part
       for(iAng=0;iAng<angNow;iAng++){
 	for(rGrid=0;rGrid<numR;rGrid++){
-	  vNl[iAng*numR+rGrid+1] -= vLoc[rGrid+1];
+	  vNl[iAng*numR+rGrid+1] = (vNl[iAng*numR+rGrid+1]-vLoc[rGrid+1])*phiNl[iAng*numR+rGrid+1];
+	}//endfor rGrid
+      }//endfor iAng
+      for(iAng=0;iAng<angNow;iAng++){
+	rGrid = 0;
+	while(vNl[iAng*numR+rGrid+1]>1.0e-10&&rGrid<numR){//double check 1.0e-10
+	  rGrid += 1;
 	}
-      }
+	if(rGrid==numR){
+	  printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+	  printf("Your pseudo-potential does not decay enough! Please\n");
+	  printf("choose bigger radius cutoff!\n");
+	  printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+	  fflush(stdout);
+	  exit(0);
+	}
+	r = rGrid*dr;
+	if(r>=0.5*aLength||r>=0.5*bLength||r>=0.5*cLength){
+	  printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+	  printf("Your box is too small to use real space non-local\n");
+	  printf("pseudopotential. Please use the pseudopotential in\n");
+	  printf("k space for this small system!\n");
+          printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+	  fflush(stdout);
+	  exit(0);
+	}
+	if(r>rCutoffMax)rCutoffMax = r;
+      }//endfor iAng
       
       //free(vLoc);
       //free(vNl);
       //free(phiNl);
-    }
-    
-  }
+      ppRealCut[iType] = rCutoffMax;
+    }//endif ivpsLabel
+  }//endfor iType
 
   pseudoReal->vpsReal0 = (double*)cmalloc();
   

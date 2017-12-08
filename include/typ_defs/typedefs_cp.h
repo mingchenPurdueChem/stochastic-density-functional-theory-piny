@@ -1086,6 +1086,8 @@ typedef struct pseudo_real{
 /* extended KB in the future.								*/
   int pseudoRealFlag;       /* Opt: real space nlpp flag, 0=off, 1=partial, 2=full  */
   int numInterpGridTot;     /* Num: Total number of interpolation grid              */
+  int numRadTot;	    /* Num: Total number of radius functions (summation)*/
+			    /*	    of all elements in numRadMax		*/
   int *numLMax;		    /* Lst: number of angular channel			*/
 			    /* Lth: natm_typ					*/
   int *numRadMax;	    /* Lst: number of radial function for each atom type*/
@@ -1105,9 +1107,15 @@ typedef struct pseudo_real{
   int **atomRadMap;	    /* Lst: map of radial functions for each l channel	*/
 			    /* Lth: natm_typ*numRadMax[iType]			*/
   int **gridNlppMap	    /* Lst: map the nbhd grid point back to the system	*/
-  double *vpsReal0,*vpsReal1,*vpsReal2,*vpsReal3; 
+  double radCutRatio;	    /* Num: (cutoff we use)/(cutoff of nlpp) usually	*/
+  double **vpsReal0,**vpsReal1,**vpsReal2,**vpsReal3; 
 			    /* Lst: Spline interp coeff of radial function	*/
-			    /* Lth:	numInterpGridTot			*/
+			    /* Lth: natm_typ*numInterpGridTot			*/
+  double *ppRealCut;	    /* Lst: non-local pp real space radius cutoff.	*/
+			    /* Lth: natm_typ					*/
+  double *vpsNormList;	    /* Lst: non-local pseudopotential norm list		*/
+			    /*	    <phi_nl|v_nl|phi_nl>			*/
+			    /* Lth: numRadTot					*/
 }PSEUDO_REAL;
 
 

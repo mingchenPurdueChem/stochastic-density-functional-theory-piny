@@ -133,7 +133,7 @@ void controlNlppRealSpline(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   }
 
 /*==========================================================================*/
-/* I) Radial function interpolation		                            */
+/* I) Read and smooth Radial function			                    */
  
 
   /* Read the radial functions and determine the cutoff */
@@ -158,8 +158,10 @@ void controlNlppRealSpline(CP *cp,CLASS *class,GENERAL_DATA *generalData,
       }//endfor rGrid
       // Substract the nonlocal part from local part
       for(iAng=0;iAng<angNow;iAng++){
+	for(rGrid=0;rGrid<numR;rGrid++){
+	  vNl[iAng*numR+rGrid+1] -= vLoc[rGrid+1];
+	}
       }
-
       
       //free(vLoc);
       //free(vNl);

@@ -57,9 +57,12 @@ void controlNlppRealSpline(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   VPS_FILE *vpsFile = pseudo->vps_file;
 
   int iType,iRad,iAng,rGrid;
-  int numAtomType = atommaps->natm_typ;
+  int smoothOpt	    = pseudoReal->smoothOpt;
+  int numAtomType   = atommaps->natm_typ;
   int countRad;
   int numR,angNow,numRadTot;
+  int numGridRadSmooth;
+  int *numRadGridSpline,numRadGridSplineTot;
 
   int *iAtomAtomType = atommaps->iatm_atm_typ;
   int *numLMax,*numRadMax;
@@ -80,7 +83,8 @@ void controlNlppRealSpline(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   double dr,rMax,rMin,r;
   double aLength,bLength,cLength;
   double a[3],b[3],c[3];
-  double *vLoc,*vNl,*phiNl;
+  double *vLoc,*vNl,*phiNl,*vNlSmooth;
+  double *vNlTot;
   double *hmat = cell->hmat;
   double *ppRealCut;
   double *vpsNormList;
@@ -150,7 +154,7 @@ void controlNlppRealSpline(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 /*==========================================================================*/
 /* I) Read and smooth Radial function			                    */
   
-  // Calcualte the minimum surface distance of the box
+  // 1. Calcualte the minimum surface distance of the box
   a[0] = hmat[1];a[1] = hmat[2];a[2] = hmat[3];
   b[0] = hmat[4];b[1] = hmat[5];b[2] = hmat[6];
   c[0] = hmat[7];c[1] = hmat[8];c[2] = hmat[9];
@@ -158,7 +162,7 @@ void controlNlppRealSpline(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   bLength = sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]);
   cLength = sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]);
  
-  // Read the radial functions and determine the cutoff 
+  // 2. Read the radial functions and determine the cutoff 
   for(iType=0;iType<numAtomType;iType++){
     fvps = fopen(vpsFile[iType+1].name,"r");
     rCutoffMax = -100000.0;
@@ -166,24 +170,24 @@ void controlNlppRealSpline(CP *cp,CLASS *class,GENERAL_DATA *generalData,
       fscanf(fvps,"%i %lg %i\n",&numR,&rMax,&angNow);
       fscanf(fvps,"%lg %lg %lg %lg\n",&z1,&alpha1,&z2,&alpha2);
       fscanf(fvps,"%lg %lg\n",&zPol,&gamma);
-      vLoc = (double*)cmalloc((numR+1)*sizeof(double));
-      vNl = (double*)cmalloc((numR*angNow+1)*sizeof(double));
-      phiNl = (double*)cmalloc((numR*angNow+1)*sizeof(double));
+      vLoc = (double*)cmalloc((numR)*sizeof(double));
+      vNl = (double*)cmalloc((numR*numRadMax[iType])*sizeof(double));
+      phiNl = (double*)cmalloc((numR*numRadMax[iType])*sizeof(double));
       dr = rMax/(double)numR;
       // get the non-local part
       for(iAng=0;iAng<angNow;iAng++){
 	for(rGrid=0;rGrid<numR;rGrid++){
-	  fscanf(fvps,"%lg %lg\n",&vNl[iAng*numR+rGrid+1],phiNl[iAng*numR+rGrid+1]);
+	  fscanf(fvps,"%lg %lg\n",&vNl[iAng*numR+rGrid],phiNl[iAng*numR+rGrid]);
 	}//endfor rGrid
       }//endfor iAng
       // get the local potential
       for(rGrid=0;rGrid<numR;rGrid++){
-	fscanf(fvps,"%lg %lg\n",&vLoc[rGrid+1],&junk1);
+	fscanf(fvps,"%lg %lg\n",&vLoc[rGrid],&junk1);
       }//endfor rGrid
       // Substract the nonlocal part from local part
       for(iAng=0;iAng<angNow;iAng++){
 	for(rGrid=0;rGrid<numR;rGrid++){
-	  vNl[iAng*numR+rGrid+1] = (vNl[iAng*numR+rGrid+1]-vLoc[rGrid+1])*phiNl[iAng*numR+rGrid+1];
+	  vNl[iAng*numR+rGrid] = (vNl[iAng*numR+rGrid]-vLoc[rGrid])*phiNl[iAng*numR+rGrid+];
 	}//endfor rGrid
       }//endfor iAng
       for(iAng=0;iAng<angNow;iAng++){
@@ -199,7 +203,7 @@ void controlNlppRealSpline(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 	  fflush(stdout);
 	  exit(0);
 	}
-	r = rGrid*dr;
+	r = rGrid*dr*radCutRatio;
 	if(r>=0.5*aLength||r>=0.5*bLength||r>=0.5*cLength){
 	  printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
 	  printf("Your box is too small to use real space non-local\n");
@@ -211,13 +215,35 @@ void controlNlppRealSpline(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 	}
 	if(r>rCutoffMax)rCutoffMax = r;
       }//endfor iAng
-      
+       
       //free(vLoc);
       //free(vNl);
       //free(phiNl);
       ppRealCut[iType] = rCutoffMax;
     }//endif ivpsLabel
+  // 3. Smooth the radius function
+    
+    numGridRadSmooth = (int)(rCutoffMax/dr)+1;
+    vNlSmooth = (double*)cmalloc(numGridRadSmooth*numRadMax[iType]*sizeof(double));
+    for(iRad=0;iRad<numRadMax[iType];iRad++){
+      switch(smoothOpt){
+	case 1:
+	  nlppSmoothKS(pseudo,vNl,rCutoffMax,iRad,vNlSmooth,numGridRadSmooth,
+		       rMax,numR);
+	  break;
+	case 2:
+	  nlppSmoothRoi(pseudo,vNl,rCutoffMax,iRad);
+	  break;
+      }//endswitch    
+    }//endfor iRad
   }//endfor iType
+
+/*==========================================================================*/
+/* I) Allocate real space spline                                            */
+
+  // 1. Calculate the real space radius grid number
+  for(iType=0;iType<
+  
 
   pseudoReal->vpsReal0 = (double*)cmalloc();
   
@@ -226,6 +252,41 @@ void controlNlppRealSpline(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   }/*end routine*/
 /*==========================================================================*/
 
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void nlppSmoothKS(PSEUDO *pseudo,double *vNl,double rCutoffMax,int iRad,
+		  double *vNlSmooth,int numGridRadSmooth,double rMax,int numR)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* Real space nlpp, only used in filtering                   */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+  
+  PSEUDO_REAL *pseudoReal = &(pseudo->pseudoReal);  
+
+  int numGSm;
+  int numGLg;
+
+  double gMaxSm = pseudoReal->gMaxSm;
+  double gMaxLg = pseudoReal->gMaxLg;
+  double dg = pseudoRal->dg;
+
+  double *vNlG;
+  
+  numGSm = (int)(gMaxSm/dg)+1;
+  numGLg = (int)(gMaxLg/dg)+1;
+
+  
+
+
+/*--------------------------------------------------------------------------*/
+  }/*end routine*/
+/*==========================================================================*/
 
 
 

@@ -1088,6 +1088,8 @@ typedef struct pseudo_real{
   int numInterpGridTot;     /* Num: Total number of interpolation grid              */
   int numRadTot;	    /* Num: Total number of radius functions (summation)*/
 			    /*	    of all elements in numRadMax		*/
+  int smoothOpt;	    /* Opt: option to smooth the nl pp radius function  */
+			    /*	    1=King-Smith, 2=Roi				*/
   int *numLMax;		    /* Lst: number of angular channel			*/
 			    /* Lth: natm_typ					*/
   int *numRadMax;	    /* Lst: number of radial function for each atom type*/
@@ -1107,7 +1109,9 @@ typedef struct pseudo_real{
   int **atomRadMap;	    /* Lst: map of radial functions for each l channel	*/
 			    /* Lth: natm_typ*numRadMax[iType]			*/
   int **gridNlppMap	    /* Lst: map the nbhd grid point back to the system	*/
+  double gMaxSm,gMaxLg;	    /* Num: small and large g cutoff			*/
   double radCutRatio;	    /* Num: (cutoff we use)/(cutoff of nlpp) usually	*/
+  double dg;		    /* Num: grid spacing in g space			*/
   double **vpsReal0,**vpsReal1,**vpsReal2,**vpsReal3; 
 			    /* Lst: Spline interp coeff of radial function	*/
 			    /* Lth: natm_typ*numInterpGridTot			*/

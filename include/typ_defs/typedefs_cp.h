@@ -1108,7 +1108,7 @@ typedef struct pseudo_real{
 			    /* Lth: natm_typ*numLMax[iType]			*/
   int **atomRadMap;	    /* Lst: map of radial functions for each l channel	*/
 			    /* Lth: natm_typ*numRadMax[iType]			*/
-  int **gridNlppMap	    /* Lst: map the nbhd grid point back to the system	*/
+  int **gridNlppMap;	    /* Lst: map the nbhd grid point back to the system	*/
   double gMaxSm,gMaxLg;	    /* Num: small and large g cutoff			*/
   double radCutRatio;	    /* Num: (cutoff we use)/(cutoff of nlpp) usually	*/
   double dg;		    /* Num: grid spacing in g space			*/

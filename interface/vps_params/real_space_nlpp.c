@@ -170,24 +170,24 @@ void controlNlppRealSpline(CP *cp,CLASS *class,GENERAL_DATA *generalData,
       fscanf(fvps,"%i %lg %i\n",&numR,&rMax,&angNow);
       fscanf(fvps,"%lg %lg %lg %lg\n",&z1,&alpha1,&z2,&alpha2);
       fscanf(fvps,"%lg %lg\n",&zPol,&gamma);
-      vLoc = (double*)cmalloc((numR)*sizeof(double));
-      vNl = (double*)cmalloc((numR*numRadMax[iType])*sizeof(double));
-      phiNl = (double*)cmalloc((numR*numRadMax[iType])*sizeof(double));
+      vLoc = (double*)cmalloc((numR+1)*sizeof(double));
+      vNl = (double*)cmalloc((numR*numRadMax[iType]+1)*sizeof(double));
+      phiNl = (double*)cmalloc((numR*numRadMax[iType]+1)*sizeof(double));
       dr = rMax/(double)numR;
       // get the non-local part
       for(iAng=0;iAng<angNow;iAng++){
 	for(rGrid=0;rGrid<numR;rGrid++){
-	  fscanf(fvps,"%lg %lg\n",&vNl[iAng*numR+rGrid],phiNl[iAng*numR+rGrid]);
+	  fscanf(fvps,"%lg %lg\n",&vNl[iAng*numR+rGrid+1],phiNl[iAng*numR+rGrid+1]);
 	}//endfor rGrid
       }//endfor iAng
       // get the local potential
       for(rGrid=0;rGrid<numR;rGrid++){
-	fscanf(fvps,"%lg %lg\n",&vLoc[rGrid],&junk1);
+	fscanf(fvps,"%lg %lg\n",&vLoc[rGrid+1],&junk1);
       }//endfor rGrid
       // Substract the nonlocal part from local part
       for(iAng=0;iAng<angNow;iAng++){
 	for(rGrid=0;rGrid<numR;rGrid++){
-	  vNl[iAng*numR+rGrid] = (vNl[iAng*numR+rGrid]-vLoc[rGrid])*phiNl[iAng*numR+rGrid+];
+	  vNl[iAng*numR+rGrid+1] = (vNl[iAng*numR+rGrid+1]-vLoc[rGrid+1])*phiNl[iAng*numR+rGrid+1];
 	}//endfor rGrid
       }//endfor iAng
       for(iAng=0;iAng<angNow;iAng++){
@@ -257,7 +257,8 @@ void controlNlppRealSpline(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 void nlppSmoothKS(PSEUDO *pseudo,double *vNl,double rCutoffMax,int iRad,
-		  double *vNlSmooth,int numGridRadSmooth,double rMax,int numR)
+		  double *vNlSmooth,int numGridRadSmooth,double rMax,int numR,
+		  int angMoment)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
@@ -271,23 +272,132 @@ void nlppSmoothKS(PSEUDO *pseudo,double *vNl,double rCutoffMax,int iRad,
 
   int numGSm;
   int numGLg;
+  int ig,ir;
 
   double gMaxSm = pseudoReal->gMaxSm;
   double gMaxLg = pseudoReal->gMaxLg;
   double dg = pseudoRal->dg;
+  double dr = rMax/((double)numR);
+  double *gGrid;
 
-  double *vNlG;
+  double *vNlG,*dvNlG;
+  double *
   
+  // initialize
   numGSm = (int)(gMaxSm/dg)+1;
   numGLg = (int)(gMaxLg/dg)+1;
 
-  
+  vNlG = (double*)cmalloc((numGLg)*sizeof(double)); //fv_rphi
+  dvNlG = (double*)cmalloc((numGlg)*sizeof(double)); //dfv_rphi
+  r = (double*)cmalloc((numR)*sizeof(double));
+  gGrid = (double*)cmalloc((numGLg)*sizeof(double));
+
+  for(ig=0;ig<numGLg;ig++)gGrid[ig] = ig*dg;
+  for(ir=0;ir<numR;ir++)r[ir] = ir*dr;
+ 
+
+  // Bessel transform to g space from g=0 to gMaxSm
+  bessTransform(vNlG,numGSm,dg,angMoment,vNl,numR,dr);
+
+  // Optimize g space coeffcient from gMaxSm to gMaxLg
+
+  optGCoeff();
+
+  // Inverse Bassel transform to r space
+
+  bessTransform(vNlSmooth,numR,dr,angMoment,numGLg,dg);  
+  // we may need to resacle the potential. Let's check this
 
 
 /*--------------------------------------------------------------------------*/
   }/*end routine*/
 /*==========================================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void bessTransform(double *funIn,int numIn,double dx,int l,double *funOut,
+		   int numOut,double dy)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* Bessel transform */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+
+  int iGrid,jGrid;
+
+  double x,y;
+  double arg;
+  //double fpidx = 4.0*M_PI*dx;
+
+  funOut[0] = 0.0;
+  for(jGrid=1;jGrid<numIn;jGrid++){
+    x = jGrid*dx;
+    funOut[0] += x*funIn[jGrid]*dx;
+  }
+
+  switch(l){
+    case 0:
+      for(iGrid=1;iGrid<numOut;iGrid++){
+	funOut[iGrid] = 0.0;
+	y = iGrid*dy;
+	for(jGrid=1;jGrid<numIn,jGrid++){
+	  x = jGrid*dx;
+	  arg = x*y;
+	  funOut[iGrid] += sin(arg)/arg*x*funIn*dx;
+	}//endfor jGrid
+      }//endfor iGrid
+      break;
+    case 1:
+      for(iGrid=1;iGrid<numOut;iGrid++){
+        funOut[iGrid] = 0.0;
+        y = iGrid*dy;
+        for(jGrid=1;jGrid<numIn,jGrid++){
+          x = jGrid*dx;
+          arg = x*y;
+          funOut[iGrid] += (sin(arg)/(arg*arg)-cos(arg)/arg)*x*funIn*dx;
+        }//endfor jGrid
+      }//endfor iGrid
+      break;
+    case 2:
+      for(iGrid=1;iGrid<numOut;iGrid++){
+        funOut[iGrid] = 0.0;
+        y = iGrid*dy;
+        for(jGrid=1;jGrid<numIn,jGrid++){
+          x = jGrid*dx;
+          arg = x*y;
+          funOut[iGrid] += (sin(arg)*(3.0/(arg*arg)-1.0)-3.0*cos(arg)/(arg*arg))
+			    *x*funIn*dx;
+        }//endfor jGrid
+      }//endfor iGrid
+      break;
+  }//endswitch
+
+/*--------------------------------------------------------------------------*/
+  }/*end routine*/
+/*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void optGCoeff(double *funIn,int numIn,double dx,int l,double *funOut,
+                   int numOut,double dy)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* Bessel transform */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+ 
+
+/*--------------------------------------------------------------------------*/
+  }/*end routine*/
+/*==========================================================================*/
 
 
 

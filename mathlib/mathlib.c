@@ -775,3 +775,64 @@ double gaussianReal(double x,double mu,double beta){
 }
 /*===============================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+double j0(double x){
+  return sin(x)/x;
+}
+/*===============================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+double j1(double x){
+  return sin(x)/(x*x)-cos(x)/x;
+}
+/*===============================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+double j2(double x){
+  return (3.0/(x*x)-1.0)*sin(x)/x-3.0*cos(x)/(x*x);
+}
+/*===============================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+double dsysvWrapper(double *A,double *b,int n){
+  char uplo = 'U'
+  int nrhs = 1;
+  int lda = n;
+  int ldb = n;
+  int lwork = 64*n;
+  int *ipiv = (int*)cmalloc(n*sizeof(int));
+  double *work = (double*)cmalloc(lwork*sizeof(double));
+  int info;
+
+  dsysv_(&uplo,&n,&nrhs,A,&lda,ipiv,b,&ldb,work,&lwork,&info);
+
+  if(info>0){
+    printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+    printf("Error in solving the linear equations!\n");
+    printf("The %i'th diag element is singular!\n",info);
+    printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+    fflush(stdout);
+    exit(0);
+  } 
+  if(info<0){
+    printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+    printf("Error in solving the linear equations!\n");
+    printf("The %i'th parameter had an illegal value!\n");
+    printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+    fflush(stdout);
+    exit(0);
+  } 
+  
+  free(ipiv);
+  free(work);
+}
+/*===============================================================*/
+

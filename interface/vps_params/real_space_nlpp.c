@@ -273,6 +273,7 @@ void nlppSmoothKS(PSEUDO *pseudo,double *vNl,double rCutoffMax,int iRad,
   int numGSm;
   int numGLg;
   int ig,ir;
+  int numRCutoff;
 
   double gMaxSm = pseudoReal->gMaxSm;
   double gMaxLg = pseudoReal->gMaxLg;
@@ -347,7 +348,7 @@ void bessTransform(double *funIn,int numIn,double dx,int l,double *funOut,
 	for(jGrid=1;jGrid<numIn,jGrid++){
 	  x = jGrid*dx;
 	  arg = x*y;
-	  funOut[iGrid] += sin(arg)/arg*x*funIn*dx;
+	  funOut[iGrid] += j0(arg)*x*funIn*dx;
 	}//endfor jGrid
       }//endfor iGrid
       break;
@@ -358,7 +359,7 @@ void bessTransform(double *funIn,int numIn,double dx,int l,double *funOut,
         for(jGrid=1;jGrid<numIn,jGrid++){
           x = jGrid*dx;
           arg = x*y;
-          funOut[iGrid] += (sin(arg)/(arg*arg)-cos(arg)/arg)*x*funIn*dx;
+          funOut[iGrid] += j1(arg)*x*funIn*dx;
         }//endfor jGrid
       }//endfor iGrid
       break;
@@ -369,8 +370,7 @@ void bessTransform(double *funIn,int numIn,double dx,int l,double *funOut,
         for(jGrid=1;jGrid<numIn,jGrid++){
           x = jGrid*dx;
           arg = x*y;
-          funOut[iGrid] += (sin(arg)*(3.0/(arg*arg)-1.0)-3.0*cos(arg)/(arg*arg))
-			    *x*funIn*dx;
+          funOut[iGrid] += j2(arg)*x*funIn*dx;
         }//endfor jGrid
       }//endfor iGrid
       break;
@@ -383,8 +383,8 @@ void bessTransform(double *funIn,int numIn,double dx,int l,double *funOut,
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void optGCoeff(double *funIn,int numIn,double dx,int l,double *funOut,
-                   int numOut,double dy)
+void optGCoeff(PSEUDO_REAL *pseudoReal,int numGLg,int numGSm,int numR
+		double dr,double dg,double rCutoff, int l,double *vNlG)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
@@ -393,7 +393,86 @@ void optGCoeff(double *funIn,int numIn,double dx,int l,double *funOut,
 /*************************************************************************/
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
- 
+  int iGridG,jGridG,kGridR;
+  int numRCutoff = rCutoff/dr;
+  int numGSolve = numGLg-numGSm;
+  int gridShift;
+
+  double qi,qj;
+  double r,arg1,arg2;
+
+  double *A;
+  double *B;
+  double *subA;
+  //Construct the A matrix
+
+  A = (double*)calloc(numGLg*numGLg*sizeof(double));
+  B = (double*)calloc(numGSolve*sizeof(double));
+  subA = (double*)calloc(numGSolve*sizeof(double));
+  
+  for(iGridG=0;iGridG<numGLg;iGridG++){
+    qi = iGridG*dg;
+    for(jGridG=iGridG;jGridG<numGLg;jGridG++){
+      qj = jGridG*dg; 
+      switch(l){
+        case 0:
+	  for(kGridR=1;kGridR<numRCutoff;kGridR++){
+	    r = kGridR*dr;
+	    arg1 = qi*r;
+	    arg2 = qj*r;
+	    A[iGridG*numGLg+jGridG] += j0(arg1)*j0(arg2)*r*r;
+	  }
+	  A[iGridG*numGLg+jGridG] *= dr*qi*qi*qj*qj;
+	  break;
+	case 1:
+	  for(kGridR=1;kGridR<numRCutoff;kGridR++){
+            r = kGridR*dr;
+            arg1 = qi*r;
+            arg2 = qj*r;
+            A[iGridG*numGLg+jGridG] += j1(arg1)*j1(arg2)*r*r;
+          }
+          A[iGridG*numGLg+jGridG] *= dr*qi*qi*qj*qj;
+          break;	  
+	case 2:
+          for(kGridR=1;kGridR<numRCutoff;kGridR++){
+            r = kGridR*dr;
+            arg1 = qi*r;
+            arg2 = qj*r;
+            A[iGridG*numGLg+jGridG] += j2(arg1)*j2(arg2)*r*r;
+          }
+          A[iGridG*numGLg+jGridG] *= dr*qi*qi*qj*qj;
+          break;
+      }//endswitch l
+      A[jGridG*numGLg+iGridG] = A[iGridG*numGLg+jGridG];
+    }//endfor jGridG
+  }//endfor iGridG
+  
+
+  //Construct the linear system
+  // B=diag{pi/2*q^2}*kai-subA*kai
+  // B vector
+
+  for(iGridG=0;iGridG<numGSolve;iGridG++){
+    for(jGridG=0;jGridG<numGSm;jGridG++){
+      B[iGridG] += A[(iGridG+numGSm)*numGLg+jGridG]*vNlG[jGridG];
+    }//endfor jGridG
+    B[iGridG] *= dg;
+  }//endfor iGridG  
+
+  for(iGridG=0;iGridG<numGSolve;iGridG++){
+    qi = (iGridG+numGSm)*dg;
+    for(jGridG=0;jGridG<numGSolve;jGridG++){
+      subA[iGridG*numGSolve+jGridG] = -A[(iGridG+numGSm)+jGridG+numGSm]*dg;
+    }//endfor jGridG
+    subA[iGridG*numGSolve+iGridG] += 0.5*M_PI*qi*qi;
+  }//endfor iGridG
+
+  // Solving the linear system
+  dsysvWrapper(subA,B,numGSolve);
+
+  for(iGridG=0;iGridG<numGSolve;iGridG++){
+    vNlG[iGridG+numGSm] = B[iGridG];
+  }
 
 /*--------------------------------------------------------------------------*/
   }/*end routine*/

@@ -324,7 +324,7 @@ void set_sim_dict_cp(int *num_dict,DICT_WORD *dict[])
 /*========================================================================*/
 /*  0) Malloc the dictionary                                              */ 
 
-  *num_dict = 63;
+  *num_dict = 66;
   *dict = (DICT_WORD *)cmalloc(*num_dict*sizeof(DICT_WORD))-1;
 
 /*========================================================================*/
@@ -680,6 +680,22 @@ void set_sim_dict_cp(int *num_dict,DICT_WORD *dict[])
         strcpy((*dict)[63].error_mes,"a number >= 0");
         strcpy((*dict)[63].keyword,"dvr_clus_rmax");
         strcpy((*dict)[63].keyarg,"8.0");
+
+  /*-----------------------------------------------------------------------*/
+  /* 64)\nlpp_real_on{#} */
+        strcpy((*dict)[64].error_mes,"turn on or off real space nonlocal pseudopotential");
+        strcpy((*dict)[64].keyword,"nlpp_real_on");
+        strcpy((*dict)[64].keyarg,"off");
+  /*-----------------------------------------------------------------------*/
+  /* 65)\nlpp_real_opt{#} */
+        strcpy((*dict)[65].error_mes,"Real space option");
+        strcpy((*dict)[65].keyword,"nlpp_real_opt");
+        strcpy((*dict)[65].keyarg,"king-smith");
+  /*-----------------------------------------------------------------------*/
+  /* 66)\nlpp_real_cut_ratio{#} */
+        strcpy((*dict)[66].error_mes,"(real space cutoff)/(radius that nlpp decay to 0)");
+        strcpy((*dict)[66].keyword,"nlpp_real_cut_ratio");
+        strcpy((*dict)[66].keyarg,"1.4");
 
 
 /*========================================================================*/

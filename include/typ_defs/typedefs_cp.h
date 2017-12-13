@@ -1084,8 +1084,8 @@ typedef struct cpewald {
 typedef struct pseudo_real{
 /* We won't assue one radial function for one l for each atom, since we may start using */
 /* extended KB in the future.								*/
-  int pseudoRealFlag;       /* Opt: real space nlpp flag, 0=off, 1=partial, 2=full  */
-  int numInterpGridTot;     /* Num: Total number of interpolation grid              */
+  int pseudoRealFlag;       /* Opt: real space nlpp flag, 0=off, 1=on		*/
+  int numInterpGridTot;     /* Num: Total number of interpolation grid          */
   int numRadTot;	    /* Num: Total number of radius functions (summation)*/
 			    /*	    of all elements in numRadMax		*/
   int smoothOpt;	    /* Opt: option to smooth the nl pp radius function  */

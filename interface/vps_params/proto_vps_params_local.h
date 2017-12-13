@@ -55,8 +55,12 @@ void make_weight_gen(double *,double *,double *, double *,
                      int ,int ,int ,int ,int );
 
 /*---------------------------------------------------------------*/
+/*  real_space_nlpp.c  */
 
-
+void controlNlppRealSpline(CP *,CLASS *,GENERAL_DATA *,FILENAME_PARSE *);
+void nlppSmoothKS(PSEUDO *,double *,double ,int ,double *,int ,double ,int ,int);
+void bessTransform(double *,int ,double ,int ,double *,int ,double );
+void optGCoeff(PSEUDO_REAL *,int ,int ,int ,double ,double ,double ,int ,double *);
 
 
 

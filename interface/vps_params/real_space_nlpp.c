@@ -242,10 +242,6 @@ void controlNlppRealSpline(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 /* I) Allocate real space spline                                            */
 
   // 1. Calculate the real space radius grid number
-  for(iType=0;iType<
-  
-
-  pseudoReal->vpsReal0 = (double*)cmalloc();
   
   
 /*--------------------------------------------------------------------------*/
@@ -258,7 +254,7 @@ void controlNlppRealSpline(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 /*==========================================================================*/
 void nlppSmoothKS(PSEUDO *pseudo,double *vNl,double rCutoffMax,int iRad,
 		  double *vNlSmooth,int numGridRadSmooth,double rMax,int numR,
-		  int angMoment)
+		  int l)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
@@ -298,15 +294,15 @@ void nlppSmoothKS(PSEUDO *pseudo,double *vNl,double rCutoffMax,int iRad,
  
 
   // Bessel transform to g space from g=0 to gMaxSm
-  bessTransform(vNlG,numGSm,dg,angMoment,vNl,numR,dr);
+  bessTransform(vNl,numR,dr,l,vNlG,numGSm,dg);
 
   // Optimize g space coeffcient from gMaxSm to gMaxLg
 
-  optGCoeff();
+  optGCoeff(pseudoReal,numGLg,numGSm,numR,dr,dg,rMax,l,vNlG);
 
   // Inverse Bassel transform to r space
 
-  bessTransform(vNlSmooth,numR,dr,angMoment,numGLg,dg);  
+  bessTransform(vNlG,numGLg,dg,l,vNlSmooth,numRCutoff,dr);  
   // we may need to resacle the potential. Let's check this
 
 
@@ -383,7 +379,7 @@ void bessTransform(double *funIn,int numIn,double dx,int l,double *funOut,
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void optGCoeff(PSEUDO_REAL *pseudoReal,int numGLg,int numGSm,int numR
+void optGCoeff(PSEUDO_REAL *pseudoReal,int numGLg,int numGSm,int numR,
 		double dr,double dg,double rCutoff, int l,double *vNlG)
 /*==========================================================================*/
 /*         Begin Routine                                                    */

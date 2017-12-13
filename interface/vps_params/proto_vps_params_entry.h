@@ -5,4 +5,5 @@ void control_vps_params(PSEUDO *,CELL *,FILENAME_PARSE *,
    		        SPLINE_PARSE *,int ,NAME [],
 			double *,int, int,int ,int , 
                         COMMUNICATE *, double, CPCOEFFS_INFO *);
+void controlNlppReal(CP *,CLASS *,GENERAL_DATA *,FILENAME_PARSE *);
 

@@ -41,7 +41,7 @@
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void controlNlppRealSpline(CP *cp,CLASS *class,GENERAL_DATA *generalData,
+void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
                         FILENAME_PARSE *filename_parse)
 /*==========================================================================*/
 /*               Begin subprogram:                                          */
@@ -53,7 +53,7 @@ void controlNlppRealSpline(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   ATOMMAPS *atommaps = &(class->atommaps);
   PSEUDO *pseudo = &(cp->pseudo);
   PSEUDO_REAL *pseudoReal = &(pseudo->pseudoReal);
-  CELL *cell = &(general_data->cell);
+  CELL *cell = &(generalData->cell);
   VPS_FILE *vpsFile = pseudo->vps_file;
 
   int iType,iRad,iAng,rGrid;
@@ -62,7 +62,7 @@ void controlNlppRealSpline(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   int countRad;
   int numR,angNow,numRadTot;
   int numGridRadSmooth;
-  int *numRadGridSpline,numRadGridSplineTot;
+  int countR = 0;
 
   int *iAtomAtomType = atommaps->iatm_atm_typ;
   int *numLMax,*numRadMax;
@@ -70,8 +70,8 @@ void controlNlppRealSpline(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   int *nrad_1 = pseudo->nrad_1;
   int *nrad_2 = pseudo->nrad_2;
   int *nrad_3 = pseudo->nrad_3;
-  int *nrad_4 = pseudo->nrad_4;
   int *ivpsLabel = pseudo->ivps_label;
+  int *lMap;
 
   int **atomLRadNum,**atomRadMap;
 
@@ -149,6 +149,7 @@ void controlNlppRealSpline(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   pseudoReal->numRadTot = numRadTot;
 
   pseudoReal->vpsNormList = (double*)cmalloc(numRadTot*sizeof(double));
+  lMap = (int*)cmalloc(numRadTot*sizeof(int));
   
 
 /*==========================================================================*/
@@ -176,9 +177,11 @@ void controlNlppRealSpline(CP *cp,CLASS *class,GENERAL_DATA *generalData,
       dr = rMax/(double)numR;
       // get the non-local part
       for(iAng=0;iAng<angNow;iAng++){
+	lMap[countR] = iAng;
 	for(rGrid=0;rGrid<numR;rGrid++){
 	  fscanf(fvps,"%lg %lg\n",&vNl[iAng*numR+rGrid+1],phiNl[iAng*numR+rGrid+1]);
 	}//endfor rGrid
+	countR += 1;
       }//endfor iAng
       // get the local potential
       for(rGrid=0;rGrid<numR;rGrid++){
@@ -229,7 +232,7 @@ void controlNlppRealSpline(CP *cp,CLASS *class,GENERAL_DATA *generalData,
       switch(smoothOpt){
 	case 1:
 	  nlppSmoothKS(pseudo,vNl,rCutoffMax,iRad,vNlSmooth,numGridRadSmooth,
-		       rMax,numR);
+		       rMax,numR,);
 	  break;
 	case 2:
 	  nlppSmoothRoi(pseudo,vNl,rCutoffMax,iRad);
@@ -273,7 +276,7 @@ void nlppSmoothKS(PSEUDO *pseudo,double *vNl,double rCutoffMax,int iRad,
 
   double gMaxSm = pseudoReal->gMaxSm;
   double gMaxLg = pseudoReal->gMaxLg;
-  double dg = pseudoRal->dg;
+  double dg = pseudoReal->dg;
   double dr = rMax/((double)numR);
   double *gGrid;
 

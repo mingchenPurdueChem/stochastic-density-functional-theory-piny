@@ -1061,6 +1061,21 @@ int iii;
        if((cp->cp_dvr_clus.rmax < 0 ))
         keyarg_barf(dict,filename_parse->input_name,fun_key,index);
 
+  /*-----------------------------------------------------------------------*/
+  /* 64)\nlpp_real_on{#} */
+  if(strcasecmp(dict[64].keyarg,"on")==0)cp->pseudo.pseudoReal.pseudoRealFlag = 1; 
+  if(strcasecmp(dict[64].keyarg,"off")==0)cp->pseudo.pseudoReal.pseudoRealFlag = 0;
+
+  /*-----------------------------------------------------------------------*/
+  /* 65)\nlpp_real_opt{#} */
+  if(strcasecmp(dict[65].keyarg,"king-smith")==0)cp->pseudo.pseudoReal.smoothOpt = 1;
+  if(strcasecmp(dict[65].keyarg,"roi")==0)cp->pseudo.pseudoReal.smoothOpt = 2;
+
+  /*-----------------------------------------------------------------------*/
+  /* 66)\nlpp_real_cut_ratio{#} */
+  sscanf(dict[66].keyarg,"%lg",&real_key_arg);
+  cp->pseudo.pseudoReal.radCutRatio = real_key_arg;
+
 /*========================================================================*/
     }/*end routine*/ 
 /*========================================================================*/

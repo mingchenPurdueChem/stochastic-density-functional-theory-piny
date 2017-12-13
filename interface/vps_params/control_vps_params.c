@@ -442,6 +442,7 @@ void control_vps_params(PSEUDO *pseudo,CELL *cell,
 
    pseudo->dg_spl = ((pseudo->gmax_spl)-(pseudo->gmin_spl))
                     /((double)(pseudo->nsplin_g));
+   pseudo->pseudoReal.dg = pseudo->dg_spl;
 
    for(i=1;i<=natm_typ*(pseudo->n_rad_max);i++){
      (pseudo->gzvps0)[i] = 0;

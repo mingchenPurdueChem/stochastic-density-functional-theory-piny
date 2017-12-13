@@ -98,7 +98,8 @@ INTERFACE_CP_FILES    = set_wave_params.o set_coef_NHC.o read_coef.o \
                         set_vps_dict.o samp_vel_cp.o control_vps_params.o \
                         control_vps_params_dvr.o weight_node_gauss_hermite.o \
                         control_vc_smpl.o control_vc_smpl_dvr.o control_vcnhc_smpl.o \
-                        control_set_cp_ewald_dvr.o  set_cp_ewald_dvr.o
+                        control_set_cp_ewald_dvr.o  set_cp_ewald_dvr.o \
+			real_space_nlpp.o
 INTERFACE_INTRA_FILES = close_intra_params.o control_intra_params.o \
                         control_res_params.o fetch_residue.o \
                         fetch_resbond_prm.o fetch_free_energy_index.o \

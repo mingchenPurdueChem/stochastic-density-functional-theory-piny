@@ -80,7 +80,7 @@ void genNoiseOrbital(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
 #ifdef MKL_RANDOM
     VSLStreamStatePtr stream;
     int errcode;
-    int seed = (int)(seed = stodftInfo->randSeed);
+    int seed = (int)(stodftInfo->randSeed);
     errcode = vslNewStream(&stream,VSL_BRNG_MCG31,seed);
     errcode = vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD,stream,
 			    numProcStates,randNumSeedTot,0.0,100000.0);

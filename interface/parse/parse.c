@@ -386,6 +386,10 @@ void parse(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
                        cp->cpopts.cp_ptens_calc,cp_dual_grid_opt_on,
                        &(class->communicate),cp_parse.cp_ecut,
                        &(cp->cpcoeffs_info));
+
+    if(cp->pseudo.pseudoReal.pseudoRealFlag==1){
+      controlNlppReal(cp,class,general_data,&filename_parse);
+    }
    }/*endif*/
   }/*endif*/
 

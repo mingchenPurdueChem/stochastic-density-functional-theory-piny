@@ -803,7 +803,7 @@ double j2(double x){
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 double dsysvWrapper(double *A,double *b,int n){
-  char uplo = 'U'
+  char uplo = 'U';
   int nrhs = 1;
   int lda = n;
   int ldb = n;

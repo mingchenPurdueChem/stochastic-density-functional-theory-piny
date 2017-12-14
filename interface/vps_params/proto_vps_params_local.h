@@ -58,6 +58,7 @@ void make_weight_gen(double *,double *,double *, double *,
 /*  real_space_nlpp.c  */
 
 void nlppSmoothKS(PSEUDO *,double *,double ,int ,double *,int ,double ,int ,int);
+void nlppSmoothRoi(PSEUDO *,double *,double ,int ,double *,int ,double ,int ,int);
 void bessTransform(double *,int ,double ,int ,double *,int ,double );
 void optGCoeff(PSEUDO_REAL *,int ,int ,int ,double ,double ,double ,int ,double *);
 

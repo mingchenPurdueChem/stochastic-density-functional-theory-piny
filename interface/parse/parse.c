@@ -390,6 +390,8 @@ void parse(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     if(cp->pseudo.pseudoReal.pseudoRealFlag==1){
       controlNlppReal(cp,class,general_data,&filename_parse);
     }
+    fflush(stdout);
+    exit(0);
    }/*endif*/
   }/*endif*/
 

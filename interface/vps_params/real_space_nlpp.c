@@ -136,6 +136,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
         atomLRadNum[iType][3] = nrad_3[iType+1];
         break;
     }
+    //printf("numRadMax %i %i %i %i\n",numRadMax[0],numLMax[0],atomLRadNum[0][0],atomLRadNum[0][1]);
     atomRadMap[iType] = NULL;
     if(numLMax[iType]>0){
       atomRadMap[iType] = (int*)cmalloc(numRadMax[iType]*sizeof(int));
@@ -143,6 +144,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
         atomRadMap[iType][iRad] = countRad+iRad;
       }
     }
+    printf("atomRadMap %i %i\n",atomRadMap[0][0],atomRadMap[0][1]);
     countRad += numRadMax[iType];
   }
   numRadTot = countRad;
@@ -232,10 +234,11 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
       switch(smoothOpt){
 	case 1:
 	  nlppSmoothKS(pseudo,vNl,rCutoffMax,iRad,vNlSmooth,numGridRadSmooth,
-		       rMax,numR,);
+		       rMax,numR,lMap[iRad]);
 	  break;
 	case 2:
-	  nlppSmoothRoi(pseudo,vNl,rCutoffMax,iRad);
+	  nlppSmoothRoi(pseudo,vNl,rCutoffMax,iRad,vNlSmooth,numGridRadSmooth,
+                       rMax,numR,lMap[iRad]);
 	  break;
       }//endswitch    
     }//endfor iRad
@@ -278,17 +281,16 @@ void nlppSmoothKS(PSEUDO *pseudo,double *vNl,double rCutoffMax,int iRad,
   double gMaxLg = pseudoReal->gMaxLg;
   double dg = pseudoReal->dg;
   double dr = rMax/((double)numR);
-  double *gGrid;
+  double *gGrid,*r;
 
   double *vNlG,*dvNlG;
-  double *
   
   // initialize
   numGSm = (int)(gMaxSm/dg)+1;
   numGLg = (int)(gMaxLg/dg)+1;
 
   vNlG = (double*)cmalloc((numGLg)*sizeof(double)); //fv_rphi
-  dvNlG = (double*)cmalloc((numGlg)*sizeof(double)); //dfv_rphi
+  dvNlG = (double*)cmalloc((numGLg)*sizeof(double)); //dfv_rphi
   r = (double*)cmalloc((numR)*sizeof(double));
   gGrid = (double*)cmalloc((numGLg)*sizeof(double));
 
@@ -309,6 +311,24 @@ void nlppSmoothKS(PSEUDO *pseudo,double *vNl,double rCutoffMax,int iRad,
   // we may need to resacle the potential. Let's check this
 
 
+/*--------------------------------------------------------------------------*/
+  }/*end routine*/
+/*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void nlppSmoothRoi(PSEUDO *pseudo,double *vNl,double rCutoffMax,int iRad,
+                  double *vNlSmooth,int numGridRadSmooth,double rMax,int numR,
+                  int l)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* Real space nlpp, only used in filtering                   */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
 /*--------------------------------------------------------------------------*/
   }/*end routine*/
 /*==========================================================================*/
@@ -344,10 +364,10 @@ void bessTransform(double *funIn,int numIn,double dx,int l,double *funOut,
       for(iGrid=1;iGrid<numOut;iGrid++){
 	funOut[iGrid] = 0.0;
 	y = iGrid*dy;
-	for(jGrid=1;jGrid<numIn,jGrid++){
+	for(jGrid=1;jGrid<numIn;jGrid++){
 	  x = jGrid*dx;
 	  arg = x*y;
-	  funOut[iGrid] += j0(arg)*x*funIn*dx;
+	  funOut[iGrid] += j0(arg)*x*funIn[jGrid]*dx;
 	}//endfor jGrid
       }//endfor iGrid
       break;
@@ -355,10 +375,10 @@ void bessTransform(double *funIn,int numIn,double dx,int l,double *funOut,
       for(iGrid=1;iGrid<numOut;iGrid++){
         funOut[iGrid] = 0.0;
         y = iGrid*dy;
-        for(jGrid=1;jGrid<numIn,jGrid++){
+        for(jGrid=1;jGrid<numIn;jGrid++){
           x = jGrid*dx;
           arg = x*y;
-          funOut[iGrid] += j1(arg)*x*funIn*dx;
+          funOut[iGrid] += j1(arg)*x*funIn[jGrid]*dx;
         }//endfor jGrid
       }//endfor iGrid
       break;
@@ -366,10 +386,10 @@ void bessTransform(double *funIn,int numIn,double dx,int l,double *funOut,
       for(iGrid=1;iGrid<numOut;iGrid++){
         funOut[iGrid] = 0.0;
         y = iGrid*dy;
-        for(jGrid=1;jGrid<numIn,jGrid++){
+        for(jGrid=1;jGrid<numIn;jGrid++){
           x = jGrid*dx;
           arg = x*y;
-          funOut[iGrid] += j2(arg)*x*funIn*dx;
+          funOut[iGrid] += j2(arg)*x*funIn[jGrid]*dx;
         }//endfor jGrid
       }//endfor iGrid
       break;
@@ -405,9 +425,9 @@ void optGCoeff(PSEUDO_REAL *pseudoReal,int numGLg,int numGSm,int numR,
   double *subA;
   //Construct the A matrix
 
-  A = (double*)calloc(numGLg*numGLg*sizeof(double));
-  B = (double*)calloc(numGSolve*sizeof(double));
-  subA = (double*)calloc(numGSolve*sizeof(double));
+  A = (double*)calloc(numGLg*numGLg,sizeof(double));
+  B = (double*)calloc(numGSolve,sizeof(double));
+  subA = (double*)calloc(numGSolve,sizeof(double));
   
   for(iGridG=0;iGridG<numGLg;iGridG++){
     qi = iGridG*dg;

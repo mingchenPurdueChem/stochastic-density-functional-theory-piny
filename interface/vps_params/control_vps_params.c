@@ -277,8 +277,6 @@ void control_vps_params(PSEUDO *pseudo,CELL *cell,
       pseudo->natm_typ_gh  = natm_typ_gh;
  }/*endif : myid==0*/
 
- printf("n_ang %i %i %i\n",pseudo->n_ang[1],pseudo->n_ang[2],pseudo->n_ang[3]);
-
  if(num_proc>1){
     Bcast(&(pseudo->ivps_label[1]),natm_typ,MPI_INT,0,comm);
     Bcast(&(pseudo->loc_opt[1]),natm_typ,MPI_INT,0,comm);
@@ -1168,7 +1166,7 @@ void make_vps_splin(char *vps_file,int loc_opt,int n_ang,
            if(fscanf(fp_vps_file,"%lf %lf\n",&v_now,&rphi_now) != 2) 
                        {vps_read_error(vps_file); }
             v_rphi[ir] = (v_now-v_loc[ir])*rphi_now;
-	    printf("111111111 diff %i %.16lg\n",ir,v_now-v_loc[ir]);
+	    //printf("111111111 diff %i %.16lg\n",ir,v_now-v_loc[ir]);
             amat += rphi_now*v_rphi[ir]*dr;
           } /* endfor */
          }/*endif*/

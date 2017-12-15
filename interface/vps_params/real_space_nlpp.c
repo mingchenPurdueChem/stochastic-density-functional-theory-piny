@@ -55,10 +55,15 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   PSEUDO_REAL *pseudoReal = &(pseudo->pseudoReal);
   CELL *cell = &(generalData->cell);
   VPS_FILE *vpsFile = pseudo->vps_file;
+  CPEWALD *cpewald = &(cp->cpewald);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
 
   int iType,iRad,iAng,rGrid;
   int smoothOpt	    = pseudoReal->smoothOpt;
   int numAtomType   = atommaps->natm_typ;
+  int nkf1 = cp_para_fft_pkg3d_lg->nkf1;
+  int nkf2 = cp_para_fft_pkg3d_lg->nkf2;
+  int nkf3 = cp_para_fft_pkg3d_lg->nkf3;
   int countRad;
   int numR,angNow,numRadTot;
   int numGridRadSmooth;
@@ -82,10 +87,17 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   double zPol,gamma;
   double dr,rMax,rMin,r;
   double aLength,bLength,cLength;
+  double gmaxTrueSm = cpewald->gmaxTrueSm;
+  double gmaxTrueLg = cpewald->gmaxTrueLg;
+  double gmaxTrueLgLg;
   double a[3],b[3],c[3];
+  double aiLength,biLength,ciLength;
+  double pre = 2.0*M_PI;
+
   double *vLoc,*vNl,*phiNl,*vNlSmooth;
   double *vNlTot;
   double *hmat = cell->hmat;
+  double *hmati = cell->hmati;
   double *ppRealCut;
   double *vpsNormList;
   
@@ -144,7 +156,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
         atomRadMap[iType][iRad] = countRad+iRad;
       }
     }
-    printf("atomRadMap %i %i\n",atomRadMap[0][0],atomRadMap[0][1]);
+    //printf("atomRadMap %i %i\n",atomRadMap[0][0],atomRadMap[0][1]);
     countRad += numRadMax[iType];
   }
   numRadTot = countRad;
@@ -164,6 +176,16 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   aLength = sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]);
   bLength = sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]);
   cLength = sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2]);
+  aiLength = sqrt(hmati[1]*hmati[1]+hmati[4]*hmati[4]+hmati[7]*hmati[7])*pre*nkf1;
+  biLength = sqrt(hmati[2]*hmati[2]+hmati[5]*hmati[5]+hmati[8]*hmati[8])*pre*nkf2;
+  ciLength = sqrt(hmati[3]*hmati[3]+hmati[6]*hmati[6]+hmati[9]*hmati[9])*pre*nkf3;
+  
+  gmaxTrueLgLg = MIN(aiLength,biLength);
+  gmaxTrueLgLg = MIN(gmaxTrueLgLg,ciLength)-gmaxTrueSm;
+
+  printf("ggggggg %lg %lg %lg\n",gmaxTrueSm,gmaxTrueLg,gmaxTrueLgLg);
+  pseudoReal->gMaxSm = gmaxTrueSm;
+  pseudoReal->gMaxLg = gmaxTrueLgLg;
  
   // 2. Read the radial functions and determine the cutoff 
   for(iType=0;iType<numAtomType;iType++){
@@ -173,34 +195,36 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
       fscanf(fvps,"%i %lg %i\n",&numR,&rMax,&angNow);
       fscanf(fvps,"%lg %lg %lg %lg\n",&z1,&alpha1,&z2,&alpha2);
       fscanf(fvps,"%lg %lg\n",&zPol,&gamma);
-      vLoc = (double*)cmalloc((numR+1)*sizeof(double));
-      vNl = (double*)cmalloc((numR*numRadMax[iType]+1)*sizeof(double));
-      phiNl = (double*)cmalloc((numR*numRadMax[iType]+1)*sizeof(double));
+      printf("%lg %lg %lg %lg %lg %lg\n",z1,alpha1,z2,alpha2,zPol,gamma);
+      vLoc = (double*)cmalloc((numR)*sizeof(double));
+      vNl = (double*)cmalloc((numR*numRadMax[iType])*sizeof(double));
+      phiNl = (double*)cmalloc((numR*numRadMax[iType])*sizeof(double));
       dr = rMax/(double)numR;
       // get the non-local part
       for(iAng=0;iAng<angNow;iAng++){
 	lMap[countR] = iAng;
 	for(rGrid=0;rGrid<numR;rGrid++){
-	  fscanf(fvps,"%lg %lg\n",&vNl[iAng*numR+rGrid+1],phiNl[iAng*numR+rGrid+1]);
+	  fscanf(fvps,"%lg %lg\n",&vNl[iAng*numR+rGrid],&phiNl[iAng*numR+rGrid]);
 	}//endfor rGrid
 	countR += 1;
       }//endfor iAng
       // get the local potential
       for(rGrid=0;rGrid<numR;rGrid++){
-	fscanf(fvps,"%lg %lg\n",&vLoc[rGrid+1],&junk1);
+	fscanf(fvps,"%lg %lg\n",&vLoc[rGrid],&junk1);
       }//endfor rGrid
       // Substract the nonlocal part from local part
       for(iAng=0;iAng<angNow;iAng++){
 	for(rGrid=0;rGrid<numR;rGrid++){
-	  vNl[iAng*numR+rGrid+1] = (vNl[iAng*numR+rGrid+1]-vLoc[rGrid+1])*phiNl[iAng*numR+rGrid+1];
+	  vNl[iAng*numR+rGrid] = (vNl[iAng*numR+rGrid]-vLoc[rGrid])*phiNl[iAng*numR+rGrid];
+	  //printf("rGridddddd %lg %lg\n",rGrid*dr,vNl[iAng*numR+rGrid]);
 	}//endfor rGrid
       }//endfor iAng
       for(iAng=0;iAng<angNow;iAng++){
-	rGrid = 0;
-	while(vNl[iAng*numR+rGrid+1]>1.0e-10&&rGrid<numR){//double check 1.0e-10
-	  rGrid += 1;
+	rGrid = numR-1;
+	while(vNl[iAng*numR+rGrid]<1.0e-10&&rGrid>0){//double check 1.0e-10
+	  rGrid -= 1;
 	}
-	if(rGrid==numR){
+	if(rGrid==numR-1){
 	  printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
 	  printf("Your pseudo-potential does not decay enough! Please\n");
 	  printf("choose bigger radius cutoff!\n");
@@ -208,7 +232,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 	  fflush(stdout);
 	  exit(0);
 	}
-	r = rGrid*dr*radCutRatio;
+	r = (rGrid+1.0)*dr*radCutRatio;
 	if(r>=0.5*aLength||r>=0.5*bLength||r>=0.5*cLength){
 	  printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
 	  printf("Your box is too small to use real space non-local\n");
@@ -288,6 +312,7 @@ void nlppSmoothKS(PSEUDO *pseudo,double *vNl,double rCutoffMax,int iRad,
   // initialize
   numGSm = (int)(gMaxSm/dg)+1;
   numGLg = (int)(gMaxLg/dg)+1;
+  printf("gMaxSm %lg gMaxLg %lg\n",gMaxSm,gMaxLg);
 
   vNlG = (double*)cmalloc((numGLg)*sizeof(double)); //fv_rphi
   dvNlG = (double*)cmalloc((numGLg)*sizeof(double)); //dfv_rphi

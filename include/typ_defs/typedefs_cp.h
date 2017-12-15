@@ -1045,6 +1045,7 @@ typedef struct cpewald {
   double dbox_rat;             /* Double value for box ratio */
   double gw_gmin,gw_gmax;
   double gw_gmin_dens_cp_box,gw_gmax_dens_cp_box;
+  double gmaxTrueSm,gmaxTrueLg;
 
   int *kmax_cp;                     /* Lst: Int cutoff in a,b,c directions */
   int *kmax_cp_dens_cp_box;         /* Lst: cutoff for the small box       */

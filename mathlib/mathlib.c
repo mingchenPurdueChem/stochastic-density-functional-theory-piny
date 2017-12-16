@@ -812,7 +812,9 @@ double dsysvWrapper(double *A,double *b,int n){
   double *work = (double*)cmalloc(lwork*sizeof(double));
   int info;
 
-  dsysv_(&uplo,&n,&nrhs,A,&lda,ipiv,b,&ldb,work,&lwork,&info);
+  double *ACpy = (double*)cmalloc(n*n*sizeof(double));
+  memcpy(ACpy,A,n*n*sizeof(double));
+  dsysv_(&uplo,&n,&nrhs,ACpy,&lda,ipiv,b,&ldb,work,&lwork,&info);
 
   if(info>0){
     printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
@@ -833,6 +835,7 @@ double dsysvWrapper(double *A,double *b,int n){
   
   free(ipiv);
   free(work);
+  free(ACpy);
 }
 /*===============================================================*/
 

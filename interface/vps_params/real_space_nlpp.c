@@ -185,7 +185,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 
   printf("ggggggg %lg %lg %lg\n",gmaxTrueSm,gmaxTrueLg,gmaxTrueLgLg);
   pseudoReal->gMaxSm = gmaxTrueSm;
-  pseudoReal->gMaxLg = gmaxTrueLgLg;
+  pseudoReal->gMaxLg = gmaxTrueLg;
  
   // 2. Read the radial functions and determine the cutoff 
   for(iType=0;iType<numAtomType;iType++){
@@ -257,12 +257,14 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
     for(iRad=0;iRad<numRadMax[iType];iRad++){
       switch(smoothOpt){
 	case 1:
-	  nlppSmoothKS(pseudo,vNl,rCutoffMax,iRad,vNlSmooth,numGridRadSmooth,
+	  nlppSmoothKS(pseudo,&vNl[iRad*numR],rCutoffMax,iRad,
+		       &vNlSmooth[iRad*numGridRadSmooth],numGridRadSmooth,
 		       rMax,numR,lMap[iRad]);
 	  break;
 	case 2:
-	  nlppSmoothRoi(pseudo,vNl,rCutoffMax,iRad,vNlSmooth,numGridRadSmooth,
-                       rMax,numR,lMap[iRad]);
+	  nlppSmoothRoi(pseudo,&vNl[iRad*numR],rCutoffMax,iRad,
+			&vNlSmooth[iRad*numGridRadSmooth],numGridRadSmooth,
+                        rMax,numR,lMap[iRad]);
 	  break;
       }//endswitch    
     }//endfor iRad
@@ -299,7 +301,6 @@ void nlppSmoothKS(PSEUDO *pseudo,double *vNl,double rCutoffMax,int iRad,
   int numGSm;
   int numGLg;
   int ig,ir;
-  int numRCutoff;
 
   double gMaxSm = pseudoReal->gMaxSm;
   double gMaxLg = pseudoReal->gMaxLg;
@@ -314,7 +315,7 @@ void nlppSmoothKS(PSEUDO *pseudo,double *vNl,double rCutoffMax,int iRad,
   numGLg = (int)(gMaxLg/dg)+1;
   printf("gMaxSm %lg gMaxLg %lg\n",gMaxSm,gMaxLg);
 
-  vNlG = (double*)cmalloc((numGLg)*sizeof(double)); //fv_rphi
+  vNlG = (double*)calloc((numGLg),sizeof(double)); //fv_rphi
   dvNlG = (double*)cmalloc((numGLg)*sizeof(double)); //dfv_rphi
   r = (double*)cmalloc((numR)*sizeof(double));
   gGrid = (double*)cmalloc((numGLg)*sizeof(double));
@@ -323,16 +324,37 @@ void nlppSmoothKS(PSEUDO *pseudo,double *vNl,double rCutoffMax,int iRad,
   for(ir=0;ir<numR;ir++)r[ir] = ir*dr;
  
 
+  printf("2222222 l %i\n",l);
   // Bessel transform to g space from g=0 to gMaxSm
   bessTransform(vNl,numR,dr,l,vNlG,numGSm,dg);
+  /*
+  for(ig=0;ig<numGLg;ig++){
+    printf("111111111 vnlg %lg %lg\n",ig*dg,vNlG[ig]);
+  }
+  printf("numGridRadSmooth %i\n",numGridRadSmooth);
+  */
+  //fflush(stdout);
+  //exit(0);
 
   // Optimize g space coeffcient from gMaxSm to gMaxLg
 
-  optGCoeff(pseudoReal,numGLg,numGSm,numR,dr,dg,rMax,l,vNlG);
+  optGCoeff(pseudoReal,numGLg,numGSm,numR,dr,dg,numGridRadSmooth,l,vNlG);
+  for(ig=0;ig<numGLg;ig++){
+    printf("111111 vNlGTrunc %lg %lg\n",ig*dg,vNlG[ig]);
+  }
 
   // Inverse Bassel transform to r space
 
-  bessTransform(vNlG,numGLg,dg,l,vNlSmooth,numRCutoff,dr);  
+  for(ig=0;ig<numGLg;ig++){
+    vNlG[ig] *= ig*dg;
+  }
+  bessTransform(vNlG,numGLg,dg,l,vNlSmooth,numGridRadSmooth,dr);  
+  for(ir=0;ir<numGridRadSmooth;ir++){
+    printf("111111 vnlr %lg %lg\n",ir*dr,vNlSmooth[ir]*ir*dr*2.0/M_PI);
+  }
+  //fflush(stdout);
+  //exit(0);
+
   // we may need to resacle the potential. Let's check this
 
 
@@ -379,9 +401,11 @@ void bessTransform(double *funIn,int numIn,double dx,int l,double *funOut,
   //double fpidx = 4.0*M_PI*dx;
 
   funOut[0] = 0.0;
-  for(jGrid=1;jGrid<numIn;jGrid++){
-    x = jGrid*dx;
-    funOut[0] += x*funIn[jGrid]*dx;
+  if(l==0){
+    for(jGrid=1;jGrid<numIn;jGrid++){
+      x = jGrid*dx;
+      funOut[0] += x*funIn[jGrid]*dx;
+    }
   }
 
   switch(l){
@@ -428,7 +452,7 @@ void bessTransform(double *funIn,int numIn,double dx,int l,double *funOut,
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 void optGCoeff(PSEUDO_REAL *pseudoReal,int numGLg,int numGSm,int numR,
-		double dr,double dg,double rCutoff, int l,double *vNlG)
+		double dr,double dg,int numRCutoff, int l,double *vNlG)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
@@ -438,7 +462,6 @@ void optGCoeff(PSEUDO_REAL *pseudoReal,int numGLg,int numGSm,int numR,
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
   int iGridG,jGridG,kGridR;
-  int numRCutoff = rCutoff/dr;
   int numGSolve = numGLg-numGSm;
   int gridShift;
 
@@ -452,9 +475,16 @@ void optGCoeff(PSEUDO_REAL *pseudoReal,int numGLg,int numGSm,int numR,
 
   A = (double*)calloc(numGLg*numGLg,sizeof(double));
   B = (double*)calloc(numGSolve,sizeof(double));
-  subA = (double*)calloc(numGSolve,sizeof(double));
+  subA = (double*)calloc(numGSolve*numGSolve,sizeof(double));
   
-  for(iGridG=0;iGridG<numGLg;iGridG++){
+  //iGrid=0
+  for(jGridG=0;jGridG<numGLg;jGridG++){
+    A[jGridG] = 0.0;
+    A[jGridG*numGLg] = 0.0;
+  }
+
+  for(iGridG=1;iGridG<numGLg;iGridG++){
+    printf("iGridG %i\n",iGridG);
     qi = iGridG*dg;
     for(jGridG=iGridG;jGridG<numGLg;jGridG++){
       qj = jGridG*dg; 
@@ -502,17 +532,40 @@ void optGCoeff(PSEUDO_REAL *pseudoReal,int numGLg,int numGSm,int numR,
     }//endfor jGridG
     B[iGridG] *= dg;
   }//endfor iGridG  
+  for(iGridG=0;iGridG<numGSolve;iGridG++){
+    printf("BBBBBBBBBBB %i %lg\n",iGridG,B[iGridG]);
+  }
 
   for(iGridG=0;iGridG<numGSolve;iGridG++){
     qi = (iGridG+numGSm)*dg;
     for(jGridG=0;jGridG<numGSolve;jGridG++){
-      subA[iGridG*numGSolve+jGridG] = -A[(iGridG+numGSm)+jGridG+numGSm]*dg;
+      subA[iGridG*numGSolve+jGridG] = -A[(iGridG+numGSm)*numGLg+jGridG+numGSm]*dg;
     }//endfor jGridG
     subA[iGridG*numGSolve+iGridG] += 0.5*M_PI*qi*qi;
   }//endfor iGridG
+  for(iGridG=0;iGridG<numGSolve;iGridG++){
+    for(jGridG=0;jGridG<numGSolve;jGridG++){
+      printf("subAAAAAAA %i %i %lg\n",iGridG,jGridG,subA[iGridG*numGSolve+jGridG]);
+    }
+    printf("diag subAAAA %i %lg\n",iGridG,subA[iGridG*numGSolve+iGridG]);
+  }
 
   // Solving the linear system
   dsysvWrapper(subA,B,numGSolve);
+  for(iGridG=0;iGridG<numGSolve;iGridG++){
+    printf("solutionnnn %i %lg\n",iGridG,B[iGridG]);
+  }
+  /*
+  double *BTest = (double*)calloc(numGSolve,sizeof(double));
+  for(iGridG=0;iGridG<numGSolve;iGridG++){
+    for(jGridG=0;jGridG<numGSolve;jGridG++){
+      BTest[iGridG] += subA[iGridG*numGSolve+jGridG]*B[jGridG];
+    }
+  }
+  for(iGridG=0;iGridG<numGSolve;iGridG++){
+    printf("recoverrrrrr %i %lg\n",iGridG,BTest[iGridG]);
+  }
+  */
 
   for(iGridG=0;iGridG<numGSolve;iGridG++){
     vNlG[iGridG+numGSm] = B[iGridG];

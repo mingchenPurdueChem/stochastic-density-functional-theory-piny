@@ -1086,7 +1086,8 @@ typedef struct pseudo_real{
 /* We won't assue one radial function for one l for each atom, since we may start using */
 /* extended KB in the future.								*/
   int pseudoRealFlag;       /* Opt: real space nlpp flag, 0=off, 1=on		*/
-  int numInterpGridTot;     /* Num: Total number of interpolation grid          */
+  int numInterpGrid;        /* Num: number of interpolation grid for each radial*/
+			    /*	    channel					*/
   int numRadTot;	    /* Num: Total number of radius functions (summation)*/
 			    /*	    of all elements in numRadMax		*/
   int smoothOpt;	    /* Opt: option to smooth the nl pp radius function  */
@@ -1113,9 +1114,9 @@ typedef struct pseudo_real{
   double gMaxSm,gMaxLg;	    /* Num: small and large g cutoff			*/
   double radCutRatio;	    /* Num: (cutoff we use)/(cutoff of nlpp) usually	*/
   double dg;		    /* Num: grid spacing in g space			*/
-  double **vpsReal0,**vpsReal1,**vpsReal2,**vpsReal3; 
+  double *vpsReal0,*vpsReal1,*vpsReal2,*vpsReal3; 
 			    /* Lst: Spline interp coeff of radial function	*/
-			    /* Lth: natm_typ*numInterpGridTot			*/
+			    /* Lth: numRadTot*numInterpGrid			*/
   double *ppRealCut;	    /* Lst: non-local pp real space radius cutoff.	*/
 			    /* Lth: natm_typ					*/
   double *vpsNormList;	    /* Lst: non-local pseudopotential norm list		*/

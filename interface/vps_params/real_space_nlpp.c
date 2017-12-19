@@ -66,7 +66,6 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   int nkf3 = cp_para_fft_pkg3d_lg->nkf3;
   int countRad;
   int numR,angNow,numRadTot;
-  int numGridRadSmooth;
   int countR = 0;
 
   int *iAtomAtomType = atommaps->iatm_atm_typ;
@@ -77,6 +76,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   int *nrad_3 = pseudo->nrad_3;
   int *ivpsLabel = pseudo->ivps_label;
   int *lMap;
+  int *numGridRadSmooth;
 
   int **atomLRadNum,**atomRadMap;
 
@@ -94,13 +94,16 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   double aiLength,biLength,ciLength;
   double pre = 2.0*M_PI;
 
-  double *vLoc,*vNl,*phiNl,*vNlSmooth;
+  double *vLoc,*vNl,*phiNl;
   double *vNlTot;
   double *hmat = cell->hmat;
   double *hmati = cell->hmati;
   double *ppRealCut;
   double *vpsNormList;
+  double *vpsReal0,*vpsReal1,*vpsReal2,*vpsReal3;
   
+  double **vNlSmooth,**dvNlSmooth;
+
   FILE *fvps;
 /*==========================================================================*/
 /* I) Initialize radial function and angular channel                        */
@@ -110,6 +113,9 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   pseudoReal->atomLRadNum = (int**)cmalloc(numAtomType*sizeof(int*));
   pseudoReal->atomRadMap = (int**)cmalloc(numAtomType*sizeof(int*));
   pseudoReal->ppRealCut = (double*)cmalloc(numAtomType*sizeof(double));
+  vNlSmooth = (double**)cmalloc(numAtomType*sizeof(double*));
+  dvNlSmooth = (double**)cmalloc(numAtomType*sizeof(double*));
+  numGridRadSmooth = (int*)cmalloc(numAtomType*sizeof(int));
   numLMax = pseudoReal->numLMax;
   numRadMax = pseudoReal->numRadMax;
   atomLRadNum = pseudoReal->atomLRadNum;
@@ -252,28 +258,69 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
     }//endif ivpsLabel
   // 3. Smooth the radius function
     
-    numGridRadSmooth = (int)(rCutoffMax/dr)+1;
-    vNlSmooth = (double*)cmalloc(numGridRadSmooth*numRadMax[iType]*sizeof(double));
+    numGridRadSmooth[iType] = (int)(rCutoffMax/dr)+1;
+    vNlSmooth[iType] = (double*)cmalloc(numGridRadSmooth[iType]*numRadMax[iType]*sizeof(double));
+    dvNlSmooth[iType] = (double*)cmalloc(numGridRadSmooth[iType]*numRadMax[iType]*sizeof(double));
+
     for(iRad=0;iRad<numRadMax[iType];iRad++){
       switch(smoothOpt){
 	case 1:
 	  nlppSmoothKS(pseudo,&vNl[iRad*numR],rCutoffMax,iRad,
-		       &vNlSmooth[iRad*numGridRadSmooth],numGridRadSmooth,
-		       rMax,numR,lMap[iRad]);
+		       &vNlSmooth[iType][iRad*numGridRadSmooth[iType]],
+		       &dvNlSmooth[iType][iRad*numGridRadSmooth[iType]],
+		       numGridRadSmooth[iType],rMax,numR,lMap[iRad]);
 	  break;
 	case 2:
 	  nlppSmoothRoi(pseudo,&vNl[iRad*numR],rCutoffMax,iRad,
-			&vNlSmooth[iRad*numGridRadSmooth],numGridRadSmooth,
-                        rMax,numR,lMap[iRad]);
+			&vNlSmooth[iType][iRad*numGridRadSmooth[iType]],
+			&dvNlSmooth[iType][iRad*numGridRadSmooth[iType]],
+			numGridRadSmooth[iType],rMax,numR,lMap[iRad]);
 	  break;
       }//endswitch    
     }//endfor iRad
   }//endfor iType
 
 /*==========================================================================*/
-/* I) Allocate real space spline                                            */
+/* I) Real space spline							    */
 
-  // 1. Calculate the real space radius grid number
+  // 1. Unified the real space cutoff, its easier to allocate
+  int numInterpGrid = -1.0e10;
+  int gridShift;
+  double *rList;
+  for(iType=0;iType<numAtomType;iType++){
+    iGrid = (int)(ppRealCut[iType]/dr)+1;
+    if(numInterpGrid<iGrid){
+      numInterpGrid = iGrid;
+    }
+  }
+  pseudoReal->numInterpGrid = numInterpGrid;
+  rList = (double*)cmalloc((numInterpGrid+1)*sizeof(double));
+  pseudoReal->vpsReal0 = (double*)calloc((numInterpGrid*numRadTot+1),sizeof(double));
+  pseudoReal->vpsReal1 = (double*)calloc((numInterpGrid*numRadTot+1),sizeof(double));
+  pseudoReal->vpsReal2 = (double*)calloc((numInterpGrid*numRadTot+1),sizeof(double));
+  pseudoReal->vpsReal3 = (double*)calloc((numInterpGrid*numRadTot+1),sizeof(double));
+  vpsReal0 = pseudoReal->vpsReal0;
+  vpsReal1 = pseudoReal->vpsReal1;
+  vpsReal2 = pseudoReal->vpsReal2;
+  vpsReal3 = pseudoReal->vpsReal3;
+
+  for(rGrid=0;rGrid<numInterpGrid;rGrid++)rList[rGrid+1] = rGrid*dr;
+ 
+  gridShift = 0;
+  for(iType=0;iType<numAtomType;iType++){
+    for(iRad=0;iRad<numRadMax[iType];iRad++){
+      memcpy(&vpsReal0[1+gridShift],vNlSmooth[iType][iRad*numGridRadSmooth[iType]],
+	     numGridRadSmooth[iType]*sizeof(double));
+      gridShift += numInterpGrid;
+    }
+  }
+    
+  for(iRad=0;iRad<numRadTot;iRad++){
+    gridShift = iRad*numInterpGrid;
+    spline_fit(&(vpsReal0[gridShift]),&(vps1[gridShift]),
+               &(vpsReal2[gridShift]),&(vps3[gridShift]),rList,numInterpGrid);  
+  }
+
   
   
 /*--------------------------------------------------------------------------*/
@@ -285,8 +332,8 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 void nlppSmoothKS(PSEUDO *pseudo,double *vNl,double rCutoffMax,int iRad,
-		  double *vNlSmooth,int numGridRadSmooth,double rMax,int numR,
-		  int l)
+		  double *vNlSmooth,double *dvNlSmooth,int numGridRadSmooth,
+		  double rMax,int numR,int l)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
@@ -349,6 +396,7 @@ void nlppSmoothKS(PSEUDO *pseudo,double *vNl,double rCutoffMax,int iRad,
     vNlG[ig] *= ig*dg;
   }
   bessTransform(vNlG,numGLg,dg,l,vNlSmooth,numGridRadSmooth,dr);  
+  bessTransformGrad(vNlG,numGLg,dg,l,dvNlSmooth,numGridRadSmooth,dr);
   for(ir=0;ir<numGridRadSmooth;ir++){
     printf("111111 vnlr %lg %lg\n",ir*dr,vNlSmooth[ir]*ir*dr*2.0/M_PI);
   }
@@ -575,6 +623,79 @@ void optGCoeff(PSEUDO_REAL *pseudoReal,int numGLg,int numGSm,int numR,
   }/*end routine*/
 /*==========================================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void bessTransformGrad(double *funIn,int numIn,double dx,int l,double *funOut,
+                   int numOut,double dy)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* Bessel transform */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+
+  int iGrid,jGrid;
+
+  double x,y;
+  double arg;
+  double djl0; //derivative of spherical bessel function at x=0
+  //double fpidx = 4.0*M_PI*dx;
+
+  // r=0
+  switch(l){
+    case 0: djl0 = 0.0; break;
+    case 1: djl0 = 1.0/3.0; break;
+    case 2: djl0 = 0.0; break;
+  }
+  funOut[0] = 0.0;
+  for(jGrid=1;jGrid<numIn;jGrid++){
+    x = jGrid*dx;
+    funOut[0] += x*x*funIn[jGrid];
+  }
+  funOut[0] *= djl0*dx;
+
+  switch(l){
+    case 0:
+      for(iGrid=1;iGrid<numOut;iGrid++){
+        funOut[iGrid] = 0.0;
+        y = iGrid*dy;
+        for(jGrid=1;jGrid<numIn;jGrid++){
+          x = jGrid*dx;
+          arg = x*y;
+          funOut[iGrid] += dj0(arg)*x*x*funIn[jGrid]*dx;
+        }//endfor jGrid
+      }//endfor iGrid
+      break;
+    case 1:
+      for(iGrid=1;iGrid<numOut;iGrid++){
+        funOut[iGrid] = 0.0;
+        y = iGrid*dy;
+        for(jGrid=1;jGrid<numIn;jGrid++){
+          x = jGrid*dx;
+          arg = x*y;
+          funOut[iGrid] += dj1(arg)*x*x*funIn[jGrid]*dx;
+        }//endfor jGrid
+      }//endfor iGrid
+      break;
+    case 2:
+      for(iGrid=1;iGrid<numOut;iGrid++){
+        funOut[iGrid] = 0.0;
+        y = iGrid*dy;
+        for(jGrid=1;jGrid<numIn;jGrid++){
+          x = jGrid*dx;
+          arg = x*y;
+          funOut[iGrid] += dj2(arg)*x*x*funIn[jGrid]*dx;
+        }//endfor jGrid
+      }//endfor iGrid
+      break;
+  }//endswitch
+
+/*--------------------------------------------------------------------------*/
+  }/*end routine*/
+/*==========================================================================*/
 
 
 

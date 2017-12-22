@@ -454,7 +454,7 @@ void calcRadFun(double *gridAtomNbhd,int radIndex,PSEUDO_REAL *pseudoReal,
     y = gridAtomNbhd[iGrid*3+1]-nucleiCoord[1];
     z = gridAtomNbhd[iGrid*3+2]-nucleiCoord[2];
     r = sqrt(x*x+y*y+z*z);
-    gridInd = int((r-rMin)/dr)+1;
+    gridInd = (int)((r-rMin)/dr)+1;
     r0 = (gridInd-1)*dr+rMin;
     h = r-r0;
     interpInd = interpGridSt+gridInd;

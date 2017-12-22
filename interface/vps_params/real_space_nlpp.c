@@ -284,13 +284,14 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 /* I) Real space spline							    */
 
   // 1. Unified the real space cutoff, its easier to allocate
-  int numInterpGrid = -1.0e10;
+  int numInterpGrid = -1;
+  
   int gridShift;
   double *rList;
   for(iType=0;iType<numAtomType;iType++){
-    iGrid = (int)(ppRealCut[iType]/dr)+1;
-    if(numInterpGrid<iGrid){
-      numInterpGrid = iGrid;
+    rGrid = (int)(ppRealCut[iType]/dr)+1;
+    if(numInterpGrid<rGrid){
+      numInterpGrid = rGrid;
     }
   }
   pseudoReal->numInterpGrid = numInterpGrid;
@@ -309,7 +310,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   gridShift = 0;
   for(iType=0;iType<numAtomType;iType++){
     for(iRad=0;iRad<numRadMax[iType];iRad++){
-      memcpy(&vpsReal0[1+gridShift],vNlSmooth[iType][iRad*numGridRadSmooth[iType]],
+      memcpy(&vpsReal0[1+gridShift],&vNlSmooth[iType][iRad*numGridRadSmooth[iType]],
 	     numGridRadSmooth[iType]*sizeof(double));
       gridShift += numInterpGrid;
     }
@@ -317,9 +318,29 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
     
   for(iRad=0;iRad<numRadTot;iRad++){
     gridShift = iRad*numInterpGrid;
-    spline_fit(&(vpsReal0[gridShift]),&(vps1[gridShift]),
-               &(vpsReal2[gridShift]),&(vps3[gridShift]),rList,numInterpGrid);  
+    spline_fit(&(vpsReal0[gridShift]),&(vpsReal1[gridShift]),
+               &(vpsReal2[gridShift]),&(vpsReal3[gridShift]),rList,numInterpGrid);  
   }
+  // test spline
+  double rtest;
+  rMin = 0.0;
+  double r0,h,pseudoTest;
+  int gridIndTest;
+  int interpInd,interpGridSt;
+  for(iRad=0;iRad<numRadTot;iRad++){
+    interpGridSt = iRad*numInterpGrid;
+    for(rGrid=0;rGrid<numInterpGrid;rGrid++){
+      rtest = (rGrid+0.5)*dr;
+      gridIndTest = (int)((rtest-rMin)/dr)+1;
+      r0 = (gridIndTest-1)*dr+rMin;
+      h = rtest-r0;
+      interpInd = interpGridSt+gridIndTest;
+      pseudoTest = ((vpsReal3[interpInd]*h+vpsReal2[interpInd])*h+vpsReal1[interpInd])*h+vpsReal0[interpInd];
+      printf("iiiiiirad %i %.8lg %.8lg\n",iRad,rtest,pseudoTest);
+    }
+  }
+  
+  
 
   
   
@@ -414,8 +435,8 @@ void nlppSmoothKS(PSEUDO *pseudo,double *vNl,double rCutoffMax,int iRad,
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 void nlppSmoothRoi(PSEUDO *pseudo,double *vNl,double rCutoffMax,int iRad,
-                  double *vNlSmooth,int numGridRadSmooth,double rMax,int numR,
-                  int l)
+                  double *vNlSmooth,double *dvNlSmooth,int numGridRadSmooth,
+		  double rMax,int numR,int l)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/

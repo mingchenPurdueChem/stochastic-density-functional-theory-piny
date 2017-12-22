@@ -1096,7 +1096,7 @@ typedef struct pseudo_real{
 			    /* Lth: natm_typ					*/
   int *numRadMax;	    /* Lst: number of radial function for each atom type*/
 			    /* Lth: natm_typ					*/
-  int *numInterpGrid;	    /* Lst: number of interpolation Grid		*/
+  //int *numInterpGrid;	    /* Lst: number of interpolation Grid		*/
 			    /* Lth: numRadTot					*/
   int *interpGridSt;	    /* Lst: Start index of interp coeff for each radial	*/
 			    /* Lth: numRadTot					*/

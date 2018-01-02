@@ -50,7 +50,8 @@ void control_cp_eext_recip(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
 #include "../typ_defs/typ_mask.h"
-
+  PSEUDO_REAL *pseudoReal = &(pseudo->pseudoReal);
+  int pseudoRealFlag = pseudoReal->pseudoRealFlag;
   int idual_switch;
   int i,j,iii,igh;
   int nlmtot,ntot_up,ntot_dn;
@@ -398,58 +399,58 @@ void control_cp_eext_recip(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 
   //debug
   //nl_max_kb = -1;
-  if( (nl_max_kb >= 0) && ((ntot_up+ntot_dn)>0) ){
+  if(pseudoRealFlag==0){
+    if( (nl_max_kb >= 0) && ((ntot_up+ntot_dn)>0) ){
 #ifdef TIME_CP
-    if(np_states>1){Barrier(comm_states);}
-    cputime(&cpu1);
+      if(np_states>1){Barrier(comm_states);}
+      cputime(&cpu1);
 #endif
-    control_ewd_non_loc(clatoms_info,clatoms_pos,cpcoeffs_info,cpcoeffs_pos,
-                        cell,ptens,cpewald,cpscr,pseudo,ewd_scr, 
-                        cpopts,atommaps,communicate,for_scr);
+      control_ewd_non_loc(clatoms_info,clatoms_pos,cpcoeffs_info,cpcoeffs_pos,
+                          cell,ptens,cpewald,cpscr,pseudo,ewd_scr, 
+                          cpopts,atommaps,communicate,for_scr);
 
 #ifdef TIME_CP
-    cputime(&cpu2);
-    par_cpu_vomit((cpu2-cpu1),comm_states,np_states,myid_state,
-                       "control_ewd_non_loc");
+      cputime(&cpu2);
+      par_cpu_vomit((cpu2-cpu1),comm_states,np_states,myid_state,
+                     "control_ewd_non_loc");
 #endif
+    }else{
+      get_ak2_sm(cpewald,cell);
+    }//endif
 
-  }else{
-    get_ak2_sm(cpewald,cell);
-  }/*endif*/
 
-
-  if((nl_max_kb >= 0)&&((ntot_up+ntot_dn)>0)&&(pseudo->np_nonloc_cp_box_kb>0) ){
+    if((nl_max_kb >= 0)&&((ntot_up+ntot_dn)>0)&&(pseudo->np_nonloc_cp_box_kb>0) ){
 #ifdef TIME_CP
-    if(np_states>1){Barrier(comm_states);}
-    cputime(&cpu1);
+      if(np_states>1){Barrier(comm_states);}
+      cputime(&cpu1);
 #endif
-    pseudo->vnl_kb_flag = 1;
-    getnl_pot_pv_fatm(clatoms_info,clatoms_pos,cell,cpcoeffs_info,
-                      cpscr,ewd_scr,cpopts,pseudo,atommaps,&cp_enl,
-                      np_nlmax_kb,pvten);
+      pseudo->vnl_kb_flag = 1;
+      getnl_pot_pv_fatm(clatoms_info,clatoms_pos,cell,cpcoeffs_info,
+                        cpscr,ewd_scr,cpopts,pseudo,atommaps,&cp_enl,
+                        np_nlmax_kb,pvten);
 
 #ifdef TIME_CP
-    cputime(&cpu2);
-    par_cpu_vomit((cpu2-cpu1),comm_states,np_states,myid_state,
-                       "getnl_pot_pv_fatm");
-#endif
-
-#ifdef TIME_CP
-    if(np_states>1){Barrier(comm_states);}
-    cputime(&cpu1);
+      cputime(&cpu2);
+      par_cpu_vomit((cpu2-cpu1),comm_states,np_states,myid_state,
+                         "getnl_pot_pv_fatm");
 #endif
 
-    getnl_fcoef(clatoms_info,clatoms_pos,cpcoeffs_info,cpcoeffs_pos,
-                  cpscr,ewd_scr,cpopts,pseudo,cpewald,atommaps,
-                  cell,np_nlmax_kb,pvten,for_scr);
+#ifdef TIME_CP
+      if(np_states>1){Barrier(comm_states);}
+      cputime(&cpu1);
+#endif
+
+      getnl_fcoef(clatoms_info,clatoms_pos,cpcoeffs_info,cpcoeffs_pos,
+                    cpscr,ewd_scr,cpopts,pseudo,cpewald,atommaps,
+                    cell,np_nlmax_kb,pvten,for_scr);
 
 #ifdef TIME_CP
-    cputime(&cpu2);
-    par_cpu_vomit((cpu2-cpu1),comm_states,np_states,myid_state,
+      cputime(&cpu2);
+      par_cpu_vomit((cpu2-cpu1),comm_states,np_states,myid_state,
                        "getnl_fcoef");
 #endif
 
-  }/*endif*/
+    }//endif
   //debug
 /*-------------------------------------------------------------------------*/
 /* B) Gauss-Hermite NLs                                                    */
@@ -563,7 +564,7 @@ void control_cp_eext_recip(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
       non_loc_restore_ord(clatoms_pos,clatoms_info,
                           atommaps, pseudo,ewd_scr,for_scr);
     }/*endif*/
- 
+  }
 
 /*======================================================================*/
 /* VIII) Assign the potential energy                                    */

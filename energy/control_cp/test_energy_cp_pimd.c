@@ -1230,7 +1230,7 @@ void test_force_cp_pimd(CLASS *class, BONDED *bonded,
                            &(class->atommaps),&(general_data->stat_avg),
                            &(general_data->ptens),
                            &(general_data->simopts),
-                           &(class->for_scr));
+                           &(class->for_scr),class,general_data);
       }/*endfor*/
       general_data->stat_avg.cp_eke   /= pi_beads;
       general_data->stat_avg.cp_enl   /= pi_beads;

@@ -154,6 +154,17 @@ cp_energy_eext_nonloc_gh.o     : \
 	$(COBJ) $(CODE)/energy/cp/cp_energy_eext_nonloc_gh.c
 
 #------------------------------------------------------------------
+cp_energy_eext_nonloc_real.o     : \
+                         $(STANDARD) $(DEFINES) \
+                         $(TYP_GEN) $(TYP_CLASS) $(TYP_BND) $(TYP_CP) \
+                         $(ENR_CP_ENT) $(ENR_CP_LOC) $(FRND_ENT) \
+                         $(ENR_CPCON_LOC) $(MATH) $(ENR_CTRL_ENT) \
+                         $(CODE)/energy/cp/cp_energy_eext_nonloc_real.c
+	$(ECHO) $@
+	$(COBJ) $(CODE)/energy/cp/cp_energy_eext_nonloc_real.c
+
+
+#------------------------------------------------------------------
 xc_functionals.o     :   $(STANDARD) $(DEFINES) \
                          $(TYP_CLASS) $(TYP_GEN) $(TYP_CP) \
                          $(ENR_CP_LOC) $(MATH) \

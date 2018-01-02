@@ -390,8 +390,8 @@ void parse(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     if(cp->pseudo.pseudoReal.pseudoRealFlag==1){
       controlNlppReal(cp,class,general_data,&filename_parse);
     }
-    fflush(stdout);
-    exit(0);
+    //fflush(stdout);
+    //exit(0);
    }/*endif*/
   }/*endif*/
 
@@ -437,7 +437,9 @@ void parse(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
    read_coord(class,general_data,&filename_parse,
               class_parse.istart,cp_dual_grid_opt_on);
 
-
+   if(myid_state<np_states&&cp->pseudo.pseudoReal.pseudoRealFlag==1){
+     initRealNlppWf(cp,class,general_data);
+   }
 
 /*========================================================================*/
 /*  XVII) Spline the ewald corrections (needs particle positions)         */

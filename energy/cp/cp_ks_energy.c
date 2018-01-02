@@ -34,7 +34,7 @@ void cp_ks_energy_ctrl(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
                        CELL *cell,CLATOMS_INFO *clatoms_info,
                        CLATOMS_POS *clatoms_pos,ATOMMAPS *atommaps,
                        STAT_AVG *stat_avg,PTENS *ptens,SIMOPTS *simopts,
-                       FOR_SCR *for_scr)
+                       FOR_SCR *for_scr,CLASS *class,GENERAL_DATA *general_data)
 
 /*==========================================================================*/
 /*         Begin Routine                                                    */
@@ -60,12 +60,14 @@ void cp_ks_energy_ctrl(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
 
       case 0:  /* hybrid */
         cp_ks_energy_hybrid(cp,ip_now,ewald,ewd_scr,cell,clatoms_info,
-                         clatoms_pos,atommaps,stat_avg,ptens,simopts,for_scr);
+                         clatoms_pos,atommaps,stat_avg,ptens,simopts,for_scr,
+			 class,general_data);
       break;
 
       case 1: /* full_g */
         cp_ks_energy_full_g(cp,ip_now,ewald,ewd_scr,cell,clatoms_info,
-                          clatoms_pos,atommaps,stat_avg,ptens,simopts,for_scr);
+                          clatoms_pos,atommaps,stat_avg,ptens,simopts,for_scr,
+			  class,general_data);
       break;
     }/* end switch */
   }/*endif pw cp*/
@@ -108,7 +110,7 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
                          CELL *cell,CLATOMS_INFO *clatoms_info,
                          CLATOMS_POS *clatoms_pos,ATOMMAPS *atommaps,
                          STAT_AVG *stat_avg,PTENS *ptens,SIMOPTS *simopts,
-                         FOR_SCR *for_scr)
+                         FOR_SCR *for_scr,CLASS *class,GENERAL_DATA *general_data)
 
 /*==========================================================================*/
 /*         Begin Routine                                                    */
@@ -550,7 +552,7 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
                             &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
                             &(cp->cp_para_fft_pkg3d_sm),
                             &(cp->cp_sclr_fft_pkg3d_sm),
-                            cp_dual_grid_opt_on);
+                            cp_dual_grid_opt_on,cp,class,general_data);
   
   // We will try to construct and diag ks_mat. Then try to rotate the MO to eigenfunctions
   //test ksmat
@@ -890,7 +892,7 @@ void cp_ks_energy_full_g(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
                          CELL *cell,CLATOMS_INFO *clatoms_info,
                          CLATOMS_POS *clatoms_pos,ATOMMAPS *atommaps,
                          STAT_AVG *stat_avg,PTENS *ptens,SIMOPTS *simopts,
-                         FOR_SCR *for_scr)
+                         FOR_SCR *for_scr,CLASS *class,GENERAL_DATA *general_data)
 
 /*==========================================================================*/
 /*         Begin Routine                                                    */
@@ -1359,7 +1361,7 @@ void cp_ks_energy_full_g(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
                      &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
                      &(cp->cp_para_fft_pkg3d_sm),
                      &(cp->cp_sclr_fft_pkg3d_sm),
-                     cp_dual_grid_opt_on);
+                     cp_dual_grid_opt_on,cp,class,general_data);
 
 #ifdef TIME_CP
   cputime(&cpu2);

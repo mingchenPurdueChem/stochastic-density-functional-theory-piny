@@ -3,15 +3,15 @@
 
 void cp_ks_energy_ctrl(CP *,int ,EWALD *,EWD_SCR *,CELL *, CLATOMS_INFO *,
                        CLATOMS_POS *,ATOMMAPS *,STAT_AVG *,
-                       PTENS *,SIMOPTS *,FOR_SCR *);
+                       PTENS *,SIMOPTS *,FOR_SCR *,CLASS *,GENERAL_DATA *);
 
 void cp_ks_energy_hybrid(CP *,int ,EWALD *,EWD_SCR *,CELL *, CLATOMS_INFO *,
                          CLATOMS_POS *,ATOMMAPS *,STAT_AVG *,
-                         PTENS *,SIMOPTS *,FOR_SCR *);
+                         PTENS *,SIMOPTS *,FOR_SCR *,CLASS *,GENERAL_DATA *);
 
 void cp_ks_energy_full_g(CP *,int ,EWALD *,EWD_SCR *,CELL *, CLATOMS_INFO *,
                          CLATOMS_POS *,ATOMMAPS *,STAT_AVG *,
-                         PTENS *,SIMOPTS *,FOR_SCR *);
+                         PTENS *,SIMOPTS *,FOR_SCR *,CLASS *,GENERAL_DATA *);
 
 void cp_ks_energy_dvr_full_g(CP *,int ,EWALD *,EWD_SCR *, CELL *,CLATOMS_INFO *,
                              CLATOMS_POS *,ATOMMAPS *, STAT_AVG *,
@@ -309,6 +309,18 @@ void non_loc_restore_ord(CLATOMS_POS *, CLATOMS_INFO *,
 
  double get_jl(double ,double ,int );
 /*====================================================================*/
+/* cp_energy_eext_nonloc_real.c */
+  void controlEnergyNlppReal(CP *,CLASS *,GENERAL_DATA *,double *,double *,int);
+  void nlppKBRealFilter(CP *,CLASS *,GENERAL_DATA *,double *,double *);
+  void calcPseudoWf(CP *,CLASS *,GENERAL_DATA *);
+  void calcTrig(double *,int,double *);
+  void calcSpHarm(double *,int,double *,int,double *);
+  void calcRadFun(double *,int,PSEUDO_REAL *,double *,int);
+  void calcDotNlpp(double *,double *,double *,double *,double *,int);
+  
+
+
+/*====================================================================*/
 /* cp_energy_ee_rho.c */
 
 
@@ -365,7 +377,8 @@ void coef_force_control(CPOPTS *,CPCOEFFS_INFO *,CPCOEFFS_POS *,
                                CP_COMM_STATE_PKG *,CP_COMM_STATE_PKG *,
                                PARA_FFT_PKG3D *, PARA_FFT_PKG3D *,
                                PARA_FFT_PKG3D *, PARA_FFT_PKG3D *,
-                               PARA_FFT_PKG3D *,PARA_FFT_PKG3D *,int );
+                               PARA_FFT_PKG3D *,PARA_FFT_PKG3D *,int,
+			       CP*,CLASS*,GENERAL_DATA*);
 
 void cp_get_vks(CPOPTS *,CPSCR *,CPEWALD *, EWALD *,
                 COMMUNICATE *, CP_COMM_STATE_PKG *, CP_COMM_STATE_PKG *,
@@ -378,7 +391,7 @@ void coef_force_calc_hybrid(CPEWALD *,int ,double *,double *,
                              double *,double *,double *,double *,double *,
                              double *,double *,int ,double *,
                              COMMUNICATE *,int ,int ,int ,int ,int ,
-                             PARA_FFT_PKG3D *);
+                             PARA_FFT_PKG3D *,CP *,CLASS *,GENERAL_DATA *);
 
 void coef_force_calc_full_g(CPEWALD *,int ,int ,int ,
                              double *,double *,double *,double *,

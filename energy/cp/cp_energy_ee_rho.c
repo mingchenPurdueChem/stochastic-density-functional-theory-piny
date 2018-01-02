@@ -990,7 +990,8 @@ void coef_force_control(CPOPTS *cpopts,CPCOEFFS_INFO *cpcoeffs_info,
                         PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_dens_cp_box,
                         PARA_FFT_PKG3D *cp_para_fft_pkg3d_sm,
                         PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm,
-                        int cp_dual_grid_opt)
+                        int cp_dual_grid_opt,
+		        CP *cp, CLASS *class, GENERAL_DATA *general_data)
 
 /*==========================================================================*/
 /*         Begin Routine                                                    */
@@ -998,6 +999,7 @@ void coef_force_control(CPOPTS *cpopts,CPCOEFFS_INFO *cpcoeffs_info,
 /*==========================================================================*/
 /* Assign local pointers                                                    */
 #include "../typ_defs/typ_mask.h" 
+
    double cpu1,cpu2;
    int      cp_lda            =  cpopts->cp_lda; 
    int      cp_lsda           =  cpopts->cp_lsda; 
@@ -1153,7 +1155,7 @@ void coef_force_control(CPOPTS *cpopts,CPCOEFFS_INFO *cpcoeffs_info,
                           zfft,zfft_tmp,v_ks_up,v_ks_tau_up,ak2_sm,&cp_eke,pvten_cp,
                           cp_ptens_calc,hmati_cp,communicate,icoef_form_up,
                           icoef_orth_up,ifcoef_form_up,cp_tau_functional,cp_min_on,
-                          cp_sclr_fft_pkg3d_sm); 
+                          cp_sclr_fft_pkg3d_sm,cp,class,general_data); 
   *cp_eke_ret += cp_eke;
 
   /*
@@ -1182,7 +1184,7 @@ void coef_force_control(CPOPTS *cpopts,CPCOEFFS_INFO *cpcoeffs_info,
                           zfft,zfft_tmp,v_ks_dn,v_ks_tau_dn,ak2_sm,&cp_eke_dn,pvten_cp,
                           cp_ptens_calc,hmati_cp,communicate,icoef_form_dn,
                           icoef_orth_dn,ifcoef_form_dn,cp_tau_functional,cp_min_on,
-                          cp_sclr_fft_pkg3d_sm); 
+                          cp_sclr_fft_pkg3d_sm,cp,class,general_data); 
      *cp_eke_ret += cp_eke_dn;
    }/*endif*/
 
@@ -1880,7 +1882,8 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
                              COMMUNICATE *communicate,
                              int icoef_form,int icoef_orth,int ifcoef_form,
                              int cp_tau_functional,int cp_min_on,
-                             PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm)
+                             PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm,
+			     CP *cp, CLASS *class,GENERAL_DATA *general_data)
 
 /*==========================================================================*/
 /*         Begin Routine                                                    */
@@ -1987,8 +1990,15 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
 /*==========================================================================*/
 /* 2) get v|psi> in g space and store it in zfft                            */
 /*   I) get  v|psi> in real space                                           */
+     
+
+    memcpy(&zfft_tmp[1],&zfft[1],nfft*sizeof(double));
 
     cp_vpsi(zfft,v_ks,nfft);  
+
+    cp->pseudo.pseudoReal.energyCalcFlag = 1;
+    controlEnergyNlppReal(cp,class,general_data,zfft_tmp,zfft,1);
+    for(i=1;i<=nfft;i++)zfft_tmp[i] = 0.0;
 
 /*--------------------------------------------------------------------------*/
 /*  II) fourier transform  to g-space                                       */

@@ -175,6 +175,7 @@ real_space_nlpp.o : $(STANDARD) $(DEFINES) \
                     $(TYP_GEN) $(TYP_CP) $(TYP_PAR) \
                     $(TYP_CLASS) $(TYP_BND) \
                     $(VPS_ENT) $(SEARCH_ENT) $(INTRA_LOC) $(VPS_LOC) \
+		    $(ENR_CP_LOC) \
                     $(HANDLE_ENT) $(FRND_ENT) $(COMM_WRAP) $(MATH) \
                     $(CODE)/interface/vps_params/real_space_nlpp.c
 	$(ECHO) $@

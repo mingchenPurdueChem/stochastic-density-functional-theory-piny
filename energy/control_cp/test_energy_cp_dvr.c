@@ -1104,7 +1104,7 @@ void test_force_dvr_cp(CLASS *class, BONDED *bonded,
                           &(class->atommaps),&(general_data->stat_avg),
                           &(general_data->ptens),
                           &(general_data->simopts),
-                          &(class->for_scr));
+                          &(class->for_scr),class,general_data);
       fflush(stdout);
       if(num_proc>1){
         cp_enl_tmp   = general_data->stat_avg.cp_enl; 

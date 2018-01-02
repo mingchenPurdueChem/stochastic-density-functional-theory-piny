@@ -1092,6 +1092,8 @@ typedef struct pseudo_real{
 			    /*	    of all elements in numRadMax		*/
   int smoothOpt;	    /* Opt: option to smooth the nl pp radius function  */
 			    /*	    1=King-Smith, 2=Roi				*/
+  int energyCalcFlag;	    /* Num: flag of claculating nl pp energy 0=no, 1=yes*/
+  int forceCalcFlag;	    /* Num: flag of calculating nuclei force 0=no, 1=yes*/
   int *numLMax;		    /* Lst: number of angular channel			*/
 			    /* Lth: natm_typ					*/
   int *numRadMax;	    /* Lst: number of radial function for each atom type*/
@@ -1102,10 +1104,8 @@ typedef struct pseudo_real{
 			    /* Lth: numRadTot					*/
   int *numvnlPhiAtomGrid;   /* Lst: length of vnlPhiAtomGridRe			*/
 			    /* Lth: natm_tot					*/
-  int **vnlPhiAtomGridRe;   /* Lst: pseudo wave fun value |V_nl Phi_nl> on FFT grids*/
-  int **vnlPhiAtomGridIm;   /*	around each atom				*/
-			    /* Lth: natm_tot*numvnlPhiAtomGrid[iAtom]		*/
- 
+  int *numGridNlppMap;      /* Lst: number of grid points around each atom	*/	    
+			    /* Lth: natm_tot					*/
   int **atomLRadNum;	    /* Lst: number of radial functions for each l channel*/
 			    /* Lth: natm_typ*numLMax[iType]			*/
   int **atomRadMap;	    /* Lst: map of radial functions for each l channel	*/
@@ -1114,6 +1114,7 @@ typedef struct pseudo_real{
   double gMaxSm,gMaxLg;	    /* Num: small and large g cutoff			*/
   double radCutRatio;	    /* Num: (cutoff we use)/(cutoff of nlpp) usually	*/
   double dg;		    /* Num: grid spacing in g space			*/
+  double dr;		    /* Num: grid spacing in r space			*/
   double *vpsReal0,*vpsReal1,*vpsReal2,*vpsReal3; 
 			    /* Lst: Spline interp coeff of radial function	*/
 			    /* Lth: numRadTot*numInterpGrid			*/
@@ -1122,6 +1123,11 @@ typedef struct pseudo_real{
   double *vpsNormList;	    /* Lst: non-local pseudopotential norm list		*/
 			    /*	    <phi_nl|v_nl|phi_nl>			*/
 			    /* Lth: numRadTot					*/
+  double *vnlPhiAtomGridRe;/* Lst: pseudo wave fun value |V_nl Phi_nl> on FFT  */
+			    /*	    grids					*/
+  double *vnlPhiAtomGridIm;/*  around each atom                                */
+                            /* Lth: natm_tot*numvnlPhiAtomGrid[iAtom]           */
+
 }PSEUDO_REAL;
 
 

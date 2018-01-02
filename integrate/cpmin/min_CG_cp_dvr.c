@@ -244,7 +244,7 @@ void min_CG_cp_dvr(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
                        &(class->atommaps),&(general_data->stat_avg),
                        &(general_data->ptens),
                        &(general_data->simopts),
-                       &(class->for_scr));
+                       &(class->for_scr),class,general_data);
 
   eenergy_temp = general_data->stat_avg.cp_ehart
                + general_data->stat_avg.cp_exc

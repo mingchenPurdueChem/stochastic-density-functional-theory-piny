@@ -261,7 +261,7 @@ void min_CG_cp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
                        &(class->atommaps),&(general_data->stat_avg),
                        &(general_data->ptens),
                        &(general_data->simopts),
-                       &(class->for_scr));
+                       &(class->for_scr),class,general_data);
 
   //debug
   //printf("11111 fcre_up %lg fcim_up %lg\n",fcre_up[1],fcim_up[1]);
@@ -768,7 +768,7 @@ void line_min_cp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
                        &(class->atommaps),&(general_data->stat_avg),
                        &(general_data->ptens),
                        &(general_data->simopts),
-                       &(class->for_scr));
+                       &(class->for_scr),class,general_data);
     
    energy_temp =  general_data->stat_avg.cp_ehart
                + general_data->stat_avg.cp_exc + general_data->stat_avg.cp_eext

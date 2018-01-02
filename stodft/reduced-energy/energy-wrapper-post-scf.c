@@ -121,7 +121,8 @@ void calcCoefForceWrap(CLASS *class,GENERAL_DATA *general_data,
                     communicate,cp_comm_state_pkg_up,
                      cp_comm_state_pkg_dn,cp_para_fft_pkg3d_lg,cp_sclr_fft_pkg3d_lg,
                      cp_para_fft_pkg3d_dens_cp_box,cp_sclr_fft_pkg3d_dens_cp_box,
-                     cp_para_fft_pkg3d_sm,cp_sclr_fft_pkg3d_sm,cpDualGridOptOn);
+                     cp_para_fft_pkg3d_sm,cp_sclr_fft_pkg3d_sm,cpDualGridOptOn,
+		    cp,class,general_data);
 
 /*==========================================================================*/
 }/*end Routine*/
@@ -750,7 +751,7 @@ void calcCoefForcePosScf(CLASS *class,GENERAL_DATA *general_data,
                           zfft,zfft_tmp,v_ks_up,v_ks_tau_up,ak2_sm,&cp_eke,pvten_cp,
                           cp_ptens_calc,hmati_cp,communicate,icoef_form_up,
                           icoef_orth_up,ifcoef_form_up,cp_tau_functional,cp_min_on,
-                          cp_sclr_fft_pkg3d_sm);
+                          cp_sclr_fft_pkg3d_sm,cp,class,general_data);
       *cp_eke_ret += cp_eke;
 
  /*--------------------------------------------*/
@@ -762,7 +763,7 @@ void calcCoefForcePosScf(CLASS *class,GENERAL_DATA *general_data,
                           zfft,zfft_tmp,v_ks_dn,v_ks_tau_dn,ak2_sm,&cp_eke_dn,pvten_cp,
                           cp_ptens_calc,hmati_cp,communicate,icoef_form_dn,
                           icoef_orth_dn,ifcoef_form_dn,cp_tau_functional,cp_min_on,
-                          cp_sclr_fft_pkg3d_sm);
+                          cp_sclr_fft_pkg3d_sm,cp,class,general_data);
         *cp_eke_ret += cp_eke_dn;
       }/*endif*/
 

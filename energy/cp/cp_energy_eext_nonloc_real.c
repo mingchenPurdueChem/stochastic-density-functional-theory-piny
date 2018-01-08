@@ -223,6 +223,7 @@ void nlppKBRealFilter(CP *cp,CLASS *class,GENERAL_DATA *generalData,double *wfRe
 	      gridShiftNowRe += numGrid;
 	    }//endif m
 	  }//endfor m
+	  printf("energyl %lg\n",energyl);
 	  energy += energyl;
 	}//endfor iRad
         countRad += atomLRadNum[atomType][l];

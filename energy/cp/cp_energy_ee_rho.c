@@ -1903,6 +1903,7 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
    int ncoef      = cp_sclr_fft_pkg3d_sm->ncoef;
    int myid_state = communicate->myid_state;
    int np_states  = communicate->np_states;
+   int pseudoRealFlag = cp->pseudo.pseudoReal.pseudoRealFlag;
 
 /*            Local pointers                                       */
 
@@ -1992,13 +1993,18 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
 /*   I) get  v|psi> in real space                                           */
      
 
-    memcpy(&zfft_tmp[1],&zfft[1],nfft*sizeof(double));
+    if(pseudoRealFlag==1){
+      memcpy(&zfft_tmp[1],&zfft[1],nfft*sizeof(double));
 
-    cp_vpsi(zfft,v_ks,nfft);  
+      cp_vpsi(zfft,v_ks,nfft);  
 
-    cp->pseudo.pseudoReal.energyCalcFlag = 1;
-    controlEnergyNlppReal(cp,class,general_data,zfft_tmp,zfft,1);
-    for(i=1;i<=nfft;i++)zfft_tmp[i] = 0.0;
+      cp->pseudo.pseudoReal.energyCalcFlag = 1;
+      controlEnergyNlppReal(cp,class,general_data,zfft_tmp,zfft,1);
+      for(i=1;i<=nfft;i++)zfft_tmp[i] = 0.0;
+    }
+    else{
+      cp_vpsi(zfft,v_ks,nfft);
+    }
 
 /*--------------------------------------------------------------------------*/
 /*  II) fourier transform  to g-space                                       */

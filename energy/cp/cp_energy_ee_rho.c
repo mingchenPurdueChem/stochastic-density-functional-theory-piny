@@ -1956,6 +1956,13 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
      iupper = nstate - 1;
   }
 
+  //debug
+  for(i=1;i<=ncoef;i++){
+    fccreal[i] = 0.0;
+    fccimag[i] = 0.0;
+  }
+
+
 /*=================================================================*/
 /*  get the forces on the coefs of each state                      */
 
@@ -1991,8 +1998,7 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
 /*==========================================================================*/
 /* 2) get v|psi> in g space and store it in zfft                            */
 /*   I) get  v|psi> in real space                                           */
-     
-
+   
     if(pseudoRealFlag==1){
       memcpy(&zfft_tmp[1],&zfft[1],nfft*sizeof(double));
 
@@ -2033,14 +2039,14 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
     }
   }/*endfor is */
 
-  /*
-  if(fftw3dFlag==0){
-    for(i=1;i<=ncoef*nstate;i++){
-      printf("forceeeee %lg %lg\n",fccreal[i],fccimag[i]);
+  
+  //if(fftw3dFlag==0){
+    for(i=1;i<=ncoef;i++){
+      printf("forceeeee %i %lg %lg\n",i,fccreal[i],fccimag[i]);
     }
     exit(0);
-  }
-  */
+  //}
+  
 
 
 /*==========================================================================*/

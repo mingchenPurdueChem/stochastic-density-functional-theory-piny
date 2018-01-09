@@ -186,9 +186,9 @@ void nlppKBRealFilter(CP *cp,CLASS *class,GENERAL_DATA *generalData,double *wfRe
 	      dotIm = ddotBlasWrapper(numGrid,wfNbhd,1,
                       &vnlPhiAtomGridIm[gridShiftNowIm],1);
 	      energyl += 2.0*(dotRe*dotRe+dotIm*dotIm)*vpsNormList[radIndex];
-	      //printf("m %i dotRe %lg dotIm %lg vpsNormList[radIndex] %lg\n",m,dotRe,dotIm,vpsNormList[radIndex]);
+	      printf("m %i dotRe %lg dotIm %lg vpsNormList[radIndex] %lg\n",m,dotRe,dotIm,vpsNormList[radIndex]);
 	      dotRe *= 2.0*vpsNormList[radIndex];
-	      dotIm *= -2.0*vpsNormList[radIndex];
+	      dotIm *= 2.0*vpsNormList[radIndex];
 	      daxpyBlasWrapper(numGrid,dotRe,&vnlPhiAtomGridRe[gridShiftNowRe],1,
 			       forceTemp,1);
 	      daxpyBlasWrapper(numGrid,dotIm,&vnlPhiAtomGridIm[gridShiftNowIm],1,
@@ -205,12 +205,12 @@ void nlppKBRealFilter(CP *cp,CLASS *class,GENERAL_DATA *generalData,double *wfRe
 	    else{
               dotRe = ddotBlasWrapper(numGrid,wfNbhd,1,
                       &vnlPhiAtomGridRe[gridShiftNowRe],1);
-	      /*
+	      
 	      for(iGrid=0;iGrid<numGrid;iGrid++){
 		printf("griddddddddddd %lg %lg\n",wfNbhd[iGrid],vnlPhiAtomGridRe[gridShiftNowRe+iGrid]);
 	      }
-	      */
-	      //printf("m %i dotRe %lg vpsNormList[radIndex] %lg\n",m,dotRe,vpsNormList[radIndex]);
+	      
+	      printf("m %i dotRe %lg vpsNormList[radIndex] %lg\n",m,dotRe,vpsNormList[radIndex]);
 	      energyl += dotRe*dotRe*vpsNormList[radIndex];
 	      /*
 	      for(iGrid=0;iGrid<numGrid;iGrid++){

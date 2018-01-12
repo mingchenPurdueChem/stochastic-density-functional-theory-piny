@@ -1957,10 +1957,12 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
   }
 
   //debug
+  
   for(i=1;i<=ncoef;i++){
     fccreal[i] = 0.0;
     fccimag[i] = 0.0;
   }
+  
 
 
 /*=================================================================*/
@@ -2041,10 +2043,12 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
 
   
   //if(fftw3dFlag==0){
-    for(i=1;i<=ncoef;i++){
+    
+    for(i=1;i<=2*ncoef;i++){
       printf("forceeeee %i %lg %lg\n",i,fccreal[i],fccimag[i]);
     }
     exit(0);
+    
   //}
   
 

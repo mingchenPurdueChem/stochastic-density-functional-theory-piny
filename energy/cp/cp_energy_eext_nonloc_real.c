@@ -53,7 +53,8 @@ void controlEnergyNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   }
   nlppKBRealFilter(cp,class,generalData,wfReal,wfForceReal);
   for(iGrid=0;iGrid<numGrid;iGrid++){
-    zfft[iGrid*2+1] += wfForceReal[iGrid];
+    //zfft[iGrid*2+1] += wfForceReal[iGrid];
+    zfft[iGrid*2+1] = wfForceReal[iGrid];
   }
   if(flag==1){//double
     for(iGrid=0;iGrid<numGrid;iGrid++){
@@ -61,7 +62,8 @@ void controlEnergyNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
     }
     nlppKBRealFilter(cp,class,generalData,wfReal,wfForceReal);
     for(iGrid=0;iGrid<numGrid;iGrid++){
-      zfft[iGrid*2+2] += wfForceReal[iGrid];
+      //zfft[iGrid*2+2] += wfForceReal[iGrid];
+      zfft[iGrid*2+1] = wfForceReal[iGrid];
     }
   }//endif
   free(wfReal);
@@ -122,7 +124,7 @@ void nlppKBRealFilter(CP *cp,CLASS *class,GENERAL_DATA *generalData,double *wfRe
   int **gridNlppMap = pseudoReal->gridNlppMap;
 
   double vpsNorm;
-  double vol;
+  double vol,volInv;
   double volElem;
   double dotRe,dotIm;
   double energy = 0.0;
@@ -156,7 +158,9 @@ void nlppKBRealFilter(CP *cp,CLASS *class,GENERAL_DATA *generalData,double *wfRe
   }
   wfNbhd = (double*)cmalloc(numGridMax*sizeof(double));
   forceTemp = (double*)cmalloc(numGridMax*sizeof(double));
-  volElem = getdeth(hmat)/numGridTot;
+  vol = getdeth(hmat);
+  volInv = 1.0/vol;
+  volElem = vol/numGridTot;
 
 /*======================================================================*/
 /* II) Loop over iPart/irad/ipart/m                                 */
@@ -185,10 +189,10 @@ void nlppKBRealFilter(CP *cp,CLASS *class,GENERAL_DATA *generalData,double *wfRe
 		      &vnlPhiAtomGridRe[gridShiftNowRe],1);
 	      dotIm = ddotBlasWrapper(numGrid,wfNbhd,1,
                       &vnlPhiAtomGridIm[gridShiftNowIm],1);
-	      energyl += 2.0*(dotRe*dotRe+dotIm*dotIm)*vpsNormList[radIndex];
+	      energyl += 2.0*(dotRe*dotRe+dotIm*dotIm)*vpsNormList[radIndex]*volElem*volElem*volInv;
 	      printf("m %i dotRe %lg dotIm %lg vpsNormList[radIndex] %lg\n",m,dotRe,dotIm,vpsNormList[radIndex]);
-	      dotRe *= 2.0*vpsNormList[radIndex];
-	      dotIm *= 2.0*vpsNormList[radIndex];
+	      dotRe *= 2.0*vpsNormList[radIndex]*volElem;
+	      dotIm *= 2.0*vpsNormList[radIndex]*volElem;
 	      daxpyBlasWrapper(numGrid,dotRe,&vnlPhiAtomGridRe[gridShiftNowRe],1,
 			       forceTemp,1);
 	      daxpyBlasWrapper(numGrid,dotIm,&vnlPhiAtomGridIm[gridShiftNowIm],1,
@@ -205,19 +209,21 @@ void nlppKBRealFilter(CP *cp,CLASS *class,GENERAL_DATA *generalData,double *wfRe
 	    else{
               dotRe = ddotBlasWrapper(numGrid,wfNbhd,1,
                       &vnlPhiAtomGridRe[gridShiftNowRe],1);
-	      
+	      printf("numGrid %i\n",numGrid);
+	      /*
 	      for(iGrid=0;iGrid<numGrid;iGrid++){
 		printf("griddddddddddd %lg %lg\n",wfNbhd[iGrid],vnlPhiAtomGridRe[gridShiftNowRe+iGrid]);
 	      }
+	      */
 	      
-	      printf("m %i dotRe %lg vpsNormList[radIndex] %lg\n",m,dotRe,vpsNormList[radIndex]);
-	      energyl += dotRe*dotRe*vpsNormList[radIndex];
+	      printf("m %i dotRe %lg volElem %lg vpsNormList[radIndex] %lg\n",m,dotRe,volElem,vpsNormList[radIndex]);
+	      energyl += dotRe*dotRe*vpsNormList[radIndex]*volElem*volElem*volInv;
 	      /*
 	      for(iGrid=0;iGrid<numGrid;iGrid++){
 		forceTemp[iGrid] += radFun[iGrid]*ylm[ylmShift+iGrid]*dotRe*vpsNormList[radIndex];
 	      }//endfor iGrid
 	      */
-	      dotRe *= vpsNormList[radIndex];
+	      dotRe *= vpsNormList[radIndex]*volElem;
 	      daxpyBlasWrapper(numGrid,dotRe,&vnlPhiAtomGridRe[gridShiftNowRe],1,
 			       forceTemp,1);
 	      gridShiftNowRe += numGrid;

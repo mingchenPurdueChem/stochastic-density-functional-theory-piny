@@ -472,23 +472,28 @@ void nlppSmoothKS(PSEUDO *pseudo,double *vNl,double rCutoffMax,int iRad,
   printf("2222222 l %i\n",l);
   // Bessel transform to g space from g=0 to gMaxSm
   bessTransform(vNl,numR,dr,l,vNlG,numGSm,dg);
+  //bessTransform(vNl,numR,dr,l,vNlG,numGLg,dg);
+  
   /*
   for(ig=0;ig<numGLg;ig++){
     printf("111111111 vnlg %lg %lg\n",ig*dg,vNlG[ig]);
   }
   printf("numGridRadSmooth %i\n",numGridRadSmooth);
   */
+  
   //fflush(stdout);
   //exit(0);
 
   // Optimize g space coeffcient from gMaxSm to gMaxLg
 
   optGCoeff(pseudoReal,numGLg,numGSm,numR,dr,dg,numGridRadSmooth,l,vNlG);
+  
   /*
   for(ig=0;ig<numGLg;ig++){
     printf("111111 vNlGTrunc %lg %lg\n",ig*dg,vNlG[ig]);
   }
   */
+  
 
   // Inverse Bassel transform to r space
 

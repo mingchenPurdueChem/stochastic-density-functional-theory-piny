@@ -28,6 +28,8 @@
 
 #include "complex.h"
 
+//#define REAL_PP_DEBUG
+
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
@@ -53,8 +55,11 @@ void controlEnergyNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   }
   nlppKBRealFilter(cp,class,generalData,wfReal,wfForceReal);
   for(iGrid=0;iGrid<numGrid;iGrid++){
-    //zfft[iGrid*2+1] += wfForceReal[iGrid];
+#ifdef REAL_PP_DEBUG  
     zfft[iGrid*2+1] = wfForceReal[iGrid];
+#else
+    zfft[iGrid*2+1] += wfForceReal[iGrid];
+#endif
   }
   if(flag==1){//double
     for(iGrid=0;iGrid<numGrid;iGrid++){
@@ -62,8 +67,11 @@ void controlEnergyNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
     }
     nlppKBRealFilter(cp,class,generalData,wfReal,wfForceReal);
     for(iGrid=0;iGrid<numGrid;iGrid++){
-      //zfft[iGrid*2+2] += wfForceReal[iGrid];
+#ifdef REAL_PP_DEBUG  
       zfft[iGrid*2+1] = wfForceReal[iGrid];
+#else
+      zfft[iGrid*2+2] += wfForceReal[iGrid];
+#endif
     }
   }//endif
   free(wfReal);
@@ -460,7 +468,7 @@ void calcTrig(double *gridAtomNbhd,int numGrid,double *trig)
     rProj2 = x*x+y*y;
     r2 = rProj2+z*z;
     if(r2>=1.0e-10&&rProj2>=1.0e-10){
-      rInv = 1.0/sqrt(rProj2+z*z);
+      rInv = 1.0/sqrt(r2);
       rProj = sqrt(rProj2);
       rProjInv = 1.0/rProj;
       trig[iGrid*4] = rProj*rInv; //sin(theta)
@@ -590,7 +598,7 @@ void calcRadFun(double *gridAtomNbhd,int radIndex,PSEUDO_REAL *pseudoReal,
     h = r-r0;
     interpInd = interpGridSt+gridInd;
     radFun[iGrid] = ((vps3[interpInd]*h+vps2[interpInd])*h+vps1[interpInd])*h+vps0[interpInd];
-    //printf("rrrrrrrrrrrrrr %.8lg %.8lg\n",r,radFun[iGrid]);
+    printf("rrrrrrrrrrrrrr %.8lg %.8lg\n",r,radFun[iGrid]);
   }
   
 /*--------------------------------------------------------------------------*/

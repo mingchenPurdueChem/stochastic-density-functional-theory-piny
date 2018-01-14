@@ -21,6 +21,7 @@
 #include "../proto_defs/proto_math.h"
 #include "../proto_defs/proto_communicate_wrappers.h"
 
+//#define REAL_PP_DEBUG
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
@@ -1957,11 +1958,12 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
   }
 
   //debug
-  
+#ifdef REAL_PP_DEBUG  
   for(i=1;i<=ncoef;i++){
     fccreal[i] = 0.0;
     fccimag[i] = 0.0;
   }
+#endif
   
 
 
@@ -2043,12 +2045,12 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
 
   
   //if(fftw3dFlag==0){
-    
+#ifdef REAL_PP_DEBUG  
     for(i=1;i<=2*ncoef;i++){
       printf("forceeeee %i %lg %lg\n",i,fccreal[i],fccimag[i]);
     }
     exit(0);
-    
+#endif
   //}
   
 

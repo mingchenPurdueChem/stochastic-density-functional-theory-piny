@@ -27,6 +27,8 @@
 
 #define TIME_CP_OFF
 
+//#define REAL_PP_DEBUG    
+
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
@@ -409,7 +411,7 @@ void control_cp_eext_recip(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
   double *fcre_up = cpcoeffs_pos->fcre_up;
   double *fcim_up = cpcoeffs_pos->fcim_up;
 
-  printf("cccccccc %lg %lg\n",fcre_up[2],fcim_up[2]);
+  //printf("cccccccc %lg %lg\n",fcre_up[2],fcim_up[2]);
   
   
   if(pseudoRealFlag==0){
@@ -465,13 +467,14 @@ void control_cp_eext_recip(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 
     }//endif
     
+#ifdef REAL_PP_DEBUG    
     int icoef;
     for(icoef=1;icoef<=2*ncoef;icoef++){
       printf("fffcccccccc %i %.8lg %.8lg\n",icoef,fcre_up[icoef],fcim_up[icoef]);
     }
     fflush(stdout);
     exit(0);
-    
+#endif
   //debug
 /*-------------------------------------------------------------------------*/
 /* B) Gauss-Hermite NLs                                                    */

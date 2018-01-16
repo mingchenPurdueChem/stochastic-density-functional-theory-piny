@@ -239,6 +239,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 	  //printf("rGridddddd %lg %lg\n",rGrid*dr,vNl[iAng*numR+rGrid]);
 	}//endfor rGrid
 	vpsNormList[countR] *= dr;
+	printf("countR %i vpsNormList %lg\n",countR,vpsNormList[countR]);
 	vpsNormList[countR] = 1.0/vpsNormList[countR];
 	countR += 1;
       }//endfor iAng

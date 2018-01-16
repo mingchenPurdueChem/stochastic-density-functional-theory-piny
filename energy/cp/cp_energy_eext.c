@@ -479,115 +479,113 @@ void control_cp_eext_recip(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 /*-------------------------------------------------------------------------*/
 /* B) Gauss-Hermite NLs                                                    */
 
-  if((nl_max_gh >= 0)&&((ntot_up+ntot_dn)>0)&&(pseudo->np_nonloc_cp_box_gh>0)){
+    if((nl_max_gh >= 0)&&((ntot_up+ntot_dn)>0)&&(pseudo->np_nonloc_cp_box_gh>0)){
       pseudo->vnl_gh_flag = 1; 
       if(cp_ptens==1){
-       printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
-       printf(" CP-PTENS is not implemented for Gauss-Hermite nonlocality \n");
-       printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
-       fflush(stdout);
-       exit(1);
-     }/* endif */
+        printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+        printf(" CP-PTENS is not implemented for Gauss-Hermite nonlocality \n");
+        printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+        fflush(stdout);
+        exit(1);
+      }/* endif */
 
- for(igh=1;igh<=pseudo->ngh;igh++){
+      for(igh=1;igh<=pseudo->ngh;igh++){
+	cp_enl_gh = 0.00000;
+	if(nl_max_all >= 0){
+	  for(i=1;i<=ntot_up;i++){
+	    vnlreal_up[i] = 0.0;
+	    vnlimag_up[i] = 0.0;
+	    dvnlreal_x_up[i] = 0.0;
+	    dvnlreal_y_up[i] = 0.0;
+	    dvnlreal_z_up[i] = 0.0;
+	    dvnlimag_x_up[i] = 0.0;
+	    dvnlimag_y_up[i] = 0.0;
+	    dvnlimag_z_up[i] = 0.0;
+	  }//endfor
 
-  cp_enl_gh = 0.00000;
+	  if(cp_ptens==1 || hess_calc == 3){
+	    for(i=1;i<=ntot_up;i++){
+	      dvnlreal_gxgx_up[i] = 0.0;
+	      dvnlreal_gzgz_up[i] = 0.0;
+	      dvnlreal_gygy_up[i] = 0.0;
+	      dvnlreal_gxgy_up[i] = 0.0;
+	      dvnlreal_gxgz_up[i] = 0.0;
+	      dvnlreal_gygz_up[i] = 0.0;
+   
+	      dvnlimag_gxgx_up[i] = 0.0;
+	      dvnlimag_gxgy_up[i] = 0.0;
+	      dvnlimag_gygy_up[i] = 0.0;
+	      dvnlimag_gxgz_up[i] = 0.0;
+	      dvnlimag_gygz_up[i] = 0.0;
+	      dvnlimag_gzgz_up[i] = 0.0;
+	    }//endfor
+	  }//endif:ptens
 
-  if(nl_max_all >= 0){
-   for(i=1;i<=ntot_up;i++){
-    vnlreal_up[i] = 0.0;
-    vnlimag_up[i] = 0.0;
-    dvnlreal_x_up[i] = 0.0;
-    dvnlreal_y_up[i] = 0.0;
-    dvnlreal_z_up[i] = 0.0;
-    dvnlimag_x_up[i] = 0.0;
-    dvnlimag_y_up[i] = 0.0;
-    dvnlimag_z_up[i] = 0.0;
-   }/*endfor*/
+	  if(cp_lsda==1){
+	    ntot_dn = nstate_dn*np_nlmax_all*nlmtot*n_rad_max;
+	    for(i=1;i<=ntot_dn;i++){
+	      vnlreal_dn[i]    = 0.0;
+	      vnlimag_dn[i]    = 0.0;
+	      dvnlreal_x_dn[i] = 0.0;
+	      dvnlreal_y_dn[i] = 0.0;
+	      dvnlreal_z_dn[i] = 0.0;
+	      dvnlimag_x_dn[i] = 0.0;
+	      dvnlimag_y_dn[i] = 0.0;
+	      dvnlimag_z_dn[i] = 0.0;
+	    }//endfor
 
-   if(cp_ptens==1 || hess_calc == 3){
-    for(i=1;i<=ntot_up;i++){
-     dvnlreal_gxgx_up[i] = 0.0;
-     dvnlreal_gzgz_up[i] = 0.0;
-     dvnlreal_gygy_up[i] = 0.0;
-     dvnlreal_gxgy_up[i] = 0.0;
-     dvnlreal_gxgz_up[i] = 0.0;
-     dvnlreal_gygz_up[i] = 0.0;
- 
-     dvnlimag_gxgx_up[i] = 0.0;
-     dvnlimag_gxgy_up[i] = 0.0;
-     dvnlimag_gygy_up[i] = 0.0;
-     dvnlimag_gxgz_up[i] = 0.0;
-     dvnlimag_gygz_up[i] = 0.0;
-     dvnlimag_gzgz_up[i] = 0.0;
-    }/*endfor*/
-   }/*endif:ptens*/
+	    if(cp_ptens==1 || hess_calc == 3){
+	      for(i=1;i<=ntot_dn;i++){
+		dvnlreal_gxgx_dn[i] = 0.0;
+		dvnlreal_gxgy_dn[i] = 0.0;
+		dvnlreal_gxgz_dn[i] = 0.0;
+		dvnlreal_gygy_dn[i] = 0.0;
+		dvnlreal_gygz_dn[i] = 0.0;
+		dvnlreal_gzgz_dn[i] = 0.0;
 
-   if(cp_lsda==1){
+		dvnlimag_gxgx_dn[i] = 0.0;
+		dvnlimag_gxgy_dn[i] = 0.0;
+		dvnlimag_gxgz_dn[i] = 0.0;
+		dvnlimag_gygy_dn[i] = 0.0;
+		dvnlimag_gygz_dn[i] = 0.0;
+		dvnlimag_gzgz_dn[i] = 0.0;
+	      }//endfor
+	    }//endif:ptens
+	  }//endif:lsda
+	}//endif : non-local potential on
 
-    ntot_dn = nstate_dn*np_nlmax_all*nlmtot*n_rad_max;
-    for(i=1;i<=ntot_dn;i++){
-     vnlreal_dn[i]    = 0.0;
-     vnlimag_dn[i]    = 0.0;
-     dvnlreal_x_dn[i] = 0.0;
-     dvnlreal_y_dn[i] = 0.0;
-     dvnlreal_z_dn[i] = 0.0;
-     dvnlimag_x_dn[i] = 0.0;
-     dvnlimag_y_dn[i] = 0.0;
-     dvnlimag_z_dn[i] = 0.0;
-    }/*endfor*/
+	/* Create Zilm(alpha) and Xilm(alpha)= dZilm/dR  */
 
-    if(cp_ptens==1 || hess_calc == 3){
-     for(i=1;i<=ntot_dn;i++){
-      dvnlreal_gxgx_dn[i] = 0.0;
-      dvnlreal_gxgy_dn[i] = 0.0;
-      dvnlreal_gxgz_dn[i] = 0.0;
-      dvnlreal_gygy_dn[i] = 0.0;
-      dvnlreal_gygz_dn[i] = 0.0;
-      dvnlreal_gzgz_dn[i] = 0.0;
+	control_nonloc_gh(clatoms_info,clatoms_pos,cpcoeffs_info,cpcoeffs_pos,
+			   cell,ptens,cpewald,cpscr,pseudo,ewd_scr,  
+			   cpopts,atommaps,communicate,for_scr,
+			   pseudo->rgh[igh]);
 
-      dvnlimag_gxgx_dn[i] = 0.0;
-      dvnlimag_gxgy_dn[i] = 0.0;
-      dvnlimag_gxgz_dn[i] = 0.0;
-      dvnlimag_gygy_dn[i] = 0.0;
-      dvnlimag_gygz_dn[i] = 0.0;
-      dvnlimag_gzgz_dn[i] = 0.0;
-     }/*endfor*/
-    }/*endif:ptens*/
+	/*i) Calculate the nonlocal Energy  */
+	/*ii) and the contribution to the forces on the atoms due to the non-local term*/
 
-   }/*endif:lsda*/
-  }/*endif : non-local potential on*/
+	getnl_pot_pv_fatm_gh(clatoms_info,clatoms_pos,cell,cpcoeffs_info,
+			      cpscr,ewd_scr,cpopts,pseudo,atommaps,
+			      &cp_enl_gh,np_nlmax_gh,pvten,pseudo->wgh,igh);
 
-   /* Create Zilm(alpha) and Xilm(alpha)= dZilm/dR  */
+	/*Calculate nonlocal contribution to the coefficient forces */
 
-       control_nonloc_gh(clatoms_info,clatoms_pos,cpcoeffs_info,cpcoeffs_pos,
-                         cell,ptens,cpewald,cpscr,pseudo,ewd_scr,  
-                         cpopts,atommaps,communicate,for_scr,
-                         pseudo->rgh[igh]);
+	getnl_fcoef_gh(clatoms_info,clatoms_pos,cpcoeffs_info,cpcoeffs_pos,
+			cpscr,ewd_scr,cpopts,pseudo,cpewald,atommaps,
+			cell,np_nlmax_gh,pvten,for_scr,
+			pseudo->rgh[igh],pseudo->wgh,igh);
 
- /*i) Calculate the nonlocal Energy  */
- /*ii) and the contribution to the forces on the atoms due to the non-local term*/
-
-       getnl_pot_pv_fatm_gh(clatoms_info,clatoms_pos,cell,cpcoeffs_info,
-                            cpscr,ewd_scr,cpopts,pseudo,atommaps,
-                            &cp_enl_gh,np_nlmax_gh,pvten,pseudo->wgh,igh);
-
-   /*Calculate nonlocal contribution to the coefficient forces */
-
-       getnl_fcoef_gh(clatoms_info,clatoms_pos,cpcoeffs_info,cpcoeffs_pos,
-                      cpscr,ewd_scr,cpopts,pseudo,cpewald,atommaps,
-                      cell,np_nlmax_gh,pvten,for_scr,
-                      pseudo->rgh[igh],pseudo->wgh,igh);
-
-        *cp_enl_ret += cp_enl_gh;
-      }/*endfor igh gauss-hermite integration points */
-
-    }/*endif gauss-hermit*/
+	*cp_enl_ret += cp_enl_gh;
+      }//endfor igh gauss-hermite integration points 
+    }//endif gauss-hermit
 
     if((nl_max_all >= 0)&&((ntot_up+ntot_dn)>0)&&(n_rad_max>1)){
       non_loc_restore_ord(clatoms_pos,clatoms_info,
                           atommaps, pseudo,ewd_scr,for_scr);
     }/*endif*/
+  }//endif pseudoRealFlag
+  else{
+    get_ak2_sm(cpewald,cell);  
   }
 
 /*======================================================================*/

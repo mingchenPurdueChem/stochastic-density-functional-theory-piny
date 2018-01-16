@@ -2166,6 +2166,7 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
   //printf("I'm here kinetic energy!\n");
   tpi = 2.0*M_PI;
   eke = 0.0;
+  //printf("ak2_sm[1] %lg\n",ak2_sm[1]);
   for(is=1 ; is<= nstate ; is++){
     ioff = (is-1)*ncoef;
     for(i=1; i<= ncoef1 ; i++){

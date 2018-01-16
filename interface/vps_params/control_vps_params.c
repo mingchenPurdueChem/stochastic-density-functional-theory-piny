@@ -1195,9 +1195,11 @@ void make_vps_splin(char *vps_file,int loc_opt,int n_ang,
                           alpha_conv_dual);
            }/* endif */
 	   //debug
+	   /*
 	   for(i=1;i <= nsplin_g;i++){
 	     printf("bbbbbenchmark %.8lg %.8lg\n",g[i],vps0[ishift_now+i]);
 	   }
+	   */
            spline_fit(&(vps0[ishift_now]),&(vps1[ishift_now]),
                       &(vps2[ishift_now]),&(vps3[ishift_now]),g,nsplin_g);
 

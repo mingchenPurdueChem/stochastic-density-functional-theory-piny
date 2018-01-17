@@ -28,7 +28,7 @@
 
 #include "complex.h"
 
-//#define REAL_PP_DEBUG
+#define REAL_PP_DEBUG
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
@@ -58,6 +58,7 @@ void controlEnergyNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   for(iGrid=0;iGrid<numGrid;iGrid++){
 #ifdef REAL_PP_DEBUG  
     zfft[iGrid*2+1] = wfForceReal[iGrid];
+    //printf("forceeeeeeeee grid 1 %.16lg\n",wfForceReal[iGrid]);
 #else
     zfft[iGrid*2+1] += wfForceReal[iGrid];
 #endif
@@ -71,6 +72,7 @@ void controlEnergyNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
     for(iGrid=0;iGrid<numGrid;iGrid++){
 #ifdef REAL_PP_DEBUG  
       zfft[iGrid*2+2] = wfForceReal[iGrid];
+      //printf("forceeeeeeeee grid 2 %.16lg\n",wfForceReal[iGrid]);
 #else
       zfft[iGrid*2+2] += wfForceReal[iGrid];
 #endif
@@ -425,13 +427,16 @@ void calcPseudoWf(CP *cp,CLASS *class,GENERAL_DATA *generalData)
 	      vnlPhiAtomGridIm[gridShiftIm+iGrid] = radFun[iGrid]*ylm[ylmShift+iGrid*2+1];
 	      //printf("1111111111111 grid %i %lg %lg %lg\n",iGrid,radFun[iGrid],ylm[ylmShift+iGrid*2],ylm[ylmShift+iGrid*2+1]);
 	    }//endfor iGrid
+            printf("nucleiiiiiiiii grid %.16lg %.16lg\n",vnlPhiAtomGridRe[gridShiftRe+1715],
+                     vnlPhiAtomGridIm[gridShiftIm+1715]);
 	    gridShiftRe += numGrid;
 	    gridShiftIm += numGrid;
 	  }else{
 	    for(iGrid=0;iGrid<numGrid;iGrid++){
 	      vnlPhiAtomGridRe[gridShiftRe+iGrid] = radFun[iGrid]*ylm[iGrid];
-	      //printf("1111111111111 grid %i %lg %lg\n",iGrid,radFun[iGrid],ylm[iGrid]);
+              //printf("nucleiiiiiiiii grid %.16lg\n",vnlPhiAtomGridRe[gridShiftRe+1715]);    
 	    }
+            printf("nucleiiiiiiiii grid %.16lg\n",vnlPhiAtomGridRe[gridShiftRe+1715]);
 	    gridShiftRe += numGrid;
 	  }//endif m
 	}//endfor m
@@ -471,7 +476,7 @@ void calcTrig(double *gridAtomNbhd,int numGrid,double *trig)
     z = gridAtomNbhd[iGrid*3+2];
     rProj2 = x*x+y*y;
     r2 = rProj2+z*z;
-    if(r2>=1.0e-10&&rProj2>=1.0e-10){
+    if(rProj2>=1.0e-20){
       rInv = 1.0/sqrt(r2);
       rProj = sqrt(rProj2);
       rProjInv = 1.0/rProj;
@@ -481,10 +486,19 @@ void calcTrig(double *gridAtomNbhd,int numGrid,double *trig)
       trig[iGrid*4+3] = x*rProjInv;
     }
     else{ // in case nuclei located exactly on grid, theta=0,phi=0
-      trig[iGrid*4] = 0.0;
-      trig[iGrid*4+1] = 1.0;
-      trig[iGrid*4+2] = 0.0;
-      trig[iGrid*4+3] = 1.0;
+      printf("iGrid %i\n",iGrid);
+      if(z>=0.0){
+	trig[iGrid*4] = 0.0;
+	trig[iGrid*4+1] = 1.0;
+	trig[iGrid*4+2] = 0.0;
+	trig[iGrid*4+3] = 1.0;
+      }
+      else{
+        trig[iGrid*4] = 0.0;
+        trig[iGrid*4+1] = -1.0;
+        trig[iGrid*4+2] = 0.0;
+        trig[iGrid*4+3] = 1.0;
+      }
     }
     /*
     debugFlag = 0;
@@ -602,7 +616,7 @@ void calcRadFun(double *gridAtomNbhd,int radIndex,PSEUDO_REAL *pseudoReal,
     h = r-r0;
     interpInd = interpGridSt+gridInd;
     radFun[iGrid] = ((vps3[interpInd]*h+vps2[interpInd])*h+vps1[interpInd])*h+vps0[interpInd];
-    printf("rrrrrrrrrrrrrr %.8lg %.8lg\n",r,radFun[iGrid]);
+    if(r<1.0e-10)printf("rrrrrrrrrrrrrr %i %.16lg %.16lg\n",iGrid,r,radFun[iGrid]);
   }
   
 /*--------------------------------------------------------------------------*/

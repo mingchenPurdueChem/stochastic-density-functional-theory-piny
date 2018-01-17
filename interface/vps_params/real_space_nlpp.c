@@ -196,6 +196,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   printf("ggggggg %lg %lg %lg\n",gmaxTrueSm,gmaxTrueLg,gmaxTrueLgLg);
   pseudoReal->gMaxSm = gmaxTrueSm;
   pseudoReal->gMaxLg = gmaxTrueLg;
+  //pseudoReal->gMaxLg = 3.0*gmaxTrueSm;
  
   // 2. Read the radial functions and determine the cutoff 
   for(iType=0;iType<numAtomType;iType++){

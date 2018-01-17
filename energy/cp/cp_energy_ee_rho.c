@@ -21,7 +21,7 @@
 #include "../proto_defs/proto_math.h"
 #include "../proto_defs/proto_communicate_wrappers.h"
 
-//#define REAL_PP_DEBUG
+#define REAL_PP_DEBUG
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
@@ -218,6 +218,16 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
   */
   //exit(0);
 
+ //debug realspace nl pp
+ /*
+ int junk;
+ FILE *fread = fopen("force-forfft","r");
+ for(i=1;i<=2*ncoef;i++){
+   fscanf(fread,"%i %lg %lg",&junk,&ccreal[i],&ccimag[i]);
+ }
+ fclose(fread);
+ */
+
  for(is = 1; is <= iupper; is = is + 2){
     ioff   = (is-1)*ncoef;
     ioff2 = (is)*ncoef;
@@ -296,6 +306,18 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
     else{
       para_fft_gen3d_fwd_to_r_fftw3d(zfft,cp_sclr_fft_pkg3d_sm);
     }
+
+    //debug nlpp real
+    /*
+    for(i=0;i<nfft2;i++){
+      printf("forceeeeee grid 1 %.16lg\n",zfft[i*2+1]);
+    }
+    for(i=0;i<nfft2;i++){
+      printf("forceeeeee grid 2 %.16lg\n",zfft[i*2+2]);
+    }
+    fflush(stdout);
+    exit(0);
+    */
 
     
     if(fftw3dFlag==100){

@@ -27,7 +27,7 @@
 
 #define TIME_CP_OFF
 
-//#define REAL_PP_DEBUG    
+#define REAL_PP_DEBUG    
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
@@ -320,9 +320,7 @@ void control_cp_eext_recip(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
       dvnlimag_gzgz_dn[i] = 0.0;
      }/*endfor*/
     }/*endif:ptens*/
-
    }/*endif:lsda*/
-
   }/*endif : non-local potential on*/
 
 /*======================================================================*/
@@ -379,7 +377,6 @@ void control_cp_eext_recip(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
     par_cpu_vomit((cpu2-cpu1),comm_states,np_states,myid_state,
                        "2 control_ewd_loc");
 #endif
-
   }/*endif cp_dual_grid_opt*/
   //debug
  
@@ -471,6 +468,7 @@ void control_cp_eext_recip(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
     int icoef;
     for(icoef=1;icoef<=2*ncoef;icoef++){
       printf("fffcccccccc %i %.8lg %.8lg\n",icoef,fcre_up[icoef],fcim_up[icoef]);
+      //printf("%i %.16lg %.16lg\n",icoef,fcre_up[icoef],fcim_up[icoef]);
     }
     fflush(stdout);
     exit(0);

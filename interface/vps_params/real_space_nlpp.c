@@ -195,8 +195,10 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 
   printf("ggggggg %lg %lg %lg\n",gmaxTrueSm,gmaxTrueLg,gmaxTrueLgLg);
   pseudoReal->gMaxSm = gmaxTrueSm;
-  pseudoReal->gMaxLg = gmaxTrueLg;
+  //pseudoReal->gMaxLg = gmaxTrueLg;
   //pseudoReal->gMaxLg = 3.0*gmaxTrueSm;
+  pseudoReal->gMaxLg = 18.26959;
+  printf("gMaxSm %.8lg gMaxLg %.8lg\n",pseudoReal->gMaxSm,pseudoReal->gMaxLg);
  
   // 2. Read the radial functions and determine the cutoff 
   for(iType=0;iType<numAtomType;iType++){
@@ -274,6 +276,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
       //free(vNl);
       //free(phiNl);
       ppRealCut[iType] = rCutoffMax;
+      printf("iType %i rCutoffMax %lg\n",iType,rCutoffMax);
     }//endif ivpsLabel
   // 3. Smooth the radius function
     
@@ -638,7 +641,7 @@ void optGCoeff(PSEUDO_REAL *pseudoReal,int numGLg,int numGSm,int numR,
   B = (double*)calloc(numGSolve,sizeof(double));
   subA = (double*)calloc(numGSolve*numGSolve,sizeof(double));
   
-  //iGrid=0
+  //iGridG=0
   for(jGridG=0;jGridG<numGLg;jGridG++){
     A[jGridG] = 0.0;
     A[jGridG*numGLg] = 0.0;

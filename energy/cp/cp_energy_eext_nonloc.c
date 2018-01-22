@@ -527,6 +527,7 @@ void control_nlmat(CLATOMS_INFO *clatoms_info,
 /*     vtemp,dvtemp, */
       sgn_l = 1.0;
       if((l%2)==1)sgn_l = -1.0;
+
       for(m=1;m<=(2*l+1);m++){
         ind_lm = m + l*l;
         if(cp_ptens==1) {
@@ -725,7 +726,7 @@ void get_nlmat(int ncoef,int ismcount,int nstate,int ind_lm,int irad,
            dvnlimag_z[(i+ioff_v)] += (tmp4*zk);
          }/* endfor */
     }/*end switch: sgn of m in Ylm*/
-
+    //printf("is %i vnlreal %.16lg vnlimag %.16lg\n",is,vnlreal[(i+ioff_v)],vnlimag[(i+ioff_v)]);
   }/* endfor : loop over states */
    
 /*--------------------------------------------------------------------------*/
@@ -2155,7 +2156,10 @@ void get_nlfor(int ncoef,int ismcount,int nstate,int ind_lm,int np_nlmax,
                      +vfactr[ipart]*vnlimag[ind_loc_v])*vnorm_now[ipart];
         fcreal[ind_loc_c] += tmp1;
         fcimag[ind_loc_c] += tmp2;
+	//if(is==1)printf("ppnlllllllll k %.16lg %.16lg\n",-vfactr[ipart],-vfacti[ipart]);
+	//printf("vnorm_now[ipart] %.16lg\n",vnorm_now[ipart]);
       }/* endfor ipart */
+      printf("is %i vnlreal %.16lg vnlimag %.16lg\n",is,vnlreal[ind_loc_v],vnlimag[ind_loc_v]);
 
     }/* endfor : loop over states*/
 
@@ -2239,6 +2243,7 @@ void get_nlfor0(int ncoef,int ismcount,int nstate,
       ind_loc_v = ipart + ioff_v;
       vfactr  =  ylmr*vtemp[ipart]*vnorm[ipart]*rvol;
       fcreal[ind_loc_c] -= 2.0*vfactr*vnlreal[ind_loc_v];
+      //if(is==1)printf("ppnlllllllll k %.16lg 0.0\n",-2.0*vfactr/vnorm[ipart]);
     }/* endfor : loop over the number of particles*/
 
   }/* endfor : loop over the number of states */

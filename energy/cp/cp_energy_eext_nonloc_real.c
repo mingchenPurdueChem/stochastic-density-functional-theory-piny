@@ -234,6 +234,8 @@ void nlppKBRealFilter(CP *cp,CLASS *class,GENERAL_DATA *generalData,double *wfRe
 		forceTemp[iGrid] += radFun[iGrid]*ylm[ylmShift+iGrid]*dotRe*vpsNormList[radIndex];
 	      }//endfor iGrid
 	      */
+              printf("m %i dotRe %lg volElem %lg vpsNormList[radIndex] %lg\n",m,dotRe*volElem,volElem,vpsNormList[radIndex]);
+
 	      dotRe *= vpsNormList[radIndex]*volElem;
               //printf("m %i dotRe %lg volElem %lg vpsNormList[radIndex] %lg\n",m,dotRe,volElem,vpsNormList[radIndex]);
 
@@ -339,6 +341,11 @@ void calcPseudoWf(CP *cp,CLASS *class,GENERAL_DATA *generalData)
 
   double *vnlPhiAtomGridRe = pseudoReal->vnlPhiAtomGridRe;
   double *vnlPhiAtomGridIm = pseudoReal->vnlPhiAtomGridIm;
+  //debug
+  int nfft = cpParaFftPkg3dLgBigBox->nfft;
+  int numGridTot = nfft/2;
+  
+  double *testwfReal = (double*)calloc(numGridTot,sizeof(double));
 
   numGridMax = numGridNlppMap[0];
   for(iAtom=0;iAtom<numAtomTot;iAtom++){
@@ -434,9 +441,10 @@ void calcPseudoWf(CP *cp,CLASS *class,GENERAL_DATA *generalData)
 	  }else{
 	    for(iGrid=0;iGrid<numGrid;iGrid++){
 	      vnlPhiAtomGridRe[gridShiftRe+iGrid] = radFun[iGrid]*ylm[iGrid];
-              //printf("nucleiiiiiiiii grid %.16lg\n",vnlPhiAtomGridRe[gridShiftRe+1715]);    
+	      gridIndex = gridNlppMap[iAtom][iGrid];
+	      testwfReal[gridIndex] = vnlPhiAtomGridRe[gridShiftRe+iGrid];
+              //printf("nucleiiiiiiiii grid %.16lg\n",vnlPhiAtomGridRe[gridShiftRe+iGrid]);    
 	    }
-            printf("nucleiiiiiiiii grid %.16lg\n",vnlPhiAtomGridRe[gridShiftRe+1715]);
 	    gridShiftRe += numGrid;
 	  }//endif m
 	}//endfor m
@@ -445,7 +453,63 @@ void calcPseudoWf(CP *cp,CLASS *class,GENERAL_DATA *generalData)
       free(ylm);
     }//endfor l
   }//endfor iAtom
-  //fflush(stdout);
+  /*
+  for(iGrid=0;iGrid<numGridTot;iGrid++){
+    printf("55555 %.16lg\n",testwfReal[iGrid]);
+  }
+  fflush(stdout);
+  exit(0);
+  */
+  /*
+  CPEWALD *cpewald = &(cp->cpewald);
+  CPCOEFFS_INFO *cpcoeffs_info = &(cp->cpcoeffs_info);
+  double vol = getdeth(hmat);
+  int ncoef = cpcoeffs_info->ncoef;
+  int iCoef;
+  int gridIndTest;
+  int interpInd,interpGridSt;
+  int rGrid;
+  int numInterpGrid = pseudoReal->numInterpGrid;
+  double g;
+  double btran;
+  double rtest;
+  double *ak2_sm;
+  double rMin = 0.0;
+  double r,r0,h,pseudoTest;
+  double pre222 = 0.5*sqrt(1.0/M_PI)*16.0*M_PI/vol;
+  double dr = pseudoReal->dr;
+  double *vpsReal0 = pseudoReal->vpsReal0;
+  double *vpsReal1 = pseudoReal->vpsReal1;
+  double *vpsReal2 = pseudoReal->vpsReal2;
+  double *vpsReal3 = pseudoReal->vpsReal3;
+
+  cpewald->ak2_sm = (double *)cmalloc(ncoef*sizeof(double))-1;
+  ak2_sm = cpewald->ak2_sm;
+  get_ak2_sm(cpewald,cell);
+
+  for(iCoef=1;iCoef<=ncoef;iCoef++){
+    btran = 0.0;
+    g = sqrt(ak2_sm[iCoef]);
+    for(rGrid=1;rGrid<numInterpGrid;rGrid++){
+      r = rGrid*dr;
+      gridIndTest = (int)((r-rMin)/dr)+1;
+      r0 = (gridIndTest-1)*dr+rMin;
+      interpInd = gridIndTest;
+      pseudoTest = ((vpsReal3[interpInd]*h+vpsReal2[interpInd])*h+vpsReal1[interpInd])*h+vpsReal0[interpInd];
+      btran += pseudoTest*sin(g*r)/(g*r)*r*r*dr;
+    }
+    btran *= -pre222;
+    printf("ttttttttest analytical %.16lg\n",btran);
+  }
+  for(iCoef=1;iCoef<=ncoef;iCoef++){
+    g = sqrt(ak2_sm[iCoef]);
+    printf("gggggggg %.16lg\n",g);
+  }
+
+  free(&cpewald->ak2_sm[1]);
+  fflush(stdout);
+  exit(0);
+  */
   free(radFun);
   free(trig);
   free(gridAtomNbhd);

@@ -1923,6 +1923,7 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
    int iii,iis,nis;
 
    int nfft       = cp_sclr_fft_pkg3d_sm->nfft;
+   int nfft2	  = nfft/2;
    int ncoef      = cp_sclr_fft_pkg3d_sm->ncoef;
    int myid_state = communicate->myid_state;
    int np_states  = communicate->np_states;
@@ -1986,7 +1987,13 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
     fccimag[i] = 0.0;
   }
 #endif
-  
+  /*
+  for(i=1;i<=ncoef;i++){
+    printf("wfkkkkkkkkk %.16lg %.16lg\n",ccreal[i],ccimag[i]);
+  }
+  fflush(stdout);
+  exit(0);
+  */
 
 
 /*=================================================================*/
@@ -2027,12 +2034,26 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
    
     if(pseudoRealFlag==1){
       memcpy(&zfft_tmp[1],&zfft[1],nfft*sizeof(double));
-
+      /*
+      int igrid;
+      for(igrid=0;igrid<nfft2;igrid++){
+        printf("wfffffffffff %.16lg\n",zfft[2*igrid+1]);
+      }
+      fflush(stdout);
+      exit(0);
+      */
       cp_vpsi(zfft,v_ks,nfft);  
-
       cp->pseudo.pseudoReal.energyCalcFlag = 1;
       controlEnergyNlppReal(cp,class,general_data,zfft_tmp,zfft,1);
+      //Ming
+      /*
       for(i=1;i<=nfft;i++)zfft_tmp[i] = 0.0;
+      FILE *freadtest = fopen("ppwf","r");
+      int igrid,junk;
+      for(igrid=0;igrid<nfft2;igrid++){
+	fscanf(freadtest,"%i %lg",&junk,&zfft[igrid*2+1]);
+      }
+      */
     }
     else{
       cp_vpsi(zfft,v_ks,nfft);
@@ -2068,8 +2089,8 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
   
   //if(fftw3dFlag==0){
 #ifdef REAL_PP_DEBUG  
-    for(i=1;i<=2*ncoef;i++){
-      printf("forceeeee %i %lg %lg\n",i,fccreal[i],fccimag[i]);
+    for(i=1;i<=ncoef;i++){
+      printf("forceeeee %i %.16lg %.16lg\n",i,fccreal[i],fccimag[i]);
     }
     exit(0);
 #endif

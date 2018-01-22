@@ -195,9 +195,10 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 
   printf("ggggggg %lg %lg %lg\n",gmaxTrueSm,gmaxTrueLg,gmaxTrueLgLg);
   pseudoReal->gMaxSm = gmaxTrueSm;
-  //pseudoReal->gMaxLg = gmaxTrueLg;
+  pseudoReal->gMaxLg = gmaxTrueLg;
   //pseudoReal->gMaxLg = 3.0*gmaxTrueSm;
-  pseudoReal->gMaxLg = 18.26959;
+  //pseudoReal->gMaxLg = 18.26959;
+  //pseudoReal->gMaxLg = gmaxTrueLgLg
   printf("gMaxSm %.8lg gMaxLg %.8lg\n",pseudoReal->gMaxSm,pseudoReal->gMaxLg);
  
   // 2. Read the radial functions and determine the cutoff 
@@ -364,7 +365,39 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
     }
   }
   */
-
+  // test 2
+  /*
+  CPCOEFFS_INFO *cpcoeffs_info = &(cp->cpcoeffs_info);
+  get_ak2_sm(cpewald,cell); 
+  double vol = getdeth(hmat);
+  int ncoef = cpcoeffs_info->ncoef;
+  int iCoef;
+  int gridIndTest;
+  int interpInd,interpGridSt;
+  double g;
+  double btran;
+  double rtest;
+  double *ak2_sm  =  cpewald->ak2_sm;
+  rMin = 0.0;
+  double r0,h,pseudoTest;
+  double pre222 = 0.5*sqrt(1.0/M_PI)*4.0*M_PI/sqrt(vol);
+  for(iCoef=1;iCoef<ncoef;iCoef++){
+    btran = 0.0;
+    g = sqrt(ak2_sm[iCoef]);
+    for(rGrid=1;rGrid<numInterpGrid;rGrid++){
+      r = rGrid*dr;
+      gridIndTest = (int)((r-rMin)/dr)+1;
+      r0 = (gridIndTest-1)*dr+rMin;
+      interpInd = gridIndTest;
+      pseudoTest = ((vpsReal3[interpInd]*h+vpsReal2[interpInd])*h+vpsReal1[interpInd])*h+vpsReal0[interpInd];
+      btran += pseudoTest*sin(g*r)/(g*r)*r*r*dr;
+    }
+    btran *= pre222;
+    printf("ttttttttest analytical %.16lg\n",btran);
+  }
+  fflush(stdout);
+  exit(0);
+  */
 /*--------------------------------------------------------------------------*/
   }/*end routine*/
 /*==========================================================================*/

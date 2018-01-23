@@ -197,8 +197,8 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   pseudoReal->gMaxSm = gmaxTrueSm;
   pseudoReal->gMaxLg = gmaxTrueLg;
   //pseudoReal->gMaxLg = 3.0*gmaxTrueSm;
-  //pseudoReal->gMaxLg = 18.26959;
-  //pseudoReal->gMaxLg = gmaxTrueLgLg
+  pseudoReal->gMaxLg = 12.56060614640884;
+  //pseudoReal->gMaxLg = gmaxTrueLgLg;
   printf("gMaxSm %.8lg gMaxLg %.8lg\n",pseudoReal->gMaxSm,pseudoReal->gMaxLg);
  
   // 2. Read the radial functions and determine the cutoff 
@@ -226,12 +226,14 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
       // get the non-local part
       for(iAng=0;iAng<angNow;iAng++){
 	for(rGrid=0;rGrid<numR;rGrid++){
-	  fscanf(fvps,"%lg %lg\n",&vNl[iAng*numR+rGrid],&phiNl[iAng*numR+rGrid]);
+	  fscanf(fvps,"%lg",&vNl[iAng*numR+rGrid]);
+	  fscanf(fvps,"%lg",&phiNl[iAng*numR+rGrid]);
 	}//endfor rGrid
       }//endfor iAng
       // get the local potential
       for(rGrid=0;rGrid<numR;rGrid++){
-	fscanf(fvps,"%lg %lg\n",&vLoc[rGrid],&junk1);
+	fscanf(fvps,"%lg",&vLoc[rGrid]);
+	fscanf(fvps,"%lg",&junk1);
       }//endfor rGrid
       // Substract the nonlocal part from local part
       for(iAng=0;iAng<angNow;iAng++){
@@ -249,7 +251,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
       }//endfor iAng
       for(iAng=0;iAng<angNow;iAng++){
 	rGrid = numR-1;
-	while(vNl[iAng*numR+rGrid]<1.0e-10&&rGrid>0){//double check 1.0e-10
+	while(fabs(vNl[iAng*numR+rGrid])<1.0e-10&&rGrid>0){//double check 1.0e-10
 	  rGrid -= 1;
 	}
 	if(rGrid==numR-1){
@@ -277,11 +279,12 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
       //free(vNl);
       //free(phiNl);
       ppRealCut[iType] = rCutoffMax;
-      printf("iType %i rCutoffMax %lg\n",iType,rCutoffMax);
+      printf("iType %i rCutoffMax %.16lg\n",iType,rCutoffMax);
     }//endif ivpsLabel
   // 3. Smooth the radius function
     
     numGridRadSmooth[iType] = (int)(rCutoffMax/dr)+1;
+    printf("numGridRadSmooth[iType] %i numRadMax[iType] %i\n",numGridRadSmooth[iType],numRadMax[iType]);
     vNlSmooth[iType] = (double*)cmalloc(numGridRadSmooth[iType]*numRadMax[iType]*sizeof(double));
     dvNlSmooth[iType] = (double*)cmalloc(numGridRadSmooth[iType]*numRadMax[iType]*sizeof(double));
 
@@ -301,6 +304,9 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 	  break;
       }//endswitch    
     }//endfor iRad
+    free(vLoc);
+    free(vNl);
+    free(phiNl);
   }//endfor iType
 
   pseudoReal->dr = dr;
@@ -312,6 +318,8 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   
   int gridShift;
   double *rList;
+  //dr *= 0.1;
+  //pseudoReal->dr = dr;
   for(iType=0;iType<numAtomType;iType++){
     rGrid = (int)(ppRealCut[iType]/dr)+1;
     if(numInterpGrid<rGrid){
@@ -342,11 +350,16 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
     
   for(iRad=0;iRad<numRadTot;iRad++){
     gridShift = iRad*numInterpGrid;
+    /*
+    for(rGrid=1;rGrid<=numInterpGrid;rGrid++){
+      printf("oringgggggg %.8lg %.8lg\n",rList[rGrid],vpsReal0[rGrid]);
+    }
+    */
     spline_fit(&(vpsReal0[gridShift]),&(vpsReal1[gridShift]),
                &(vpsReal2[gridShift]),&(vpsReal3[gridShift]),rList,numInterpGrid);  
   }
   // test spline
-  /*
+  
   double rtest;
   rMin = 0.0;
   double r0,h,pseudoTest;
@@ -361,10 +374,11 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
       h = rtest-r0;
       interpInd = interpGridSt+gridIndTest;
       pseudoTest = ((vpsReal3[interpInd]*h+vpsReal2[interpInd])*h+vpsReal1[interpInd])*h+vpsReal0[interpInd];
-      printf("iiiiiirad %i %.8lg %.8lg\n",iRad,rtest,pseudoTest*rtest*2.0/M_PI);
+      //printf("iiiiiirad %i %.8lg %.8lg\n",iRad,rtest,pseudoTest*rtest*2.0/M_PI);
     }
   }
-  */
+  fflush(stdout);
+  exit(0);
   // test 2
   /*
   CPCOEFFS_INFO *cpcoeffs_info = &(cp->cpcoeffs_info);
@@ -509,6 +523,7 @@ void nlppSmoothKS(PSEUDO *pseudo,double *vNl,double rCutoffMax,int iRad,
 
   printf("2222222 l %i\n",l);
   // Bessel transform to g space from g=0 to gMaxSm
+  //printf("numR %i %lg\n",numR,vNl[numR-1]);
   bessTransform(vNl,numR,dr,l,vNlG,numGSm,dg);
   //bessTransform(vNl,numR,dr,l,vNlG,numGLg,dg);
   
@@ -538,11 +553,13 @@ void nlppSmoothKS(PSEUDO *pseudo,double *vNl,double rCutoffMax,int iRad,
   for(ig=0;ig<numGLg;ig++){
     vNlG[ig] *= ig*dg;
   }
+  
   bessTransform(vNlG,numGLg,dg,l,vNlSmooth,numGridRadSmooth,dr);  
   bessTransformGrad(vNlG,numGLg,dg,l,dvNlSmooth,numGridRadSmooth,dr);
   for(ir=0;ir<numGridRadSmooth;ir++){
     vNlSmooth[ir] *= 2.0/M_PI;
     dvNlSmooth[ir] *= 2.0/M_PI;
+    printf("tttttttttttttest aaaaall %.16lg %.16lg %.16lg\n",ir*dr,vNlSmooth[ir],dvNlSmooth[ir]);
   }
   /*
   for(ir=0;ir<numGridRadSmooth;ir++){
@@ -670,6 +687,7 @@ void optGCoeff(PSEUDO_REAL *pseudoReal,int numGLg,int numGSm,int numR,
   double *subA;
   //Construct the A matrix
 
+  printf("numGSolve %i\n",numGSolve);
   A = (double*)calloc(numGLg*numGLg,sizeof(double));
   B = (double*)calloc(numGSolve,sizeof(double));
   subA = (double*)calloc(numGSolve*numGSolve,sizeof(double));
@@ -771,6 +789,9 @@ void optGCoeff(PSEUDO_REAL *pseudoReal,int numGLg,int numGSm,int numR,
   for(iGridG=0;iGridG<numGSolve;iGridG++){
     vNlG[iGridG+numGSm] = B[iGridG];
   }
+  free(A);
+  free(B);
+  free(subA);
 
 /*--------------------------------------------------------------------------*/
   }/*end routine*/
@@ -806,10 +827,12 @@ void bessTransformGrad(double *funIn,int numIn,double dx,int l,double *funOut,
   funOut[0] = 0.0;
   for(jGrid=1;jGrid<numIn;jGrid++){
     x = jGrid*dx;
-    funOut[0] += x*x*funIn[jGrid];
+    funOut[0] += x*x*x*funIn[jGrid];
+    printf("jjjjjGrid %i %lg %lg %lg\n",jGrid,x,funIn[jGrid],funOut[0]);
   }
   funOut[0] *= djl0*dx;
 
+  printf("funIn %lg\n",funIn[1]);
   switch(l){
     case 0:
       for(iGrid=1;iGrid<numOut;iGrid++){
@@ -818,8 +841,12 @@ void bessTransformGrad(double *funIn,int numIn,double dx,int l,double *funOut,
         for(jGrid=1;jGrid<numIn;jGrid++){
           x = jGrid*dx;
           arg = x*y;
-          funOut[iGrid] += dj0(arg)*x*x*funIn[jGrid]*dx;
+	  printf("%lg %lg %lg %lg\n",x,y,dj0(arg),funIn[jGrid]);
+          funOut[iGrid] += dj0(arg)*x*x*x*funIn[jGrid]*dx;
+	  printf("xxxxy %i %lg %lg %lg\n",jGrid,arg,dj0(arg),funIn[jGrid]);
         }//endfor jGrid
+	fflush(stdout);
+	exit(0);
       }//endfor iGrid
       break;
     case 1:
@@ -829,7 +856,7 @@ void bessTransformGrad(double *funIn,int numIn,double dx,int l,double *funOut,
         for(jGrid=1;jGrid<numIn;jGrid++){
           x = jGrid*dx;
           arg = x*y;
-          funOut[iGrid] += dj1(arg)*x*x*funIn[jGrid]*dx;
+          funOut[iGrid] += dj1(arg)*x*x*x*funIn[jGrid]*dx;
         }//endfor jGrid
       }//endfor iGrid
       break;
@@ -840,7 +867,7 @@ void bessTransformGrad(double *funIn,int numIn,double dx,int l,double *funOut,
         for(jGrid=1;jGrid<numIn;jGrid++){
           x = jGrid*dx;
           arg = x*y;
-          funOut[iGrid] += dj2(arg)*x*x*funIn[jGrid]*dx;
+          funOut[iGrid] += dj2(arg)*x*x*x*funIn[jGrid]*dx;
         }//endfor jGrid
       }//endfor iGrid
       break;

@@ -550,8 +550,9 @@ if(cp_on == 1){
                    cpewald->kastr_sm,cpewald->kbstr_sm,cpewald->kcstr_sm,
                    cpewald->ibrk1_sm,cpewald->ibrk2_sm,
                    &(cpewald->gw_gmin),&(cpewald->gw_gmax));
-      //printf("222222222 gw_gmax %lg\n",cpewald->gw_gmax);
-      cpewald->gmaxTrueSm = cpewald->gw_gmax*0.74;
+      printf("222222222 gw_gmax %lg\n",cpewald->gw_gmax);
+      //cpewald->gmaxTrueSm = cpewald->gw_gmax*0.74;
+      cpewald->gmaxTrueSm = cpewald->gw_gmax;
 
     if(cp_dual_grid_opt_on == 0 && cp_on == 1){
       check_kvec(ewald->nktot,ewald->kastr,ewald->kbstr,ewald->kcstr,nktot_sm,

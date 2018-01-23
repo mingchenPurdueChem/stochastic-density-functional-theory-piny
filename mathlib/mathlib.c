@@ -861,7 +861,7 @@ double dsysvWrapper(double *A,double *b,int n){
   if(info<0){
     printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
     printf("Error in solving the linear equations!\n");
-    printf("The %i'th parameter had an illegal value!\n");
+    printf("The %i'th parameter had an illegal value!\n",info);
     printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
     fflush(stdout);
     exit(0);

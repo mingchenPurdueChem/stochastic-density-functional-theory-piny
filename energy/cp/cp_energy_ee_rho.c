@@ -21,7 +21,7 @@
 #include "../proto_defs/proto_math.h"
 #include "../proto_defs/proto_communicate_wrappers.h"
 
-//#define REAL_PP_DEBUG
+#define REAL_PP_DEBUG
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
@@ -2046,14 +2046,14 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
       cp->pseudo.pseudoReal.energyCalcFlag = 1;
       controlEnergyNlppReal(cp,class,general_data,zfft_tmp,zfft,1);
       //Ming
-      /*
+      
       for(i=1;i<=nfft;i++)zfft_tmp[i] = 0.0;
       FILE *freadtest = fopen("ppwf","r");
       int igrid,junk;
       for(igrid=0;igrid<nfft2;igrid++){
 	fscanf(freadtest,"%i %lg",&junk,&zfft[igrid*2+1]);
       }
-      */
+      
     }
     else{
       cp_vpsi(zfft,v_ks,nfft);

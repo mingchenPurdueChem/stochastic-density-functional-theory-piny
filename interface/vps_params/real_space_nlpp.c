@@ -359,7 +359,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
                &(vpsReal2[gridShift]),&(vpsReal3[gridShift]),rList,numInterpGrid);  
   }
   // test spline
-  
+  /*
   double rtest;
   rMin = 0.0;
   double r0,h,pseudoTest;
@@ -379,6 +379,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   }
   fflush(stdout);
   exit(0);
+  */
   // test 2
   /*
   CPCOEFFS_INFO *cpcoeffs_info = &(cp->cpcoeffs_info);
@@ -553,13 +554,13 @@ void nlppSmoothKS(PSEUDO *pseudo,double *vNl,double rCutoffMax,int iRad,
   for(ig=0;ig<numGLg;ig++){
     vNlG[ig] *= ig*dg;
   }
-  
+
   bessTransform(vNlG,numGLg,dg,l,vNlSmooth,numGridRadSmooth,dr);  
   bessTransformGrad(vNlG,numGLg,dg,l,dvNlSmooth,numGridRadSmooth,dr);
   for(ir=0;ir<numGridRadSmooth;ir++){
     vNlSmooth[ir] *= 2.0/M_PI;
     dvNlSmooth[ir] *= 2.0/M_PI;
-    printf("tttttttttttttest aaaaall %.16lg %.16lg %.16lg\n",ir*dr,vNlSmooth[ir],dvNlSmooth[ir]);
+    //printf("tttttttttttttest aaaaall %.16lg %.16lg %.16lg\n",ir*dr,vNlSmooth[ir],dvNlSmooth[ir]);
   }
   /*
   for(ir=0;ir<numGridRadSmooth;ir++){
@@ -817,6 +818,7 @@ void bessTransformGrad(double *funIn,int numIn,double dx,int l,double *funOut,
   double arg;
   double djl0; //derivative of spherical bessel function at x=0
   //double fpidx = 4.0*M_PI*dx;
+  double test1,test2;
 
   // r=0
   switch(l){
@@ -828,11 +830,9 @@ void bessTransformGrad(double *funIn,int numIn,double dx,int l,double *funOut,
   for(jGrid=1;jGrid<numIn;jGrid++){
     x = jGrid*dx;
     funOut[0] += x*x*x*funIn[jGrid];
-    printf("jjjjjGrid %i %lg %lg %lg\n",jGrid,x,funIn[jGrid],funOut[0]);
   }
   funOut[0] *= djl0*dx;
 
-  printf("funIn %lg\n",funIn[1]);
   switch(l){
     case 0:
       for(iGrid=1;iGrid<numOut;iGrid++){
@@ -841,12 +841,10 @@ void bessTransformGrad(double *funIn,int numIn,double dx,int l,double *funOut,
         for(jGrid=1;jGrid<numIn;jGrid++){
           x = jGrid*dx;
           arg = x*y;
-	  printf("%lg %lg %lg %lg\n",x,y,dj0(arg),funIn[jGrid]);
+	  test1 = dj0(arg);
+	  test2 = funIn[jGrid];
           funOut[iGrid] += dj0(arg)*x*x*x*funIn[jGrid]*dx;
-	  printf("xxxxy %i %lg %lg %lg\n",jGrid,arg,dj0(arg),funIn[jGrid]);
         }//endfor jGrid
-	fflush(stdout);
-	exit(0);
       }//endfor iGrid
       break;
     case 1:

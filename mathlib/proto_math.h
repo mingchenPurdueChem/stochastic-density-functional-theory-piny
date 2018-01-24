@@ -331,3 +331,19 @@ double fermiExpReal(double,double,double);
 double complex fermiExpComplex(double complex,double,double);
 double fermiErfcReal(double,double,double);
 double gaussianReal(double,double,double);
+
+/*----------------------------------------------------------------------*/
+/* Real Space nlpp  */
+
+double j0(double);
+double j1(double);
+double j2(double);
+
+double dj0(double);
+double dj1(double);
+double dj2(double);
+
+double dsysvWrapper(double *,double *,int);
+
+
+

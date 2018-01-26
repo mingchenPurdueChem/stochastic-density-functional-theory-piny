@@ -57,8 +57,7 @@ void make_weight_gen(double *,double *,double *, double *,
 /*---------------------------------------------------------------*/
 /*  real_space_nlpp.c  */
 
-void nlppSmoothKS(PSEUDO *,double *,double ,int ,double *,double *,int ,
-		  double ,int ,int);
+void nlppSmoothKS(PSEUDO *,double *,double ,int ,int,double ,int ,int);
 void nlppSmoothRoi(PSEUDO *,double *,double ,int ,double *,double *,
 		    int ,double ,int ,int);
 void bessTransform(double *,int ,double ,int ,double *,int ,double );

@@ -2159,7 +2159,7 @@ void get_nlfor(int ncoef,int ismcount,int nstate,int ind_lm,int np_nlmax,
 	//if(is==1)printf("ppnlllllllll k %.16lg %.16lg\n",-vfactr[ipart],-vfacti[ipart]);
 	//printf("vnorm_now[ipart] %.16lg\n",vnorm_now[ipart]);
       }/* endfor ipart */
-      printf("is %i vnlreal %.16lg vnlimag %.16lg\n",is,vnlreal[ind_loc_v],vnlimag[ind_loc_v]);
+      //printf("is %i vnlreal %.16lg vnlimag %.16lg\n",is,vnlreal[ind_loc_v],vnlimag[ind_loc_v]);
 
     }/* endfor : loop over states*/
 

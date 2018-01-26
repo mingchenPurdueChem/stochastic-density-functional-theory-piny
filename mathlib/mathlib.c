@@ -844,8 +844,8 @@ double dsysvWrapper(double *A,double *b,int n){
   double *work = (double*)cmalloc(lwork*sizeof(double));
   int info;
 
-  //double *ACpy = (double*)calloc(n*n,sizeof(double));
-  double *ACpy = (double*)cmalloc(n*n*sizeof(double));
+  double *ACpy = (double*)calloc(n*n,sizeof(double));
+  //double *ACpy = (double*)cmalloc(n*n*sizeof(double));
   memcpy(ACpy,A,n*n*sizeof(double));
   //for(i=0;i<n*n;i++)ACpy[i] = A[i];
   dsysv_(&uplo,&n,&nrhs,ACpy,&lda,ipiv,b,&ldb,work,&lwork,&info);

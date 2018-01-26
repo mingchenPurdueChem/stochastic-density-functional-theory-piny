@@ -234,7 +234,7 @@ void nlppKBRealFilter(CP *cp,CLASS *class,GENERAL_DATA *generalData,double *wfRe
 		forceTemp[iGrid] += radFun[iGrid]*ylm[ylmShift+iGrid]*dotRe*vpsNormList[radIndex];
 	      }//endfor iGrid
 	      */
-              printf("m %i dotRe %lg volElem %lg vpsNormList[radIndex] %lg\n",m,dotRe*volElem,volElem,vpsNormList[radIndex]);
+              //printf("m %i dotRe %lg volElem %lg vpsNormList[radIndex] %lg\n",m,dotRe*volElem,volElem,vpsNormList[radIndex]);
 
 	      dotRe *= vpsNormList[radIndex]*volElem;
               //printf("m %i dotRe %lg volElem %lg vpsNormList[radIndex] %lg\n",m,dotRe,volElem,vpsNormList[radIndex]);
@@ -434,8 +434,10 @@ void calcPseudoWf(CP *cp,CLASS *class,GENERAL_DATA *generalData)
 	      vnlPhiAtomGridIm[gridShiftIm+iGrid] = radFun[iGrid]*ylm[ylmShift+iGrid*2+1];
 	      //printf("1111111111111 grid %i %lg %lg %lg\n",iGrid,radFun[iGrid],ylm[ylmShift+iGrid*2],ylm[ylmShift+iGrid*2+1]);
 	    }//endfor iGrid
+	    /*
             printf("nucleiiiiiiiii grid %.16lg %.16lg\n",vnlPhiAtomGridRe[gridShiftRe+1715],
                      vnlPhiAtomGridIm[gridShiftIm+1715]);
+	    */
 	    gridShiftRe += numGrid;
 	    gridShiftIm += numGrid;
 	  }else{
@@ -550,7 +552,7 @@ void calcTrig(double *gridAtomNbhd,int numGrid,double *trig)
       trig[iGrid*4+3] = x*rProjInv;
     }
     else{ // in case nuclei located exactly on grid, theta=0,phi=0
-      printf("iGrid %i\n",iGrid);
+      //printf("iGrid %i\n",iGrid);
       if(z>=0.0){
 	trig[iGrid*4] = 0.0;
 	trig[iGrid*4+1] = 1.0;
@@ -680,7 +682,7 @@ void calcRadFun(double *gridAtomNbhd,int radIndex,PSEUDO_REAL *pseudoReal,
     h = r-r0;
     interpInd = interpGridSt+gridInd;
     radFun[iGrid] = ((vps3[interpInd]*h+vps2[interpInd])*h+vps1[interpInd])*h+vps0[interpInd];
-    if(r<1.0e-10)printf("rrrrrrrrrrrrrr %i %.16lg %.16lg\n",iGrid,r,radFun[iGrid]);
+    //if(r<1.0e-10)printf("rrrrrrrrrrrrrr %i %.16lg %.16lg\n",iGrid,r,radFun[iGrid]);
   }
   
 /*--------------------------------------------------------------------------*/

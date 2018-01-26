@@ -206,63 +206,27 @@ void splineFitWithDerivative(double *c0i, double *c1i, double *c2i, double *c3i,
 
 /*==========================================================================*/
 {
-  int i, m, n;
-  int ip1, mm1, mp1;
-  double c0, c1, c2, c3, divdf1, divdf3, dx,g;
-  double *diag,*d;
-
-  diag = (double *)cmalloc(nsplin*sizeof(double))-1;
-  d    = (double *)cmalloc(nsplin*sizeof(double))-1;
-
-  /*  1st approximate initial and final derivatives */
-
-  n = nsplin - 1;
-  c1i[1]      = de[1];
-  c1i[nsplin] = de[nsplin];
-  c0 = 0.;
-  c1 = 1.;
-  c2 = 2.;
-  c3 = 3.;
-  diag[1] = c1;
-  d[1] = c0;
-  for (m = 2; m <= n+1; ++m) {
-    mm1 = m - 1;
-    d[m] = xi[m] - xi[mm1];
-    diag[m] = (c0i[m] - c0i[mm1]) / d[m];
+  int iGrid;
+  double x0,x1,f0,f1,df0,df1;
+  double dr,dr2,dr3;
+  
+  for(iGrid=1;iGrid<nsplin;iGrid++){
+    x0 = xi[iGrid];
+    x1 = xi[iGrid+1];
+    f0 = c0i[iGrid];
+    f1 = c0i[iGrid+1];
+    df0 = de[iGrid];
+    df1 = de[iGrid+1];
+    dr = x1-x0;
+    dr2 = dr*dr;
+    dr3 = dr2*dr;
+    c1i[iGrid] = df0;
+    c2i[iGrid] = 3.0*(f1-f0)/dr2-(2.0*df0+df1)/dr;
+    c3i[iGrid] = (df0+df1)/dr2-2.0*(f1-f0)/dr3;
   }
-  for (m = 2; m <= n; ++m) {
-    mp1 = m + 1;
-    mm1 = m - 1;
-    c1i[m] = c3*(d[m]*diag[mp1]+d[mp1]*diag[m]);
-    diag[m] = c2*(d[m]+d[mp1]);
-  }
-  for (m = 2; m <= n; ++m) {
-    mp1 = m + 1;
-    mm1 = m - 1;
-    g = -d[mp1]/diag[mm1];
-    diag[m] += g*d[mm1];
-    c1i[m]  += g*c1i[mm1];
-  }
-  for (m = n; m >= 2; --m) {
-    mp1 = m + 1;
-    c1i[m] = (c1i[m] - d[m] * c1i[mp1]) / diag[m];
-  }
-
-
-  /* CALCULATE ALL OTHER COEFFICIENTS */
-
-  for (i = 1; i <= n; ++i) {
-    ip1 = i + 1;
-    dx = xi[ip1] - xi[i];
-    divdf1 = (c0i[ip1] - c0i[i]) / dx;
-    divdf3 = c1i[i] + c1i[ip1] - c2 * divdf1;
-    c2i[i] = (divdf1 - c1i[i] - divdf3) / dx;
-    c3i[i] = divdf3 / (dx * dx);
-  }
+  c1i[nsplin] = 0.0;
   c2i[nsplin] = 0.0;
   c3i[nsplin] = 0.0;
-  cfree(&d[1]);
-  cfree(&diag[1]);
 
 /*--------------------------------------------------------------------------*/
    } /* spline_fit */

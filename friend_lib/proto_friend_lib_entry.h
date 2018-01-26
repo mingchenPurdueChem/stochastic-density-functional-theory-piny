@@ -45,6 +45,9 @@ void cfree_zomp2(zomplex **,long , long , long , long );
 
 void spline_fit(double *,double * ,double * ,double * ,double * ,int );
 
+void splineFitWithDerivative(double *, double *, double *, double *,
+			     double *, double *,int);
+
 FILE *cfopen(char [],char *);
 
 void mal_verify(int );

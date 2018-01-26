@@ -466,8 +466,8 @@ void control_cp_eext_recip(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
     
 #ifdef REAL_PP_DEBUG    
     int icoef;
-    for(icoef=1;icoef<=2*ncoef;icoef++){
-      printf("fffcccccccc %i %.8lg %.8lg\n",icoef,fcre_up[icoef],fcim_up[icoef]);
+    for(icoef=1;icoef<=ncoef;icoef++){
+      printf("fffcccccccc %i %.16lg %.16lg\n",icoef,fcre_up[icoef],fcim_up[icoef]);
       //printf("%i %.16lg %.16lg\n",icoef,fcre_up[icoef],fcim_up[icoef]);
     }
     fflush(stdout);

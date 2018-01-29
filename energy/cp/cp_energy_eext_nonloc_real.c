@@ -361,19 +361,7 @@ void calcPseudoWf(CP *cp,CLASS *class,GENERAL_DATA *generalData)
   aGrid[0] = a[0]/nka;aGrid[1] = a[1]/nka;aGrid[2] = a[2]/nka;
   bGrid[0] = b[0]/nkb;bGrid[1] = b[1]/nkb;bGrid[2] = b[2]/nkb;
   cGrid[0] = c[0]/nkc;cGrid[1] = c[1]/nkc;cGrid[2] = c[2]/nkc;
-  /*
-  for(iGrid=0;iGrid<numGrid;iGrid++){
-    gridIndex = gridNlppMap[iAtom][iGrid];
-    cIndex = gridIndex/(nka*nkb);
-    res = gridIndex%(nka*nkb);
-    bIndex = res/nkb;
-    cIndex = res%nkb;
-    gridAtomNbhd[iGrid*3] = aGrid[0]*aIndex+bGrid[0]*bIndex+cGrid[0]*cIndex;
-    gridAtomNbhd[iGrid*3+1] = aGrid[1]*aIndex+bGrid[1]*bIndex+cGrid[1]*cIndex;
-    gridAtomNbhd[iGrid*3+2] = aGrid[2]*aIndex+bGrid[2]*bIndex+cGrid[2]*cIndex;
-  }
-  calcTrig(gridAtomNbhd,numGrid,trig);
-  */
+
   countWfTot = 0;
   gridShiftRe = 0;
   gridShiftIm = 0;
@@ -390,14 +378,9 @@ void calcPseudoWf(CP *cp,CLASS *class,GENERAL_DATA *generalData)
       res = gridIndex%(nka*nkb);
       bIndex = res/nkb;
       aIndex = res%nkb;
-      //printf("%i\n",gridIndex);
-      //gridAtomNbhd[iGrid*3] = aGrid[0]*aIndex+bGrid[0]*bIndex+cGrid[0]*cIndex-nucleiCoord[0];
-      //gridAtomNbhd[iGrid*3+1] = aGrid[1]*aIndex+bGrid[1]*bIndex+cGrid[1]*cIndex-nucleiCoord[1];
-      //gridAtomNbhd[iGrid*3+2] = aGrid[2]*aIndex+bGrid[2]*bIndex+cGrid[2]*cIndex-nucleiCoord[2];
       xTemp = aGrid[0]*aIndex+bGrid[0]*bIndex+cGrid[0]*cIndex-nucleiCoord[0];
       yTemp = aGrid[1]*aIndex+bGrid[1]*bIndex+cGrid[1]*cIndex-nucleiCoord[1];
       zTemp = aGrid[2]*aIndex+bGrid[2]*bIndex+cGrid[2]*cIndex-nucleiCoord[2];
-      //printf("revvvvvvvv grid %i %i %i\n",aIndex,bIndex,cIndex);
 
       //fold the differences into the box
       xTemp2 = xTemp*hmati[1]+yTemp*hmati[4]+zTemp*hmati[7];
@@ -406,17 +389,11 @@ void calcPseudoWf(CP *cp,CLASS *class,GENERAL_DATA *generalData)
       xTemp = xTemp2-NINT(xTemp2);
       yTemp = yTemp2-NINT(yTemp2);
       zTemp = zTemp2-NINT(zTemp2);
-      //printf("revvvvvvv xTemp %lg yTemp %lg zTemp %lg\n",xTemp,yTemp,zTemp);
       gridAtomNbhd[iGrid*3]   = xTemp*hmat[1]+yTemp*hmat[4]+zTemp*hmat[7];
       gridAtomNbhd[iGrid*3+1] = xTemp*hmat[2]+yTemp*hmat[5]+zTemp*hmat[8];
       gridAtomNbhd[iGrid*3+2] = xTemp*hmat[3]+yTemp*hmat[6]+zTemp*hmat[9];
-      //printf("xxx %lg yyy %lg zzz %lg\n",gridAtomNbhd[iGrid*3],gridAtomNbhd[iGrid*3+1],gridAtomNbhd[iGrid*3+2]);
-      //fflush(stdout);
-      //exit(0);
     }
     calcTrig(gridAtomNbhd,numGrid,trig);
-    //printf("%i %lg %lg %lg\n",gridNlppMap[iAtom][0],nucleiCoord[0],nucleiCoord[1],nucleiCoord[2]);
-    //printf("gridNbhd %lg %lg %lg trig %lg\n",gridAtomNbhd[0],gridAtomNbhd[1],gridAtomNbhd[2],trig[0]);
     countRad = 0;
     for(l=0;l<atomLMax[atomType];l++){
       /* calculate sherical harmonic */
@@ -432,12 +409,7 @@ void calcPseudoWf(CP *cp,CLASS *class,GENERAL_DATA *generalData)
 	    for(iGrid=0;iGrid<numGrid;iGrid++){
 	      vnlPhiAtomGridRe[gridShiftRe+iGrid] = radFun[iGrid]*ylm[ylmShift+iGrid*2];
 	      vnlPhiAtomGridIm[gridShiftIm+iGrid] = radFun[iGrid]*ylm[ylmShift+iGrid*2+1];
-	      //printf("1111111111111 grid %i %lg %lg %lg\n",iGrid,radFun[iGrid],ylm[ylmShift+iGrid*2],ylm[ylmShift+iGrid*2+1]);
 	    }//endfor iGrid
-	    /*
-            printf("nucleiiiiiiiii grid %.16lg %.16lg\n",vnlPhiAtomGridRe[gridShiftRe+1715],
-                     vnlPhiAtomGridIm[gridShiftIm+1715]);
-	    */
 	    gridShiftRe += numGrid;
 	    gridShiftIm += numGrid;
 	  }else{
@@ -445,7 +417,6 @@ void calcPseudoWf(CP *cp,CLASS *class,GENERAL_DATA *generalData)
 	      vnlPhiAtomGridRe[gridShiftRe+iGrid] = radFun[iGrid]*ylm[iGrid];
 	      gridIndex = gridNlppMap[iAtom][iGrid];
 	      testwfReal[gridIndex] = vnlPhiAtomGridRe[gridShiftRe+iGrid];
-              //printf("nucleiiiiiiiii grid %.16lg\n",vnlPhiAtomGridRe[gridShiftRe+iGrid]);    
 	    }
 	    gridShiftRe += numGrid;
 	  }//endif m
@@ -459,56 +430,6 @@ void calcPseudoWf(CP *cp,CLASS *class,GENERAL_DATA *generalData)
   for(iGrid=0;iGrid<numGridTot;iGrid++){
     printf("55555 %.16lg\n",testwfReal[iGrid]);
   }
-  fflush(stdout);
-  exit(0);
-  */
-  /*
-  CPEWALD *cpewald = &(cp->cpewald);
-  CPCOEFFS_INFO *cpcoeffs_info = &(cp->cpcoeffs_info);
-  double vol = getdeth(hmat);
-  int ncoef = cpcoeffs_info->ncoef;
-  int iCoef;
-  int gridIndTest;
-  int interpInd,interpGridSt;
-  int rGrid;
-  int numInterpGrid = pseudoReal->numInterpGrid;
-  double g;
-  double btran;
-  double rtest;
-  double *ak2_sm;
-  double rMin = 0.0;
-  double r,r0,h,pseudoTest;
-  double pre222 = 0.5*sqrt(1.0/M_PI)*16.0*M_PI/vol;
-  double dr = pseudoReal->dr;
-  double *vpsReal0 = pseudoReal->vpsReal0;
-  double *vpsReal1 = pseudoReal->vpsReal1;
-  double *vpsReal2 = pseudoReal->vpsReal2;
-  double *vpsReal3 = pseudoReal->vpsReal3;
-
-  cpewald->ak2_sm = (double *)cmalloc(ncoef*sizeof(double))-1;
-  ak2_sm = cpewald->ak2_sm;
-  get_ak2_sm(cpewald,cell);
-
-  for(iCoef=1;iCoef<=ncoef;iCoef++){
-    btran = 0.0;
-    g = sqrt(ak2_sm[iCoef]);
-    for(rGrid=1;rGrid<numInterpGrid;rGrid++){
-      r = rGrid*dr;
-      gridIndTest = (int)((r-rMin)/dr)+1;
-      r0 = (gridIndTest-1)*dr+rMin;
-      interpInd = gridIndTest;
-      pseudoTest = ((vpsReal3[interpInd]*h+vpsReal2[interpInd])*h+vpsReal1[interpInd])*h+vpsReal0[interpInd];
-      btran += pseudoTest*sin(g*r)/(g*r)*r*r*dr;
-    }
-    btran *= -pre222;
-    printf("ttttttttest analytical %.16lg\n",btran);
-  }
-  for(iCoef=1;iCoef<=ncoef;iCoef++){
-    g = sqrt(ak2_sm[iCoef]);
-    printf("gggggggg %.16lg\n",g);
-  }
-
-  free(&cpewald->ak2_sm[1]);
   fflush(stdout);
   exit(0);
   */

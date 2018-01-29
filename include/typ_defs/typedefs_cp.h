@@ -1094,6 +1094,7 @@ typedef struct pseudo_real{
 			    /*	    1=King-Smith, 2=Roi				*/
   int energyCalcFlag;	    /* Num: flag of claculating nl pp energy 0=no, 1=yes*/
   int forceCalcFlag;	    /* Num: flag of calculating nuclei force 0=no, 1=yes*/
+  int numGSm,numGLg;	    /* Num: number of g point for small/large cutoff	*/
   int *numLMax;		    /* Lst: number of angular channel			*/
 			    /* Lth: natm_typ					*/
   int *numRadMax;	    /* Lst: number of radial function for each atom type*/
@@ -1104,8 +1105,11 @@ typedef struct pseudo_real{
 			    /* Lth: numRadTot					*/
   int *numvnlPhiAtomGrid;   /* Lst: length of vnlPhiAtomGridRe			*/
 			    /* Lth: natm_tot					*/
-  int *numGridNlppMap;      /* Lst: number of grid points around each atom	*/	    
+  int *numGridNlppMap;      /* Lst: number of grid points around each atom	*/   
 			    /* Lth: natm_tot					*/
+  int *numGridRadSmooth;    /* Lst: Number of real space grid point in the      */
+                            /*      smoothed radial function                    */
+                            /* Lth: natm_typ                                    */
   int **atomLRadNum;	    /* Lst: number of radial functions for each l channel*/
 			    /* Lth: natm_typ*numLMax[iType]			*/
   int **atomRadMap;	    /* Lst: map of radial functions for each l channel	*/
@@ -1126,9 +1130,6 @@ typedef struct pseudo_real{
   double *vnlPhiAtomGridRe; /* Lst: pseudo wave fun value |V_nl Phi_nl> on FFT  */
 			    /*	    grids around each atom			*/
   double *vnlPhiAtomGridIm; /* Lth: natm_tot*numvnlPhiAtomGrid[iAtom]           */
-  int *numGridRadSmooth;    /* Lst: Number of real space grid point in the	*/
-			    /*	    smoothed radial function			*/
-			    /* Lth: natm_typ					*/
   double *rGridSpacing;	    /* Lst: dr for radial function			*/
 			    /* Lth: natm_typ					*/
   double **vNlSmooth;	    /* Lst: smooth radial function on grid		*/
@@ -1137,7 +1138,8 @@ typedef struct pseudo_real{
 			    /* Lth: natm_typ*numGridRadSmooth[i]                */
   double **ddvNlSmooth;	    /* Lst: smooth radial function 2nd derivative       */
 			    /* Lth: natm_typ*numGridRadSmooth[i]                */
-
+  double *vNlG;		    /* Lst: radial function in g space			*/
+			    /* Lth: numGLg					*/
 }PSEUDO_REAL;
 
 

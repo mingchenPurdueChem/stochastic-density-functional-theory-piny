@@ -1130,14 +1130,6 @@ typedef struct pseudo_real{
   double *vnlPhiAtomGridRe; /* Lst: pseudo wave fun value |V_nl Phi_nl> on FFT  */
 			    /*	    grids around each atom			*/
   double *vnlPhiAtomGridIm; /* Lth: natm_tot*numvnlPhiAtomGrid[iAtom]           */
-  double *rGridSpacing;	    /* Lst: dr for radial function			*/
-			    /* Lth: natm_typ					*/
-  double **vNlSmooth;	    /* Lst: smooth radial function on grid		*/
-			    /* Lth: natm_typ*numGridRadSmooth[i]		*/
-  double **dvNlSmooth;	    /* Lst: smooth radial function derivative on grid   */
-			    /* Lth: natm_typ*numGridRadSmooth[i]                */
-  double **ddvNlSmooth;	    /* Lst: smooth radial function 2nd derivative       */
-			    /* Lth: natm_typ*numGridRadSmooth[i]                */
   double *vNlG;		    /* Lst: radial function in g space			*/
 			    /* Lth: numGLg					*/
 }PSEUDO_REAL;

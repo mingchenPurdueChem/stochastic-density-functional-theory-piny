@@ -250,7 +250,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 	for(rGrid=0;rGrid<numR;rGrid++){
 	  vNl[iAng*numR+rGrid] = (vNl[iAng*numR+rGrid]-vLoc[rGrid])*phiNl[iAng*numR+rGrid];
 	  vpsNormList[countR+iAng] += vNl[iAng*numR+rGrid]*phiNl[iAng*numR+rGrid];
-	  //printf("rGridddddd %lg %lg\n",rGrid*dr,vNl[iAng*numR+rGrid]);
+	  //printf("1111111 rGridddddd %lg %lg\n",rGrid*dr,vNl[iAng*numR+rGrid]);
 	}//endfor rGrid
 	vpsNormList[countR+iAng] *= dr;
 	printf("countR %i vpsNormList %lg\n",countR+iAng,vpsNormList[countR+iAng]);
@@ -416,9 +416,23 @@ void nlppSmoothKS(PSEUDO *pseudo,double *vNl,double *vNlG,
   // Bessel transform to g space from g=0 to gMaxSm
   //printf("numR %i %lg\n",numR,vNl[numR-1]);
   bessTransform(vNl,numR,dr,l,vNlG,numGSm,gGrid);
+  //bessTransform(vNl,numR,dr,l,vNlG,numGLg,gGrid);
+  /*
+  for(ig=0;ig<numGLg;ig++){
+    printf("igggggg %lg %lg\n",gGrid[ig],vNlG[ig]);
+  }
+  */
+
   // Optimize g space coeffcient from gMaxSm to gMaxLg
 
   optGCoeff(pseudoReal,numGLg,numGSm,numR,dr,dg,numGridRadSmooth,l,vNlG);
+
+  //printf("rMax %lg\n",numGridRadSmooth*dr);
+  /*
+  for(ig=0;ig<numGLg;ig++){
+    printf("222222 igggggg %lg %lg\n",gGrid[ig],vNlG[ig]);
+  }
+  */
 
   for(ig=0;ig<numGLg;ig++)vNlG[ig] *= gGrid[ig];
  
@@ -687,7 +701,7 @@ void bessTransformGrad(double *funIn,int numIn,double dx,int l,double *funOut,
 
   switch(l){
     case 0:
-      for(iGrid=1;iGrid<numOut;iGrid++){
+      for(iGrid=0;iGrid<numOut;iGrid++){
         funOut[iGrid] = 0.0;
         y = yList[iGrid];
 	if(y>1.0e-100){
@@ -702,7 +716,7 @@ void bessTransformGrad(double *funIn,int numIn,double dx,int l,double *funOut,
       }//endfor iGrid
       break;
     case 1:
-      for(iGrid=1;iGrid<numOut;iGrid++){
+      for(iGrid=0;iGrid<numOut;iGrid++){
         funOut[iGrid] = 0.0;
         y = yList[iGrid];
 	if(y>1.0e-100){
@@ -717,12 +731,12 @@ void bessTransformGrad(double *funIn,int numIn,double dx,int l,double *funOut,
 	    x = jGrid*dx;
 	    funOut[iGrid] += x*x*funIn[jGrid];
 	  }//endfor
-	  funOut[iGrid] *= djl0*dx;
+	  funOut[iGrid] *= dx/3.0;
 	}//endif y
       }//endfor iGrid
       break;
     case 2:
-      for(iGrid=1;iGrid<numOut;iGrid++){
+      for(iGrid=0;iGrid<numOut;iGrid++){
         funOut[iGrid] = 0.0;
         y = yList[iGrid];
 	if(y>1.0e-100){
@@ -777,7 +791,7 @@ void interpReal(PSEUDO *pseudo,int numAtomType,int *lMap)
 
   double *rList = NULL;
   double *rListTest = NULL;
-  double *de;
+  double *de = NULL;
   double *vNlG = pseudoReal->vNlG;
   double *ppRealCut = pseudoReal->ppRealCut;
   double *vNlSmooth = NULL;
@@ -798,6 +812,8 @@ void interpReal(PSEUDO *pseudo,int numAtomType,int *lMap)
   }
   numInterpGrid += 5;
   rMax = dr*(numInterpGrid-1);
+  printf("1111111111 numInterpGrid %i %lg\n",numInterpGrid,rMax);
+
   for(iType=0;iType<numAtomType;iType++){
     ppRealCut[iType] = rMax-4.0*dr; // actura cutoff is smaller then interpolation cutoff
   }
@@ -815,16 +831,20 @@ void interpReal(PSEUDO *pseudo,int numAtomType,int *lMap)
     }
 
     for(iRad=0;iRad<numRadTot;iRad++){
-      bessTransform(vNlG,numGLg,dg,lMap[iRad],&vNlSmooth[iRad*numInterpGrid],
-   		    numInterpGrid,&rList[1]);
-      bessTransformGrad(vNlG,numGLg,dg,lMap[iRad],&dvNlSmooth[iRad*numInterpGrid],
-	   	        numInterpGrid,&rList[1]);
+      bessTransform(&vNlG[iRad*numGLg],numGLg,dg,lMap[iRad],
+		    &vNlSmooth[iRad*numInterpGrid],numInterpGrid,&rList[1]);
+      bessTransformGrad(&vNlG[iRad*numGLg],numGLg,dg,lMap[iRad],
+			&dvNlSmooth[iRad*numInterpGrid],numInterpGrid,&rList[1]);
       //bessTransformSecondGrad(vNlG,numGLg,dg,l,&dvNlSmooth[iRad*numInterpGrid],
       //			      numInterpGrid,dr,0.5*dr);
-      bessTransform(vNlG,numGLg,dg,lMap[iRad],&vNlSmoothTest[iRad*(numInterpGrid-1)],
-                    numInterpGrid-1,&rListTest[0]);
+      bessTransform(&vNlG[iRad*numGLg],numGLg,dg,lMap[iRad],
+		    &vNlSmoothTest[iRad*(numInterpGrid-1)],numInterpGrid-1,&rListTest[0]);
+      /*
+      for(rGrid=0;rGrid<numInterpGrid;rGrid++){
+        printf("iRad %i rGriddddddd %lg %lg %lg\n",iRad,rGrid*dr,vNlSmooth[iRad*numInterpGrid+rGrid],dvNlSmooth[iRad*numInterpGrid+rGrid]);
+      }
+      */
     }
-    printf("numGridRadSmoot %i\n",numGridRadSmooth);
     for(rGrid=0;rGrid<numRadTot*numInterpGrid;rGrid++){
       vNlSmooth[rGrid] *= pre;
       dvNlSmooth[rGrid] *= pre;
@@ -838,9 +858,9 @@ void interpReal(PSEUDO *pseudo,int numAtomType,int *lMap)
     //rList = (double*)cmalloc((numInterpGrid+1)*sizeof(double));
     de = (double*)realloc(de,(numInterpGrid*numRadTot+1)*sizeof(double));
     vpsReal0 = (double*)realloc(vpsReal0,(numInterpGrid*numRadTot+1)*sizeof(double));
-    vpsReal1 = (double*)realloc(vpsReal0,(numInterpGrid*numRadTot+1)*sizeof(double));
-    vpsReal2 = (double*)realloc(vpsReal0,(numInterpGrid*numRadTot+1)*sizeof(double));
-    vpsReal3 = (double*)realloc(vpsReal0,(numInterpGrid*numRadTot+1)*sizeof(double));
+    vpsReal1 = (double*)realloc(vpsReal1,(numInterpGrid*numRadTot+1)*sizeof(double));
+    vpsReal2 = (double*)realloc(vpsReal2,(numInterpGrid*numRadTot+1)*sizeof(double));
+    vpsReal3 = (double*)realloc(vpsReal3,(numInterpGrid*numRadTot+1)*sizeof(double));
     for(rGrid=0;rGrid<numInterpGrid*numRadTot+1;rGrid++){
       de[rGrid] = 0.0;
       vpsReal0[rGrid] = 0.0;
@@ -865,6 +885,7 @@ void interpReal(PSEUDO *pseudo,int numAtomType,int *lMap)
 
     printf("numRadTot %i\n",numRadTot);
     countBadSpline = 0;
+    double diffMax = 0.0;
     for(iRad=0;iRad<numRadTot;iRad++){
       printf("iRad %i\n",iRad);
       interpGridSt = iRad*numInterpGrid;
@@ -875,10 +896,17 @@ void interpReal(PSEUDO *pseudo,int numAtomType,int *lMap)
 	h = rTest-r0;
 	interpInd = interpGridSt+gridIndTest;
 	pseudoTest = ((vpsReal3[interpInd]*h+vpsReal2[interpInd])*h+vpsReal1[interpInd])*h+vpsReal0[interpInd];
+	//printf("111111 %lg %lg %lg\n",rTest,pseudoTest,vNlSmoothTest[iRad*(numInterpGrid-1)+rGrid]);
 	diff = pseudoTest-vNlSmoothTest[iRad*(numInterpGrid-1)+rGrid];
-	if(diff*diff>1.0e-6)countBadSpline += 1;
+	if(diff*diff>1.0e-12)countBadSpline += 1;
+	if(fabs(diff)>diffMax)diffMax = fabs(diff);
       }//endfor rGrid
     }//endfor iRad
+    /*
+    printf("countBadSpline %i numInterpGrid %i diffMax %lg\n",countBadSpline,numInterpGrid,diffMax);
+    fflush(stdout);
+    exit(0);
+    */
 
     // calculate flag
     if(countBadSpline>0){

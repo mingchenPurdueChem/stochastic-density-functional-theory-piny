@@ -314,6 +314,30 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 /* III) Real space spline						    */
 
   interpReal(pseudo,numAtomType,lMap);
+
+/*======================================================================*/
+/* IV) Initialize dot product                                           */
+
+  int *numNlppAtom;
+  double **dotReAll,**dotImAll;
+  pseudoReal->numNlppAtom = (int*)cmalloc(numAtomType*sizeof(int));
+  pseudoReal->dotReAll = (double**)cmalloc(numAtomTot*sizeof(double*));
+  pseudoReal->dotImAll = (double**)cmalloc(numAtomTot*sizeof(double*));
+  numNlppAtom = pseudoReal->numNlppAtom;
+  dotReAll = pseudoReal->dotReAll;
+  dotImAll = pseudoReal->dotImAll;
+  for(iType=0;iType<numAtomType;iType++){
+    numNlppAtom[iType] = 0;
+    for(iAng=0;iAng<numLMax[iType];iAng++){
+      numNlppAtom[iType] += atomLRadNum[iType][iAng]*(iAng+1);
+    }//endfor iAng
+  }//endfor iType
+  for(iAtom=0;iAtom<numAtomTot;iAtom++){
+    dotReAll[iAtom] = (double*)cmalloc(numNlppAtom[iType]*sizeof(double));
+    dotImAll[iAtom] = (double*)cmalloc((numNlppAtom[iType]-1)*sizeof(double));
+  }//endfor iAtom
+
+
 /*--------------------------------------------------------------------------*/
   }/*end routine*/
 /*==========================================================================*/

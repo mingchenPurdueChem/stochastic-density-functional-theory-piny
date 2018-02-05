@@ -1110,6 +1110,9 @@ typedef struct pseudo_real{
   int *numGridRadSmooth;    /* Lst: Number of real space grid point in the      */
                             /*      smoothed radial function                    */
                             /* Lth: natm_typ                                    */
+  int *numNlppAtom;	    /* Lst: number of nlpp (including m) for each atom  */
+			    /*	    type.					*/
+			    /* Lth: natm_typ					*/
   int **atomLRadNum;	    /* Lst: number of radial functions for each l channel*/
 			    /* Lth: natm_typ*numLMax[iType]			*/
   int **atomRadMap;	    /* Lst: map of radial functions for each l channel	*/
@@ -1132,6 +1135,15 @@ typedef struct pseudo_real{
   double *vnlPhiAtomGridIm; /* Lth: natm_tot*numvnlPhiAtomGrid[iAtom]           */
   double *vNlG;		    /* Lst: radial function in g space			*/
 			    /* Lth: numGLg					*/
+  double *forceNlX,*forceNlY,*forceNlZ;	    
+			    /* Lst: non-local pp nuclei force			*/
+			    /* Lth: natm_tot					*/
+  double **dotReAll;	    /* Lst: dot product between one pseudo wavefunction */
+                            /*      (V*Phi*Ylm) and system wave function        */
+                            /* Lth: natm_tot*numNlppAtom[iType]			*/
+  double **dotImAll;	    /* Lst: dot product between one pseudo wavefunction */
+                            /*      (V*Phi*Ylm) and system wave function        */
+                            /* Lth: natm_tot*(numNlppAtom[iType]-1)             */
 }PSEUDO_REAL;
 
 

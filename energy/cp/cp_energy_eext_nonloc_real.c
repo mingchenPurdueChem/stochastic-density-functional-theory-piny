@@ -95,7 +95,7 @@ void nlppKBRealFilter(CP *cp,CLASS *class,GENERAL_DATA *generalData,double *wfRe
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
 /*************************************************************************/
-/* Real space nlpp, only used in filtering	             */
+/* Real space nlpp, only used in filtering				 */
 /*************************************************************************/
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
@@ -114,7 +114,7 @@ void nlppKBRealFilter(CP *cp,CLASS *class,GENERAL_DATA *generalData,double *wfRe
   int numAtom = clatoms_info->natm_tot;
   int numGrid;
   int numGridMax;
-  int countRad;
+  int countRad,countNlppRe,countNlppIm;
   int iPart,iRad,l,m,iType,iAtom,iGrid;
   int radIndex,gridIndex;
   int aIndex,bIndex,cIndex;
@@ -157,9 +157,11 @@ void nlppKBRealFilter(CP *cp,CLASS *class,GENERAL_DATA *generalData,double *wfRe
   double *radFun;
   double *forceTemp;
   double *pseudoFunTemp;
-
   double *vnlPhiAtomGridRe = pseudoReal->vnlPhiAtomGridRe;
   double *vnlPhiAtomGridIm = pseudoReal->vnlPhiAtomGridIm;
+
+  double **dotReAll = pseudoReal->dotReAll;
+  double **dotImAll = pseudoReal->dotImAll;
 
 /*======================================================================*/
 /* I) Allocate local memory                                             */
@@ -183,6 +185,8 @@ void nlppKBRealFilter(CP *cp,CLASS *class,GENERAL_DATA *generalData,double *wfRe
     atomType = iAtomAtomType[iAtom+1]-1;
     numGrid = numGridNlppMap[atomType];
     countRad = 0;
+    countNlppRe = 0;
+    countNlppIm = 0;
     /* cpy the wave function */
     if(numGrid>0){ //if numGrid=0, only local pp will be calculated
       for(iGrid=0;iGrid<numGrid;iGrid++){
@@ -198,13 +202,15 @@ void nlppKBRealFilter(CP *cp,CLASS *class,GENERAL_DATA *generalData,double *wfRe
 	    //calcDotNlpp(wfNbhd,radFun,&ylm[ylmShift],&dotRe,&dotIm);
 	    if(m!=0){
 	      dotRe = ddotBlasWrapper(numGrid,wfNbhd,1,
-		      &vnlPhiAtomGridRe[gridShiftNowRe],1);
+		      &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
 	      dotIm = ddotBlasWrapper(numGrid,wfNbhd,1,
-                      &vnlPhiAtomGridIm[gridShiftNowIm],1);
-	      energyl += 2.0*(dotRe*dotRe+dotIm*dotIm)*vpsNormList[radIndex]*volElem*volElem*volInv;
+                      &vnlPhiAtomGridIm[gridShiftNowIm],1)*volElem;
+	      dotReAll[countNlppRe+m] = dotRe;
+	      dotImAll[countNlppIm+m-1] = dotIm;
+	      energyl += 2.0*(dotRe*dotRe+dotIm*dotIm)*vpsNormList[radIndex]*volInv;
 	      //printf("m %i dotRe %lg dotIm %lg vpsNormList[radIndex] %lg\n",m,dotRe,dotIm,vpsNormList[radIndex]);
-	      dotRe *= 2.0*vpsNormList[radIndex]*volElem;
-	      dotIm *= 2.0*vpsNormList[radIndex]*volElem;
+	      dotRe *= 2.0*vpsNormList[radIndex];
+	      dotIm *= 2.0*vpsNormList[radIndex];
 	      daxpyBlasWrapper(numGrid,dotRe,&vnlPhiAtomGridRe[gridShiftNowRe],1,
 			       forceTemp,1);
 	      daxpyBlasWrapper(numGrid,dotIm,&vnlPhiAtomGridIm[gridShiftNowIm],1,
@@ -220,7 +226,8 @@ void nlppKBRealFilter(CP *cp,CLASS *class,GENERAL_DATA *generalData,double *wfRe
 	    }
 	    else{
               dotRe = ddotBlasWrapper(numGrid,wfNbhd,1,
-                      &vnlPhiAtomGridRe[gridShiftNowRe],1);
+                      &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
+	      dotReAll[countNlppRe] = dotRe;
 	      //printf("numGrid %i\n",numGrid);
 	      /*
 	      for(iGrid=0;iGrid<numGrid;iGrid++){
@@ -228,7 +235,7 @@ void nlppKBRealFilter(CP *cp,CLASS *class,GENERAL_DATA *generalData,double *wfRe
 	      }
 	      */
 	      
-	      energyl += dotRe*dotRe*vpsNormList[radIndex]*volElem*volElem*volInv;
+	      energyl += dotRe*dotRe*vpsNormList[radIndex]*volInv;
 	      /*
 	      for(iGrid=0;iGrid<numGrid;iGrid++){
 		forceTemp[iGrid] += radFun[iGrid]*ylm[ylmShift+iGrid]*dotRe*vpsNormList[radIndex];
@@ -236,7 +243,7 @@ void nlppKBRealFilter(CP *cp,CLASS *class,GENERAL_DATA *generalData,double *wfRe
 	      */
               //printf("m %i dotRe %lg volElem %lg vpsNormList[radIndex] %lg\n",m,dotRe*volElem,volElem,vpsNormList[radIndex]);
 
-	      dotRe *= vpsNormList[radIndex]*volElem;
+	      dotRe *= vpsNormList[radIndex];
               //printf("m %i dotRe %lg volElem %lg vpsNormList[radIndex] %lg\n",m,dotRe,volElem,vpsNormList[radIndex]);
 
 	      daxpyBlasWrapper(numGrid,dotRe,&vnlPhiAtomGridRe[gridShiftNowRe],1,
@@ -249,6 +256,8 @@ void nlppKBRealFilter(CP *cp,CLASS *class,GENERAL_DATA *generalData,double *wfRe
 	  energy += energyl;
 	}//endfor iRad
         countRad += atomLRadNum[atomType][l];
+	countNlppRe += m+1;
+	countNlppIm += m;
       }//endfor l
       for(iGrid=0;iGrid<numGrid;iGrid++){
 	gridIndex = gridNlppMap[iAtom][iGrid];

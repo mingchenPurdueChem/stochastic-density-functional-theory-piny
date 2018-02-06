@@ -54,7 +54,7 @@ void controlEnergyNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
     wfReal[iGrid] = zfft_tmp[iGrid*2+1];
     wfForceReal[iGrid] = 0.0;
   }
-  nlppKBRealFilter(cp,class,generalData,wfReal,wfForceReal);
+  nlppKBRealEnergy(cp,class,generalData,wfReal,wfForceReal);
   for(iGrid=0;iGrid<numGrid;iGrid++){
 #ifdef REAL_PP_DEBUG  
     zfft[iGrid*2+1] = wfForceReal[iGrid];
@@ -68,7 +68,7 @@ void controlEnergyNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
       wfReal[iGrid] = zfft_tmp[iGrid*2+2];
       wfForceReal[iGrid] = 0.0;
     }
-    nlppKBRealFilter(cp,class,generalData,wfReal,wfForceReal);
+    nlppKBRealEnergy(cp,class,generalData,wfReal,wfForceReal);
     for(iGrid=0;iGrid<numGrid;iGrid++){
 #ifdef REAL_PP_DEBUG  
       zfft[iGrid*2+2] = wfForceReal[iGrid];
@@ -89,8 +89,8 @@ void controlEnergyNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void nlppKBRealFilter(CP *cp,CLASS *class,GENERAL_DATA *generalData,double *wfReal,
-	      double *forceRealNlpp)
+void nlppKBRealEnergy(CP *cp,CLASS *class,GENERAL_DATA *generalData,double *wfReal,
+		      double *forceRealNlpp)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
@@ -205,8 +205,8 @@ void nlppKBRealFilter(CP *cp,CLASS *class,GENERAL_DATA *generalData,double *wfRe
 		      &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
 	      dotIm = ddotBlasWrapper(numGrid,wfNbhd,1,
                       &vnlPhiAtomGridIm[gridShiftNowIm],1)*volElem;
-	      dotReAll[countNlppRe+m] = dotRe;
-	      dotImAll[countNlppIm+m-1] = dotIm;
+	      dotReAll[iAtom][countNlppRe+m] = dotRe;
+	      dotImAll[iAtom][countNlppIm+m-1] = dotIm;
 	      energyl += 2.0*(dotRe*dotRe+dotIm*dotIm)*vpsNormList[radIndex]*volInv;
 	      //printf("m %i dotRe %lg dotIm %lg vpsNormList[radIndex] %lg\n",m,dotRe,dotIm,vpsNormList[radIndex]);
 	      dotRe *= 2.0*vpsNormList[radIndex];
@@ -227,7 +227,7 @@ void nlppKBRealFilter(CP *cp,CLASS *class,GENERAL_DATA *generalData,double *wfRe
 	    else{
               dotRe = ddotBlasWrapper(numGrid,wfNbhd,1,
                       &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
-	      dotReAll[countNlppRe] = dotRe;
+	      dotReAll[iAtom][countNlppRe] = dotRe;
 	      //printf("numGrid %i\n",numGrid);
 	      /*
 	      for(iGrid=0;iGrid<numGrid;iGrid++){
@@ -515,12 +515,13 @@ void calcTrig(double *gridAtomNbhd,int numGrid,double *trig)
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 void calcSpHarm(double *ylm,int l,double *gridAtomNbhd,int numGrid,
-	double *trig)
+		double *trig)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
 /*************************************************************************/
-/* KS potential from local pseudo pp can be calculated before SCF        */
+/* Spheircal harmonic values at each grid point.		         */
+/* For each l, array ylm stores yl0,yl1(Re),yl1(Im)...			 */
 /*************************************************************************/
 /*=======================================================================*/
 /*         Local Variable declarations                                   */

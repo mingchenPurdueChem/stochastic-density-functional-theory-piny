@@ -311,15 +311,13 @@ void non_loc_restore_ord(CLATOMS_POS *, CLATOMS_INFO *,
 /*====================================================================*/
 /* cp_energy_eext_nonloc_real.c */
   void controlEnergyNlppReal(CP *,CLASS *,GENERAL_DATA *,double *,double *,int);
-  void nlppKBRealFilter(CP *,CLASS *,GENERAL_DATA *,double *,double *);
+  void nlppKBRealEnergy(CP *,CLASS *,GENERAL_DATA *,double *,double *);
   void calcPseudoWf(CP *,CLASS *,GENERAL_DATA *);
   void calcTrig(double *,int,double *);
   void calcSpHarm(double *,int,double *,int,double *);
   void calcRadFun(double *,int,PSEUDO_REAL *,double *,int);
   void calcDotNlpp(double *,double *,double *,double *,double *,int);
   
-
-
 /*====================================================================*/
 /* cp_energy_ee_rho.c */
 

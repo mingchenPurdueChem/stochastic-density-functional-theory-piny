@@ -487,13 +487,80 @@ void calcThetaDeriv(double *trig,double *gridAtomNbhd,double *dTheta,double *dPh
     r = sqrt(r2);
     if(rProj>1.0e-10){
       dTheta[3*iGrid] = -trig[4*iGrid+1]/trig[4*iGrid]*y/r2;
-      dTheta[]
+      //dTheta[]
     
   }
+
+/*--------------------------------------------------------------------------*/
+  }/*end routine*/
+/*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void calcPhiDeriv(double *trig,double *gridAtomNbhd,double *dTheta,double *dPhi,
+                    int numGrid)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* Spheircal harmonic values at each grid point.                         */
+/* For each l, array ylmTheta(Phi) stores yl0,yl1(Re),yl1(Im)...         */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
 
 
 /*--------------------------------------------------------------------------*/
   }/*end routine*/
 /*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void calcRadFun(double *gridAtomNbhd,int radIndex,PSEUDO_REAL *pseudoReal,
+        double *radDevFun,int numGrid)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* KS potential from local pseudo pp can be calculated before SCF        */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+  int numInterpGrid = pseudoReal->numInterpGrid;
+  int interpGridSt = radIndex*numInterpGrid;
+  int gridInd;
+  int interpInd;
+  int iGrid;
+
+  double rMin = 0.0;
+  double dr = pseudoReal->dr;
+  double h;
+  double x,y,z,r,r0;
+
+  double *vps0 = pseudoReal->vpsRealDev0;
+  double *vps1 = pseudoReal->vpsRealDev1;
+  double *vps2 = pseudoReal->vpsRealDev2;
+  double *vps3 = pseudoReal->vpsRealDev3;
+
+  for(iGrid=0;iGrid<numGrid;iGrid++){
+    x = gridAtomNbhd[iGrid*3];
+    y = gridAtomNbhd[iGrid*3+1];
+    z = gridAtomNbhd[iGrid*3+2];
+    r = sqrt(x*x+y*y+z*z);
+    gridInd = (int)((r-rMin)/dr)+1;
+    r0 = (gridInd-1)*dr+rMin;
+    h = r-r0;
+    interpInd = interpGridSt+gridInd;
+    radDevFun[iGrid] = ((vps3[interpInd]*h+vps2[interpInd])*h+vps1[interpInd])*h+vps0[interpInd];
+    //if(r<1.0e-10)printf("rrrrrrrrrrrrrr %i %.16lg %.16lg\n",iGrid,r,radFun[iGrid]);
+  }
+
+/*--------------------------------------------------------------------------*/
+   }/* end routine */
+/*==========================================================================*/
+
+
 
 

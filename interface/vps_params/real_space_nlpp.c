@@ -935,9 +935,9 @@ void interpReal(PSEUDO *pseudo,int numAtomType,int *lMap)
   double *vpsReal2 = NULL;
   double *vpsReal3 = NULL;
   double *vpsDevReal0 = NULL;
-  double *vpsDevReal0 = NULL;
-  double *vpsDevReal0 = NULL;
-  double *vpsDevReal0 = NULL;
+  double *vpsDevReal1 = NULL;
+  double *vpsDevReal2 = NULL;
+  double *vpsDevReal3 = NULL;
 
   for(iType=0;iType<numAtomType;iType++){
     rGrid = numGridRadSmooth[iType];
@@ -958,7 +958,7 @@ void interpReal(PSEUDO *pseudo,int numAtomType,int *lMap)
     dvNlSmooth = (double*)realloc(dvNlSmooth,numRadTot*numInterpGrid*sizeof(double));
     ddvNlSmooth = (double*)realloc(ddvNlSmooth,numRadTot*numInterpGrid*sizeof(double));
     vNlSmoothTest = (double*)realloc(vNlSmoothTest,numRadTot*(numInterpGrid-1)*sizeof(double));
-    dvNlSmoothTest = (double*)realloc(vNlSmoothTest,numRadTot*(numInterpGrid-1)*sizeof(double));
+    dvNlSmoothTest = (double*)realloc(dvNlSmoothTest,numRadTot*(numInterpGrid-1)*sizeof(double));
     rList = (double*)realloc(rList,(numInterpGrid+1)*sizeof(double));
     rListTest = (double*)realloc(rListTest,numInterpGrid*sizeof(double));
     for(rGrid=0;rGrid<numInterpGrid;rGrid++){
@@ -1000,10 +1000,10 @@ void interpReal(PSEUDO *pseudo,int numAtomType,int *lMap)
     vpsReal1 = (double*)realloc(vpsReal1,(numInterpGrid*numRadTot+1)*sizeof(double));
     vpsReal2 = (double*)realloc(vpsReal2,(numInterpGrid*numRadTot+1)*sizeof(double));
     vpsReal3 = (double*)realloc(vpsReal3,(numInterpGrid*numRadTot+1)*sizeof(double));
-    vpsDevReal0 = (double*)realloc(vpsReal0,(numInterpGrid*numRadTot+1)*sizeof(double));
-    vpsDevReal1 = (double*)realloc(vpsReal0,(numInterpGrid*numRadTot+1)*sizeof(double));
-    vpsDevReal2 = (double*)realloc(vpsReal0,(numInterpGrid*numRadTot+1)*sizeof(double));
-    vpsDevReal3 = (double*)realloc(vpsReal0,(numInterpGrid*numRadTot+1)*sizeof(double));
+    vpsDevReal0 = (double*)realloc(vpsDevReal0,(numInterpGrid*numRadTot+1)*sizeof(double));
+    vpsDevReal1 = (double*)realloc(vpsDevReal1,(numInterpGrid*numRadTot+1)*sizeof(double));
+    vpsDevReal2 = (double*)realloc(vpsDevReal2,(numInterpGrid*numRadTot+1)*sizeof(double));
+    vpsDevReal3 = (double*)realloc(vpsDevReal3,(numInterpGrid*numRadTot+1)*sizeof(double));
 
     for(rGrid=0;rGrid<numInterpGrid*numRadTot+1;rGrid++){
       de[rGrid] = 0.0;
@@ -1029,13 +1029,13 @@ void interpReal(PSEUDO *pseudo,int numAtomType,int *lMap)
 
 
     }//endfor iRad
-    memcpy(&vpsDevReal0[1],&vNlSmooth[0],numInterpGrid*numRadTot*sizeof(double));
+    memcpy(&vpsDevReal0[1],&dvNlSmooth[0],numInterpGrid*numRadTot*sizeof(double));
     memcpy(&de[1],&ddvNlSmooth[0],numInterpGrid*numRadTot*sizeof(double));
     for(iRad=0;iRad<numRadTot;iRad++){
       gridShift = iRad*numInterpGrid;
       splineFitWithDerivative(&(vpsDevReal0[gridShift]),&(vpsDevReal1[gridShift]),
-                              &(vpsDevReal2[gridShift]),&(vpsDevReal3[gridShift]),rList,
-                              &(de[gridShift]),numInterpGrid);
+                              &(vpsDevReal2[gridShift]),&(vpsDevReal3[gridShift]),
+			      rList,&(de[gridShift]),numInterpGrid);
 
 
     }//endfor iRad
@@ -1060,9 +1060,13 @@ void interpReal(PSEUDO *pseudo,int numAtomType,int *lMap)
 			    vpsDevReal1[interpInd])*h+vpsDevReal0[interpInd];
 	//printf("111111 %lg %lg %lg\n",rTest,pseudoTest,vNlSmoothTest[iRad*(numInterpGrid-1)+rGrid]);
 	diff = pseudoTest-vNlSmoothTest[iRad*(numInterpGrid-1)+rGrid];
-	if(diff*diff>1.0e-12)countBadSpline += 1;
+	if(diff*diff>1.0e-12){
+	  countBadSpline += 1;
+	  printf("111111 %lg %lg %lg\n",rTest,pseudoTest,vNlSmoothTest[iRad*(numInterpGrid-1)+rGrid]);
+        }
 	diff = pseudoDevTest-dvNlSmoothTest[iRad*(numInterpGrid-1)+rGrid];
-	if(diff*diff>1.0e-12)countBadSpline += 1;
+	//if(diff*diff>1.0e-12)countBadSpline += 1;
+	//printf("111111 %lg %lg %lg\n",rTest,pseudoTest,vNlSmoothTest[iRad*(numInterpGrid-1)+rGrid]);
 	//if(fabs(diff)>diffMax)diffMax = fabs(diff);
       }//endfor rGrid
     }//endfor iRad

@@ -1125,7 +1125,7 @@ typedef struct pseudo_real{
   double *vpsReal0,*vpsReal1,*vpsReal2,*vpsReal3; 
 			    /* Lst: Spline interp coeff of radial function	*/
 			    /* Lth: numRadTot*numInterpGrid			*/
-  double *vpsDevReal0,*vpsDevReal1,*vpsDevReal2,*vpsDevReal4;
+  double *vpsDevReal0,*vpsDevReal1,*vpsDevReal2,*vpsDevReal3;
                             /* Lst: Spline interp coeff of radial function      */
 			    /*	    derivative.					*/
                             /* Lth: numRadTot*numInterpGrid                     */

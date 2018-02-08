@@ -62,6 +62,7 @@ void nlppSmoothRoi(PSEUDO *,double *,double *,int ,double ,int ,int);
 void bessTransform(double *,int ,double ,int ,double *,int ,double *);
 void optGCoeff(PSEUDO_REAL *,int ,int ,int ,double ,double ,int ,int ,double *);
 void bessTransformGrad(double *,int ,double ,int ,double *,int ,double *);
+void bessTransformGradGrad(double *,int ,double ,int ,double *,int ,double *);
 void interpReal(PSEUDO *,int,int*);
 
 

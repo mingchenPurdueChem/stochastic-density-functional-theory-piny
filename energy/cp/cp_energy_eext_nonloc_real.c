@@ -183,7 +183,7 @@ void nlppKBRealEnergy(CP *cp,CLASS *class,GENERAL_DATA *generalData,double *wfRe
   gridShiftNowIm = 0;
   for(iAtom=0;iAtom<numAtom;iAtom++){
     atomType = iAtomAtomType[iAtom+1]-1;
-    numGrid = numGridNlppMap[atomType];
+    numGrid = numGridNlppMap[iAtom];
     countRad = 0;
     countNlppRe = 0;
     countNlppIm = 0;
@@ -208,6 +208,7 @@ void nlppKBRealEnergy(CP *cp,CLASS *class,GENERAL_DATA *generalData,double *wfRe
 	      dotReAll[iAtom][countNlppRe+m] = dotRe;
 	      dotImAll[iAtom][countNlppIm+m-1] = dotIm;
 	      energyl += 2.0*(dotRe*dotRe+dotIm*dotIm)*vpsNormList[radIndex]*volInv;
+	      //printf("energy %lg\n",energyl);
 	      //printf("m %i dotRe %lg dotIm %lg vpsNormList[radIndex] %lg\n",m,dotRe,dotIm,vpsNormList[radIndex]);
 	      dotRe *= 2.0*vpsNormList[radIndex];
 	      dotIm *= 2.0*vpsNormList[radIndex];
@@ -236,6 +237,7 @@ void nlppKBRealEnergy(CP *cp,CLASS *class,GENERAL_DATA *generalData,double *wfRe
 	      */
 	      
 	      energyl += dotRe*dotRe*vpsNormList[radIndex]*volInv;
+	      //printf("energy %lg\n",energyl);
 	      /*
 	      for(iGrid=0;iGrid<numGrid;iGrid++){
 		forceTemp[iGrid] += radFun[iGrid]*ylm[ylmShift+iGrid]*dotRe*vpsNormList[radIndex];

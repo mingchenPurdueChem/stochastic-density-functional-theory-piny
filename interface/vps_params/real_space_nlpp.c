@@ -211,8 +211,12 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   // 2. Read the radial functions and determine the cutoff 
   countRad = 0;
   for(iType=0;iType<numAtomType;iType++){
+    printf("ivpsLabel %i\n",ivpsLabel[iType+1]==1);
     fvps = fopen(vpsFile[iType+1].name,"r");
-    rCutoffMax = -100000.0;
+    rCutoffMax = -10000000.0;
+    vLoc = NULL;
+    vNl = NULL;
+    phiNl = NULL;
     if(ivpsLabel[iType+1]==1){// KB
       fscanf(fvps,"%i %lg %i\n",&numR,&rMax,&angNow);
       fscanf(fvps,"%lg %lg %lg %lg\n",&z1,&alpha1,&z2,&alpha2);
@@ -283,6 +287,8 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
       }//endfor iAng
       ppRealCut[iType] = rCutoffMax;
       printf("iType %i rCutoffMax %.16lg\n",iType,rCutoffMax);
+      numGridRadSmooth[iType] = (int)(rCutoffMax/dr)+1;
+      printf("numGridRadSmooth[iType] %i numRadMax[iType] %i\n",numGridRadSmooth[iType],numRadMax[iType]);
     }//endif ivpsLabel
     // 3. Smooth the radius function
     
@@ -319,6 +325,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 /* IV) Initialize dot product                                           */
 
   int *numNlppAtom;
+  int atomType;
   double **dotReAll,**dotImAll;
   pseudoReal->numNlppAtom = (int*)cmalloc(numAtomType*sizeof(int));
   pseudoReal->dotReAll = (double**)cmalloc(numAtomTot*sizeof(double*));
@@ -333,8 +340,14 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
     }//endfor iAng
   }//endfor iType
   for(iAtom=0;iAtom<numAtomTot;iAtom++){
-    dotReAll[iAtom] = (double*)cmalloc(numNlppAtom[iType]*sizeof(double));
-    dotImAll[iAtom] = (double*)cmalloc((numNlppAtom[iType]-1)*sizeof(double));
+    atomType = iAtomAtomType[iAtom+1]-1;
+    dotReAll[iAtom] = NULL;
+    dotImAll[iAtom] = NULL;
+    if(numNlppAtom[atomType]>=1){
+      //printf("atomType %i %i\n",atomType,numNlppAtom[atomType]);
+      dotReAll[iAtom] = (double*)cmalloc(numNlppAtom[atomType]*sizeof(double));
+      dotImAll[iAtom] = (double*)cmalloc((numNlppAtom[atomType]-1)*sizeof(double));
+    }
   }//endfor iAtom
 
 
@@ -1079,6 +1092,7 @@ void interpReal(PSEUDO *pseudo,int numAtomType,int *lMap)
     // calculate flag
     if(countBadSpline>0){
       numInterpGrid *= 2;
+      printf("numInterpGrid %i\n",numInterpGrid);
       dr = rMax/((double)(numInterpGrid-1));
     }
   }//endwhile
@@ -1220,9 +1234,9 @@ void mapRealSpaceGrid(CP *cp, CLASS *class, GENERAL_DATA *generalData)
   for(iAtom=0;iAtom<numAtomTot;iAtom++){
     atomType = iAtomAtomType[iAtom+1]-1;
     gridNlppMap[iAtom] = NULL;
-    numGridNlppMap[iAtom] = 0;
+    //numGridNlppMap[iAtom] = 0;
+    numGridCount = 0;
     if(numLMax[atomType]>0){
-      numGridCount = 0;
       gridNlppMap[iAtom] = (int *)cmalloc(100*sizeof(int)); 
       cutOffSq = ppRealCut[atomType]*ppRealCut[atomType];
       x = xList[iAtom+1];
@@ -1290,7 +1304,7 @@ void mapRealSpaceGrid(CP *cp, CLASS *class, GENERAL_DATA *generalData)
       }//endfor i
     }//endif numLMax
     numGridNlppMap[iAtom] = numGridCount;
-    //printf("iAtom %i numGridNlppMap %i %i\n",iAtom,numGridNlppMap[iAtom],gridNlppMap[iAtom][0]);
+    //printf("iAtom %i numGridNlppMap %i %i\n",iAtom,numGridNlppMap[iAtom],numGridCount);
   }//endfor iAtom
 
 /*--------------------------------------------------------------------------*/

@@ -452,26 +452,29 @@ void nlppSmoothKS(PSEUDO *pseudo,double *vNl,double *vNlG,
 
   // Bessel transform to g space from g=0 to gMaxSm
   //printf("numR %i %lg\n",numR,vNl[numR-1]);
-  bessTransform(vNl,numR,dr,l,vNlG,numGSm,gGrid);
-  //bessTransform(vNl,numR,dr,l,vNlG,numGLg,gGrid);
-  /*
+  //bessTransform(vNl,numR,dr,l,vNlG,numGSm,gGrid);
+  bessTransform(vNl,numR,dr,l,vNlG,numGLg,gGrid);
+  
   for(ig=0;ig<numGLg;ig++){
     printf("igggggg %lg %lg\n",gGrid[ig],vNlG[ig]);
   }
-  */
+  for(ig=numGSm;ig<numGLg;ig++)vNlG[ig] = 0.0;
 
   // Optimize g space coeffcient from gMaxSm to gMaxLg
 
   optGCoeff(pseudoReal,numGLg,numGSm,numR,dr,dg,numGridRadSmooth,l,vNlG);
 
   //printf("rMax %lg\n",numGridRadSmooth*dr);
-  /*
+  
   for(ig=0;ig<numGLg;ig++){
     printf("222222 igggggg %lg %lg\n",gGrid[ig],vNlG[ig]);
   }
-  */
+  
 
   for(ig=0;ig<numGLg;ig++)vNlG[ig] *= gGrid[ig];
+
+  fflush(stdout);
+  exit(0);
  
 /*--------------------------------------------------------------------------*/
   }/*end routine*/

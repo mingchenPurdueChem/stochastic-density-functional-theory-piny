@@ -411,7 +411,7 @@ void control_cp_eext_recip(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
   //printf("cccccccc %lg %lg\n",fcre_up[2],fcim_up[2]);
   
   
-  if(pseudoRealFlag==0){
+  if(pseudoRealFlag==0){ // k space method
     if( (nl_max_kb >= 0) && ((ntot_up+ntot_dn)>0) ){
 #ifdef TIME_CP
       if(np_states>1){Barrier(comm_states);}
@@ -463,6 +463,9 @@ void control_cp_eext_recip(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 #endif
 
     }//endif
+
+    // real space, need calculate real space wave function:
+    // This happens after each nuclei coordinates updating. 
     
 #ifdef REAL_PP_DEBUG    
     int icoef;

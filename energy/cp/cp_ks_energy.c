@@ -23,6 +23,7 @@
 #include "../proto_defs/proto_friend_lib_entry.h"
 #include "../proto_defs/proto_math.h"
 #include "../proto_defs/proto_communicate_wrappers.h"
+#include "../proto_defs/proto_vps_params_entry.h"
 
 #define TIME_CP_OFF
  
@@ -519,6 +520,14 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
                        &(stat_avg->cp_enl),&(cp->communicate),for_scr,
                        cp_dual_grid_opt_on,
                        &(cp->cp_para_fft_pkg3d_lg));
+
+  //If needed, calculate the real space nlpp wave function
+  if(pseudoRealFlag==0&&pseudoWfCalcFlag==1){
+    initRealNlppWf(cp,class,general_data);
+    if(forceCalcFlag==1){
+      calcPseudoWfDev(cp,class,general_data);
+    }
+  }
 
 #ifdef TIME_CP
   cputime(&cpu2);

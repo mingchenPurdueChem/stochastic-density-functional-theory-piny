@@ -350,7 +350,25 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
     }
   }//endfor iAtom
 
+/*======================================================================*/
+/* V) Initialize wave function                                          */
 
+  // I need to set the pointer to NULL here since I need to use realloc
+  pseudoReal->vnlPhiAtomGridRe = NULL;
+  pseudoReal->vnlPhiAtomGridIm = NULL;
+  pseudoReal->numGridNlppMap = (int*)cmalloc(numAtomTot*sizeof(int));
+  pseudoReal->gridNlppMap = (int**)cmalloc(numAtomTot*sizeof(int*));
+  for(iAtom=0;iAtom<numAtomTot;iAtom++){
+    pseudoReal->numGridNlppMap[iAtom] = NULL;
+    pseudoReal->gridNlppMap = NULL;
+  }
+  pseudoReal->vnlPhiDxAtomGridRe = NULL;
+  pseudoReal->vnlPhiDxAtomGridIm = NULL;
+  pseudoReal->vnlPhiDyAtomGridRe = NULL;
+  pseudoReal->vnlPhiDyAtomGridIm = NULL;
+  pseudoReal->vnlPhiDzAtomGridRe = NULL;
+  pseudoReal->vnlPhiDzAtomGridIm = NULL;
+  
 /*--------------------------------------------------------------------------*/
   }/*end routine*/
 /*==========================================================================*/
@@ -380,20 +398,21 @@ void initRealNlppWf(CP *cp,CLASS *class,GENERAL_DATA *generalData)
   int numGridTotRe = 0;
   int numGridTotIm = 0;
   int atomType;
+  int forceCalcFlag = pseudoReal->forceCalcFlag;
   int *numGridNlppMap;
   int *iAtomAtomType = atommaps->iatm_atm_typ;
   int *numLMax = pseudoReal->numLMax;
   int **atomLRadNum = pseudoReal->atomLRadNum;
 
 /*==========================================================================*/
-/* IV) Construct Real Space Grids Neighbourhood List                        */
+/* I) Construct Real Space Grids Neighbourhood List                         */
 
   mapRealSpaceGrid(cp,class,generalData);
   //fflush(stdout);
   //exit(0);
 
 /*==========================================================================*/
-/* V) Construct Real Space V_nl*Phi_nl		                            */
+/* II) Construct Real Space V_nl*Phi_nl*Y_lm	                            */
   numGridNlppMap = pseudoReal->numGridNlppMap;
   for(iAtom=0;iAtom<numAtomTot;iAtom++){
     numGrid = numGridNlppMap[iAtom];
@@ -405,10 +424,24 @@ void initRealNlppWf(CP *cp,CLASS *class,GENERAL_DATA *generalData)
       numGridTotIm += numGrid*numPsuedoWfIm;
     }
   }
-  pseudoReal->vnlPhiAtomGridRe = (double*)cmalloc(numGridTotRe*sizeof(double));  
-  pseudoReal->vnlPhiAtomGridIm = (double*)cmalloc(numGridTotIm*sizeof(double));
+  pseudoReal->vnlPhiAtomGridRe = (double*)realloc(numGridTotRe*sizeof(double));  
+  pseudoReal->vnlPhiAtomGridIm = (double*)realloc(numGridTotIm*sizeof(double));
 
   calcPseudoWf(cp,class,generalData);
+
+/*==========================================================================*/
+/* III) Calculate d|V_nl*Phi_nl*Y_lm>/dR                                    */
+
+  if(forceCalcFlag==1){
+    pseudoReal->vnlPhiDxAtomGridRe = (double*)realloc(numGridTotRe*sizeof(double));
+    pseudoReal->vnlPhiDxAtomGridIm = (double*)realloc(numGridTotIm*sizeof(double));
+    pseudoReal->vnlPhiDyAtomGridRe = (double*)realloc(numGridTotRe*sizeof(double));
+    pseudoReal->vnlPhiDyAtomGridIm = (double*)realloc(numGridTotIm*sizeof(double));
+    pseudoReal->vnlPhiDzAtomGridRe = (double*)realloc(numGridTotRe*sizeof(double));
+    pseudoReal->vnlPhiDzAtomGridIm = (double*)realloc(numGridTotIm*sizeof(double));
+    calcPseudoWfDev(cp,class,general_data);
+    
+  }  
   //fflush(stdout);
   //exit(0);
   
@@ -1180,8 +1213,8 @@ void mapRealSpaceGrid(CP *cp, CLASS *class, GENERAL_DATA *generalData)
 
   int *iAtomAtomType = atommaps->iatm_atm_typ;
   int *numLMax = pseudoReal->numLMax;
-  int *numGridNlppMap;
-  int **gridNlppMap;
+  int *numGridNlppMap = pseudoReal->numGridNlppMap;;
+  int **gridNlppMap = pseudoReal->gridNlppMap;
 
   double dr = pseudoReal->dr;
   double rCutMax = numInterpGrid*dr;
@@ -1232,14 +1265,8 @@ void mapRealSpaceGrid(CP *cp, CLASS *class, GENERAL_DATA *generalData)
   //printf("rCutMax %lg\n",rCutMax);
   //printf("Num %i %i %i\n",aNum,bNum,cNum);
   
-  pseudoReal->numGridNlppMap = (int*)cmalloc(numAtomTot*sizeof(int));
-  pseudoReal->gridNlppMap = (int**)cmalloc(numAtomTot*sizeof(int*));
-  numGridNlppMap = pseudoReal->numGridNlppMap;
-  gridNlppMap = pseudoReal->gridNlppMap;
-  
   for(iAtom=0;iAtom<numAtomTot;iAtom++){
     atomType = iAtomAtomType[iAtom+1]-1;
-    gridNlppMap[iAtom] = NULL;
     //numGridNlppMap[iAtom] = 0;
     numGridCount = 0;
     if(numLMax[atomType]>0){

@@ -1086,6 +1086,7 @@ typedef struct pseudo_real{
 /* We won't assue one radial function for one l for each atom, since we may start using */
 /* extended KB in the future.								*/
   int pseudoRealFlag;       /* Opt: real space nlpp flag, 0=off, 1=on		*/
+  int pseudoWfCalcFlag;	    /* Opt: flag to calculate real nlpp wf 0=off, 1=on	*/
   int numInterpGrid;        /* Num: number of interpolation grid for each radial*/
 			    /*	    channel					*/
   int numRadTot;	    /* Num: Total number of radius functions (summation)*/
@@ -1137,6 +1138,12 @@ typedef struct pseudo_real{
   double *vnlPhiAtomGridRe; /* Lst: pseudo wave fun value |V_nl Phi_nl> on FFT  */
 			    /*	    grids around each atom			*/
   double *vnlPhiAtomGridIm; /* Lth: natm_tot*numvnlPhiAtomGrid[iAtom]           */
+  double *vnlPhiDxAtomGridRe,*vnlPhiDxAtomGridIm;
+  double *vnlPhiDyAtomGridRe,*vnlPhiDyAtomGridIm;
+  double *vnlPhiDzAtomGridRe,*vnlPhiDzAtomGridIm;
+			    /* Lst:  d|V_nl Phi_nl Y_lm>/dR on FFT grids around */
+			    /*	     each atom.					*/
+			    /* Lth: natm_tot*numvnlPhiAtomGrid[iAtom]           */
   double *vNlG;		    /* Lst: radial function in g space			*/
 			    /* Lth: numGLg					*/
   double *forceNlX,*forceNlY,*forceNlZ;	    

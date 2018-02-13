@@ -96,7 +96,7 @@ void nlppKBRealEnergyForce(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 /*               Begin subprogram:                                          */
       {/*begin routine*/
 /*************************************************************************/
-/* Calculate nuclei force                               */
+/* Calculate nuclei force						 */
 /*************************************************************************/
 /*==========================================================================*/
 /*               Local variable declarations                                */
@@ -323,9 +323,17 @@ void calcPseudoWfDev(CP *cp,CLASS *class,GENERAL_DATA *generalData)
   double *z = clatoms_pos->z;
   double *radFun;
   double *pseudoFunTemp;
+  double *dTheta,*dPhi,*ylmDx,*ylmDy,*ylmDz;
 
   double *vnlPhiAtomGridRe = pseudoReal->vnlPhiAtomGridRe;
   double *vnlPhiAtomGridIm = pseudoReal->vnlPhiAtomGridIm;
+  double *vnlPhiDxAtomGridRe = pseudoReal->vnlPhiDxAtomGridRe;
+  double *vnlPhiDxAtomGridIm = pseudoReal->vnlPhiDxAtomGridIm;
+  double *vnlPhiDyAtomGridRe = pseudoReal->vnlPhiDyAtomGridRe;
+  double *vnlPhiDyAtomGridIm = pseudoReal->vnlPhiDyAtomGridIm;
+  double *vnlPhiDzAtomGridRe = pseudoReal->vnlPhiDzAtomGridRe;
+  double *vnlPhiDzAtomGridIm = pseudoReal->vnlPhiDzAtomGridIm;
+    
   //debug
   int nfft = cpParaFftPkg3dLgBigBox->nfft;
   int numGridTot = nfft/2;
@@ -386,17 +394,48 @@ void calcPseudoWfDev(CP *cp,CLASS *class,GENERAL_DATA *generalData)
     }
     calcTrig(gridAtomNbhd,numGrid,trig);
     countRad = 0;
+    dTheta = (double*)cmalloc(3*numGrid*sizeof(double));
+    dPhi = (double*)cmalloc(3*numGrid*sizeof(double));
+    calcAngleDeriv(trig,gridAtomNbhd,dTheta,dPhi,numGrid);
     for(l=0;l<atomLMax[atomType];l++){
       /* calculate sherical harmonic */
       ylm = (double*)cmalloc((2*l+1)*numGrid*sizeof(double));
       ylmTheta = (double*)cmalloc((2*l+1)*numGrid*sizeof(double));
       ylmPhi = (double*)cmalloc((2*l+1)*numGrid*sizeof(double));
+      ylmDx = (double*)cmalloc((2*l+1)*numGrid*sizeof(double));
+      ylmDy = (double*)cmalloc((2*l+1)*numGrid*sizeof(double));
+      ylmDz = (double*)cmalloc((2*l+1)*numGrid*sizeof(double));
       calcSpHarm(ylm,l,gridAtomNbhd,numGrid,trig);
       calcSpHarmDeriv(ylm,ylmTheta,ylmPhi,l,gridAtomNbhd,numGrid,trig);
+      for(m=0;m<=l;m++){
+	if(m!=0){
+	  ylmShift = (m*2-1)*numGrid;
+	  for(iGrid=0;iGrid<numGrid;iGrid++){
+	    ylmDx[ylmShift+iGrid*2] = ymlTheta[ylmShift+iGrid*2]*dTheta[iGrid*3]+
+				      ymlPhi[ylmShift+iGrid*2]*dPhi[iGrid*3];
+            ylmDx[ylmShift+iGrid*2+1] = ymlTheta[ylmShift+iGrid*2+1]*dTheta[iGrid*3]+
+                                      ymlPhi[ylmShift+iGrid*2+1]*dPhi[iGrid*3];
+            ylmDy[ylmShift+iGrid*2] = ymlTheta[ylmShift+iGrid*2]*dTheta[iGrid*3+1]+
+                                      ymlPhi[ylmShift+iGrid*2]*dPhi[iGrid*3+1];
+            ylmDy[ylmShift+iGrid*2+1] = ymlTheta[ylmShift+iGrid*2+1]*dTheta[iGrid*3+1]+
+                                      ymlPhi[ylmShift+iGrid*2+1]*dPhi[iGrid*3+1];
+            ylmDz[ylmShift+iGrid*2] = ymlTheta[ylmShift+iGrid*2]*dTheta[iGrid*3+2]+
+                                      ymlPhi[ylmShift+iGrid*2]*dPhi[iGrid*3+2];
+            ylmDz[ylmShift+iGrid*2+1] = ymlTheta[ylmShift+iGrid*2+1]*dTheta[iGrid*3+2]+
+                                      ymlPhi[ylmShift+iGrid*2+1]*dPhi[iGrid*3+2];
+	  }//endfor iGrid
+	}
+	else{
+          ylmDx[iGrid] = ymlTheta[iGrid]*dTheta[iGrid*3]+ymlPhi[iGrid]*dPhi[iGrid*3];  
+          ylmDy[iGrid] = ymlTheta[iGrid]*dTheta[iGrid*3+1]+ymlPhi[iGrid]*dPhi[iGrid*3+1];
+          ylmDz[iGrid] = ymlTheta[iGrid]*dTheta[iGrid*3+2]+ymlPhi[iGrid]*dPhi[iGrid*3+2];
+	}//endif m
+      }//endfor m
       for(iRad=0;iRad<atomLRadNum[atomType][l];iRad++){
         radIndex = atomRadMap[atomType][countRad+iRad];
         /* calculate radial fun u*phi */
         calcRadFun(gridAtomNbhd,radIndex,pseudoReal,radFun,numGrid);
+        calcRadFunDev(gridAtomNbhd,radIndex,pseudoReal,radDevFun,numGrid);
         for(m=0;m<=l;m++){
           if(m!=0){
             ylmShift = (m*2-1)*numGrid;
@@ -558,8 +597,8 @@ void calcAngleDeriv(double *trig,double *gridAtomNbhd,double *dTheta,double *dPh
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void calcRadFun(double *gridAtomNbhd,int radIndex,PSEUDO_REAL *pseudoReal,
-        double *radDevFun,int numGrid)
+void calcRadFunDev(double *gridAtomNbhd,int radIndex,PSEUDO_REAL *pseudoReal,
+		   double *radDevFun,int numGrid)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/

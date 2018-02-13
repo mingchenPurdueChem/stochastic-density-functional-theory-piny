@@ -455,26 +455,28 @@ void nlppSmoothKS(PSEUDO *pseudo,double *vNl,double *vNlG,
   //bessTransform(vNl,numR,dr,l,vNlG,numGSm,gGrid);
   bessTransform(vNl,numR,dr,l,vNlG,numGLg,gGrid);
   
+  /*
   for(ig=0;ig<numGLg;ig++){
-    printf("igggggg %lg %lg\n",gGrid[ig],vNlG[ig]);
+    printf("111111111 igggggg %lg %lg\n",gGrid[ig],vNlG[ig]);
   }
   for(ig=numGSm;ig<numGLg;ig++)vNlG[ig] = 0.0;
+  */
 
   // Optimize g space coeffcient from gMaxSm to gMaxLg
 
   optGCoeff(pseudoReal,numGLg,numGSm,numR,dr,dg,numGridRadSmooth,l,vNlG);
 
   //printf("rMax %lg\n",numGridRadSmooth*dr);
-  
+  /*
   for(ig=0;ig<numGLg;ig++){
     printf("222222 igggggg %lg %lg\n",gGrid[ig],vNlG[ig]);
   }
-  
+  */
 
   for(ig=0;ig<numGLg;ig++)vNlG[ig] *= gGrid[ig];
 
-  fflush(stdout);
-  exit(0);
+  //fflush(stdout);
+  //exit(0);
  
 /*--------------------------------------------------------------------------*/
   }/*end routine*/
@@ -995,9 +997,10 @@ void interpReal(PSEUDO *pseudo,int numAtomType,int *lMap)
                     &dvNlSmoothTest[iRad*(numInterpGrid-1)],numInterpGrid-1,&rListTest[0]);
       /*
       for(rGrid=0;rGrid<numInterpGrid;rGrid++){
-        printf("iRad %i rGriddddddd %lg %lg %lg\n",iRad,rGrid*dr,vNlSmooth[iRad*numInterpGrid+rGrid],dvNlSmooth[iRad*numInterpGrid+rGrid]);
+        printf("222222222 iRad %i rGriddddddd %lg %lg %lg\n",iRad,rGrid*dr,rGrid*dr*vNlSmooth[iRad*numInterpGrid+rGrid],dvNlSmooth[iRad*numInterpGrid+rGrid]);
       }
       */
+      
     }
     for(rGrid=0;rGrid<numRadTot*numInterpGrid;rGrid++){
       vNlSmooth[rGrid] *= pre;
@@ -1078,7 +1081,7 @@ void interpReal(PSEUDO *pseudo,int numAtomType,int *lMap)
 	diff = pseudoTest-vNlSmoothTest[iRad*(numInterpGrid-1)+rGrid];
 	if(diff*diff>1.0e-12){
 	  countBadSpline += 1;
-	  printf("111111 %lg %lg %lg\n",rTest,pseudoTest,vNlSmoothTest[iRad*(numInterpGrid-1)+rGrid]);
+	  //printf("111111 %lg %lg %lg\n",rTest,pseudoTest,vNlSmoothTest[iRad*(numInterpGrid-1)+rGrid]);
         }
 	diff = pseudoDevTest-dvNlSmoothTest[iRad*(numInterpGrid-1)+rGrid];
 	//if(diff*diff>1.0e-12)countBadSpline += 1;

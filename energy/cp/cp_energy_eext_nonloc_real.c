@@ -40,11 +40,14 @@ void controlEnergyNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
       {/*begin routine*/
 /*==========================================================================*/
 /*               Local variable declarations                                */
-  
+  PSEUDO *pseudo = &(cp->pseudo);
+  PSEUDO_REAL *pseudoReal = &(pseudo->pseudoReal);
+
   PARA_FFT_PKG3D *cpParaFftPkg3dLgBigBox = &(cp->cp_para_fft_pkg3d_lg);
   int nfft = cpParaFftPkg3dLgBigBox->nfft;
   int numGrid = nfft/2;
   int iGrid;
+  int forceCalcFlag = pseudoReal->forceCalcFlag;
   double *wfReal,*wfForceReal;
 
   wfReal = (double*)cmalloc(numGrid*sizeof(double));
@@ -55,6 +58,7 @@ void controlEnergyNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
     wfForceReal[iGrid] = 0.0;
   }
   nlppKBRealEnergy(cp,class,generalData,wfReal,wfForceReal);
+  if(forceClacFlag==1)nlppKBRealEnergyForce(cp,class,generalData,wfReal);
   for(iGrid=0;iGrid<numGrid;iGrid++){
 #ifdef REAL_PP_DEBUG  
     zfft[iGrid*2+1] = wfForceReal[iGrid];
@@ -69,6 +73,7 @@ void controlEnergyNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
       wfForceReal[iGrid] = 0.0;
     }
     nlppKBRealEnergy(cp,class,generalData,wfReal,wfForceReal);
+    if(forceClacFlag==1)nlppKBRealEnergyForce(cp,class,generalData,wfReal);
     for(iGrid=0;iGrid<numGrid;iGrid++){
 #ifdef REAL_PP_DEBUG  
       zfft[iGrid*2+2] = wfForceReal[iGrid];
@@ -89,8 +94,8 @@ void controlEnergyNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void nlppKBRealEnergy(CP *cp,CLASS *class,GENERAL_DATA *generalData,double *wfReal,
-		      double *forceRealNlpp)
+void nlppKBRealEnergy(CP *cp,CLASS *class,GENERAL_DATA *generalData,
+		      double *wfReal)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
@@ -211,7 +216,7 @@ void nlppKBRealEnergy(CP *cp,CLASS *class,GENERAL_DATA *generalData,double *wfRe
 	      //printf("energy %lg\n",energyl);
 	      //printf("m %i dotRe %lg dotIm %lg vpsNormList[radIndex] %lg\n",m,dotRe,dotIm,vpsNormList[radIndex]);
 	      dotRe *= 2.0*vpsNormList[radIndex];
-	      dotIm *= 2.0*vpsNormList[radIndex];
+	      dotIm *= -2.0*vpsNormList[radIndex];
 	      daxpyBlasWrapper(numGrid,dotRe,&vnlPhiAtomGridRe[gridShiftNowRe],1,
 			       forceTemp,1);
 	      daxpyBlasWrapper(numGrid,dotIm,&vnlPhiAtomGridIm[gridShiftNowIm],1,
@@ -474,30 +479,18 @@ void calcTrig(double *gridAtomNbhd,int numGrid,double *trig)
     z = gridAtomNbhd[iGrid*3+2];
     rProj2 = x*x+y*y;
     r2 = rProj2+z*z;
-    if(rProj2>=1.0e-20){
-      rInv = 1.0/sqrt(r2);
-      rProj = sqrt(rProj2);
-      rProjInv = 1.0/rProj;
-      trig[iGrid*4] = rProj*rInv; //sin(theta)
-      trig[iGrid*4+1] = z*rInv; //cos(theta)
-      trig[iGrid*4+2] = y*rProjInv;
-      trig[iGrid*4+3] = x*rProjInv;
+    if(rProj2<1.0e-30){
+      x += 1.0e-14;
+      rProj2 = x*x+y*y;
+      r2 = rProj2+z*z;
     }
-    else{ // in case nuclei located exactly on grid, theta=0,phi=0
-      //printf("iGrid %i\n",iGrid);
-      if(z>=0.0){
-	trig[iGrid*4] = 0.0;
-	trig[iGrid*4+1] = 1.0;
-	trig[iGrid*4+2] = 0.0;
-	trig[iGrid*4+3] = 1.0;
-      }
-      else{
-        trig[iGrid*4] = 0.0;
-        trig[iGrid*4+1] = -1.0;
-        trig[iGrid*4+2] = 0.0;
-        trig[iGrid*4+3] = 1.0;
-      }
-    }
+    rInv = 1.0/sqrt(r2);
+    rProj = sqrt(rProj2);
+    rProjInv = 1.0/rProj;
+    trig[iGrid*4] = rProj*rInv; //sin(theta)
+    trig[iGrid*4+1] = z*rInv; //cos(theta)
+    trig[iGrid*4+2] = y*rProjInv;
+    trig[iGrid*4+3] = x*rProjInv;
     /*
     debugFlag = 0;
     for(j=0;j<4;j++){

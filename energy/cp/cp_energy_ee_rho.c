@@ -2092,6 +2092,7 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
     for(i=1;i<=ncoef;i++){
       printf("forceeeee %i %.16lg %.16lg\n",i,fccreal[i],fccimag[i]);
     }
+    fflush(stdout);
     exit(0);
 #endif
   //}

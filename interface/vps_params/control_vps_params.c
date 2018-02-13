@@ -1175,6 +1175,7 @@ void make_vps_splin(char *vps_file,int loc_opt,int n_ang,
           Bcast(&(amat),1,MPI_DOUBLE,0,comm);
          }/*endif*/
          if(iang != loc_opt+1) {
+	   //printf("111111111 vpsnorm %lg\n",amat);
            vpsnorm[((iang-1)*n_rad_max_sq+1)] = (1.0/amat);
            ishift_now = (iang-1)*n_rad_max*nsplin_g;
            ilong = 0;

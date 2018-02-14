@@ -1155,6 +1155,12 @@ typedef struct pseudo_real{
   double **dotImAll;	    /* Lst: dot product between one pseudo wavefunction */
                             /*      (V*Phi*Ylm) and system wave function        */
                             /* Lth: natm_tot*(numNlppAtom[iType]-1)             */
+  double **dotReAllDx;      /* Lst: dot product between one pseudo wavefunction */
+  double **dotReAllDy;	    /*      d(V*Phi*Ylm)/dR and system wave function    */
+  double **dotReAllDz;      /* Lth: natm_tot*numNlppAtom[iType]                 */
+  double **dotImAllDx;	    /* Lst: dot product between one pseudo wavefunction */
+  double **dotImAllDy;      /*      d(V*Phi*Ylm)/dR and system wave function    */
+  double **dotImAllDz;      /* Lth: natm_tot*numNlppAtom[iType]                 */
 }PSEUDO_REAL;
 
 

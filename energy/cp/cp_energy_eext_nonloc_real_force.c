@@ -440,16 +440,20 @@ void calcPseudoWfDev(CP *cp,CLASS *class,GENERAL_DATA *generalData)
           if(m!=0){
             ylmShift = (m*2-1)*numGrid;
             for(iGrid=0;iGrid<numGrid;iGrid++){
-              vnlPhiAtomGridRe[gridShiftRe+iGrid] = radFun[iGrid]*ylm[ylmShift+iGrid*2];
-              vnlPhiAtomGridIm[gridShiftIm+iGrid] = radFun[iGrid]*ylm[ylmShift+iGrid*2+1];
+	      vnlPhiDxAtomGridRe[gridShiftRe+iGrid] = ylmDx[ylmShift+iGrid*2]*radFun[iGrid]+ylm[ymlShift+iGrid*2]*radDevFun[3*iGrid];
+              vnlPhiDxAtomGridIm[gridShiftIm+iGrid] = ylmDx[ylmShift+iGrid*2+1]*radFun[iGrid]+ylm[ymlShift+iGrid*2+1]*radDevFun[3*iGrid];
+              vnlPhiDyAtomGridRe[gridShiftRe+iGrid] = ylmDy[ylmShift+iGrid*2]*radFun[iGrid]+ylm[ymlShift+iGrid*2]*radDevFun[3*iGrid+1];
+              vnlPhiDyAtomGridIm[gridShiftIm+iGrid] = ylmDy[ylmShift+iGrid*2+1]*radFun[iGrid]+ylm[ymlShift+iGrid*2+1]*radDevFun[3*iGrid+1];
+              vnlPhiDzAtomGridRe[gridShiftRe+iGrid] = ylmDz[ylmShift+iGrid*2]*radFun[iGrid]+ylm[ymlShift+iGrid*2]*radDevFun[3*iGrid+2];
+              vnlPhiDzAtomGridIm[gridShiftIm+iGrid] = ylmDz[ylmShift+iGrid*2+1]*radFun[iGrid]+ylm[ymlShift+iGrid*2+1]*radDevFun[3&iGrid+2];
             }//endfor iGrid
             gridShiftRe += numGrid;
             gridShiftIm += numGrid;
           }else{
             for(iGrid=0;iGrid<numGrid;iGrid++){
-              vnlPhiAtomGridRe[gridShiftRe+iGrid] = radFun[iGrid]*ylm[iGrid];
-              gridIndex = gridNlppMap[iAtom][iGrid];
-              testwfReal[gridIndex] = vnlPhiAtomGridRe[gridShiftRe+iGrid];
+	      vnlPhiDxAtomGridRe[gridShiftRe+iGrid] = ylmDx[ylmShift+iGrid*2]*radFun[iGrid]+ylm[ymlShift+iGrid*2]*radDevFun[3*iGrid];
+              vnlPhiDyAtomGridRe[gridShiftRe+iGrid] = ylmDy[ylmShift+iGrid*2]*radFun[iGrid]+ylm[ymlShift+iGrid*2]*radDevFun[3*iGrid+1];
+              vnlPhiDzAtomGridRe[gridShiftRe+iGrid] = ylmDz[ylmShift+iGrid*2]*radFun[iGrid]+ylm[ymlShift+iGrid*2]*radDevFun[3*iGrid+2];
             }
             gridShiftRe += numGrid;
           }//endif m
@@ -459,7 +463,12 @@ void calcPseudoWfDev(CP *cp,CLASS *class,GENERAL_DATA *generalData)
       free(ylm);
       free(ylmTheta);
       free(ylmPhi);
+      free(ylmDx);
+      free(ylmDy);
+      free(ylmDz);
     }//endfor l
+    free(dTheta);
+    free(dPhi);
   }//endfor iAtom
   /*
   for(iGrid=0;iGrid<numGridTot;iGrid++){
@@ -469,6 +478,7 @@ void calcPseudoWfDev(CP *cp,CLASS *class,GENERAL_DATA *generalData)
   exit(0);
   */
   free(radFun);
+  free(radDevFun);
   free(trig);
   free(gridAtomNbhd);
 

@@ -223,6 +223,10 @@ void control_cp_min(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   /*---------------------------------------------------------------------*/
   /* 2) CP_wave minimization                                             */
     if(atm_step==0){
+      // cp wf minimization, we don't need calculate nuclei force
+      if(cp->pseudo.pseudoReal.pseudoRealFlag==1){
+	cp->pseudo.pseudoReal.pseudoWfCalcFlag = 1;
+      }
       elec_e_old     = general_data->stat_avg.cp_eke
                      + general_data->stat_avg.cp_enl
                      + general_data->stat_avg.cp_ehart
@@ -400,6 +404,10 @@ void control_cp_min(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     (class->energy_ctrl.iget_res_intra) = 0;
     (general_data->simopts.cp_min)      = 1;
     (general_data->simopts.cp_wave_min) = 0;
+    //real space nlpp flag. We need to calculate force
+    if(cp->pseudo.pseudoReal.pseudoRealFlag==1){
+      cp->pseudo.pseudoReal.pseudoWfCalcFlag = 1;
+    }
 
     cp_energy_control(class,bonded,general_data,cp);
 

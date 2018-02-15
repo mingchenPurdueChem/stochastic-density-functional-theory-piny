@@ -18,6 +18,7 @@
 #include "../typ_defs/typedefs_class.h"
 #include "../typ_defs/typedefs_bnd.h"
 #include "../typ_defs/typedefs_cp.h"
+#include "../typ_defs/typedefs_par.h"
 #include "../proto_defs/proto_energy_cp_local.h"
 #include "../proto_defs/proto_energy_cpcon_local.h"
 #include "../proto_defs/proto_friend_lib_entry.h"
@@ -155,6 +156,9 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
   int *ioff_upt      = cp->cpcoeffs_info.ioff_upt;
   double *occ_up     = cp->cpopts.occ_up;
   int nstate_dn      = cp->cpcoeffs_info.nstate_dn_proc;
+  int pseudoRealFlag = cp->pseudo.pseudoReal.pseudoRealFlag;
+  int pseudoWfCalcFlag = cp->pseudo.pseudoReal.pseudoWfCalcFlag;
+  int forceCalcFlag  = cp->pseudo.pseudoReal.forceCalcFlag;
   int *ioff_dnt      = cp->cpcoeffs_info.ioff_dnt;
   double *occ_dn     = cp->cpopts.occ_dn;
   double *max_diag     = &(cp->cpcoeffs_pos[ip_now].max_diag);
@@ -522,7 +526,7 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
                        &(cp->cp_para_fft_pkg3d_lg));
 
   //If needed, calculate the real space nlpp wave function
-  if(pseudoRealFlag==0&&pseudoWfCalcFlag==1){
+  if(pseudoRealFlag==1&&pseudoWfCalcFlag==1){
     initRealNlppWf(cp,class,general_data);
     if(forceCalcFlag==1){
       calcPseudoWfDev(cp,class,general_data);

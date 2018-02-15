@@ -59,6 +59,7 @@ test_energy_cp_dvr.o     :   $(STANDARD) $(DEFINES) \
 #------------------------------------------------------------------
 cp_ks_energy.o     :     $(STANDARD) $(DEFINES) \
                          $(TYP_GEN) $(TYP_CLASS) $(TYP_CP) $(TYP_BND) \
+                         $(TYP_PAR) \
                          $(ENR_CP_LOC) $(ENR_CPCON_LOC) $(FRND_ENT) \
                          $(MATH) $(COMM_WRAP) $(REAL_ENT) \
                          $(CODE)/energy/cp/cp_ks_energy.c
@@ -163,6 +164,15 @@ cp_energy_eext_nonloc_real.o     : \
 	$(ECHO) $@
 	$(COBJ) $(CODE)/energy/cp/cp_energy_eext_nonloc_real.c
 
+#------------------------------------------------------------------
+cp_energy_eext_nonloc_real_force.o     : \
+                         $(STANDARD) $(DEFINES) \
+                         $(TYP_GEN) $(TYP_CLASS) $(TYP_BND) $(TYP_CP) \
+                         $(ENR_CP_ENT) $(ENR_CP_LOC) $(FRND_ENT) \
+                         $(ENR_CPCON_LOC) $(MATH) $(ENR_CTRL_ENT) \
+                         $(CODE)/energy/cp/cp_energy_eext_nonloc_real_force.c
+	$(ECHO) $@
+	$(COBJ) $(CODE)/energy/cp/cp_energy_eext_nonloc_real_force.c
 
 #------------------------------------------------------------------
 xc_functionals.o     :   $(STANDARD) $(DEFINES) \

@@ -317,6 +317,12 @@ void non_loc_restore_ord(CLATOMS_POS *, CLATOMS_INFO *,
   void calcSpHarm(double *,int,double *,int,double *);
   void calcRadFun(double *,int,PSEUDO_REAL *,double *,int);
   void calcDotNlpp(double *,double *,double *,double *,double *,int);
+  void calcNlppWfDerv(CP *,CLASS *,GENERAL_DATA *,double *,double *,int );
+  void nlppKBRealEnergyForce(CP *,CLASS *,GENERAL_DATA *,double *);
+  void calcPseudoWfDev(CP *,CLASS *,GENERAL_DATA *);
+  void calcSpHarmDeriv(double *,double *, double *,int ,double *,int ,double *);
+  void calcAngleDeriv(double *,double *,double *,double *,int);
+  void calcRadFunDev(double *,int,PSEUDO_REAL *,double *,int);
   
 /*====================================================================*/
 /* cp_energy_ee_rho.c */

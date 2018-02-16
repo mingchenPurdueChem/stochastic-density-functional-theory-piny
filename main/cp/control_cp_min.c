@@ -412,6 +412,7 @@ void control_cp_min(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     //real space nlpp flag. We need to calculate force
     if(cp->pseudo.pseudoReal.pseudoRealFlag==1){
       cp->pseudo.pseudoReal.forceCalcFlag = 1;
+      cp->pseudo.pseudoReal.pseudoWfCalcFlag = 1;
     }
 
     cp_energy_control(class,bonded,general_data,cp);

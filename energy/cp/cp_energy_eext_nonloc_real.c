@@ -176,8 +176,8 @@ void nlppKBRealEnergy(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   for(iPart=0;iPart<numAtom;iPart++){
     if(numGridNlppMap[iPart]>numGridMax)numGridMax = numGridNlppMap[iPart];
   }
-  wfNbhd = (double*)cmalloc(numGridMax*sizeof(double));
   forceTemp = (double*)cmalloc(numGridMax*sizeof(double));
+  wfNbhd = (double*)cmalloc(numGridMax*sizeof(double));
   vol = getdeth(hmat);
   volInv = 1.0/vol;
   volElem = vol/numGridTot;

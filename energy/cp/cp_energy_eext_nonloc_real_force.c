@@ -90,21 +90,14 @@ void nlppKBRealEnergyForce(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   double *trig; // sin(theta),cos(theta),sin(phi),cos(phi)
   double *vpsNormList = pseudoReal->vpsNormList; // 1/vpsNorm 
   double *gridAtomNbhd;
-  double *ylm;
   double a[3],b[3],c[3];
   double aGrid[3],bGrid[3],cGrid[3];
   double nucleiCoord[3];
   double *hmat = cell->hmat;
-  double *x = clatoms_pos->x;
-  double *y = clatoms_pos->y;
-  double *z = clatoms_pos->z;
   double *fx = clatoms_pos->fx;
   double *fy = clatoms_pos->fy;
   double *fz = clatoms_pos->fz;
   double *wfNbhd;
-  double *radFun;
-  double *forceTemp;
-  double *pseudoFunTemp;
 
   //double *forceNlX = pseudoReal->forceNlX;
   //double *forceNlY = pseudoReal->forceNlY;
@@ -121,6 +114,19 @@ void nlppKBRealEnergyForce(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   double *vnlPhiDzAtomGridRe = pseudoReal->vnlPhiDzAtomGridRe;
   double *vnlPhiDzAtomGridIm = pseudoReal->vnlPhiDzAtomGridIm;
 
+/*======================================================================*/
+/* I) Allocate local memory                                             */
+
+  numGridMax = numGridNlppMap[0];
+  for(iPart=0;iPart<numAtom;iPart++){
+    if(numGridNlppMap[iPart]>numGridMax)numGridMax = numGridNlppMap[iPart];
+  }
+  wfNbhd = (double*)cmalloc(numGridMax*sizeof(double));
+  vol = getdeth(hmat);
+  volInv = 1.0/vol;
+  volElem = vol/numGridTot;
+/*======================================================================*/
+/* II) Loop over iPart/irad/ipart/m                                 */
 
   gridShiftNowRe = 0;
   gridShiftNowIm = 0;
@@ -134,11 +140,11 @@ void nlppKBRealEnergyForce(CP *cp,CLASS *class,GENERAL_DATA *generalData,
     forceNlZ = 0.0;
     countNlppRe = 0;
     countNlppIm = 0;
+    printf("numGrid %i\n",numGrid);
     if(numGrid>0){ //if numGrid=0, only local pp will be calculated
       for(iGrid=0;iGrid<numGrid;iGrid++){
         gridIndex = gridNlppMap[iAtom][iGrid];
         wfNbhd[iGrid] = wfReal[gridIndex];
-        forceTemp[iGrid] = 0.0;
       }//endfor iGrid
       for(l=0;l<atomLMax[atomType];l++){
         for(iRad=0;iRad<atomLRadNum[atomType][l];iRad++){
@@ -154,19 +160,24 @@ void nlppKBRealEnergyForce(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 					 &vnlPhiDxAtomGridRe[gridShiftNowRe],1)*volElem;
               dotDevIm = ddotBlasWrapper(numGrid,wfNbhd,1,
 				         &vnlPhiDxAtomGridIm[gridShiftNowIm],1)*volElem;
-	      forceNlX += (dotRe*dotDevRe-dotIm*dotDevIm)*4.0*vpsNormList[radIndex]*volInv;
+	      printf("xxx m %i dotRe %lg dotIm %lg dotDevRe %lg dotDevIm %lg\n",m,dotRe,dotIm,dotDevRe,dotDevIm);
+	      forceNlX += (dotRe*dotDevRe+dotIm*dotDevIm)*4.0*vpsNormList[radIndex]*volInv;
 	      // y
 	      dotDevRe = ddotBlasWrapper(numGrid,wfNbhd,1,
                                          &vnlPhiDyAtomGridRe[gridShiftNowRe],1)*volElem;
               dotDevIm = ddotBlasWrapper(numGrid,wfNbhd,1,
                                          &vnlPhiDyAtomGridIm[gridShiftNowIm],1)*volElem;
-	      forceNlY += (dotRe*dotDevRe-dotIm*dotDevIm)*4.0*vpsNormList[radIndex]*volInv;
+              printf("yyy m %i dotRe %lg dotIm %lg dotDevRe %lg dotDevIm %lg\n",m,dotRe,dotIm,dotDevRe,dotDevIm);
+
+	      forceNlY += (dotRe*dotDevRe+dotIm*dotDevIm)*4.0*vpsNormList[radIndex]*volInv;
 	      // z
               dotDevRe = ddotBlasWrapper(numGrid,wfNbhd,1,
                                          &vnlPhiDzAtomGridRe[gridShiftNowRe],1)*volElem;
               dotDevIm = ddotBlasWrapper(numGrid,wfNbhd,1,
                                          &vnlPhiDzAtomGridIm[gridShiftNowIm],1)*volElem;
-              forceNlZ += (dotRe*dotDevRe-dotIm*dotDevIm)*4.0*vpsNormList[radIndex]*volInv;
+              printf("zzz m %i dotRe %lg dotIm %lg dotDevRe %lg dotDevIm %lg\n",m,dotRe,dotIm,dotDevRe,dotDevIm);
+
+              forceNlZ += (dotRe*dotDevRe+dotIm*dotDevIm)*4.0*vpsNormList[radIndex]*volInv;
               gridShiftNowRe += numGrid;
               gridShiftNowIm += numGrid;
             }
@@ -175,14 +186,20 @@ void nlppKBRealEnergyForce(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 	      // x
               dotDevRe = ddotBlasWrapper(numGrid,wfNbhd,1,
 					 &vnlPhiDxAtomGridRe[gridShiftNowRe],1)*volElem;
+              printf("xxx m %i dotRe %lg dotDevRe %lg\n",m,dotRe,dotDevRe);
+
 	      forceNlX += dotRe*dotDevRe*2.0*vpsNormList[radIndex]*volInv;
 	      // y
               dotDevRe = ddotBlasWrapper(numGrid,wfNbhd,1,
                                          &vnlPhiDyAtomGridRe[gridShiftNowRe],1)*volElem;
+              printf("yyy m %i dotRe %lg dotDevRe %lg\n",m,dotRe,dotDevRe);
+
               forceNlY += dotRe*dotDevRe*2.0*vpsNormList[radIndex]*volInv;
 	      // z
               dotDevRe = ddotBlasWrapper(numGrid,wfNbhd,1,
                                          &vnlPhiDzAtomGridRe[gridShiftNowRe],1)*volElem;
+              printf("zzz m %i dotRe %lg dotDevRe %lg\n",m,dotRe,dotDevRe);
+
 	      forceNlZ += dotRe*dotDevRe*2.0*vpsNormList[radIndex]*volInv;
               gridShiftNowRe += numGrid;
             }//endif m
@@ -197,6 +214,12 @@ void nlppKBRealEnergyForce(CP *cp,CLASS *class,GENERAL_DATA *generalData,
     fy[iAtom+1] += forceNlY;
     fz[iAtom+1] += forceNlZ;
   }//endfor iAtom
+
+/*======================================================================*/
+/* III) free local memory                                               */
+
+  free(wfNbhd);
+
 /*--------------------------------------------------------------------------*/
   }/*end routine*/
 /*==========================================================================*/
@@ -285,7 +308,7 @@ void calcPseudoWfDev(CP *cp,CLASS *class,GENERAL_DATA *generalData)
   int nfft = cpParaFftPkg3dLgBigBox->nfft;
   int numGridTot = nfft/2;
 
-  double *testwfReal = (double*)calloc(numGridTot,sizeof(double));
+  //double *testwfReal = (double*)calloc(numGridTot,sizeof(double));
 
   numGridMax = numGridNlppMap[0];
   for(iAtom=0;iAtom<numAtomTot;iAtom++){
@@ -294,7 +317,11 @@ void calcPseudoWfDev(CP *cp,CLASS *class,GENERAL_DATA *generalData)
   printf("numGridMax %i\n",numGridMax);
   gridAtomNbhd = (double*)cmalloc(numGridMax*3*sizeof(double));
   radFun = (double*)cmalloc(numGridMax*sizeof(double));
+  radDevFun = (double*)cmalloc(3*numGridMax*sizeof(double));
   trig = (double*)cmalloc(4*numGridMax*sizeof(double));
+  dTheta = (double*)cmalloc(3*numGridMax*sizeof(double));
+  dPhi = (double*)cmalloc(3*numGridMax*sizeof(double));
+
   a[0] = hmat[1];a[1] = hmat[2];a[2] = hmat[3];
   b[0] = hmat[4];b[1] = hmat[5];b[2] = hmat[6];
   c[0] = hmat[7];c[1] = hmat[8];c[2] = hmat[9];
@@ -341,20 +368,18 @@ void calcPseudoWfDev(CP *cp,CLASS *class,GENERAL_DATA *generalData)
     }
     calcTrig(gridAtomNbhd,numGrid,trig);
     countRad = 0;
-    dTheta = (double*)cmalloc(3*numGrid*sizeof(double));
-    dPhi = (double*)cmalloc(3*numGrid*sizeof(double));
-    calcAngleDeriv(trig,gridAtomNbhd,dTheta,dPhi,numGrid);
+    //calcAngleDeriv(trig,gridAtomNbhd,dTheta,dPhi,numGrid);
     for(l=0;l<atomLMax[atomType];l++){
       /* calculate sherical harmonic */
-      ylm = (double*)cmalloc((2*l+1)*numGrid*sizeof(double));
-      ylmTheta = (double*)cmalloc((2*l+1)*numGrid*sizeof(double));
-      ylmPhi = (double*)cmalloc((2*l+1)*numGrid*sizeof(double));
-      ylmDx = (double*)cmalloc((2*l+1)*numGrid*sizeof(double));
-      ylmDy = (double*)cmalloc((2*l+1)*numGrid*sizeof(double));
-      ylmDz = (double*)cmalloc((2*l+1)*numGrid*sizeof(double));
+      ylm = (double*)cmalloc((2*l+1)*numGridMax*sizeof(double));
+      ylmTheta = (double*)cmalloc((2*l+1)*numGridMax*sizeof(double));
+      ylmPhi = (double*)cmalloc((2*l+1)*numGridMax*sizeof(double));
+      ylmDx = (double*)cmalloc((2*l+1)*numGridMax*sizeof(double));
+      ylmDy = (double*)cmalloc((2*l+1)*numGridMax*sizeof(double));
+      ylmDz = (double*)cmalloc((2*l+1)*numGridMax*sizeof(double));
       calcSpHarm(ylm,l,gridAtomNbhd,numGrid,trig);
       calcSpHarmDeriv(ylm,ylmTheta,ylmPhi,l,gridAtomNbhd,numGrid,trig);
-      for(m=0;m<=l;m++){
+      for(m=0;m<=l;m++){ 	
 	if(m!=0){
 	  ylmShift = (m*2-1)*numGrid;
 	  for(iGrid=0;iGrid<numGrid;iGrid++){
@@ -373,9 +398,11 @@ void calcPseudoWfDev(CP *cp,CLASS *class,GENERAL_DATA *generalData)
 	  }//endfor iGrid
 	}
 	else{
-          ylmDx[iGrid] = ylmTheta[iGrid]*dTheta[iGrid*3]+ylmPhi[iGrid]*dPhi[iGrid*3];  
-          ylmDy[iGrid] = ylmTheta[iGrid]*dTheta[iGrid*3+1]+ylmPhi[iGrid]*dPhi[iGrid*3+1];
-          ylmDz[iGrid] = ylmTheta[iGrid]*dTheta[iGrid*3+2]+ylmPhi[iGrid]*dPhi[iGrid*3+2];
+	  for(iGrid=0;iGrid<numGrid;iGrid++){
+            ylmDx[iGrid] = ylmTheta[iGrid]*dTheta[iGrid*3]+ylmPhi[iGrid]*dPhi[iGrid*3];  
+            ylmDy[iGrid] = ylmTheta[iGrid]*dTheta[iGrid*3+1]+ylmPhi[iGrid]*dPhi[iGrid*3+1];
+            ylmDz[iGrid] = ylmTheta[iGrid]*dTheta[iGrid*3+2]+ylmPhi[iGrid]*dPhi[iGrid*3+2];
+	  }
 	}//endif m
       }//endfor m
       for(iRad=0;iRad<atomLRadNum[atomType][l];iRad++){
@@ -398,9 +425,9 @@ void calcPseudoWfDev(CP *cp,CLASS *class,GENERAL_DATA *generalData)
             gridShiftIm += numGrid;
           }else{
             for(iGrid=0;iGrid<numGrid;iGrid++){
-	      vnlPhiDxAtomGridRe[gridShiftRe+iGrid] = ylmDx[ylmShift+iGrid*2]*radFun[iGrid]+ylm[ylmShift+iGrid*2]*radDevFun[3*iGrid];
-              vnlPhiDyAtomGridRe[gridShiftRe+iGrid] = ylmDy[ylmShift+iGrid*2]*radFun[iGrid]+ylm[ylmShift+iGrid*2]*radDevFun[3*iGrid+1];
-              vnlPhiDzAtomGridRe[gridShiftRe+iGrid] = ylmDz[ylmShift+iGrid*2]*radFun[iGrid]+ylm[ylmShift+iGrid*2]*radDevFun[3*iGrid+2];
+	      vnlPhiDxAtomGridRe[gridShiftRe+iGrid] = ylmDx[iGrid]*radFun[iGrid]+ylm[iGrid]*radDevFun[3*iGrid];
+              vnlPhiDyAtomGridRe[gridShiftRe+iGrid] = ylmDy[iGrid]*radFun[iGrid]+ylm[iGrid]*radDevFun[3*iGrid+1];
+              vnlPhiDzAtomGridRe[gridShiftRe+iGrid] = ylmDz[iGrid]*radFun[iGrid]+ylm[iGrid]*radDevFun[3*iGrid+2];
             }
             gridShiftRe += numGrid;
           }//endif m
@@ -414,8 +441,6 @@ void calcPseudoWfDev(CP *cp,CLASS *class,GENERAL_DATA *generalData)
       free(ylmDy);
       free(ylmDz);
     }//endfor l
-    free(dTheta);
-    free(dPhi);
   }//endfor iAtom
   /*
   for(iGrid=0;iGrid<numGridTot;iGrid++){
@@ -428,6 +453,8 @@ void calcPseudoWfDev(CP *cp,CLASS *class,GENERAL_DATA *generalData)
   free(radDevFun);
   free(trig);
   free(gridAtomNbhd);
+  free(dTheta);
+  free(dPhi);
 
 /*--------------------------------------------------------------------------*/
   }/*end routine*/
@@ -574,6 +601,7 @@ void calcRadFunDev(double *gridAtomNbhd,int radIndex,PSEUDO_REAL *pseudoReal,
   double dr = pseudoReal->dr;
   double h;
   double x,y,z,r,r0;
+  double dradDr;
 
   double *vps0 = pseudoReal->vpsDevReal0;
   double *vps1 = pseudoReal->vpsDevReal1;
@@ -585,13 +613,25 @@ void calcRadFunDev(double *gridAtomNbhd,int radIndex,PSEUDO_REAL *pseudoReal,
     y = gridAtomNbhd[iGrid*3+1];
     z = gridAtomNbhd[iGrid*3+2];
     r = sqrt(x*x+y*y+z*z);
+    if(r<1.0e-15){
+      x += 1.0e-14;
+      r = sqrt(x*x+y*y+z*z);
+    }
     gridInd = (int)((r-rMin)/dr)+1;
     r0 = (gridInd-1)*dr+rMin;
     h = r-r0;
     interpInd = interpGridSt+gridInd;
-    radDevFun[iGrid] = ((vps3[interpInd]*h+vps2[interpInd])*h+vps1[interpInd])*h+vps0[interpInd];
+    dradDr = ((vps3[interpInd]*h+vps2[interpInd])*h+vps1[interpInd])*h+vps0[interpInd];
+    radDevFun[3*iGrid] = -dradDr*x/r;
+    radDevFun[3*iGrid+1] = -dradDr*y/r;
+    radDevFun[3*iGrid+2] = -dradDr*z/r;
+    //radDevFun[3*iGrid] = -dradDr;
+    //radDevFun[3*iGrid+1] = -dradDr;
+    //radDevFun[3*iGrid+2] = -dradDr;
+
     //if(r<1.0e-10)printf("rrrrrrrrrrrrrr %i %.16lg %.16lg\n",iGrid,r,radFun[iGrid]);
   }
+  printf("radDevFun %lg %lg %lg\n",radDevFun[3*iGrid],radDevFun[3*iGrid+1],radDevFun[3*iGrid+2]);
 
 /*--------------------------------------------------------------------------*/
    }/* end routine */

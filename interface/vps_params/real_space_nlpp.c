@@ -968,7 +968,7 @@ void interpReal(PSEUDO *pseudo,int numAtomType,int *lMap)
 
   int *numGridRadSmooth = pseudoReal->numGridRadSmooth;
 
-  double rTest,r0,h,pseudoTest;
+  double rTest,r0,h,pseudoTest,pseudoDevTest;
   double dr = pseudoReal->dr;
   double dg = pseudoReal->dg;
   double rMax;
@@ -1098,12 +1098,9 @@ void interpReal(PSEUDO *pseudo,int numAtomType,int *lMap)
     }//endfor iRad
     // test middle point at each interval
 
-    printf("numRadTot %i\n",numRadTot);
     countBadSpline = 0;
-    double diffMax = 0.0;
-    double pseudoDevTest;
+    //double diffMax = 0.0;
     for(iRad=0;iRad<numRadTot;iRad++){
-      printf("iRad %i\n",iRad);
       interpGridSt = iRad*numInterpGrid;
       for(rGrid=0;rGrid<numInterpGrid-1;rGrid++){
 	rTest = rListTest[rGrid];
@@ -1122,8 +1119,10 @@ void interpReal(PSEUDO *pseudo,int numAtomType,int *lMap)
 	  //printf("111111 %lg %lg %lg\n",rTest,pseudoTest,vNlSmoothTest[iRad*(numInterpGrid-1)+rGrid]);
         }
 	diff = pseudoDevTest-dvNlSmoothTest[iRad*(numInterpGrid-1)+rGrid];
-	//if(diff*diff>1.0e-12)countBadSpline += 1;
-	//printf("111111 %lg %lg %lg\n",rTest,pseudoTest,vNlSmoothTest[iRad*(numInterpGrid-1)+rGrid]);
+	if(diff*diff>1.0e-12){
+	  countBadSpline += 1;
+	  //printf("111111 %lg %lg %lg\n",rTest,pseudoDevTest,dvNlSmoothTest[iRad*(numInterpGrid-1)+rGrid]);
+	}
 	//if(fabs(diff)>diffMax)diffMax = fabs(diff);
       }//endfor rGrid
     }//endfor iRad
@@ -1136,10 +1135,11 @@ void interpReal(PSEUDO *pseudo,int numAtomType,int *lMap)
     // calculate flag
     if(countBadSpline>0){
       numInterpGrid *= 2;
-      printf("numInterpGrid %i\n",numInterpGrid);
+      //printf("New number of interpolation point for rational %i\n",numInterpGrid);
       dr = rMax/((double)(numInterpGrid-1));
     }
   }//endwhile
+  printf("Number of interpolation point for rational functions: %i\n",numInterpGrid);
 
   pseudoReal->numInterpGrid = numInterpGrid;
   pseudoReal->dr = dr;

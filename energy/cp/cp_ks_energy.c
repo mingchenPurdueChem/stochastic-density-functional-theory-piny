@@ -528,9 +528,11 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
   //If needed, calculate the real space nlpp wave function
   if(pseudoRealFlag==1&&pseudoWfCalcFlag==1){
     initRealNlppWf(cp,class,general_data);
+    printf("1111111 forceCalcFlag %i\n",forceCalcFlag);
     if(forceCalcFlag==1){
       calcPseudoWfDev(cp,class,general_data);
     }
+    cp->pseudo.pseudoReal.pseudoWfCalcFlag = 0;
   }
 
 #ifdef TIME_CP

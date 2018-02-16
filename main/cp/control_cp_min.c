@@ -183,6 +183,11 @@ void control_cp_min(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
         idone=0;
         if(displace_index == 3*natm_tot && sign_index == -1) {idone=1; do_analysis=1;}
       }
+      // if using real space nlpp, turn on nlpp wf calculation flag so that 
+      // nlpp wf will be calculated in the next step
+      if(cp->pseudo.pseudoReal.pseudoRealFlag==1){
+	cp->pseudo.pseudoReal.pseudoWfCalcFlag = 1;
+      }
  
       if(idone==1){
         idone_atm=1;
@@ -406,7 +411,7 @@ void control_cp_min(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     (general_data->simopts.cp_wave_min) = 0;
     //real space nlpp flag. We need to calculate force
     if(cp->pseudo.pseudoReal.pseudoRealFlag==1){
-      cp->pseudo.pseudoReal.pseudoWfCalcFlag = 1;
+      cp->pseudo.pseudoReal.forceCalcFlag = 1;
     }
 
     cp_energy_control(class,bonded,general_data,cp);

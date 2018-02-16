@@ -52,13 +52,14 @@ void controlEnergyNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 
   wfReal = (double*)cmalloc(numGrid*sizeof(double));
   wfForceReal = (double*)cmalloc(numGrid*sizeof(double));
+  printf("forceCalcFlag %i\n",forceCalcFlag);
 
   for(iGrid=0;iGrid<numGrid;iGrid++){
     wfReal[iGrid] = zfft_tmp[iGrid*2+1];
     wfForceReal[iGrid] = 0.0;
   }
   nlppKBRealEnergy(cp,class,generalData,wfReal,wfForceReal);
-  if(forceClacFlag==1)nlppKBRealEnergyForce(cp,class,generalData,wfReal);
+  if(forceCalcFlag==1)nlppKBRealEnergyForce(cp,class,generalData,wfReal);
   for(iGrid=0;iGrid<numGrid;iGrid++){
 #ifdef REAL_PP_DEBUG  
     zfft[iGrid*2+1] = wfForceReal[iGrid];
@@ -73,7 +74,7 @@ void controlEnergyNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
       wfForceReal[iGrid] = 0.0;
     }
     nlppKBRealEnergy(cp,class,generalData,wfReal,wfForceReal);
-    if(forceClacFlag==1)nlppKBRealEnergyForce(cp,class,generalData,wfReal);
+    if(forceCalcFlag==1)nlppKBRealEnergyForce(cp,class,generalData,wfReal);
     for(iGrid=0;iGrid<numGrid;iGrid++){
 #ifdef REAL_PP_DEBUG  
       zfft[iGrid*2+2] = wfForceReal[iGrid];
@@ -95,7 +96,7 @@ void controlEnergyNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 void nlppKBRealEnergy(CP *cp,CLASS *class,GENERAL_DATA *generalData,
-		      double *wfReal)
+		      double *wfReal,double *forceRealNlpp)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
@@ -216,7 +217,7 @@ void nlppKBRealEnergy(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 	      //printf("energy %lg\n",energyl);
 	      //printf("m %i dotRe %lg dotIm %lg vpsNormList[radIndex] %lg\n",m,dotRe,dotIm,vpsNormList[radIndex]);
 	      dotRe *= 2.0*vpsNormList[radIndex];
-	      dotIm *= -2.0*vpsNormList[radIndex];
+	      dotIm *= 2.0*vpsNormList[radIndex];
 	      daxpyBlasWrapper(numGrid,dotRe,&vnlPhiAtomGridRe[gridShiftNowRe],1,
 			       forceTemp,1);
 	      daxpyBlasWrapper(numGrid,dotIm,&vnlPhiAtomGridIm[gridShiftNowIm],1,

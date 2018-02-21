@@ -213,6 +213,8 @@ void nlppKBRealEnergy(CP *cp,CLASS *class,GENERAL_DATA *generalData,
                       &vnlPhiAtomGridIm[gridShiftNowIm],1)*volElem;
 	      dotReAll[iAtom][countNlppRe+m] = dotRe;
 	      dotImAll[iAtom][countNlppIm+m-1] = dotIm;
+	      //printf("dottttttttt %i %i %lg %i %lg\n",
+	      //       iAtom,countNlppRe+m,dotRe,countNlppIm+m-1,dotIm);
 	      energyl += 2.0*(dotRe*dotRe+dotIm*dotIm)*vpsNormList[radIndex]*volInv;
 	      //printf("energy %lg\n",energyl);
 	      //printf("m %i dotRe %lg dotIm %lg vpsNormList[radIndex] %lg\n",m,dotRe,dotIm,vpsNormList[radIndex]);
@@ -235,6 +237,9 @@ void nlppKBRealEnergy(CP *cp,CLASS *class,GENERAL_DATA *generalData,
               dotRe = ddotBlasWrapper(numGrid,wfNbhd,1,
                       &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
 	      dotReAll[iAtom][countNlppRe] = dotRe;
+              //printf("dottttttttt %i %i %lg\n",
+              //       iAtom,countNlppRe,dotRe);
+
 	      //printf("numGrid %i\n",numGrid);
 	      /*
 	      for(iGrid=0;iGrid<numGrid;iGrid++){
@@ -262,10 +267,10 @@ void nlppKBRealEnergy(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 	  }//endfor m
 	  //printf("energyl %lg\n",energyl);
 	  energy += energyl;
+          countNlppRe += l+1;
+          countNlppIm += l;
 	}//endfor iRad
         countRad += atomLRadNum[atomType][l];
-	countNlppRe += m+1;
-	countNlppIm += m;
       }//endfor l
       for(iGrid=0;iGrid<numGrid;iGrid++){
 	gridIndex = gridNlppMap[iAtom][iGrid];
@@ -411,6 +416,7 @@ void calcPseudoWf(CP *cp,CLASS *class,GENERAL_DATA *generalData)
       gridAtomNbhd[iGrid*3+2] = xTemp*hmat[3]+yTemp*hmat[6]+zTemp*hmat[9];
     }
     calcTrig(gridAtomNbhd,numGrid,trig);
+    //printf("theta %.16lg phi %.16lg\n",acos(trig[5]),atan2(trig[6],trig[7]));
     countRad = 0;
     for(l=0;l<atomLMax[atomType];l++){
       /* calculate sherical harmonic */
@@ -438,11 +444,17 @@ void calcPseudoWf(CP *cp,CLASS *class,GENERAL_DATA *generalData)
 	    gridShiftRe += numGrid;
 	  }//endif m
 	}//endfor m
+        
       }//endfor iRad
       countRad += atomLRadNum[atomType][l];
       free(ylm);
     }//endfor l
   }//endfor iAtom
+  //debug
+  numGrid = numGridNlppMap[0];
+  //printf("vnllllllll m=0 %.16lg\n",vnlPhiAtomGridRe[1]);
+  //printf("vnllllllll m=1 %.16lg %.16lg\n",vnlPhiAtomGridRe[numGrid+1],vnlPhiAtomGridIm[1]);
+
   /*
   for(iGrid=0;iGrid<numGridTot;iGrid++){
     printf("55555 %.16lg\n",testwfReal[iGrid]);
@@ -545,6 +557,8 @@ void calcSpHarm(double *ylm,int l,double *gridAtomNbhd,int numGrid,
 	ylm[ind] = temp1*trig[iGrid*4+3];
 	ylm[ind+1] = temp1*trig[iGrid*4+2];
       }
+      //printf("m=0 ylm %.16lg\n",ylm[1]);
+      //printf("m=1 ylm Re %.16lg im %.16lg\n",ylm[numGrid+2],ylm[numGrid+3]);
       break;
     case 2:
       for(iGrid=0;iGrid<numGrid;iGrid++){

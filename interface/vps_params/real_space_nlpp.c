@@ -49,7 +49,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 /*==========================================================================*/
 /*               Local variable declarations                                */
 #include "../typ_defs/typ_mask.h"
-
+  
   ATOMMAPS *atommaps = &(class->atommaps);
   PSEUDO *pseudo = &(cp->pseudo);
   PSEUDO_REAL *pseudoReal = &(pseudo->pseudoReal);
@@ -58,7 +58,10 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   CPEWALD *cpewald = &(cp->cpewald);
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
   CLATOMS_INFO *clatoms_info = &(class->clatoms_info);
+  COMMUNICATE *commCP = &(cp->communicate);
 
+  int myidState = commCP->myid_state;
+  int numProcStates = commCP->np_states;
   int iType,iRad,iAng,rGrid,iAtom;
   int smoothOpt	    = pseudoReal->smoothOpt;
   int numAtomType   = atommaps->natm_typ;
@@ -71,6 +74,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   int countR = 0;
   int numGridTot = 0;
   int numGSm,numGLg;
+  MPI_Comm commStates   =    communicate->comm_states;  
 
   int *iAtomAtomType = atommaps->iatm_atm_typ;
   int *numLMax,*numRadMax;
@@ -218,10 +222,23 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
     vNl = NULL;
     phiNl = NULL;
     if(ivpsLabel[iType+1]==1){// KB
-      fscanf(fvps,"%i %lg %i\n",&numR,&rMax,&angNow);
-      fscanf(fvps,"%lg %lg %lg %lg\n",&z1,&alpha1,&z2,&alpha2);
-      fscanf(fvps,"%lg %lg\n",&zPol,&gamma);
-      printf("%lg %lg %lg %lg %lg %lg\n",z1,alpha1,z2,alpha2,zPol,gamma);
+      if(myidState==0){
+	fscanf(fvps,"%i %lg %i\n",&numR,&rMax,&angNow);
+	fscanf(fvps,"%lg %lg %lg %lg\n",&z1,&alpha1,&z2,&alpha2);
+	fscanf(fvps,"%lg %lg\n",&zPol,&gamma);
+	//printf("%lg %lg %lg %lg %lg %lg\n",z1,alpha1,z2,alpha2,zPol,gamma);
+      }
+      if(numProcStates>1){
+        Bcast(&numR,1,MPI_INT,0,commStates);
+        Bcast(&rMax,1,MPI_DOUBLE,0,commStates);
+        Bcast(&angNow,1,MPI_INT,0,commStates);
+	Bcast(&z1,1,MPI_DOUBLE,0,commStates);
+        Bcast(&alpha1,1,MPI_DOUBLE,0,commStates);
+        Bcast(&z2,1,MPI_DOUBLE,0,commStates);
+        Bcast(&alpha2,1,MPI_DOUBLE,0,commStates);
+        Bcast(&zPol,1,MPI_DOUBLE,0,commStates);
+        Bcast(&gamma,1,MPI_DOUBLE,0,commStates);
+      }
       vLoc = (double*)cmalloc((numR)*sizeof(double));
       vNl = (double*)cmalloc((numR*numRadMax[iType])*sizeof(double));
       phiNl = (double*)cmalloc((numR*numRadMax[iType])*sizeof(double));
@@ -235,18 +252,25 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 	fflush(stdout);
 	exit(0);
       }
-      // get the non-local part
-      for(iAng=0;iAng<angNow;iAng++){
+      if(myidState==0){
+	// get the non-local part
+	for(iAng=0;iAng<angNow;iAng++){
+	  for(rGrid=0;rGrid<numR;rGrid++){
+	    fscanf(fvps,"%lg",&vNl[iAng*numR+rGrid]);
+	    fscanf(fvps,"%lg",&phiNl[iAng*numR+rGrid]);
+	  }//endfor rGrid
+	}//endfor iAng
+	// get the local potential
 	for(rGrid=0;rGrid<numR;rGrid++){
-	  fscanf(fvps,"%lg",&vNl[iAng*numR+rGrid]);
-	  fscanf(fvps,"%lg",&phiNl[iAng*numR+rGrid]);
+	  fscanf(fvps,"%lg",&vLoc[rGrid]);
+	  fscanf(fvps,"%lg",&junk1);
 	}//endfor rGrid
-      }//endfor iAng
-      // get the local potential
-      for(rGrid=0;rGrid<numR;rGrid++){
-	fscanf(fvps,"%lg",&vLoc[rGrid]);
-	fscanf(fvps,"%lg",&junk1);
-      }//endfor rGrid
+      }//endif myidState
+      if(numProcStates>1){
+        Bcast(&vNl[0],numR*numRadMax[iType],MPI_DOUBLE,0,commStates);
+        Bcast(&phiNl[0],numR*numRadMax[iType],MPI_DOUBLE,0,commStates);
+        Bcast(&vLoc[0],numR*numRadMax[iType],MPI_DOUBLE,0,commStates);
+      }
       // Substract the nonlocal part from local part
       for(iAng=0;iAng<angNow;iAng++){
 	lMap[countR+iAng] = iAng;
@@ -257,7 +281,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 	  //printf("1111111 rGridddddd %lg %lg\n",rGrid*dr,vNl[iAng*numR+rGrid]);
 	}//endfor rGrid
 	vpsNormList[countR+iAng] *= dr;
-	printf("countR %i vpsNormList %lg\n",countR+iAng,vpsNormList[countR+iAng]);
+	//printf("countR %i vpsNormList %lg\n",countR+iAng,vpsNormList[countR+iAng]);
 	vpsNormList[countR+iAng] = 1.0/vpsNormList[countR+iAng];
       }//endfor iAng
       for(iAng=0;iAng<angNow;iAng++){

@@ -140,7 +140,7 @@ void nlppKBRealEnergyForce(CP *cp,CLASS *class,GENERAL_DATA *generalData,
     forceNlZ = 0.0;
     countNlppRe = 0;
     countNlppIm = 0;
-    printf("numGrid %i\n",numGrid);
+    //printf("numGrid %i\n",numGrid);
     if(numGrid>0){ //if numGrid=0, only local pp will be calculated
       for(iGrid=0;iGrid<numGrid;iGrid++){
         gridIndex = gridNlppMap[iAtom][iGrid];
@@ -318,7 +318,7 @@ void calcPseudoWfDev(CP *cp,CLASS *class,GENERAL_DATA *generalData)
   for(iAtom=0;iAtom<numAtomTot;iAtom++){
     if(numGridNlppMap[iAtom]>numGridMax)numGridMax = numGridNlppMap[iAtom];
   }
-  printf("numGridMax %i\n",numGridMax);
+  //printf("numGridMax %i\n",numGridMax);
   gridAtomNbhd = (double*)cmalloc(numGridMax*3*sizeof(double));
   radFun = (double*)cmalloc(numGridMax*sizeof(double));
   radDevFun = (double*)cmalloc(3*numGridMax*sizeof(double));

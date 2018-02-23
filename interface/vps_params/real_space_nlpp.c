@@ -74,7 +74,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   int countR = 0;
   int numGridTot = 0;
   int numGSm,numGLg;
-  MPI_Comm commStates   =    communicate->comm_states;  
+  MPI_Comm commStates   =    commCP->comm_states;  
 
   int *iAtomAtomType = atommaps->iatm_atm_typ;
   int *numLMax,*numRadMax;
@@ -216,13 +216,14 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   countRad = 0;
   for(iType=0;iType<numAtomType;iType++){
     printf("ivpsLabel %i\n",ivpsLabel[iType+1]==1);
-    fvps = fopen(vpsFile[iType+1].name,"r");
+    //fvps = fopen(vpsFile[iType+1].name,"r");
     rCutoffMax = -10000000.0;
     vLoc = NULL;
     vNl = NULL;
     phiNl = NULL;
     if(ivpsLabel[iType+1]==1){// KB
       if(myidState==0){
+	fvps = fopen(vpsFile[iType+1].name,"r");
 	fscanf(fvps,"%i %lg %i\n",&numR,&rMax,&angNow);
 	fscanf(fvps,"%lg %lg %lg %lg\n",&z1,&alpha1,&z2,&alpha2);
 	fscanf(fvps,"%lg %lg\n",&zPol,&gamma);
@@ -265,11 +266,12 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 	  fscanf(fvps,"%lg",&vLoc[rGrid]);
 	  fscanf(fvps,"%lg",&junk1);
 	}//endfor rGrid
+	fclose(fvps);
       }//endif myidState
       if(numProcStates>1){
         Bcast(&vNl[0],numR*numRadMax[iType],MPI_DOUBLE,0,commStates);
         Bcast(&phiNl[0],numR*numRadMax[iType],MPI_DOUBLE,0,commStates);
-        Bcast(&vLoc[0],numR*numRadMax[iType],MPI_DOUBLE,0,commStates);
+        Bcast(&vLoc[0],numR,MPI_DOUBLE,0,commStates);
       }
       // Substract the nonlocal part from local part
       for(iAng=0;iAng<angNow;iAng++){
@@ -287,6 +289,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
       for(iAng=0;iAng<angNow;iAng++){
 	rGrid = numR-1;
 	while(fabs(vNl[iAng*numR+rGrid])<1.0e-5&&rGrid>0){//double check 1.0e-10
+	  //if(myidState==1)printf("rrrrrrrGrid %i\n",rGrid);
 	  rGrid -= 1;
 	}
 	if(rGrid==numR-1){
@@ -747,6 +750,7 @@ void optGCoeff(PSEUDO_REAL *pseudoReal,int numGLg,int numGSm,int numR,
   free(A);
   free(B);
   free(subA);
+  printf("11111111111111111 end solve g\n");
 
 /*--------------------------------------------------------------------------*/
   }/*end routine*/

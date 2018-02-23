@@ -402,7 +402,6 @@ void control_cp_min(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   /*======================================================================*/
   /*  II) Final dump  : get all energyies and write EVERYTHING            */
 
-    printf("111111111111 eke %lg\n",general_data->stat_avg.cp_eke);
     (class->energy_ctrl.iget_full_inter)= 1;
     (class->energy_ctrl.iget_res_inter) = 0;
     (class->energy_ctrl.iget_full_intra)= 1;

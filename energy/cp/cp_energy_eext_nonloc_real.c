@@ -52,7 +52,7 @@ void controlEnergyNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 
   wfReal = (double*)cmalloc(numGrid*sizeof(double));
   wfForceReal = (double*)cmalloc(numGrid*sizeof(double));
-  printf("forceCalcFlag %i\n",forceCalcFlag);
+  //printf("forceCalcFlag %i\n",forceCalcFlag);
 
   for(iGrid=0;iGrid<numGrid;iGrid++){
     wfReal[iGrid] = zfft_tmp[iGrid*2+1];

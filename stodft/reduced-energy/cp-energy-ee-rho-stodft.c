@@ -47,7 +47,8 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
                              COMMUNICATE *communicate,
                              int icoef_form,int icoef_orth,int ifcoef_form,
                              int cp_tau_functional,int cp_min_on,
-                             PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm)
+                             PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm,
+			     CP *cp, CLASS *class,GENERAL_DATA *general_data)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
 {/*Begin Routine*/
@@ -64,6 +65,7 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
   int np_states  = communicate->np_states;
   int fftw3dFlag = cpewald->fftw3dFlag;
   int onebodyMatrixFlag = cpewald->onebodyMatrixFlag;
+  int pseudoRealFlag = cp->pseudo.pseudoReal.pseudoRealFlag;
 
   int  *kastore_sm    =  cpewald->kastr_sm;
   int  *kbstore_sm    =  cpewald->kbstr_sm;
@@ -145,8 +147,13 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
 /*==========================================================================*/
 /* 2) get v|psi> in g space and store it in zfft                            */
 /*   I) get  v|psi> in real space                                           */
-
-    cp_vpsi(zfft,v_ks,nfft);
+    if(pseudoRealFlag==1){
+      memcpy(&zfft_tmp[1],&zfft[1],nfft*sizeof(double));
+      cp_vpsi(zfft,v_ks,nfft);
+      cp->pseudo.pseudoReal.energyCalcFlag = 1;
+      controlEnergyNlppReal(cp,class,general_data,zfft_tmp,zfft,1);
+    }
+    else cp_vpsi(zfft,v_ks,nfft);
     //printf("v_ks %lg\n",v_ks);
 
 /*--------------------------------------------------------------------------*/
@@ -221,7 +228,13 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
 /* 5) get v|psi> in g space and store it in zfft                            */
 /*   I) get  v|psi> in real space                                           */
 
-    cp_vpsi(zfft,v_ks,nfft);
+    if(pseudoRealFlag==1){
+      memcpy(&zfft_tmp[1],&zfft[1],nfft*sizeof(double));
+      cp_vpsi(zfft,v_ks,nfft);
+      cp->pseudo.pseudoReal.energyCalcFlag = 1;
+      controlEnergyNlppReal(cp,class,general_data,zfft_tmp,zfft,0);
+    }
+    else cp_vpsi(zfft,v_ks,nfft);
 
 /*--------------------------------------------------------------------------*/
 /*   II) fourier transform the result back to g-space */

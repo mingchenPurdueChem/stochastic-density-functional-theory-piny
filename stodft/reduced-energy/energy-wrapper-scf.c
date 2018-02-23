@@ -836,7 +836,7 @@ void calcCoefForceScf(CLASS *class,GENERAL_DATA *general_data,
                           zfft,zfft_tmp,v_ks_up,v_ks_tau_up,ak2_sm,&cp_eke,pvten_cp,
                           cp_ptens_calc,hmati_cp,communicate,icoef_form_up,
                           icoef_orth_up,ifcoef_form_up,cp_tau_functional,cp_min_on,
-                          cp_sclr_fft_pkg3d_sm);
+                          cp_sclr_fft_pkg3d_sm,cp,class,general_data);
       *cp_eke_ret += cp_eke;
 
  /*--------------------------------------------*/
@@ -848,7 +848,7 @@ void calcCoefForceScf(CLASS *class,GENERAL_DATA *general_data,
                           zfft,zfft_tmp,v_ks_dn,v_ks_tau_dn,ak2_sm,&cp_eke_dn,pvten_cp,
                           cp_ptens_calc,hmati_cp,communicate,icoef_form_dn,
                           icoef_orth_dn,ifcoef_form_dn,cp_tau_functional,cp_min_on,
-                          cp_sclr_fft_pkg3d_sm);
+                          cp_sclr_fft_pkg3d_sm,cp,class,general_data);
         *cp_eke_ret += cp_eke_dn;
       }/*endif*/
 
@@ -927,6 +927,8 @@ void calcCoefForceWrapSCF(CLASS *class,GENERAL_DATA *general_data,
   CPSCR *cpscr                  = &(cp->cpscr);
   PSEUDO *pseudo                = &(cp->pseudo);
   COMMUNICATE *communicate      = &(cp->communicate);
+  PSEUDO *pseudo		= &(cp->pseudo);
+  PSEUDO_REAL *pseudoReal	= &(pseudo->pseudoReal);
 
   PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm             = &(cp->cp_sclr_fft_pkg3d_sm);
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_sm             = &(cp->cp_para_fft_pkg3d_sm);
@@ -947,6 +949,7 @@ void calcCoefForceWrapSCF(CLASS *class,GENERAL_DATA *general_data,
   int iState,iCoeff,iCoeffStart,index1,index2;
   int cpMinOn = 0; //I don't want to calculate cp_hess
   int myidState = communicate->myid_state;
+  int pseudoRealFlag = pseudoReal->pseudoRealFlag;
 
   int ncoef_l         =    cp_para_fft_pkg3d_lg->ncoef_proc;
   int ncoef_l_dens_cp_box = cp_para_fft_pkg3d_dens_cp_box->ncoef_proc;
@@ -999,7 +1002,9 @@ void calcCoefForceWrapSCF(CLASS *class,GENERAL_DATA *general_data,
   //calcCoefForceForceControlWrapSCF(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
 
   cputime(&time_st);
-  calcNonLocalPseudoScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+  if(pseudoRealFlag==0){
+    calcNonLocalPseudoScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+  }
   cputime(&time_end);
   stodftInfo->cputime1 += time_end-time_st;
 

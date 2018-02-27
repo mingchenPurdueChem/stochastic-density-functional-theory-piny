@@ -33,7 +33,7 @@
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void calcNonLocalMatrix(CP *cp, CP *cpMini, CLASS *classMini,
+void calcRealNonLocalMatrix(CP *cp, CP *cpMini, CLASS *classMini,
                         GENERAL_DATA *generalDataMini)
 /*========================================================================*/
 {/*begin routine*/
@@ -48,6 +48,7 @@ void calcNonLocalMatrix(CP *cp, CP *cpMini, CLASS *classMini,
 /*======================================================================*/
 /* Local Variable declaration                                           */
 #include "../typ_defs/typ_mask.h"
+
   CLATOMS_INFO *clatoms_info = &(classMini->clatoms_info);
   CLATOMS_POS *clatoms_pos = &(classMini->clatoms_pos[1]);
   CPCOEFFS_INFO *cpcoeffs_info = &(cpMini->cpcoeffs_info);
@@ -120,10 +121,25 @@ void calcNonLocalMatrix(CP *cp, CP *cpMini, CLASS *classMini,
     }
   }
 
-  calcVnlMatrixSpinUp(cpMini,classMini,generalDataMini,coefReUp,coefImUp);
+/*======================================================================*/
+/* II) Calculate Tensor of dot product between MO and			*/
+/*     pseudo wf(derivative) */
+
+
+  calcVnlRealDot(cpMini,classMini,generalDataMini,coefReUp,coefImUp,
+		 dotReAllStatesUp,dotImAllStatesUp,dotReAllDxStatesUp,
+		 dotImAllDxStatesUp,dotReAllDyStatesUp,dotImAllDyStatesUp,
+		 dotReAllDzStatesUp,dotImAllDzStatesUp);
   if(cp_lsda==1 && nstate_dn != 0){
-    calcVnlMatrixSpinDn(cpMini,classMini,generalDataMini,coefReDn,coefImDn);
+    calcVnlRealDot(cpMini,classMini,generalDataMini,coefReDn,coefImDn,
+		   dotReAllStatesDn,dotImAllStatesDn,dotReAllDxStatesDn,
+		   dotImAllDxStatesDn,dotReAllDyStatesDn,dotImAllDyStatesDn,
+		   dotReAllDzStatesDn,dotImAllDzStatesDn);
+
   }
+
+/*======================================================================*/
+/* III) Calculate vnl matrix						*/
 
 /*======================================================================*/
     }/*end routine*/
@@ -132,8 +148,12 @@ void calcNonLocalMatrix(CP *cp, CP *cpMini, CLASS *classMini,
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void calcVnlMatrixSpinUp(CP *cpMini, CLASS *classMini,GENERAL_DATA *generalDataMini,
-			double *ccreal,double *ccimag)
+void calcVnlRealDot(CP *cpMini, CLASS *classMini,GENERAL_DATA *generalDataMini,
+		    double *ccreal,double *ccimag,double *dotReAllStates,
+		    double *dotImAllStates,double *dotReAllDxStates,
+		    double *dotImAllDxStates,double *dotReAllDyStates,
+		    double *dotImAllDyStates,double *dotReAllDzStates,
+		    double *dotImAllDzStates)
 /*==========================================================================*/
 /*               Begin subprogram:                                          */
       {/*begin routine*/
@@ -142,63 +162,47 @@ void calcVnlMatrixSpinUp(CP *cpMini, CLASS *classMini,GENERAL_DATA *generalDataM
 
 #include "../typ_defs/typ_mask.h"
 
-   int is,i,iupper;
-   double tpi;
-   double aka,akb,akc,xk,yk,zk,cfact;
-   double eke;
-   int ioff,ncoef1,ioff2;
-   int iii,iis,nis;
-
-   int nfft       = cp_sclr_fft_pkg3d_sm->nfft;
-   int nfft2      = nfft/2;
-   int ncoef      = cp_sclr_fft_pkg3d_sm->ncoef;
-   int myid_state = communicate->myid_state;
-   int np_states  = communicate->np_states;
-   int pseudoRealFlag = cp->pseudo.pseudoReal.pseudoRealFlag;
-
-/*            Local pointers                                       */
-
-   int  *kastore_sm    =  cpewald->kastr_sm;
-   int  *kbstore_sm    =  cpewald->kbstr_sm;
-   int  *kcstore_sm    =  cpewald->kcstr_sm;
-
-#define DEBUG_OFF
-#ifdef DEBUG
-      int icount;
-      double c_g,g2,anorm,sum,vol,cre_now,cim_now;
-      double dx,x_pos,y_pos,z_pos,phase_r,phase_i,arg;
-      FILE *fp;
-#endif
-
-      double sum_check,sum_check_tmp;
-      MPI_Comm comm_states = communicate->comm_states;
-
+  CPEWALD *cpewald = &(cpMini->cpewald);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm = &(cpMini->cp_sclr_fft_pkg3d_sm);
+  PSEUDO *pseudo = &(cpMini->pseudo);
+  PSEUFO_REAL *pseudoReal = &(cpMini->pseudoReal);
+  
+  int is,i,iupper;
+  int ioff,ncoef1,ioff2;
+  int iii,iis,nis;
+  int nfft       = cp_sclr_fft_pkg3d_sm->nfft;
+  int nfft2      = nfft/2;
+  int ncoef      = cp_sclr_fft_pkg3d_sm->ncoef;
+  int myid_state = communicate->myid_state;
+  int np_states  = communicate->np_states;
+  int pseudoRealFlag = cp->pseudo.pseudoReal.pseudoRealFlag;
   int fftw3dFlag = cpewald->fftw3dFlag;
-  int onebodyMatrixFlag = cpewald->onebodyMatrixFlag;
-  double *keMatrix = cpewald->keMatrix;
+  int numNlppAll = pseudoReal->numNlppAll;
+
+  MPI_Comm comm_states = communicate->comm_states;
+
+  int *kastore_sm = cpewald->kastr_sm;
+  int *kbstore_sm = cpewald->kbstr_sm;
+  int *kcstore_sm = cpewald->kcstr_sm;
+
+  double tpi;
+  double aka,akb,akc,xk,yk,zk,cfact;
+  double eke;
+  double sum_check,sum_check_tmp;
+
+  double *wfReal = (double*)cmalloc(numGrid*sizeof(double));
 
 /*=================================================================*/
 /*  Find the upper state limit                                     */
 
-  ncoef1 = ncoef - 1;
+  ncoef1 = ncoef-1;
   iupper = nstate;
-  if(nstate % 2 == 1){
-     iupper = nstate - 1;
-  }
-
-  //debug
-#ifdef REAL_PP_DEBUG  
-  for(i=1;i<=ncoef;i++){
-    fccreal[i] = 0.0;
-    fccimag[i] = 0.0;
-  }
-#endif
+  if(nstate%2==1)iupper = nstate-1;
 
 /*=================================================================*/
 /*  get the forces on the coefs of each state                      */
 
-  for(is=1 ; is<= iupper; is+=2 ){
-
+  for(is=1;is<=iupper;is+=2){
     ioff = (is-1)*ncoef;
     ioff2 = (is)*ncoef;
 
@@ -230,131 +234,98 @@ void calcVnlMatrixSpinUp(CP *cpMini, CLASS *classMini,GENERAL_DATA *generalDataM
 /* 2) get v|psi> in g space and store it in zfft                            */
 /*   I) get  v|psi> in real space                                           */
 
-      memcpy(&zfft_tmp[1],&zfft[1],nfft*sizeof(double));
-      cp_vpsi(zfft,v_ks,nfft);
-      cp->pseudo.pseudoReal.energyCalcFlag = 1;
-      controlEnergyNlppReal(cp,class,general_data,zfft_tmp,zfft,1);
-
-    }/*endfor is */
+    for(iGrid=0;iGrid<nfft2;iGrid++){
+      wfReal[iGrid] = zfft[iGrid*2+1];
+    }
+    calcVnlRealDotState(cpMini,classMini,generalDataMini,wfReal,
+			&dotReAllStates[(is-1)*numNlppAll],
+			&dotImAllStates[(is-1)*numNlppAll],
+			&dotReAllDxStates[(is-1)*numNlppAll],
+                        &dotImAllDxStates[(is-1)*numNlppAll],
+                        &dotReAllDyStates[(is-1)*numNlppAll],
+                        &dotImAllDyStates[(is-1)*numNlppAll],
+                        &dotReAllDzStates[(is-1)*numNlppAll],
+                        &dotImAllDzStates[(is-1)*numNlppAll]);
+    for(iGrid=0;iGrid<nfft2;iGrid++){
+      wfReal[iGrid] = zfft[iGrid*2+2];
+    }
+    calcVnlRealDotState(cpMini,classMini,generalDataMini,wfReal,
+                        &dotReAllStates[is*numNlppAll],
+                        &dotImAllStates[is*numNlppAll],
+                        &dotReAllDxStates[is*numNlppAll],
+                        &dotImAllDxStates[is*numNlppAll],
+                        &dotReAllDyStates[is*numNlppAll],
+                        &dotImAllDyStates[is*numNlppAll],
+                        &dotReAllDzStates[is*numNlppAll],
+                        &dotImAllDzStates[is*numNlppAll]);
+  }//endfor is
 
 /*==========================================================================*/
 /*==========================================================================*/
 /* 4) if there is an odd number of states, go through                       */
 /*      the same procedure using sng_packs                                  */
 
-  if(nstate % 2 != 0){
-     is = nstate;
-     ioff = (is -1)*ncoef;
-
+  if(nstate%2!=0){
+    is = nstate;
+    ioff = (is-1)*ncoef;
 /*--------------------------------------------------------------------------*/
 /*   I) sngl pack                                                           */
-
-     if(fftw3dFlag==0){
-       sngl_pack_coef(&ccreal[ioff],&ccimag[ioff],zfft,cp_sclr_fft_pkg3d_sm);
-     }
-     else{
-       sngl_pack_coef_fftw3d(&ccreal[ioff],&ccimag[ioff],zfft,cp_sclr_fft_pkg3d_sm);
-     }
+    if(fftw3dFlag==0){
+      sngl_pack_coef(&ccreal[ioff],&ccimag[ioff],zfft,cp_sclr_fft_pkg3d_sm);
+    }
+    else{
+      sngl_pack_coef_fftw3d(&ccreal[ioff],&ccimag[ioff],zfft,cp_sclr_fft_pkg3d_sm);
+    }
 /*--------------------------------------------------------------------------*/
 /* II) fourier transform the wavefunctions to real space                    */
 /*      convention exp(-igr)                                                */
 
-      if(fftw3dFlag==0){
-        para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
-      }
-      else{
-        para_fft_gen3d_fwd_to_r_fftw3d(zfft,cp_sclr_fft_pkg3d_sm);
-      }
+     if(fftw3dFlag==0){
+       para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+     }
+     else{
+       para_fft_gen3d_fwd_to_r_fftw3d(zfft,cp_sclr_fft_pkg3d_sm);
+     }
 
 /*==========================================================================*/
 /* 5) get v|psi> in g space and store it in zfft                            */
 /*   I) get  v|psi> in real space                                           */
 
-      memcpy(&zfft_tmp[1],&zfft[1],nfft*sizeof(double));
-      cp_vpsi(zfft,v_ks,nfft);
-      cp->pseudo.pseudoReal.energyCalcFlag = 1;
-      controlEnergyNlppReal(cp,class,general_data,zfft_tmp,zfft,0);
-
+     for(iGrid=0;iGrid<nfft2;iGrid++){
+       wfReal[iGrid] = zfft[iGrid*2+1];
+     }
+     calcVnlRealDotState(cpMini,classMini,generalDataMini,wfReal,
+                         &dotReAllStates[(is-1)*numNlppAll],
+                         &dotImAllStates[(is-1)*numNlppAll],
+                         &dotReAllDxStates[(is-1)*numNlppAll],
+                         &dotImAllDxStates[(is-1)*numNlppAll],
+                         &dotReAllDyStates[(is-1)*numNlppAll],
+                         &dotImAllDyStates[(is-1)*numNlppAll],
+                         &dotReAllDzStates[(is-1)*numNlppAll],
+                         &dotImAllDzStates[(is-1)*numNlppAll]);
     }//endif nstate
+
+/*==========================================================================*/
+/* 6) Free local pointers						    */
+
+  free(&wfReal[0]);
 
 /*======================================================================*/
     }/*end routine*/
 /*======================================================================*/
 
-
-
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void controlEnergyNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
-	       double *zfft_tmp,double *zfft,int flag)
-/*==========================================================================*/
-/*               Begin subprogram:                                          */
-      {/*begin routine*/
-/*==========================================================================*/
-/*               Local variable declarations                                */
-  PSEUDO *pseudo = &(cp->pseudo);
-  PSEUDO_REAL *pseudoReal = &(pseudo->pseudoReal);
-
-  PARA_FFT_PKG3D *cpParaFftPkg3dLgBigBox = &(cp->cp_para_fft_pkg3d_lg);
-  int nfft = cpParaFftPkg3dLgBigBox->nfft;
-  int numGrid = nfft/2;
-  int iGrid;
-  int forceCalcFlag = pseudoReal->forceCalcFlag;
-  double *wfReal,*wfForceReal;
-
-  wfReal = (double*)cmalloc(numGrid*sizeof(double));
-  wfForceReal = (double*)cmalloc(numGrid*sizeof(double));
-  //printf("forceCalcFlag %i\n",forceCalcFlag);
-
-  for(iGrid=0;iGrid<numGrid;iGrid++){
-    wfReal[iGrid] = zfft_tmp[iGrid*2+1];
-    wfForceReal[iGrid] = 0.0;
-  }
-  nlppKBRealEnergy(cp,class,generalData,wfReal,wfForceReal);
-  if(forceCalcFlag==1)nlppKBRealEnergyForce(cp,class,generalData,wfReal);
-  for(iGrid=0;iGrid<numGrid;iGrid++){
-#ifdef REAL_PP_DEBUG  
-    zfft[iGrid*2+1] = wfForceReal[iGrid];
-    //printf("forceeeeeeeee grid 1 %.16lg\n",wfForceReal[iGrid]);
-#else
-    zfft[iGrid*2+1] += wfForceReal[iGrid];
-#endif
-  }
-  if(flag==1){//double
-    for(iGrid=0;iGrid<numGrid;iGrid++){
-      wfReal[iGrid] = zfft_tmp[iGrid*2+2];
-      wfForceReal[iGrid] = 0.0;
-    }
-    nlppKBRealEnergy(cp,class,generalData,wfReal,wfForceReal);
-    if(forceCalcFlag==1)nlppKBRealEnergyForce(cp,class,generalData,wfReal);
-    for(iGrid=0;iGrid<numGrid;iGrid++){
-#ifdef REAL_PP_DEBUG  
-      zfft[iGrid*2+2] = wfForceReal[iGrid];
-      //printf("forceeeeeeeee grid 2 %.16lg\n",wfForceReal[iGrid]);
-#else
-      zfft[iGrid*2+2] += wfForceReal[iGrid];
-#endif
-    }
-  }//endif
-  free(wfReal);
-  free(wfForceReal);
-
-/*--------------------------------------------------------------------------*/
-  }/*end routine*/
-/*==========================================================================*/
-
-
-/*==========================================================================*/
-/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
-/*==========================================================================*/
-void nlppKBRealEnergy(CP *cp,CLASS *class,GENERAL_DATA *generalData,
-	      double *wfReal,double *forceRealNlpp)
+void calcVnlRealDotState(CP *cp,CLASS *class,GENERAL_DATA *generalData,
+	      double *wfReal,double *dotRe,double *dotIm,double*dotReDx,
+	      double *dotImDx,double *dotReDy,double *dotImDy,double *dotReDz,
+	      double *dotImDz)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
 /*************************************************************************/
-/* Real space nlpp, only used in filtering		 */
+/* Calculate dot product for one state					 */
 /*************************************************************************/
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
@@ -385,6 +356,7 @@ void nlppKBRealEnergy(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   int div,res;
   int gridShiftNowRe,gridShiftNowIm;
   int energyCalcFlag = pseudoReal->energyCalcFlag;
+  int atomIndSt;
 
   int *gridMap;
   int *iAtomAtomType = atommaps->iatm_atm_typ;
@@ -429,50 +401,10 @@ void nlppKBRealEnergy(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   for(iPart=0;iPart<numAtom;iPart++){
     if(numGridNlppMap[iPart]>numGridMax)numGridMax = numGridNlppMap[iPart];
   }
-  forceTemp = (double*)cmalloc(numGridMax*sizeof(double));
   wfNbhd = (double*)cmalloc(numGridMax*sizeof(double));
   vol = getdeth(hmat);
   volInv = 1.0/vol;
   volElem = vol/numGridTot;
-
-/*======================================================================*/
-/* I) Allocate local memory                                             */
-
-  // initialize matrix and force
-  for(iState=0;iState<nstate_up;iState++){
-    for(jState=0;jState<nstate_up;jState++){
-      fragInfo->vnlMatrixUp[iFrag][iState*nstate_up+jState] = 0.0;
-    }
-  }
-  if(cp_lsda==1 && nstate_dn != 0){
-    for(iState=0;iState<nstate_dn;iState++){
-      for(jState=0;jState<nstate_up;jState++){
-        fragInfo->vnlMatrixDn[iFrag][iState*nstate_dn+jState] = 0.0;
-      }
-    }
-  }
-
-  for(i=0;i<numAtomCalc;i++){
-    for(iState=0;iState<nstate_up;iState++){
-      for(jState=0;jState<nstate_up;jState++){
-        fragInfo->vnlFxMatrixUp[iFrag][i*nstate_up*nstate_up+iState*nstate_up+jState] = 0.0;
-        fragInfo->vnlFyMatrixUp[iFrag][i*nstate_up*nstate_up+iState*nstate_up+jState] = 0.0;
-        fragInfo->vnlFzMatrixUp[iFrag][i*nstate_up*nstate_up+iState*nstate_up+jState] = 0.0;
-      }
-    }
-    if(cp_lsda==1 && nstate_dn != 0){
-      for(i=0;i<numAtomCalc;i++){
-        for(iState=0;iState<nstate_dn;iState++){
-          for(jState=0;jState<nstate_dn;jState++){
-            fragInfo->vnlFxMatrixDn[iFrag][i*nstate_dn*nstate_dn+iState*nstate_dn+jState] = 0.0;
-            fragInfo->vnlFyMatrixDn[iFrag][i*nstate_dn*nstate_dn+iState*nstate_dn+jState] = 0.0;
-            fragInfo->vnlFzMatrixDn[iFrag][i*nstate_dn*nstate_dn+iState*nstate_dn+jState] = 0.0;
-          }
-        }
-      }
-    }
-  }
-
 
 /*======================================================================*/
 /* II) Loop over iPart/irad/ipart/m                                 */
@@ -485,101 +417,79 @@ void nlppKBRealEnergy(CP *cp,CLASS *class,GENERAL_DATA *generalData,
     countRad = 0;
     countNlppRe = 0;
     countNlppIm = 0;
+    atomIndSt = nlppAtomStartIndex[iAtom];
     /* cpy the wave function */
     if(numGrid>0){ //if numGrid=0, only local pp will be calculated
       for(iGrid=0;iGrid<numGrid;iGrid++){
-    gridIndex = gridNlppMap[iAtom][iGrid];
-    wfNbhd[iGrid] = wfReal[gridIndex];
-    forceTemp[iGrid] = 0.0;
+	gridIndex = gridNlppMap[iAtom][iGrid];
+	wfNbhd[iGrid] = wfReal[gridIndex];
       }
       for(l=0;l<atomLMax[atomType];l++){
-    for(iRad=0;iRad<atomLRadNum[atomType][l];iRad++){
-      radIndex = atomRadMap[atomType][countRad+iRad];
-      energyl = 0.0;
-      for(m=0;m<=l;m++){
-        //calcDotNlpp(wfNbhd,radFun,&ylm[ylmShift],&dotRe,&dotIm);
-        if(m!=0){
-          dotRe = ddotBlasWrapper(numGrid,wfNbhd,1,
-	      &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
-          dotIm = ddotBlasWrapper(numGrid,wfNbhd,1,
-                      &vnlPhiAtomGridIm[gridShiftNowIm],1)*volElem;
-          dotReAll[iAtom][countNlppRe+m] = dotRe;
-          dotImAll[iAtom][countNlppIm+m-1] = dotIm;
-          //printf("dottttttttt %i %i %lg %i %lg\n",
-          //       iAtom,countNlppRe+m,dotRe,countNlppIm+m-1,dotIm);
-          energyl += 2.0*(dotRe*dotRe+dotIm*dotIm)*vpsNormList[radIndex]*volInv;
-          //printf("energy %lg\n",energyl);
-          //printf("m %i dotRe %lg dotIm %lg vpsNormList[radIndex] %lg\n",m,dotRe,dotIm,vpsNormList[radIndex]);
-          dotRe *= 2.0*vpsNormList[radIndex];
-          dotIm *= 2.0*vpsNormList[radIndex];
-          daxpyBlasWrapper(numGrid,dotRe,&vnlPhiAtomGridRe[gridShiftNowRe],1,
-	           forceTemp,1);
-          daxpyBlasWrapper(numGrid,dotIm,&vnlPhiAtomGridIm[gridShiftNowIm],1,
-                               forceTemp,1);
-          /*
-          for(iGrid=0;iGrid<numGrid;iGrid++){
-	forceTemp[iGrid] += 2.0*radFun[iGrid]*(ylm[ylmShift+iGrid]*dotRe-
-		    ylm[ylmShift+numGrid+iGrid]*dotIm)*vpsNormList[radIndex];
-          }//endfor iGrid
-          */
-          gridShiftNowRe += numGrid;
-          gridShiftNowIm += numGrid;
-        }
-        else{
-              dotRe = ddotBlasWrapper(numGrid,wfNbhd,1,
-                      &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
-          dotReAll[iAtom][countNlppRe] = dotRe;
-              //printf("dottttttttt %i %i %lg\n",
-              //       iAtom,countNlppRe,dotRe);
+	for(iRad=0;iRad<atomLRadNum[atomType][l];iRad++){
+	  radIndex = atomRadMap[atomType][countRad+iRad];
+	  energyl = 0.0;
+	  for(m=0;m<=l;m++){
+	    if(m!=0){
+	      dotRe[atomIndSt+countNlppRe+m] 
+				= ddotBlasWrapper(numGrid,wfNbhd,1,
+				  &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
+	      dotIm[atomIndSt+countNlppIm+m-1] 
+				= ddotBlasWrapper(numGrid,wfNbhd,1,
+				  &vnlPhiAtomGridIm[gridShiftNowIm],1)*volElem;
 
-          //printf("numGrid %i\n",numGrid);
-          /*
-          for(iGrid=0;iGrid<numGrid;iGrid++){
-	printf("griddddddddddd %lg %lg\n",wfNbhd[iGrid],vnlPhiAtomGridRe[gridShiftNowRe+iGrid]);
-          }
-          */
-          
-          energyl += dotRe*dotRe*vpsNormList[radIndex]*volInv;
-          //printf("energy %lg\n",energyl);
-          /*
-          for(iGrid=0;iGrid<numGrid;iGrid++){
-	forceTemp[iGrid] += radFun[iGrid]*ylm[ylmShift+iGrid]*dotRe*vpsNormList[radIndex];
-          }//endfor iGrid
-          */
-              //printf("m %i dotRe %lg volElem %lg vpsNormList[radIndex] %lg\n",m,dotRe*volElem,volElem,vpsNormList[radIndex]);
-
-          dotRe *= vpsNormList[radIndex];
-              //printf("m %i dotRe %lg volElem %lg vpsNormList[radIndex] %lg\n",m,dotRe,volElem,vpsNormList[radIndex]);
-
-          daxpyBlasWrapper(numGrid,dotRe,&vnlPhiAtomGridRe[gridShiftNowRe],1,
-	           forceTemp,1);
-          gridShiftNowRe += numGrid;
-          //printf("forcetemppppppp %lg\n",forceTemp[0]);
-        }//endif m
-      }//endfor m
-      //printf("energyl %lg\n",energyl);
-      energy += energyl;
-          countNlppRe += l+1;
-          countNlppIm += l;
-    }//endfor iRad
+              dotReDx[atomIndSt+countNlppRe+m] 
+				= ddotBlasWrapper(numGrid,wfNbhd,1,
+                                  &vnlPhiDxAtomGridRe[gridShiftNowRe],1)*volElem;
+              dotImDx[atomIndSt+countNlppIm+m-1] 
+				= ddotBlasWrapper(numGrid,wfNbhd,1,
+                                  &vnlPhiDxAtomGridIm[gridShiftNowIm],1)*volElem;
+              dotReDy[atomIndSt+countNlppRe+m] 
+				= ddotBlasWrapper(numGrid,wfNbhd,1,
+                                  &vnlPhiDyAtomGridRe[gridShiftNowRe],1)*volElem;
+              dotImDy[atomIndSt+countNlppIm+m-1] 
+				= ddotBlasWrapper(numGrid,wfNbhd,1,
+                                  &vnlPhiDyAtomGridIm[gridShiftNowIm],1)*volElem;
+              dotReDz[atomIndSt+countNlppRe+m] 
+				= ddotBlasWrapper(numGrid,wfNbhd,1,
+                                  &vnlPhiDzAtomGridRe[gridShiftNowRe],1)*volElem;
+              dotImDz[atomIndSt+countNlppIm+m-1] 
+				= ddotBlasWrapper(numGrid,wfNbhd,1,
+                                  &vnlPhiDzAtomGridIm[gridShiftNowIm],1)*volElem;
+	      gridShiftNowRe += numGrid;
+	      gridShiftNowIm += numGrid;
+	    }
+	    else{
+  	      dotRe[atomIndSt+countNlppRe] 
+				= ddotBlasWrapper(numGrid,wfNbhd,1,
+			          &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
+              dotReDx[atomIndSt+countNlppRe] 
+				= ddotBlasWrapper(numGrid,wfNbhd,1,
+                                  &vnlPhiDxAtomGridRe[gridShiftNowRe],1)*volElem;
+              dotReDy[atomIndSt+countNlppRe] 
+				= ddotBlasWrapper(numGrid,wfNbhd,1,
+                                  &vnlPhiDyAtomGridRe[gridShiftNowRe],1)*volElem;
+              dotReDz[atomIndSt+countNlppRe] 
+				= ddotBlasWrapper(numGrid,wfNbhd,1,
+                                  &vnlPhiDzAtomGridRe[gridShiftNowRe],1)*volElem;
+	      gridShiftNowRe += numGrid;
+	    }//endif m
+	  }//endfor m
+	  countNlppRe += l+1;
+	  countNlppIm += l;
+        }//endfor iRad
         countRad += atomLRadNum[atomType][l];
       }//endfor l
       for(iGrid=0;iGrid<numGrid;iGrid++){
-    gridIndex = gridNlppMap[iAtom][iGrid];
-    forceRealNlpp[gridIndex] += forceTemp[iGrid];
+	gridIndex = gridNlppMap[iAtom][iGrid];
+	forceRealNlpp[gridIndex] += forceTemp[iGrid];
       }//endfor iGrid
     }//endif numGrid
   }//endfor iAtom
-
-  if(energyCalcFlag==1){
-    stat_avg->cp_enl += energy;
-  }
 
 /*======================================================================*/
 /* III) free local memory                                               */
 
   free(wfNbhd);
-  free(forceTemp);
 
 /*--------------------------------------------------------------------------*/
    }/* end routine */

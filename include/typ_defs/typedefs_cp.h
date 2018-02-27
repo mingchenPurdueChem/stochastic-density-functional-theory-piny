@@ -455,6 +455,7 @@ typedef struct fragInfo{
 				    /* Lth: numAtmFragVnlCalc[iFrag]*nstat_up*  */
 				    /*	    nstat_up				*/
   double **Fx,**Fy,**Fz;
+
 // This part is to debug. Store the real space wave function, plz
   double *projRealWF;    //nstat_up*rhoRealGridTot
 // Unit Cell Fragment
@@ -1155,12 +1156,37 @@ typedef struct pseudo_real{
   double **dotImAll;	    /* Lst: dot product between one pseudo wavefunction */
                             /*      (V*Phi*Ylm) and system wave function        */
                             /* Lth: natm_tot*(numNlppAtom[iType]-1)             */
-  double **dotReAllDx;      /* Lst: dot product between one pseudo wavefunction */
-  double **dotReAllDy;	    /*      d(V*Phi*Ylm)/dR and system wave function    */
-  double **dotReAllDz;      /* Lth: natm_tot*numNlppAtom[iType]                 */
-  double **dotImAllDx;	    /* Lst: dot product between one pseudo wavefunction */
-  double **dotImAllDy;      /*      d(V*Phi*Ylm)/dR and system wave function    */
-  double **dotImAllDz;      /* Lth: natm_tot*numNlppAtom[iType]                 */
+  //double **dotReAllDx;      /* Lst: dot product between one pseudo wavefunction */
+  //double **dotReAllDy;	    /*      d(V*Phi*Ylm)/dR and system wave function    */
+  //double **dotReAllDz;      /* Lth: natm_tot*numNlppAtom[iType]                 */
+  //double **dotImAllDx;	    /* Lst: dot product between one pseudo wavefunction */
+  //double **dotImAllDy;      /*      d(V*Phi*Ylm)/dR and system wave function    */
+  //double **dotImAllDz;      /* Lth: natm_tot*numNlppAtom[iType]                 */
+  
+  // The following variables are used in fragmented-stochastic DFT
+  int numNlppAll;	     /* Num: All nlpp wf numbers around all nuclei	  */
+  int *nlppAtomStartIndex;   /* Lst: starting index of dot product for each atom  */
+			     /* Lth: natm_tot					  */
+
+  double *dotReAllStatesUp; 
+  double *dotImAllStatesUp;
+  double *dotReAllDxStatesUp;
+  double *dotImAllDxStatesUp;
+  double *dotReAllDyStatesUp;
+  double *dotImAllDyStatesUp;
+  double *dotReAllDzStatesUp;
+  double *dotImAllDzStatesUp;
+  double *dotReAllStatesDn;
+  double *dotImAllStatesDn;
+  double *dotReAllDxStatesDn;
+  double *dotImAllDxStatesDn;
+  double *dotReAllDyStatesDn;
+  double *dotImAllDyStatesDn;
+  double *dotReAllDzStatesDn;
+  double *dotImAllDzStatesDn;
+			    /* Lst: Dot product between one pseudo wavefunction */
+			    /*	    or derivative with one system wave function */
+			    /* Lth: nstate_up(dn)_proc*numNlppAll		*/
 }PSEUDO_REAL;
 
 

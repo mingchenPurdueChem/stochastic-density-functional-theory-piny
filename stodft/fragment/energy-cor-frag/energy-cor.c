@@ -381,8 +381,9 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
   CLATOMS_INFO *clatomsInfoMini = &(classMini->clatoms_info);
   CLATOMS_INFO *clatomsInfo = &(class->clatoms_info);
   CLATOMS_POS *clatomsPosMini = &(classMini->clatoms_pos[1]);
+  PSEUDO *pseudo = &(cpMini->pseudo);
+  PSEUDO_REAL *pseudoReal = &(pseudo->pseudoReal);
   
-
   int iState,jState,iCoeff,iStoc,iAtom;
   int atomInd;
   int iFrag = fragInfo->iFrag;
@@ -396,6 +397,7 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
   int occNumber = stodftInfo->occNumber;
   int numAtomFrag = clatomsInfoMini->natm_tot;
   int numAtomCalc = fragInfo->numAtomFragVnlCalc[iFrag];
+  int pseudoRealFlag = pseudoReal->pseudoRealFlag;
   int *atomFragMapProc = fragInfo->atomFragMapProc[iFrag];
   int *atomVnlCalcMap = fragInfo->atomFragVnlCalcMap[iFrag];
   int *atomVnlCalcFlag = fragInfo->atomFragVnlCalcFlag[iFrag];
@@ -424,7 +426,14 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
 /*======================================================================*/
 /* I) Calculate the matrix                                              */
 
-  calcNonLocalMatrix(cp,cpMini,classMini,generalDataMini);
+  if(pseudoRealFlag==0){
+    calcNonLocalMatrix(cp,cpMini,classMini,generalDataMini);
+  }
+  else{
+    calcPseudoW(cpMini,classMini,generalDataMini);
+    calcPseudoWfDev(cpMini,classMini,generalDataMini);
+    calcRealNonLocalMatrix(cp,cpMini,classMini,generalDataMini);
+  }
   vnl = statAvg->cp_enl;
 
   

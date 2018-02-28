@@ -1164,29 +1164,9 @@ typedef struct pseudo_real{
   //double **dotImAllDz;      /* Lth: natm_tot*numNlppAtom[iType]                 */
   
   // The following variables are used in fragmented-stochastic DFT
-  int numNlppAll;	     /* Num: All nlpp wf numbers around all nuclei	  */
+  int numNlppAllRe;	     /* Num: All nlpp wf numbers around all nuclei	  */
   int *nlppAtomStartIndex;   /* Lst: starting index of dot product for each atom  */
 			     /* Lth: natm_tot					  */
-
-  double *dotReAllStatesUp; 
-  double *dotImAllStatesUp;
-  double *dotReAllDxStatesUp;
-  double *dotImAllDxStatesUp;
-  double *dotReAllDyStatesUp;
-  double *dotImAllDyStatesUp;
-  double *dotReAllDzStatesUp;
-  double *dotImAllDzStatesUp;
-  double *dotReAllStatesDn;
-  double *dotImAllStatesDn;
-  double *dotReAllDxStatesDn;
-  double *dotImAllDxStatesDn;
-  double *dotReAllDyStatesDn;
-  double *dotImAllDyStatesDn;
-  double *dotReAllDzStatesDn;
-  double *dotImAllDzStatesDn;
-			    /* Lst: Dot product between one pseudo wavefunction */
-			    /*	    or derivative with one system wave function */
-			    /* Lth: nstate_up(dn)_proc*numNlppAll		*/
 }PSEUDO_REAL;
 
 

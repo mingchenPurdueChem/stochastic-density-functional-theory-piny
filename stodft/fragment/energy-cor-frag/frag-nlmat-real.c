@@ -57,6 +57,7 @@ void calcRealNonLocalMatrix(CP *cp, CP *cpMini, CLASS *classMini,
   CPSCR *cpscr = &(cpMini->cpscr);
   CPOPTS *cpopts = &(cpMini->cpopts);
   PSEUDO *pseudo = &(cpMini->pseudo);
+  PSEUDO_REAL *pseudoReal = &(pseudo->pseudoReal);
   EWD_SCR *ewd_scr = &(classMini->ewd_scr);
   ATOMMAPS *atommaps = &(classMini->atommaps);
   CELL *cell = &(generalDataMini->cell);
@@ -69,19 +70,92 @@ void calcRealNonLocalMatrix(CP *cp, CP *cpMini, CLASS *classMini,
   STODFTINFO *stodftInfo = cp->stodftInfo;
   FRAGINFO *fragInfo = stodftInfo->fragInfo;
   
-  int i,j,k;
+  int i,j,k,idot;
   int iState,jState;
   int iFrag = fragInfo->iFrag;
   int nstate_up = cpcoeffs_info->nstate_up_proc;
   int nstate_dn = cpcoeffs_info->nstate_dn_proc;
   int cp_lsda = cpopts->cp_lsda;
   int numAtomCalc = fragInfo->numAtomFragVnlCalc[iFrag];
+  int numNlppAll = 0;
+  int numNlppAtom;
+  int numAtomTot = clatoms_info->natm_tot;
+
+  int *nlppAtomStartIndex;
 
   double *coefReUp = cpcoeffs_pos->cre_up;
   double *coefImUp = cpcoeffs_pos->cim_up;
   double *coefReDn = cpcpeffs_pos->cre_dn;
   double *coefImDn = cpcpeffs_pos->cim_dn;
 
+  double *dotReAllStatesUp;
+  double *dotImAllStatesUp;
+  double *dotReAllDxStatesUp;
+  double *dotImAllDxStatesUp;
+  double *dotReAllDyStatesUp;
+  double *dotImAllDyStatesUp;
+  double *dotReAllDzStatesUp;
+  double *dotImAllDzStatesUp;
+  double *dotReAllStatesDn;
+  double *dotImAllStatesDn;
+  double *dotReAllDxStatesDn;
+  double *dotImAllDxStatesDn;
+  double *dotReAllDyStatesDn;
+  double *dotImAllDyStatesDn;
+  double *dotReAllDzStatesDn;
+  double *dotImAllDzStatesDn;
+
+  pseudoReal->nlppAtomStartIndex = (int*)cmalloc(numAtomTot*sizeof(int));
+  nlppAtomStartIndex = pseudoReal->nlppAtomStartIndex;
+  for(iAtom=0;iAtom<numAtomTot;iAtom++){
+    atomType = iAtomAtomType[iAtom+1]-1;   
+    numNlppAtom = 0;
+    nlppAtomStartIndex[iAtom] = numNlppAll;
+    for(l=0;l<atomLMax[atomType];l++){
+      numNlppAtom += atomLRadNum[atomType][l]*(l+1);
+    }
+    numNlppAll += numNlppAtom;
+  }
+
+  dotReAllStatesUp = (double*)cmalloc(numNlppAll*nstate_up*sizeof(double));
+  dotImAllStatesUp = (double*)cmalloc(numNlppAll*nstate_up*sizeof(double));
+  dotReAllDxStatesUp = (double*)cmalloc(numNlppAll*nstate_up*sizeof(double));
+  dotImAllDxStatesUp = (double*)cmalloc(numNlppAll*nstate_up*sizeof(double));
+  dotReAllDyStatesUp = (double*)cmalloc(numNlppAll*nstate_up*sizeof(double));
+  dotImAllDyStatesUp = (double*)cmalloc(numNlppAll*nstate_up*sizeof(double));
+  dotReAllDzStatesUp = (double*)cmalloc(numNlppAll*nstate_up*sizeof(double));
+  dotImAllDzStatesUp = (double*)cmalloc(numNlppAll*nstate_up*sizeof(double));
+
+  for(idot=0;idot<numNlppAll*nstate_up;idot++){
+    dotReAllStatesUp[idot] = 0.0;
+    dotImAllStatesUp[idot] = 0.0;
+    dotReAllDxStatesUp[idot] = 0.0;
+    dotImAllDxStatesUp[idot] = 0.0;
+    dotReAllDyStatesUp[idot] = 0.0;
+    dotImAllDyStatesUp[idot] = 0.0;
+    dotReAllDzStatesUp[idot] = 0.0;
+    dotImAllDzStatesUp[idot] = 0.0;
+  }
+  if(cp_lsda==1&&nstate_dn>0){
+    dotReAllStatesDn = (double*)cmalloc(numNlppAll*nstate_dn*sizeof(double));
+    dotImAllStatesDn = (double*)cmalloc(numNlppAll*nstate_dn*sizeof(double));
+    dotReAllDxStatesDn = (double*)cmalloc(numNlppAll*nstate_dn*sizeof(double));
+    dotImAllDxStatesDn = (double*)cmalloc(numNlppAll*nstate_dn*sizeof(double));
+    dotReAllDyStatesDn = (double*)cmalloc(numNlppAll*nstate_dn*sizeof(double)); 
+    dotImAllDyStatesDn = (double*)cmalloc(numNlppAll*nstate_dn*sizeof(double));
+    dotReAllDzStatesDn = (double*)cmalloc(numNlppAll*nstate_dn*sizeof(double));
+    dotImAllDzStatesDn = (double*)cmalloc(numNlppAll*nstate_dn*sizeof(double));
+    for(idot=0;idot<numNlppAll*nstate_up;idot++){
+      dotReAllStatesDn[idot] = 0.0;
+      dotImAllStatesDn[idot] = 0.0;
+      dotReAllDxStatesDn[idot] = 0.0;
+      dotImAllDxStatesDn[idot] = 0.0;
+      dotReAllDyStatesDn[idot] = 0.0;
+      dotImAllDyStatesDn[idot] = 0.0;
+      dotReAllDzStatesDn[idot] = 0.0;
+      dotImAllDzStatesDn[idot] = 0.0;
+    }
+  }
 
 /*======================================================================*/
 /* I) Initialize matrix and force                                       */
@@ -130,7 +204,7 @@ void calcRealNonLocalMatrix(CP *cp, CP *cpMini, CLASS *classMini,
 		 dotReAllStatesUp,dotImAllStatesUp,dotReAllDxStatesUp,
 		 dotImAllDxStatesUp,dotReAllDyStatesUp,dotImAllDyStatesUp,
 		 dotReAllDzStatesUp,dotImAllDzStatesUp);
-  if(cp_lsda==1 && nstate_dn != 0){
+  if(cp_lsda==1&&nstate_dn!=0){
     calcVnlRealDot(cpMini,classMini,generalDataMini,coefReDn,coefImDn,
 		   dotReAllStatesDn,dotImAllStatesDn,dotReAllDxStatesDn,
 		   dotImAllDxStatesDn,dotReAllDyStatesDn,dotImAllDyStatesDn,
@@ -140,6 +214,20 @@ void calcRealNonLocalMatrix(CP *cp, CP *cpMini, CLASS *classMini,
 
 /*======================================================================*/
 /* III) Calculate vnl matrix						*/
+
+  calcMatrixFromDot(cp,cpMini,classMini,coefReUp,coefImUp,
+		    dotReAllStatesUp,dotImAllStatesUp,dotReAllDxStatesUp,
+                    dotImAllDxStatesUp,dotReAllDyStatesUp,dotImAllDyStatesUp,
+                    dotReAllDzStatesUp,dotImAllDzStatesUp,vnlMatrixUp,
+		    vnlFxMatrixUp,vnlFyMatrixUp,vnlFzMatrixUp);
+  if(cp_lsda==1&&nstate_dn!=0){
+    calcMatrixFromDot(cp,cpMini,classMini,coefReDn,coefImDn,
+		      dotReAllStatesDn,dotImAllStatesDn,dotReAllDxStatesDn,
+		      dotImAllDxStatesDn,dotReAllDyStatesDn,dotImAllDyStatesDn,
+		      dotReAllDzStatesDn,dotImAllDzStatesDn,vnlMatrixDn,
+		      vnlFxMatrixDn,vnlFyMatrixDn,vnlFzMatrixDn);
+  }
+
 
 /*======================================================================*/
     }/*end routine*/
@@ -427,7 +515,6 @@ void calcVnlRealDotState(CP *cp,CLASS *class,GENERAL_DATA *generalData,
       for(l=0;l<atomLMax[atomType];l++){
 	for(iRad=0;iRad<atomLRadNum[atomType][l];iRad++){
 	  radIndex = atomRadMap[atomType][countRad+iRad];
-	  energyl = 0.0;
 	  for(m=0;m<=l;m++){
 	    if(m!=0){
 	      dotRe[atomIndSt+countNlppRe+m] 
@@ -479,10 +566,6 @@ void calcVnlRealDotState(CP *cp,CLASS *class,GENERAL_DATA *generalData,
         }//endfor iRad
         countRad += atomLRadNum[atomType][l];
       }//endfor l
-      for(iGrid=0;iGrid<numGrid;iGrid++){
-	gridIndex = gridNlppMap[iAtom][iGrid];
-	forceRealNlpp[gridIndex] += forceTemp[iGrid];
-      }//endfor iGrid
     }//endif numGrid
   }//endfor iAtom
 
@@ -494,3 +577,185 @@ void calcVnlRealDotState(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 /*--------------------------------------------------------------------------*/
    }/* end routine */
 /*==========================================================================*/
+
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void calcMatrixFromDot(CP *cp, CP *cpMini,double *dotRe,double *dotIm,double*dotReDx,
+              double *dotImDx,double *dotReDy,double *dotImDy,double *dotReDz,
+              double *dotImDz,double *vnlMatrix,double *vnlFxMatrix,
+	      double *vnlFyMatrix,double *vnlFzMatrix,int numStates)
+/*========================================================================*/
+{/*begin routine*/
+/*========================================================================*/
+/*             Local variable declarations                                */
+/**************************************************************************/
+/* This function calculate real sapce non-local pseudopotential matrix    */
+/* w.r.t. fragment MO, as well as the force component, using dot product  */
+/* between wave function and pseudo wave function calculated in		  */
+/* calcVnlRealDotState.							  */
+/**************************************************************************/
+/*======================================================================*/
+/* Local Variable declaration                                           */
+ 
+  CPOPTS *cpopts = &(cpMini->cpopts);
+  PSEUDO *pseudo = &(cpMini->pseudo);
+  PSEUDO_REAL *pseudoReal = &(pseudo->pseudoReal);
+  CELL *cell = &(generalDataMini->cell);
+  CLATOMS_POS *clatoms_pos = &(classMini->clatoms_pos[1]);
+  CLATOMS_INFO *clatoms_info = &(classMini->clatoms_info);
+  ATOMMAPS *atommaps = &(classMini->atommaps);
+  STAT_AVG *stat_avg = &(generalDataMini->stat_avg);
+  STODFTINFO *stodftInfo = cp->stodftInfo;
+  FRAGINFO *fragInfo = stodftInfo->fragInfo;
+  
+  int cpLsda = cpopts->cp_lsda;
+  int iState,jState;
+  int iFrag = fragInfo->iFrag;
+  int numAtomFragVnlCalc = fragInfo->numAtomFragVnlCalc[iFrag];
+  int numAtomTot = clatoms_info->natm_tot;
+  int numGrid,atomIndSt,atomType,countRad,countNlppRe,countNlppIm;
+  int numNlppAll = pseudoReal->numNlppAll;
+  int countAtom;
+
+  int *atomFragVnlCalcMap = fragInfo->atomFragVnlCalcMap[iFrag];
+  int *numGridNlppMap = *pseudoReal->numGridNlppMap;
+  int *nlppAtomStartIndex = pseudoReal->nlppAtomStartIndex;
+  int *atomFragVnlCalcMapInv = fragInfo->atomFragVnlCalcMapInv[iFrag];
+
+  double iTempRe,iTempIm,jTempRe,jTempIm,iTempDRe,iTempDIm,jTempDRe,jTempDIm;
+  double *Fx = clatoms_pos->fx;
+  double *Fy = clatoms_pos->fy;
+  double *Fz = clatoms_pos->fz;
+
+  for(iAtom=0;iAtom<numAtomTot;iAtom++){
+    Fx[iAtom+1] = 0.0;
+    Fy[iAtom+1] = 0.0;
+    Fz[iAtom+1] = 0.0;
+  }
+
+  for(iState=0;iState<numStates;iState++){
+    for(jState=0;jState<numStates;jState++){
+      vnlMatrix[iState*numStates+jState] = 0.0;
+      for(iAtom=0;iAtom<numAtomFragVnlCalc;iAtom++){
+	vnlFxMatrix[iAtom*numStates*numStates+iState*numStates+jState] = 0.0;
+        vnlFyMatrix[iAtom*numStates*numStates+iState*numStates+jState] = 0.0;
+        vnlFzMatrix[iAtom*numStates*numStates+iState*numStates+jState] = 0.0;
+      }//endfor iAtom
+    }//endfor jState
+  }//endfor iState
+
+  for(iState=0;iState<numStates;iState++){
+    for(jState=iState;jState<numStates;jState++){
+      vnlMatrix[iState*numStates+jState] = 0.0;
+      countAtom = 0;
+      for(iAtom=0;iAtom<numAtomTot;iAtom++){
+	//atomIndex = atomFragVnlCalcMap[iAtom];
+	numGrid = numGridNlppMap[iAtom];
+	atomIndSt = nlppAtomStartIndex[iAtom];
+	atomType = iAtomAtomType[iAtom+1]-1;
+	countRad = 0;
+	countNlppRe = 0;
+	countNlppIm = 0;
+	if(numGrid>0){
+	  for(l=0;l<atomLMax[atomType];l++){
+	    for(iRad=0;iRad<atomLRadNum[atomType][l];iRad++){
+	      radIndex = atomRadMap[atomType][countRad+iRad];
+	      if(atomFragVnlCalcMapInv[iAtom]!=-1){ //I can only put if here since I dont wanna skip iRad/l loop
+		atomIndex = atomFragVnlCalcMapInv[iAtom];
+		for(m=0;m<=l;m++){
+		  if(m!=0){
+		    iTempRe = dotRe[iState*numNlppAll+atomIndSt+countNlppRe+m];
+		    iTempIm = dotIm[iState*numNlppAll+atomIndSt+countNlppRe+m-1];
+		    jTempRe = dotRe[jState*numNlppAll+atomIndSt+countNlppRe+m];
+		    jTempIm = dotIm[jState*numNlppAll+atomIndSt+countNlppRe+m-1];
+		    vnlMatrix[iState*numStates+jState] += 2.0*(iTempRe*jTempRe+iTempIm*jTempIm)*vpsNormList[radIndex]*volInv;
+		    iTempDRe = dotReDx[iState*numNlppAll+atomIndSt+countNlppRe+m];
+		    iTempDIm = dotImDx[iState*numNlppAll+atomIndSt+countNlppRe+m-1];
+		    jTempDRe = dotReDx[jState*numNlppAll+atomIndSt+countNlppRe+m];
+                    jTempDIm = dotImDx[jState*numNlppAll+atomIndSt+countNlppRe+m-1];
+		    vnlFxMatrix[countAtom*numStates*numStates+iState*numStates+jState] 
+			     += 2.0*(iTempDRe*jTempRe+iTempDIm*jTempIm+
+			        iTempRe*jTempDRe+iTempIm*jTempDIm)*
+				vpsNormList[radIndex]*volInv;
+                    iTempDRe = dotReDy[iState*numNlppAll+atomIndSt+countNlppRe+m];
+                    iTempDIm = dotImDy[iState*numNlppAll+atomIndSt+countNlppRe+m-1];
+                    jTempDRe = dotReDy[jState*numNlppAll+atomIndSt+countNlppRe+m];
+                    jTempDIm = dotImDy[jState*numNlppAll+atomIndSt+countNlppRe+m-1];
+                    vnlFyMatrix[countAtom*numStates*numStates+iState*numStates+jState]
+                             += 2.0*(iTempDRe*jTempRe+iTempDIm*jTempIm+
+                                iTempRe*jTempDRe+iTempIm*jTempDIm)*
+                                vpsNormList[radIndex]*volInv;
+                    iTempDRe = dotReDz[iState*numNlppAll+atomIndSt+countNlppRe+m];
+                    iTempDIm = dotImDz[iState*numNlppAll+atomIndSt+countNlppRe+m-1];
+                    jTempDRe = dotReDz[jState*numNlppAll+atomIndSt+countNlppRe+m];
+                    jTempDIm = dotImDz[jState*numNlppAll+atomIndSt+countNlppRe+m-1];
+                    vnlFzMatrix[countAtom*numStates*numStates+iState*numStates+jState]
+                             += 2.0*(iTempDRe*jTempRe+iTempDIm*jTempIm+
+                                iTempRe*jTempDRe+iTempIm*jTempDIm)*
+                                vpsNormList[radIndex]*volInv;
+		  }
+		  else{
+		    iTempRe = dotRe[iState*numNlppAll+atomIndSt+countNlppRe];
+		    jTempRe = dotRe[jState*numNlppAll+atomIndSt+countNlppRe];
+		    vnlMatrix[iState*numStates+jState] += iTempRe*jTempRe*vpsNormList[radIndex]*volInv; 
+		    iTempDRe = dotReDx[iState*numNlppAll+atomIndSt+countNlppRe];
+		    jTempDRe = dotReDx[iState*numNlppAll+atomIndSt+countNlppRe];
+		    vnlFxMatrix[countAtom*numStates*numStates+iState*numStates+jState]
+			     += (iTempDRe*jTempRe+iTempRe*jTempDRe)*
+				vpsNormList[radIndex]*volInv;
+                    iTempDRe = dotReDy[iState*numNlppAll+atomIndSt+countNlppRe];
+                    jTempDRe = dotReDy[iState*numNlppAll+atomIndSt+countNlppRe];
+                    vnlFyMatrix[countAtom*numStates*numStates+iState*numStates+jState]
+                             += (iTempDRe*jTempRe+iTempRe*jTempDRe)*
+                                vpsNormList[radIndex]*volInv;
+                    iTempDRe = dotReDz[iState*numNlppAll+atomIndSt+countNlppRe];
+                    jTempDRe = dotReDz[iState*numNlppAll+atomIndSt+countNlppRe];
+                    vnlFzMatrix[countAtom*numStates*numStates+iState*numStates+jState]
+                             += (iTempDRe*jTempRe+iTempRe*jTempDRe)*
+                                vpsNormList[radIndex]*volInv;
+		  }//endif m
+		}//endfor m
+		countAtom += 1;
+	      }//endif atomFragVnlCalcMapInv
+	      countNlppRe += l+1;
+	      countNlppIm += l;
+	    }//endfor iRad
+	    countRad += atomLRadNum[atomType][l];
+	  }//endfor l
+	}//endif numGrid
+      }//endfor iAtom
+    }//endfor jState
+    stat_avg->cp_enl += vnlMatrix[iState*numStates+iState];
+    countAtom = 0;
+    for(iAtom=0;iAtom<numAtomTot;iAtom++){
+      if(atomFragVnlCalcMapInv[iAtom]!=-1){
+	Fx[countAtom+1] += vnlFxMatrix[countAtom*numStates*numStates+iState*numStates+iState];
+        Fy[countAtom+1] += vnlFyMatrix[countAtom*numStates*numStates+iState*numStates+iState];
+        Fz[countAtom+1] += vnlFzMatrix[countAtom*numStates*numStates+iState*numStates+iState];
+	countAtom += 1;
+      }
+    }
+  }//endfor iState
+
+  // Generate the other half
+  for(iState=0;iState<numStates;iState++){
+    for(jState=0;jState<iState;jState++){
+      vnlMatrix[iState*numStates+jState] = vnlMatrix[jState*numStates+iState];
+      for(iAtom=0;iAtom<numAtomFragVnlCalc;iAtom++){
+        vnlFxMatrix[iAtom*numStates*numStates+iState*numStates+jState] 
+		= vnlFxMatrix[iAtom*numStates*numStates+jState*numStates+iState];
+        vnlFyMatrix[iAtom*numStates*numStates+iState*numStates+jState] 
+		= vnlFyMatrix[iAtom*numStates*numStates+jState*numStates+iState];
+        vnlFzMatrix[iAtom*numStates*numStates+iState*numStates+jState] 
+		= vnlFzMatrix[iAtom*numStates*numStates+jState*numStates+iState];
+      }//endfor iAtom
+    }//endfor jState
+  }//endfor iState
+
+
+/*--------------------------------------------------------------------------*/
+   }/* end routine */
+/*==========================================================================*/
+

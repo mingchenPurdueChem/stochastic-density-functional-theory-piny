@@ -48,6 +48,13 @@ void rhoRealCalcDriverFragUnitCell(GENERAL_DATA *generalDataMini,CP *cpMini,CLAS
 void embedWfReal(GENERAL_DATA *,CP *,CLASS *,CP *,double *,double *);
 void qrWrapper(double *,int,int);
 void noiseRealReGen(GENERAL_DATA *,CP *,CLASS *,int);
-
-
+/*-----------------------------------------------------------------*/
+/* frag-nlmat-real.c */
+void calcRealNonLocalMatrix(CP *, CP *, CLASS *,GENERAL_DATA *);
+void calcVnlRealDot(CP *, CLASS *,GENERAL_DATA *,
+                    double *,double *,double *,double *,double *,
+                    double *,double *,double *,double *,double *);
+void calcVnlRealDot(CP *, CLASS *,GENERAL_DATA *,
+                    double *,double *,double *,double *,double *,
+                    double *,double *,double *,double *,double *);
 

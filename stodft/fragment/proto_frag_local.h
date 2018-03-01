@@ -53,8 +53,8 @@ void noiseRealReGen(GENERAL_DATA *,CP *,CLASS *,int);
 void calcRealNonLocalMatrix(CP *, CP *, CLASS *,GENERAL_DATA *);
 void calcVnlRealDot(CP *, CLASS *,GENERAL_DATA *,
                     double *,double *,double *,double *,double *,
-                    double *,double *,double *,double *,double *);
-void calcVnlRealDot(CP *, CLASS *,GENERAL_DATA *,
+                    double *,double *,double *,double *,double *,int);
+void calcVnlRealDotState(CP *, CLASS *,GENERAL_DATA *,
                     double *,double *,double *,double *,double *,
-                    double *,double *,double *,double *,double *);
+                    double *,double *,double *,double *);
 

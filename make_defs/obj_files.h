@@ -159,7 +159,7 @@ FRAG_FILES	      = frag-scf.o init-frag.o parse-frag.o copy-input.o \
 			control-cp-min-frag.o all-control-frag.o all-mall-frag.o \
 			all-read-frag.o gen-wave-frag.o init-coord-hmat-fft.o \
 			reinitFFT.o proj-wf.o wf-real-frag.o energy-cor.o frag-nlmat.o \
-			ke-cor-uc.o
+			frag-nlmat-real.o ke-cor-uc.o
 
 
 OBJS = $(ANALYSIS_FILES) $(ANALYSIS_CP_FILES) $(INTEGRATE_CPPIMD_FILES)\

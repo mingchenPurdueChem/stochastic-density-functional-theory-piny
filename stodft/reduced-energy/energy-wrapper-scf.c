@@ -927,7 +927,6 @@ void calcCoefForceWrapSCF(CLASS *class,GENERAL_DATA *general_data,
   CPSCR *cpscr                  = &(cp->cpscr);
   PSEUDO *pseudo                = &(cp->pseudo);
   COMMUNICATE *communicate      = &(cp->communicate);
-  PSEUDO *pseudo		= &(cp->pseudo);
   PSEUDO_REAL *pseudoReal	= &(pseudo->pseudoReal);
 
   PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm             = &(cp->cp_sclr_fft_pkg3d_sm);

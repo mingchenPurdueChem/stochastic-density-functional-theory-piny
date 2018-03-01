@@ -121,7 +121,7 @@ void coefForceCalcHybridSCF(CPEWALD *,int,double *,double *,double *,double  *,
                             double *,double *,double *,double *,double *,double *,
                             double *,double *,double *,double *,double *,
                             int ,double *,COMMUNICATE *,int ,int ,int ,int ,int ,
-                            PARA_FFT_PKG3D *);
+                            PARA_FFT_PKG3D *,CP *,CLASS *,GENERAL_DATA *);
 /*-----------------------------------------------------------------*/
 /* cp-energy-eext-stodft.c					   */
 void controlEwdLocPreScf(CLATOMS_INFO *,CLATOMS_POS *,CELL *, PTENS *, EWALD *,

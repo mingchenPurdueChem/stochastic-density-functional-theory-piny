@@ -72,6 +72,7 @@ void calcRealNonLocalMatrix(CP *cp, CP *cpMini, CLASS *classMini,
   
   int i,j,k,idot;
   int iState,jState;
+  int iAtom,atomType;
   int iFrag = fragInfo->iFrag;
   int nstate_up = cpcoeffs_info->nstate_up_proc;
   int nstate_dn = cpcoeffs_info->nstate_dn_proc;
@@ -80,13 +81,17 @@ void calcRealNonLocalMatrix(CP *cp, CP *cpMini, CLASS *classMini,
   int numNlppAll = 0;
   int numNlppAtom;
   int numAtomTot = clatoms_info->natm_tot;
+  int l;
 
   int *nlppAtomStartIndex;
-
+  int *iAtomAtomType = atommaps->iatm_atm_typ;
+  int *atomLMax = pseudoReal->numLMax;
+  int **atomLRadNum = pseudoReal->atomLRadNum;
+  
   double *coefReUp = cpcoeffs_pos->cre_up;
   double *coefImUp = cpcoeffs_pos->cim_up;
-  double *coefReDn = cpcpeffs_pos->cre_dn;
-  double *coefImDn = cpcpeffs_pos->cim_dn;
+  double *coefReDn = cpcoeffs_pos->cre_dn;
+  double *coefImDn = cpcoeffs_pos->cim_dn;
 
   double *dotReAllStatesUp;
   double *dotImAllStatesUp;
@@ -105,6 +110,14 @@ void calcRealNonLocalMatrix(CP *cp, CP *cpMini, CLASS *classMini,
   double *dotReAllDzStatesDn;
   double *dotImAllDzStatesDn;
 
+  double *vnlMatrixUp,*vnlMatrixDn;
+  double *vnlFxMatrixUp,*vnlFxMatrixDn;
+  double *vnlFyMatrixUp,*vnlFyMatrixDn;
+  double *vnlFzMatrixUp,*vnlFzMatrixDn;
+
+/*======================================================================*/
+/* I) Allocate memory		                                        */
+  
   pseudoReal->nlppAtomStartIndex = (int*)cmalloc(numAtomTot*sizeof(int));
   nlppAtomStartIndex = pseudoReal->nlppAtomStartIndex;
   for(iAtom=0;iAtom<numAtomTot;iAtom++){
@@ -203,17 +216,22 @@ void calcRealNonLocalMatrix(CP *cp, CP *cpMini, CLASS *classMini,
   calcVnlRealDot(cpMini,classMini,generalDataMini,coefReUp,coefImUp,
 		 dotReAllStatesUp,dotImAllStatesUp,dotReAllDxStatesUp,
 		 dotImAllDxStatesUp,dotReAllDyStatesUp,dotImAllDyStatesUp,
-		 dotReAllDzStatesUp,dotImAllDzStatesUp);
+		 dotReAllDzStatesUp,dotImAllDzStatesUp,nstate_up);
   if(cp_lsda==1&&nstate_dn!=0){
     calcVnlRealDot(cpMini,classMini,generalDataMini,coefReDn,coefImDn,
 		   dotReAllStatesDn,dotImAllStatesDn,dotReAllDxStatesDn,
 		   dotImAllDxStatesDn,dotReAllDyStatesDn,dotImAllDyStatesDn,
-		   dotReAllDzStatesDn,dotImAllDzStatesDn);
+		   dotReAllDzStatesDn,dotImAllDzStatesDn,nstate_dn);
 
   }
 
 /*======================================================================*/
 /* III) Calculate vnl matrix						*/
+
+  vnlMatrixUp = fragInfo->vnlMatrixUp[iFrag];
+  vnlFxMatrixUp = fragInfo->vnlFxMatrixUp[iFrag];
+  vnlFyMatrixUp = fragInfo->vnlFyMatrixUp[iFrag];
+  vnlFzMatrixUp = fragInfo->vnlFzMatrixUp[iFrag];
 
   calcMatrixFromDot(cp,cpMini,classMini,coefReUp,coefImUp,
 		    dotReAllStatesUp,dotImAllStatesUp,dotReAllDxStatesUp,
@@ -221,6 +239,11 @@ void calcRealNonLocalMatrix(CP *cp, CP *cpMini, CLASS *classMini,
                     dotReAllDzStatesUp,dotImAllDzStatesUp,vnlMatrixUp,
 		    vnlFxMatrixUp,vnlFyMatrixUp,vnlFzMatrixUp);
   if(cp_lsda==1&&nstate_dn!=0){
+    vnlMatrixDn = fragInfo->vnlMatrixDn[iFrag];
+    vnlFxMatrixDn = fragInfo->vnlFxMatrixDn[iFrag];
+    vnlFyMatrixDn = fragInfo->vnlFyMatrixDn[iFrag];
+    vnlFzMatrixDn = fragInfo->vnlFzMatrixDn[iFrag];
+
     calcMatrixFromDot(cp,cpMini,classMini,coefReDn,coefImDn,
 		      dotReAllStatesDn,dotImAllStatesDn,dotReAllDxStatesDn,
 		      dotImAllDxStatesDn,dotReAllDyStatesDn,dotImAllDyStatesDn,
@@ -241,7 +264,7 @@ void calcVnlRealDot(CP *cpMini, CLASS *classMini,GENERAL_DATA *generalDataMini,
 		    double *dotImAllStates,double *dotReAllDxStates,
 		    double *dotImAllDxStates,double *dotReAllDyStates,
 		    double *dotImAllDyStates,double *dotReAllDzStates,
-		    double *dotImAllDzStates)
+		    double *dotImAllDzStates,int nstate)
 /*==========================================================================*/
 /*               Begin subprogram:                                          */
       {/*begin routine*/
@@ -253,7 +276,7 @@ void calcVnlRealDot(CP *cpMini, CLASS *classMini,GENERAL_DATA *generalDataMini,
   CPEWALD *cpewald = &(cpMini->cpewald);
   PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm = &(cpMini->cp_sclr_fft_pkg3d_sm);
   PSEUDO *pseudo = &(cpMini->pseudo);
-  PSEUFO_REAL *pseudoReal = &(cpMini->pseudoReal);
+  PSEUDO_REAL *pseudoReal = &(pseudo->pseudoReal);
   
   int is,i,iupper;
   int ioff,ncoef1,ioff2;
@@ -261,13 +284,9 @@ void calcVnlRealDot(CP *cpMini, CLASS *classMini,GENERAL_DATA *generalDataMini,
   int nfft       = cp_sclr_fft_pkg3d_sm->nfft;
   int nfft2      = nfft/2;
   int ncoef      = cp_sclr_fft_pkg3d_sm->ncoef;
-  int myid_state = communicate->myid_state;
-  int np_states  = communicate->np_states;
-  int pseudoRealFlag = cp->pseudo.pseudoReal.pseudoRealFlag;
+  int pseudoRealFlag = pseudoReal->pseudoRealFlag;
   int fftw3dFlag = cpewald->fftw3dFlag;
   int numNlppAll = pseudoReal->numNlppAll;
-
-  MPI_Comm comm_states = communicate->comm_states;
 
   int *kastore_sm = cpewald->kastr_sm;
   int *kbstore_sm = cpewald->kbstr_sm;
@@ -278,7 +297,7 @@ void calcVnlRealDot(CP *cpMini, CLASS *classMini,GENERAL_DATA *generalDataMini,
   double eke;
   double sum_check,sum_check_tmp;
 
-  double *wfReal = (double*)cmalloc(numGrid*sizeof(double));
+  double *wfReal = (double*)cmalloc(nfft2*sizeof(double));
 
 /*=================================================================*/
 /*  Find the upper state limit                                     */
@@ -623,6 +642,9 @@ void calcMatrixFromDot(CP *cp, CP *cpMini,double *dotRe,double *dotIm,double*dot
   int *numGridNlppMap = *pseudoReal->numGridNlppMap;
   int *nlppAtomStartIndex = pseudoReal->nlppAtomStartIndex;
   int *atomFragVnlCalcMapInv = fragInfo->atomFragVnlCalcMapInv[iFrag];
+  int *iAtomAtomType = atommaps->iatm_atm_typ;
+  int **atomLRadNum = pseudoReal->atomLRadNum;
+  int **atomRadMap = pseudoReal->atomRadMap;
 
   double iTempRe,iTempIm,jTempRe,jTempIm,iTempDRe,iTempDIm,jTempDRe,jTempDIm;
   double *Fx = clatoms_pos->fx;

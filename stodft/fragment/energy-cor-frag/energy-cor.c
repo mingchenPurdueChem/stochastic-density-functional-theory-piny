@@ -430,7 +430,7 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
     calcNonLocalMatrix(cp,cpMini,classMini,generalDataMini);
   }
   else{
-    calcPseudoW(cpMini,classMini,generalDataMini);
+    calcPseudoWf(cpMini,classMini,generalDataMini);
     calcPseudoWfDev(cpMini,classMini,generalDataMini);
     calcRealNonLocalMatrix(cp,cpMini,classMini,generalDataMini);
   }

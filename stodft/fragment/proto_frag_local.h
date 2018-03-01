@@ -3,7 +3,8 @@ void controlCpMinFrag(CLASS *,BONDED *,GENERAL_DATA *,CP *,ANALYSIS *);
 
 void initFragMol(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 void initFragUnitCell(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
-void shiftSystem(int ,int ,int ,int *,int *,int *,double *,int *,double *,int *,int *,int *,
+void shiftSystem(int ,int ,int ,int *,int *,int *,double *,int *,
+		 double *,int *,int *,int *,
                  int *,double *,double *,double *,CELL *);
 void partMolUC(double *,int,int *,COMMUNICATE *,FRAGINFO *);
 void mapFragMol(FRAGINFO *,COMMUNICATE *,int,int *,int *);
@@ -57,4 +58,7 @@ void calcVnlRealDot(CP *, CLASS *,GENERAL_DATA *,
 void calcVnlRealDotState(CP *, CLASS *,GENERAL_DATA *,
                     double *,double *,double *,double *,double *,
                     double *,double *,double *,double *);
+void calcMatrixFromDot(CP *, CP *,CLASS *,GENERAL_DATA *,double *,double *,double *,
+		       double *,double *,double *,double *,
+		       double *,double *,double *,double *,double *,int);
 

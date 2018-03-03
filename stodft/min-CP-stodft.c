@@ -538,6 +538,7 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
 /*======================================================================*/
 /* III) Initial KS potential calculation			        */
+/*	Initialize real sapce nlpp*/
 
   stat_avg->cp_ehart = 0.0;
   stat_avg->cp_eext = 0.0;
@@ -547,6 +548,8 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   calcKSPot(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
 
   if(myidState==0)printf("**Finish Calculating Initial Kohn-Sham Potential\n");
+
+
 
   //exit(0);
 /*======================================================================*/

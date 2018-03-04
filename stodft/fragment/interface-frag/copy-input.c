@@ -324,6 +324,11 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   /* 63)\dvr_clus_rmax{#} I dont need it */
   cpMini->cp_dvr_clus.rmax = cp->cp_dvr_clus.rmax;
 
+  // Real space nlpp
+  cpMini->pseudo.pseudoReal.pseudoRealFlag = cp->pseudo.pseudoReal.pseudoRealFlag;
+  cpMini->pseudo.pseudoReal.smoothOpt = cp->pseudo.pseudoReal.smoothOpt;
+  cpMini->pseudo.pseudoReal.radCutRatio = cp->pseudo.pseudoReal.radCutRatio;
+
 /*=======================================================================*/
 /*  IV) set_sim_params_vpot                                              */
 

@@ -48,6 +48,7 @@ void scfStodftInterp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   CPEWALD *cpewald              = &(cp->cpewald);
   CPSCR *cpscr                  = &(cp->cpscr);
   PSEUDO *pseudo                = &(cp->pseudo);
+  PSEUDO_REAL *pseudoReal	= &(pseudo->pseudoReal);
   COMMUNICATE *communicate      = &(cp->communicate);
 
   FOR_SCR      *for_scr         = &(class->for_scr);
@@ -82,6 +83,7 @@ void scfStodftInterp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int numCoeffUpTotal = numStateUp*numCoeff;
   int numCoeffDnTotal = numStateDn*numCoeff;
   int scfStopFlag = 0; // 0=do scf 1=stop scf
+  int pseudoRealFlag = pseudoReal->pseudoRealFlag;
   MPI_Comm commStates = communicate->comm_states;
 
   int *pcoefFormUp		     = &(cpcoeffs_pos->icoef_form_up);
@@ -178,6 +180,11 @@ void scfStodftInterp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   if(myidState==0)printf("**Calculating Initial Kohn-Sham Potential...\n");
   calcLocalPseudoScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
   calcKSPot(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+  if(pseudoRealFlag==1){
+    pseudoReal->forceCalcFlag = 1;
+    initRealNlppWf(cp,class,general_data);
+    pseudoReal->forceCalcFlag = 0;
+  }
 
   if(myidState==0)printf("**Finish Calculating Initial Kohn-Sham Potential\n");
 

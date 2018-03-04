@@ -382,6 +382,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 
   // I need to set the pointer to NULL here since I need to use realloc
   pseudoReal->pseudoWfCalcFlag = 1; // enforce pseudo wf calculation at begining
+  pseudoReal->forceCalcFlag = 1;
   pseudoReal->vnlPhiAtomGridRe = NULL;
   pseudoReal->vnlPhiAtomGridIm = NULL;
   pseudoReal->numGridNlppMap = (int*)cmalloc(numAtomTot*sizeof(int));
@@ -460,20 +461,21 @@ void initRealNlppWf(CP *cp,CLASS *class,GENERAL_DATA *generalData)
 /*==========================================================================*/
 /* III) Calculate d|V_nl*Phi_nl*Y_lm>/dR                                    */
 
-  pseudoReal->vnlPhiDxAtomGridRe = (double*)realloc(pseudoReal->vnlPhiDxAtomGridRe,
-						    numGridTotRe*sizeof(double));
-  pseudoReal->vnlPhiDxAtomGridIm = (double*)realloc(pseudoReal->vnlPhiDxAtomGridIm,
-						    numGridTotIm*sizeof(double));
-  pseudoReal->vnlPhiDyAtomGridRe = (double*)realloc(pseudoReal->vnlPhiDyAtomGridRe,
-						    numGridTotRe*sizeof(double));
-  pseudoReal->vnlPhiDyAtomGridIm = (double*)realloc(pseudoReal->vnlPhiDyAtomGridIm,
-						    numGridTotIm*sizeof(double));
-  pseudoReal->vnlPhiDzAtomGridRe = (double*)realloc(pseudoReal->vnlPhiDzAtomGridRe,
-						    numGridTotRe*sizeof(double));
-  pseudoReal->vnlPhiDzAtomGridIm = (double*)realloc(pseudoReal->vnlPhiDzAtomGridIm,
-						    numGridTotIm*sizeof(double));
-  //calcPseudoWfDev(cp,class,generalData);
-    
+  if(forceCalcFlag==1){
+    pseudoReal->vnlPhiDxAtomGridRe = (double*)realloc(pseudoReal->vnlPhiDxAtomGridRe,
+						      numGridTotRe*sizeof(double));
+    pseudoReal->vnlPhiDxAtomGridIm = (double*)realloc(pseudoReal->vnlPhiDxAtomGridIm,
+						      numGridTotIm*sizeof(double));
+    pseudoReal->vnlPhiDyAtomGridRe = (double*)realloc(pseudoReal->vnlPhiDyAtomGridRe,
+						      numGridTotRe*sizeof(double));
+    pseudoReal->vnlPhiDyAtomGridIm = (double*)realloc(pseudoReal->vnlPhiDyAtomGridIm,
+						      numGridTotIm*sizeof(double));
+    pseudoReal->vnlPhiDzAtomGridRe = (double*)realloc(pseudoReal->vnlPhiDzAtomGridRe,
+						      numGridTotRe*sizeof(double));
+    pseudoReal->vnlPhiDzAtomGridIm = (double*)realloc(pseudoReal->vnlPhiDzAtomGridIm,
+						      numGridTotIm*sizeof(double));
+    calcPseudoWfDev(cp,class,generalData);    
+  }
   //fflush(stdout);
   //exit(0);
   

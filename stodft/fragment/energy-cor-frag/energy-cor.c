@@ -430,8 +430,9 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
     calcNonLocalMatrix(cp,cpMini,classMini,generalDataMini);
   }
   else{
-    calcPseudoWf(cpMini,classMini,generalDataMini);
-    calcPseudoWfDev(cpMini,classMini,generalDataMini);
+    //wave functions wre calculated at interface
+    //calcPseudoWf(cpMini,classMini,generalDataMini);
+    //calcPseudoWfDev(cpMini,classMini,generalDataMini);
     calcRealNonLocalMatrix(cp,cpMini,classMini,generalDataMini);
   }
   vnl = statAvg->cp_enl;

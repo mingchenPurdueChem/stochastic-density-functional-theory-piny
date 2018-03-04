@@ -187,6 +187,7 @@ void control_cp_min(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       // nlpp wf will be calculated in the next step
       if(cp->pseudo.pseudoReal.pseudoRealFlag==1){
 	cp->pseudo.pseudoReal.pseudoWfCalcFlag = 1;
+	cp->pseudo.pseudoReal.forceCalcFlag = 1;
       }
  
       if(idone==1){
@@ -228,10 +229,6 @@ void control_cp_min(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   /*---------------------------------------------------------------------*/
   /* 2) CP_wave minimization                                             */
     if(atm_step==0){
-      // cp wf minimization, we don't need calculate nuclei force
-      if(cp->pseudo.pseudoReal.pseudoRealFlag==1){
-	cp->pseudo.pseudoReal.pseudoWfCalcFlag = 1;
-      }
       elec_e_old     = general_data->stat_avg.cp_eke
                      + general_data->stat_avg.cp_enl
                      + general_data->stat_avg.cp_ehart

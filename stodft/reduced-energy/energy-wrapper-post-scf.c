@@ -65,6 +65,7 @@ void calcCoefForceWrap(CLASS *class,GENERAL_DATA *general_data,
   CPEWALD *cpewald              = &(cp->cpewald);
   CPSCR *cpscr                  = &(cp->cpscr);
   PSEUDO *pseudo                = &(cp->pseudo);
+  PSEUDO_REAL *pseudoReal       = &(pseudo->pseudoReal);
   COMMUNICATE *communicate      = &(cp->communicate);
 
   PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm             = &(cp->cp_sclr_fft_pkg3d_sm);
@@ -83,6 +84,7 @@ void calcCoefForceWrap(CLASS *class,GENERAL_DATA *general_data,
   int numCoeffUpTotal = numStateUpProc*numCoeff;
   int numCoeffDnTotal = numStateDnProc*numCoeff;
   int cpDualGridOptOn  = cpopts->cp_dual_grid_opt;
+  int pseudoRealFlag = pseudoReal->pseudoRealFlag;
   int iState,iCoeff,iCoeffStart,index1,index2;
   int cpMinOn = 0; //I don't want to calculate cp_hess
 
@@ -103,6 +105,9 @@ void calcCoefForceWrap(CLASS *class,GENERAL_DATA *general_data,
       fcre_dn[iCoeff] = 0.0;
       fcim_dn[iCoeff] = 0.0;
     }
+  }
+  if(pseudoRealFlag==1){
+     pseudoReal->forceCalcFlag = 1;
   }
 
 /*==========================================================================*/

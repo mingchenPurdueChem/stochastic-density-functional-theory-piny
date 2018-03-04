@@ -74,6 +74,7 @@ void controlCpMinFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int displace_index=0;
   int sign_index = 1;
   int natm_tot = class->clatoms_info.natm_tot;
+  int pseudoRealFlag = cp->pseudo.pseudoReal.pseudoRealFlag;
   MPI_Comm comm_states = class->communicate.comm_states;
   MPI_Comm world       = class->communicate.world;
   
@@ -254,6 +255,10 @@ void controlCpMinFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
     //int cpBack = general_data->simopts.cp;
     //general_data->simopts.cp = 1000;
+    if(pseudoRealFlag==1){
+      cp->pseudo.pseudoReal.forceCalcFlag = 1;
+      cp->pseudo.pseudoReal.pseudoWfCalcFlag = 1;
+    }
     cp_energy_control(class,bonded,general_data,cp);
     //general_data->simopts.cp = cpBack;
 

@@ -301,6 +301,9 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
       controlVpsParamsFrag(generalDataMini,classMini,cpMini,&fileNameParse,
 			    &splineParse,&cpParse);
     }//endif
+    if(cpMini->pseudo.pseudoReal.pseudoRealFlag==1){
+      controlNlppReal(cpMini,classMini,generalDataMini,&fileNameParse);
+    }
   }//endif
 
 
@@ -374,6 +377,11 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   if(cp_on==1){
     if(myid_state<np_states){
       readCoefFrag(cpMini,generalDataMini,classMini,&fileNameParse,&cpParse,tot_memory);
+      cpMini->pseudo.pseudoReal.forceCalcFlag = 1;
+      if(cpMini->pseudo.pseudoReal.pseudoRealFlag==1){
+        initRealNlppWf(cpMini,classMini,generalDataMini);
+      }
+      cpMini->pseudo.pseudoReal.forceCalcFlag = 0;
       if(myid == 0){cfree(&(fileNameParse.vps_name[1]));} 
     }//endif np_state
   }//endif cp_on

@@ -69,6 +69,8 @@ void genNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
  
   printf("==============================================\n");
   printf("Start Calculating Polynormial Chain Length:\n");
+  printf("totalPoly %i polynormLength %i numChemPot %i\n",totalPoly,polynormLength,numChemPot);
+  printf("beta %lg energyDiff %lg\n",beta,energyDiff);
   stodftInfo->polynormLength = polynormLength;
   stodftCoefPos->expanCoeff = (double *)crealloc(stodftCoefPos->expanCoeff,
 						totalPoly*sizeof(double));

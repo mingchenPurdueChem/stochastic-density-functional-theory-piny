@@ -19,9 +19,11 @@
 #include "../typ_defs/typedefs_class.h"
 #include "../typ_defs/typedefs_bnd.h"
 #include "../typ_defs/typedefs_cp.h"
+#include "../typ_defs/typedefs_par.h"
 #include "../proto_defs/proto_energy_cpcon_entry.h"
 #include "../proto_defs/proto_energy_cpcon_local.h"
 #include "../proto_defs/proto_energy_cp_local.h"
+#include "../proto_defs/proto_vps_params_entry.h"
 #include "../proto_defs/proto_friend_lib_entry.h"
 #include "../proto_defs/proto_communicate_wrappers.h"
 #include "../proto_defs/proto_math.h"
@@ -553,6 +555,8 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   if(myidState==0)printf("**Calculating Initial Kohn-Sham Potential...\n");
   calcLocalPseudoScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
   calcKSPot(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+  if(myidState==0)printf("**Calculating Real Space Non-local Pseudopotential...\n");
+  initRealNlppWf(cp,class,general_data);
 
   if(myidState==0)printf("**Finish Calculating Initial Kohn-Sham Potential\n");
 
@@ -730,9 +734,6 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     if(energyDiff<energyTol||iScf>=numScf)scfStopFlag = 1;
     //exit(0);
   }//endfor iScf
-
-  
-
 
   /*  
   char wfname[100];

@@ -191,6 +191,7 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     calcCoefForceWrapReduce(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     */
     calcCoefForceWrapSCF(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+    //printf("1111111 cp_enl %lg\n",general_data->stat_avg.cp_enl);
 
 /*--------------------------------------------------------------------------*/
 /* iii) Calcluate <phi|H|phi>	                                            */
@@ -210,6 +211,7 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     energy += fcre_up[numCoeff]*cre_up[numCoeff];
     // We already normalize wf to 1.0, so we don't have scaling 0.5 here
     if(myidState==0){
+      //if(iIter%100==0){
       if(iIter%100==0){
 	printf("iStep %i Energy %lg\n",iIter,energy);
 	fflush(stdout);
@@ -219,10 +221,12 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*--------------------------------------------------------------------------*/
 /* iv) Copy H|phi> to |phi> and normalize it                                */
 
+    
     for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
       cre_up[iCoeff] = fcre_up[iCoeff];
       cim_up[iCoeff] = fcim_up[iCoeff];
     }//endfor iCoeff    
+    
     
     length = 0.0;
     for(iCoeff=1;iCoeff<numCoeff;iCoeff++){

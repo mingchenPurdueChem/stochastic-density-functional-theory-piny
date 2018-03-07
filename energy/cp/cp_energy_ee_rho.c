@@ -1928,6 +1928,7 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
    int myid_state = communicate->myid_state;
    int np_states  = communicate->np_states;
    int pseudoRealFlag = cp->pseudo.pseudoReal.pseudoRealFlag;
+   int nlppForceOnly = cp->pseudo.pseudoReal.nlppForceOnly;
 
 /*            Local pointers                                       */
 
@@ -2042,7 +2043,7 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
       fflush(stdout);
       exit(0);
       */
-      cp_vpsi(zfft,v_ks,nfft);  
+      if(nlppForceOnly==0)cp_vpsi(zfft,v_ks,nfft);  
       cp->pseudo.pseudoReal.energyCalcFlag = 1;
       controlEnergyNlppReal(cp,class,general_data,zfft_tmp,zfft,1);
       //Ming
@@ -2133,7 +2134,15 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
 /* 5) get v|psi> in g space and store it in zfft                            */
 /*   I) get  v|psi> in real space                                           */
 
+    if(pseudoRealFlag==1){
+      memcpy(&zfft_tmp[1],&zfft[1],nfft*sizeof(double));
+      if(nlppForceOnly==0)cp_vpsi(zfft,v_ks,nfft);
+      cp->pseudo.pseudoReal.energyCalcFlag = 1;
+      controlEnergyNlppReal(cp,class,general_data,zfft_tmp,zfft,0);
+    }
+    else{
       cp_vpsi(zfft,v_ks,nfft);
+    }
 
 /*--------------------------------------------------------------------------*/
 /*   II) fourier transform the result back to g-space */

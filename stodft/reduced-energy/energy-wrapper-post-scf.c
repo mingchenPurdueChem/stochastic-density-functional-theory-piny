@@ -744,6 +744,8 @@ void calcCoefForcePosScf(CLASS *class,GENERAL_DATA *general_data,
   MPI_Comm comm_states = communicate->comm_states;
   MPI_Comm world       = communicate->world;
 
+  
+
   switch(cp_para_opt){
 
 /*-------------------------------------------------------------------------*/

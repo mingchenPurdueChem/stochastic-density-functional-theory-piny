@@ -50,6 +50,8 @@ void calcEnergyChemPot(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   CPEWALD *cpewald              = &(cp->cpewald);
   CELL *cell			= &(general_data->cell);
   CLATOMS_INFO *clatoms_info	= &(class->clatoms_info);
+  PSEUDO *pseudo		= &(cp->pseudo);
+  PSEUDO_REAL *pseudoReal	= &(pseudo->pseudoReal);
 
   int cpLsda         = cpopts->cp_lsda;
   int numStateStoUp  = stodftInfo->numStateStoUp;
@@ -65,6 +67,7 @@ void calcEnergyChemPot(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int myidState         = communicate->myid_state;
   int numProcStates = communicate->np_states;
   int numAtomTot = clatoms_info->natm_tot;
+  int pseudoRealFlag = pseudoReal->pseudoRealFlag;
   int iState,iCoeff,iChem,iAtom;
   int ioff,iis;
 
@@ -261,7 +264,22 @@ void calcEnergyChemPot(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     
     //pp 
     //calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
-    calcNonLocalPseudoScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+    if(pseudoRealFlag==0){
+      calcNonLocalPseudoScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+    }
+    else{
+      for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
+	fcre_up[iCoeff] = 0.0;
+	fcim_up[iCoeff] = 0.0;
+      }//endfor iCoeff
+      if(cpLsda==1&&numStateDnProc!=0){
+	for(iCoeff=1;iCoeff<=numCoeffDnTotal;iCoeff++){
+	  fcre_dn[iCoeff] = 0.0;
+	  fcim_dn[iCoeff] = 0.0;
+	}//endfor iCoeff
+      }//endif cpLsda     
+      calcCoefForceScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+    }
     //calcCoefForceExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     stat_avg->cp_enl *= occNumber;
 

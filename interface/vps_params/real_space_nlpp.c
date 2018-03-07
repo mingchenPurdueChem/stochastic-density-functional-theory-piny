@@ -396,6 +396,11 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   pseudoReal->vnlPhiDyAtomGridIm = NULL;
   pseudoReal->vnlPhiDzAtomGridRe = NULL;
   pseudoReal->vnlPhiDzAtomGridIm = NULL;
+
+/*======================================================================*/
+/* VI) Initialize other flags                                           */
+
+  pseudoReal->nlppForceOnly = 0;
   
 /*--------------------------------------------------------------------------*/
   }/*end routine*/

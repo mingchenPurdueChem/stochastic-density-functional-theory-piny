@@ -46,6 +46,7 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
   CPOPTS *cpopts                = &(cp->cpopts);
   CPSCR *cpscr		        = &(cp->cpscr);
   PSEUDO *pseudo	        = &(cp->pseudo);
+  PSEUDO_REAL *pseudoReal	= &(pseudo->pseudoReal);
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
   COMMUNICATE *communicate      = &(cp->communicate);
   STAT_AVG *stat_avg            = &(general_data->stat_avg);
@@ -56,6 +57,7 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
   PTENS *ptens			= &(general_data->ptens);
   FRAGINFO *fragInfo            = stodftInfo->fragInfo;
   
+  int pseudoRealFlag = pseudoReal->pseudoRealFlag;
   int cpLsda         = cpopts->cp_lsda;
   int cpGGA  = cpopts->cp_gga;
   int numStateStoUp  = stodftInfo->numStateStoUp;
@@ -382,7 +384,16 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
     
     
     //calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
-    calcNlPseudoPostScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+    if(pseudoRealFlag==0){
+      calcNlPseudoPostScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+    }
+    else{
+      pseudoReal->forceCalcFlag = 1;
+      pseudoReal->nlppForceOnly = 1;
+      calcCoefForcePosScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);   
+      pseudoReal->forceCalcFlag = 0;
+      pseudoReal->nlppForceOnly = 0;
+    }
     //calcCoefForceExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     // force already reduce
     /*

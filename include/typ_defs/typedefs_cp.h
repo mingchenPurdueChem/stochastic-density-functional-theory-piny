@@ -1164,6 +1164,9 @@ typedef struct pseudo_real{
   //double **dotImAllDz;      /* Lth: natm_tot*numNlppAtom[iType]                 */
   
   // The following variables are used in fragmented-stochastic DFT
+  int nlppForceOnly;	     /* Opt: 0=regular coeff force calculation 1=calcluate*/
+			     /*	     only without applying v_ks. Used in the sto  */
+			     /*	     dft nuclei force calculation.		  */
   int numNlppAll;	     /* Num: All nlpp wf numbers around all nuclei	  */
   int *nlppAtomStartIndex;   /* Lst: starting index of dot product for each atom  */
 			     /* Lth: natm_tot					  */

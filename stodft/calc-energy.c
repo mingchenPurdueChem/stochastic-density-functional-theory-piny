@@ -149,7 +149,7 @@ void calcEnergyChemPot(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       }//endfor iState
       eke += ekeDn*occNumber*0.5;
     }//endif cpLsda
-    stat_avg->cp_eke = eke;
+    //stat_avg->cp_eke = eke;
     
     // test ke
     // read in stowf-frag
@@ -281,6 +281,7 @@ void calcEnergyChemPot(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       calcCoefForceScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     }
     //calcCoefForceExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+    stat_avg->cp_eke = eke;
     stat_avg->cp_enl *= occNumber;
 
     if(numProcStates>1){
@@ -304,7 +305,6 @@ void calcEnergyChemPot(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   printf("External Potential Energy(Local Pseudopotential): %.6lg\n",stat_avg->cp_eext);
   printf("Exchange-Correlation Energy: %.6lg\n",stat_avg->cp_exc);
   */
-
 
 /*==========================================================================*/
 }/*end Routine*/
@@ -388,6 +388,8 @@ void calcTotEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     energyKeTrue += fragInfo->keCor;
     energyPNLNoCor = energyPNLTrue;
     energyPNLTrue += fragInfo->vnlCor;
+  }
+  if(myidState==0){ // do this for either using frag or not
     general_data->stat_avg.cp_enl = energyPNLTrue;
     general_data->stat_avg.cp_eke = energyKeTrue;
   }

@@ -444,6 +444,7 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   CPEWALD *cpewald              = &(cp->cpewald);
   CPSCR *cpscr                  = &(cp->cpscr);
   PSEUDO *pseudo                = &(cp->pseudo);
+  PSEUDO_REAL *pseudoReal	= &(pseudo->pseudoReal);
   COMMUNICATE *communicate      = &(cp->communicate);
 
   FOR_SCR      *for_scr         = &(class->for_scr);
@@ -458,7 +459,7 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int numChemPot		= stodftInfo->numChemPot;
   int cpLsda			= cpopts->cp_lsda;
   int cpParaOpt			= cpopts->cp_para_opt;
-
+  int pseudoRealFlag		= pseudoReal->pseudoRealFlag;
   int checkPerdSize		= cpopts->icheck_perd_size;
   int checkDualSize		= cpopts->icheck_dual_size;
   int cpDualGridOptOn		= cpopts->cp_dual_grid_opt;
@@ -555,8 +556,13 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   if(myidState==0)printf("**Calculating Initial Kohn-Sham Potential...\n");
   calcLocalPseudoScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
   calcKSPot(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
-  if(myidState==0)printf("**Calculating Real Space Non-local Pseudopotential...\n");
-  initRealNlppWf(cp,class,general_data);
+  if(pseudoRealFlag==1){
+    if(myidState==0)printf("**Calculating Real Space Non-local Pseudopotential...\n");
+    pseudoReal->forceCalcFlag = 1;
+    initRealNlppWf(cp,class,general_data);
+    pseudoReal->forceCalcFlag = 0;
+  }
+
 
   if(myidState==0)printf("**Finish Calculating Initial Kohn-Sham Potential\n");
 

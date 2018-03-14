@@ -393,6 +393,20 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
       calcCoefForcePosScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);   
       pseudoReal->forceCalcFlag = 0;
       pseudoReal->nlppForceOnly = 0;
+      if(numProcStates>1){
+	printf("iChem %i\n",iChem);
+	Barrier(commStates);
+	Reduce(&fx[1],&fxNl[iChem][0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+	Reduce(&fy[1],&fyNl[iChem][0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+	Reduce(&fz[1],&fzNl[iChem][0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+	Barrier(commStates);
+	printf("111111 myid %i %lg %lg\n",myidState,fxNl[0][0],fx[1]);
+      }
+      if(myidState==0){
+	memcpy(&fx[1],&fxNl[iChem][0],numAtomTot*sizeof(double));
+        memcpy(&fy[1],&fyNl[iChem][0],numAtomTot*sizeof(double));
+        memcpy(&fz[1],&fzNl[iChem][0],numAtomTot*sizeof(double));
+      }
     }
     //calcCoefForceExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     // force already reduce

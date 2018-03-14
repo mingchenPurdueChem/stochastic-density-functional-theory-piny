@@ -76,9 +76,10 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* II) SCF LOOP					                        */
   
-    
+    /*
     controlCpMinFrag(&classMini[iFrag],&bondedMini[iFrag],&generalDataMini[iFrag],
                      &cpMini[iFrag],&analysisMini[iFrag]);      
+    */
     
 
     /*
@@ -99,7 +100,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }//endfor iFrag
   
   if(numProcStates>1)Barrier(commStates);
-  /*
+  
   sprintf(fileNameFragMO,"./frag-MO-%i",myidState);
   fileFragMO = fopen(fileNameFragMO,"w");
   for(iFrag=0;iFrag<numFragProc;iFrag++){
@@ -113,7 +114,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     }
   }
   fclose(fileFragMO);    
-  */
+  
   
 
   if(numProcStates>1)Barrier(commStates);

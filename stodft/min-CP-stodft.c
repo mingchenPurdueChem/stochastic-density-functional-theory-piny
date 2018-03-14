@@ -614,20 +614,20 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
     //exit(0);
     
-    /*   
+       
     char wfname[100];
     //sprintf(wfname,"/scratch/mingchen/tmp/sto-wf-save-%i",myidState);
     printf("Read in stochastic orbitals...\n");
     sprintf(wfname,"sto-wf-save-%i",myidState);
 
-    FILE *filePrintWF = fopen(wfname,"r");
+    FILE *filePrintWF = fopen(wfname,"w");
     for(iChem=0;iChem<numChemPot;iChem++){
       for(iState=0;iState<numStateUp;iState++){
 	for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
-	  fscanf(filePrintWF,"%lg",&stoWfUpRe[iChem][iState*numCoeff+iCoeff]);
-	  fscanf(filePrintWF,"%lg",&stoWfUpIm[iChem][iState*numCoeff+iCoeff]);
-	  //fprintf(filePrintWF,"%.16lg %.16lg\n",stoWfUpRe[iChem][iState*numCoeff+iCoeff],
-	  //	    stoWfUpIm[iChem][iState*numCoeff+iCoeff]);
+	  //fscanf(filePrintWF,"%lg",&stoWfUpRe[iChem][iState*numCoeff+iCoeff]);
+	  //fscanf(filePrintWF,"%lg",&stoWfUpIm[iChem][iState*numCoeff+iCoeff]);
+	  fprintf(filePrintWF,"%.16lg %.16lg\n",stoWfUpRe[iChem][iState*numCoeff+iCoeff],
+	  	    stoWfUpIm[iChem][iState*numCoeff+iCoeff]);
 	}//endfor iCoeff
       }//endfor iState
     }//endfor iChem
@@ -636,7 +636,7 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     printf("%lg %lg\n",stoWfUpRe[0][1],stoWfUpIm[0][1]);
     fflush(stdout);
     //exit(0);
-    */
+    
     
     /*
     printf("Start Readin WF\n");

@@ -614,7 +614,7 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
     //exit(0);
     
-       
+    /*   
     char wfname[100];
     //sprintf(wfname,"/scratch/mingchen/tmp/sto-wf-save-%i",myidState);
     printf("Read in stochastic orbitals...\n");
@@ -636,7 +636,7 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     printf("%lg %lg\n",stoWfUpRe[0][1],stoWfUpIm[0][1]);
     fflush(stdout);
     //exit(0);
-    
+    */
     
     /*
     printf("Start Readin WF\n");

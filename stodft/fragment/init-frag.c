@@ -592,6 +592,7 @@ void initFragUnitCell(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP 
   int *cpVlncUp		    = clatoms_info->cp_vlnc_up;
   int *cpVlncDn		    = clatoms_info->cp_vlnc_dn;
   int *cpAtomList	    = atommaps->cp_atm_lst;
+  int *iAtomAtomType	    = atommaps->iatm_atm_typ;
   int *atomVlncUpAll,*atomVlncDnAll;
   int *numElecUpFragTot,*numElecDnFragTot,*numElecUpFragProc,*numElecDnFragProc;
   int *molTypeMapAll,*molTypeMapFrag,*numMolTypeFrag;
@@ -602,6 +603,7 @@ void initFragUnitCell(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP 
   int **molTypeFrag,**molNumTypeFrag;
   int **molFragMapProc;
   int **atomFragMapProc;
+  int **atomTypeFragMapProc;
   int **molIndFragCent;
   int **atomFragVnlCalcMap;
   int **atomFragVnlCalcMapInv;
@@ -698,9 +700,12 @@ void initFragUnitCell(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP 
   }
   // Get Atom Map
   fragInfo->atomFragMapProc = (int**)cmalloc(numFragProc*sizeof(int*));
+  fragInfo->atomTypeFragMapProc = (int**)cmalloc(numFragProc*sizeof(int*));
   atomFragMapProc = fragInfo->atomFragMapProc;
+  atomTypeFragMapProc = fragInfo->atomTypeFragMapProc;
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     atomFragMapProc[iFrag] = (int*)cmalloc(numAtomFragProc[iFrag]*sizeof(int));
+    atomTypeFragMapProc[iFrag] = (int*)cmalloc(numAtomFragProc[iFrag]*sizeof(int));
   }
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     countAtom = 0;
@@ -710,6 +715,11 @@ void initFragUnitCell(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP 
       }//endfor iAtom
       countAtom += atomNumMol[molFragMapProc[iFrag][iMol]-1];
     }//endfor iMol
+    // Initializing type map
+    for(iAtom=0;iAtom<numAtomFragProc[iFrag];iAtom++){
+      atomInd = atomFragMapProc[iFrag][iAtom];
+      atomTypeFragMapProc[iFrag][iAtom] = iAtomAtomType[atomInd];
+    }
   }//endfor iFrag
 
   //Find the central fragment atoms 
@@ -1592,6 +1602,34 @@ int checkInList(int indNew,int *typeList,int numTypeList)
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+int checkIndexList(int indNew,int *typeList,int numTypeList)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* Check if a mol type is in list                                        */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+  int i,index;
+  index = -1;
+  for(i=0;i<numTypeList;i++){
+    if(typeList[i]==indNew){
+      index = i;
+      break;
+    }
+  }
+
+  return index;
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/

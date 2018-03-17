@@ -302,7 +302,8 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 			    &splineParse,&cpParse);
     }//endif
     if(cpMini->pseudo.pseudoReal.pseudoRealFlag==1){
-      controlNlppReal(cpMini,classMini,generalDataMini,&fileNameParse);
+      copyNlppReal(general_data,bonded,class,cp,generalDataMini,bondedMini,
+                   classMini,cpMini);
     }
   }//endif
 

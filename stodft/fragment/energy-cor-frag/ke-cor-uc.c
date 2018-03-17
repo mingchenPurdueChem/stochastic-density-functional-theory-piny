@@ -68,7 +68,9 @@ void calcKECorUC(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,
 /*======================================================================*/
 /* I) Calculate the matrix                                              */
 
+  //printf("1111111111111111 before ke %lg\n",ke);
   calcKEMatrixUC(generalDataMini,cpMini,classMini,cp,&ke);
+  //printf("1111111111111111 before ke %lg\n",ke);
 
 /*======================================================================*/
 /* I) Allocate Local Memory                                             */

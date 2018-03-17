@@ -208,14 +208,14 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   numGLg = (int)(pseudoReal->gMaxLg/dg)+1;
   pseudoReal->numGSm = numGSm;
   pseudoReal->numGLg = numGLg;
-  printf("gMaxSm %.8lg gMaxLg %.8lg\n",pseudoReal->gMaxSm,pseudoReal->gMaxLg);
+  //printf("gMaxSm %.8lg gMaxLg %.8lg\n",pseudoReal->gMaxSm,pseudoReal->gMaxLg);
   pseudoReal->vNlG = (double*)cmalloc(numRadTot*numGLg*sizeof(double));
   vNlG = pseudoReal->vNlG;
  
   // 2. Read the radial functions and determine the cutoff 
   countRad = 0;
   for(iType=0;iType<numAtomType;iType++){
-    printf("ivpsLabel %i\n",ivpsLabel[iType+1]==1);
+    //printf("ivpsLabel %i\n",ivpsLabel[iType+1]==1);
     //fvps = fopen(vpsFile[iType+1].name,"r");
     rCutoffMax = -10000000.0;
     vLoc = NULL;
@@ -223,6 +223,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
     phiNl = NULL;
     if(ivpsLabel[iType+1]==1){// KB
       if(myidState==0){
+	printf("1111 %s\n",vpsFile[iType+1].name);
 	fvps = fopen(vpsFile[iType+1].name,"r");
 	fscanf(fvps,"%i %lg %i\n",&numR,&rMax,&angNow);
 	fscanf(fvps,"%lg %lg %lg %lg\n",&z1,&alpha1,&z2,&alpha2);

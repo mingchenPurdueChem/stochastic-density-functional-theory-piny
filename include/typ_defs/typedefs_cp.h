@@ -344,6 +344,9 @@ typedef struct fragInfo{
 				    /* Lth: numFragProc*numMolFragProc[i]	*/
   int **atomFragMapProc;	    /* Lst: Map frag atoms to the big box	*/
 				    /* Lth: numFragProc*numAtomFragProc[i]	*/
+  int **atomTypeFragMapProc;	    /* Lst: Map atom types of frag atoms to the */
+				    /*	    atom types in the big box		*/
+				    /* Lth: numFragProc*numAtomFragProc[i]	*/
   int **gridMapProc;		    /* Lst: Map EVERY grid point in small box   */
 				    /*	    the big box, proc version		*/
 				    /* Lth: numFragProc*numGridFragProc[i]	*/

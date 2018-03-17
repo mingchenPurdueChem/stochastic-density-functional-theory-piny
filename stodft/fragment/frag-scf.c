@@ -76,31 +76,13 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* II) SCF LOOP					                        */
   
-    /*
     controlCpMinFrag(&classMini[iFrag],&bondedMini[iFrag],&generalDataMini[iFrag],
                      &cpMini[iFrag],&analysisMini[iFrag]);      
-    */
     
-
-    /*
-    sprintf(fileNameFragMO,"./frag-MO-%i",myidState);
-    fileFragMO = fopen(fileNameFragMO,"w");
-    for(iFrag=0;iFrag<numFragProc;iFrag++){
-      ncoef = cpMini[iFrag].cpcoeffs_info.ncoef;
-      printf("ncoeffff %i\n",ncoef);
-      for(iState=0;iState<numElecUpFragProc[iFrag];iState++){
-	for(icoef=1;icoef<=ncoef;icoef++){
-	  fprintf(fileFragMO,"%.16lg %.16lg\n",cpMini[iFrag].cpcoeffs_pos[1].cre_up[iState*ncoef+icoef],
-		 cpMini[iFrag].cpcoeffs_pos[1].cim_up[iState*ncoef+icoef]);
-	}
-      }
-    }
-    fclose(fileFragMO);  
-    */
   }//endfor iFrag
   
   if(numProcStates>1)Barrier(commStates);
-  /*
+  
   sprintf(fileNameFragMO,"./frag-MO-%i",myidState);
   fileFragMO = fopen(fileNameFragMO,"w");
   for(iFrag=0;iFrag<numFragProc;iFrag++){
@@ -114,7 +96,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     }
   }
   fclose(fileFragMO);    
-  */
+  
   
 
   if(numProcStates>1)Barrier(commStates);
@@ -123,7 +105,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* II) Transfer Data and Free Memory                                    */
 
-  
+  /* 
   sprintf(fileNameFragMO,"frag-MO-%i",myidState);
   if(numFragProc>0){
     fileFragMO = fopen(fileNameFragMO,"r");
@@ -139,6 +121,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     }
     fclose(fileFragMO);
   }
+  */
   
   if(fragOpt==1){
     projRhoMiniMol(cp,general_data,class,cpMini,generalDataMini,classMini,ip_now);

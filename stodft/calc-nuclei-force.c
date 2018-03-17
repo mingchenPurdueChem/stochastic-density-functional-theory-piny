@@ -256,12 +256,14 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
     Reduce(&(stat_avg->vrecip),&vrecip,1,MPI_DOUBLE,MPI_SUM,0,commStates);
   }
   //debug
+  /*
   if(myidState==0){
     for(iAtom=0;iAtom<numAtomTot;iAtom++){
       printf("fxloc %lg fyloc %lg fzloc %lg\n",
 	      fxLoc[iAtom],fyLoc[iAtom],fzLoc[iAtom]);
     }
   }
+  */
 
 /*======================================================================*/
 /* II) Calculate nl pp force+energy                                     */
@@ -539,9 +541,11 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
     }
   }
 
+  /*
   for(iAtom=0;iAtom<numAtomTot;iAtom++){
     printf("NL cor force %.16lg %.16lg %.16lg\n",fxNlTrue[iAtom],fyNlTrue[iAtom],fzNlTrue[iAtom]);
   }
+  */
 
 /*======================================================================*/
 /* V)   Ewald self and background terms                                */

@@ -431,6 +431,7 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 {/*begin routine*/
 /*========================================================================*/
 /*             Local variable declarations                                */
+#include "../typ_defs/typ_mask.h"
 
   CELL *cell			 = &(general_data->cell);  
   PTENS *ptens			 = &(general_data->ptens);
@@ -614,7 +615,7 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
     //exit(0);
     
-    /*   
+       
     char wfname[100];
     //sprintf(wfname,"/scratch/mingchen/tmp/sto-wf-save-%i",myidState);
     printf("Read in stochastic orbitals...\n");
@@ -626,7 +627,8 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 	for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
 	  //fscanf(filePrintWF,"%lg",&stoWfUpRe[iChem][iState*numCoeff+iCoeff]);
 	  //fscanf(filePrintWF,"%lg",&stoWfUpIm[iChem][iState*numCoeff+iCoeff]);
-	  fprintf(filePrintWF,"%.16lg %.16lg\n",stoWfUpRe[iChem][iState*numCoeff+iCoeff],
+	  fprintf(filePrintWF,"%.16lg %.16lg\n",
+		    stoWfUpRe[iChem][iState*numCoeff+iCoeff],
 	  	    stoWfUpIm[iChem][iState*numCoeff+iCoeff]);
 	}//endfor iCoeff
       }//endfor iState
@@ -635,8 +637,9 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     printf("myid %i finish reading in WF.\n",myidState);
     printf("%lg %lg\n",stoWfUpRe[0][1],stoWfUpIm[0][1]);
     fflush(stdout);
+    Barrier(commStates);
     //exit(0);
-    */
+    
     
     /*
     printf("Start Readin WF\n");

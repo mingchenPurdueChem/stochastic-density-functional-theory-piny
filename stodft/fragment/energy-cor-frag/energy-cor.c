@@ -593,11 +593,11 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
     vnlFxCorProc[atomInd] += Fx[iAtom]-vnlFxCorFragLoc[iAtom];
     vnlFyCorProc[atomInd] += Fy[iAtom]-vnlFyCorFragLoc[iAtom];
     vnlFzCorProc[atomInd] += Fz[iAtom]-vnlFzCorFragLoc[iAtom];
-    /*
-    printf("111111111 fnlfrag %.8lg %.8lg %.8lg %.8lg %.8lg %.8lg\n",
+    
+    printf("111111111 fnlfrag %i %.8lg %.8lg %.8lg %.8lg %.8lg %.8lg\n",atomInd,
 	    Fx[iAtom],Fy[iAtom],Fz[iAtom],
 	    vnlFxCorFragLoc[iAtom],vnlFyCorFragLoc[iAtom],vnlFzCorFragLoc[iAtom]);
-    */
+    
   }
   free(vnlFxCorFragLoc);
   free(vnlFyCorFragLoc);

@@ -255,7 +255,8 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     testWfMaxIm[iCoeff-1] = cim_up[iCoeff];
   }
 
-  stodftInfo->energyMax = energy*1.1;
+  //stodftInfo->energyMax = energy*1.1;
+  stodftInfo->energyMax = energy+0.1;
   cpcoeffs_info->nstate_up_proc = numStateUpProc;
   cpcoeffs_info->nstate_dn_proc = numStateDnProc;
  
@@ -479,8 +480,9 @@ void genEnergyMin(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   }
   stodftInfo->eigValMin = energy;
 
-  if(energy>0.0)stodftInfo->energyMin = energy*0.9;
-  else stodftInfo->energyMin = energy*1.1;
+  //if(energy>0.0)stodftInfo->energyMin = energy*0.9;
+  //else stodftInfo->energyMin = energy*1.1;
+  stodftInfo->energyMin = energy-0.1;
 
   cpcoeffs_info->nstate_up_proc = numStateUpProc;
   cpcoeffs_info->nstate_dn_proc = numStateDnProc;

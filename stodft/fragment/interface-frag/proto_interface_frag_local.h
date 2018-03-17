@@ -5,6 +5,8 @@
 void copySimParam(GENERAL_DATA *,BONDED *,CLASS *,CP *,GENERAL_DATA *,BONDED *,
                   CLASS *,CP *,CLASS_PARSE *,CP_PARSE *,FILENAME_PARSE *);
 
+void copyNlppReal(GENERAL_DATA *,BONDED *,CLASS *,CP *,GENERAL_DATA *,BONDED *,
+                  CLASS *,CP *);
 /*-----------------------------------------------------------------*/
 /* all-control-frag.c	                                           */
 

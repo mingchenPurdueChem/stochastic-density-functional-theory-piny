@@ -2379,7 +2379,7 @@ void controlVpsParamsFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
 /*==========================================================================*/
 /* 0.5) Toast bad spline points : (note conversion back to Ry)              */
 
-  if( (pseudo->nsplin_g< 4000) && (2.0*ecut_cp > 60.0) && (iopt_cp_dvr == 0)){
+  if((pseudo->nsplin_g<4000)&&(2.0*ecut_cp>60.0)&&(iopt_cp_dvr== 0)){
      if(myid==0){
        printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
        printf("Now, dude, lets clean up those files and use a \n");
@@ -2388,165 +2388,164 @@ void controlVpsParamsFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
                pseudo->nsplin_g,2.0*ecut_cp);
        printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
        fflush(stdout);
-     }/*endif*/
+     }//endif
      exit(1);
-  }/*endif*/
+  }//endif
 
 /*==========================================================================*/
 /* I) Convert alpha_conv_dual and Allocate some temporary character arrays  */
 
-   alpha_conv_dual        /= (pow(vol_cp,1.0/3.0));
-   pseudo->alpha_conv_dual = alpha_conv_dual;
+  alpha_conv_dual        /= (pow(vol_cp,1.0/3.0));
+  pseudo->alpha_conv_dual = alpha_conv_dual;
 
   if(myid==0){
-   filename_parse->vps_name = (NAME *) cmalloc(natm_typ*sizeof(NAME))-1;
-   vps_file  = (VPS_FILE *) cmalloc(natm_typ*sizeof(VPS_FILE))-1;
-   fun_key   = (char *)cmalloc(MAXWORD*sizeof(char));  
-   filename  = (char *)cmalloc(MAXWORD*sizeof(char));  
-   word      = (DICT_WORD *)cmalloc(sizeof(DICT_WORD))-1;  
-   cvps_typ  = (CVPS *)cmalloc(sizeof(CVPS));  
-   ifirst    = 1;
-   set_potfun_dict(&fun_dict,&num_fun_dict,ifirst);
-   set_potvps_dict(&vps_dict,&num_vps_dict,ifirst);      
-   set_potvps_dict(&vps_dict_tmp,&num_vps_dict,ifirst);      
- }/*endif*/
+    filename_parse->vps_name = (NAME *) cmalloc(natm_typ*sizeof(NAME))-1;
+    vps_file  = (VPS_FILE *) cmalloc(natm_typ*sizeof(VPS_FILE))-1;
+    pseudo->vps_file = (VPS_FILE *) cmalloc(natm_typ*sizeof(VPS_FILE))-1;
+    fun_key   = (char *)cmalloc(MAXWORD*sizeof(char));  
+    filename  = (char *)cmalloc(MAXWORD*sizeof(char));  
+    word      = (DICT_WORD *)cmalloc(sizeof(DICT_WORD))-1;  
+    cvps_typ  = (CVPS *)cmalloc(sizeof(CVPS));  
+    ifirst    = 1;
+    set_potfun_dict(&fun_dict,&num_fun_dict,ifirst);
+    set_potvps_dict(&vps_dict,&num_vps_dict,ifirst);      
+    set_potvps_dict(&vps_dict_tmp,&num_vps_dict,ifirst);      
+  }//endif
 
 
 /*==========================================================================*/
 /* III) Malloc up the vps stuff                                             */ 
 
-   natm_typ_mall      = natm_typ;
+  natm_typ_mall      = natm_typ;
 
-   if( (natm_typ_mall % 2)==0){natm_typ_mall++;}
+  if( (natm_typ_mall % 2)==0){natm_typ_mall++;}
 
-   pseudo->n_ang      = (int *) cmalloc(natm_typ_mall*sizeof(int))-1;
-   pseudo->loc_opt    = (int *) cmalloc(natm_typ_mall*sizeof(int))-1;
-   pseudo->ivps_label = (int *) cmalloc(natm_typ_mall*sizeof(int))-1;
-   pseudo->rcut_nl    = (double *) cmalloc(natm_typ_mall*sizeof(double))-1;
-   pseudo->q_pseud    = (double *) cmalloc(natm_typ_mall*sizeof(double))-1;
+  pseudo->n_ang      = (int *) cmalloc(natm_typ_mall*sizeof(int))-1;
+  pseudo->loc_opt    = (int *) cmalloc(natm_typ_mall*sizeof(int))-1;
+  pseudo->ivps_label = (int *) cmalloc(natm_typ_mall*sizeof(int))-1;
+  pseudo->rcut_nl    = (double *) cmalloc(natm_typ_mall*sizeof(double))-1;
+  pseudo->q_pseud    = (double *) cmalloc(natm_typ_mall*sizeof(double))-1;
 
-   pseudo->nrad_0 = (int *) cmalloc(natm_typ_mall*sizeof(int))-1;
-   pseudo->nrad_1 = (int *) cmalloc(natm_typ_mall*sizeof(int))-1;
-   pseudo->nrad_2 = (int *) cmalloc(natm_typ_mall*sizeof(int))-1;
-   pseudo->nrad_3 = (int *) cmalloc(natm_typ_mall*sizeof(int))-1;
+  pseudo->nrad_0 = (int *) cmalloc(natm_typ_mall*sizeof(int))-1;
+  pseudo->nrad_1 = (int *) cmalloc(natm_typ_mall*sizeof(int))-1;
+  pseudo->nrad_2 = (int *) cmalloc(natm_typ_mall*sizeof(int))-1;
+  pseudo->nrad_3 = (int *) cmalloc(natm_typ_mall*sizeof(int))-1;
 
-   pseudo->nl_alp = (double *) cmalloc(natm_typ_mall*sizeof(double))-1;
-   pseudo->nl_beta = (double *) cmalloc(natm_typ_mall*sizeof(double))-1;
-   pseudo->nl_filter = (int *) cmalloc(natm_typ_mall*sizeof(int))-1;
+  pseudo->nl_alp = (double *) cmalloc(natm_typ_mall*sizeof(double))-1;
+  pseudo->nl_beta = (double *) cmalloc(natm_typ_mall*sizeof(double))-1;
+  pseudo->nl_filter = (int *) cmalloc(natm_typ_mall*sizeof(int))-1;
 
-   pseudo->phi0_0 = (double *) cmalloc(natm_typ_mall*sizeof(double))-1;
-   pseudo->phi0_1 = (double *) cmalloc(natm_typ_mall*sizeof(double))-1;
-   pseudo->phi0_2 = (double *) cmalloc(natm_typ_mall*sizeof(double))-1;
+  pseudo->phi0_0 = (double *) cmalloc(natm_typ_mall*sizeof(double))-1;
+  pseudo->phi0_1 = (double *) cmalloc(natm_typ_mall*sizeof(double))-1;
+  pseudo->phi0_2 = (double *) cmalloc(natm_typ_mall*sizeof(double))-1;
 
 /*==========================================================================*/
 /* III) Loop over all unique atom types and get the vps stuff               */ 
 
- if(myid==0){
-   pseudo->n_rad_max    = 0;
-   pseudo->n_ang_max    = 0;
-   pseudo->n_ang_max_kb = 0;
-   pseudo->n_ang_max_gh = 0;
-   ngh_max = 0;
-   for(i=1;i<=natm_typ;i++) {
-/*--------------------------------------------------------------------------*/
-/*     A) First search the user defined data base                           */
+  if(myid==0){
+    pseudo->n_rad_max    = 0;
+    pseudo->n_ang_max    = 0;
+    pseudo->n_ang_max_kb = 0;
+    pseudo->n_ang_max_gh = 0;
+    ngh_max = 0;
+    for(i=1;i<=natm_typ;i++) {
+  /*--------------------------------------------------------------------------*/
+  /*     A) First search the user defined data base                           */
 
       ifound = 0;
       strcpy(cvps_typ->atm1,atm_typ[i]);
       if(strcasecmp(filename_parse->user_vps_name,"")!=0) {
-         search_base_vps(filename_parse->user_vps_name,
-                         cvps_typ,fun_dict,num_fun_dict,
-                         &vps_dict_tmp,vps_dict,num_vps_dict,&ifound);
-         if(ifound==1){
-            set_vps_params(vps_dict,
-                           filename_parse->user_vps_name,fun_key,
-                           &(pseudo->ivps_label[i]),filename,
-                           &(pseudo->loc_opt[i]),&(pseudo->n_ang[i]),
-                           &(pseudo->rcut_nl[i]),&ngh_now,
-                           &(pseudo->nrad_0[i]),
-                           &(pseudo->nrad_1[i]),&(pseudo->nrad_2[i]),
-                           &(pseudo->nrad_3[i]),
-                           &(pseudo->nl_alp[i]),&(pseudo->nl_beta[i]),
-                           &(pseudo->nl_filter[i]),
-                           &(pseudo->phi0_0[i]),
-                           &(pseudo->phi0_1[i]),&(pseudo->phi0_2[i]));
-         }/*endif*/
-     }/*endif*/
-/*--------------------------------------------------------------------------*/
-/*     B) If you haven't found it search the default data base              */
+	search_base_vps(filename_parse->user_vps_name,
+			 cvps_typ,fun_dict,num_fun_dict,
+			 &vps_dict_tmp,vps_dict,num_vps_dict,&ifound);
+	if(ifound==1){
+	  set_vps_params(vps_dict,
+		   filename_parse->user_vps_name,fun_key,
+		   &(pseudo->ivps_label[i]),filename,
+		   &(pseudo->loc_opt[i]),&(pseudo->n_ang[i]),
+		   &(pseudo->rcut_nl[i]),&ngh_now,
+		   &(pseudo->nrad_0[i]),
+		   &(pseudo->nrad_1[i]),&(pseudo->nrad_2[i]),
+		   &(pseudo->nrad_3[i]),
+		   &(pseudo->nl_alp[i]),&(pseudo->nl_beta[i]),
+		   &(pseudo->nl_filter[i]),
+		   &(pseudo->phi0_0[i]),
+		   &(pseudo->phi0_1[i]),&(pseudo->phi0_2[i]));
+	}//endif
+      }//endif
+  /*--------------------------------------------------------------------------*/
+  /*     B) If you haven't found it search the default data base              */
 
       if(ifound == 0) {
-         search_base_vps(filename_parse->def_vps_name,
-                         cvps_typ,fun_dict,num_fun_dict,
-                         &vps_dict_tmp,vps_dict,num_vps_dict,&ifound);
-         if(ifound==1){
-            set_vps_params(vps_dict,
-                           filename_parse->def_vps_name,fun_key,
-                           &(pseudo->ivps_label[i]),filename,
-                           &(pseudo->loc_opt[i]),&(pseudo->n_ang[i]),
-                           &(pseudo->rcut_nl[i]),&ngh_now,
-                           &(pseudo->nrad_0[i]),
-                           &(pseudo->nrad_1[i]),&(pseudo->nrad_2[i]),
-                           &(pseudo->nrad_3[i]),
-                           &(pseudo->nl_alp[i]),&(pseudo->nl_beta[i]),
-                           &(pseudo->nl_filter[i]),
-                           &(pseudo->phi0_0[i]),
-                           &(pseudo->phi0_1[i]),&(pseudo->phi0_2[i]));
+	search_base_vps(filename_parse->def_vps_name,
+			 cvps_typ,fun_dict,num_fun_dict,
+			 &vps_dict_tmp,vps_dict,num_vps_dict,&ifound);
+	if(ifound==1){
+	  set_vps_params(vps_dict,
+		   filename_parse->def_vps_name,fun_key,
+		   &(pseudo->ivps_label[i]),filename,
+		   &(pseudo->loc_opt[i]),&(pseudo->n_ang[i]),
+		   &(pseudo->rcut_nl[i]),&ngh_now,
+		   &(pseudo->nrad_0[i]),
+		   &(pseudo->nrad_1[i]),&(pseudo->nrad_2[i]),
+		   &(pseudo->nrad_3[i]),
+		   &(pseudo->nl_alp[i]),&(pseudo->nl_beta[i]),
+		   &(pseudo->nl_filter[i]),
+		   &(pseudo->phi0_0[i]),
+		   &(pseudo->phi0_1[i]),&(pseudo->phi0_2[i]));
 
-         }/*endif*/
-      }/*endif*/
+	}//endif
+      }//endif
       printf("vnl_kb_flag %i\n",pseudo->vnl_kb_flag);
-/*--------------------------------------------------------------------------*/
-/*     C) Make sure you have now found this puppy, if not exit              */
+  /*--------------------------------------------------------------------------*/
+  /*     C) Make sure you have now found this puppy, if not exit              */
 
-      if(ifound == 0) {
-         printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
-         printf("Electron pseudopotential interaction with\n"); 
-         printf("%s\n",atm_typ[i]);
-         printf("not found in default interaction data base\n");
-         printf("pi_md.vps\n");
-         if(strlen(filename_parse->user_vps_name) > 0)  {
-             printf("or in user defined pseudopot data base\n");
-             printf("%s\n",filename_parse->user_vps_name);
-         /*endif*/}
-        putchar('\n');
-        printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
-        fflush(stdout);
-        exit(1);
-     }/*endif*/
+      if(ifound==0){
+	 printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+	 printf("Electron pseudopotential interaction with\n"); 
+	 printf("%s\n",atm_typ[i]);
+	 printf("not found in default interaction data base\n");
+	 printf("pi_md.vps\n");
+	 if(strlen(filename_parse->user_vps_name) > 0)  {
+	     printf("or in user defined pseudopot data base\n");
+	     printf("%s\n",filename_parse->user_vps_name);
+	 /*endif*/}
+	putchar('\n');
+	printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+	fflush(stdout);
+	exit(1);
+      }//endif
 
-/*--------------------------------------------------------------------------*/
-/*     D) Find maximum angular momentum component                           */
-      pseudo->n_ang_max = (pseudo->n_ang_max > pseudo->n_ang[i] ? 
-                           pseudo->n_ang_max : pseudo->n_ang[i]);
-
-     if(pseudo->ivps_label[i] != 2){
-      pseudo->n_ang_max_kb = (pseudo->n_ang_max_kb > pseudo->n_ang[i] ? 
-                              pseudo->n_ang_max_kb : pseudo->n_ang[i]);
-     }else{
-      pseudo->n_ang_max_gh = (pseudo->n_ang_max_gh > pseudo->n_ang[i] ? 
-                              pseudo->n_ang_max_gh : pseudo->n_ang[i]);
-      natm_typ_gh++;
-     }/*endif*/
-
-      pseudo->n_rad_max = (pseudo->n_rad_max > pseudo->nrad_0[i] ? 
-                           pseudo->n_rad_max : pseudo->nrad_0[i]);
-      pseudo->n_rad_max = (pseudo->n_rad_max > pseudo->nrad_1[i] ?
-                           pseudo->n_rad_max : pseudo->nrad_1[i]);
-      pseudo->n_rad_max = (pseudo->n_rad_max > pseudo->nrad_2[i] ?
-                           pseudo->n_rad_max : pseudo->nrad_2[i]);
-      pseudo->n_rad_max = (pseudo->n_rad_max > pseudo->nrad_3[i] ?
-                           pseudo->n_rad_max : pseudo->nrad_3[i]);
+  /*--------------------------------------------------------------------------*/
+  /*     D) Find maximum angular momentum component                           */
+      pseudo->n_ang_max = (pseudo->n_ang_max>pseudo->n_ang[i]? 
+			   pseudo->n_ang_max:pseudo->n_ang[i]);
+      if(pseudo->ivps_label[i]!=2){
+        pseudo->n_ang_max_kb = (pseudo->n_ang_max_kb>pseudo->n_ang[i]? 
+			        pseudo->n_ang_max_kb:pseudo->n_ang[i]);
+      }else{
+        pseudo->n_ang_max_gh = (pseudo->n_ang_max_gh>pseudo->n_ang[i]? 
+			        pseudo->n_ang_max_gh:pseudo->n_ang[i]);
+        natm_typ_gh++;
+      }//endif
+      pseudo->n_rad_max = (pseudo->n_rad_max>pseudo->nrad_0[i]? 
+			   pseudo->n_rad_max:pseudo->nrad_0[i]);
+      pseudo->n_rad_max = (pseudo->n_rad_max>pseudo->nrad_1[i]?
+			   pseudo->n_rad_max:pseudo->nrad_1[i]);
+      pseudo->n_rad_max = (pseudo->n_rad_max>pseudo->nrad_2[i]?
+			   pseudo->n_rad_max:pseudo->nrad_2[i]);
+      pseudo->n_rad_max = (pseudo->n_rad_max>pseudo->nrad_3[i]?
+			   pseudo->n_rad_max:pseudo->nrad_3[i]);
       ngh_max           = MAX(ngh_max,ngh_now);
-
       strcpy(vps_file[i].name,filename);
       strcpy(filename_parse->vps_name[i],filename);
-   }/*endfor natm_typ*/
-      pseudo->ngh = ngh_max;
-      pseudo->natm_typ_gh  = natm_typ_gh;
- }/*endif : myid==0*/
+      strcpy(pseudo->vps_file[i].name,filename);
+    }//endfor natm_typ
+    pseudo->ngh = ngh_max;
+    pseudo->natm_typ_gh  = natm_typ_gh;
+  }//endif : myid==0
 
- if(num_proc>1){
+  if(num_proc>1){
     Bcast(&(pseudo->ivps_label[1]),natm_typ,MPI_INT,0,comm);
     Bcast(&(pseudo->loc_opt[1]),natm_typ,MPI_INT,0,comm);
     Bcast(&(pseudo->n_ang[1]),natm_typ,MPI_INT,0,comm);
@@ -2575,87 +2574,77 @@ void controlVpsParamsFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
     Bcast(&(ngh_max),1,MPI_INT,0,comm);
 
     natm_typ_gh = pseudo->natm_typ_gh;
-
- }/*endif*/
+  }//endif
 
 /*==========================================================================*/
 /*  III) Allocate more memory for pseudopotentials                          */
 
 /*--------------------------------------------------------------------------*/
 /* i) Malloc Pseudo spline and other stuff */
-   pseudo->nsplin_g_tot = (pseudo->n_ang_max+1)*(pseudo->n_rad_max)
+  pseudo->nsplin_g_tot = (pseudo->n_ang_max+1)*(pseudo->n_rad_max)
                          *(pseudo->nsplin_g)*natm_typ;
-   nsplin_mall = pseudo->nsplin_g_tot;
-   norm_mall   = (pseudo->n_ang_max+1)*natm_typ*
+  nsplin_mall = pseudo->nsplin_g_tot;
+  norm_mall   = (pseudo->n_ang_max+1)*natm_typ*
                  (pseudo->n_rad_max)*(pseudo->n_rad_max);
-   if((nsplin_mall % 2)==0){nsplin_mall++;}
-   if((norm_mall % 2)==0){norm_mall++;}
-   pseudo->nsplin_g_mall = nsplin_mall;
-   pseudo->nvpsnorm_mall = norm_mall;
+  if((nsplin_mall % 2)==0){nsplin_mall++;}
+  if((norm_mall % 2)==0){norm_mall++;}
+  pseudo->nsplin_g_mall = nsplin_mall;
+  pseudo->nvpsnorm_mall = norm_mall;
 
-   pseudo->vps0    = (double *) cmalloc(nsplin_mall*sizeof(double))-1;
-   pseudo->vps1    = (double *) cmalloc(nsplin_mall*sizeof(double))-1;
-   pseudo->vps2    = (double *) cmalloc(nsplin_mall*sizeof(double))-1;
-   pseudo->vps3    = (double *) cmalloc(nsplin_mall*sizeof(double))-1;
+  pseudo->vps0 = (double*)cmalloc(nsplin_mall*sizeof(double))-1;
+  pseudo->vps1 = (double*)cmalloc(nsplin_mall*sizeof(double))-1;
+  pseudo->vps2 = (double*)cmalloc(nsplin_mall*sizeof(double))-1;
+  pseudo->vps3 = (double*)cmalloc(nsplin_mall*sizeof(double))-1;
  
-   now_mem   = ( nsplin_mall*4 *sizeof(double))*1.e-06;
+  now_mem = (nsplin_mall*4*sizeof(double))*1.e-06;
 
-   if(cp_ptens_calc == 1 || iopt_cp_dvr){
-
-     pseudo->dvps0    = (double *) cmalloc(nsplin_mall*sizeof(double))-1;
-     pseudo->dvps1    = (double *) cmalloc(nsplin_mall*sizeof(double))-1;
-     pseudo->dvps2    = (double *) cmalloc(nsplin_mall*sizeof(double))-1;
-     pseudo->dvps3    = (double *) cmalloc(nsplin_mall*sizeof(double))-1;
-   }/* endif */
-   pseudo->vpsnorm = (double *) cmalloc(norm_mall*sizeof(double))-1;
-   pseudo->gzvps   = (double *) cmalloc(natm_typ_mall*sizeof(double))-1;
-
-   pseudo->gzvps0  = (double *) cmalloc(natm_typ_mall*pseudo->n_rad_max*
-                                        sizeof(double))-1;
-   pseudo->nrad_max_l = (int *)cmalloc(natm_typ_mall*5*sizeof(int))-1;
+  if(cp_ptens_calc==1||iopt_cp_dvr){
+     pseudo->dvps0 = (double*)cmalloc(nsplin_mall*sizeof(double))-1;
+     pseudo->dvps1 = (double*)cmalloc(nsplin_mall*sizeof(double))-1;
+     pseudo->dvps2 = (double*)cmalloc(nsplin_mall*sizeof(double))-1;
+     pseudo->dvps3 = (double*)cmalloc(nsplin_mall*sizeof(double))-1;
+  }//endif
+  pseudo->vpsnorm = (double*)cmalloc(norm_mall*sizeof(double))-1;
+  pseudo->gzvps   = (double*)cmalloc(natm_typ_mall*sizeof(double))-1;
+  pseudo->gzvps0  = (double*)cmalloc(natm_typ_mall*pseudo->n_rad_max*
+                                       sizeof(double))-1;
+  pseudo->nrad_max_l = (int*)cmalloc(natm_typ_mall*5*sizeof(int))-1;
 
 /*--------------------------------------------------------------------------*/
 /* iii) Pseudo list : MAJOR HACKET JOB */
 
-   natm_mall = natm_tot;
-   if((natm_mall % 2)==0){natm_mall++;}
-   nlist_mall = (pseudo->n_ang_max+1)*natm_tot;
-   if((nlist_mall % 2)==0){nlist_mall++;}
-   pseudo->n_ang_mall    = pseudo->n_ang_max;
-   pseudo->nlist_mall    = nlist_mall;
+  natm_mall = natm_tot;
+  if((natm_mall%2)==0)natm_mall++;
+  nlist_mall = (pseudo->n_ang_max+1)*natm_tot;
+  if((nlist_mall%2)==0){nlist_mall++;}
+  pseudo->n_ang_mall    = pseudo->n_ang_max;
+  pseudo->nlist_mall    = nlist_mall;
 
-   pseudo->x0w   = (double *) cmalloc(natm_mall*sizeof(double))-1;
-   pseudo->y0w   = (double *) cmalloc(natm_mall*sizeof(double))-1;
-   pseudo->z0w   = (double *) cmalloc(natm_mall*sizeof(double))-1;
+  pseudo->x0w   = (double*)cmalloc(natm_mall*sizeof(double))-1;
+  pseudo->y0w   = (double*)cmalloc(natm_mall*sizeof(double))-1;
+  pseudo->z0w   = (double*)cmalloc(natm_mall*sizeof(double))-1;
+  pseudo->np_nl        = (int*)cmalloc((pseudo->n_ang_max+1)*sizeof(int))-1;
+  pseudo->np_nl_gh     = (int*)cmalloc((pseudo->n_ang_max+1)*sizeof(int))-1;
+  pseudo->ip_nl        = (int*)cmalloc(nlist_mall*sizeof(int))-1;
+  pseudo->ip_nl_gh     = (int*)cmalloc(nlist_mall*sizeof(int))-1;
+  pseudo->ip_nl_rev    = (int*)cmalloc(nlist_mall*sizeof(int))-1;
+  pseudo->ip_nl_rev_gh = (int*)cmalloc(nlist_mall*sizeof(int))-1;
 
-   pseudo->np_nl        = (int *) cmalloc((pseudo->n_ang_max+1)*sizeof(int))-1;
-   pseudo->np_nl_gh     = (int *) cmalloc((pseudo->n_ang_max+1)*sizeof(int))-1;
-   pseudo->ip_nl        = (int *) cmalloc(nlist_mall*sizeof(int))-1;
-   pseudo->ip_nl_gh     = (int *) cmalloc(nlist_mall*sizeof(int))-1;
-   pseudo->ip_nl_rev    = (int *) cmalloc(nlist_mall*sizeof(int))-1;
-   pseudo->ip_nl_rev_gh = (int *) cmalloc(nlist_mall*sizeof(int))-1;
+  pseudo->map_nl = (int*)cmalloc(natm_mall*sizeof(int))-1;
+  pseudo->ip_loc_cp_box = (int*)cmalloc(natm_mall *sizeof(int))-1;
 
-   pseudo->map_nl = (int *) cmalloc(natm_mall*sizeof(int))-1;
-   pseudo->ip_loc_cp_box = (int *) cmalloc(natm_mall *sizeof(int))-1;
+  pseudo->np_nl_rad_str = cmall_int_mat(1,pseudo->n_ang_max+1,
+                                         1,pseudo->n_rad_max);
+  pseudo->np_nl_rad_end = cmall_int_mat(1,pseudo->n_ang_max+1,
+                                         1,pseudo->n_rad_max);
+  pseudo->rgh = (double*)cmalloc(ngh_max*sizeof(double))-1;
+  nmall_gh =  ngh_max*(pseudo->natm_typ_gh)*(pseudo->n_ang_max+1);
+  pseudo->wgh = (double*)cmalloc((nmall_gh)*sizeof(double))-1;
 
-   pseudo->np_nl_rad_str  = cmall_int_mat(1,pseudo->n_ang_max+1,
-                                          1,pseudo->n_rad_max);
-   pseudo->np_nl_rad_end  = cmall_int_mat(1,pseudo->n_ang_max+1,
-                                          1,pseudo->n_rad_max);
+  for(i=1;i<=nmall_gh;i++)pseudo->wgh[i] = 0.0;
 
-   pseudo->rgh = (double *)cmalloc(ngh_max*sizeof(double))-1;
-
-   nmall_gh =  ngh_max*(pseudo->natm_typ_gh)*(pseudo->n_ang_max+1);
-
-   pseudo->wgh = (double *)cmalloc((nmall_gh)*sizeof(double))-1;
-
-  for(i=1; i<= nmall_gh; i++){
-   pseudo->wgh[i] = 0.0;
-  }/*endfor*/ 
-
-  if(iopt_cp_dvr == 1){
+  if(iopt_cp_dvr==1){
     pseudo->nsplin_r = (int *) cmalloc(natm_typ_mall*sizeof(int))-1;
-
     pseudo->dr_spl   = (double *) cmalloc(natm_typ_mall*sizeof(double))-1;
     pseudo->rmin     = (double *) cmalloc(natm_typ_mall*sizeof(double))-1;
     /*

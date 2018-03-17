@@ -532,13 +532,146 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
 /*=======================================================================*/
 /*  XVII) set_sim_params_stodft                                          */
 
-
-
-
 /*------------------------------------------------------------------------*/
 }/*end routine*/
 /*==========================================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void copyNlppReal(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
+                  CP *cp,GENERAL_DATA *generalDataMini,BONDED *bondedMini,
+                  CLASS *classMini,CP *cpMini)
+/*========================================================================*/
+/*             Begin Routine                                              */
+{/*Begin subprogram: */
+/*************************************************************************/
+/* Copy the real space non local pseudopotential data down to mini       */
+/* structures.							         */
+/*************************************************************************/
+/*========================================================================*/
+/*             Local variable declarations                                */
+
+  STODFTINFO *stodftInfo	= cp->stodftInfo;
+  FRAGINFO *fragInfo		= stodftInfo->fragInfo;
+  PSEUDO *pseudo		= &(cp->pseudo);
+  PSEUDO_REAL *pseudoReal	= &(pseudo->pseudoReal);
+  PSEUDO *pseudoMini		= &(cpMini->pseudo);
+  PSEUDO_REAL *pseudoRealMini	= &(pseudoMini->pseudoReal);
+  ATOMMAPS *atommaps		= &(classMini->atommaps);
+  CELL *cell			= &(generalDataMini->cell);
+  CPEWALD *cpewald		= &(cpMini->cpewald);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cpMini->cp_para_fft_pkg3d_lg);
+  CLATOMS_INFO *clatoms_info	       = &(classMini->clatoms_info);
+  COMMUNICATE *commCP		       = &(cpMini->communicate);
+
+  
+  int iFrag = fragInfo->iFrag;
+  int iType,iAtom;
+  int smoothOpt     = pseudoRealMini->smoothOpt;
+  int numAtomType   = atommaps->natm_typ;
+  int numAtomTot    = clatoms_info->natm_tot;
+  int atomTypeMini;
+  int countType,indType,indTypeLg,countRad;
+
+  int *atomTypeMap;
+  int *atomTypeGroup = (int*)cmalloc(numAtomTot*sizeof(int));
+  int *atomTypeReorder = (int*)cmalloc(numAtomTot*sizeof(int));
+  int *atomTypeRepresent = (int*)cmalloc(numAtomTot*sizeof(int));
+  int *atomTypeFragMapProc = fragInfo->atomTypeFragMapProc[iFrag];
+  int *iAtomAtomType = atommaps->iatm_atm_typ;
+  int *numLMax,*numRadMax,*numGridRadSmooth,*atomLRadNum;
+  int **atomRadMap;
+
+  double *ppRealCut;
+
+/*=======================================================================*/
+/* I) Map the atom type between the mini system to the large system      */
+
+  // group all atom types
+  for(iType=0;iType<numAtomType;iType++){
+    atomTypeGroup[iType] = -1;
+    atomTypeRepresent[iType] = -1;
+  }
+  countType = 0;
+  for(iAtom=0;iAtom<numAtomTot;iAtom++){
+    atomTypeMini = iAtomAtomType[iAtom+1];
+    if(checkInList(atomTypeMini,atomTypeReorder,countType)==0){
+      atomTypeGroup[countType] = atomTypeMini;
+      atomTypeRepresent[countType] = iAtom;
+    }
+  }
+
+  for(iType=0;iType<numAtomType;iType++){
+    indType = checkIndexList(iType+1,atomTypeGroup,numAtomType)
+    indTypeLg = atomTypeFragMapProc[atomTypeRepresent[indType]];
+    atomTypeReorder[iType] = indTypeLg-1; //remember we have -1 here
+  }
+
+/*=======================================================================*/
+/* II) Copy all needed quantities				         */
+
+  // copy utility variables
+  pseudoRealMini->numLMax = (int*)cmalloc(numAtomType*sizeof(int));
+  pseudoRealMini->numRadMax = (int*)cmalloc(numAtomType*sizeof(int));
+  pseudoRealMini->numGridRadSmooth = (int*)cmalloc(numAtomType*sizeof(int));
+  pseudoRealMini->atomLRadNum = (int**)cmalloc(numAtomType*sizeof(int*));
+  pseudoRealMini->atomRadMap = (int**)cmalloc(numAtomType*sizeof(int*));
+  pseudoRealMini->ppRealCut = (double*)cmalloc(numAtomType*sizeof(double));
+  numGridRadSmooth = (int*)cmalloc(numAtomType*sizeof(int));
+  numLMax = pseudoReal->numLMax;
+  numRadMax = pseudoReal->numRadMax;
+  numGridRadSmooth = pseudoReal->numGridRadSmooth;
+  atomLRadNum = pseudoReal->atomLRadNum;
+  atomRadMap = pseudoReal->atomRadMap; //need to be initialize properly
+  ppRealCut = pseudoReal->ppRealCut;
+  
+  for(iType=0;iType<numAtomType;iType++){
+    indTypeLg = atomTypeReorder[iType];
+    numLMax[iType] = pseudoReal->numLMax[indTypeLg];
+    numRadMax[iType] = pseudoReal->numRadMax[indTypeLg];
+    numGridRadSmooth[iType] = pseudoReal->numGridRadSmooth[indTypeLg];
+    atomLRadNum[iType] = pseudoReal->atomLRadNum[indTypeLg];
+    ppRealCut[iType] = pseudoReal->ppRealCut[indTypeLg];
+  }
+  
+  countRad = 0;
+  for(iType=0;iType<numAtomType;iType++){
+    atomRadMap[iType] = NULL;
+    if(numLMax[iType]>0){
+      atomRadMap[iType] = (int*)cmalloc(numRadMax[iType]*sizeof(int));
+      for(iRad=0;iRad<numRadMax[iType];iRad++){
+        atomRadMap[iType][iRad] = countRad+iRad;
+      }
+    }
+    countRad += numRadMax[iType];
+  }
+  
+  numRadTot = countRad;
+  pseudoReal->numRadTot = numRadTot;
+  pseudoRealMini->vpsNormList = (double*)cmalloc(numRadTot*sizeof(double));
+  vpsNormList = pseudoReal->vpsNormList;
+  lMap = (int*)cmalloc(numRadTot*sizeof(int));
+
+  // copy interpolated real space quantuties
+  numInterpGrid = pseudoReal->numInterpGrid;
+  pseudoRealMini->numInterpGrid = numInterpGrid;
+  pseudoRealMini->dr = pseudoReal->dr;
+  pseudoRealMini->vpsReal0 = (double*)cmalloc((numInterpGrid*numRadTot+1)*sizeof(double));
+  pseudoRealMini->vpsReal1 = (double*)cmalloc((numInterpGrid*numRadTot+1)*sizeof(double));
+  pseudoRealMini->vpsReal2 = (double*)cmalloc((numInterpGrid*numRadTot+1)*sizeof(double));
+  pseudoRealMini->vpsReal3 = (double*)cmalloc((numInterpGrid*numRadTot+1)*sizeof(double));
+  pseudoRealMini->vpsDevReal0 = (double*)cmalloc((numInterpGrid*numRadTot+1)*sizeof(double));
+  pseudoRealMini->vpsDevReal1 = (double*)cmalloc((numInterpGrid*numRadTot+1)*sizeof(double));
+  pseudoRealMini->vpsDevReal2 = (double*)cmalloc((numInterpGrid*numRadTot+1)*sizeof(double));
+  pseudoRealMini->vpsDevReal3 = (double*)cmalloc((numInterpGrid*numRadTot+1)*sizeof(double));
+
+  
 
 
+
+  
+/*------------------------------------------------------------------------*/
+}/*end routine*/
+/*==========================================================================*/
 

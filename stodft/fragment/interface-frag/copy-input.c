@@ -567,12 +567,13 @@ void copyNlppReal(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
 
   
   int iFrag = fragInfo->iFrag;
-  int iType,iAtom;
+  int iType,iAtom,iRad,iAng,l;
   int smoothOpt     = pseudoRealMini->smoothOpt;
   int numAtomType   = atommaps->natm_typ;
   int numAtomTot    = clatoms_info->natm_tot;
-  int atomTypeMini;
+  int atomTypeMini,atomType;
   int countType,indType,indTypeLg,countRad;
+  int radIndexLg,radIndexFrag;
 
   int *atomTypeMap;
   int *atomTypeGroup = (int*)cmalloc(numAtomTot*sizeof(int));
@@ -581,18 +582,31 @@ void copyNlppReal(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   int *atomTypeFragMapProc = fragInfo->atomTypeFragMapProc[iFrag];
   int *iAtomAtomType = atommaps->iatm_atm_typ;
   int *numLMax,*numRadMax,*numGridRadSmooth,*atomLRadNum;
+  int *numNlppAtom;
+
+  int **atomRadMapLg = pseudoReal->atomRadMap; 
   int **atomRadMap;
 
   double *ppRealCut;
 
+  double **dotReAll,**dotImAll;
+
 /*=======================================================================*/
 /* I) Map the atom type between the mini system to the large system      */
 
-  // group all atom types
+/*-----------------------------------------------------------------------*/
+/* i) Initialize atomTypeGroup and atomTypeRepresent			 */
   for(iType=0;iType<numAtomType;iType++){
     atomTypeGroup[iType] = -1;
     atomTypeRepresent[iType] = -1;
   }
+
+/*-----------------------------------------------------------------------*/
+/* ii) Loop over all atoms in this fragment, get each atom's atom type   */
+/*     and put it in atomTypeGroup if this atom type is not in the list. */
+/*     The index of this atom is also added in atomTypeRepresent so that */
+/*     we can link atom type in fragment with the one with in the system.*/
+
   countType = 0;
   for(iAtom=0;iAtom<numAtomTot;iAtom++){
     atomTypeMini = iAtomAtomType[iAtom+1];
@@ -601,11 +615,13 @@ void copyNlppReal(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
       atomTypeRepresent[countType] = iAtom;
     }
   }
-
+/*-----------------------------------------------------------------------*/
+/* iii) Rank the atomTypeGroup. For each atom type in atomTypeGroup, find*/
+/*      the corresponding atom type in the system.			 */
   for(iType=0;iType<numAtomType;iType++){
     indType = checkIndexList(iType+1,atomTypeGroup,numAtomType)
     indTypeLg = atomTypeFragMapProc[atomTypeRepresent[indType]];
-    atomTypeReorder[iType] = indTypeLg-1; //remember we have -1 here
+    atomTypeReorder[iType] = indTypeLg; //rember atomType start from 1
   }
 
 /*=======================================================================*/
@@ -631,8 +647,10 @@ void copyNlppReal(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
     numLMax[iType] = pseudoReal->numLMax[indTypeLg];
     numRadMax[iType] = pseudoReal->numRadMax[indTypeLg];
     numGridRadSmooth[iType] = pseudoReal->numGridRadSmooth[indTypeLg];
-    atomLRadNum[iType] = pseudoReal->atomLRadNum[indTypeLg];
     ppRealCut[iType] = pseudoReal->ppRealCut[indTypeLg];
+    for(l=0;l<numLMax[iType];l++){
+      atomLRadNum[iType][l] = pseudoReal->atomLRadNum[indTypeLg][l];
+    }
   }
   
   countRad = 0;
@@ -650,7 +668,6 @@ void copyNlppReal(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   numRadTot = countRad;
   pseudoReal->numRadTot = numRadTot;
   pseudoRealMini->vpsNormList = (double*)cmalloc(numRadTot*sizeof(double));
-  vpsNormList = pseudoReal->vpsNormList;
   lMap = (int*)cmalloc(numRadTot*sizeof(int));
 
   // copy interpolated real space quantuties
@@ -666,10 +683,86 @@ void copyNlppReal(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   pseudoRealMini->vpsDevReal2 = (double*)cmalloc((numInterpGrid*numRadTot+1)*sizeof(double));
   pseudoRealMini->vpsDevReal3 = (double*)cmalloc((numInterpGrid*numRadTot+1)*sizeof(double));
 
-  
+  for(iType=0;iType<numAtomType;iType++){
+    indTypeLg = atomTypeReorder[iType]-1;
+    countRad = 0;
+    for(l=0;l<atomLMax[iType];l++){
+      for(iRad=0;iRad<atomLRadNum[iType][l];iRad++){
+	radIndexLg = atomRadMapLg[indTypeLg][countRad+iRad];
+	radIndexFrag = atomRadMap[iType][countRad+iRad];
+	memcpy(&(pseudoRealMini->vpsReal0[radIndexFrag+1]),
+	       &(pseudoReal->vpsReal0[radIndexLg+1]),numInterpGrid*sizeof(double));
+        memcpy(&(pseudoRealMini->vpsReal1[radIndexFrag+1]),
+               &(pseudoReal->vpsReal1[radIndexLg+1]),numInterpGrid*sizeof(double));
+        memcpy(&(pseudoRealMini->vpsReal2[radIndexFrag+1]),
+               &(pseudoReal->vpsReal2[radIndexLg+1]),numInterpGrid*sizeof(double));
+        memcpy(&(pseudoRealMini->vpsReal3[radIndexFrag+1]),
+               &(pseudoReal->vpsReal3[radIndexLg+1]),numInterpGrid*sizeof(double));
 
+        memcpy(&(pseudoRealMini->vpsDevReal0[radIndexFrag+1]),
+               &(pseudoReal->vpsDevReal0[radIndexLg+1]),numInterpGrid*sizeof(double));
+        memcpy(&(pseudoRealMini->vpsDevReal1[radIndexFrag+1]),
+               &(pseudoReal->vpsDevReal1[radIndexLg+1]),numInterpGrid*sizeof(double));
+        memcpy(&(pseudoRealMini->vpsDevReal2[radIndexFrag+1]),
+               &(pseudoReal->vpsDevReal2[radIndexLg+1]),numInterpGrid*sizeof(double));
+        memcpy(&(pseudoRealMini->vpsDevReal3[radIndexFrag+1]),
+               &(pseudoReal->vpsDevReal3[radIndexLg+1]),numInterpGrid*sizeof(double));
+	pseudoRealMini->vpsNormList[radIndexFrag] = pseudoReal->vpsNormList[radIndexLg];
+      }
+      countRad += atomLRadNum[iType][l];
+    }
+  }
 
+/*=======================================================================*/
+/* II) Initializing dot product                                          */
 
+  pseudoRealMini->numNlppAtom = (int*)cmalloc(numAtomType*sizeof(int));
+  pseudoRealMini->dotReAll = (double**)cmalloc(numAtomTot*sizeof(double*));
+  pseudoRealMini->dotImAll = (double**)cmalloc(numAtomTot*sizeof(double*));
+  numNlppAtom = pseudoRealMini->numNlppAtom;
+  dotReAll = pseudoRealMini->dotReAll;
+  dotImAll = pseudoRealMini->dotImAll;
+  for(iType=0;iType<numAtomType;iType++){
+    numNlppAtom[iType] = 0;
+    for(iAng=0;iAng<numLMax[iType];iAng++){
+      numNlppAtom[iType] += atomLRadNum[iType][iAng]*(iAng+1);
+    }//endfor iAng
+  }//endfor iType
+  for(iAtom=0;iAtom<numAtomTot;iAtom++){
+    atomType = iAtomAtomType[iAtom+1]-1;
+    dotReAll[iAtom] = NULL;
+    dotImAll[iAtom] = NULL;
+    if(numNlppAtom[atomType]>=1){
+      //printf("atomType %i %i\n",atomType,numNlppAtom[atomType]);
+      dotReAll[iAtom] = (double*)cmalloc(numNlppAtom[atomType]*sizeof(double));
+      dotImAll[iAtom] = (double*)cmalloc((numNlppAtom[atomType]-1)*sizeof(double));
+    }
+  }//endfor iAtom
+
+/*======================================================================*/
+/* V) Initialize wave function                                          */
+
+  // I need to set the pointer to NULL here since I need to use realloc
+  pseudoRealMini->pseudoWfCalcFlag = 1; // enforce pseudo wf calculation at begining
+  pseudoRealMini->forceCalcFlag = 1;
+  pseudoRealMini->vnlPhiAtomGridRe = NULL;
+  pseudoRealMini->vnlPhiAtomGridIm = NULL;
+  pseudoRealMini->numGridNlppMap = (int*)cmalloc(numAtomTot*sizeof(int));
+  pseudoRealMini->gridNlppMap = (int**)cmalloc(numAtomTot*sizeof(int*));
+  for(iAtom=0;iAtom<numAtomTot;iAtom++){
+    pseudoRealMini->gridNlppMap[iAtom] = NULL;
+  }
+  pseudoRealMini->vnlPhiDxAtomGridRe = NULL;
+  pseudoRealMini->vnlPhiDxAtomGridIm = NULL;
+  pseudoRealMini->vnlPhiDyAtomGridRe = NULL;
+  pseudoRealMini->vnlPhiDyAtomGridIm = NULL;
+  pseudoRealMini->vnlPhiDzAtomGridRe = NULL;
+  pseudoRealMini->vnlPhiDzAtomGridIm = NULL;
+
+/*======================================================================*/
+/* VI) Initialize other flags                                           */
+
+  pseudoRealMini->nlppForceOnly = 0;
   
 /*------------------------------------------------------------------------*/
 }/*end routine*/

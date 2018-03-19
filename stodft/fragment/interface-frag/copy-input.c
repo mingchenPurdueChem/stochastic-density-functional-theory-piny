@@ -574,6 +574,8 @@ void copyNlppReal(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   int atomTypeMini,atomType;
   int countType,indType,indTypeLg,countRad;
   int radIndexLg,radIndexFrag;
+  int numRadTot;
+  int numInterpGrid;
 
   int *atomTypeMap;
   int *atomTypeGroup = (int*)cmalloc(numAtomTot*sizeof(int));
@@ -581,11 +583,12 @@ void copyNlppReal(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   int *atomTypeRepresent = (int*)cmalloc(numAtomTot*sizeof(int));
   int *atomTypeFragMapProc = fragInfo->atomTypeFragMapProc[iFrag];
   int *iAtomAtomType = atommaps->iatm_atm_typ;
-  int *numLMax,*numRadMax,*numGridRadSmooth,*atomLRadNum;
+  int *numLMax,*numRadMax,*numGridRadSmooth;
   int *numNlppAtom;
 
   int **atomRadMapLg = pseudoReal->atomRadMap; 
   int **atomRadMap;
+  int **atomLRadNum;
 
   double *ppRealCut;
 
@@ -619,7 +622,7 @@ void copyNlppReal(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
 /* iii) Rank the atomTypeGroup. For each atom type in atomTypeGroup, find*/
 /*      the corresponding atom type in the system.			 */
   for(iType=0;iType<numAtomType;iType++){
-    indType = checkIndexList(iType+1,atomTypeGroup,numAtomType)
+    indType = checkIndexList(iType+1,atomTypeGroup,numAtomType);
     indTypeLg = atomTypeFragMapProc[atomTypeRepresent[indType]];
     atomTypeReorder[iType] = indTypeLg; //rember atomType start from 1
   }
@@ -635,19 +638,20 @@ void copyNlppReal(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   pseudoRealMini->atomRadMap = (int**)cmalloc(numAtomType*sizeof(int*));
   pseudoRealMini->ppRealCut = (double*)cmalloc(numAtomType*sizeof(double));
   numGridRadSmooth = (int*)cmalloc(numAtomType*sizeof(int));
-  numLMax = pseudoReal->numLMax;
-  numRadMax = pseudoReal->numRadMax;
-  numGridRadSmooth = pseudoReal->numGridRadSmooth;
-  atomLRadNum = pseudoReal->atomLRadNum;
-  atomRadMap = pseudoReal->atomRadMap; //need to be initialize properly
-  ppRealCut = pseudoReal->ppRealCut;
+  numLMax = pseudoRealMini->numLMax;
+  numRadMax = pseudoRealMini->numRadMax;
+  numGridRadSmooth = pseudoRealMini->numGridRadSmooth;
+  atomLRadNum = pseudoRealMini->atomLRadNum;
+  atomRadMap = pseudoRealMini->atomRadMap; //need to be initialize properly
+  ppRealCut = pseudoRealMini->ppRealCut;
   
   for(iType=0;iType<numAtomType;iType++){
-    indTypeLg = atomTypeReorder[iType];
+    indTypeLg = atomTypeReorder[iType]-1;
     numLMax[iType] = pseudoReal->numLMax[indTypeLg];
     numRadMax[iType] = pseudoReal->numRadMax[indTypeLg];
     numGridRadSmooth[iType] = pseudoReal->numGridRadSmooth[indTypeLg];
     ppRealCut[iType] = pseudoReal->ppRealCut[indTypeLg];
+    atomLRadNum[iType] = (int*)cmalloc(numLMax[iType]*sizeof(int));
     for(l=0;l<numLMax[iType];l++){
       atomLRadNum[iType][l] = pseudoReal->atomLRadNum[indTypeLg][l];
     }
@@ -668,7 +672,6 @@ void copyNlppReal(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   numRadTot = countRad;
   pseudoReal->numRadTot = numRadTot;
   pseudoRealMini->vpsNormList = (double*)cmalloc(numRadTot*sizeof(double));
-  lMap = (int*)cmalloc(numRadTot*sizeof(int));
 
   // copy interpolated real space quantuties
   numInterpGrid = pseudoReal->numInterpGrid;
@@ -686,27 +689,37 @@ void copyNlppReal(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   for(iType=0;iType<numAtomType;iType++){
     indTypeLg = atomTypeReorder[iType]-1;
     countRad = 0;
-    for(l=0;l<atomLMax[iType];l++){
+    for(l=0;l<numLMax[iType];l++){
       for(iRad=0;iRad<atomLRadNum[iType][l];iRad++){
 	radIndexLg = atomRadMapLg[indTypeLg][countRad+iRad];
 	radIndexFrag = atomRadMap[iType][countRad+iRad];
-	memcpy(&(pseudoRealMini->vpsReal0[radIndexFrag+1]),
-	       &(pseudoReal->vpsReal0[radIndexLg+1]),numInterpGrid*sizeof(double));
-        memcpy(&(pseudoRealMini->vpsReal1[radIndexFrag+1]),
-               &(pseudoReal->vpsReal1[radIndexLg+1]),numInterpGrid*sizeof(double));
-        memcpy(&(pseudoRealMini->vpsReal2[radIndexFrag+1]),
-               &(pseudoReal->vpsReal2[radIndexLg+1]),numInterpGrid*sizeof(double));
-        memcpy(&(pseudoRealMini->vpsReal3[radIndexFrag+1]),
-               &(pseudoReal->vpsReal3[radIndexLg+1]),numInterpGrid*sizeof(double));
+	printf("iType %i indTypeLg %i l %i iRad %i radIndexLg %i radIndexFrag %i\n",
+		iType,indTypeLg,l,iRad,radIndexLg,radIndexFrag);
+	memcpy(&(pseudoRealMini->vpsReal0[radIndexFrag*numInterpGrid+1]),
+	       &(pseudoReal->vpsReal0[radIndexLg*numInterpGrid+1]),
+	        numInterpGrid*sizeof(double));
+        memcpy(&(pseudoRealMini->vpsReal1[radIndexFrag*numInterpGrid+1]),
+               &(pseudoReal->vpsReal1[radIndexLg*numInterpGrid+1]),
+		numInterpGrid*sizeof(double));
+        memcpy(&(pseudoRealMini->vpsReal2[radIndexFrag*numInterpGrid+1]),
+               &(pseudoReal->vpsReal2[radIndexLg*numInterpGrid+1]),
+		numInterpGrid*sizeof(double));
+        memcpy(&(pseudoRealMini->vpsReal3[radIndexFrag*numInterpGrid+1]),
+               &(pseudoReal->vpsReal3[radIndexLg*numInterpGrid+1]),
+		numInterpGrid*sizeof(double));
 
-        memcpy(&(pseudoRealMini->vpsDevReal0[radIndexFrag+1]),
-               &(pseudoReal->vpsDevReal0[radIndexLg+1]),numInterpGrid*sizeof(double));
-        memcpy(&(pseudoRealMini->vpsDevReal1[radIndexFrag+1]),
-               &(pseudoReal->vpsDevReal1[radIndexLg+1]),numInterpGrid*sizeof(double));
-        memcpy(&(pseudoRealMini->vpsDevReal2[radIndexFrag+1]),
-               &(pseudoReal->vpsDevReal2[radIndexLg+1]),numInterpGrid*sizeof(double));
-        memcpy(&(pseudoRealMini->vpsDevReal3[radIndexFrag+1]),
-               &(pseudoReal->vpsDevReal3[radIndexLg+1]),numInterpGrid*sizeof(double));
+        memcpy(&(pseudoRealMini->vpsDevReal0[radIndexFrag*numInterpGrid+1]),
+               &(pseudoReal->vpsDevReal0[radIndexLg*numInterpGrid+1]),
+		numInterpGrid*sizeof(double));
+        memcpy(&(pseudoRealMini->vpsDevReal1[radIndexFrag*numInterpGrid+1]),
+               &(pseudoReal->vpsDevReal1[radIndexLg*numInterpGrid+1]),
+		numInterpGrid*sizeof(double));
+        memcpy(&(pseudoRealMini->vpsDevReal2[radIndexFrag*numInterpGrid+1]),
+               &(pseudoReal->vpsDevReal2[radIndexLg*numInterpGrid+1]),
+		numInterpGrid*sizeof(double));
+        memcpy(&(pseudoRealMini->vpsDevReal3[radIndexFrag*numInterpGrid+1]),
+               &(pseudoReal->vpsDevReal3[radIndexLg*numInterpGrid+1]),
+		numInterpGrid*sizeof(double));
 	pseudoRealMini->vpsNormList[radIndexFrag] = pseudoReal->vpsNormList[radIndexLg];
       }
       countRad += atomLRadNum[iType][l];

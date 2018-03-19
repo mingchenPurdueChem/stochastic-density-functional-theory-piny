@@ -415,7 +415,7 @@ void initRealNlppWf(CP *cp,CLASS *class,GENERAL_DATA *generalData)
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
 /*************************************************************************/
-/* Real space nlpp, only used in filtering                   */
+/* Real space nlpp, only used in filtering				 */
 /*************************************************************************/
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
@@ -423,7 +423,6 @@ void initRealNlppWf(CP *cp,CLASS *class,GENERAL_DATA *generalData)
   PSEUDO_REAL *pseudoReal = &(pseudo->pseudoReal);
   CLATOMS_INFO *clatoms_info = &(class->clatoms_info);
   ATOMMAPS *atommaps = &(class->atommaps);
-
 
   int numAtomTot = clatoms_info->natm_tot;
   int iAtom,iAng;

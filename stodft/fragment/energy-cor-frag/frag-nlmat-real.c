@@ -543,6 +543,7 @@ void calcVnlRealDotState(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 	  radIndex = atomRadMap[atomType][countRad+iRad];
 	  for(m=0;m<=l;m++){
 	    if(m!=0){
+	      printf("111111111111111111111 index %i %i\n",atomIndSt+countNlppRe+m,atomIndSt+countNlppIm+m-1);
 	      dotRe[atomIndSt+countNlppRe+m] 
 				= ddotBlasWrapper(numGrid,wfNbhd,1,
 				  &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
@@ -572,6 +573,7 @@ void calcVnlRealDotState(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 	      gridShiftNowIm += numGrid;
 	    }
 	    else{
+	      printf("111111111111111111111 index %i\n",atomIndSt+countNlppRe);
   	      dotRe[atomIndSt+countNlppRe] 
 				= ddotBlasWrapper(numGrid,wfNbhd,1,
 			          &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;

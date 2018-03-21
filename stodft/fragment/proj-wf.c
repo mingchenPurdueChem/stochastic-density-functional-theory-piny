@@ -1235,7 +1235,6 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   //debug, output all wf filtered by frag wf
   //double *stowffrag = (double*)cmalloc(numStateUpAllProc[0]*rhoRealGridTot*sizeof(double));
   for(iFrag=0;iFrag<numFragProcMax;iFrag++){
-    printf("iiiiiFrag %i\n",iFrag);
     if(iFrag<numFragProc){
       fragInfo->iFrag = iFrag;
       numGrid = numGridFragProc[iFrag];
@@ -1315,6 +1314,13 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     */
   }//endfor iFrag
 
+  for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+    printf("222222222 rhoTemp %lg\n",rhoTemp[iGrid]);
+  }
+  fflush(stdout);
+  exit(0);
+
+
   /*
   char name[100];
   FILE *fstowf;
@@ -1349,6 +1355,7 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     }
     if(numProcStates>1)Barrier(commStates);
   }
+  printf("11111111111111 sumElecFrag %.16lg sumElecProj %.16lg\n",sumElecFrag,sumElecProj);
   if(numProcStates>1)Barrier(commStates);
   
   daxpyBlasWrapper(rhoRealGridNum,-pre,&rhoTemp[0],1,&rhoUpFragSum[0],1);

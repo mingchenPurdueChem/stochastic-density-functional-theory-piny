@@ -129,6 +129,7 @@ void calcRealNonLocalMatrix(CP *cp, CP *cpMini, CLASS *classMini,
     }
     numNlppAll += numNlppAtom;
   }
+  pseudoReal->numNlppAll = numNlppAll;
 
   dotReAllStatesUp = (double*)cmalloc(numNlppAll*nstate_up*sizeof(double));
   dotImAllStatesUp = (double*)cmalloc(numNlppAll*nstate_up*sizeof(double));
@@ -543,7 +544,7 @@ void calcVnlRealDotState(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 	  radIndex = atomRadMap[atomType][countRad+iRad];
 	  for(m=0;m<=l;m++){
 	    if(m!=0){
-	      printf("111111111111111111111 index %i %i\n",atomIndSt+countNlppRe+m,atomIndSt+countNlppIm+m-1);
+	      //printf("111111111111111111111 index %i %i\n",atomIndSt+countNlppRe+m,atomIndSt+countNlppIm+m-1);
 	      dotRe[atomIndSt+countNlppRe+m] 
 				= ddotBlasWrapper(numGrid,wfNbhd,1,
 				  &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
@@ -573,7 +574,7 @@ void calcVnlRealDotState(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 	      gridShiftNowIm += numGrid;
 	    }
 	    else{
-	      printf("111111111111111111111 index %i\n",atomIndSt+countNlppRe);
+	      //printf("111111111111111111111 index %i\n",atomIndSt+countNlppRe);
   	      dotRe[atomIndSt+countNlppRe] 
 				= ddotBlasWrapper(numGrid,wfNbhd,1,
 			          &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
@@ -707,6 +708,7 @@ void calcMatrixFromDot(CP *cp, CP *cpMini,CLASS *classMini,
 	      radIndex = atomRadMap[atomType][countRad+iRad];
 	      if(atomFragVnlCalcMapInv[iAtom]!=-1){ //I can only put if here since I dont wanna skip iRad/l loop
 		atomIndex = atomFragVnlCalcMapInv[iAtom];
+		if(iState==0&&jState==0)printf("1111111111111111 countAtom %i %i %i\n",iAtom,atomFragVnlCalcMapInv[iAtom],countAtom);
 		for(m=0;m<=l;m++){
 		  if(m!=0){
 		    iTempRe = dotRe[iState*numNlppAll+atomIndSt+countNlppRe+m];
@@ -760,7 +762,6 @@ void calcMatrixFromDot(CP *cp, CP *cpMini,CLASS *classMini,
                                 vpsNormList[radIndex]*volInv;
 		  }//endif m
 		}//endfor m
-		countAtom += 1;
 	      }//endif atomFragVnlCalcMapInv
 	      countNlppRe += l+1;
 	      countNlppIm += l;
@@ -768,6 +769,7 @@ void calcMatrixFromDot(CP *cp, CP *cpMini,CLASS *classMini,
 	    countRad += atomLRadNum[atomType][l];
 	  }//endfor l
 	}//endif numGrid
+	if(atomFragVnlCalcMapInv[iAtom]!=-1)countAtom += 1;
       }//endfor iAtom
     }//endfor jState
     stat_avg->cp_enl += vnlMatrix[iState*numStates+iState];

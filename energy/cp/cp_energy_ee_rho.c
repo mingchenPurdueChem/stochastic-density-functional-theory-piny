@@ -628,7 +628,7 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
      }/*endif cp_dual_grid_opt*/
 
 
-  if(fftw3dFlag==100){
+  //if(fftw3dFlag==100){
     //double sum = 0.0;
     sum = 0.0;
     FILE *fp_rho = fopen("rho_bm","w");
@@ -645,7 +645,7 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
     }
     //printf("rho sum test %lg\n",sum);
     fclose(fp_rho);
-  }
+  //}
 
 /*==============================================================*/
 /* VII) if doing gradient corrections, get gradient of density  */

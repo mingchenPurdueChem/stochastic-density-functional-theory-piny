@@ -1314,12 +1314,13 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     */
   }//endfor iFrag
 
+  /*
   for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
-    printf("222222222 rhoTemp %lg\n",rhoTemp[iGrid]);
+    printf("222222222 rhoTemp %lg\n",rhoTemp[iGrid]*pre);
   }
   fflush(stdout);
   exit(0);
-
+  */
 
   /*
   char name[100];

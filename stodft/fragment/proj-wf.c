@@ -1259,8 +1259,8 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 	  hmatCpMini = generalDataMini[iFrag].cell.hmat_cp;
 	  volMini = getdeth(hmatCpMini);
 	  volMini /= numGrid;
-	  wfFragTemp = (double*)cmalloc(numGrid*sizeof(double));
-	  rhoFragTemp = (double*)cmalloc(numGridSmall*sizeof(double));
+	  wfFragTemp = (double*)calloc(numGrid,sizeof(double));
+	  rhoFragTemp = (double*)calloc(numGridSmall,sizeof(double));
 	  for(iGrid=0;iGrid<numGrid;iGrid++){
 	    gridIndex = gridMapProc[iFrag][iGrid];
 	    wfFragTemp[iGrid] = wfTemp[gridIndex];
@@ -1316,7 +1316,7 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 
   /*
   for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
-    printf("222222222 rhoTemp %lg\n",rhoTemp[iGrid]*pre);
+    printf("22222222233 rhoTemp %lg\n",rhoTemp[iGrid]*pre);
   }
   fflush(stdout);
   exit(0);

@@ -627,6 +627,7 @@ void genStoOrbitalFake(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   //double *wfNow = (double*)calloc(numCoeff*sizeof(double));
   //printf("Test projjjjj %i %lg %lg\n",numStatesDet,wfDetBackupUpRe[0],wfDetBackupUpIm[0]);
   //printf("Test proj 2 %lg %lg\n",coeffReUp[1],coeffImUp[1]);
+  printf("wfDetBackupUpReeeeeeeee %.16lg %.16lg\n",wfDetBackupUpRe[0],wfDetBackupUpIm[0]);
   for(iProc=0;iProc<numProcStates;iProc++){
     for(iState=0;iState<numStateUpAllProc[iProc];iState++){
       iOff = iState*numCoeff;

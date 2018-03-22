@@ -1069,7 +1069,16 @@ void noiseRealReGen(GENERAL_DATA *general_data,CP *cp,CLASS *class,int ip_now)
   double seedNew = randNumSeedTot[myidState];
   int iseedNew;
   gaussran2(numRandNum,&iseedNew,&iseedNew,&seedNew,randNum);
+  //debug
+  FILE *frand = fopen("rand","w");
+  for(iGrid=0;iGrid<numRandNum;iGrid++){
+    fprintf(frand,"%.16lg\n",randNum[iGrid]);
+  }
+  fclose(frand);
+  fflush(stdout);
+  exit(0);
 #endif
+  //printf("randNum[1] %lg\n",randNum[1]);
   for(iGrid=0;iGrid<numStatUpProc*nfft2;iGrid++){
     if(randNum[iGrid]<0.0)noiseWfUpReal[iGrid] = -ranValue;
     else noiseWfUpReal[iGrid] = ranValue;
@@ -1081,7 +1090,7 @@ void noiseRealReGen(GENERAL_DATA *general_data,CP *cp,CLASS *class,int ip_now)
     }
   }
   free(randNum);
-
+  
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/

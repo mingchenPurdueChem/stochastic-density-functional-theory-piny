@@ -779,6 +779,8 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
       }//endfor kGrid
     }//endfor jGrid
   }//endfor iGrid
+  printf("fragRootIndA %i fragRootIndB %i fragRootIndC %i\n",fragRootIndA,fragRootIndB,fragRootIndC);
+  printf("gridMapProc %i\n",fragInfo->gridMapProc[0][0]);
   //fflush(stdout);
   //exit(0);
 /*==========================================================================*/

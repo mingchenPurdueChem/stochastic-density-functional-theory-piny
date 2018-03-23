@@ -1446,7 +1446,6 @@ void mapFragMol(FRAGINFO *fragInfo,COMMUNICATE *communicate,
     fragInfo->fragRootInd[iFrag*3] = iGrid;
     fragInfo->fragRootInd[iFrag*3+1] = jGrid;
     fragInfo->fragRootInd[iFrag*3+2] = kGrid;
-    printf("iiiiiiiiiiiii %i %i %i %i %i %i\n",iuc,juc,kuc,iGrid,jGrid,kGrid);
   }
 
   // Start build Fragment

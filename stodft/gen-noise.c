@@ -254,11 +254,6 @@ void genNoiseOrbitalReal(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
   //printf("proc %i seed %lg\n",myidState,seedNew);
   int iseedNew;
   gaussran2(numRandNum,&iseedNew,&iseedNew,&seedNew,randNum);
-  FILE *frand = fopen("rand","r");
-  for(iGrid=0;iGrid<numRandNum;iGrid++){
-    fscanf(frand,"%lg",&randNum[iGrid]);
-  }
-  fclose(frand);
   //printf("randNum[1] %lg\n",randNum[1]);
 #endif
   for(iStat=1;iStat<=numStatUpTot;iStat++){

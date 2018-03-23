@@ -1272,18 +1272,14 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 	    //proj = ddotBlasWrapper(numGrid,&wfFragTemp[0],1,&coefUpFragProc[iFrag][iStateFrag*numGrid],1);
 	    proj = 0.0;
 	    for(iGrid=0;iGrid<numGrid;iGrid++){
-              //printf("iGrid %i wfFragTemp %lg coefUpFragProc %lg\n",iGrid,wfFragTemp[iGrid],coefUpFragProc[iFrag][iStateFrag*numGrid+iGrid]);
 	      proj += wfFragTemp[iGrid]*coefUpFragProc[iFrag][iStateFrag*numGrid+iGrid];
 	    }
-	    //printf("iState %i iStateFrag %i projjjjjjjjjjjj %lg\n",iState,iStateFrag,proj);
 	    fragInfo->wfProjUp[iFrag][countWf*numStateUpMini+iStateFrag] = proj*preDot*volMini;
 	    //daxpyBlasWrapper(numGrid,proj,&coefUpFragProc[iFrag][iStateFrag*numGrid],1,&rhoFragTemp[0],1);
 	    for(iGrid=0;iGrid<numGridSmall;iGrid++){
 	      rhoFragTemp[iGrid] += proj*coefUpFragProc[iFrag][iStateFrag*numGrid+gridMapProcSmall[iFrag][iGrid]];
 	    }
 	    //testsum += proj*coefUpFragProc[iFrag][iStateFrag*numGrid+gridMapProcSmall[iFrag][0]];
-	    fflush(stdout);
-	    exit(0);
 	  }//endfor iStateFrag
 	  //debug
 	  /*

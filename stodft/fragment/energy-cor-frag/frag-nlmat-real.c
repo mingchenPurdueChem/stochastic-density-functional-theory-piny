@@ -234,11 +234,13 @@ void calcRealNonLocalMatrix(CP *cp, CP *cpMini, CLASS *classMini,
   vnlFyMatrixUp = fragInfo->vnlFyMatrixUp[iFrag];
   vnlFzMatrixUp = fragInfo->vnlFzMatrixUp[iFrag];
 
+  
   calcMatrixFromDot(cp,cpMini,classMini,generalDataMini,
 		    dotReAllStatesUp,dotImAllStatesUp,dotReAllDxStatesUp,
                     dotImAllDxStatesUp,dotReAllDyStatesUp,dotImAllDyStatesUp,
                     dotReAllDzStatesUp,dotImAllDzStatesUp,vnlMatrixUp,
 		    vnlFxMatrixUp,vnlFyMatrixUp,vnlFzMatrixUp,nstate_up);
+  
   if(cp_lsda==1&&nstate_dn!=0){
     vnlMatrixDn = fragInfo->vnlMatrixDn[iFrag];
     vnlFxMatrixDn = fragInfo->vnlFxMatrixDn[iFrag];
@@ -551,7 +553,7 @@ void calcVnlRealDotState(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 	      dotIm[atomIndSt+countNlppIm+m-1] 
 				= ddotBlasWrapper(numGrid,wfNbhd,1,
 				  &vnlPhiAtomGridIm[gridShiftNowIm],1)*volElem;
-
+	      //printf("1234444444 iAtom %i l %i m %i ind %i im %lg\n",iAtom,l,m,atomIndSt+countNlppIm+m-1,dotIm[atomIndSt+countNlppIm+m-1]);
               dotReDx[atomIndSt+countNlppRe+m] 
 				= ddotBlasWrapper(numGrid,wfNbhd,1,
                                   &vnlPhiDxAtomGridRe[gridShiftNowRe],1)*volElem;
@@ -578,6 +580,7 @@ void calcVnlRealDotState(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   	      dotRe[atomIndSt+countNlppRe] 
 				= ddotBlasWrapper(numGrid,wfNbhd,1,
 			          &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
+
               dotReDx[atomIndSt+countNlppRe] 
 				= ddotBlasWrapper(numGrid,wfNbhd,1,
                                   &vnlPhiDxAtomGridRe[gridShiftNowRe],1)*volElem;
@@ -663,6 +666,7 @@ void calcMatrixFromDot(CP *cp, CP *cpMini,CLASS *classMini,
   double iTempRe,iTempIm,jTempRe,jTempIm,iTempDRe,iTempDIm,jTempDRe,jTempDIm;
   double vol,volInv;
   double volElem;
+  double energy;
 
   double *vpsNormList = pseudoReal->vpsNormList;
   double *Fx = clatoms_pos->fx;
@@ -691,6 +695,7 @@ void calcMatrixFromDot(CP *cp, CP *cpMini,CLASS *classMini,
   }//endfor iState
 
   for(iState=0;iState<numStates;iState++){
+    energy = 0.0;
     for(jState=iState;jState<numStates;jState++){
       vnlMatrix[iState*numStates+jState] = 0.0;
       countAtom = 0;
@@ -708,34 +713,38 @@ void calcMatrixFromDot(CP *cp, CP *cpMini,CLASS *classMini,
 	      radIndex = atomRadMap[atomType][countRad+iRad];
 	      if(atomFragVnlCalcMapInv[iAtom]!=-1){ //I can only put if here since I dont wanna skip iRad/l loop
 		atomIndex = atomFragVnlCalcMapInv[iAtom];
-		if(iState==0&&jState==0)printf("1111111111111111 countAtom %i %i %i\n",iAtom,atomFragVnlCalcMapInv[iAtom],countAtom);
 		for(m=0;m<=l;m++){
 		  if(m!=0){
 		    iTempRe = dotRe[iState*numNlppAll+atomIndSt+countNlppRe+m];
-		    iTempIm = dotIm[iState*numNlppAll+atomIndSt+countNlppRe+m-1];
+		    iTempIm = dotIm[iState*numNlppAll+atomIndSt+countNlppIm+m-1];
 		    jTempRe = dotRe[jState*numNlppAll+atomIndSt+countNlppRe+m];
-		    jTempIm = dotIm[jState*numNlppAll+atomIndSt+countNlppRe+m-1];
+		    jTempIm = dotIm[jState*numNlppAll+atomIndSt+countNlppIm+m-1];
+		    /*
+                    if(jState==iState){
+                      printf("mmmmmmatrix iAtom %i l %i m %i re %lg im %lg\n",iAtom,l,m,iTempRe,iTempIm);
+                    }
+		    */
 		    vnlMatrix[iState*numStates+jState] += 2.0*(iTempRe*jTempRe+iTempIm*jTempIm)*vpsNormList[radIndex]*volInv;
 		    iTempDRe = dotReDx[iState*numNlppAll+atomIndSt+countNlppRe+m];
-		    iTempDIm = dotImDx[iState*numNlppAll+atomIndSt+countNlppRe+m-1];
+		    iTempDIm = dotImDx[iState*numNlppAll+atomIndSt+countNlppIm+m-1];
 		    jTempDRe = dotReDx[jState*numNlppAll+atomIndSt+countNlppRe+m];
-                    jTempDIm = dotImDx[jState*numNlppAll+atomIndSt+countNlppRe+m-1];
+                    jTempDIm = dotImDx[jState*numNlppAll+atomIndSt+countNlppIm+m-1];
 		    vnlFxMatrix[countAtom*numStates*numStates+iState*numStates+jState] 
 			     += 2.0*(iTempDRe*jTempRe+iTempDIm*jTempIm+
 			        iTempRe*jTempDRe+iTempIm*jTempDIm)*
 				vpsNormList[radIndex]*volInv;
                     iTempDRe = dotReDy[iState*numNlppAll+atomIndSt+countNlppRe+m];
-                    iTempDIm = dotImDy[iState*numNlppAll+atomIndSt+countNlppRe+m-1];
+                    iTempDIm = dotImDy[iState*numNlppAll+atomIndSt+countNlppIm+m-1];
                     jTempDRe = dotReDy[jState*numNlppAll+atomIndSt+countNlppRe+m];
-                    jTempDIm = dotImDy[jState*numNlppAll+atomIndSt+countNlppRe+m-1];
+                    jTempDIm = dotImDy[jState*numNlppAll+atomIndSt+countNlppIm+m-1];
                     vnlFyMatrix[countAtom*numStates*numStates+iState*numStates+jState]
                              += 2.0*(iTempDRe*jTempRe+iTempDIm*jTempIm+
                                 iTempRe*jTempDRe+iTempIm*jTempDIm)*
                                 vpsNormList[radIndex]*volInv;
                     iTempDRe = dotReDz[iState*numNlppAll+atomIndSt+countNlppRe+m];
-                    iTempDIm = dotImDz[iState*numNlppAll+atomIndSt+countNlppRe+m-1];
+                    iTempDIm = dotImDz[iState*numNlppAll+atomIndSt+countNlppIm+m-1];
                     jTempDRe = dotReDz[jState*numNlppAll+atomIndSt+countNlppRe+m];
-                    jTempDIm = dotImDz[jState*numNlppAll+atomIndSt+countNlppRe+m-1];
+                    jTempDIm = dotImDz[jState*numNlppAll+atomIndSt+countNlppIm+m-1];
                     vnlFzMatrix[countAtom*numStates*numStates+iState*numStates+jState]
                              += 2.0*(iTempDRe*jTempRe+iTempDIm*jTempIm+
                                 iTempRe*jTempDRe+iTempIm*jTempDIm)*
@@ -744,6 +753,11 @@ void calcMatrixFromDot(CP *cp, CP *cpMini,CLASS *classMini,
 		  else{
 		    iTempRe = dotRe[iState*numNlppAll+atomIndSt+countNlppRe];
 		    jTempRe = dotRe[jState*numNlppAll+atomIndSt+countNlppRe];
+		    /*
+                    if(jState==iState){
+                      printf("mmmmmmatrix iAtom %i l %i m %i re %lg\n",iAtom,l,m,iTempRe);
+                    }
+		    */
 		    vnlMatrix[iState*numStates+jState] += iTempRe*jTempRe*vpsNormList[radIndex]*volInv; 
 		    iTempDRe = dotReDx[iState*numNlppAll+atomIndSt+countNlppRe];
 		    jTempDRe = dotReDx[iState*numNlppAll+atomIndSt+countNlppRe];
@@ -773,6 +787,8 @@ void calcMatrixFromDot(CP *cp, CP *cpMini,CLASS *classMini,
       }//endfor iAtom
     }//endfor jState
     stat_avg->cp_enl += vnlMatrix[iState*numStates+iState];
+    energy += vnlMatrix[iState*numStates+iState];
+    //printf("matrix stat_avg->cp_enl %lg %lg\n",stat_avg->cp_enl,vnlMatrix[iState*numStates+iState]);
     countAtom = 0;
     for(iAtom=0;iAtom<numAtomTot;iAtom++){
       if(atomFragVnlCalcMapInv[iAtom]!=-1){
@@ -782,6 +798,9 @@ void calcMatrixFromDot(CP *cp, CP *cpMini,CLASS *classMini,
 	countAtom += 1;
       }
     }
+    //printf("matrix stat_avg->cp_enl %lg %lg\n",stat_avg->cp_enl,vnlMatrix[iState*numStates+iState]);
+    //fflush(stdout);
+    //exit(0);
   }//endfor iState
 
   // Generate the other half
@@ -798,6 +817,9 @@ void calcMatrixFromDot(CP *cp, CP *cpMini,CLASS *classMini,
       }//endfor iAtom
     }//endfor jState
   }//endfor iState
+  //printf("matrix stat_avg->cp_enl %lg\n",stat_avg->cp_enl);
+  //fflush(stdout);
+  //exit(0);
 
 
 /*--------------------------------------------------------------------------*/

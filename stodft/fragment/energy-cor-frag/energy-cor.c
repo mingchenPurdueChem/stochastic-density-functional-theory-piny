@@ -437,6 +437,7 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
   }
   vnl = statAvg->cp_enl;
 
+  printf("vvvvvvvvvnl %.16lg\n",vnl);
   
   for(iAtom=0;iAtom<numAtomCalc;iAtom++){
     Fx[iAtom] = fx[iAtom+1];
@@ -594,9 +595,9 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
     vnlFyCorProc[atomInd] += Fy[iAtom]-vnlFyCorFragLoc[iAtom];
     vnlFzCorProc[atomInd] += Fz[iAtom]-vnlFzCorFragLoc[iAtom];
     
-    printf("111111111 fnlfrag %i %.8lg %.8lg %.8lg %.8lg %.8lg %.8lg\n",atomInd,
-	    Fx[iAtom],Fy[iAtom],Fz[iAtom],
-	    vnlFxCorFragLoc[iAtom],vnlFyCorFragLoc[iAtom],vnlFzCorFragLoc[iAtom]);
+    //printf("111111111 fnlfrag %i %.8lg %.8lg %.8lg %.8lg %.8lg %.8lg\n",atomInd,
+    //	    Fx[iAtom],Fy[iAtom],Fz[iAtom],
+    //	    vnlFxCorFragLoc[iAtom],vnlFyCorFragLoc[iAtom],vnlFzCorFragLoc[iAtom]);
     
   }
   free(vnlFxCorFragLoc);

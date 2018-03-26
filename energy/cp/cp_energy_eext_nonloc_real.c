@@ -211,6 +211,7 @@ void nlppKBRealEnergy(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 		      &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
 	      dotIm = ddotBlasWrapper(numGrid,wfNbhd,1,
                       &vnlPhiAtomGridIm[gridShiftNowIm],1)*volElem;
+	      //printf("lllllllll iAtom %i l %i m %i re %lg im %lg\n",iAtom,l,m,dotRe,dotIm);
 	      dotReAll[iAtom][countNlppRe+m] = dotRe;
 	      dotImAll[iAtom][countNlppIm+m-1] = dotIm;
 	      //printf("dottttttttt %i %i %lg %i %lg\n",
@@ -236,6 +237,7 @@ void nlppKBRealEnergy(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 	    else{
               dotRe = ddotBlasWrapper(numGrid,wfNbhd,1,
                       &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
+	      //printf("lllllllll iAtom %i l %i m %i re %lg\n",iAtom,l,m,dotRe);
 	      dotReAll[iAtom][countNlppRe] = dotRe;
               //printf("dottttttttt %i %i %lg\n",
               //       iAtom,countNlppRe,dotRe);
@@ -281,6 +283,7 @@ void nlppKBRealEnergy(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 
   if(energyCalcFlag==1){
     stat_avg->cp_enl += energy;
+    //printf("eeeeeeeeeeeeenergy %lg\n",stat_avg->cp_enl);
   }
 
 /*======================================================================*/

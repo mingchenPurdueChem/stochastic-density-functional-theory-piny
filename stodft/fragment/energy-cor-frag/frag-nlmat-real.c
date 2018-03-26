@@ -506,10 +506,10 @@ void calcVnlRealDotState(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   double *vnlPhiAtomGridIm = pseudoReal->vnlPhiAtomGridIm;
   double *vnlPhiDxAtomGridRe = pseudoReal->vnlPhiDxAtomGridRe;
   double *vnlPhiDxAtomGridIm = pseudoReal->vnlPhiDxAtomGridIm;
-  double *vnlPhiDyAtomGridRe = pseudoReal->vnlPhiDxAtomGridRe;
-  double *vnlPhiDyAtomGridIm = pseudoReal->vnlPhiDxAtomGridIm;
-  double *vnlPhiDzAtomGridRe = pseudoReal->vnlPhiDxAtomGridRe;
-  double *vnlPhiDzAtomGridIm = pseudoReal->vnlPhiDxAtomGridIm;
+  double *vnlPhiDyAtomGridRe = pseudoReal->vnlPhiDyAtomGridRe;
+  double *vnlPhiDyAtomGridIm = pseudoReal->vnlPhiDyAtomGridIm;
+  double *vnlPhiDzAtomGridRe = pseudoReal->vnlPhiDzAtomGridRe;
+  double *vnlPhiDzAtomGridIm = pseudoReal->vnlPhiDzAtomGridIm;
 
 /*======================================================================*/
 /* I) Allocate local memory                                             */
@@ -554,6 +554,7 @@ void calcVnlRealDotState(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 				= ddotBlasWrapper(numGrid,wfNbhd,1,
 				  &vnlPhiAtomGridIm[gridShiftNowIm],1)*volElem;
 	      //printf("1234444444 iAtom %i l %i m %i ind %i im %lg\n",iAtom,l,m,atomIndSt+countNlppIm+m-1,dotIm[atomIndSt+countNlppIm+m-1]);
+	      //printf("dxxxxxxxxxx %lg %lg dy %lg %lg dz %lg %lg\n",vnlPhiDxAtomGridRe[gridShiftNowRe],vnlPhiDxAtomGridIm[gridShiftNowIm],vnlPhiDyAtomGridRe[gridShiftNowRe],vnlPhiDyAtomGridIm[gridShiftNowIm],vnlPhiDzAtomGridRe[gridShiftNowRe],vnlPhiDzAtomGridIm[gridShiftNowIm]);
               dotReDx[atomIndSt+countNlppRe+m] 
 				= ddotBlasWrapper(numGrid,wfNbhd,1,
                                   &vnlPhiDxAtomGridRe[gridShiftNowRe],1)*volElem;
@@ -730,7 +731,7 @@ void calcMatrixFromDot(CP *cp, CP *cpMini,CLASS *classMini,
 		    jTempDRe = dotReDx[jState*numNlppAll+atomIndSt+countNlppRe+m];
                     jTempDIm = dotImDx[jState*numNlppAll+atomIndSt+countNlppIm+m-1];
 		    vnlFxMatrix[countAtom*numStates*numStates+iState*numStates+jState] 
-			     += 2.0*(iTempDRe*jTempRe+iTempDIm*jTempIm+
+			     -= 2.0*(iTempDRe*jTempRe+iTempDIm*jTempIm+
 			        iTempRe*jTempDRe+iTempIm*jTempDIm)*
 				vpsNormList[radIndex]*volInv;
                     iTempDRe = dotReDy[iState*numNlppAll+atomIndSt+countNlppRe+m];
@@ -738,7 +739,7 @@ void calcMatrixFromDot(CP *cp, CP *cpMini,CLASS *classMini,
                     jTempDRe = dotReDy[jState*numNlppAll+atomIndSt+countNlppRe+m];
                     jTempDIm = dotImDy[jState*numNlppAll+atomIndSt+countNlppIm+m-1];
                     vnlFyMatrix[countAtom*numStates*numStates+iState*numStates+jState]
-                             += 2.0*(iTempDRe*jTempRe+iTempDIm*jTempIm+
+                             -= 2.0*(iTempDRe*jTempRe+iTempDIm*jTempIm+
                                 iTempRe*jTempDRe+iTempIm*jTempDIm)*
                                 vpsNormList[radIndex]*volInv;
                     iTempDRe = dotReDz[iState*numNlppAll+atomIndSt+countNlppRe+m];
@@ -746,7 +747,7 @@ void calcMatrixFromDot(CP *cp, CP *cpMini,CLASS *classMini,
                     jTempDRe = dotReDz[jState*numNlppAll+atomIndSt+countNlppRe+m];
                     jTempDIm = dotImDz[jState*numNlppAll+atomIndSt+countNlppIm+m-1];
                     vnlFzMatrix[countAtom*numStates*numStates+iState*numStates+jState]
-                             += 2.0*(iTempDRe*jTempRe+iTempDIm*jTempIm+
+                             -= 2.0*(iTempDRe*jTempRe+iTempDIm*jTempIm+
                                 iTempRe*jTempDRe+iTempIm*jTempDIm)*
                                 vpsNormList[radIndex]*volInv;
 		  }
@@ -760,19 +761,19 @@ void calcMatrixFromDot(CP *cp, CP *cpMini,CLASS *classMini,
 		    */
 		    vnlMatrix[iState*numStates+jState] += iTempRe*jTempRe*vpsNormList[radIndex]*volInv; 
 		    iTempDRe = dotReDx[iState*numNlppAll+atomIndSt+countNlppRe];
-		    jTempDRe = dotReDx[iState*numNlppAll+atomIndSt+countNlppRe];
+		    jTempDRe = dotReDx[jState*numNlppAll+atomIndSt+countNlppRe];
 		    vnlFxMatrix[countAtom*numStates*numStates+iState*numStates+jState]
-			     += (iTempDRe*jTempRe+iTempRe*jTempDRe)*
+			     -= (iTempDRe*jTempRe+iTempRe*jTempDRe)*
 				vpsNormList[radIndex]*volInv;
                     iTempDRe = dotReDy[iState*numNlppAll+atomIndSt+countNlppRe];
-                    jTempDRe = dotReDy[iState*numNlppAll+atomIndSt+countNlppRe];
+                    jTempDRe = dotReDy[jState*numNlppAll+atomIndSt+countNlppRe];
                     vnlFyMatrix[countAtom*numStates*numStates+iState*numStates+jState]
-                             += (iTempDRe*jTempRe+iTempRe*jTempDRe)*
+                             -= (iTempDRe*jTempRe+iTempRe*jTempDRe)*
                                 vpsNormList[radIndex]*volInv;
                     iTempDRe = dotReDz[iState*numNlppAll+atomIndSt+countNlppRe];
-                    jTempDRe = dotReDz[iState*numNlppAll+atomIndSt+countNlppRe];
+                    jTempDRe = dotReDz[jState*numNlppAll+atomIndSt+countNlppRe];
                     vnlFzMatrix[countAtom*numStates*numStates+iState*numStates+jState]
-                             += (iTempDRe*jTempRe+iTempRe*jTempDRe)*
+                             -= (iTempDRe*jTempRe+iTempRe*jTempDRe)*
                                 vpsNormList[radIndex]*volInv;
 		  }//endif m
 		}//endfor m
@@ -802,6 +803,13 @@ void calcMatrixFromDot(CP *cp, CP *cpMini,CLASS *classMini,
     //fflush(stdout);
     //exit(0);
   }//endfor iState
+  countAtom = 0;
+  for(iAtom=0;iAtom<numAtomTot;iAtom++){
+    if(atomFragVnlCalcMapInv[iAtom]!=-1){
+      printf("iAtom %i Fx %lg Fy %lg Fz %lg\n",iAtom,Fx[countAtom+1],Fy[countAtom+1],Fz[countAtom+1]);
+      countAtom += 1;
+    }
+  }
 
   // Generate the other half
   for(iState=0;iState<numStates;iState++){
@@ -818,6 +826,7 @@ void calcMatrixFromDot(CP *cp, CP *cpMini,CLASS *classMini,
     }//endfor jState
   }//endfor iState
   //printf("matrix stat_avg->cp_enl %lg\n",stat_avg->cp_enl);
+
   //fflush(stdout);
   //exit(0);
 

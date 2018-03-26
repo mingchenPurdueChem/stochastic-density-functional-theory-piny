@@ -156,7 +156,8 @@ void nlppKBRealEnergyForce(CP *cp,CLASS *class,GENERAL_DATA *generalData,
               dotIm = dotImAll[iAtom][countNlppIm+m-1];
               //printf("dottttttttt %i %i %lg %i %lg\n",
               //       iAtom,countNlppRe+m,dotRe,countNlppIm+m-1,dotIm);
-	      // x      
+	      // x    
+	      //printf("dddddx %lg %lg dy %lg %lg dz %lg %lg\n",vnlPhiDxAtomGridRe[gridShiftNowRe],vnlPhiDxAtomGridIm[gridShiftNowIm],vnlPhiDyAtomGridRe[gridShiftNowRe],vnlPhiDyAtomGridIm[gridShiftNowIm],vnlPhiDzAtomGridRe[gridShiftNowRe],vnlPhiDzAtomGridIm[gridShiftNowIm]);
               dotDevRe = ddotBlasWrapper(numGrid,wfNbhd,1,
 					 &vnlPhiDxAtomGridRe[gridShiftNowRe],1)*volElem;
               dotDevIm = ddotBlasWrapper(numGrid,wfNbhd,1,

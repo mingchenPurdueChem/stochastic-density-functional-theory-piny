@@ -170,7 +170,7 @@ void cputime(double *time)
 
 /*==========================================================================*/
 {
-  int itime;
+  long int itime;
   static double to=0.,tn=0.;
 
   itime = clock();

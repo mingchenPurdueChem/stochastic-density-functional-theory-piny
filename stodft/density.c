@@ -1388,11 +1388,11 @@ void calcRhoStoHybridCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
   }
 
   // debug
-  
+  /*
   FILE *fileDensityTest = fopen("density-test","w");
   for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)fprintf(fileDensityTest,"%.16lg\n",rhoUpChemPot[0][iGrid]);
   fclose(fileDensityTest);
-  
+  */
 
 
   free(&rhoTemp[1]);

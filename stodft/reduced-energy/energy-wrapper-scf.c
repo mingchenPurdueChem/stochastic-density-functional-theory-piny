@@ -998,16 +998,16 @@ void calcCoefForceWrapSCF(CLASS *class,GENERAL_DATA *general_data,
   //calcCoefForceExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos); //nl ps
   //calcCoefForceForceControlWrapSCF(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
 
-  cputime(&time_st);
+  //cputime(&time_st);
   //printf("pseudoRealFlag %i\n",pseudoRealFlag);
   calcNonLocalPseudoScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
-  cputime(&time_end);
-  stodftInfo->cputime1 += time_end-time_st;
+  //cputime(&time_end);
+  //stodftInfo->cputime1 += time_end-time_st;
 
-  cputime(&time_st);
+  //cputime(&time_st);
   calcCoefForceScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
-  cputime(&time_end);
-  stodftInfo->cputime2 += time_end-time_st;
+  //cputime(&time_end);
+  //stodftInfo->cputime2 += time_end-time_st;
 
 /*==========================================================================*/
 }/*end Routine*/

@@ -463,6 +463,7 @@ void para_fft_gen3d_fwd_to_r_fftw3d(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
   int fftInd,fftIndTrans;
   int fftFlag = 0; // We need to match fftw3d results to old fft in the package
 	           // depend on whether generic is used or not
+  double time_st,time_end;	           
 
   fftw_complex *fftw3DForwardIn = para_fft_pkg3d->fftw3DForwardIn;
   fftw_complex *fftw3DForwardOut = para_fft_pkg3d->fftw3DForwardOut;
@@ -484,7 +485,10 @@ void para_fft_gen3d_fwd_to_r_fftw3d(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
       fftw3DForwardIn[igrid] = zfft[igrid*2+1]+zfft[igrid*2+2]*I;
     }
     
+    cputime(&time_st);
     fftw_execute(fftwPlan3DForward);
+    cputime(&time_end);
+    para_fft_pkg3d->cputime += time_end-time_st;
 
     for(i=0;i<nkf3;i++){
       for(j=0;j<nkf2;j++){
@@ -503,8 +507,11 @@ void para_fft_gen3d_fwd_to_r_fftw3d(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
       fftw3DBackwardIn[igrid] = zfft[igrid*2+1]+zfft[igrid*2+2]*I;
     }
 
+    cputime(&time_st);
     fftw_execute(fftwPlan3DBackward);
-
+    cputime(&time_end);
+    para_fft_pkg3d->cputime += time_end-time_st;
+    
     for(i=0;i<nkf3;i++){
       for(j=0;j<nkf2;j++){
         for(k=0;k<nkf1;k++){
@@ -1198,6 +1205,7 @@ void para_fft_gen3d_bck_to_g_fftw3d(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
   int fftInd,fftIndTrans;
   double nfft2Inv = 1.0/nfft2_proc;
   int fftFlag = 0;
+  double time_st,time_end;
 
   fftw_complex *fftw3DBackwardIn = para_fft_pkg3d->fftw3DBackwardIn;
   fftw_complex *fftw3DBackwardOut = para_fft_pkg3d->fftw3DBackwardOut;
@@ -1224,7 +1232,10 @@ void para_fft_gen3d_bck_to_g_fftw3d(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
       }
     }
 
+    cputime(&time_st);
     fftw_execute(fftwPlan3DBackward);
+    cputime(&time_end);
+    para_fft_pkg3d->cputime += time_end-time_st;
 
     for(igrid=0;igrid<nfft2_proc;igrid++){
       zfft[igrid*2+1] = creal(fftw3DBackwardOut[igrid])*nfft2Inv;
@@ -1244,7 +1255,10 @@ void para_fft_gen3d_bck_to_g_fftw3d(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
       }
     }
 
+    cputime(&time_st);
     fftw_execute(fftwPlan3DForward);
+    cputime(&time_end);
+    para_fft_pkg3d->cputime += time_end-time_st;
 
     for(igrid=0;igrid<nfft2_proc;igrid++){
       zfft[igrid*2+1] = creal(fftw3DForwardOut[igrid])*nfft2Inv;

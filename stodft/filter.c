@@ -47,6 +47,7 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   CLATOMS_POS*  clatoms_pos     = &(class->clatoms_pos[ip_now]);
   CLATOMS_INFO *clatoms_info    = &(class->clatoms_info);
   COMMUNICATE *communicate      = &(cp->communicate);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm = &(cp->cp_sclr_fft_pkg3d_sm);
 
   NEWTONINFO *newtonInfo = stodftInfo->newtonInfo;
 
@@ -94,10 +95,7 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   stodftInfo->cputime4 = 0.0;
   stodftInfo->cputime5 = 0.0;
   stodftInfo->cputime6 = 0.0;
-
-  printf("cp_ptens_calc %i hess_calc %i\n",cpopts->cp_ptens_calc,clatoms_info->hess_calc);
-
- 
+  cp_sclr_fft_pkg3d_sm->cputime = 0.0;
 //debug
 /*  
   int numPointTest = 100;
@@ -177,6 +175,7 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     printf("0th process filter time is %lg\n",timeProc);
     printf("non-local pp time %.8lg\n",stodftInfo->cputime1);
     printf("calc force(fft) time %.8lg\n",stodftInfo->cputime2);
+    printf("FFTW3D time %.8lg\n",cp_sclr_fft_pkg3d_sm->cputime);
     printf("non-local pp matrix %.8lg\n",stodftInfo->cputime3);
     printf("non-local pp energy %.8lg\n",stodftInfo->cputime4);
     printf("non-local pp coef force %.8lg\n",stodftInfo->cputime5);

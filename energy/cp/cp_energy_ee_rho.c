@@ -518,8 +518,13 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
   exit(0);
   */
   
+<<<<<<< HEAD
   
   if(fftw3dFlag==100){
+=======
+  /*
+  if(fftw3dFlag==0){
+>>>>>>> truncate-ke
     double sum = 0.0;
     FILE *fp_rho = fopen("rho_bm","w");
     if(np_states == 1){
@@ -537,6 +542,7 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
     fclose(fp_rho);    
     //exit(0);
   }
+  */
   //exit(0);
 
 /*==========================================================================*/

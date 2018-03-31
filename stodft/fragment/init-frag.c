@@ -76,7 +76,9 @@ void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
       initFragUnitCell(class,bonded,general_data,cp,ip_now); // Use the same initialization
       break;
   }
-
+  if(myidState==0)printf("Finish initializing fragments...\n");
+  if(numProcStates>1)Barrier(world);
+  
 
   numFragProc = fragInfo->numFragProc;
   *classMiniPoint = (CLASS*)cmalloc(numFragProc*sizeof(CLASS));
@@ -86,7 +88,6 @@ void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   *cpMiniPoint = (CP*)cmalloc(numFragProc*sizeof(CP));
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     //printf("iFrag %i numFragProc %i\n",iFrag,numFragProc);
-    printf("1111111111111111111111111\n");
     fragInfo->iFrag = iFrag;
     parseFrag(class,bonded,general_data,cp,analysis,&((*classMiniPoint)[iFrag]),
 	      &((*bondedMiniPoint)[iFrag]),&((*generalDataMiniPoint)[iFrag]),
@@ -102,12 +103,16 @@ void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
         classMini[0].clatoms_pos[1].y[3],classMini[0].clatoms_pos[1].z[3]);
   */
   //exit(0);
- 
+  if(myidState==0)printf("Finish parsing fragments...\n");
+  if(numProcStates>1)Barrier(world);   
+
   if(numFragProc>0){
     //if(fragOpt==1){
     initFragEnergy(*cpMiniPoint,*classMiniPoint,class,cp);
     //}
   }
+  if(myidState==0)printf("Finish initializing fragments energy...\n");
+  if(numProcStates>1)Barrier(world);
 
 /*==========================================================================*/
 }/*end Routine*/

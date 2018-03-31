@@ -55,7 +55,7 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
 /*=======================================================================*/
 /*            Local variable declarations                               */
 #include "../typ_defs/typ_mask.h"
-
+  STODFTINFO *stodftInfo = cp->stodftInfo;
   int is,i,iupper;
   int ioff,ncoef1,ioff2;
   int iii,iis,nis;
@@ -76,6 +76,7 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
   double aka,akb,akc,xk,yk,zk,cfact;
   double eke;
   double sum_check,sum_check_tmp;
+  double time_st,time_end;
   double *keMatrix = cpewald->keMatrix;
 #define DEBUG_OFF
 #ifdef DEBUG
@@ -123,6 +124,7 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
 /*==========================================================================*/
 /* 1) get the wave functions in real space two at a time                    */
 /*   I) double pack the complex zfft array with two real wavefunctions      */
+     cputime(&time_st);
 
     if(fftw3dFlag==0){
       dble_pack_coef(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
@@ -143,6 +145,9 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
     else{
       para_fft_gen3d_fwd_to_r_fftw3d(zfft,cp_sclr_fft_pkg3d_sm);
     }
+    cputime(&time_end);
+    stodftInfo->cputime2 += time_end-time_st;
+
 
 /*==========================================================================*/
 /* 2) get v|psi> in g space and store it in zfft                            */
@@ -151,7 +156,10 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
       memcpy(&zfft_tmp[1],&zfft[1],nfft*sizeof(double));
       cp_vpsi(zfft,v_ks,nfft);
       cp->pseudo.pseudoReal.energyCalcFlag = 1;
+      cputime(&time_st);
       controlEnergyNlppReal(cp,class,general_data,zfft_tmp,zfft,1);
+      cputime(&time_end);
+      stodftInfo->cputime1 += time_end-time_st;
     }
     else cp_vpsi(zfft,v_ks,nfft);
     //printf("v_ks %lg\n",v_ks);
@@ -159,6 +167,8 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
 /*--------------------------------------------------------------------------*/
 /*  II) fourier transform  to g-space                                       */
 /*     convention exp(igr)                                                  */
+
+    cputime(&time_st);
 
     if(fftw3dFlag==0){
       para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
@@ -182,6 +192,9 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
                           zfft,cp_sclr_fft_pkg3d_sm);
       //printf("fccreal fftw %lg\n",fccreal[ioff+ncoef]);
     }
+    cputime(&time_end);
+    stodftInfo->cputime2 += time_end-time_st;
+
   }//endfor is
 
   /*
@@ -206,6 +219,8 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
 /*--------------------------------------------------------------------------*/
 /*   I) sngl pack                                                           */
 
+    cputime(&time_st);
+
     if(fftw3dFlag==0){
       sngl_pack_coef(&ccreal[ioff],&ccimag[ioff],zfft,cp_sclr_fft_pkg3d_sm);
     }
@@ -224,6 +239,9 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
       para_fft_gen3d_fwd_to_r_fftw3d(zfft,cp_sclr_fft_pkg3d_sm);
     }
 
+    cputime(&time_end);
+    stodftInfo->cputime2 += time_end-time_st;
+
 /*==========================================================================*/
 /* 5) get v|psi> in g space and store it in zfft                            */
 /*   I) get  v|psi> in real space                                           */
@@ -232,13 +250,19 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
       memcpy(&zfft_tmp[1],&zfft[1],nfft*sizeof(double));
       cp_vpsi(zfft,v_ks,nfft);
       cp->pseudo.pseudoReal.energyCalcFlag = 1;
+      cputime(&time_st);
       controlEnergyNlppReal(cp,class,general_data,zfft_tmp,zfft,0);
+      cputime(&time_end);
+      stodftInfo->cputime1 += time_end-time_st;
     }
     else cp_vpsi(zfft,v_ks,nfft);
 
 /*--------------------------------------------------------------------------*/
 /*   II) fourier transform the result back to g-space */
 /*     convention exp(igr)  */
+
+    cputime(&time_st);
+
     if(fftw3dFlag==0){
       para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
     }
@@ -257,6 +281,9 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
       sngl_upack_coef_sum_fftw3d(&fccreal[ioff],&fccimag[ioff],zfft,
 			  cp_sclr_fft_pkg3d_sm);
     }
+
+    cputime(&time_end);
+    stodftInfo->cputime2 += time_end-time_st;
 
   }// endif: odd number of states
 

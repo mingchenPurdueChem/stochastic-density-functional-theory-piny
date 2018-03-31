@@ -505,6 +505,7 @@ typedef struct para_fft_pkg3d {
   fftw_complex *fftw3DForwardIn,*fftw3DForwardOut;
   fftw_complex *fftw3DBackwardIn,*fftw3DBackwardOut;
   int *mapFFTW,*mapConFFTW;
+  double cputime;
  } PARA_FFT_PKG3D;
 
 /*==========================================================================*/

@@ -517,8 +517,24 @@ double ddot1(int n,double *a,int astep,double *b,int bstep)
 double ddotBlasWrapper(int n,double *x,int indx,double *y,int indy){
   return ddot_(&n,x,&indx,y,&indy);
 }
+/*===============================================================*/
 
 /*===============================================================*/
+/*ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*===============================================================*/
+double ddotBlasWrapperThreads(int n,double *x,int indx,double *y,int indy,
+                              int numThreads){
+  double x;
+  mkl_set_dynamic(0);
+  mkl_set_num_threads(numThreads);
+  omp_set_nested(1);
+  {
+    x = ddot_(&n,x,&indx,y,&indy);
+  }
+  return x;
+}
+/*===============================================================*/
+
 
 /*===============================================================*/
 /*ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/

@@ -310,8 +310,11 @@ void non_loc_restore_ord(CLATOMS_POS *, CLATOMS_INFO *,
  double get_jl(double ,double ,int );
 /*====================================================================*/
 /* cp_energy_eext_nonloc_real.c */
-  void controlEnergyNlppReal(CP *,CLASS *,GENERAL_DATA *,double *,double *,int);
-  void nlppKBRealEnergy(CP *,CLASS *,GENERAL_DATA *,double *,double *);
+  void controlEnergyNlppReal(CP *,CLASS *,GENERAL_DATA *,double *,double *,int,
+			     double *,double *,double *,double *);
+  
+  void nlppKBRealEnergy(CP *,CLASS *,GENERAL_DATA *,double *,double *,
+			double *,double **,double **);
   void calcPseudoWf(CP *,CLASS *,GENERAL_DATA *);
   void calcTrig(double *,int,double *);
   void calcSpHarm(double *,int,double *,int,double *);
@@ -319,19 +322,31 @@ void non_loc_restore_ord(CLATOMS_POS *, CLATOMS_INFO *,
   void calcDotNlpp(double *,double *,double *,double *,double *,int);
 
 /*====================================================================*/
+/* cp_energy_eext_nonloc_real_threads.c */
+  
+  void controlEnergyNlppRealThreads(CP *,CLASS *,GENERAL_DATA *,double *,double *,int);
+  void nlppKBRealEnergyThreads(CP *,CLASS *,GENERAL_DATA *,double *,double *);
+  
+/*====================================================================*/
 /* cp_energy_eext_nonloc_real_force.c */
 
-  void nlppKBRealEnergyForce(CP *,CLASS *,GENERAL_DATA *,double *);
+  void nlppKBRealEnergyForce(CP *,CLASS *,GENERAL_DATA *,double *,double *,
+			     double *,double *,double **,double **);
   void calcPseudoWfDev(CP *,CLASS *,GENERAL_DATA *);
   void calcSpHarmDeriv(double *,double *, double *,int ,double *,int ,double *);
   void calcAngleDeriv(double *,double *,double *,double *,int);
   void calcRadFunDev(double *,int,PSEUDO_REAL *,double *,int);
-  
+
+/*====================================================================*/
+/* cp_energy_eext_nonloc_real_force_threads.c */
+
+  void nlppKBRealEnergyForceThreads(CP *,CLASS *,GENERAL_DATA *,double *);
+    
 /*====================================================================*/
 /* cp_energy_ee_rho.c */
 
 
-void cp_rho_calc_hybrid(CPEWALD *,CPSCR *, CPCOEFFS_INFO *,EWALD *,
+void cp_rho_calc_hybrid_threads_force(CPEWALD *,CPSCR *, CPCOEFFS_INFO *,EWALD *,
                         CELL *,double *, double *,
                         int ,int , double *, double *,double *,
                         double *, double *,double *, double *,double *,
@@ -393,7 +408,7 @@ void cp_get_vks(CPOPTS *,CPSCR *,CPEWALD *, EWALD *,
                 int ,int ,int ,int , int , PARA_FFT_PKG3D *, PARA_FFT_PKG3D *,
                 PARA_FFT_PKG3D *, PARA_FFT_PKG3D *, int );
 
-void coef_force_calc_hybrid(CPEWALD *,int ,double *,double *, 
+void coef_force_calc_hybrid_threads_force(CPEWALD *,int ,double *,double *, 
                              double *,double *,double *,double *,double *,double *,
                              double *,double *,double *,double *,double *,
                              double *,double *,int ,double *,
@@ -427,7 +442,27 @@ void cp_vpsi(double *,double *,int );
 void cp_pack_vks(double *,double *,int );
 
 /*====================================================================*/
-/* cp_energy_ee_rho.c */
+/* cp_energy_ee_rho_threads_state.c */
+
+void cp_rho_calc_hybrid_threads_state(CPEWALD *,CPSCR *, CPCOEFFS_INFO *,EWALD *,
+                        CELL *,double *, double *,
+                        int ,int , double *, double *,double *,
+                        double *, double *,double *, double *,double *,
+                        double *,int ,int ,int ,int ,int ,COMMUNICATE *,
+                        PARA_FFT_PKG3D *, PARA_FFT_PKG3D *,
+                        PARA_FFT_PKG3D *, PARA_FFT_PKG3D *, PARA_FFT_PKG3D *);
+
+void coef_force_calc_hybrid_threads_state(CPEWALD *,int ,double *,double *,
+                             double *,double *,double *,double *,double *,double *,
+                             double **,double **,double *,double *,double *,
+                             double *,double *,int ,double *,
+                             COMMUNICATE *,int ,int ,int ,int ,int ,
+                             PARA_FFT_PKG3D *,CP *,CLASS *,GENERAL_DATA *);
+
+
+
+/*====================================================================*/
+/* cp_energy_ee_grad_rho.c */
 
 void control_grad_rho(CPEWALD *,CPSCR *,EWALD *,
                       double *,double *,

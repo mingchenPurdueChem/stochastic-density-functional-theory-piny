@@ -11,6 +11,7 @@ void mapFragMol(FRAGINFO *,COMMUNICATE *,int,int *,int *);
 void mapFragMolHalf(FRAGINFO *,COMMUNICATE *,int,int *,int *,double *);
 void reorderMol(FRAGINFO *,int,int,int *,int *,int *,int*,int);
 int checkInList(int,int *,int);
+int checkIndexList(int,int *,int);
 
 void initFragEnergy(CP *,CLASS *,CLASS *,CP *);
 void initFragUnitCell(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);

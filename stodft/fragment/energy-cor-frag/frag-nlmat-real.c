@@ -292,6 +292,9 @@ void calcVnlRealDot(CP *cpMini, CLASS *classMini,GENERAL_DATA *generalDataMini,
   int pseudoRealFlag = pseudoReal->pseudoRealFlag;
   int fftw3dFlag = cpewald->fftw3dFlag;
   int numNlppAll = pseudoReal->numNlppAll;
+  int numAtomTot = classMini->clatoms_info.natm_tot;
+  int numThreads = cp_sclr_fft_pkg3d_sm->numThreads;
+  int iThread;
 
   int *kastore_sm = cpewald->kastr_sm;
   int *kbstore_sm = cpewald->kbstr_sm;
@@ -303,8 +306,16 @@ void calcVnlRealDot(CP *cpMini, CLASS *classMini,GENERAL_DATA *generalDataMini,
   double sum_check,sum_check_tmp;
 
   double *wfReal = (double*)cmalloc(nfft2*sizeof(double));
+  double *energyNl = (double *)cmalloc(numThreads*sizeof(double));
+  double *fxThreads = (double *)cmalloc(numThreads*numAtomTot*sizeof(double));
+  double *fyThreads = (double *)cmalloc(numThreads*numAtomTot*sizeof(double));
+  double *fzThreads = (double *)cmalloc(numThreads*numAtomTot*sizeof(double));
+
   double *zfft = cpscr->cpscr_wave.zfft;
   double *zfft_tmp = cpscr->cpscr_wave.zfft_tmp;
+  double **zfft_threads = cpscr->cpscr_wave.zfft_threads;
+  double **zfft_tmp_threads = cpscr->cpscr_wave.zfft_tmp_threads;
+  
 
 /*=================================================================*/
 /*  Find the upper state limit                                     */
@@ -313,66 +324,81 @@ void calcVnlRealDot(CP *cpMini, CLASS *classMini,GENERAL_DATA *generalDataMini,
   iupper = nstate;
   if(nstate%2==1)iupper = nstate-1;
 
+  for(i=0;i<numThreads;i++)energyNl[i] = 0.0;
+  for(i=0;i<numThreads*numAtomTot;i++){
+    fxThreads[i] = 0.0;
+    fyThreads[i] = 0.0;
+    fzThreads[i] = 0.0;
+  }
+
 /*=================================================================*/
 /*  get the forces on the coefs of each state                      */
 
-  for(is=1;is<=iupper;is+=2){
-    ioff = (is-1)*ncoef;
-    ioff2 = (is)*ncoef;
+  omp_set_num_threads(numThreads);
+  #pragma omp parallel private(iThread,is,ioff,ioff2)
+  {
+    iThread = omp_get_thread_num();
+    #pragma omp for
+    for(is=1;is<=iupper;is+=2){
+      ioff = (is-1)*ncoef;
+      ioff2 = (is)*ncoef;
 
 /*==========================================================================*/
 /* 1) get the wave functions in real space two at a time                    */
 /*   I) double pack the complex zfft array with two real wavefunctions      */
 
-    if(fftw3dFlag==0){
-      dble_pack_coef(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
-                     zfft,cp_sclr_fft_pkg3d_sm);
-    }
-    else{
-      dble_pack_coef_fftw3d(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
-                     zfft,cp_sclr_fft_pkg3d_sm);
-    }
+      if(fftw3dFlag==0){
+	dble_pack_coef(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
+		       zfft_threads[iThread],cp_sclr_fft_pkg3d_sm);
+      }
+      else{
+	dble_pack_coef_fftw3d(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
+		       zfft_threads[iThread],cp_sclr_fft_pkg3d_sm);
+      }
 
 /*--------------------------------------------------------------------------*/
 /* II) fourier transform the wavefunctions to real space                    */
 /*      convention exp(-igr)                                                */
 
-    if(fftw3dFlag==0){
-      para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
-    }
-    else{
-      para_fft_gen3d_fwd_to_r_fftw3d(zfft,cp_sclr_fft_pkg3d_sm);
-    }
+      if(fftw3dFlag==0){
+	para_fft_gen3d_fwd_to_r(zfft_threads[iThread],zfft_tmp_threads[iThread],
+				cp_sclr_fft_pkg3d_sm);
+      }
+      else{
+	para_fft_gen3d_fwd_to_r_fftw3d(zfft_threads[iThread],
+				       cp_sclr_fft_pkg3d_sm,iThread);
+      }
 
 /*==========================================================================*/
 /* 2) get v|psi> in g space and store it in zfft                            */
 /*   I) get  v|psi> in real space                                           */
 
-    for(iGrid=0;iGrid<nfft2;iGrid++){
-      wfReal[iGrid] = zfft[iGrid*2+1];
-    }
-    calcVnlRealDotState(cpMini,classMini,generalDataMini,wfReal,
-			&dotReAllStates[(is-1)*numNlppAll],
-			&dotImAllStates[(is-1)*numNlppAll],
-			&dotReAllDxStates[(is-1)*numNlppAll],
-                        &dotImAllDxStates[(is-1)*numNlppAll],
-                        &dotReAllDyStates[(is-1)*numNlppAll],
-                        &dotImAllDyStates[(is-1)*numNlppAll],
-                        &dotReAllDzStates[(is-1)*numNlppAll],
-                        &dotImAllDzStates[(is-1)*numNlppAll]);
-    for(iGrid=0;iGrid<nfft2;iGrid++){
-      wfReal[iGrid] = zfft[iGrid*2+2];
-    }
-    calcVnlRealDotState(cpMini,classMini,generalDataMini,wfReal,
-                        &dotReAllStates[is*numNlppAll],
-                        &dotImAllStates[is*numNlppAll],
-                        &dotReAllDxStates[is*numNlppAll],
-                        &dotImAllDxStates[is*numNlppAll],
-                        &dotReAllDyStates[is*numNlppAll],
-                        &dotImAllDyStates[is*numNlppAll],
-                        &dotReAllDzStates[is*numNlppAll],
-                        &dotImAllDzStates[is*numNlppAll]);
-  }//endfor is
+      for(iGrid=0;iGrid<nfft2;iGrid++){
+	wfReal[iGrid] = zfft[iGrid*2+1];
+      }
+      calcVnlRealDotState(cpMini,classMini,generalDataMini,wfReal,
+			  &dotReAllStates[(is-1)*numNlppAll],
+			  &dotImAllStates[(is-1)*numNlppAll],
+			  &dotReAllDxStates[(is-1)*numNlppAll],
+			  &dotImAllDxStates[(is-1)*numNlppAll],
+			  &dotReAllDyStates[(is-1)*numNlppAll],
+			  &dotImAllDyStates[(is-1)*numNlppAll],
+			  &dotReAllDzStates[(is-1)*numNlppAll],
+			  &dotImAllDzStates[(is-1)*numNlppAll]);
+      for(iGrid=0;iGrid<nfft2;iGrid++){
+	wfReal[iGrid] = zfft[iGrid*2+2];
+      }
+      calcVnlRealDotState(cpMini,classMini,generalDataMini,wfReal,
+			  &dotReAllStates[is*numNlppAll],
+			  &dotImAllStates[is*numNlppAll],
+			  &dotReAllDxStates[is*numNlppAll],
+			  &dotImAllDxStates[is*numNlppAll],
+			  &dotReAllDyStates[is*numNlppAll],
+			  &dotImAllDyStates[is*numNlppAll],
+			  &dotReAllDzStates[is*numNlppAll],
+			  &dotImAllDzStates[is*numNlppAll]);
+    }//endfor is
+  }//end omp
 
 /*==========================================================================*/
 /*==========================================================================*/
@@ -385,20 +411,20 @@ void calcVnlRealDot(CP *cpMini, CLASS *classMini,GENERAL_DATA *generalDataMini,
 /*--------------------------------------------------------------------------*/
 /*   I) sngl pack                                                           */
     if(fftw3dFlag==0){
-      sngl_pack_coef(&ccreal[ioff],&ccimag[ioff],zfft,cp_sclr_fft_pkg3d_sm);
+      sngl_pack_coef(&ccreal[ioff],&ccimag[ioff],zfft_threads[0],cp_sclr_fft_pkg3d_sm);
     }
     else{
-      sngl_pack_coef_fftw3d(&ccreal[ioff],&ccimag[ioff],zfft,cp_sclr_fft_pkg3d_sm);
+      sngl_pack_coef_fftw3d(&ccreal[ioff],&ccimag[ioff],zfft_threads[0],cp_sclr_fft_pkg3d_sm);
     }
 /*--------------------------------------------------------------------------*/
 /* II) fourier transform the wavefunctions to real space                    */
 /*      convention exp(-igr)                                                */
 
      if(fftw3dFlag==0){
-       para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+       para_fft_gen3d_fwd_to_r(zfft_threads[0],zfft_tmp_threads[0],cp_sclr_fft_pkg3d_sm);
      }
      else{
-       para_fft_gen3d_fwd_to_r_fftw3d(zfft,cp_sclr_fft_pkg3d_sm);
+       para_fft_gen3d_fwd_to_r_fftw3d(zfft_threads[0],cp_sclr_fft_pkg3d_sm,0);
      }
 
 /*==========================================================================*/

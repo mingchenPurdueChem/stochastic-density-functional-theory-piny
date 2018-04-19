@@ -67,7 +67,7 @@ fft_create_package.o     :      $(STANDARD) $(DEFINES) \
                          $(MATH) $(FRND_ENT) $(ENR_CP_LOC) $(COMM_WRAP) \
                          $(CODE)/mathlib/fft_create_package.c
 	$(ECHO) $@
-	$(COBJ_NOOPT) $(CODE)/mathlib/fft_create_package.c
+	$(COBJ) $(CODE)/mathlib/fft_create_package.c
 
 #------------------------------------------------------------------
 lbfgs.o       :   $(DEFINES) $(STANDARD) $(MATH) \

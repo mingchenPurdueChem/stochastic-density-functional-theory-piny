@@ -34,7 +34,8 @@
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 void nlppKBRealEnergyForce(CP *cp,CLASS *class,GENERAL_DATA *generalData,
-                           double *wfReal)
+                           double *wfReal,double *fx,double *fy,double *fz,
+			   double **dotReAll,double **dotImAll)
 /*==========================================================================*/
 /*               Begin subprogram:                                          */
       {/*begin routine*/
@@ -94,16 +95,11 @@ void nlppKBRealEnergyForce(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   double aGrid[3],bGrid[3],cGrid[3];
   double nucleiCoord[3];
   double *hmat = cell->hmat;
-  double *fx = clatoms_pos->fx;
-  double *fy = clatoms_pos->fy;
-  double *fz = clatoms_pos->fz;
   double *wfNbhd;
 
   //double *forceNlX = pseudoReal->forceNlX;
   //double *forceNlY = pseudoReal->forceNlY;
   //double *forceNlZ = pseudoReal->forceNlZ;
-  double **dotReAll = pseudoReal->dotReAll;
-  double **dotImAll = pseudoReal->dotImAll;
 
   double *vnlPhiAtomGridRe = pseudoReal->vnlPhiAtomGridRe;
   double *vnlPhiAtomGridIm = pseudoReal->vnlPhiAtomGridIm;
@@ -215,9 +211,9 @@ void nlppKBRealEnergyForce(CP *cp,CLASS *class,GENERAL_DATA *generalData,
       }//endfor l
     }//endif numGrid
     //if(iAtom==0)printf("forceNl %.16lg %.16lg %.16lg\n",forceNlX,forceNlY,forceNlZ);
-    fx[iAtom+1] -= forceNlX;
-    fy[iAtom+1] -= forceNlY;
-    fz[iAtom+1] -= forceNlZ;
+    fx[iAtom] -= forceNlX;
+    fy[iAtom] -= forceNlY;
+    fz[iAtom] -= forceNlZ;
   }//endfor iAtom
 
 /*======================================================================*/
@@ -243,6 +239,7 @@ void calcPseudoWfDev(CP *cp,CLASS *class,GENERAL_DATA *generalData)
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
   PSEUDO *pseudo = &(cp->pseudo);
+  CPOPTS *cpopts = &(cp->cpopts);
   PARA_FFT_PKG3D *cpParaFftPkg3dLgBigBox = &(cp->cp_para_fft_pkg3d_lg);
   PSEUDO_REAL *pseudoReal = &(pseudo->pseudoReal);
   CELL *cell = &(generalData->cell);
@@ -267,6 +264,7 @@ void calcPseudoWfDev(CP *cp,CLASS *class,GENERAL_DATA *generalData)
   int nka = cpParaFftPkg3dLgBigBox->nkf1;
   int div,res;
   int ylmShift;
+  int fftw3dFlag = cpopts->fftw3dFlag;
   
   int *gridMap;
   int *iAtomAtomType = atommaps->iatm_atm_typ;
@@ -346,10 +344,18 @@ void calcPseudoWfDev(CP *cp,CLASS *class,GENERAL_DATA *generalData)
     // calculate difference between nuclei and grid
     for(iGrid=0;iGrid<numGrid;iGrid++){
       gridIndex = gridNlppMap[iAtom][iGrid];
-      cIndex = gridIndex/(nka*nkb);
-      res = gridIndex%(nka*nkb);
-      bIndex = res/nkb;
-      aIndex = res%nkb;
+      if(fftw3dFlag==0){
+	cIndex = gridIndex/(nka*nkb);
+	res = gridIndex%(nka*nkb);
+	bIndex = res/nka;
+	aIndex = res%nka;
+      }
+      else{
+	aIndex = gridIndex/(nkc*nkb);
+	res = gridIndex%(nkc*nkb);
+	bIndex = res/nkc;
+	cIndex = res%nkc;
+      }
       xTemp = aGrid[0]*aIndex+bGrid[0]*bIndex+cGrid[0]*cIndex-nucleiCoord[0];
       yTemp = aGrid[1]*aIndex+bGrid[1]*bIndex+cGrid[1]*cIndex-nucleiCoord[1];
       zTemp = aGrid[2]*aIndex+bGrid[2]*bIndex+cGrid[2]*cIndex-nucleiCoord[2];

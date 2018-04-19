@@ -318,13 +318,13 @@ void set_sim_dict_cp(int *num_dict,DICT_WORD *dict[])
 /*               Begin subprogram:                                          */
    { /*begin routine*/
 /*=======================================================================*/
-/*             Local variable declarations                                */
+/*             Local variable declarations                               */
   int i;
 
 /*========================================================================*/
 /*  0) Malloc the dictionary                                              */ 
 
-  *num_dict = 66;
+  *num_dict = 67;
   *dict = (DICT_WORD *)cmalloc(*num_dict*sizeof(DICT_WORD))-1;
 
 /*========================================================================*/
@@ -405,7 +405,7 @@ void set_sim_dict_cp(int *num_dict,DICT_WORD *dict[])
   /*-----------------------------------------------------------------------*/ 
   /* 13)\cp_fict_KE{#} */
         strcpy((*dict)[13].error_mes,"a number > 0 ");
-        strcpy((*dict)[13].keyword,"cp_fict_KE");
+        strcpy((*dict)[13].keyword,"cp_fict_ke");
         strcpy((*dict)[13].keyarg,"1000.0");
   /*-----------------------------------------------------------------------*/ 
   /* 14)\cp_ptens{on,off} */
@@ -696,7 +696,11 @@ void set_sim_dict_cp(int *num_dict,DICT_WORD *dict[])
         strcpy((*dict)[66].error_mes,"(real space cutoff)/(radius that nlpp decay to 0)");
         strcpy((*dict)[66].keyword,"nlpp_real_cut_ratio");
         strcpy((*dict)[66].keyarg,"1.4");
-
+  /*-----------------------------------------------------------------------*/
+  /* 67)\cp_thread_option{#} */
+       strcpy((*dict)[67].error_mes,"state or force");
+       strcpy((*dict)[67].keyword,"cp_thread_option");
+       strcpy((*dict)[67].keyarg,"state");
 
 /*========================================================================*/
 /*------------------------------------------------------------------------*/
@@ -721,7 +725,7 @@ void set_sim_dict_gen(int *num_dict,DICT_WORD *dict[])
 /*========================================================================*/
 /*  0) Malloc the dictionary                                              */ 
 
-  *num_dict = 25;
+  *num_dict = 26;
   *dict = (DICT_WORD *)cmalloc(*num_dict*sizeof(DICT_WORD))-1;
 
 /*========================================================================*/
@@ -867,6 +871,12 @@ void set_sim_dict_gen(int *num_dict,DICT_WORD *dict[])
         strcpy((*dict)[25].error_mes,"a number > 0");
         strcpy((*dict)[25].keyword,"annealing_target_temperature");
         strcpy((*dict)[25].keyarg,"300");
+
+  /*-----------------------------------------------------------------------*/
+  /*  26)\num_threads{#} */
+        strcpy((*dict)[26].error_mes,"a integer number > 0");
+        strcpy((*dict)[26].keyword,"num_threads");
+        strcpy((*dict)[26].keyarg,"1");
 
 /*========================================================================*/
 /*                   End Subprogram:                                      */

@@ -390,6 +390,8 @@ void genStoOrbitalCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
   //if(myidState==0){
   genEnergyMax(cp,class,general_data,cpcoeffs_pos,clatoms_pos);
+  fflush(stdout);
+  exit(0);
   genEnergyMin(cp,class,general_data,cpcoeffs_pos,clatoms_pos);
   
   //}

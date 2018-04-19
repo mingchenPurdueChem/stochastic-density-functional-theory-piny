@@ -1076,6 +1076,11 @@ int iii;
   sscanf(dict[66].keyarg,"%lg",&real_key_arg);
   cp->pseudo.pseudoReal.radCutRatio = real_key_arg;
 
+  /*-----------------------------------------------------------------------*/
+  /* 67)\cp_thread_option{#} */
+  if(strcasecmp(dict[67].keyarg,"state")==0)cp->cpopts.threadFlag = 1; 
+  if(strcasecmp(dict[67].keyarg,"force")==0)cp->cpopts.threadFlag = 2;               
+ 
 /*========================================================================*/
     }/*end routine*/ 
 /*========================================================================*/
@@ -1459,6 +1464,16 @@ void set_sim_params_gen(CLASS *class,GENERAL_DATA *general_data,BONDED *bonded,
        index=25;
        if(general_data->simopts.ann_start_temp < 0.0){
           keyarg_barf(dict,filename_parse->input_name,fun_key,index);}
+
+  /*-----------------------------------------------------------------------*/
+  /*  26)\num_threads{#} */
+
+      sscanf(dict[26].keyarg,"%lg",&real_key_arg);
+      class->communicate.numThreads = (int)(real_key_arg);
+      index = 26;
+      if(class->communicate.numThreads<1){
+         keyarg_barf(dict,filename_parse->input_name,fun_key,index);
+      }
 
 /*========================================================================*/
     }/*end routine*/ 

@@ -694,7 +694,7 @@ void calcKSPot(CLASS *class,GENERAL_DATA *general_data,
 /*==========================================================================*/
 /* II) get the ks potential                                                 */
 
-   cp_get_vks(cpopts,cpscr,cpewald,ewald,communicate,
+   cpGetVksStodft(cpopts,cpscr,cpewald,ewald,communicate,
               cp_comm_state_pkg_up,cp_comm_state_pkg_dn,
               stat_avg,ks_offset,cell,vxc_typ,pvten_cp,
               gc_cut,alpha_conv_dual,n_interp_pme_dual,cp_gga,
@@ -982,7 +982,6 @@ void calcCoefForceWrapSCF(CLASS *class,GENERAL_DATA *general_data,
 
   memcpy(&vextr[1],&(vextr_loc[1]),ncoef_l*sizeof(double));
   memcpy(&vexti[1],&(vexti_loc[1]),ncoef_l*sizeof(double));
-  //printf("vextr %.8lg vexti %.8lg\n",vextr[2],vexti[2]);
   if(cpDualGridOptOn==2){
     memcpy(&vextr_dens_cp_box[1],&vextr_dens_cp_box_loc[1],
             ncoef_l_dens_cp_box*sizeof(double));

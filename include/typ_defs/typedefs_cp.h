@@ -38,6 +38,7 @@ typedef struct cp_comm_state_pkg {
    MPI_Comm world;             /* Num: Global communicator           */
    int ioff_therm_norm[3],ioff_therm_tran[3];
                                /* Lst: Thermostat offsets for transposing */
+   int numThreads;
 } CP_COMM_STATE_PKG;
 
 /*==========================================================================*/
@@ -117,6 +118,9 @@ typedef struct cpopts{
   int onebodyMatrixFlag;	  /* Opt: The flag to control calculating onebody*/
 				  /*	  energy terms. =1 when you turn on	 */
 				  /*	  fragmentation method in stochastic dft */
+  int threadFlag;		  /* Opt: multithread flag 1=thread parallel at  */
+				  /*	  state level, 2=thread parallel at FFT  */
+				  /*	  and nl pp level.			 */		     
 } CPOPTS;
 
 /*==========================================================================*/
@@ -220,6 +224,8 @@ typedef struct cpcoeffs_info {
   double ecutFrag;
   int recordVNLFlag;		/*Opt: Flag to control record vnl energy */
 				/*     and vnl force 1=On 0=Off		 */
+  double cputime0,cputime1,cputime2,cputime3,cputime4,cputime5,cputime6;
+
 } CPCOEFFS_INFO;
 
 typedef struct cpcoeffs_pos {
@@ -736,7 +742,7 @@ typedef struct stodftInfo{
   /* Monitering performance */
   int filterFlag;		    /* Opt:Use simplied energy routine for      */
 				    /*	   massive H|phi> calculations		*/
-  double cputime1,cputime2,cputime3,cputime4,cputime5,cputime6;
+  double cputime0,cputime1,cputime2,cputime3,cputime4,cputime5,cputime6;
   
 }STODFTINFO;
 
@@ -1123,6 +1129,18 @@ typedef struct pseudo_real{
   int **atomRadMap;	    /* Lst: map of radial functions for each l channel	*/
 			    /* Lth: natm_typ*numRadMax[iType]			*/
   int **gridNlppMap;	    /* Lst: map the nbhd grid point back to the system	*/
+  int numGridNlppAll;	    /* Num: total number of grid points affected by nlpp*/
+  int *gridNlppInd;	    /* Lst: index of grid points affected by nlpp	*/
+			    /* Lth: numGridNlppAll				*/
+  int **gridNlppMapInv;	    /* Lst: Inverse map of grid Nlpp Map		*/
+			    /*      gridNlppMapInv[i][0] = #of atoms affect the */
+			    /*	    i'th grid.					*/
+			    /*	    gridNlppMapInv[i][2*n+1] = atom index       */
+			    /*	    gridNlppMapInv[i][2*n+2] = index in		*/
+			    /*					gridNlppMap	*/
+			    /* Lth: numGridNlppAll*(gridNlppMapInv[i][0]*2+1)   */
+  int *gridStIndRe;	    /* Lst: grid start index in vnlPhiAtomGridRe(Im)    */
+  int *gridStIndIm;	    /* Lth: natm_tot					*/
   double gMaxSm,gMaxLg;	    /* Num: small and large g cutoff			*/
   double radCutRatio;	    /* Num: (cutoff we use)/(cutoff of nlpp) usually	*/
   double dg;		    /* Num: grid spacing in g space			*/
@@ -1173,6 +1191,7 @@ typedef struct pseudo_real{
   int numNlppAll;	     /* Num: All nlpp wf numbers around all nuclei	  */
   int *nlppAtomStartIndex;   /* Lst: starting index of dot product for each atom  */
 			     /* Lth: natm_tot					  */
+  int overlapFlag;           /* Num: nlpp region overlap or not 0=no 1=yes        */
 }PSEUDO_REAL;
 
 
@@ -1590,6 +1609,7 @@ typedef struct cpscr_wave{
                            of dense cp grid and sparse large grid */
   double *zfft,*zfft_tmp;      /* Lst: PW coeff: square g-space grid;
                                   Lth: nfft                           */
+  double **zfft_threads,**zfft_tmp_threads;
   int zfft_mall_size;     /* Length of zfft  and zfft_tmp*/
  /* Invariant to cp grid opt */
   double *cre_up,*cim_up;      /* Lst: Re/Im part PW coef;

@@ -444,7 +444,144 @@ void para_fft_gen3d_fwd_to_r(double *zfft, double *zfft_tmp,
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 
-void para_fft_gen3d_fwd_to_r_fftw3d(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
+void para_fft_gen3d_fwd_to_r_fftw3d_threads(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
+
+/*=======================================================================*/
+/*            Begin subprogram:                                          */
+{/*begin routine*/
+/*=======================================================================*/
+/*          Local variable declarations                                  */
+#include "../typ_defs/typ_mask.h"
+  int igeneric_opt = para_fft_pkg3d->igeneric_opt;
+  int nfft_proc = para_fft_pkg3d->nfft_proc;
+  int nfft2_proc = nfft_proc/2;
+  int igrid;
+  int i,j,k;
+  int nkf3 = para_fft_pkg3d->nkf3;
+  int nkf2 = para_fft_pkg3d->nkf2;
+  int nkf1 = para_fft_pkg3d->nkf1;
+  int fftInd,fftIndTrans;
+  int numThreads = para_fft_pkg3d->numThreads;
+  int fftFlag = 0; // We need to match fftw3d results to old fft in the package
+	           // depend on whether generic is used or not
+  double time_st,time_end;	           
+
+  fftw_complex *fftw3DForwardIn = para_fft_pkg3d->fftw3DForwardIn[0];
+  fftw_complex *fftw3DForwardOut = para_fft_pkg3d->fftw3DForwardOut[0];
+  fftw_complex *fftw3DBackwardIn = para_fft_pkg3d->fftw3DBackwardIn[0];
+  fftw_complex *fftw3DBackwardOut = para_fft_pkg3d->fftw3DBackwardOut[0];
+
+  fftw_plan fftwPlan3DForward = para_fft_pkg3d->fftwPlan3DForward[0];
+  fftw_plan fftwPlan3DBackward = para_fft_pkg3d->fftwPlan3DBackward[0];
+
+#ifdef FFTW3
+  if(igeneric_opt==0)fftFlag = 1;
+#endif
+
+  //printf("fftFlag %i\n",fftFlag);
+
+  if(fftFlag==0){
+    //cputime(&time_st);
+    time_st = omp_get_wtime();
+    for(igrid=0;igrid<nfft2_proc;igrid++){
+      fftw3DForwardIn[igrid] = zfft[igrid*2+1]+zfft[igrid*2+2]*I;
+    }
+    //cputime(&time_end);
+    time_end = omp_get_wtime();
+    para_fft_pkg3d->cputime1 += time_end-time_st;
+    
+    //cputime(&time_st);
+    time_st = omp_get_wtime();
+    fftw_execute(fftwPlan3DForward);
+    //cputime(&time_end);
+    time_end = omp_get_wtime();
+    para_fft_pkg3d->cputime += time_end-time_st;
+
+    //cputime(&time_st);
+    /*
+    time_st = omp_get_wtime();
+    omp_set_num_threads(numThreads);
+    #pragma omp parallel for private(i,j,k,fftInd,fftIndTrans)
+    for(i=0;i<nkf3;i++){
+      for(j=0;j<nkf2;j++){
+	for(k=0;k<nkf1;k++){
+	  fftInd = i*nkf2*nkf1+j*nkf1+k;
+	  fftIndTrans = k*nkf2*nkf3+j*nkf3+i;
+	  zfft[fftInd*2+1] = creal(fftw3DForwardOut[fftIndTrans]);
+	  zfft[fftInd*2+2] = cimag(fftw3DForwardOut[fftIndTrans]);
+	}
+      }
+    }
+    //cputime(&time_end);
+    time_end = omp_get_wtime();
+    para_fft_pkg3d->cputime2 += time_end-time_st;
+    */
+    time_st = omp_get_wtime();
+    for(igrid=0;igrid<nfft2_proc;igrid++){
+      zfft[igrid*2+1] = creal(fftw3DForwardOut[igrid]);
+      zfft[igrid*2+2] = cimag(fftw3DForwardOut[igrid]);
+    }
+    time_end = omp_get_wtime();
+    para_fft_pkg3d->cputime2 += time_end-time_st;
+  }
+  else{
+    //cputime(&time_st);
+    time_st = omp_get_wtime();
+    for(igrid=0;igrid<nfft2_proc;igrid++){
+      fftw3DBackwardIn[igrid] = zfft[igrid*2+1]+zfft[igrid*2+2]*I;
+    }
+    //cputime(&time_end);
+    time_end = omp_get_wtime();
+    para_fft_pkg3d->cputime1 += time_end-time_st;
+
+    //cputime(&time_st);
+    time_st = omp_get_wtime();
+    fftw_execute(fftwPlan3DBackward);
+    //cputime(&time_end);
+    time_end = omp_get_wtime();    
+    para_fft_pkg3d->cputime += time_end-time_st;
+    
+    //cputime(&time_st);
+    /*
+    time_st = omp_get_wtime();
+    omp_set_num_threads(numThreads);
+    #pragma omp parallel for private(i,j,k,fftInd,fftIndTrans)
+    for(i=0;i<nkf3;i++){
+      for(j=0;j<nkf2;j++){
+        for(k=0;k<nkf1;k++){
+          fftInd = i*nkf2*nkf1+j*nkf1+k;
+          fftIndTrans = k*nkf2*nkf3+j*nkf3+i;
+          zfft[fftInd*2+1] = creal(fftw3DBackwardOut[fftIndTrans]);
+          zfft[fftInd*2+2] = cimag(fftw3DBackwardOut[fftIndTrans]);
+        }
+      }
+    }
+    time_end = omp_get_wtime();
+    //cputime(&time_end);
+    para_fft_pkg3d->cputime2 += time_end-time_st;
+    */
+    time_st = omp_get_wtime();
+    for(igrid=0;igrid<nfft2_proc;igrid++){
+      zfft[igrid*2+1] = creal(fftw3DBackwardOut[igrid]);
+      zfft[igrid*2+2] = cimag(fftw3DBackwardOut[igrid]);
+    }
+    time_end = omp_get_wtime();
+    para_fft_pkg3d->cputime2 += time_end-time_st;
+  }
+
+
+/*-----------------------------------------------------------------------*/
+   }/*end routine*/
+/*==========================================================================*/
+
+
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+
+void para_fft_gen3d_fwd_to_r_fftw3d(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d,
+				    int iThread)
 
 /*=======================================================================*/
 /*            Begin subprogram:                                          */
@@ -465,14 +602,13 @@ void para_fft_gen3d_fwd_to_r_fftw3d(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
 	           // depend on whether generic is used or not
   double time_st,time_end;	           
 
-  fftw_complex *fftw3DForwardIn = para_fft_pkg3d->fftw3DForwardIn;
-  fftw_complex *fftw3DForwardOut = para_fft_pkg3d->fftw3DForwardOut;
-  fftw_complex *fftw3DBackwardIn = para_fft_pkg3d->fftw3DBackwardIn;
-  fftw_complex *fftw3DBackwardOut = para_fft_pkg3d->fftw3DBackwardOut;
+  fftw_complex *fftw3DForwardIn = para_fft_pkg3d->fftw3DForwardIn[iThread];
+  fftw_complex *fftw3DForwardOut = para_fft_pkg3d->fftw3DForwardOut[iThread];
+  fftw_complex *fftw3DBackwardIn = para_fft_pkg3d->fftw3DBackwardIn[iThread];
+  fftw_complex *fftw3DBackwardOut = para_fft_pkg3d->fftw3DBackwardOut[iThread];
 
-  
-  fftw_plan fftwPlan3DForward = para_fft_pkg3d->fftwPlan3DForward;
-  fftw_plan fftwPlan3DBackward = para_fft_pkg3d->fftwPlan3DBackward;
+  fftw_plan fftwPlan3DForward = para_fft_pkg3d->fftwPlan3DForward[iThread];
+  fftw_plan fftwPlan3DBackward = para_fft_pkg3d->fftwPlan3DBackward[iThread];
 
 #ifdef FFTW3
   if(igeneric_opt==0)fftFlag = 1;
@@ -481,15 +617,27 @@ void para_fft_gen3d_fwd_to_r_fftw3d(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
   //printf("fftFlag %i\n",fftFlag);
 
   if(fftFlag==0){
+    //cputime(&time_st);
+    if(iThread==0)time_st = omp_get_wtime();
     for(igrid=0;igrid<nfft2_proc;igrid++){
       fftw3DForwardIn[igrid] = zfft[igrid*2+1]+zfft[igrid*2+2]*I;
     }
+    //cputime(&time_end);
+    if(iThread==0){
+      time_end = omp_get_wtime();
+      para_fft_pkg3d->cputime += time_end-time_st;
+    }
     
-    cputime(&time_st);
+    //cputime(&time_st);
+    time_st = omp_get_wtime();
     fftw_execute(fftwPlan3DForward);
-    cputime(&time_end);
-    para_fft_pkg3d->cputime += time_end-time_st;
+    //cputime(&time_end);
+    time_end = omp_get_wtime();
+    //para_fft_pkg3d->cputime += time_end-time_st;
 
+    /*
+    //cputime(&time_st);
+    time_st = omp_get_wtime();
     for(i=0;i<nkf3;i++){
       for(j=0;j<nkf2;j++){
 	for(k=0;k<nkf1;k++){
@@ -500,18 +648,45 @@ void para_fft_gen3d_fwd_to_r_fftw3d(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
 	}
       }
     }
-
+    //cputime(&time_end);
+    time_end = omp_get_wtime();
+    para_fft_pkg3d->cputime2 += time_end-time_st;
+    */
+    time_st = omp_get_wtime();
+    for(igrid=0;igrid<nfft2_proc;igrid++){
+      zfft[igrid*2+1] = creal(fftw3DForwardOut[igrid]);
+      zfft[igrid*2+2] = cimag(fftw3DForwardOut[igrid]);
+    }
+    time_end = omp_get_wtime();
+    //para_fft_pkg3d->cputime2 += time_end-time_st;
   }
   else{
+    //cputime(&time_st);
+    if(iThread==0)time_st = omp_get_wtime();
+    /*
     for(igrid=0;igrid<nfft2_proc;igrid++){
       fftw3DBackwardIn[igrid] = zfft[igrid*2+1]+zfft[igrid*2+2]*I;
     }
+    */
+    memcpy(fftw3DBackwardIn,&zfft[1],nfft_proc*sizeof(double));
+    //cputime(&time_end);
+    if(iThread==0){
+      time_end = omp_get_wtime();
+      //para_fft_pkg3d->cputime += time_end-time_st;
+    }
 
-    cputime(&time_st);
+    //cputime(&time_st);
+    if(iThread==0)time_st = omp_get_wtime();
     fftw_execute(fftwPlan3DBackward);
-    cputime(&time_end);
-    para_fft_pkg3d->cputime += time_end-time_st;
+    //cputime(&time_end);
+    if(iThread==0){
+      time_end = omp_get_wtime();    
+      //para_fft_pkg3d->cputime += time_end-time_st;
+    }
     
+    /*
+    //cputime(&time_st);
+    time_st = omp_get_wtime();
     for(i=0;i<nkf3;i++){
       for(j=0;j<nkf2;j++){
         for(k=0;k<nkf1;k++){
@@ -521,6 +696,22 @@ void para_fft_gen3d_fwd_to_r_fftw3d(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
           zfft[fftInd*2+2] = cimag(fftw3DBackwardOut[fftIndTrans]);
         }
       }
+    }
+    time_end = omp_get_wtime();
+    //cputime(&time_end);
+    para_fft_pkg3d->cputime2 += time_end-time_st;
+    */
+    if(iThread==0)time_st = omp_get_wtime();
+    /*
+    for(igrid=0;igrid<nfft2_proc;igrid++){
+      zfft[igrid*2+1] = creal(fftw3DBackwardOut[igrid]);
+      zfft[igrid*2+2] = cimag(fftw3DBackwardOut[igrid]);
+    }
+    */
+    memcpy(&(zfft[1]),fftw3DBackwardOut,nfft_proc*sizeof(double));
+    if(iThread==0){
+      time_end = omp_get_wtime();
+      //para_fft_pkg3d->cputime += time_end-time_st;
     }
   }
 
@@ -1186,7 +1377,161 @@ void para_fft_gen3d_bck_to_g(double *zfft, double *zfft_tmp,
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 
-void para_fft_gen3d_bck_to_g_fftw3d(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
+void para_fft_gen3d_bck_to_g_fftw3d_threads(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
+
+/*=======================================================================*/
+/*            Begin subprogram:                                          */
+{/*begin routine*/
+/*=======================================================================*/
+/*          Local variable declarations                                  */
+#include "../typ_defs/typ_mask.h"
+  int igeneric_opt = para_fft_pkg3d->igeneric_opt;
+  int nfft_proc = para_fft_pkg3d->nfft_proc;
+  int nfft2_proc = nfft_proc/2;
+  int igrid;
+  int i,j,k;
+  int nkf3 = para_fft_pkg3d->nkf3;
+  int nkf2 = para_fft_pkg3d->nkf2;
+  int nkf1 = para_fft_pkg3d->nkf1;
+  int fftInd,fftIndTrans;
+  double nfft2Inv = 1.0/nfft2_proc;
+  int fftFlag = 0;
+  int numThreads = para_fft_pkg3d->numThreads;
+  double time_st,time_end;
+
+  fftw_complex *fftw3DBackwardIn = para_fft_pkg3d->fftw3DBackwardIn[0];
+  fftw_complex *fftw3DBackwardOut = para_fft_pkg3d->fftw3DBackwardOut[0];
+  fftw_complex *fftw3DForwardIn = para_fft_pkg3d->fftw3DForwardIn[0];
+  fftw_complex *fftw3DForwardOut = para_fft_pkg3d->fftw3DForwardOut[0];
+
+  fftw_plan fftwPlan3DBackward = para_fft_pkg3d->fftwPlan3DBackward[0];
+  fftw_plan fftwPlan3DForward = para_fft_pkg3d->fftwPlan3DForward[0];
+
+
+#ifdef FFTW3
+  if(igeneric_opt==0)fftFlag = 1;
+#endif
+  //printf("fftFlag %i\n",fftFlag);
+  
+  if(fftFlag==0){
+    /*
+    //cputime(&time_st);
+    time_st = omp_get_wtime();
+    omp_set_num_threads(numThreads);
+    #pragma omp parallel for private(i,j,k,fftInd,fftIndTrans)
+    for(i=0;i<nkf3;i++){
+      for(j=0;j<nkf2;j++){
+	for(k=0;k<nkf1;k++){
+	  fftInd = i*nkf2*nkf1+j*nkf1+k;
+	  fftIndTrans = k*nkf2*nkf3+j*nkf3+i;
+	  fftw3DBackwardIn[fftIndTrans] = zfft[fftInd*2+1]+zfft[fftInd*2+2]*I;
+	}
+      }
+    }
+    //cputime(&time_end);
+    time_end = omp_get_wtime();
+    para_fft_pkg3d->cputime3 += time_end-time_st;
+    */
+    time_st = omp_get_wtime();
+    /*
+    for(igrid=0;igrid<nfft2_proc;igrid++){
+      fftw3DBackwardIn[igrid] = zfft[2*igrid+1]+zfft[2*igrid+2]*I;
+    }
+    */
+    memcpy(fftw3DBackwardIn,&zfft[1],nfft_proc);
+    time_end = omp_get_wtime();
+    para_fft_pkg3d->cputime3 += time_end-time_st;
+
+
+    //cputime(&time_st);
+    time_st = omp_get_wtime();
+    fftw_execute(fftwPlan3DBackward);
+    //cputime(&time_end);
+    time_end = omp_get_wtime();
+    para_fft_pkg3d->cputime += time_end-time_st;
+
+    //cputime(&time_st);
+    time_st = omp_get_wtime();
+    /*
+    for(igrid=0;igrid<nfft2_proc;igrid++){
+      zfft[igrid*2+1] = creal(fftw3DBackwardOut[igrid])*nfft2Inv;
+      zfft[igrid*2+2] = cimag(fftw3DBackwardOut[igrid])*nfft2Inv;
+    }
+    */
+    memcpy(&zfft[1],fftw3DBackwardOut,nfft_proc*sizeof(double));
+    for(igrid=1;igrid<=nfft_proc;igrid++){
+      zfft[igrid] *= nfft2Inv;
+    }
+    //cputime(&time_end);
+    time_end = omp_get_wtime();
+    para_fft_pkg3d->cputime4 += time_end-time_st;
+  }
+  else{
+    /*
+    //cputime(&time_st);
+    time_st = omp_get_wtime();
+    omp_set_num_threads(numThreads);
+    #pragma omp parallel for private(i,j,k,fftInd,fftIndTrans)
+    for(i=0;i<nkf3;i++){
+      for(j=0;j<nkf2;j++){
+        for(k=0;k<nkf1;k++){
+          fftInd = i*nkf2*nkf1+j*nkf1+k;
+          fftIndTrans = k*nkf2*nkf3+j*nkf3+i;
+          fftw3DForwardIn[fftIndTrans] = zfft[fftInd*2+1]+zfft[fftInd*2+2]*I;
+	  //fftw3DForwardIn[fftInd] = zfft[fftInd*2+1]+zfft[fftInd*2+2]*I;
+        }
+      }
+    }
+    //cputime(&time_end);
+    time_end = omp_get_wtime();
+    para_fft_pkg3d->cputime3 += time_end-time_st;
+    */
+    time_st = omp_get_wtime();
+    /*
+    for(igrid=0;igrid<nfft2_proc;igrid++){
+      fftw3DForwardIn[igrid] = zfft[2*igrid+1]+zfft[2*igrid+2]*I;
+    }
+    */
+    memcpy(fftw3DForwardIn,&zfft[1],nfft_proc*sizeof(double));
+    time_end = omp_get_wtime();
+    para_fft_pkg3d->cputime3 += time_end-time_st;
+
+   
+    //cputime(&time_st);
+    time_st = omp_get_wtime();
+    fftw_execute(fftwPlan3DForward);
+    //cputime(&time_end);
+    time_end = omp_get_wtime();
+    para_fft_pkg3d->cputime += time_end-time_st;
+
+    //cputime(&time_st);
+    time_st = omp_get_wtime();
+ 
+    /*   
+    for(igrid=0;igrid<nfft2_proc;igrid++){
+      zfft[igrid*2+1] = creal(fftw3DForwardOut[igrid])*nfft2Inv;
+      zfft[igrid*2+2] = cimag(fftw3DForwardOut[igrid])*nfft2Inv;
+    }
+    */
+    memcpy(&zfft[1],fftw3DForwardOut,nfft_proc*sizeof(double));
+    for(igrid=1;igrid<=nfft_proc;igrid++){
+      zfft[igrid] *= nfft2Inv;
+    }    
+    //cputime(&time_end);
+    time_end = omp_get_wtime();
+    para_fft_pkg3d->cputime4 += time_end-time_st;
+  }
+
+/*-----------------------------------------------------------------------*/
+   }/*end routine*/
+/*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+
+void para_fft_gen3d_bck_to_g_fftw3d(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d,
+				    int iThread)
 
 /*=======================================================================*/
 /*            Begin subprogram:                                          */
@@ -1207,21 +1552,23 @@ void para_fft_gen3d_bck_to_g_fftw3d(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
   int fftFlag = 0;
   double time_st,time_end;
 
-  fftw_complex *fftw3DBackwardIn = para_fft_pkg3d->fftw3DBackwardIn;
-  fftw_complex *fftw3DBackwardOut = para_fft_pkg3d->fftw3DBackwardOut;
-  fftw_complex *fftw3DForwardIn = para_fft_pkg3d->fftw3DForwardIn;
-  fftw_complex *fftw3DForwardOut = para_fft_pkg3d->fftw3DForwardOut;
+  fftw_complex *fftw3DBackwardIn = para_fft_pkg3d->fftw3DBackwardIn[iThread];
+  fftw_complex *fftw3DBackwardOut = para_fft_pkg3d->fftw3DBackwardOut[iThread];
+  fftw_complex *fftw3DForwardIn = para_fft_pkg3d->fftw3DForwardIn[iThread];
+  fftw_complex *fftw3DForwardOut = para_fft_pkg3d->fftw3DForwardOut[iThread];
 
-  fftw_plan fftwPlan3DBackward = para_fft_pkg3d->fftwPlan3DBackward;
-  fftw_plan fftwPlan3DForward = para_fft_pkg3d->fftwPlan3DForward;
-
+  fftw_plan fftwPlan3DBackward = para_fft_pkg3d->fftwPlan3DBackward[iThread];
+  fftw_plan fftwPlan3DForward = para_fft_pkg3d->fftwPlan3DForward[iThread];
 
 #ifdef FFTW3
   if(igeneric_opt==0)fftFlag = 1;
 #endif
-  printf("fftFlag %i\n",fftFlag);
-
+  //printf("fftFlag %i\n",fftFlag);
+  
   if(fftFlag==0){
+    /*
+    //cputime(&time_st);
+    time_st = omp_get_wtime();
     for(i=0;i<nkf3;i++){
       for(j=0;j<nkf2;j++){
 	for(k=0;k<nkf1;k++){
@@ -1231,19 +1578,41 @@ void para_fft_gen3d_bck_to_g_fftw3d(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
 	}
       }
     }
+    //cputime(&time_end);
+    time_end = omp_get_wtime();
+    para_fft_pkg3d->cputime3 += time_end-time_st;
+    */
+    time_st = omp_get_wtime();
+    /*
+    for(igrid=0;igrid<nfft2_proc;igrid++){
+      fftw3DBackwardIn[igrid] = zfft[2*igrid+1]+zfft[2*igrid+2]*I;
+    }
+    */
+    memcpy(fftw3DBackwardIn,&zfft[1],nfft_proc*sizeof(double));
+    time_end = omp_get_wtime();
+    //para_fft_pkg3d->cputime3 += time_end-time_st;
 
-    cputime(&time_st);
+    //cputime(&time_st);
+    time_st = omp_get_wtime();
     fftw_execute(fftwPlan3DBackward);
-    cputime(&time_end);
-    para_fft_pkg3d->cputime += time_end-time_st;
+    //cputime(&time_end);
+    time_end = omp_get_wtime();
+    //para_fft_pkg3d->cputime += time_end-time_st;
 
+    //cputime(&time_st);
+    time_st = omp_get_wtime();
     for(igrid=0;igrid<nfft2_proc;igrid++){
       zfft[igrid*2+1] = creal(fftw3DBackwardOut[igrid])*nfft2Inv;
       zfft[igrid*2+2] = cimag(fftw3DBackwardOut[igrid])*nfft2Inv;
     }
+    //cputime(&time_end);
+    time_end = omp_get_wtime();
+    //para_fft_pkg3d->cputime4 += time_end-time_st;
   }
   else{
-    //printf("111111111111111111111111111\n");
+    /*
+    //cputime(&time_st);
+    time_st = omp_get_wtime();
     for(i=0;i<nkf3;i++){
       for(j=0;j<nkf2;j++){
         for(k=0;k<nkf1;k++){
@@ -1254,16 +1623,45 @@ void para_fft_gen3d_bck_to_g_fftw3d(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
         }
       }
     }
-
-    cputime(&time_st);
+    //cputime(&time_end);
+    time_end = omp_get_wtime();
+    para_fft_pkg3d->cputime3 += time_end-time_st;
+    */
+    time_st = omp_get_wtime();
+    /*
+    for(igrid=0;igrid<nfft2_proc;igrid++){
+      fftw3DForwardIn[igrid] = zfft[2*igrid+1]+zfft[2*igrid+2]*I;
+    }
+    */
+    memcpy(fftw3DForwardIn,&zfft[1],nfft_proc*sizeof(double));
+    time_end = omp_get_wtime();
+    //para_fft_pkg3d->cputime3 += time_end-time_st;
+    
+    //cputime(&time_st);
+    time_st = omp_get_wtime();
     fftw_execute(fftwPlan3DForward);
-    cputime(&time_end);
-    para_fft_pkg3d->cputime += time_end-time_st;
+    //cputime(&time_end);
+    time_end = omp_get_wtime();
+    //para_fft_pkg3d->cputime += time_end-time_st;
 
+    //cputime(&time_st);
+    if(iThread==0)time_st = omp_get_wtime();
+    
     for(igrid=0;igrid<nfft2_proc;igrid++){
       zfft[igrid*2+1] = creal(fftw3DForwardOut[igrid])*nfft2Inv;
       zfft[igrid*2+2] = cimag(fftw3DForwardOut[igrid])*nfft2Inv;
-    }    
+    }
+    /*
+    memcpy(&zfft[1],fftw3DForwardOut,nfft_proc*sizeof(double));
+    for(igrid=1;igrid<=nfft_proc;igrid++){
+      zfft[igrid] *= nfft2Inv;
+    } 
+    */       
+    //cputime(&time_end);
+    if(iThread==0){
+      time_end = omp_get_wtime();
+      para_fft_pkg3d->cputime += time_end-time_st;
+    }
   }
 
 /*-----------------------------------------------------------------------*/
@@ -1574,6 +1972,48 @@ void sngl_pack_rho(double *zfft,double *rfft,PARA_FFT_PKG3D *para_fft_pkg3d)
     zfft[m] = rfft[i];
     zfft[(m+1)] = 0.0;
   }/*endfor*/
+
+/*-----------------------------------------------------------------------*/
+   }/*end routine*/ 
+/*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+/*  Sngl pack the density */
+/*==========================================================================*/
+
+void sngl_pack_rho_fftw3d(double *zfft,double *rfft,PARA_FFT_PKG3D *para_fft_pkg3d)
+
+/*=======================================================================*/
+/*            Begin subprogram:                                          */
+   {/*begin routine*/
+/* If fftw3d package is used, then x is the leading dimension of rfft and*/
+/* z is the leading dimension of zfft. I need transpose			*/
+/*=======================================================================*/
+/*          Local variable declarations                                  */
+
+  int i,j,k;
+  int ind1,ind2;
+  int nfft_proc = para_fft_pkg3d->nfft_proc;
+  int ndata     = nfft_proc/2;
+  int nkf3 = para_fft_pkg3d->nkf3; //z
+  int nkf2 = para_fft_pkg3d->nkf2; //y
+  int nkf1 = para_fft_pkg3d->nkf1; //z
+
+/*=======================================================================*/
+/*  Unpack the data : Top half of k space only */
+
+  for(i=0;i<nkf1;i++){
+    for(j=0;j<nkf2;j++){
+      for(k=0;k<nkf3;k++){
+	ind1 = i*nkf2*nkf3+j*nkf3+k;
+	ind2 = k*nkf2*nkf1+j*nkf1+i;
+        zfft[ind2*2+1] = rfft[ind1];
+	zfft[ind2*2+2] = 0.0;
+      }//endfor k
+    }//endfor j
+  }//endfor i
 
 /*-----------------------------------------------------------------------*/
    }/*end routine*/ 

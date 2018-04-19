@@ -139,6 +139,7 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
   int cp_gga          = cp->cpopts.cp_gga;
   int cp_ke_dens_on   = cp->cpcoeffs_info.cp_ke_dens_on;
   int cp_elf_calc_frq = cp->cpcoeffs_info.cp_elf_calc_frq;
+  int threadFlag      = cp->cpopts.threadFlag;
 
   int n_interp_pme_dual = cp->pseudo.n_interp_pme_dual;
 
@@ -405,41 +406,82 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
   cputime(&cpu1);
 #endif
 
-  cp_rho_calc_hybrid(&(cp->cpewald),&(cp->cpscr),&(cp->cpcoeffs_info),
-                     ewald,cell,cre_up,cim_up,*icoef_form_up,*icoef_orth_up,
-                     rhocr_up,rhoci_up,rho_up,rhocr_up_dens_cp_box,rhoci_up_dens_cp_box,
-                     d_rhox_up,d_rhoy_up,
-                     d_rhoz_up,d2_rho_up,nstate_up,ncoef,
-                     cp_gga,cp_dual_grid_opt_on,n_interp_pme_dual,
-                     &(cp->communicate),
-                     &(cp->cp_para_fft_pkg3d_lg),&(cp->cp_sclr_fft_pkg3d_lg),
-                     &(cp->cp_para_fft_pkg3d_dens_cp_box),
-                     &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
-                     &(cp->cp_sclr_fft_pkg3d_sm));
+  switch(threadFlag){
+    case 1:
+      cp_rho_calc_hybrid_threads_state(&(cp->cpewald),&(cp->cpscr),&(cp->cpcoeffs_info),
+			 ewald,cell,cre_up,cim_up,*icoef_form_up,*icoef_orth_up,
+			 rhocr_up,rhoci_up,rho_up,rhocr_up_dens_cp_box,rhoci_up_dens_cp_box,
+			 d_rhox_up,d_rhoy_up,
+			 d_rhoz_up,d2_rho_up,nstate_up,ncoef,
+			 cp_gga,cp_dual_grid_opt_on,n_interp_pme_dual,
+			 &(cp->communicate),
+			 &(cp->cp_para_fft_pkg3d_lg),&(cp->cp_sclr_fft_pkg3d_lg),
+			 &(cp->cp_para_fft_pkg3d_dens_cp_box),
+			 &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
+			 &(cp->cp_sclr_fft_pkg3d_sm));
 
-  if((cp_lsda== 1) && (nstate_dn!= 0) ){
-  cp_rho_calc_hybrid(&(cp->cpewald),&(cp->cpscr),&(cp->cpcoeffs_info),
-                     ewald,cell,cre_dn,cim_dn,*icoef_form_dn,*icoef_orth_dn,
-                     rhocr_dn,rhoci_dn,rho_dn,rhocr_dn_dens_cp_box,rhoci_dn_dens_cp_box,
-                     d_rhox_dn,d_rhoy_dn,
-                     d_rhoz_dn,d2_rho_dn,nstate_dn,ncoef,
-                     cp_gga,cp_dual_grid_opt_on,n_interp_pme_dual,
-                     &(cp->communicate),&(cp->cp_para_fft_pkg3d_lg),
-                     &(cp->cp_sclr_fft_pkg3d_lg),
-                     &(cp->cp_para_fft_pkg3d_dens_cp_box),
-                     &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
-                     &(cp->cp_sclr_fft_pkg3d_sm));
-    for(i=1;i <= ncoef_l_proc;i++) {
-      rhocr_up[i] += rhocr_dn[i];
-      rhoci_up[i] += rhoci_dn[i];
-    }/* endfor */
-    if(cp_dual_grid_opt_on >= 1){
-      for(i=1;i<= ncoef_l_dens_cp_box; i++){
-        rhocr_up_dens_cp_box[i] += rhocr_dn_dens_cp_box[i];
-        rhoci_up_dens_cp_box[i] += rhoci_dn_dens_cp_box[i];
-      }/* endfor */
-    } /* endif */
-  }/* endif */
+      if((cp_lsda== 1) && (nstate_dn!= 0) ){
+	cp_rho_calc_hybrid_threads_state(&(cp->cpewald),&(cp->cpscr),&(cp->cpcoeffs_info),
+			 ewald,cell,cre_dn,cim_dn,*icoef_form_dn,*icoef_orth_dn,
+			 rhocr_dn,rhoci_dn,rho_dn,rhocr_dn_dens_cp_box,rhoci_dn_dens_cp_box,
+			 d_rhox_dn,d_rhoy_dn,
+			 d_rhoz_dn,d2_rho_dn,nstate_dn,ncoef,
+			 cp_gga,cp_dual_grid_opt_on,n_interp_pme_dual,
+			 &(cp->communicate),&(cp->cp_para_fft_pkg3d_lg),
+			 &(cp->cp_sclr_fft_pkg3d_lg),
+			 &(cp->cp_para_fft_pkg3d_dens_cp_box),
+			 &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
+			 &(cp->cp_sclr_fft_pkg3d_sm));
+	for(i=1;i <= ncoef_l_proc;i++) {
+	  rhocr_up[i] += rhocr_dn[i];
+	  rhoci_up[i] += rhoci_dn[i];
+	}// endfor 
+	if(cp_dual_grid_opt_on >= 1){
+	  for(i=1;i<= ncoef_l_dens_cp_box; i++){
+	    rhocr_up_dens_cp_box[i] += rhocr_dn_dens_cp_box[i];
+	    rhoci_up_dens_cp_box[i] += rhoci_dn_dens_cp_box[i];
+	  }//endfor
+	}// endif
+      }//endif
+      break;
+    case 2:
+      cp_rho_calc_hybrid_threads_force(&(cp->cpewald),&(cp->cpscr),&(cp->cpcoeffs_info),
+                         ewald,cell,cre_up,cim_up,*icoef_form_up,*icoef_orth_up,
+                         rhocr_up,rhoci_up,rho_up,rhocr_up_dens_cp_box,rhoci_up_dens_cp_box,
+                         d_rhox_up,d_rhoy_up,
+                         d_rhoz_up,d2_rho_up,nstate_up,ncoef,
+                         cp_gga,cp_dual_grid_opt_on,n_interp_pme_dual,
+                         &(cp->communicate),
+                         &(cp->cp_para_fft_pkg3d_lg),&(cp->cp_sclr_fft_pkg3d_lg),
+                         &(cp->cp_para_fft_pkg3d_dens_cp_box),
+                         &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
+                         &(cp->cp_sclr_fft_pkg3d_sm));
+
+      if((cp_lsda== 1) && (nstate_dn!= 0) ){
+        cp_rho_calc_hybrid_threads_force(&(cp->cpewald),&(cp->cpscr),&(cp->cpcoeffs_info),
+                         ewald,cell,cre_dn,cim_dn,*icoef_form_dn,*icoef_orth_dn,
+                         rhocr_dn,rhoci_dn,rho_dn,rhocr_dn_dens_cp_box,rhoci_dn_dens_cp_box,
+                         d_rhox_dn,d_rhoy_dn,
+                         d_rhoz_dn,d2_rho_dn,nstate_dn,ncoef,
+                         cp_gga,cp_dual_grid_opt_on,n_interp_pme_dual,
+                         &(cp->communicate),&(cp->cp_para_fft_pkg3d_lg),
+                         &(cp->cp_sclr_fft_pkg3d_lg),
+                         &(cp->cp_para_fft_pkg3d_dens_cp_box),
+                         &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
+                         &(cp->cp_sclr_fft_pkg3d_sm));
+        for(i=1;i <= ncoef_l_proc;i++) {
+          rhocr_up[i] += rhocr_dn[i];
+          rhoci_up[i] += rhoci_dn[i];
+        }// endfor 
+        if(cp_dual_grid_opt_on >= 1){
+          for(i=1;i<= ncoef_l_dens_cp_box; i++){
+            rhocr_up_dens_cp_box[i] += rhocr_dn_dens_cp_box[i];
+            rhoci_up_dens_cp_box[i] += rhoci_dn_dens_cp_box[i];
+          }//endfor
+        }// endif
+      }//endif
+      break;
+  }
 #ifdef TIME_CP
   cputime(&cpu2);
   par_cpu_vomit((cpu2-cpu1),comm_states,np_states,myid_state,
@@ -478,7 +520,6 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
                               &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
                               &(cp->cp_sclr_fft_pkg3d_sm));
     } /* endif lsda */
-
   }/* endif cp_ke_dens_on */
 
 /*======================================================================*/
@@ -505,9 +546,8 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
 /*      Calculate the particle forces                                   */
 /*      Calculate the coef forces from the non-local pseudopotential    */
 
-
   if(itime == 0 || cp_dual_grid_opt_on >= 1){
-     control_vps_atm_list(&(cp->pseudo),cell,clatoms_pos,clatoms_info,
+    control_vps_atm_list(&(cp->pseudo),cell,clatoms_pos,clatoms_info,
                           atommaps,ewd_scr,for_scr,cp_dual_grid_opt_on,itime);
     cp->cpcoeffs_info.itime_ks = 1;
   }/*endif*/
@@ -548,7 +588,6 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
 /*     Calculate the local external potential energy                    */
 /*     Calculate the electronic kinetic energy                          */
 /*     Calculate the rest of the coef forces                            */
-
 
 #ifdef TIME_CP
   if(np_states>1){Barrier(comm_states);}

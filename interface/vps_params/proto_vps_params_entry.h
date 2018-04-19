@@ -8,3 +8,5 @@ void control_vps_params(PSEUDO *,CELL *,FILENAME_PARSE *,
 void controlNlppReal(CP *,CLASS *,GENERAL_DATA *,FILENAME_PARSE *);
 void mapRealSpaceGrid(CP *, CLASS *, GENERAL_DATA *);
 void initRealNlppWf(CP *,CLASS *,GENERAL_DATA *);
+void testOverlap(CP *, CLASS *, GENERAL_DATA *);
+

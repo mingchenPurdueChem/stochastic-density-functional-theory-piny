@@ -62,7 +62,7 @@ control_cp.o     :       $(STANDARD) $(DEFINES) \
                          $(OUTPUT_CP_ENT) $(OUTPUT_ENT) $(SMPL_CP_ENT) $(SMPL_CLASS_ENT) \
                          $(ANAL_CP_ENT) $(OUTPUT_CP_ENT) $(INT_MD_ENT) \
                          $(INT_MD_LOC) $(INTRA_CON_ENT) $(ENR_CTRL_CP_ENT) \
-                         $(ENR_CPCON_ENT) $(COMM_WRAP) $(CPWANCON_ENT) \
+                         $(ENR_CPCON_ENT) $(COMM_WRAP) $(CPWANCON_ENT) $(MAIN_LOC) \
                          $(CODE)/main/cp/control_cp.c
 	$(ECHO) $@
 	$(COBJ) $(CODE)/main/cp/control_cp.c
@@ -91,7 +91,7 @@ control_cp_pimd.o   :    $(STANDARD) $(DEFINES) \
                          $(SMPL_CLASS_ENT) $(ANAL_CP_ENT) $(INTRA_CON_ENT) \
                          $(INT_PIMD_ENT) $(INT_PIMD_LOC) $(INT_MD_ENT) \
                          $(INT_CP_LOC) $(ENR_CPCON_ENT) $(PIMD_ENT) \
-                         $(COMM_WRAP) \
+                         $(COMM_WRAP) $(MAIN_LOC) \
                          $(CODE)/main/cp/control_cp_pimd.c
 	$(ECHO) $@
 	$(COBJ) $(CODE)/main/cp/control_cp_pimd.c

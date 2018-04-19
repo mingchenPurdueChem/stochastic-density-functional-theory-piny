@@ -63,6 +63,7 @@ void create_para_fft_pkg3d(PARA_FFT_PKG3D *para_fft_pkg3d,
   int idiv,irem,jjj,kkk,j;
   int iproc,iprocm1,isum,nfft_size;
   int ncoef2_proc;
+  int threadFlag = para_fft_pkg3d->threadFlag;
   int *recv_counts_rho,*displs_rho,nfft2_proc;
   int *recv_counts_coef;
 
@@ -1591,26 +1592,76 @@ void para_fft_gen3d_init(PARA_FFT_PKG3D *para_fft_pkg3d)
 
 #ifdef FFTW3
   double *dummy;
-  fftw_complex *fftw3DForwardIn,*fftw3DForwardOut,*fftw3DBackwardIn,*fftw3DBackwardOut;
+  fftw_complex **fftw3DForwardIn,**fftw3DForwardOut,**fftw3DBackwardIn,**fftw3DBackwardOut;
 #endif
   int nfft_proc = para_fft_pkg3d->nfft_proc;
   int nfft2_proc = nfft_proc/2;
+  int threadFlag = para_fft_pkg3d->threadFlag;
+  int numThreads = para_fft_pkg3d->numThreads;
+  int iThread;
   //printf("nfft2_proc %i\n",nfft2_proc);
-  para_fft_pkg3d->fftw3DForwardIn = (fftw_complex*)fftw_malloc(nfft2_proc*sizeof(fftw_complex));
-  para_fft_pkg3d->fftw3DForwardOut = (fftw_complex*)fftw_malloc(nfft2_proc*sizeof(fftw_complex));
-  para_fft_pkg3d->fftw3DBackwardIn = (fftw_complex*)fftw_malloc(nfft2_proc*sizeof(fftw_complex));
-  para_fft_pkg3d->fftw3DBackwardOut = (fftw_complex*)fftw_malloc(nfft2_proc*sizeof(fftw_complex));
-
-  fftw3DForwardIn = para_fft_pkg3d->fftw3DForwardIn;
-  fftw3DForwardOut = para_fft_pkg3d->fftw3DForwardOut;
-  fftw3DBackwardIn = para_fft_pkg3d->fftw3DBackwardIn;
-  fftw3DBackwardOut = para_fft_pkg3d->fftw3DBackwardOut;
-
   //printf("%p %p %p %p\n",fftw3DForwardIn,fftw3DForwardOut,fftw3DBackwardIn,fftw3DBackwardOut);
-  para_fft_pkg3d->fftwPlan3DForward = fftw_plan_dft_3d(nkf_c,nkf_b,nkf_a,fftw3DForwardIn,
-                                        fftw3DForwardOut,FFTW_FORWARD,FFTW_MEASURE);
-  para_fft_pkg3d->fftwPlan3DBackward = fftw_plan_dft_3d(nkf_c,nkf_b,nkf_a,fftw3DBackwardIn,
-                                        fftw3DBackwardOut,FFTW_BACKWARD,FFTW_MEASURE);
+  int err;
+  
+  switch(threadFlag){
+    case 1://threading at state level, therefore using squential fftw
+      para_fft_pkg3d->fftw3DForwardIn = (fftw_complex**)cmalloc(numThreads*sizeof(fftw_complex*));
+      para_fft_pkg3d->fftw3DForwardOut = (fftw_complex**)cmalloc(numThreads*sizeof(fftw_complex*));
+      para_fft_pkg3d->fftw3DBackwardIn = (fftw_complex**)cmalloc(numThreads*sizeof(fftw_complex*));
+      para_fft_pkg3d->fftw3DBackwardOut = (fftw_complex**)cmalloc(numThreads*sizeof(fftw_complex*));
+      for(iThread=0;iThread<numThreads;iThread++){
+	para_fft_pkg3d->fftw3DForwardIn[iThread] = (fftw_complex*)fftw_malloc(nfft2_proc*sizeof(fftw_complex));
+	para_fft_pkg3d->fftw3DForwardOut[iThread] = (fftw_complex*)fftw_malloc(nfft2_proc*sizeof(fftw_complex));
+	para_fft_pkg3d->fftw3DBackwardIn[iThread] = (fftw_complex*)fftw_malloc(nfft2_proc*sizeof(fftw_complex));
+	para_fft_pkg3d->fftw3DBackwardOut[iThread] = (fftw_complex*)fftw_malloc(nfft2_proc*sizeof(fftw_complex));
+      }
+
+      fftw3DForwardIn = para_fft_pkg3d->fftw3DForwardIn;
+      fftw3DForwardOut = para_fft_pkg3d->fftw3DForwardOut;
+      fftw3DBackwardIn = para_fft_pkg3d->fftw3DBackwardIn;
+      fftw3DBackwardOut = para_fft_pkg3d->fftw3DBackwardOut;
+      para_fft_pkg3d->fftwPlan3DForward = (fftw_plan*)cmalloc(numThreads*sizeof(fftw_plan));
+      para_fft_pkg3d->fftwPlan3DBackward = (fftw_plan*)cmalloc(numThreads*sizeof(fftw_plan));
+      for(iThread=0;iThread<numThreads;iThread++){
+        para_fft_pkg3d->fftwPlan3DForward[iThread] = fftw_plan_dft_3d(nkf_c,nkf_b,nkf_a,fftw3DForwardIn[iThread],
+                                          fftw3DForwardOut[iThread],FFTW_FORWARD,FFTW_MEASURE);
+        para_fft_pkg3d->fftwPlan3DBackward[iThread] = fftw_plan_dft_3d(nkf_c,nkf_b,nkf_a,fftw3DBackwardIn[iThread],
+                                          fftw3DBackwardOut[iThread],FFTW_BACKWARD,FFTW_MEASURE);
+      }
+      break;
+    case 2: //threading at coefficient force level
+      para_fft_pkg3d->fftw3DForwardIn = (fftw_complex**)cmalloc(sizeof(fftw_complex*));
+      para_fft_pkg3d->fftw3DForwardOut = (fftw_complex**)cmalloc(sizeof(fftw_complex*));
+      para_fft_pkg3d->fftw3DBackwardIn = (fftw_complex**)cmalloc(sizeof(fftw_complex*));
+      para_fft_pkg3d->fftw3DBackwardOut = (fftw_complex**)cmalloc(sizeof(fftw_complex*));
+      para_fft_pkg3d->fftw3DForwardIn[0] = (fftw_complex*)fftw_malloc(nfft2_proc*sizeof(fftw_complex));
+      para_fft_pkg3d->fftw3DForwardOut[0] = (fftw_complex*)fftw_malloc(nfft2_proc*sizeof(fftw_complex));
+      para_fft_pkg3d->fftw3DBackwardIn[0] = (fftw_complex*)fftw_malloc(nfft2_proc*sizeof(fftw_complex));
+      para_fft_pkg3d->fftw3DBackwardOut[0] = (fftw_complex*)fftw_malloc(nfft2_proc*sizeof(fftw_complex));
+
+      fftw3DForwardIn = para_fft_pkg3d->fftw3DForwardIn;
+      fftw3DForwardOut = para_fft_pkg3d->fftw3DForwardOut;
+      fftw3DBackwardIn = para_fft_pkg3d->fftw3DBackwardIn;
+      fftw3DBackwardOut = para_fft_pkg3d->fftw3DBackwardOut;
+
+      err = fftw_init_threads();
+      if(err==0){
+        printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+	printf("Error when initializing multi-thread FFTW3D!\n");
+        printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+	fflush(stdout);
+	exit(0);
+      }
+      fftw_plan_with_nthreads(numThreads);
+      para_fft_pkg3d->fftwPlan3DForward = (fftw_plan*)cmalloc(sizeof(fftw_plan));
+      para_fft_pkg3d->fftwPlan3DBackward = (fftw_plan*)cmalloc(sizeof(fftw_plan));
+      para_fft_pkg3d->fftwPlan3DForward[0] = fftw_plan_dft_3d(nkf_c,nkf_b,nkf_a,fftw3DForwardIn[0],
+                                          fftw3DForwardOut[0],FFTW_FORWARD,FFTW_MEASURE);
+      para_fft_pkg3d->fftwPlan3DBackward[0] = fftw_plan_dft_3d(nkf_c,nkf_b,nkf_a,fftw3DBackwardIn[0],
+                                          fftw3DBackwardOut[0],FFTW_BACKWARD,FFTW_MEASURE);
+      break;      
+  }
+  
 
 
 /*==========================================================================*/

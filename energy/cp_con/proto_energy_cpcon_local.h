@@ -86,6 +86,9 @@ void control_cp_gram_schmidt_dvr(double *,int , double *, double *, double *,
 void cp_gram_schmidt_scalar(double *,double *,double *,
                             double *,int *,int ,int );
 
+void cp_gram_schmidt_threads(double *,double *,double *,
+                            double *,int *,int,int,int);
+
 void cp_gram_schmidt_scalar_dvr(double *,double *, double *,int *,double , int ,int );
 
 void cp_gram_schmidt_par(double *,double *,int ,

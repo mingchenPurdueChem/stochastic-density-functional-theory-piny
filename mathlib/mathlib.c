@@ -21,8 +21,6 @@
 #define CLOCKS_PER_SEC_C  1000000
 #define MAXTIME 2147.48
 
-
-
 /*==========================================================================*/
 /* Uniform random numbers */
 /*==========================================================================*/
@@ -515,7 +513,7 @@ double ddot1(int n,double *a,int astep,double *b,int bstep)
 /*ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*===============================================================*/
 double ddotBlasWrapper(int n,double *x,int indx,double *y,int indy){
-  return ddot_(&n,x,&indx,y,&indy);
+  return DDOT(&n,x,&indx,y,&indy);
 }
 /*===============================================================*/
 
@@ -524,14 +522,14 @@ double ddotBlasWrapper(int n,double *x,int indx,double *y,int indy){
 /*===============================================================*/
 double ddotBlasWrapperThreads(int n,double *x,int indx,double *y,int indy,
                               int numThreads){
-  double x;
+  double dotResult;
   mkl_set_dynamic(0);
   mkl_set_num_threads(numThreads);
   omp_set_nested(1);
   {
-    x = ddot_(&n,x,&indx,y,&indy);
+    dotResult = DDOT(&n,x,&indx,y,&indy);
   }
-  return x;
+  return dotResult;
 }
 /*===============================================================*/
 
@@ -540,10 +538,26 @@ double ddotBlasWrapperThreads(int n,double *x,int indx,double *y,int indy,
 /*ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*===============================================================*/
 void daxpyBlasWrapper(int n,double a,double *x,int indx,double *y,int indy){
-  daxpy_(&n,&a,x,&indx,y,&indy);
+  DAXPY(&n,&a,x,&indx,y,&indy);
 }
 
 /*===============================================================*/
+
+/*===============================================================*/
+/*ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*===============================================================*/
+void daxpyBlasWrapperThreads(int n,double a,double *x,int indx,double *y,
+                             int indy,int numThreads){
+  mkl_set_dynamic(0);
+  mkl_set_num_threads(numThreads);
+  omp_set_nested(1);
+  {
+    DAXPY(&n,&a,x,&indx,y,&indy);
+  }
+}
+
+/*===============================================================*/
+
 
 /*===============================================================*/
 /*ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
@@ -606,7 +620,7 @@ double normalize3d(double *a)
 double dsymvWrapper(char uplo,int n, double alpha,double *A,int lda,double *x,int incx,
 		    double beta,double *y,int incy)
 {
-  dsymv_(&uplo,&n,&alpha,A,&lda,x,&incx,&beta,y,&incy);
+  DSYMV(&uplo,&n,&alpha,A,&lda,x,&incx,&beta,y,&incy);
 
 }
 
@@ -616,7 +630,7 @@ double dsymvWrapper(char uplo,int n, double alpha,double *A,int lda,double *x,in
 double dgemvWrapper(char trans,int m,int n, double alpha,double *A,int lda,double *x,int incx,
                     double beta,double *y,int incy)
 {
-  dgemv_(&trans,&m,&n,&alpha,A,&lda,x,&incx,&beta,y,&incy);
+  DGEMV(&trans,&m,&n,&alpha,A,&lda,x,&incx,&beta,y,&incy);
 
 }
 
@@ -856,8 +870,8 @@ double dsysvWrapper(double *A,double *b,int n){
   int ldb = n;
   int i;
   int lwork = 64*n;
-  int *ipiv = (int*)cmalloc(n*sizeof(int));
-  double *work = (double*)cmalloc(lwork*sizeof(double));
+  int *ipiv = (int*)malloc(n*sizeof(int));
+  double *work = (double*)malloc(lwork*sizeof(double));
   int info;
 
   double *ACpy = (double*)calloc(n*n,sizeof(double));

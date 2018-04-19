@@ -62,7 +62,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int *numElecUpFragProc = fragInfo->numElecUpFragProc;
 
   //debug
-  /*
+  
   sprintf(fileNameFragMO,"frag-MO-%i",myidState);
   if(numFragProc>0){
     fileFragMO = fopen(fileNameFragMO,"r");
@@ -78,7 +78,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     }
     fclose(fileFragMO);
   }
-  */
+  
   for(iFrag=0;iFrag<numFragProc;iFrag++){
 /*======================================================================*/
 /* I) Allocate Mini Structures                                          */
@@ -103,11 +103,10 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   if(numProcStates>1)Barrier(commStates);
   
   /*
-  sprintf(fileNameFragMO,"/scratch/mingchen/frag-MO-%i",myidState);
+  sprintf(fileNameFragMO,"frag-MO-%i",myidState);
   fileFragMO = fopen(fileNameFragMO,"w");
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     ncoef = cpMini[iFrag].cpcoeffs_info.ncoef;
-    printf("ncoeffff %i\n",ncoef);
     for(iState=0;iState<numElecUpFragProc[iFrag];iState++){
       for(icoef=1;icoef<=ncoef;icoef++){
 	fprintf(fileFragMO,"%.16lg %.16lg\n",cpMini[iFrag].cpcoeffs_pos[1].cre_up[iState*ncoef+icoef],
@@ -123,7 +122,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* II) Transfer Data and Free Memory                                    */
 
-  /* 
+   
   sprintf(fileNameFragMO,"frag-MO-%i",myidState);
   if(numFragProc>0){
     fileFragMO = fopen(fileNameFragMO,"r");
@@ -139,7 +138,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     }
     fclose(fileFragMO);
   }
-  */
+  
   
   if(fragOpt==1){
     projRhoMiniMol(cp,general_data,class,cpMini,generalDataMini,classMini,ip_now);

@@ -22,6 +22,7 @@
 #include "../typ_defs/typedefs_cp.h"
 #include "../typ_defs/typedefs_par.h"
 #include "../typ_defs/typedefs_stat.h"
+#include "../proto_defs/proto_frag_local.h"
 #include "../proto_defs/proto_friend_lib_entry.h"
 #include "../proto_defs/proto_interface_frag_local.h"
 
@@ -105,6 +106,7 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   /* 1 */ 
   classMini->communicate.np = 1;
   classMini->communicate.myid = 0;
+
   /* 14)\rndm_seed{#} */
   /* Not really need it since we don't have random stuff. */
   classMini->vel_samp_class.qseed = class->vel_samp_class.qseed;
@@ -141,6 +143,8 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   generalDataMini->simopts.anneal_opt = general_data->simopts.anneal_opt;
   /* 24)\ann_start_temperature{#} */
   generalDataMini->simopts.ann_start_temp = general_data->simopts.ann_start_temp;
+  /* 26)\num_threads{#} */
+  classMini->communicate.numThreads = class->communicate.numThreads;
 
 /*=======================================================================*/
 /*  II) set_sim_params_list                                              */
@@ -329,6 +333,8 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   cpMini->pseudo.pseudoReal.smoothOpt = cp->pseudo.pseudoReal.smoothOpt;
   cpMini->pseudo.pseudoReal.radCutRatio = cp->pseudo.pseudoReal.radCutRatio;
 
+  /* 67)\cp_thread_option{#} */
+  cpMini->cpopts.threadFlag = 1;
 /*=======================================================================*/
 /*  IV) set_sim_params_vpot                                              */
 

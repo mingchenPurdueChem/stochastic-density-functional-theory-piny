@@ -43,7 +43,7 @@ c     cleve moler, university of new mexico, argonne national lab.
 c
 c     subroutines and functions
 c
-c     blas daxpy,dscal,idamax
+c     blas daxpy2,dscal,idamax
 c
 c     internal variables
 c
@@ -89,7 +89,7 @@ c
                   a(l,j) = a(k,j)
                   a(k,j) = t
    20          continue
-               call daxpy(n-k,t,a(k+1,k),1,a(k+1,j),1)
+               call daxpy2(n-k,t,a(k+1,k),1,a(k+1,j),1)
    30       continue
          go to 50
    40    continue
@@ -161,11 +161,11 @@ c     cleve moler, university of new mexico, argonne national lab.
 c
 c     subroutines and functions
 c
-c     blas daxpy,ddot
+c     blas daxpy2,ddot2
 c
 c     internal variables
 c
-      double precision ddot,t
+      double precision ddot2,t
       integer k,kb,l,nm1
 c
       nm1 = n - 1
@@ -182,7 +182,7 @@ c
                b(l) = b(k)
                b(k) = t
    10       continue
-            call daxpy(n-k,t,a(k+1,k),1,b(k+1),1)
+            call daxpy2(n-k,t,a(k+1,k),1,b(k+1),1)
    20    continue
    30    continue
 c
@@ -192,7 +192,7 @@ c
             k = n + 1 - kb
             b(k) = b(k)/a(k,k)
             t = -b(k)
-            call daxpy(k-1,t,a(1,k),1,b(1),1)
+            call daxpy2(k-1,t,a(1,k),1,b(1),1)
    40    continue
       go to 100
    50 continue
@@ -201,7 +201,7 @@ c        job = nonzero, solve  trans(a) * x = b
 c        first solve  trans(u)*y = b
 c
          do 60 k = 1, n
-            t = ddot(k-1,a(1,k),1,b(1),1)
+            t = ddot2(k-1,a(1,k),1,b(1),1)
             b(k) = (b(k) - t)/a(k,k)
    60    continue
 c
@@ -210,7 +210,7 @@ c
          if (nm1 .lt. 1) go to 90
          do 80 kb = 1, nm1
             k = n - kb
-            b(k) = b(k) + ddot(n-k,a(k+1,k),1,b(k+1),1)
+            b(k) = b(k) + ddot2(n-k,a(k+1,k),1,b(k+1),1)
             l = ipvt(k)
             if (l .eq. k) go to 70
                t = b(l)
@@ -222,7 +222,6 @@ c
   100 continue
       return
       end
-
 
 
 
@@ -454,7 +453,7 @@ c
 
 
 
-      subroutine daxpy(n,da,dx,incx,dy,incy)
+      subroutine daxpy2(n,da,dx,incx,dy,incy)
 c
 c     constant times a vector plus a vector.
 c     uses unrolled loops for increments equal to one.
@@ -737,8 +736,7 @@ c
 
 
 
-
-      double precision function ddot(n,dx,incx,dy,incy)
+      double precision function ddot2(n,dx,incx,dy,incy)
 c
 c     forms the dot product of two vectors.
 c     uses unrolled loops for increments equal to one.
@@ -748,7 +746,7 @@ c
       double precision dx(*),dy(*),dtemp
       integer i,incx,incy,ix,iy,m,mp1,n
 c
-      ddot = 0.0d0
+      ddot2 = 0.0d0
       dtemp = 0.0d0
       if(n.le.0)return
       if(incx.eq.1.and.incy.eq.1)go to 20
@@ -765,7 +763,7 @@ c
         ix = ix + incx
         iy = iy + incy
    10 continue
-      ddot = dtemp
+      ddot2 = dtemp
       return
 c
 c        code for both increments equal to 1
@@ -784,10 +782,9 @@ c
         dtemp = dtemp + dx(i)*dy(i) + dx(i + 1)*dy(i + 1) +
      *   dx(i + 2)*dy(i + 2) + dx(i + 3)*dy(i + 3) + dx(i + 4)*dy(i + 4)
    50 continue
-   60 ddot = dtemp
+   60 ddot2 = dtemp
       return
       end
-
 
 
 

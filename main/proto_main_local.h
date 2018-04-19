@@ -22,4 +22,7 @@ void control_debug(CLASS *,BONDED *,GENERAL_DATA *);
 void control_debug_pimd(CLASS *,BONDED *,GENERAL_DATA *);
 
 /*---------------------------------------------------------------------*/
+/* auto_exit.c */
+
+void check_auto_exit(int *);
 

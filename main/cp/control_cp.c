@@ -41,6 +41,7 @@
 #include "../proto_defs/proto_integrate_cpmin_entry.h"
 #include "../proto_defs/proto_friend_lib_entry.h"
 #include "../proto_defs/proto_wannier_cpcon_entry.h"
+#include "../proto_defs/proto_main_local.h"
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/

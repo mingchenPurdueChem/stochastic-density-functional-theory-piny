@@ -135,6 +135,22 @@ void control_cp_min(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* II) Loop over the specified number of time steps */
 
+  cp->cp_sclr_fft_pkg3d_sm.cputime = 0.0;
+  cp->cp_sclr_fft_pkg3d_sm.cputime1 = 0.0;
+  cp->cp_sclr_fft_pkg3d_sm.cputime2 = 0.0;
+  cp->cp_sclr_fft_pkg3d_sm.cputime3 = 0.0;
+  cp->cp_sclr_fft_pkg3d_sm.cputime4 = 0.0;
+  cp->cpcoeffs_info.cputime0 = 0.0;
+  cp->cpcoeffs_info.cputime1 = 0.0;
+  cp->cpcoeffs_info.cputime2 = 0.0;
+  cp->cpcoeffs_info.cputime3 = 0.0;
+  cp->cpcoeffs_info.cputime4 = 0.0;
+  cp->cpcoeffs_info.cputime5 = 0.0;
+  cp->cpcoeffs_info.cputime6 = 0.0;
+  if(cp->pseudo.pseudoReal.pseudoRealFlag==1){
+    cp->pseudo.pseudoReal.forceCalcFlag = 0;
+  }
+
   for(itime = 1;itime<=(general_data->timeinfo.ntime);itime++){
     general_data->timeinfo.itime = itime;
     class->energy_ctrl.itime     = itime;
@@ -395,6 +411,18 @@ void control_cp_min(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     if(general_data->timeinfo.exit_flag == 1) itime = general_data->timeinfo.ntime;
 
   }/*endfor:itime */
+
+  printf("11111 time0 %.16lg\n",cp->cp_sclr_fft_pkg3d_sm.cputime);
+  printf("11111 time1 %.16lg\n",cp->cp_sclr_fft_pkg3d_sm.cputime1);
+  printf("11111 time2 %.16lg\n",cp->cp_sclr_fft_pkg3d_sm.cputime2);
+  printf("11111 time3 %.16lg\n",cp->cp_sclr_fft_pkg3d_sm.cputime3);
+  printf("11111 time4 %.16lg\n",cp->cp_sclr_fft_pkg3d_sm.cputime4);
+  printf("22222 time0 %.16lg\n",cp->cpcoeffs_info.cputime0);
+  printf("22222 time1 %.16lg\n",cp->cpcoeffs_info.cputime1);
+  printf("22222 time2 %.16lg\n",cp->cpcoeffs_info.cputime2);
+  printf("22222 time3 %.16lg\n",cp->cpcoeffs_info.cputime3);
+  printf("22222 time4 %.16lg\n",cp->cpcoeffs_info.cputime4);
+
 
   /*======================================================================*/
   /*  II) Final dump  : get all energyies and write EVERYTHING            */

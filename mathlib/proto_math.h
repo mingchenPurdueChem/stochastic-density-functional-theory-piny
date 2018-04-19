@@ -15,8 +15,12 @@
 #define DCFFTF_GENERIC dcfftf_generic_
 #define DCFFTB_GENERIC dcfftb_generic_
 #define GEN_MATMUL gen_matmul_
+
+#ifndef MKL_LAPACK
 #define DDOT ddot_
 #define DAXPY daxpy_
+#endif
+
 #define DSCAL dscal_
 #define GAUSSQ gaussq_
 #define LBFGS lbfgs_
@@ -128,11 +132,14 @@ void RS(int *,int *,double [],double [],int *,double [],
 void RSG(int *,int *,double [],double [],double [],int *,double [],
          double [],double [],int *);
 
+/*
 #ifndef MKL_LAPACK
 double DDOT(int *,double *,int *,double *,int *);
 #endif
+*/
+double DDOT2(int *,double *,int *,double *,int *);
 
-void DAXPY(int *,double *,double *,int *,double *,int *);
+void DAXPY2(int *,double *,double *,int *,double *,int *);
 
 void DSCAL(int *,double *,double *,int *);
 
@@ -148,6 +155,11 @@ double getdeth(double *);
 double ddot1(int ,double *,int,double *,int);
 
 double ddotBlasWrapper(int ,double *,int,double *,int);
+double ddotBlasWrapperThreads(int ,double *,int,double *,int,int);
+
+void daxpyBlasWrapper(int,double ,double *,int,double *,int);
+void daxpyBlasWrapperThreads(int,double ,double*,int,double *,int,int);
+
 
 double dsum1(int ,double *,int);
 
@@ -213,7 +225,9 @@ void destroy_para_fft_pkg3d(PARA_FFT_PKG3D *);
 
 void para_fft_gen3d_fwd_to_r(double *,double *,PARA_FFT_PKG3D *);
 
-void para_fft_gen3d_fwd_to_r_fftw3d(double *,PARA_FFT_PKG3D *);
+void para_fft_gen3d_fwd_to_r_fftw3d(double *,PARA_FFT_PKG3D *,int);
+
+void para_fft_gen3d_fwd_to_r_fftw3d_threads(double *,PARA_FFT_PKG3D *);
 
 void para_fft_gen3d_bck_to_g(double *,double *,PARA_FFT_PKG3D *);
 
@@ -231,7 +245,9 @@ void dble_pack_coef_fftw3d(double *, double *,double *, double *,
 
 void para_fft_gen3d_bck_to_g(double *, double *,PARA_FFT_PKG3D *);
 
-void para_fft_gen3d_bck_to_g_fftw3d(double *,PARA_FFT_PKG3D *);
+void para_fft_gen3d_bck_to_g_fftw3d(double *,PARA_FFT_PKG3D *,int);
+
+void para_fft_gen3d_bck_to_g_fftw3d_threads(double *,PARA_FFT_PKG3D *);
 
 void sngl_upack_coef(double *,double *,double *,PARA_FFT_PKG3D *);
 
@@ -243,6 +259,8 @@ void sngl_upack_coef_sum_fftw3d(double *,double *,double *,
                          PARA_FFT_PKG3D *);
 
 void sngl_upack_rho(double *,double *,PARA_FFT_PKG3D *);
+
+void sngl_upack_rho_fftw3d(double *,double *,PARA_FFT_PKG3D *);
 
 void sngl_upack_rho_sum(double *,double *,PARA_FFT_PKG3D *);
 
@@ -344,6 +362,10 @@ double dj1(double);
 double dj2(double);
 
 double dsysvWrapper(double *,double *,int);
+
+double dsymvWrapper(char,int, double,double *,int,double *,int,double,double *,int);
+
+double dgemvWrapper(char,int,int,double,double *,int,double *,int,double,double *,int);
 
 
 

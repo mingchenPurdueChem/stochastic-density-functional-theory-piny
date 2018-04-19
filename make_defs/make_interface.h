@@ -14,7 +14,7 @@ parse.o     :            $(STANDARD) $(DEFINES) \
                          $(SAMPL_CP_ENT) $(SAMPL_CP_LOC) $(COORD_CP_ENT) \
                          $(COORD_CP_LOC) $(MATH) $(PIMD_ENT) $(PIMD_LOC) \
                          $(FRND_ENT) $(COMM_ENT) $(COMM_LOC) $(COMM_WRAP) \
-                         $(INT_CPMIN_ENT) \
+                         $(INT_CPMIN_ENT) $(DAFED_ENT)\
                          $(CODE)/interface/parse/parse.c
 	$(ECHO) $@
 	$(COBJ_CARE) $(CODE)/interface/parse/parse.c

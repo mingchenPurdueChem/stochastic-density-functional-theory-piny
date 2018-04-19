@@ -49,7 +49,9 @@ void control_cp_gram_schmidt(double *creal,double *cimag,int icoef_form,
   int nstate   = cp_comm_state_pkg->nstate;
   int ncoef    = cp_comm_state_pkg->ncoef;
   int num_proc = cp_comm_state_pkg->num_proc;
+  
   int myid_state= cp_comm_state_pkg->myid;
+  int numThreads = cp_comm_state_pkg->numThreads;
 
 /*========================================================================*/
 /* 0) Do nothing if nstate = 0                                            */
@@ -60,7 +62,8 @@ void control_cp_gram_schmidt(double *creal,double *cimag,int icoef_form,
 /* I) Scalar  GS                                                          */
 
   if(num_proc ==1){
-   cp_gram_schmidt_scalar(creal,cimag,occ,omat,ioff,nstate,ncoef);
+    if(numThreads==1)cp_gram_schmidt_scalar(creal,cimag,occ,omat,ioff,nstate,ncoef);
+    else cp_gram_schmidt_threads(creal,cimag,occ,omat,ioff,nstate,ncoef,numThreads);
   }/*endif*/
 
 /*========================================================================*/
@@ -81,8 +84,6 @@ void control_cp_gram_schmidt(double *creal,double *cimag,int icoef_form,
 /*------------------------------------------------------------------------*/
 }/*end routine*/
 /*========================================================================*/
-
-
 
 /*==========================================================================*/
 /* Gram_schmidt orthog in scalar*/
@@ -160,6 +161,151 @@ void cp_gram_schmidt_scalar(double *cre,double *cim,double *occ,
 /* ii) Orthogonalize all higher states to the is^th state    */
 /*     keeping each state properly normalized                */
 
+   for(js=1;js<=len;js++){
+     joff = ioff[(is+js)];
+     cmix  = -ovlap[js];
+     anorm = 1.0 + 2.0*cmix*ovlap[js] + cmix*cmix;
+     scale = sqrt(1.0/anorm);
+     for(ig=1;ig<=ncoef;ig++){
+       cre[(ig+joff)] = (cre[(ig+ioff[is])]*cmix + cre[(ig+joff)])*scale;
+       cim[(ig+joff)] = (cim[(ig+ioff[is])]*cmix + cim[(ig+joff)])*scale;
+     }/*endfor:ig*/
+   }/*endfor:js*/
+
+  }/*endfor:is loop*/
+
+/*========================================================================*/
+/* III) Check                                                             */
+
+#ifdef DEBUG_GS
+
+  nstate2 = nstate*nstate;
+  for(is=1;is<=nstate;is++){
+/*-----------------------------------------------------------------------*/
+/* i) Find overlap of the is^th state with all lower states              */
+   for(js=1;js<=is;js++){
+     ind = (is-1)*nstate + js;
+     ovlap[ind]     = 0.0;
+     for(ig=1;ig<=ncoef-1;ig++){
+      ovlap[ind]     += (cre[(ig+ioff[is])]*cre[(ig+ioff[js])]
+                        +cim[(ig+ioff[is])]*cim[(ig+ioff[js])]);
+     }/*endfor*/
+     ovlap[ind]     *=2.0;
+     ig              =  ncoef;
+     ovlap[ind]     += wght*(cre[(ig+ioff[is])]*cre[(ig+ioff[js])]
+                            +cim[(ig+ioff[is])]*cim[(ig+ioff[js])]);
+     jnd = (js-1)*nstate + is;
+     ovlap[jnd] = ovlap[ind];
+   }/*endfor*/
+  }/*endfor:is loop*/
+/*-----------------------------------------------------------------------*/
+/* ii) Output                                                            */
+  for(is=1;is<=nstate;is++){
+    for(js=1;js<=is;js++){
+      jnd = (js-1)*nstate + is;
+      ind = (is-1)*nstate + js;
+      printf("is=%d js=%d %g %g \n",is,js,ovlap[ind],ovlap[jnd]);
+    }/*endfor*/
+   scanf("%d",&iii);
+  }/*endfor*/
+
+#endif
+
+/*========================================================================*/
+/* III) Adjust norms to occupation numbers                                */
+
+  for(is=1;is<=nstate;is++){
+    scale = sqrt(occ[is]);
+    i1 = ioff[is]+1; i2=ioff[is]+ncoef;
+    for(ig=i1;ig<=i2;ig++){
+      cre[ig] *= scale;
+      cim[ig] *= scale;
+    }/*endfor:ig*/
+  }/*endfor:is*/
+
+/*========================================================================*/
+}/*end routine*/
+/*========================================================================*/
+
+/*==========================================================================*/
+/* Gram_schmidt orthog in openmp*/
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+
+void cp_gram_schmidt_threads(double *cre,double *cim,double *occ,
+                            double *ovlap,int *ioff,int nstate,int ncoef,
+			    int numThreads)
+
+/*======================================================================*/
+/*                Begin Routine */
+{   /*begin routine */
+/*======================================================================*/
+/*               Local variable declarations                            */
+  
+  double cmix;
+  double anorm,scale;
+  int len,ig,is,js,joff;
+  int i1,i2;
+  int ind,jnd,nstate2;
+
+/*==========================================================================*/
+/* I) Normalize the states                                                 */
+
+/*--------------------------------------------------------------------------*/
+/* i) Find overlap of the each state with iself                            */
+
+  for(is=1;is<=nstate;is++){
+    ovlap[is]    = 0.0;
+    i1 = ioff[is]+1; i2=ioff[is]+ncoef-1;
+    for(ig=i1;ig<=i2;ig++){
+      ovlap[is] += (cre[ig]*cre[ig]+cim[ig]*cim[ig]);
+    }/*endfor*/
+    ovlap[is] *=2.0;
+    ig         =  ncoef+ioff[is];
+    ovlap[is] += cre[ig]*cre[ig];
+  }/*endfor:is*/
+
+/*-------------------------------------------------------------------------*/
+/* ii) Normalize each state to 1 for convenience                           */
+
+  for(is=1;is<=nstate;is++){
+    scale = sqrt(1.0/ovlap[is]);
+    i1 = ioff[is]+1; i2=ioff[is]+ncoef;
+    for(ig=i1;ig<=i2;ig++){
+      cre[ig] *= scale;
+      cim[ig] *= scale;
+    }/*endfor:ig*/
+  }/*endfor:is*/
+
+/*========================================================================*/
+/* III) Gram schmidt orthogonalize                                         */
+
+  for(is=1;is<=nstate-1;is++){
+
+/*-----------------------------------------------------------------------*/
+/* i) Find overlap of the is^th state with all higher states             */
+/*    Note the joff value                                                */
+
+   len = nstate-is;
+   #pragma omp parallel for private(js,joff,ig)
+   for(js=1;js<=len;js++){
+     joff = ioff[(is+js)];
+     ovlap[js]     = 0.0;
+     for(ig=1;ig<=ncoef-1;ig++){
+      ovlap[js]     += (cre[(ig+ioff[is])]*cre[(ig+joff)]
+                       +cim[(ig+ioff[is])]*cim[(ig+joff)]);
+     }/*endfor:ig*/
+     ovlap[js]     *=2.0;
+     ig            =  ncoef;
+     ovlap[js]     += cre[(ig+ioff[is])]*cre[(ig+joff)];
+   }/*endfor:js*/
+
+/*-----------------------------------------------------------*/
+/* ii) Orthogonalize all higher states to the is^th state    */
+/*     keeping each state properly normalized                */
+
+   #pragma omp parallel for private(js,joff,cmix,anorm,scale,ig)
    for(js=1;js<=len;js++){
      joff = ioff[(is+js)];
      cmix  = -ovlap[js];

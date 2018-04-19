@@ -510,17 +510,21 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
 
   int iii,ioff,ioff2;
   int is,i,j,k,iupper;
-  int igrid;
+  int igrid,jgrid;
   int cp_lsda = cpopts->cp_lsda;
   int ncoef = cpcoeffs_info->ncoef;
   int   nfft_proc        =    cp_para_fft_pkg3d_lg->nfft_proc;
   int   nfft2_proc       =    nfft_proc/2;
   int nfft = cp_para_fft_pkg3d_lg->nfft;
   int nfft2 = nfft/2;
+  int nkf1       = cp_sclr_fft_pkg3d_sm->nkf1;
+  int nkf2       = cp_sclr_fft_pkg3d_sm->nkf2;
+  int nkf3       = cp_sclr_fft_pkg3d_sm->nkf3;
+  int numThreads = cp_para_fft_pkg3d_lg->numThreads;
+  int iThread;
   int gridOff1,gridOff2;
 
   //printf("nfftttttt2_proc %i\n",nfft2_proc);
-
   double *zfft           =    cpscr->cpscr_wave.zfft;
   double *zfft_tmp       =    cpscr->cpscr_wave.zfft_tmp;
   double *hmatCP         =    cell->hmat_cp;
@@ -528,14 +532,22 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
   double invVolFrag	 = 1.0/volFrag;
   double prefact;
 
+  double **zfft_threads  =    cpscr->cpscr_wave.zfft_threads;
+  double **zfft_tmp_threads = cpscr->cpscr_wave.zfft_tmp_threads;
+  double *rho_scr_threads;
+
+
   prefact = 1.0/sqrt(2.0*volFrag);
   if(cp_lsda==1)prefact = sqrt(invVolFrag);
-
+  rho_scr_threads = (double*)cmalloc((numThreads*nfft2+1)*sizeof(double));
 
 /* ================================================================= */
 /*1) zero density and gradients if necessary                         */
 
   for(i=0;i<nfft2;i++)rho[i] = 0.0;
+  for(i=1;i<=numThreads*nfft2;i++){
+    rho_scr_threads[i] = 0.0;
+  }
 
 /*==========================================================================*/
 /*==========================================================================*/
@@ -547,41 +559,68 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
      iupper = nstate-1;
   }/* endif */
 
-  for(is=1;is<=iupper;is=is+2){
-    ioff   = (is-1)*ncoef;
-    ioff2 = (is)*ncoef;
-    gridOff1 = (is-1)*nfft2_proc;
-    gridOff2 = is*nfft2_proc;
+  omp_set_num_threads(numThreads);
+  #pragma omp parallel private(iThread,is,ioff,ioff2)
+  {
+    iThread = omp_get_thread_num();
+    #pragma omp for
+    for(is=1;is<=iupper;is=is+2){
+      ioff   = (is-1)*ncoef;
+      ioff2 = (is)*ncoef;
+      gridOff1 = (is-1)*nfft2_proc;
+      gridOff2 = is*nfft2_proc;
 
 /*--------------------------------------------------------------------------*/
 /*I) pack the complex zfft array with two wavefunctions (real) 
     the wavefunctions are reperesented in spherically cuttof 
     half g space                                                            */
 
-    dble_pack_coef(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
-                      zfft,cp_sclr_fft_pkg3d_sm);
+      //dble_pack_coef(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
+      //                  zfft,cp_sclr_fft_pkg3d_sm);
 
-    //dble_pack_coef_fftw3d(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
-    //                  zfft,cp_sclr_fft_pkg3d_sm);
+      dble_pack_coef_fftw3d(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
+			zfft_threads[iThread],cp_sclr_fft_pkg3d_sm);
 
 /*--------------------------------------------------------------------------*/
 /*II) fourier transform the two wavefunctions to real space
      convention exp(-igr)                                                   */
 
-    //para_fft_gen3d_fwd_to_r_fftw3d(zfft,cp_sclr_fft_pkg3d_sm);
-    para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+      para_fft_gen3d_fwd_to_r_fftw3d(zfft_threads[iThread],cp_sclr_fft_pkg3d_sm,iThread);
+      //para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
 
 /*--------------------------------------------------------------------------*/
 /* III) Copy the real sapce wave function and add the square of the two     
         wave functions to the density(real space)			    */
- 
-    for(igrid=0;igrid<nfft2_proc;igrid++){
-      wfReal[gridOff1+igrid] = zfft[igrid*2+1]*prefact;
-      wfReal[gridOff2+igrid] = zfft[igrid*2+2]*prefact;
-      rho[igrid] += zfft[igrid*2+1]*zfft[igrid*2+1]+zfft[igrid*2+2]*zfft[igrid*2+2];
+      //transpose
+      memcpy(&zfft_tmp_threads[iThread][1],&zfft_threads[iThread][1],nfft*sizeof(double));
+      for(i=0;i<nkf1;i++){
+	for(j=0;j<nkf2;j++){
+	  for(k=0;k<nkf3;k++){
+	    igrid = i*nkf2*nkf3+j*nkf3+k; //x leading
+	    jgrid = k*nkf2*nkf1+j*nkf1+i; //z leading
+	    zfft_threads[iThread][jgrid*2+1] = zfft_tmp_threads[iThread][igrid*2+1];
+	    zfft_threads[iThread][jgrid*2+2] = zfft_tmp_threads[iThread][igrid*2+2];
+	  }
+	}
+      }
+   
+      for(igrid=0;igrid<nfft2_proc;igrid++){
+	wfReal[gridOff1+igrid] = zfft_threads[iThread][igrid*2+1]*prefact;
+	wfReal[gridOff2+igrid] = zfft_threads[iThread][igrid*2+2]*prefact;
+	rho_scr_threads[iThread*nfft2+igrid] 
+		+= zfft_threads[iThread][igrid*2+1]*zfft_threads[iThread][igrid*2+1]+
+		   zfft_threads[iThread][igrid*2+2]*zfft_threads[iThread][igrid*2+2];
+      }
+      //printf("ioff %i ioff2 %i wfReal %lg %lg\n",ioff,ioff2,wfReal[ioff],wfReal[ioff2]);
+    }//endfor is
+  }//endomp
+
+  for(iThread=0;iThread<numThreads;iThread++){
+    #pragma omp parallel for private(i)
+    for(igrid=0;igrid<nfft2;igrid++){
+      rho[igrid] += rho_scr_threads[iThread*nfft2+igrid];
     }
-    //printf("ioff %i ioff2 %i wfReal %lg %lg\n",ioff,ioff2,wfReal[ioff],wfReal[ioff2]);
-  }/*endfor is*/
+  }
 
 /*--------------------------------------------------------------------------*/
 /*IV) if there is an odd number of states, use single pack
@@ -590,23 +629,36 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
 
   if(nstate%2!=0){
     ioff = (nstate-1)*ncoef;
-    //sngl_pack_coef_fftw3d(&ccreal[ioff],&ccimag[ioff],zfft,cp_sclr_fft_pkg3d_sm);
-    sngl_pack_coef(&ccreal[ioff],&ccimag[ioff],zfft,cp_sclr_fft_pkg3d_sm);
+    sngl_pack_coef_fftw3d(&ccreal[ioff],&ccimag[ioff],zfft_threads[0],cp_sclr_fft_pkg3d_sm);
+    //sngl_pack_coef(&ccreal[ioff],&ccimag[ioff],zfft,cp_sclr_fft_pkg3d_sm);
 
 /*--------------------------------------------------------------------------*/
 /* V) fourier transform the last wavefunction to real space
        convention exp(-igr)                                                 */
     
-    //para_fft_gen3d_fwd_to_r_fftw3d(zfft,cp_sclr_fft_pkg3d_sm);
-    para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+    para_fft_gen3d_fwd_to_r_fftw3d(zfft_threads[0],cp_sclr_fft_pkg3d_sm,0);
+    //para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
 
 /*--------------------------------------------------------------------------*/
 /*VI) Copy the real sapce wave function and add the square of the last wave 
       function to the density(real space)   */
+
+    memcpy(&zfft_tmp_threads[0][1],&zfft_threads[0][1],nfft*sizeof(double));
+    for(i=0;i<nkf1;i++){
+      for(j=0;j<nkf2;j++){
+	for(k=0;k<nkf3;k++){
+	  igrid = i*nkf2*nkf3+j*nkf3+k; //x leading
+	  jgrid = k*nkf2*nkf1+j*nkf1+i; //z leading
+	  zfft_threads[0][jgrid*2+1] = zfft_tmp_threads[0][igrid*2+1];
+	  zfft_threads[0][jgrid*2+2] = zfft_tmp_threads[0][igrid*2+2];
+	}
+      }
+    }
+
     
     for(igrid=0;igrid<nfft2_proc;igrid++){
-      wfReal[ioff*nfft2+igrid] = zfft[igrid*2+1]*prefact;
-      rho[igrid] += zfft[igrid*2+1]*zfft[igrid*2+1];
+      wfReal[ioff*nfft2+igrid] = zfft_threads[0][igrid*2+1]*prefact;
+      rho[igrid] += zfft_threads[0][igrid*2+1]*zfft_threads[0][igrid*2+1];
     }
 
   }//endif nstat%2

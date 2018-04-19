@@ -619,6 +619,9 @@ void mall_cp_scr(CPTHERM_INFO *cptherm_info,CPOPTS *cpopts,CPEWALD *cpewald,
   int nstate_max_dn     = cp_comm_state_pkg_up->nstate_max;
   int nstate_ncoef_proc_max_dn = cp_comm_state_pkg_up->nstate_ncoef_proc_max;
   int num_c_nhc1        = num_c_nhc_proc+1;
+  int fftw3dFlag = cpopts->fftw3dFlag;
+  int threadFlag = cpopts->threadFlag;
+  int numThreads = cp_para_fft_pkg3d_lg->numThreads; 
 
   int ncoef_l_pme_dual,ncoef_l_pme_dual_proc;
   int ncoef_l_proc_max_mall;
@@ -638,7 +641,7 @@ void mall_cp_scr(CPTHERM_INFO *cptherm_info,CPOPTS *cpopts,CPEWALD *cpewald,
 /*         Local variable declarations                                      */
 
   double now_memory;
-  int i,iii;
+  int i,iii,iThread;
   int nlscr_up,nlscr_dn,nlscr_up_pv,nlscr_dn_pv,ncoef_l_pv,ncoef_l_proc_max;
   int ncoef_l_proc_max_mall_cp_box,ncoef_l_proc_max_mall_cp_box_dn;
   int nfft2_mall_up,nfft2_mall_dn,nfft2_mall_up_proc,nfft2_mall_dn_proc;
@@ -1148,15 +1151,30 @@ void mall_cp_scr(CPTHERM_INFO *cptherm_info,CPOPTS *cpopts,CPEWALD *cpewald,
   num += 2*(ncoef2_up + ncoef2_dn);
 
   if(cp_para_opt==0){
-   if(cp_dual_grid_opt_on >= 1){mtemp = MAX(nfft_up,nfft_up_dens_cp_box);}
-   if(cp_dual_grid_opt_on == 0){mtemp = nfft_up;}
-
-   cpscr->cpscr_wave.zfft         
-                    = (double *)cmalloc(mtemp*sizeof(double))-1;
-   cpscr->cpscr_wave.zfft_tmp
-                    = (double *)cmalloc(mtemp*sizeof(double))-1;
-   num += 2*(mtemp);
-  }else{
+    if(cp_dual_grid_opt_on >= 1){mtemp = MAX(nfft_up,nfft_up_dens_cp_box);}
+    if(cp_dual_grid_opt_on == 0){mtemp = nfft_up;}
+    cpscr->cpscr_wave.zfft         
+		     = (double *)cmalloc(mtemp*sizeof(double))-1;
+    cpscr->cpscr_wave.zfft_tmp
+		     = (double *)cmalloc(mtemp*sizeof(double))-1;
+ 
+    num += 2*(mtemp);
+    
+    if(threadFlag==1){
+      printf("11111111111 numThreads %i\n",numThreads);
+      cpscr->cpscr_wave.zfft_threads = (double**)cmalloc(numThreads*sizeof(double*));
+      cpscr->cpscr_wave.zfft_tmp_threads = (double**)cmalloc(numThreads*sizeof(double*));
+      for(iThread=0;iThread<numThreads;iThread++){
+	cpscr->cpscr_wave.zfft_threads[iThread]
+			 = (double *)cmalloc(mtemp*sizeof(double))-1;
+	cpscr->cpscr_wave.zfft_tmp_threads[iThread]
+			 = (double *)cmalloc(mtemp*sizeof(double))-1;
+      }
+      num += 2*(mtemp)*numThreads;
+    }
+    
+  }
+  else{
    if(cp_dual_grid_opt_on >= 1){mtemp = 
                           MAX(nfft_up_proc,nfft_up_proc_dens_cp_box);}
    if(cp_dual_grid_opt_on == 0){mtemp = nfft_up_proc;}

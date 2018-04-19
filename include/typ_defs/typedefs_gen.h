@@ -501,11 +501,15 @@ typedef struct para_fft_pkg3d {
 /* We want to use this for:			    */
 /* 1.wave function k->r hybrid case		    */
 /* 2.*/
-  fftw_plan fftwPlan3DForward,fftwPlan3DBackward;
-  fftw_complex *fftw3DForwardIn,*fftw3DForwardOut;
-  fftw_complex *fftw3DBackwardIn,*fftw3DBackwardOut;
+  fftw_plan *fftwPlan3DForward,*fftwPlan3DBackward;
+  fftw_complex **fftw3DForwardIn,**fftw3DForwardOut;
+  fftw_complex **fftw3DBackwardIn,**fftw3DBackwardOut;
   int *mapFFTW,*mapConFFTW;
   double cputime;
+  double cputime1,cputime2,cputime3,cputime4;
+  int threadFlag;
+  int numThreads;
+  int iThread;
  } PARA_FFT_PKG3D;
 
 /*==========================================================================*/

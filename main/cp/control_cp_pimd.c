@@ -40,6 +40,7 @@
 #include "../proto_defs/proto_energy_cpcon_entry.h"
 #include "../proto_defs/proto_pimd_entry.h"
 #include "../proto_defs/proto_communicate_wrappers.h"
+#include "../proto_defs/proto_main_local.h"
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/

@@ -23,6 +23,7 @@
 #include "../proto_defs/proto_communicate_wrappers.h"
 #include "../proto_defs/proto_energy_cp_local.h"
 #include "../proto_defs/proto_energy_cpcon_local.h"
+#include "../proto_defs/proto_energy_ctrl_entry.h"
 #include "../proto_defs/proto_stodft_local.h"
 
 #define TIME_CP_OFF

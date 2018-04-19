@@ -223,7 +223,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
     phiNl = NULL;
     if(ivpsLabel[iType+1]==1){// KB
       if(myidState==0){
-	printf("1111 %s\n",vpsFile[iType+1].name);
+	//printf("1111 %s\n",vpsFile[iType+1].name);
 	fvps = fopen(vpsFile[iType+1].name,"r");
 	fscanf(fvps,"%i %lg %i\n",&numR,&rMax,&angNow);
 	fscanf(fvps,"%lg %lg %lg %lg\n",&z1,&alpha1,&z2,&alpha2);
@@ -314,14 +314,12 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 	if(r>rCutoffMax)rCutoffMax = r;
       }//endfor iAng
       ppRealCut[iType] = rCutoffMax;
-      printf("iType %i rCutoffMax %.16lg\n",iType,rCutoffMax);
+      printf("type %i ppRealCut %.8lg\n",iType,ppRealCut[iType]);
       numGridRadSmooth[iType] = (int)(rCutoffMax/dr)+1;
-      printf("numGridRadSmooth[iType] %i numRadMax[iType] %i\n",numGridRadSmooth[iType],numRadMax[iType]);
     }//endif ivpsLabel
     // 3. Smooth the radius function
     
     numGridRadSmooth[iType] = (int)(rCutoffMax/dr)+1;
-    printf("numGridRadSmooth[iType] %i numRadMax[iType] %i\n",numGridRadSmooth[iType],numRadMax[iType]);
 
     for(iRad=0;iRad<numRadMax[iType];iRad++){
       switch(smoothOpt){
@@ -425,22 +423,25 @@ void initRealNlppWf(CP *cp,CLASS *class,GENERAL_DATA *generalData)
   ATOMMAPS *atommaps = &(class->atommaps);
 
   int numAtomTot = clatoms_info->natm_tot;
-  int iAtom,iAng;
+  int iAtom,iAng,m,iRad;
   int numGrid;
   int numPsuedoWfRe,numPsuedoWfIm;
   int numGridTotRe = 0;
   int numGridTotIm = 0;
   int atomType;
   int forceCalcFlag = pseudoReal->forceCalcFlag;
+  int gridShiftNowRe,gridShiftNowIm;
   int *numGridNlppMap;
   int *iAtomAtomType = atommaps->iatm_atm_typ;
   int *numLMax = pseudoReal->numLMax;
   int **atomLRadNum = pseudoReal->atomLRadNum;
+  int *gridStIndRe,*gridStIndIm;
 
 /*==========================================================================*/
 /* I) Construct Real Space Grids Neighbourhood List                         */
 
   mapRealSpaceGrid(cp,class,generalData);
+  testOverlap(cp,class,generalData);
   //fflush(stdout);
   //exit(0);
 
@@ -457,6 +458,37 @@ void initRealNlppWf(CP *cp,CLASS *class,GENERAL_DATA *generalData)
       numGridTotIm += numGrid*numPsuedoWfIm;
     }
   }
+
+  gridShiftNowRe = 0;
+  gridShiftNowIm = 0;
+  pseudoReal->gridStIndRe = (int*)cmalloc(numAtomTot*sizeof(int));
+  pseudoReal->gridStIndIm = (int*)cmalloc(numAtomTot*sizeof(int));
+  gridStIndRe = pseudoReal->gridStIndRe;
+  gridStIndIm = pseudoReal->gridStIndIm;
+
+  for(iAtom=0;iAtom<numAtomTot;iAtom++){
+    gridStIndRe[iAtom] = gridShiftNowRe;
+    gridStIndIm[iAtom] = gridShiftNowIm;
+    atomType = iAtomAtomType[iAtom+1]-1;
+    numGrid = numGridNlppMap[iAtom];
+    if(numGrid>0){
+      for(iAng=0;iAng<numLMax[atomType];iAng++){
+        for(iRad=0;iRad<atomLRadNum[atomType][iAng];iRad++){
+          for(m=0;m<=iAng;m++){
+            if(m!=0){
+              gridShiftNowRe += numGrid;
+              gridShiftNowIm += numGrid;
+            }
+            else{
+              gridShiftNowRe += numGrid;
+            }//endif m
+          }//endfor m
+        }//endfor iRad
+      }//endfor l
+    }//endif numGrid
+  }//endfor iAtom
+
+
   pseudoReal->vnlPhiAtomGridRe = (double*)realloc(pseudoReal->vnlPhiAtomGridRe,
 						  numGridTotRe*sizeof(double));  
   pseudoReal->vnlPhiAtomGridIm = (double*)realloc(pseudoReal->vnlPhiAtomGridIm,
@@ -1230,6 +1262,7 @@ void mapRealSpaceGrid(CP *cp, CLASS *class, GENERAL_DATA *generalData)
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
   ATOMMAPS *atommaps = &(class->atommaps);
+  CPOPTS *cpopts = &(cp->cpopts);
   PSEUDO *pseudo = &(cp->pseudo);
   PSEUDO_REAL *pseudoReal = &(pseudo->pseudoReal);
   CELL *cell = &(generalData->cell);
@@ -1250,10 +1283,11 @@ void mapRealSpaceGrid(CP *cp, CLASS *class, GENERAL_DATA *generalData)
   int xInd,yInd,zInd,xGridInd,yGridInd,zGridInd;
   int gridInd;
   int numInterpGrid = pseudoReal->numInterpGrid;  
+  int fftw3dFlag = cpopts->fftw3dFlag;
 
   int *iAtomAtomType = atommaps->iatm_atm_typ;
   int *numLMax = pseudoReal->numLMax;
-  int *numGridNlppMap = pseudoReal->numGridNlppMap;;
+  int *numGridNlppMap = pseudoReal->numGridNlppMap;
   int **gridNlppMap = pseudoReal->gridNlppMap;
 
   double dr = pseudoReal->dr;
@@ -1276,6 +1310,7 @@ void mapRealSpaceGrid(CP *cp, CLASS *class, GENERAL_DATA *generalData)
  
   double aElem[3],bElem[3],cElem[3];
   double aOrth[3],bOrth[3],cOrth[3],acrossb[3];
+
   aElem[0] = hmat[1]/nka;aElem[1] = hmat[2]/nka;aElem[2] = hmat[3]/nka;
   bElem[0] = hmat[4]/nkb;bElem[1] = hmat[5]/nkb;bElem[2] = hmat[6]/nkb;
   cElem[0] = hmat[7]/nkc;cElem[1] = hmat[8]/nkc;cElem[2] = hmat[9]/nkc;
@@ -1365,7 +1400,8 @@ void mapRealSpaceGrid(CP *cp, CLASS *class, GENERAL_DATA *generalData)
 	      //printf("distsq %lg cutoffsq %lg\n",distSq,cutOffSq);
 	      //printf("grid inddddd %i %i %i\n",xGridInd,yGridInd,zGridInd);
 	      //printf("xxxxxx %lg %lg %lg\n",debug[0],debug[1],debug[2]);
-	      gridInd = zGridInd*nkb*nka+yGridInd*nka+xGridInd;
+	      if(fftw3dFlag==0)gridInd = zGridInd*nkb*nka+yGridInd*nka+xGridInd;
+	      else gridInd = xGridInd*nkb*nkc+yGridInd*nkc+zGridInd;
 	      gridNlppMap[iAtom][numGridCount] = gridInd;
 	      numGridCount += 1;  
 	      if(numGridCount%100==0){
@@ -1379,6 +1415,167 @@ void mapRealSpaceGrid(CP *cp, CLASS *class, GENERAL_DATA *generalData)
     numGridNlppMap[iAtom] = numGridCount;
     //printf("iAtom %i numGridNlppMap %i %i\n",iAtom,numGridNlppMap[iAtom],numGridCount);
   }//endfor iAtom
+
+/*--------------------------------------------------------------------------*/
+  }/*end routine*/
+/*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void testOverlap(CP *cp, CLASS *class, GENERAL_DATA *generalData)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* Test whether nlpp grid overlaps                                       */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+
+  ATOMMAPS *atommaps = &(class->atommaps);
+  PSEUDO *pseudo = &(cp->pseudo);
+  PSEUDO_REAL *pseudoReal = &(pseudo->pseudoReal);
+  CELL *cell = &(generalData->cell);
+  CLATOMS_INFO *clatoms_info = &(class->clatoms_info);
+  CLATOMS_POS *clatoms_pos = &(class->clatoms_pos[1]);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
+  
+  int iAtom,jAtom,iGrid;
+  int numAtomTot = clatoms_info->natm_tot;
+  int atomType1,atomType2;
+  int overlapFlag = 0;
+  int countOverlap = 0;
+  int countTotal = 0;
+  int numGrid;
+  int numGridAll = (cp_para_fft_pkg3d_lg->nfft)/2;
+  int numGridNlppAll;
+  int *iAtomAtomType = atommaps->iatm_atm_typ;
+  int *atomNbhdListNum;
+  int *gridNlppInd;
+  int *numGridNlppMap = pseudoReal->numGridNlppMap;;
+  int **gridNlppMap = pseudoReal->gridNlppMap;
+  int **atomNbhdList;
+  int **gridNlppMapInvTemp; //temperate list, include all grids
+  int **gridNlppMapInv; //final list, include grids in gridNlppInd
+
+  double x1,y1,z1,x2,y2,z2;
+  double dx,dy,dz,dx2,dy2,dz2;
+  double r2;
+  double rcut1,rcut2;
+  double rtot;
+
+  double *ppRealCut = pseudoReal->ppRealCut;
+  double *hmati = cell->hmati;
+  double *hmat = cell->hmat;
+  double *xList = clatoms_pos->x;
+  double *yList = clatoms_pos->y;
+  double *zList = clatoms_pos->z; 
+
+  gridNlppMapInvTemp = (int**)cmalloc(numGridAll*sizeof(int*));
+  for(iGrid=0;iGrid<numGridAll;iGrid++){
+    gridNlppMapInvTemp[iGrid] = (int*)cmalloc(sizeof(int));
+    gridNlppMapInvTemp[iGrid][0] = 0;
+  }
+
+  for(iAtom=0;iAtom<numAtomTot;iAtom++){
+    atomType1 = iAtomAtomType[iAtom+1]-1;
+    rcut1 = ppRealCut[atomType1];
+    x1 = xList[iAtom+1];
+    y1 = yList[iAtom+1];
+    z1 = zList[iAtom+1];
+    for(jAtom=iAtom+1;jAtom<numAtomTot;jAtom++){
+      atomType2 = iAtomAtomType[jAtom+1]-1;
+      rcut2 = ppRealCut[atomType2];
+      x2 = xList[jAtom+1];
+      y2 = yList[jAtom+1];
+      z2 = zList[jAtom+1];
+      dx = x2-x1;
+      dy = y2-y1;
+      dz = z2-z1;
+      dx2 = dx*hmati[1]+dy*hmati[4]+dz*hmati[7];
+      dy2 = dx*hmati[2]+dy*hmati[5]+dz*hmati[8];
+      dz2 = dx*hmati[3]+dy*hmati[6]+dz*hmati[9];
+      dx = dx2-NINT(dx2);
+      dy = dy2-NINT(dy2);
+      dz = dz2-NINT(dz2);
+      dx2 = dx*hmat[1]+dy*hmat[4]+dz*hmat[7];
+      dy2 = dx*hmat[2]+dy*hmat[5]+dz*hmat[8];
+      dz2 = dx*hmat[3]+dy*hmat[6]+dz*hmat[9];
+      r2 = dx2*dx2+dy2*dy2+dz2*dz2;
+      rtot = rcut1+rcut2;
+      if(rtot*rtot>=r2)overlapFlag = 1;
+    }//endfor jAtom
+  }//endfor iAtom
+
+  /*
+  for(iAtom=0;iAtom<numAtomTot;iAtom++){
+    printf("iAtom %i ",iAtom);
+    for(jAtom=0;jAtom<atomNbhdListNum[iAtom];jAtom++){
+      printf("%i ",atomNbhdList[iAtom][jAtom]);
+    }
+    printf("\n");
+  }
+  */
+
+  if(overlapFlag==1){
+    printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
+    printf("Non-local pseudopotential regions are overlapped.\n");
+    printf("Be careful when you use multithread.\n");
+    printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
+  }
+  pseudoReal->overlapFlag;
+
+  int gridIndex;
+  int numUpdate;
+  int count;
+  int i,j,k;
+  numGridNlppAll = 0;
+  for(iAtom=0;iAtom<numAtomTot;iAtom++){
+    numGrid = numGridNlppMap[iAtom];
+    for(iGrid=0;iGrid<numGrid;iGrid++){
+      gridIndex = gridNlppMap[iAtom][iGrid];
+      if(gridNlppMapInvTemp[gridIndex][0]==0){
+	numGridNlppAll += 1;
+      }
+      gridNlppMapInvTemp[gridIndex][0] += 1;
+      numUpdate = gridNlppMapInvTemp[gridIndex][0];
+      gridNlppMapInvTemp[gridIndex] = (int*)crealloc(gridNlppMapInvTemp[gridIndex],(2*numUpdate+1)*sizeof(int));
+      gridNlppMapInvTemp[gridIndex][2*numUpdate-1] = iAtom;
+      gridNlppMapInvTemp[gridIndex][2*numUpdate] = iGrid;
+    }
+  }
+
+  pseudoReal->numGridNlppAll = numGridNlppAll;
+  pseudoReal->gridNlppInd = (int*)cmalloc(numGridNlppAll*sizeof(int));
+  pseudoReal->gridNlppMapInv = (int**)cmalloc(numGridNlppAll*sizeof(int*));
+  for(iGrid=0;iGrid<numGridNlppAll;iGrid++){
+    pseudoReal->gridNlppMapInv[iGrid] = NULL;
+  }
+  gridNlppInd = pseudoReal->gridNlppInd;
+  gridNlppMapInv = pseudoReal->gridNlppMapInv;
+  count = 0;
+  for(iGrid=0;iGrid<numGridAll;iGrid++){
+    numUpdate = gridNlppMapInvTemp[iGrid][0];
+    if(numUpdate>0){
+      gridNlppInd[count] = iGrid;
+      gridNlppMapInv[count] = (int*)cmalloc((2*numUpdate+1)*sizeof(int));
+      memcpy(gridNlppMapInv[count],gridNlppMapInvTemp[iGrid],(2*numUpdate+1)*sizeof(int));
+      /*
+      printf("iGrid %i girdInd %i ",count,iGrid);
+      for(i=0;i<2*numUpdate+1;i++){
+	printf("%i ",gridNlppMapInv[count][i]);
+      }
+      printf("\n");
+      */
+      count += 1;
+    }
+  } 
+
+  for(iGrid=0;iGrid<numGridAll;iGrid++){
+    free(gridNlppMapInvTemp[iGrid]);
+  }
+  free(gridNlppMapInvTemp);
 
 /*--------------------------------------------------------------------------*/
   }/*end routine*/

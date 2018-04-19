@@ -232,3 +232,21 @@ void splineFitWithDerivative(double *c0i, double *c1i, double *c2i, double *c3i,
    } /* spline_fit */
 /*==========================================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+int strcasecmp(const char *a,const char *b){
+/*==========================================================================*/
+/* A wrapper b/c strcasecmp is legacy now.  */
+  int ca, cb;
+  do {
+     ca = (unsigned char) *a++;
+     cb = (unsigned char) *b++;
+     ca = tolower(toupper(ca));
+     cb = tolower(toupper(cb));
+   } while (ca == cb && ca != '\0');
+   return ca - cb;
+/*--------------------------------------------------------------------------*/
+   } 
+/*==========================================================================*/
+

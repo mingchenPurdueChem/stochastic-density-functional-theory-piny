@@ -36,7 +36,6 @@
 #define list_int int
 #endif
 
-
 /*==========================================================================*/
 /* General Purpose definitions */
 
@@ -63,6 +62,8 @@ typedef struct communicate{
   MPI_Comm comm_forc_source; /* Sourc Forc communciator : INNER */
   MPI_Comm comm_forc_target; /* Sourc Forc communciator : OUTER */
   MPI_Comm comm_faux;        /* NOTHING */
+
+  int numThreads;
 
 } COMMUNICATE;
 

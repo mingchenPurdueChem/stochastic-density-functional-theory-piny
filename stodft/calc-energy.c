@@ -128,7 +128,7 @@ void calcEnergyChemPot(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     }//endif cpLsda
     
     
-    printf("stowf %lg %lg\n",stoWfUpRe[iChem][219],stoWfUpIm[iChem][219]);
+    //printf("stowf %lg %lg\n",stoWfUpRe[iChem][219],stoWfUpIm[iChem][219]);
     eke = 0.0;
     for(iState=0;iState<numStateUpProc;iState++){
       ioff = iState*numCoeff;
@@ -153,114 +153,6 @@ void calcEnergyChemPot(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     
     // test ke
     // read in stowf-frag
-    /*
-    FRAGINFO *fragInfo = stodftInfo->fragInfo;
-    CPSCR *cpscr = &(cp->cpscr);
-    PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm = &(cp->cp_sclr_fft_pkg3d_sm);
-    int rhoRealGridTot = stodftInfo->rhoRealGridTot;
-    int istowf,iGrid,iFrag;
-    int gridInd;
-    int fftw3dFlag = 0;
-    int numFragProc = fragInfo->numFragProc;
-    int *numGridFragProc      = fragInfo->numGridFragProc;
-    int *numGridFragProcSmall = fragInfo->numGridFragProcSmall;
-    int **gridMapProc         = fragInfo->gridMapProc;
-    int **gridMapProcSmall    = fragInfo->gridMapProcSmall;
-    double *keLocal = (double*)cmalloc(numFragProc*sizeof(double));
-
-    char name[100];
-    FILE *filestowf;
-    double *wfreal = (double*)cmalloc(rhoRealGridTot*sizeof(double));
-    double *kedreal = (double*)cmalloc(rhoRealGridTot*sizeof(double));
-    double *zfft = cpscr->cpscr_wave.zfft;
-    double *zfft_tmp = cpscr->cpscr_wave.zfft_tmp;
-    double *fccreal_test = (double*)cmalloc((numCoeff+1)*sizeof(double));
-    double *fccimag_test = (double*)cmalloc((numCoeff+1)*sizeof(double));
-    double *hmat_cp = cell->hmat_cp;
-    double vol = getdeth(hmat_cp);
-    double volfact = 1.0/sqrt(vol);
-    double volgrid = vol/rhoRealGridTot;
-    double test_ke = 0.0;
-    double test_ke_k = 0.0;
-    double kere,keim;
-
-    for(iFrag=0;iFrag<numFragProc;iFrag++)keLocal[iFrag] = 0.0;
-    for(istowf=0;istowf<numStateStoUp;istowf++){
-      sprintf(name,"stowf-frag-%i",istowf);
-      filestowf = fopen(name,"r");
-      for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
-        fscanf(filestowf,"%lg",&wfreal[iGrid]);
-      }
-      fclose(filestowf);
-      // transfer wf from r to k
-      for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
-	zfft[iGrid*2+1] = wfreal[iGrid];
-	zfft[iGrid*2+2] = 0.0;
-      }
-      if(fftw3dFlag==0){
-        para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
-      }
-      else{
-        para_fft_gen3d_bck_to_g_fftw3d(zfft,cp_sclr_fft_pkg3d_sm);
-      }
-      // unpack
-      for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
-	fccreal_test[iCoeff] = 0.0;
-	fccimag_test[iCoeff] = 0.0;
-      }
-      if(fftw3dFlag==0){
-        sngl_upack_coef_sum(&fccreal_test[0],&fccimag_test[0],zfft,
-                            cp_sclr_fft_pkg3d_sm);
-      }
-      else{
-        sngl_upack_coef_sum_fftw3d(&fccreal_test[0],&fccimag_test[0],zfft,
-                            cp_sclr_fft_pkg3d_sm);
-      }
-      for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
-	fccreal_test[iCoeff] *= -0.25;
-	fccimag_test[iCoeff] *= -0.25;
-      }
-      fccreal_test[numCoeff] *= -0.5;
-      fccimag_test[numCoeff] *= -0.5;
-      // scale by k^2
-      //printf("fc %lg %lg\n",fccreal_test[219],fccimag_test[219]);
-      for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
-	kere = 0.5*ak2_sm[iCoeff]*fccreal_test[iCoeff];
-	keim = 0.5*ak2_sm[iCoeff]*fccimag_test[iCoeff];
-	test_ke_k += 2.0*(kere*fccreal_test[iCoeff]+keim*fccimag_test[iCoeff]);
-	//printf("istowf %i iCoeff %i fc %lg %lg ke %lg %lg test_ke_k %lg\n",istowf,iCoeff,fccreal_test[iCoeff],fccimag_test[iCoeff],kere,keim,test_ke_k);
-	fccreal_test[iCoeff] = kere;
-	fccimag_test[iCoeff] = keim;
-      }
-      fccreal_test[numCoeff] = 0.0;
-      fccimag_test[numCoeff] = 0.0;
-      // transfer back to r space
-      if(fftw3dFlag==0){
-	sngl_pack_coef(&fccreal_test[0],&fccimag_test[0],zfft,cp_sclr_fft_pkg3d_sm);
-      }
-      else{
-	sngl_pack_coef_fftw3d(&fccreal_test[0],&fccimag_test[0],zfft,cp_sclr_fft_pkg3d_sm);
-      }    
-      if(fftw3dFlag==0)para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
-      else para_fft_gen3d_fwd_to_r_fftw3d(zfft,cp_sclr_fft_pkg3d_sm);
-      for(iGrid=0;iGrid<rhoRealGridTot;iGrid++)kedreal[iGrid] = zfft[iGrid*2+1];
-      for(iGrid=0;iGrid<rhoRealGridTot;iGrid++)test_ke += wfreal[iGrid]*kedreal[iGrid]*volgrid/vol;
-      for(iFrag=0;iFrag<numFragProc;iFrag++){
-        for(iGrid=0;iGrid<numGridFragProcSmall[iFrag];iGrid++){
-	  gridInd = gridMapProc[iFrag][gridMapProcSmall[iFrag][iGrid]];
-	  keLocal[iFrag] += wfreal[gridInd]*kedreal[gridInd]*volgrid/vol;
-	  //printf("wfreal %lg kedreal %lg keLocal %lg\n",wfreal[gridInd],kedreal[gridInd],keLocal[iFrag]);
-	}	
-      }
-      //fflush(stdout);
-      //exit(0);
-    }
-    for(iFrag=0;iFrag<numFragProc;iFrag++){
-      keLocal[iFrag] *= 2.0/numStateStoUp;
-      printf("iFrag %i keLocal %lg\n",iFrag,keLocal[iFrag]);
-    }
-    printf("ketot ketot_k %lg %lg\n",test_ke*2.0/numStateStoUp,test_ke_k*2.0/numStateStoUp);
-    */
     
     //pp 
     //calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);

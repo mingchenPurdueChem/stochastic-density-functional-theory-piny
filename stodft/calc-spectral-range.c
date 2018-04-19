@@ -46,6 +46,7 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
   CPOPTS *cpopts                = &(cp->cpopts);
   COMMUNICATE *communicate      = &(cp->communicate);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm             = &(cp->cp_sclr_fft_pkg3d_sm); 
 
   double randMin    = -1.0;
   double randMax    = 1.0;
@@ -179,6 +180,19 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   energy = 100000.0;
   iIter = 0;
 
+  stodftInfo->cputime0 = 0.0;
+  stodftInfo->cputime1 = 0.0;
+  stodftInfo->cputime2 = 0.0;
+  stodftInfo->cputime3 = 0.0;
+  stodftInfo->cputime4 = 0.0;
+  stodftInfo->cputime5 = 0.0;
+  
+  cp_sclr_fft_pkg3d_sm->cputime = 0.0;
+  cp_sclr_fft_pkg3d_sm->cputime1 = 0.0;
+  cp_sclr_fft_pkg3d_sm->cputime2 = 0.0;
+  cp_sclr_fft_pkg3d_sm->cputime3 = 0.0;
+  cp_sclr_fft_pkg3d_sm->cputime4 = 0.0;
+
   while(fabs(energyOld-energy)>energyConv){
   //for(iIter=0;iIter<numIteration;iIter++){
 
@@ -246,6 +260,19 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     //if(fabs(energyOld-energy)<energyConv)break;
     
   }//endfor iIter
+
+  printf("Nlpp part 1 %.8lg\n",stodftInfo->cputime0);
+  printf("Nlpp part 2 %.8lg\n",stodftInfo->cputime1);
+  printf("Apply KS pot %.8lg\n",stodftInfo->cputime2);
+  printf("Pack fft %.8lg\n",stodftInfo->cputime3);
+  printf("Unpack fft %.8lg\n",stodftInfo->cputime4);
+  printf("Kinetic %.8lg\n",stodftInfo->cputime5);
+  printf("FFTW3D time %.8lg\n",cp_sclr_fft_pkg3d_sm->cputime);
+  printf("FFTW3D to r pre time %.8lg\n",cp_sclr_fft_pkg3d_sm->cputime1);
+  printf("FFTW3D to r post time %.8lg\n",cp_sclr_fft_pkg3d_sm->cputime2);
+  printf("FFTW3D to g pre time %.8lg\n",cp_sclr_fft_pkg3d_sm->cputime3);
+  printf("FFTW3D to g post time %.8lg\n",cp_sclr_fft_pkg3d_sm->cputime4);
+
 
 /*==========================================================================*/
 /* IV) Restore flags and clean up                                           */

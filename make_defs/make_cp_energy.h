@@ -29,6 +29,7 @@ energy_control_elec.o  : $(STANDARD) $(DEFINES) \
                          $(INTRA_ENT) $(ENR_CP_ENT) $(ENR_CP_LOC) \
                          $(COMM_WRAP) \
                          $(CODE)/energy/control_cp/energy_control_elec.c
+
 	$(ECHO) $@
 	$(COBJ) $(CODE)/energy/control_cp/energy_control_elec.c
 
@@ -41,6 +42,7 @@ test_energy_cp.o     :   $(STANDARD) $(DEFINES) \
                          $(INTRA_CON_ENT) $(REAL_ENT) $(REC_ENT) \
                          $(MATH) $(FRND_ENT) \
                          $(CODE)/energy/control_cp/test_energy_cp.c
+
 	$(ECHO) $@
 	$(COBJ) $(CODE)/energy/control_cp/test_energy_cp.c
 
@@ -53,6 +55,7 @@ test_energy_cp_dvr.o     :   $(STANDARD) $(DEFINES) \
                          $(INTRA_CON_ENT) $(REAL_ENT) $(REC_ENT) \
                          $(MATH) $(FRND_ENT) \
                          $(CODE)/energy/control_cp/test_energy_cp_dvr.c
+
 	$(ECHO) $@
 	$(COBJ) $(CODE)/energy/control_cp/test_energy_cp_dvr.c
 
@@ -78,10 +81,19 @@ cp_ks_energy_dvr.o     : $(STANDARD) $(DEFINES) \
 #------------------------------------------------------------------
 cp_energy_ee_rho.o :     $(STANDARD) $(DEFINES) \
                          $(TYP_CLASS) $(TYP_GEN) $(TYP_CP) \
-                         $(ENR_CP_LOC) $(MATH) $(COMM_WRAP) \
+                         $(ENR_CP_LOC) $(MATH) $(FRND_ENT) $(COMM_WRAP) \
                          $(CODE)/energy/cp/cp_energy_ee_rho.c
 	$(ECHO) $@
 	$(COBJ) $(CODE)/energy/cp/cp_energy_ee_rho.c
+
+#------------------------------------------------------------------
+cp_energy_ee_rho_threads_state.o :     $(STANDARD) $(DEFINES) \
+                         $(TYP_CLASS) $(TYP_GEN) $(TYP_CP) \
+                         $(ENR_CP_LOC) $(MATH) $(FRND_ENT) $(COMM_WRAP) \
+                         $(CODE)/energy/cp/cp_energy_ee_rho_threads_state.c
+	$(ECHO) $@
+	$(COBJ) $(CODE)/energy/cp/cp_energy_ee_rho_threads_state.c
+
 
 #------------------------------------------------------------------
 cp_energy_ee_rho_dvr.o : $(STANDARD) $(DEFINES) \
@@ -165,6 +177,16 @@ cp_energy_eext_nonloc_real.o     : \
 	$(COBJ) $(CODE)/energy/cp/cp_energy_eext_nonloc_real.c
 
 #------------------------------------------------------------------
+cp_energy_eext_nonloc_real_threads.o     : \
+                         $(STANDARD) $(DEFINES) \
+                         $(TYP_GEN) $(TYP_CLASS) $(TYP_BND) $(TYP_CP) \
+                         $(ENR_CP_ENT) $(ENR_CP_LOC) $(FRND_ENT) \
+                         $(ENR_CPCON_LOC) $(MATH) $(ENR_CTRL_ENT) \
+                         $(CODE)/energy/cp/cp_energy_eext_nonloc_real_threads.c
+	$(ECHO) $@
+	$(COBJ) $(CODE)/energy/cp/cp_energy_eext_nonloc_real_threads.c
+
+#------------------------------------------------------------------
 cp_energy_eext_nonloc_real_force.o     : \
                          $(STANDARD) $(DEFINES) \
                          $(TYP_GEN) $(TYP_CLASS) $(TYP_BND) $(TYP_CP) \
@@ -173,6 +195,16 @@ cp_energy_eext_nonloc_real_force.o     : \
                          $(CODE)/energy/cp/cp_energy_eext_nonloc_real_force.c
 	$(ECHO) $@
 	$(COBJ) $(CODE)/energy/cp/cp_energy_eext_nonloc_real_force.c
+
+#------------------------------------------------------------------
+cp_energy_eext_nonloc_real_force_threads.o     : \
+                         $(STANDARD) $(DEFINES) \
+                         $(TYP_GEN) $(TYP_CLASS) $(TYP_BND) $(TYP_CP) \
+                         $(ENR_CP_ENT) $(ENR_CP_LOC) $(FRND_ENT) \
+                         $(ENR_CPCON_LOC) $(MATH) $(ENR_CTRL_ENT) \
+                         $(CODE)/energy/cp/cp_energy_eext_nonloc_real_force_threads.c
+	$(ECHO) $@
+	$(COBJ) $(CODE)/energy/cp/cp_energy_eext_nonloc_real_force_threads.c
 
 #------------------------------------------------------------------
 xc_functionals.o     :   $(STANDARD) $(DEFINES) \

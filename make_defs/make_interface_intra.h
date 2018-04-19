@@ -180,7 +180,7 @@ intra_coefs.o     :      $(STANDARD) $(DEFINES) \
 #------------------------------------------------------------------
 set_mol_name_params.o :  $(STANDARD) $(DEFINES) \
                          $(TYP_CLASS) $(TYP_PAR) $(TYP_BND) \
-                         $(INTRA_LOC) $(HANDLE_ENT) \
+                         $(INTRA_LOC) $(HANDLE_ENT) $(FRND_ENT) \
                          $(SET_PARM)/set_mol_name_params.c
 	$(ECHO) $@
 	$(COBJ_CARE) $(SET_PARM)/set_mol_name_params.c
@@ -195,7 +195,7 @@ set_onfo_params.o     :  $(STANDARD) $(DEFINES) \
 
 #------------------------------------------------------------------
 set_res_bond_params.o  : $(STANDARD) $(DEFINES) \
-                         $(TYP_PAR) $(TYP_CLASS) $(TYP_BND) \
+                         $(TYP_PAR) $(TYP_CLASS) $(TYP_BND) $(FRND_ENT) \
                          $(INTRA_LOC) $(HANDLE_ENT) \
                          $(SET_PARM)/set_res_bond_params.c
 	$(ECHO) $@
@@ -211,7 +211,7 @@ set_res_def_params.o   : $(STANDARD) $(DEFINES) \
 
 #------------------------------------------------------------------
 set_res_name_params.o :  $(STANDARD) $(DEFINES) \
-                         $(TYP_CLASS) $(TYP_PAR) $(TYP_BND) \
+                         $(TYP_CLASS) $(TYP_PAR) $(TYP_BND) $(FRND_ENT) \
                          $(INTRA_LOC) $(HANDLE_ENT) \
                          $(SET_PARM)/set_res_name_params.c
 	$(ECHO) $@
@@ -219,7 +219,7 @@ set_res_name_params.o :  $(STANDARD) $(DEFINES) \
 
 #------------------------------------------------------------------
 set_res_morph_params.o : $(STANDARD) $(DEFINES) \
-                         $(TYP_CLASS) $(TYP_PAR) $(TYP_BND) \
+                         $(TYP_CLASS) $(TYP_PAR) $(TYP_BND) $(FRND_ENT) \
                          $(INTRA_LOC) $(HANDLE_ENT) \
                          $(SET_PARM)/set_res_morph_params.c
 	$(ECHO) $@

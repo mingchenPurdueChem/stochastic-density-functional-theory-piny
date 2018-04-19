@@ -108,6 +108,10 @@ void min_CG_cp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     double sum_check = 0.0,sum_check_tmp=0.0;
     int cp_para_opt = cp->cpopts.cp_para_opt;
 
+    CPCOEFFS_INFO *cpcoeffs_info = &(cp->cpcoeffs_info);
+    double time_st,time_end;
+    
+
 /*==========================================================================*/
 /* 0) Checks                                                                */
 
@@ -254,6 +258,7 @@ void min_CG_cp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
      ptens_pvten_tot[i] = 0.0;
    }/*endfor*/
 
+   time_st = omp_get_wtime();
    cp_ks_energy_ctrl(cp,ip_now,&(general_data->ewald),&(class->ewd_scr),
                        &(general_data->cell),
                        &(class->clatoms_info),
@@ -262,6 +267,8 @@ void min_CG_cp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
                        &(general_data->ptens),
                        &(general_data->simopts),
                        &(class->for_scr),class,general_data);
+  time_end = omp_get_wtime();
+  //cpcoeffs_info->cputime0 += time_end-time_st;
 
   //debug
   //printf("11111 fcre_up %lg fcim_up %lg\n",fcre_up[1],fcim_up[1]);
@@ -276,7 +283,11 @@ void min_CG_cp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   printf("sum_test %lg\n",sum_test);
   */
 
+  time_st = omp_get_wtime();
   get_diag_cp_hess(cp,ip_now,&(general_data->cell),gamma);
+  time_end = omp_get_wtime();
+  //cpcoeffs_info->cputime1 += time_end-time_st;
+
     
   eenergy_temp = general_data->stat_avg.cp_ehart
                + general_data->stat_avg.cp_exc + general_data->stat_avg.cp_eext
@@ -293,6 +304,8 @@ void min_CG_cp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
 /*==========================================================================*/
 /* II) Calculate the gamma's                                                */
+
+   time_st = omp_get_wtime();
 
    fovlap_up_old = fovlap_up;
    fovlap_up = 0.0;
@@ -347,12 +360,19 @@ void min_CG_cp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     }/*endfor*/
    }/* endif */
 
+  time_end = omp_get_wtime();
+  //cpcoeffs_info->cputime2 += time_end-time_st;
+
+
 /*==========================================================================*/
 /* III) Calculate the step length                                           */
 
   //double stepMax = -100000.0;
   /* RLH Fix offset for hybrid parallelization */
   /* ioff_hyb = (cp_para_opt == 0 ? myid_state*ncoef_up_max : 0);*/
+
+  time_st = omp_get_wtime();
+
   ioff_hyb = (cp_para_opt == 0 ? icoef_off_up : 0);
   if(cp_cg_line_min_len == 0){
     for(i=1;i<=ncoef_up;i++) {
@@ -414,10 +434,18 @@ void min_CG_cp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
      }/*endfor*/
    }/* endif */
 
+  time_end = omp_get_wtime();
+  //cpcoeffs_info->cputime3 += time_end-time_st;
+
 /*==========================================================================*/
 /* V) Orthogonalize wave functions                                          */
   
+   time_end = omp_get_wtime();
+
    orthog_control_cp(cp,ip_now);
+   time_end = omp_get_wtime();
+   //cpcoeffs_info->cputime4 += time_end-time_st;
+
 
   /*
   int istate,jstate;

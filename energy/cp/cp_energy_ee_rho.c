@@ -19,6 +19,7 @@
 #include "../typ_defs/typedefs_cp.h"
 #include "../proto_defs/proto_energy_cp_local.h"
 #include "../proto_defs/proto_math.h"
+#include "../proto_defs/proto_friend_lib_entry.h"
 #include "../proto_defs/proto_communicate_wrappers.h"
 
 //#define REAL_PP_DEBUG
@@ -34,7 +35,7 @@
 /*      or the studdly hybrid option in (cp_rho_calc_hybrid)                */
 /*==========================================================================*/
 
-void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
+void cp_rho_calc_hybrid_threads_force(CPEWALD *cpewald,CPSCR *cpscr,
                         CPCOEFFS_INFO *cpcoeffs_info,EWALD *ewald,
                         CELL *cell,double *ccreal, double *ccimag,
                         int icoef_form,int icoef_orth,
@@ -59,44 +60,46 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
 
 /* local variables                                                  */
 
- int iii,ioff,ioff2;
- int is,i,j,k,iupper;
- double vol_cp,rvol_cp;
- double temp_r,temp_i;
+  int iii,ioff,ioff2;
+  int is,i,j,k,iupper;
+  double vol_cp,rvol_cp;
+  double temp_r,temp_i;
 
 /*  Assign local pointers                                           */
- double *zfft           =    cpscr->cpscr_wave.zfft;
- double *zfft_tmp       =    cpscr->cpscr_wave.zfft_tmp;
- double *rho_scr;
+  double *zfft           =    cpscr->cpscr_wave.zfft;
+  double *zfft_tmp       =    cpscr->cpscr_wave.zfft_tmp;
+  double *rho_scr;
+  double *rho_scr_thread;
+  int numThreads = cp_para_fft_pkg3d_lg->numThreads;
 
- double *hmati_cp       =    cell->hmati_cp;
- double *hmat_cp        =    cell->hmat_cp;
+  double *hmati_cp       =    cell->hmati_cp;
+  double *hmat_cp        =    cell->hmat_cp;
 
- double dbox_rat        =    cpewald->dbox_rat;
- double *bw_r           =    cpscr->cpscr_dual_pme.bw_r;
- double *bw_i           =    cpscr->cpscr_dual_pme.bw_i;
+  double dbox_rat        =    cpewald->dbox_rat;
+  double *bw_r           =    cpscr->cpscr_dual_pme.bw_r;
+  double *bw_i           =    cpscr->cpscr_dual_pme.bw_i;
  
- int cp_elf_calc_frq    =    cpcoeffs_info->cp_elf_calc_frq; 
+  int cp_elf_calc_frq    =    cpcoeffs_info->cp_elf_calc_frq; 
 
- int   myid_state       =    communicate->myid_state;
- int   np_states        =    communicate->np_states;
- int   laplacian_on     =    cpcoeffs_info->cp_laplacian_on;
+  int   myid_state       =    communicate->myid_state;
+  int   np_states        =    communicate->np_states;
+  int   laplacian_on     =    cpcoeffs_info->cp_laplacian_on;
 
- int  *recv_counts_coef =    cp_para_fft_pkg3d_lg->recv_counts_coef;
- int   ncoef_l          =    cp_para_fft_pkg3d_lg->ncoef;
- int   ncoef_l_use      =    cp_para_fft_pkg3d_lg->ncoef_use;
- int   ncoef_l_proc     =    cp_para_fft_pkg3d_lg->ncoef_proc;
- int   nfft_proc        =    cp_para_fft_pkg3d_lg->nfft_proc;
- int   nfft             =    cp_para_fft_pkg3d_lg->nfft;
- int   nfft2            =    nfft/2;
- int   nfft2_proc       =    nfft_proc/2;
+  int  *recv_counts_coef =    cp_para_fft_pkg3d_lg->recv_counts_coef;
+  int   ncoef_l          =    cp_para_fft_pkg3d_lg->ncoef;
+  int   ncoef_l_use      =    cp_para_fft_pkg3d_lg->ncoef_use;
+  int   ncoef_l_proc     =    cp_para_fft_pkg3d_lg->ncoef_proc;
+  int   nfft_proc        =    cp_para_fft_pkg3d_lg->nfft_proc;
+  int   nfft             =    cp_para_fft_pkg3d_lg->nfft;
+  int   nfft2            =    nfft/2;
+  int   nfft2_proc       =    nfft_proc/2;
 
- int   nfft_dens_cp_box,nfft2_dens_cp_box;
- int   nfft_proc_dens_cp_box,nfft2_proc_dens_cp_box;
- int   ncoef_l_dens_cp_box;
+  int   nfft_dens_cp_box,nfft2_dens_cp_box;
+  int   nfft_proc_dens_cp_box,nfft2_proc_dens_cp_box;
+  int   ncoef_l_dens_cp_box;
 #ifdef DEBUG_LSDA
- double *rhocr_dens_cp_box;
- double *rhoci_dens_cp_box;
+  double *rhocr_dens_cp_box;
+  double *rhoci_dens_cp_box;
 #endif
 
   int *mapFFTWSm = cp_sclr_fft_pkg3d_sm->mapFFTW;
@@ -105,53 +108,52 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
   fftw_complex *fftw3DForwardIn,*fftw3DForwardOut;
   fftw_complex *fftw3DBackwardIn,*fftw3DBackwardOut;
 
- double integral,int_tmp;
- int    *recv_counts_coef_dens_cp_box;
- int fftw3dFlag = cpcoeffs_info->fftw3dFlag;
+  double integral,int_tmp;
+  int    *recv_counts_coef_dens_cp_box;
+  int fftw3dFlag = cpcoeffs_info->fftw3dFlag;
 
  //debug
- int icoef;
- int fftIndTrans;
- int fftInd;
- int nkf1    = cp_para_fft_pkg3d_lg->nkf1;
- int nkf2    = cp_para_fft_pkg3d_lg->nkf2;
- int nkf3    = cp_para_fft_pkg3d_lg->nkf3;
- int kc,kb,ka;
- int *kastr_sm = cpewald->kastr_sm;
- int *kbstr_sm = cpewald->kbstr_sm;
- int *kcstr_sm = cpewald->kcstr_sm;
- int *kastr = ewald->kastr;
- int *kbstr = ewald->kbstr;
- int *kcstr = ewald->kcstr;
- double sum;
+  int icoef;
+  int fftIndTrans;
+  int fftInd;
+  int nkf1    = cp_para_fft_pkg3d_lg->nkf1;
+  int nkf2    = cp_para_fft_pkg3d_lg->nkf2;
+  int nkf3    = cp_para_fft_pkg3d_lg->nkf3;
+  int kc,kb,ka;
+  int *kastr_sm = cpewald->kastr_sm;
+  int *kbstr_sm = cpewald->kbstr_sm;
+  int *kcstr_sm = cpewald->kcstr_sm;
+  int *kastr = ewald->kastr;
+  int *kbstr = ewald->kbstr;
+  int *kcstr = ewald->kcstr;
+  double sum;
 
 
- MPI_Comm comm_states   =    communicate->comm_states;
+  MPI_Comm comm_states   =    communicate->comm_states;
 
- if(cp_dual_grid_opt >= 1){
-   nfft_dens_cp_box       =  cp_para_fft_pkg3d_dens_cp_box->nfft;
-   nfft_proc_dens_cp_box  =  cp_para_fft_pkg3d_dens_cp_box->nfft_proc;
-   nfft2_dens_cp_box      =  nfft_dens_cp_box/2;
-   nfft2_proc_dens_cp_box =  nfft_proc_dens_cp_box/2;
+  if(cp_dual_grid_opt >= 1){
+    nfft_dens_cp_box       =  cp_para_fft_pkg3d_dens_cp_box->nfft;
+    nfft_proc_dens_cp_box  =  cp_para_fft_pkg3d_dens_cp_box->nfft_proc;
+    nfft2_dens_cp_box      =  nfft_dens_cp_box/2;
+    nfft2_proc_dens_cp_box =  nfft_proc_dens_cp_box/2;
 
-
-   ncoef_l_dens_cp_box  =  cp_para_fft_pkg3d_dens_cp_box->ncoef;
+    ncoef_l_dens_cp_box  =  cp_para_fft_pkg3d_dens_cp_box->ncoef;
 
 #ifdef DEBUG_LSDA
-   rhocr_dens_cp_box = cpscr->cpscr_rho.rhocr_up_dens_cp_box;
-   rhoci_dens_cp_box = cpscr->cpscr_rho.rhoci_up_dens_cp_box;
+    rhocr_dens_cp_box = cpscr->cpscr_rho.rhocr_up_dens_cp_box;
+    rhoci_dens_cp_box = cpscr->cpscr_rho.rhoci_up_dens_cp_box;
 #endif
 
-   recv_counts_coef_dens_cp_box = 
-             cp_para_fft_pkg3d_dens_cp_box->recv_counts_coef;
+    recv_counts_coef_dens_cp_box = 
+              cp_para_fft_pkg3d_dens_cp_box->recv_counts_coef;
 
- }/*endif cp_dual_grid_opt*/
+  }//endif cp_dual_grid_opt
 
- if(np_states > 1){
-   rho_scr = cpscr->cpscr_rho.v_ks_up; 
- } else {
-   rho_scr = rho;
- }
+  if(np_states > 1){
+    rho_scr = cpscr->cpscr_rho.v_ks_up; 
+  }else{
+    rho_scr = rho;
+  }
 
 /* ================================================================= */
 /*0) Check the form of the coefficients                              */
@@ -162,7 +164,7 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
     printf("on state processor %d in cp_rho_calc_hybrid   \n",myid_state);
     printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
     fflush(stdout);exit(1);
-  }/*endif*/
+  }//endif
 
   if(np_states>1 && icoef_form == 1){
     printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
@@ -170,65 +172,34 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
     printf("form on state processor %d in cp_rho_calc_hybrid  \n",myid_state);
     printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
     fflush(stdout);exit(1);
-  }/*endif*/
+  }//endif
 
 
 /* ================================================================= */
 /*1) zero density and gradients if necessary                         */
 
- if(cp_dual_grid_opt >= 1){
-  for(i=1; i<= nfft2_dens_cp_box ; i++){
+  if(cp_dual_grid_opt >= 1){
+    for(i=1; i<= nfft2_dens_cp_box ; i++){
       rho_scr[i] = 0.0;
-  }/*endfor*/
- }else{
-  for(i=1; i<= nfft2 ; i++){
+    }//endfor
+  }else{
+    for(i=1; i<= nfft2 ; i++){
       rho_scr[i] = 0.0;
-  }/*endfor*/
- }/*endif cp_dual_grid_opt*/
+    }//endfor
+  }//endif cp_dual_grid_opt
 
 /*==========================================================================*/
 /*==========================================================================*/
 /*2)sum the density in real space two states at a time                      */
 /*  This is done at state level and uses the scalar packages!               */
 
- iupper = nstate;
- if((nstate % 2) != 0){ 
-     iupper = nstate-1; 
- }/* endif */
+  iupper = nstate;
+  if((nstate % 2) != 0){ 
+    iupper = nstate-1; 
+  }// endif
 
- /*
- FILE *filewf = fopen("wf-det","w");
- printf("ncoef %i\n",ncoef);
- for(is=0;is<nstate;is++){
-   for(i=1;i<=ncoef;i++){
-     fprintf(filewf,"%.16lg %.16lg\n",ccreal[is*ncoef+i],ccimag[is*ncoef+i]);
-   }
- }
- fclose(filewf);
- */
-  
-  /*
-  if(fftw3dFlag==0){
-    for(i=1;i<=ncoef;i++){
-      printf("cccccc %i %i %i %lg %lg\n",kastr_sm[i],kbstr_sm[i],kcstr_sm[i],
-	    ccreal[i+3*ncoef],ccimag[i+3*ncoef]);
-    }
-    exit(0);
-  }
-  */
-  //exit(0);
 
- //debug realspace nl pp
- /*
- int junk;
- FILE *fread = fopen("force-forfft","r");
- for(i=1;i<=2*ncoef;i++){
-   fscanf(fread,"%i %lg %lg",&junk,&ccreal[i],&ccimag[i]);
- }
- fclose(fread);
- */
-
- for(is = 1; is <= iupper; is = is + 2){
+  for(is=1;is<=iupper;is=is+2){
     ioff   = (is-1)*ncoef;
     ioff2 = (is)*ncoef;
 
@@ -236,47 +207,6 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
 /*I) pack the complex zfft array with two wavefunctions (real) 
     the wavefunctions are reperesented in spherically cuttof 
     half g space                                                            */
-
-    /*
-    for(icoef=1;icoef<=ncoef;icoef++){
-      printf("coeff1111 %lg %lg %lg %lg\n",ccreal[ioff+icoef],ccimag[ioff+icoef],
-	      ccreal[ioff2+icoef],ccimag[ioff2+icoef]);
-    }
-    for(icoef=1;icoef<=ncoef;icoef++){
-      if(isinf(ccreal[ioff+icoef])==1||isinf(ccimag[ioff+icoef])==1||
-	isinf(ccreal[ioff2+icoef])==1||isinf(ccimag[ioff2+icoef])==1){
-	printf("ioff %i ioff2 %i icoef %lg");
-      }
-    }
-    */
-    //debug
-    
-    //for(i=1;i<=ncoef;i++)ccreal[ioff+i] = 0.0;
-    //ccreal[ioff+2] = 1.0;
-    //for(i=1;i<=ncoef;i++)ccimag[ioff+i] = 0.0;
-    //ccimag[ioff+2] = 1.0;
-    //for(i=1;i<=ncoef;i++)ccreal[ioff2+i] = 0.0;
-    //for(i=1;i<=ncoef;i++)ccimag[ioff2+i] = 0.0;    
-    
-    //printf("ccreal ccimag %lg %lg\n",ccreal[ioff+1],ccimag[ioff+1]);
-    //printf("ccreal ccimag %lg %lg\n",ccreal[ioff2+1],ccimag[ioff2+1]);
-    /*
-    sum = 0.0;
-    for(i=1;i<=ncoef-1;i++){
-      sum += ccreal[ioff+i]*ccreal[ioff+i]+ccimag[ioff+i]*ccimag[ioff+i];
-    }
-    sum *= 2.0;
-    sum += ccreal[ioff+ncoef]*ccreal[ioff+ncoef];
-    printf("inital wf normalization %i %lg\n",is-1,sum);
-    sum = 0.0;
-    for(i=1;i<=ncoef-1;i++){
-      sum += ccreal[ioff2+i]*ccreal[ioff2+i]+ccimag[ioff2+i]*ccimag[ioff2+i];
-    }
-    sum *= 2.0;
-    sum += ccreal[ioff2+ncoef]*ccreal[ioff2+ncoef];
-    printf("inital wf normalization %i %lg\n",is,sum);
-    */
-    
 
     if(fftw3dFlag==0){
       dble_pack_coef(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
@@ -292,93 +222,27 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
     
     if(fftw3dFlag==0){
       para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
-
-    /*
-    FILE *fileFftTest = fopen("fft-r-sparse","w");
-    for(i=0;i<nfft2_proc;i++){
-      fprintf(fileFftTest,"%.16lg %.16lg\n",zfft[i*2+1],zfft[i*2+2]);
-    }
-    fclose(fileFftTest);
-    */
-
-
     }
     else{
-      para_fft_gen3d_fwd_to_r_fftw3d(zfft,cp_sclr_fft_pkg3d_sm);
+      para_fft_gen3d_fwd_to_r_fftw3d_threads(zfft,cp_sclr_fft_pkg3d_sm);
     }
-
-    //debug nlpp real
-    /*
-    for(i=0;i<nfft2;i++){
-      printf("forceeeeee grid 1 %.16lg\n",zfft[i*2+1]);
-    }
-    for(i=0;i<nfft2;i++){
-      printf("forceeeeee grid 2 %.16lg\n",zfft[i*2+2]);
-    }
-    fflush(stdout);
-    exit(0);
-    */
-
-    
-    if(fftw3dFlag==100){
-      /*
-      FILE *fileFFTTest = fopen("fftw-bck-test","w");
-      for(i=0;i<nkf3;i++){
-        for(j=0;j<nkf2;j++){
-          for(k=0;k<nkf1;k++){
-            //fftInd = i*nkf2*nkf1+j*nkf1+k;
-            fftIndTrans = k*nkf2*nkf3+j*nkf3+i;
-            fftInd = i*nkf2*nkf1+j*nkf1+k;
-            //cp_para_fft_pkg3d_sm->fftw3DBackwardIn[fftInd] = zfft[fftInd*2+1]+zfft[fftInd*2+2]*I;
-            //fprintf(fileFFTTest,"%i %i %i %.16lg %.16lg\n",i,j,k,
-            //   creal(cp_sclr_fft_pkg3d_sm->fftw3DBackwardOut[fftIndTrans]),
-            //  cimag(cp_sclr_fft_pkg3d_sm->fftw3DBackwardOut[fftIndTrans]));
-            fprintf(fileFFTTest,"%i %i %i %.16lg %.16lg\n",i,j,k,zfft[2*fftInd+1],zfft[2*fftInd+2]);
-          }
-        }
-      }
-      fclose(fileFFTTest);
-      */
-      /*
-      sum = 0.0;
-      for(i=0;i<nfft2_proc;i++){
-	sum += zfft[2*i+1]*zfft[2*i+1];
-      }
-      printf("real space sum %i %lg\n",is-1,sum);
-      sum = 0.0;
-      for(i=0;i<nfft2_proc;i++){
-        sum += zfft[2*i+2]*zfft[2*i+2];
-      }
-      printf("real space sum %i %lg\n",is,sum);
-      */
-      //debug: output real space density
-      /*
-      FILE *fileWfReal = fopen("wf-frag-real-0","a");
-      for(i=0;i<nfft2_proc;i++)fprintf(fileWfReal,"%.16lg\n",zfft[2*i+1]);
-      for(i=0;i<nfft2_proc;i++)fprintf(fileWfReal,"%.16lg\n",zfft[2*i+2]);
-      fclose(fileWfReal);
-      */
-    }
-
-
 
 /*--------------------------------------------------------------------------*/
 /* III) add the square of the two wave functions to the density(real space) */
 
-   if(cp_dual_grid_opt >= 1){
-    sum_rho(zfft,rho_scr,cp_sclr_fft_pkg3d_dens_cp_box); 
-   }else{
-    sum_rho(zfft,rho_scr,cp_sclr_fft_pkg3d_lg);
-   }/*endif cp_dual_grid_opt*/
-
- }/*endfor is*/
+    if(cp_dual_grid_opt >= 1){
+      sum_rho(zfft,rho_scr,cp_sclr_fft_pkg3d_dens_cp_box); 
+    }else{
+      sum_rho(zfft,rho_scr,cp_sclr_fft_pkg3d_lg);
+    }//endif cp_dual_grid_opt
+  }//endfor is
 
 /*--------------------------------------------------------------------------*/
 /*IV) if there is an odd number of states, use single pack
       for the last state (i caen't be chaengin' the laws of physics
       captn, i've got to be usin the single pack!!!!!!)                     */
 
- if((nstate % 2 ) != 0) {
+  if((nstate % 2 ) != 0) {
     ioff = (nstate-1)*ncoef;
     if(fftw3dFlag==0){
       //printf("ioff %i creal %lg cimag %lg\n",ioff+1,ccreal[ioff+1],ccimag[ioff+1]);
@@ -396,18 +260,18 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
       para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
     }
     else{
-      para_fft_gen3d_fwd_to_r_fftw3d(zfft,cp_sclr_fft_pkg3d_sm);
+      para_fft_gen3d_fwd_to_r_fftw3d_threads(zfft,cp_sclr_fft_pkg3d_sm);
     }
 
 /*--------------------------------------------------------------------------*/
 /*VI) add the square of the last wave function to the density(real space)   */
 
-   if(cp_dual_grid_opt >= 1){ 
-    sum_rho(zfft,rho_scr,cp_sclr_fft_pkg3d_dens_cp_box); 
-   }else{
-    sum_rho(zfft,rho_scr,cp_sclr_fft_pkg3d_lg);
-   }/*endif cp_dual_grid_opt*/
- }/*endif*/
+    if(cp_dual_grid_opt >= 1){ 
+      sum_rho(zfft,rho_scr,cp_sclr_fft_pkg3d_dens_cp_box); 
+    }else{
+      sum_rho(zfft,rho_scr,cp_sclr_fft_pkg3d_lg);
+    }//endif cp_dual_grid_opt
+  }//endif
 
 /*=========================================================================*/
 /*=========================================================================*/
@@ -415,33 +279,11 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
 /*  I)  pack it up                                                         */
 /*  rho_scr = rho in scalar                                                */
 
-   /* 
-    vol_cp  = getdeth(hmat_cp);
-    FILE *fp_rho = fopen("rho-test","r");
-    int junk;
-    if(np_states == 1){
-      for(kc=1;kc<=nkf3;kc++){
-        for(kb=1;kb<=nkf2;kb++){
-          for(ka=1;ka<=nkf1;ka++){
-            i = (ka-1) + (kb-1)*nkf1 + (kc-1)*nkf1*nkf2 + 1;
-	    fscanf(fp_rho,"%i",&junk);
-            fscanf(fp_rho,"%i",&junk);
-            fscanf(fp_rho,"%i",&junk);
-            fscanf(fp_rho,"%lg\n",&rho_scr[i]);
-            rho_scr[i] *= vol_cp;
-          }//endfor
-        }//endfor
-      }//endfor
-    }
-    printf("rho_scr %lg\n",rho_scr[1]);
-    fclose(fp_rho);
- */
-
- if(cp_dual_grid_opt >= 1){ 
-  sngl_pack_rho(zfft,rho_scr,cp_sclr_fft_pkg3d_dens_cp_box); 
- }else{
-  sngl_pack_rho(zfft,rho_scr,cp_sclr_fft_pkg3d_lg); 
- }/*endif cp_dual_grid_opt*/
+  if(cp_dual_grid_opt >= 1){ 
+    sngl_pack_rho(zfft,rho_scr,cp_sclr_fft_pkg3d_dens_cp_box); 
+  }else{ // now the leading dimension of zfft is x
+    sngl_pack_rho(zfft,rho_scr,cp_sclr_fft_pkg3d_lg);
+  }//endif cp_dual_grid_opt
   /*
   for(i=1;i<=nfft2;i++){
     printf("000000000 zfft %lg %lg\n",zfft[2*i+1],zfft[2*i+2]);
@@ -450,24 +292,17 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
 
 /*--------------------------------------------------------------------------*/
 /*  II) back transform to g-space  convention exp(igr)                      */
- 
- /*
- int fragFlag = 0;
- if(fftw3dFlag==1)fragFlag = 1;
- fftw3dFlag = 0;
- */
- 
 
- if(cp_dual_grid_opt >= 1){ 
-  para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_dens_cp_box); 
- }else{
-   if(fftw3dFlag==0){
-     para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_lg);
-   }
-   else{
-     para_fft_gen3d_bck_to_g_fftw3d(zfft,cp_sclr_fft_pkg3d_lg); 
-   }
- }/*endif cp_dual_grid_opt*/
+  if(cp_dual_grid_opt >= 1){ 
+    para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_dens_cp_box); 
+  }else{
+    if(fftw3dFlag==0){
+      para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_lg);
+    }
+    else{ //It's fine that zfft is x leading 
+      para_fft_gen3d_bck_to_g_fftw3d_threads(zfft,cp_sclr_fft_pkg3d_lg); 
+    }
+  }//endif cp_dual_grid_opt
 
 /*==========================================================================*/
 /*  III) unpack the density                                                 */ 
@@ -482,22 +317,22 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
   }
   */
 
- if(cp_dual_grid_opt == 0){
-  if(np_states == 1){
-    if(fftw3dFlag==0)sngl_upack_coef(rhocr,rhoci,zfft,cp_sclr_fft_pkg3d_lg);
-    else sngl_upack_coef_fftw3d(rhocr,rhoci,zfft,cp_sclr_fft_pkg3d_lg);
+  if(cp_dual_grid_opt == 0){
+    if(np_states == 1){
+      if(fftw3dFlag==0)sngl_upack_coef(rhocr,rhoci,zfft,cp_sclr_fft_pkg3d_lg);
+      else sngl_upack_coef_fftw3d(rhocr,rhoci,zfft,cp_sclr_fft_pkg3d_lg);
+    }else{
+      sngl_upack_coef(zfft_tmp,&zfft_tmp[ncoef_l],zfft,cp_sclr_fft_pkg3d_lg);
+    }//endif
   }else{
-    sngl_upack_coef(zfft_tmp,&zfft_tmp[ncoef_l],zfft,cp_sclr_fft_pkg3d_lg);
-  }/*endif*/
- }else{
-  if(np_states == 1){
-    sngl_upack_coef(rhocr_dens_cp_box,rhoci_dens_cp_box,zfft,
-                    cp_sclr_fft_pkg3d_dens_cp_box);
-  }else{
-    sngl_upack_coef(zfft_tmp,&zfft_tmp[ncoef_l_dens_cp_box],zfft,
-                    cp_sclr_fft_pkg3d_dens_cp_box);
-  }/*endif*/
- }/*endif cp_dual_grid_opt*/
+    if(np_states == 1){
+      sngl_upack_coef(rhocr_dens_cp_box,rhoci_dens_cp_box,zfft,
+                      cp_sclr_fft_pkg3d_dens_cp_box);
+    }else{
+      sngl_upack_coef(zfft_tmp,&zfft_tmp[ncoef_l_dens_cp_box],zfft,
+                      cp_sclr_fft_pkg3d_dens_cp_box);
+    }//endif
+  }//endif cp_dual_grid_opt
  
  /*
  if(fftw3dFlag==0){
@@ -518,13 +353,8 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
   exit(0);
   */
   
-<<<<<<< HEAD
   
   if(fftw3dFlag==100){
-=======
-  /*
-  if(fftw3dFlag==0){
->>>>>>> truncate-ke
     double sum = 0.0;
     FILE *fp_rho = fopen("rho_bm","w");
     if(np_states == 1){
@@ -542,15 +372,14 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
     fclose(fp_rho);    
     //exit(0);
   }
-  */
   //exit(0);
 
 /*==========================================================================*/
 /* VII) Reduce rho in g space and get all of it in real space               */
 /*      Now in g-level parallel and need parallel packages                  */
 
- if(np_states > 1){
-   if(cp_dual_grid_opt == 0){
+  if(np_states > 1){
+    if(cp_dual_grid_opt == 0){
       Reduce_scatter(&zfft_tmp[1],&rhocr[1],&recv_counts_coef[1],
                      MPI_DOUBLE,MPI_SUM,comm_states);
       Reduce_scatter(&zfft_tmp[(ncoef_l+1)],&rhoci[1],&recv_counts_coef[1],
@@ -561,13 +390,14 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
       para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_para_fft_pkg3d_lg);
 
       sngl_upack_rho(zfft,rho,cp_para_fft_pkg3d_lg); 
+      // now rho is z leading
 
-   Barrier(comm_states);
-   }else{
-     Reduce_scatter(&zfft_tmp[1],&rhocr_dens_cp_box[1],
-                    &recv_counts_coef_dens_cp_box[1],
-                    MPI_DOUBLE,MPI_SUM,comm_states);
-     Reduce_scatter(&zfft_tmp[(ncoef_l_dens_cp_box+1)],
+      Barrier(comm_states);
+    }else{
+      Reduce_scatter(&zfft_tmp[1],&rhocr_dens_cp_box[1],
+                     &recv_counts_coef_dens_cp_box[1],
+                     MPI_DOUBLE,MPI_SUM,comm_states);
+      Reduce_scatter(&zfft_tmp[(ncoef_l_dens_cp_box+1)],
                      &rhoci_dens_cp_box[1],&recv_counts_coef_dens_cp_box[1],
                      MPI_DOUBLE,MPI_SUM,comm_states);  
 
@@ -577,61 +407,59 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
       para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_para_fft_pkg3d_dens_cp_box);
 
       sngl_upack_rho(zfft,rho,cp_para_fft_pkg3d_dens_cp_box); 
-   }/*endif cp_dual_grid_opt*/
- }/*endif np_states*/
+      // now rho is z leading 
+    }//endif cp_dual_grid_opt
+  }//endif np_states
 
 /*===========================================================================*/
 /* IF DUALED put rho real space onto the large grid and fft it to g space    */
 
- if(cp_dual_grid_opt >= 1){
+  if(cp_dual_grid_opt >= 1){
 /* sending density*vol_cp on small grid  */
-     control_spread_rho(cpscr,rho,cell,dbox_rat,np_states,
-                        n_interp_pme_dual,
-                        cp_para_fft_pkg3d_dens_cp_box,
-                        cp_para_fft_pkg3d_lg,cp_dual_grid_opt);  
+    control_spread_rho(cpscr,rho,cell,dbox_rat,np_states,
+                       n_interp_pme_dual,
+                       cp_para_fft_pkg3d_dens_cp_box,
+                       cp_para_fft_pkg3d_lg,cp_dual_grid_opt);  
 
-  if(np_states == 1){
-    para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_lg); 
-    sngl_upack_coef(rhocr,rhoci,zfft,cp_sclr_fft_pkg3d_lg);
-  }else{
-    para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_para_fft_pkg3d_lg); 
-    sngl_upack_coef(rhocr,rhoci,zfft,cp_para_fft_pkg3d_lg);
-  }/*endif np_states*/
- }/*endif cp_dual_grid_opt*/
+    if(np_states == 1){
+      para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_lg); 
+      sngl_upack_coef(rhocr,rhoci,zfft,cp_sclr_fft_pkg3d_lg);
+    }else{
+      para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_para_fft_pkg3d_lg); 
+      sngl_upack_coef(rhocr,rhoci,zfft,cp_para_fft_pkg3d_lg);
+    }//endif np_states
+  }//endif cp_dual_grid_opt
 
-
-/*--------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------*/
 /*  Post-processing for pme grid need to multiply by complex weight factor */
  
   if((n_interp_pme_dual > 1) && (cp_dual_grid_opt == 2)){
     for(i=1; i<= ncoef_l_use; i++){
-     temp_r   =  (rhocr[i]*bw_r[i] - rhoci[i]*bw_i[i]); 
-     temp_i   =  (rhocr[i]*bw_i[i] + rhoci[i]*bw_r[i]); 
-     rhocr[i] =  temp_r;
-     rhoci[i] =  temp_i;
-    }/*endfor*/
-
+      temp_r   =  (rhocr[i]*bw_r[i] - rhoci[i]*bw_i[i]); 
+      temp_i   =  (rhocr[i]*bw_i[i] + rhoci[i]*bw_r[i]); 
+      rhocr[i] =  temp_r;
+      rhoci[i] =  temp_i;
+    }//endfor
     if((myid_state+1) == np_states){rhocr[ncoef_l_proc]*=bw_r[ncoef_l_proc];}
-
-   }/*endif pme grid */
+  }//endif pme grid
 
 /*===========================================================================*/
-/* IV) finish the density in real space by dividing by the volume           */
+/* IV) finish the density in real space by dividing by the volume            */
 /* DUALED SYSTEMS only keep the real space density on the cp_grid            */
 
-     vol_cp  = getdeth(hmat_cp);
-     rvol_cp = 1.0/vol_cp;
-     //printf("rvol_cp %.16lg\n",rvol_cp);
+  vol_cp  = getdeth(hmat_cp);
+  rvol_cp = 1.0/vol_cp;
+  //printf("rvol_cp %.16lg\n",rvol_cp);
 
-     if(cp_dual_grid_opt >= 1){
-      for(i=1 ; i<= nfft2_proc_dens_cp_box;i++){
-         rho[i] *= rvol_cp;
-      }/*endfor*/
-     }else{
-      for(i=1 ; i<= nfft2_proc;i++){
-         rho[i] *= rvol_cp;
-      }/*endfor*/
-     }/*endif cp_dual_grid_opt*/
+  if(cp_dual_grid_opt >= 1){
+    for(i=1 ; i<= nfft2_proc_dens_cp_box;i++){
+      rho[i] *= rvol_cp;
+    }//endfor
+  }else{
+    for(i=1 ; i<= nfft2_proc;i++){
+      rho[i] *= rvol_cp;
+    }//endfor
+  }//endif cp_dual_grid_opt
 
 
   if(fftw3dFlag==100){
@@ -656,24 +484,26 @@ void cp_rho_calc_hybrid(CPEWALD *cpewald,CPSCR *cpscr,
 /*==============================================================*/
 /* VII) if doing gradient corrections, get gradient of density  */
 
-  if((cp_gga == 1 || cp_elf_calc_frq > 0)) {
-   if(cp_dual_grid_opt >= 1){
-    control_grad_rho(cpewald,cpscr,ewald,rhocr_dens_cp_box,rhoci_dens_cp_box,
-                     del_rho_x,del_rho_y,del_rho_z,del2_rho,
-                     hmati_cp,vol_cp,laplacian_on,cp_dual_grid_opt,
-                     cp_para_fft_pkg3d_dens_cp_box);
-   }else{
-    control_grad_rho(cpewald,cpscr,ewald,rhocr,rhoci,
-                     del_rho_x,del_rho_y,del_rho_z,del2_rho,
-                     hmati_cp,vol_cp,laplacian_on,cp_dual_grid_opt,
-                     cp_para_fft_pkg3d_lg);
-   }/*endif cp_dual_grid_opt*/
-  }/*endif*/
+  if((cp_gga == 1 || cp_elf_calc_frq > 0)){
+    if(cp_dual_grid_opt >= 1){
+      control_grad_rho(cpewald,cpscr,ewald,rhocr_dens_cp_box,rhoci_dens_cp_box,
+                       del_rho_x,del_rho_y,del_rho_z,del2_rho,
+                       hmati_cp,vol_cp,laplacian_on,cp_dual_grid_opt,
+                       cp_para_fft_pkg3d_dens_cp_box);
+    }else{
+      control_grad_rho(cpewald,cpscr,ewald,rhocr,rhoci,
+                       del_rho_x,del_rho_y,del_rho_z,del2_rho,
+                       hmati_cp,vol_cp,laplacian_on,cp_dual_grid_opt,
+                       cp_para_fft_pkg3d_lg);
+    // now rho and gradiant are z leading
+    }//endif cp_dual_grid_opt
+  }//endif
 
 
 /*==============================================================*/
 }/*end routine*/
 /*==============================================================*/
+
 
 
 
@@ -1037,6 +867,7 @@ void coef_force_control(CPOPTS *cpopts,CPCOEFFS_INFO *cpcoeffs_info,
    int      cp_ptens_calc     =  cpopts->cp_ptens_calc;
    int      cp_gga            =  cpopts->cp_gga;
    int      cp_para_opt       =  cpopts->cp_para_opt;
+   int	    threadFlag	      =  cpopts->threadFlag;
 
    int      nstate_up         =  cpcoeffs_info->nstate_up_proc;
    int      nstate_dn         =  cpcoeffs_info->nstate_dn_proc;
@@ -1068,6 +899,8 @@ void coef_force_control(CPOPTS *cpopts,CPCOEFFS_INFO *cpcoeffs_info,
    double   *v_ks_tau_dn      =  cpscr->cpscr_rho.v_ks_tau_dn;
    double   *zfft             =  cpscr->cpscr_wave.zfft;
    double   *zfft_tmp         =  cpscr->cpscr_wave.zfft_tmp;
+   double   **zfft_threads    =  cpscr->cpscr_wave.zfft_threads;
+   double   **zfft_tmp_threads = cpscr->cpscr_wave.zfft_tmp_threads;
    double   *cre_scr          =  cpscr->cpscr_wave.cre_up;
    double   *cim_scr          =  cpscr->cpscr_wave.cim_up;
 
@@ -1172,52 +1005,60 @@ void coef_force_control(CPOPTS *cpopts,CPCOEFFS_INFO *cpcoeffs_info,
 /*==========================================================================*/
 /* III) get the force on the states (up and down)                           */
 
- switch(cp_para_opt){
+  switch(cp_para_opt){
 
 /*-------------------------------------------------------------------------*/
 
-  case 0: /* hybrid */
+    case 0: /* hybrid */
  /*-----------------------------------------*/
  /* i)  Up states                           */
-   coef_force_calc_hybrid(cpewald,nstate_up,ccreal_up,ccimag_up,
-                          fccreal_up,fccimag_up,cre_scr,cim_scr,cp_hess_re_up,cp_hess_im_up,
-                          zfft,zfft_tmp,v_ks_up,v_ks_tau_up,ak2_sm,&cp_eke,pvten_cp,
-                          cp_ptens_calc,hmati_cp,communicate,icoef_form_up,
-                          icoef_orth_up,ifcoef_form_up,cp_tau_functional,cp_min_on,
-                          cp_sclr_fft_pkg3d_sm,cp,class,general_data); 
-  *cp_eke_ret += cp_eke;
+      switch(threadFlag){
+	case 1:
+	  coef_force_calc_hybrid_threads_state(cpewald,nstate_up,ccreal_up,ccimag_up,
+				fccreal_up,fccimag_up,cre_scr,cim_scr,cp_hess_re_up,cp_hess_im_up,
+				zfft_threads,zfft_tmp_threads,v_ks_up,v_ks_tau_up,ak2_sm,&cp_eke,pvten_cp,
+				cp_ptens_calc,hmati_cp,communicate,icoef_form_up,
+				icoef_orth_up,ifcoef_form_up,cp_tau_functional,cp_min_on,
+				cp_sclr_fft_pkg3d_sm,cp,class,general_data); 
+	  *cp_eke_ret += cp_eke;
 
-  /*
-  int istest,icoeftest;
-  int ncoef = cpcoeffs_info->ncoef;
-  int ncoef1 = ncoef-1;
-  int indextest;
-  for(istest=0;istest<nstate_up;istest++){
-    for(icoeftest=0;icoeftest<ncoef1;icoeftest++){
-      indextest = istest*ncoef+icoeftest+1;
-      kfcre_up[indextest] = -2.0*ak2_sm[icoeftest+1]*ccreal_up[indextest];
-      kfcim_up[indextest] = -2.0*ak2_sm[icoeftest+1]*ccimag_up[indextest];
-    }//endfor i
-   kfcre_up[istest*ncoef+ncoef] = 0.0;
-   kfcim_up[istest*ncoef+ncoef] = 0.0;
-  }//endfor istest
-  */
+       /*--------------------------------------------*/
+       /* ii) down states (if necessary)             */
 
+	  if(cp_lsda == 1 && nstate_dn != 0){
+	    coef_force_calc_hybrid_threads_state(cpewald,nstate_dn,ccreal_dn,ccimag_dn,
+				fccreal_dn,fccimag_dn,cre_scr,cim_scr,cp_hess_re_dn,cp_hess_im_dn,
+				zfft_threads,zfft_tmp_threads,v_ks_dn,v_ks_tau_dn,ak2_sm,&cp_eke_dn,pvten_cp,
+				cp_ptens_calc,hmati_cp,communicate,icoef_form_dn,
+				icoef_orth_dn,ifcoef_form_dn,cp_tau_functional,cp_min_on,
+				cp_sclr_fft_pkg3d_sm,cp,class,general_data); 
+	    *cp_eke_ret += cp_eke_dn;
+	  }//endif
+	  break;
+        case 2:
+          coef_force_calc_hybrid_threads_force(cpewald,nstate_up,ccreal_up,ccimag_up,
+                                fccreal_up,fccimag_up,cre_scr,cim_scr,cp_hess_re_up,cp_hess_im_up,
+                                zfft,zfft_tmp,v_ks_up,v_ks_tau_up,ak2_sm,&cp_eke,pvten_cp,
+                                cp_ptens_calc,hmati_cp,communicate,icoef_form_up,
+                                icoef_orth_up,ifcoef_form_up,cp_tau_functional,cp_min_on,
+                                cp_sclr_fft_pkg3d_sm,cp,class,general_data);
+          *cp_eke_ret += cp_eke;
 
- /*--------------------------------------------*/
- /* ii) down states (if necessary)             */
+       /*--------------------------------------------*/
+       /* ii) down states (if necessary)             */
 
-  if(cp_lsda == 1 && nstate_dn != 0){
-   coef_force_calc_hybrid(cpewald,nstate_dn,ccreal_dn,ccimag_dn,
-                          fccreal_dn,fccimag_dn,cre_scr,cim_scr,cp_hess_re_dn,cp_hess_im_dn,
-                          zfft,zfft_tmp,v_ks_dn,v_ks_tau_dn,ak2_sm,&cp_eke_dn,pvten_cp,
-                          cp_ptens_calc,hmati_cp,communicate,icoef_form_dn,
-                          icoef_orth_dn,ifcoef_form_dn,cp_tau_functional,cp_min_on,
-                          cp_sclr_fft_pkg3d_sm,cp,class,general_data); 
-     *cp_eke_ret += cp_eke_dn;
-   }/*endif*/
-
-   break;
+          if(cp_lsda == 1 && nstate_dn != 0){
+            coef_force_calc_hybrid_threads_force(cpewald,nstate_dn,ccreal_dn,ccimag_dn,
+                                fccreal_dn,fccimag_dn,cre_scr,cim_scr,cp_hess_re_dn,cp_hess_im_dn,
+                                zfft,zfft_tmp,v_ks_dn,v_ks_tau_dn,ak2_sm,&cp_eke_dn,pvten_cp,
+                                cp_ptens_calc,hmati_cp,communicate,icoef_form_dn,
+                                icoef_orth_dn,ifcoef_form_dn,cp_tau_functional,cp_min_on,
+                                cp_sclr_fft_pkg3d_sm,cp,class,general_data);
+            *cp_eke_ret += cp_eke_dn;
+          }//endif
+          break;
+      }
+      break;
 /*-------------------------------------------------------------------------*/
 
   case 1: /* full g */
@@ -1353,6 +1194,10 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
 
    int       nfft2_proc_dens_cp_box;
    int       nfft2_proc_send;
+   int nkf1 = cp_para_fft_pkg3d_lg->nkf1;
+   int nkf2 = cp_para_fft_pkg3d_lg->nkf2;
+   int nkf3 = cp_para_fft_pkg3d_lg->nkf3;
+   int igrid,jgrid;
 
 /*         Local Variable declarations                                   */
    double ghfact,pi,fpi;
@@ -1361,10 +1206,18 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
    double eext_short_dual,eh_short_dual;
    double pre;
    double temp_r,temp_i;
-   int i,j,iii,igo;
+   int i,j,k,iii,igo;
 
    // fftw3d options
-   int fftw3dFlag = cpopts->fftw3dFlag;
+   int fftw3dFlag;
+  // fftw3d will have different interface, i.e. real space 
+  // vector will have x leading but we have z leading for 
+  // anything calculated in density/V_xc. Therefore we only 
+  // allow fftw3d used in the case of single process calculation
+  // i.e. SCF for each fragment. 
+
+  if(np_states==1)fftw3dFlag = cpopts->fftw3dFlag;
+  else fftw3dFlag = 0;
 
    if( cp_dual_grid_opt >= 1){
     nfft_dens_cp_box       = cp_para_fft_pkg3d_dens_cp_box->nfft;
@@ -1561,7 +1414,7 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
      para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_para_fft_pkg3d_lg);
    }
    else{
-     para_fft_gen3d_fwd_to_r_fftw3d(zfft,cp_para_fft_pkg3d_lg);
+     para_fft_gen3d_fwd_to_r_fftw3d(zfft,cp_para_fft_pkg3d_lg,0);
    }
 
 /*====================================================================*/
@@ -1572,15 +1425,9 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
                            cp_para_fft_pkg3d_dens_cp_box,
                            cp_para_fft_pkg3d_lg,cp_dual_grid_opt);   
    }else{
-      sngl_upack_rho(zfft,v_ks_up,cp_para_fft_pkg3d_lg);    
-      /*
-      if(fftw3dFlag==0){
-        for(i=1;i<=nfft2_proc;i++){
-	  printf("vksppppp %i %lg\n",i,v_ks_up[i]);
-        }
-	exit(0);
-      }
-      */
+      if(fftw3dFlag==0)sngl_upack_rho(zfft,v_ks_up,cp_para_fft_pkg3d_lg);    
+      else sngl_upack_rho_fftw3d(zfft,v_ks_up,cp_para_fft_pkg3d_lg);
+      // now v_ks_up is z leading
    }/*endif cp_dual_grid_opt*/
 
 /*=====================================================================*/
@@ -1872,6 +1719,20 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
       Allgatherv(&(zfft[1]),nfft2_proc_send,MPI_DOUBLE,&(v_ks_tau_up[1]),
                  &recv_counts_rho[1],&(displs_rho[1]),MPI_DOUBLE,0,comm);
      }/* endif */
+     // All the above rho and v_ks using z as leading dimension. Now I 
+     // tanspose it to x leading.
+     if(fftw3dFlag==1){
+       for(i=0;i<nkf3;i++){
+	 for(j=0;j<nkf2;j++){
+	   for(k=0;k<nkf1;k++){
+	     igrid = i*nkf2*nkf1+j*nkf1+k;
+	     jgrid = k*nkf2*nkf3+j*nkf3+i;
+	     zfft[jgrid+1] = v_ks_up[igrid+1];
+	   }//endfor k
+	 }//endfor j
+       }//endfor i
+       memcpy(&v_ks_up[1],&(zfft[1]),nfft2*sizeof(double));
+     }//endif fftwedFlag
     if(cp_lsda==1){
        for(i=1;i<=nfft2_proc_send;i++){zfft[i]=v_ks_dn[i];}
        Allgatherv(&(zfft[1]),nfft2_proc_send,MPI_DOUBLE,&(v_ks_dn[1]),
@@ -1882,15 +1743,25 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
          Allgatherv(&(zfft[1]),nfft2_proc_send,MPI_DOUBLE,&(v_ks_tau_dn[1]),
                     &recv_counts_rho[1],&(displs_rho[1]),MPI_DOUBLE,0,comm);
        }/* endif */
+       if(fftw3dFlag==1){
+	 for(i=0;i<nkf3;i++){
+	   for(j=0;j<nkf2;j++){
+	     for(k=0;k<nkf1;k++){
+	       igrid = i*nkf2*nkf1+j*nkf1+k;
+	       jgrid = k*nkf2*nkf3+j*nkf3+i;
+	       zfft[jgrid+1] = v_ks_dn[igrid+1];
+	     }//endfor k
+	   }//endfor j
+	 }//endfor i
+	 memcpy(&v_ks_dn[1],&(zfft[1]),nfft2*sizeof(double));
+       }//endif fftwedFlag
      }/*endif*/
-
   }/*endif*/
 
     
 /*==========================================================================*/
    }/* end routine*/
 /*==========================================================================*/
-
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
@@ -1899,7 +1770,7 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
 /* given an appropriate v_ks (up or down, both).         */
 /*==========================================================================*/
 
-void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
+void coef_force_calc_hybrid_threads_force(CPEWALD *cpewald,int nstate,
                              double *ccreal,double *ccimag, 
                              double *fccreal,double  *fccimag,
                              double *cre_scr,double *cim_scr,
@@ -2002,7 +1873,6 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
   exit(0);
   */
 
-
 /*=================================================================*/
 /*  get the forces on the coefs of each state                      */
 
@@ -2032,7 +1902,8 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
       para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
     }
     else{
-      para_fft_gen3d_fwd_to_r_fftw3d(zfft,cp_sclr_fft_pkg3d_sm);
+      para_fft_gen3d_fwd_to_r_fftw3d_threads(zfft,cp_sclr_fft_pkg3d_sm);
+      // x leading
     }
 
 /*==========================================================================*/
@@ -2051,7 +1922,7 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
       */
       if(nlppForceOnly==0)cp_vpsi(zfft,v_ks,nfft);  
       cp->pseudo.pseudoReal.energyCalcFlag = 1;
-      controlEnergyNlppReal(cp,class,general_data,zfft_tmp,zfft,1);
+      controlEnergyNlppRealThreads(cp,class,general_data,zfft_tmp,zfft,1);
       //Ming
       /*
       for(i=1;i<=nfft;i++)zfft_tmp[i] = 0.0;
@@ -2074,7 +1945,7 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
       para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
     }
     else{
-      para_fft_gen3d_bck_to_g_fftw3d(zfft,cp_sclr_fft_pkg3d_sm);
+      para_fft_gen3d_bck_to_g_fftw3d_threads(zfft,cp_sclr_fft_pkg3d_sm);
     }
 
 /*==========================================================================*/
@@ -2133,7 +2004,7 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
         para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
       }
       else{ 
-	para_fft_gen3d_fwd_to_r_fftw3d(zfft,cp_sclr_fft_pkg3d_sm);
+	para_fft_gen3d_fwd_to_r_fftw3d_threads(zfft,cp_sclr_fft_pkg3d_sm);
       }
 
 /*==========================================================================*/
@@ -2144,7 +2015,7 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
       memcpy(&zfft_tmp[1],&zfft[1],nfft*sizeof(double));
       if(nlppForceOnly==0)cp_vpsi(zfft,v_ks,nfft);
       cp->pseudo.pseudoReal.energyCalcFlag = 1;
-      controlEnergyNlppReal(cp,class,general_data,zfft_tmp,zfft,0);
+      controlEnergyNlppRealThreads(cp,class,general_data,zfft_tmp,zfft,0);
     }
     else{
       cp_vpsi(zfft,v_ks,nfft);
@@ -2157,7 +2028,7 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
         para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
       }
       else{
-	para_fft_gen3d_bck_to_g_fftw3d(zfft,cp_sclr_fft_pkg3d_sm);
+	para_fft_gen3d_bck_to_g_fftw3d_threads(zfft,cp_sclr_fft_pkg3d_sm);
       }
 
 /*==========================================================================*/
@@ -2203,7 +2074,7 @@ void coef_force_calc_hybrid(CPEWALD *cpewald,int nstate,
     else{
       sngl_pack_rho(zfft,v_ks,cp_sclr_fft_pkg3d_sm);
       
-      para_fft_gen3d_bck_to_g_fftw3d(zfft,cp_sclr_fft_pkg3d_sm);
+      para_fft_gen3d_bck_to_g_fftw3d_threads(zfft,cp_sclr_fft_pkg3d_sm);
       
       sngl_upack_coef_fftw3d(cp_hess_re,cp_hess_im,zfft,cp_sclr_fft_pkg3d_sm);
     }

@@ -2038,8 +2038,9 @@ void controlSetCpEwaldFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
   cp->communicate.np_beads       = class->communicate.np_beads;
   cp->communicate.np_states      = class->communicate.np_states;
   cp->communicate.np_forc        = class->communicate.np_forc;
-  cp->communicate.np_forc_src    =  class->communicate.np_forc_src;
-  cp->communicate.np_forc_trg    =  class->communicate.np_forc_trg;
+  cp->communicate.np_forc_src    = class->communicate.np_forc_src;
+  cp->communicate.np_forc_trg    = class->communicate.np_forc_trg;
+  cp->communicate.numThreads     = class->communicate.numThreads;
 
   cp->communicate.myid             = class->communicate.myid;
   cp->communicate.myid_bead        = class->communicate.myid_bead;
@@ -2211,6 +2212,8 @@ void controlFFTPkgFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,CP *cpMini
     cp_sclr_fft_pkg_lg->myidp1     = 1;
     cp_sclr_fft_pkg_lg->num_proc   = 1;
     cp_sclr_fft_pkg_lg->comm       = communicate->comm_faux;
+
+    cp_sclr_fft_pkg_lg->numThreads = 1;
 
     create_para_fft_pkg3d(cp_sclr_fft_pkg_lg,
                           ewald->kastr,ewald->kbstr,

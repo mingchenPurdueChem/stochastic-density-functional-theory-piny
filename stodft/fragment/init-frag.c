@@ -27,6 +27,7 @@
 #include "../proto_defs/proto_math.h"
 #include "../proto_defs/proto_communicate_wrappers.h"
 #include "../proto_defs/proto_frag_local.h"
+#include "../proto_defs/proto_interface_frag_entry.h"
 #include "../proto_defs/proto_interface_frag_local.h"
 
 #define TIME_CP_OFF

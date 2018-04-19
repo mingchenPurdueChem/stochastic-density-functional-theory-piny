@@ -16,7 +16,7 @@
 
 
 #include "standard_include.h"
-void check_auto_exit(int *);
+//void check_auto_exit(int *);
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/

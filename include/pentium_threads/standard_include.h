@@ -1,0 +1,29 @@
+#define DEC_ALPHA
+#define PARALLEL
+#define NO_PRAGMA
+#define SIMP_NINT
+#define FFTW3
+#define MKL_LAPACK
+#include <string.h>
+#include <ctype.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <math.h>
+#include <time.h>
+#include <complex.h>
+#include <fftw3.h>
+#include <mkl.h>
+#include <omp.h>
+#ifdef PARALLEL
+#include <mpi.h>
+#else
+#include "../typ_defs/mpi_f.h"
+#endif
+#include "../typ_defs/defines.h"
+typedef struct {
+  double re;
+  double im;
+} zomplex;
+
+
+

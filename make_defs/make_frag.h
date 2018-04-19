@@ -20,7 +20,7 @@ init-frag.o :	         $(STANDARD) $(DEFINES) \
                          $(TYP_STAT) \
                          $(TYP_CP) $(TYP_PAR) \
                          $(FRND_ENT) $(MATH) \
-                         $(COMM_WRAP) $(FRAG_LOC)\
+                         $(COMM_WRAP) $(FRAG_LOC) $(FRAG_INT_ENT)\
                          $(DCODE)/stodft/fragment/init-frag.c
 	$(ECHO) $@
 	$(COBJ) $(DCODE)/stodft/fragment/init-frag.c
@@ -56,7 +56,7 @@ copy-input.o :           $(STANDARD) $(DEFINES) \
                          $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
                          $(TYP_STAT) \
                          $(TYP_CP) $(TYP_PAR) \
-                         $(FRND_ENT) $(FRAG_INT_LOC) \
+                         $(FRND_ENT) $(FRAG_INT_LOC) $(FRAG_LOC)\
                          $(DCODE)/stodft/fragment/interface-frag/copy-input.c
 	$(ECHO) $@
 	$(COBJ) $(DCODE)/stodft/fragment/interface-frag/copy-input.c

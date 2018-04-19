@@ -196,7 +196,7 @@ void calcRhoDetInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   double *rhoUpCorrect   = stodftCoefPos->rhoUpCorrect;
   double *rhoDnCorrect   = stodftCoefPos->rhoDnCorrect;
   //debug
-
+  /*
   stodftCoefPos->wfDetBackupUpRe = (double*)cmalloc(numCoeff*numStateUpProc*sizeof(double));
   stodftCoefPos->wfDetBackupUpIm = (double*)cmalloc(numCoeff*numStateUpProc*sizeof(double));
   memcpy(&(stodftCoefPos->wfDetBackupUpRe[0]),&(coeffReUp[1]),
@@ -204,14 +204,14 @@ void calcRhoDetInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   memcpy(&(stodftCoefPos->wfDetBackupUpIm[0]),&(coeffImUp[1]),
         numCoeff*numStateUpProc*sizeof(double));
   stodftInfo->numStatesDet = numStateUpProc;
-  printf("111111111111111111 wfDetBackupUpRe %lg %lg\n",stodftCoefPos->wfDetBackupUpRe[0],stodftCoefPos->wfDetBackupUpIm[0]);
+  */
 /*======================================================================*/
 /* I) Calculate the density			                        */
 
 
   //Debug Flag: we temp do this for debug
   if(cpParaOpt==0){
-    cp_rho_calc_hybrid(cpewald,cpscr,cpcoeffs_info,
+    cp_rho_calc_hybrid_threads_force(cpewald,cpscr,cpcoeffs_info,
 	       ewald,cell,coeffReUp,coeffImUp,*coefFormUp,*coefOrthUp,
 	       rhoCoeffReUp,rhoCoeffImUp,rhoUp,rhoCoeffReUpDensCpBox,
 	       rhoCoeffImUpDensCpBox,divRhoxUp,divRhoyUp,
@@ -241,7 +241,7 @@ void calcRhoDetInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }
   if(cpLsda==1&&numStateDnProc>0){
     if(cpParaOpt==0){
-      cp_rho_calc_hybrid(cpewald,cpscr,cpcoeffs_info,
+      cp_rho_calc_hybrid_threads_force(cpewald,cpscr,cpcoeffs_info,
                      ewald,cell,coeffReDn,coeffImUp,*coefFormDn,*coefOrthDn,
                      rhoCoeffReDn,rhoCoeffImDn,rhoDn,rhoCoeffReUpDensCpBox,
                      rhoCoeffImDnDensCpBox,divRhoxDn,divRhoyDn,

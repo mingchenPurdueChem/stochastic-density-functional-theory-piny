@@ -25,6 +25,7 @@ void calcKNEEnergyFilterDiag(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,CLATOMS_
 void calcTotEnergyFilterDiag(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,CLATOMS_POS *);
 /*-----------------------------------------------------------------*/
 /* init.c                                                          */
+void commStodft(CLASS *,BONDED *,GENERAL_DATA *,CP *);
 void initStodft(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 void reInitWaveFunMin(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 void reInitComm(CP *,CPCOEFFS_POS *);
@@ -122,6 +123,11 @@ void coefForceCalcHybridSCF(CPEWALD *,int,double *,double *,double *,double  *,
                             double *,double *,double *,double *,double *,
                             int ,double *,COMMUNICATE *,int ,int ,int ,int ,int ,
                             PARA_FFT_PKG3D *,CP *,CLASS *,GENERAL_DATA *);
+void cpGetVksStodft(CPOPTS *,CPSCR *,CPEWALD *,EWALD *,
+                COMMUNICATE *,CP_COMM_STATE_PKG *,CP_COMM_STATE_PKG *,
+                STAT_AVG *,double *,CELL *, char *,double *,double ,double,
+                int,int,int,int,int,int,PARA_FFT_PKG3D *,PARA_FFT_PKG3D *,
+                PARA_FFT_PKG3D *,PARA_FFT_PKG3D *,int);
 /*-----------------------------------------------------------------*/
 /* cp-energy-eext-stodft.c					   */
 void controlEwdLocPreScf(CLATOMS_INFO *,CLATOMS_POS *,CELL *, PTENS *, EWALD *,

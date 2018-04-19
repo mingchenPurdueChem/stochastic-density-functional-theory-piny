@@ -52,4 +52,5 @@ FILE *cfopen(char [],char *);
 
 void mal_verify(int );
 
+int strcasecmp(const char *,const char *);
 

@@ -715,7 +715,7 @@ void projRhoMiniMol(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 	  for(iStateFrag=0;iStateFrag<numStateDnMini;iStateFrag++){
 	    proj = ddotBlasWrapper(numGrid,&wfFragTemp[0],1,&coefDnFragProc[iFrag][iStateFrag*numGrid],1);
 	    fragInfo->wfProjUp[iFrag][countWf*numStateDnMini+iStateFrag] = proj*preDot*volMini;
-	    daxpyBlasWrapper(numGrid,proj,&coefDnFragProc[iStateFrag*numGrid],1,&rhoFragTemp[0],1);
+	    daxpyBlasWrapper(numGrid,proj,&coefDnFragProc[iFrag][iStateFrag*numGrid],1,&rhoFragTemp[0],1);
 	  }//endfor iGrid
 	  for(iGrid=0;iGrid<numGrid;iGrid++){
 	    gridIndex = gridMapProc[iFrag][iGrid];

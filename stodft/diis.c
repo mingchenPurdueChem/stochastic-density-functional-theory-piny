@@ -432,11 +432,11 @@ void matrixInvSVD(double *mat,double *b,double *x,int ndim)
     beta = 0.0;
     incx = 1;
     incy = 1;
-    dgemv_(&trans,&ndim,&ndim,&alpha,u,&lda,b,&incx,&beta,u_b,&incy);
+    DGEMV(&trans,&ndim,&ndim,&alpha,u,&lda,b,&incx,&beta,u_b,&incy);
     
     //for(i=0;i<ndim;i++)u_b[i] /= s[i];
     for(i=0;i<ndim;i++)u_b[i] *= sinv[i];
-    dgemv_(&trans,&ndim,&ndim,&alpha,vt,&lda,u_b,&incx,&beta,x,&incy);
+    DGEMV(&trans,&ndim,&ndim,&alpha,vt,&lda,u_b,&incx,&beta,x,&incy);
   }
   else if(info<0){
     printf("The %ith parameter is illegal.\n",info);

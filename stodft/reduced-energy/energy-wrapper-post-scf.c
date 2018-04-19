@@ -659,7 +659,6 @@ void calcCoefForcePosScf(CLASS *class,GENERAL_DATA *general_data,
   PTENS *ptens                  = &(general_data->ptens);
   SIMOPTS *simopts              = &(general_data->simopts);
 
-
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
   STODFTINFO *stodftInfo        = cp->stodftInfo;
   STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
@@ -708,6 +707,8 @@ void calcCoefForcePosScf(CLASS *class,GENERAL_DATA *general_data,
   int icoef_orth_dn          =  cpcoeffs_pos->icoef_orth_dn;
   int icoef_form_dn          =  cpcoeffs_pos->icoef_form_dn;
   int ifcoef_form_dn         =  cpcoeffs_pos->ifcoef_form_dn;
+  int threadFlag	     =  cpopts->threadFlag;
+
   char *vxc_typ              =  pseudo->vxc_typ;
 
   double gc_cut         = pseudo->gga_cut;
@@ -753,19 +754,19 @@ void calcCoefForcePosScf(CLASS *class,GENERAL_DATA *general_data,
     case 0: /* hybrid */
  /*-----------------------------------------*/
  /* i)  Up states                           */
-      coef_force_calc_hybrid(cpewald,nstate_up,creal_up,cimag_up,
+      coef_force_calc_hybrid_threads_force(cpewald,nstate_up,creal_up,cimag_up,
                           fcreal_up,fcimag_up,cre_scr,cim_scr,cp_hess_re_up,cp_hess_im_up,
                           zfft,zfft_tmp,v_ks_up,v_ks_tau_up,ak2_sm,&cp_eke,pvten_cp,
                           cp_ptens_calc,hmati_cp,communicate,icoef_form_up,
                           icoef_orth_up,ifcoef_form_up,cp_tau_functional,cp_min_on,
                           cp_sclr_fft_pkg3d_sm,cp,class,general_data);
-      *cp_eke_ret += cp_eke;
+	*cp_eke_ret += cp_eke;
 
  /*--------------------------------------------*/
  /* ii) down states (if necessary)             */
 
       if(cp_lsda == 1 && nstate_dn != 0){
-        coef_force_calc_hybrid(cpewald,nstate_dn,creal_dn,cimag_dn,
+        coef_force_calc_hybrid_threads_force(cpewald,nstate_dn,creal_dn,cimag_dn,
                           fcreal_dn,fcimag_dn,cre_scr,cim_scr,cp_hess_re_dn,cp_hess_im_dn,
                           zfft,zfft_tmp,v_ks_dn,v_ks_tau_dn,ak2_sm,&cp_eke_dn,pvten_cp,
                           cp_ptens_calc,hmati_cp,communicate,icoef_form_dn,

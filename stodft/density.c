@@ -58,7 +58,6 @@ void rhoCalcRealStoHybrid(CPSCR *cpscr,
 /*==========================================================================*/
 #include "../typ_defs/typ_mask.h"
 
-
   int i,ioff,ioff2,is,iupper;
   int myid_state       =    communicate->myid_state;
   int np_states        =    communicate->np_states;

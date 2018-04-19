@@ -66,37 +66,3 @@ void bessTransformGradGrad(double *,int ,double ,int ,double *,int ,double *);
 void interpReal(PSEUDO *,int,int*);
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

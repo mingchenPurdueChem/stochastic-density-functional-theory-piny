@@ -198,9 +198,9 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   //cpMini->cpewald.fftw3dFlag = 1;
   // For non-cubic box, the fft in this package doesn't use all grid. Thus it's hard to 
   // predict fftw output
-  cpMini->cpopts.fftw3dFlag = 0;
-  cpMini->cpcoeffs_info.fftw3dFlag = 0;
-  cpMini->cpewald.fftw3dFlag = 0;
+  cpMini->cpopts.fftw3dFlag = 1;
+  cpMini->cpcoeffs_info.fftw3dFlag = 1;
+  cpMini->cpewald.fftw3dFlag = 1;
 
   classMini->clatoms_info.ifirst_vps = 0;
   cpMini->cpcoeffs_info.itime_ks = 0;
@@ -268,6 +268,21 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*   IX) Create the FFT packages  */
   //change
   //printf("cp_on %i myid_state %i num_proc %i\n",cp_on,myid_state,num_proc); 
+
+  cpMini->cp_sclr_fft_pkg3d_sm.threadFlag = cpMini->cpopts.threadFlag;
+  cpMini->cp_para_fft_pkg3d_sm.threadFlag = cpMini->cpopts.threadFlag;
+  cpMini->cp_sclr_fft_pkg3d_dens_cp_box.threadFlag = cpMini->cpopts.threadFlag;
+  cpMini->cp_para_fft_pkg3d_dens_cp_box.threadFlag = cpMini->cpopts.threadFlag;
+  cpMini->cp_sclr_fft_pkg3d_lg.threadFlag = cpMini->cpopts.threadFlag;
+  cpMini->cp_para_fft_pkg3d_lg.threadFlag = cpMini->cpopts.threadFlag;
+
+  cpMini->cp_sclr_fft_pkg3d_sm.numThreads = cpMini->communicate.numThreads;
+  cpMini->cp_para_fft_pkg3d_sm.numThreads = cpMini->communicate.numThreads;
+  cpMini->cp_sclr_fft_pkg3d_dens_cp_box.numThreads = cpMini->communicate.numThreads;
+  cpMini->cp_para_fft_pkg3d_dens_cp_box.numThreads = cpMini->communicate.numThreads;
+  cpMini->cp_sclr_fft_pkg3d_lg.numThreads = cpMini->communicate.numThreads;
+  cpMini->cp_para_fft_pkg3d_lg.numThreads = cpMini->communicate.numThreads;
+
   if((nchrg>0&&iperd>0&&pme_on==1)||cp_on==1){
     if(myid_state<num_proc&&myid_state>=0){
       controlFFTPkgFrag(generalDataMini,classMini,cpMini,cp);

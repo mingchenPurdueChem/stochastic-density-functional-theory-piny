@@ -50,6 +50,7 @@
 #include "../proto_defs/proto_communicate_wrappers.h"
 #include "../proto_defs/proto_integrate_cpmin_entry.h"
 #include "../proto_defs/proto_energy_cp_entry.h"
+#include "../proto_defs/proto_dafed_entry.h"
 
 
 
@@ -183,9 +184,20 @@ void parse(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   iopt_cp_pw  = cp->cpcoeffs_info.iopt_cp_pw;
   iopt_cp_dvr = cp->cpcoeffs_info.iopt_cp_dvr;
   
-  cp->cpopts.fftw3dFlag = 0;
-  cp->cpcoeffs_info.fftw3dFlag = 0;
-  cp->cpewald.fftw3dFlag = 0;
+  //cp->cpopts.fftw3dFlag = 0;
+  //cp->cpcoeffs_info.fftw3dFlag = 0;
+  //cp->cpewald.fftw3dFlag = 0;
+  cp->cpopts.fftw3dFlag = 1;
+  cp->cpcoeffs_info.fftw3dFlag = 1;
+  cp->cpewald.fftw3dFlag = 1;
+  if(cp->cpopts.stodftOn==1){
+    cp->cpopts.fftw3dFlag = 1;
+    cp->cpcoeffs_info.fftw3dFlag = 1;
+    cp->cpewald.fftw3dFlag = 1;    
+  }
+  cp->cp_comm_state_pkg_up.numThreads = cp->communicate.numThreads;
+  cp->cp_comm_state_pkg_dn.numThreads = cp->communicate.numThreads;
+
   class->clatoms_info.ifirst_vps = 0;
   cp->cpcoeffs_info.itime_ks = 0;
   
@@ -278,6 +290,20 @@ void parse(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
 /*========================================================================*/
 /*   IX) Create the FFT packages  */
+
+  cp->cp_sclr_fft_pkg3d_sm.threadFlag = cp->cpopts.threadFlag;
+  cp->cp_para_fft_pkg3d_sm.threadFlag = cp->cpopts.threadFlag;
+  cp->cp_sclr_fft_pkg3d_dens_cp_box.threadFlag = cp->cpopts.threadFlag;
+  cp->cp_para_fft_pkg3d_dens_cp_box.threadFlag = cp->cpopts.threadFlag;
+  cp->cp_sclr_fft_pkg3d_lg.threadFlag = cp->cpopts.threadFlag;
+  cp->cp_para_fft_pkg3d_lg.threadFlag = cp->cpopts.threadFlag;
+
+  cp->cp_sclr_fft_pkg3d_sm.numThreads = cp->communicate.numThreads;
+  cp->cp_para_fft_pkg3d_sm.numThreads = cp->communicate.numThreads;
+  cp->cp_sclr_fft_pkg3d_dens_cp_box.numThreads = cp->communicate.numThreads;
+  cp->cp_para_fft_pkg3d_dens_cp_box.numThreads = cp->communicate.numThreads;
+  cp->cp_sclr_fft_pkg3d_lg.numThreads = cp->communicate.numThreads;
+  cp->cp_para_fft_pkg3d_lg.numThreads = cp->communicate.numThreads;
 
   if((nchrg > 0 && iperd > 0 && pme_on==1) || cp_on==1){
     if(myid_state < num_proc && myid_state >= 0){
@@ -387,7 +413,6 @@ void parse(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
                        &(class->communicate),cp_parse.cp_ecut,
                        &(cp->cpcoeffs_info));
     
-    printf("real nlpp flag %i\n",cp->pseudo.pseudoReal.pseudoRealFlag);
     cp->pseudo.pseudoReal.forceCalcFlag = 1;
     if(cp->pseudo.pseudoReal.pseudoRealFlag==1){
       controlNlppReal(cp,class,general_data,&filename_parse);

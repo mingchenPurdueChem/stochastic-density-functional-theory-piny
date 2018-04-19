@@ -177,7 +177,7 @@ calc-nuclei-force.o :    $(STANDARD) $(DEFINES) \
                          $(TYP_CP) $(TYP_PAR) \
                          $(FRND_ENT) $(MATH) \
                          $(ENR_CP_LOC) $(ENR_CPCON_ENT) $(ENR_CPCON_LOC)\
-                         $(STODFT_LOC) \
+                         $(ENR_CTRL_ENT) $(STODFT_LOC) \
                          $(DCODE)/stodft/calc-nuclei-force.c
 	$(ECHO) $@
 	$(COBJ) $(DCODE)/stodft/calc-nuclei-force.c

@@ -1630,6 +1630,15 @@ void para_fft_gen3d_init(PARA_FFT_PKG3D *para_fft_pkg3d)
       }
       break;
     case 2: //threading at coefficient force level
+      err = fftw_init_threads();
+      if(err==0){
+        printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+        printf("Error when initializing multi-thread FFTW3D!\n");
+        printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+        fflush(stdout);
+        exit(0);
+      }
+
       para_fft_pkg3d->fftw3DForwardIn = (fftw_complex**)cmalloc(sizeof(fftw_complex*));
       para_fft_pkg3d->fftw3DForwardOut = (fftw_complex**)cmalloc(sizeof(fftw_complex*));
       para_fft_pkg3d->fftw3DBackwardIn = (fftw_complex**)cmalloc(sizeof(fftw_complex*));
@@ -1644,14 +1653,6 @@ void para_fft_gen3d_init(PARA_FFT_PKG3D *para_fft_pkg3d)
       fftw3DBackwardIn = para_fft_pkg3d->fftw3DBackwardIn;
       fftw3DBackwardOut = para_fft_pkg3d->fftw3DBackwardOut;
 
-      err = fftw_init_threads();
-      if(err==0){
-        printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
-	printf("Error when initializing multi-thread FFTW3D!\n");
-        printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
-	fflush(stdout);
-	exit(0);
-      }
       fftw_plan_with_nthreads(numThreads);
       para_fft_pkg3d->fftwPlan3DForward = (fftw_plan*)cmalloc(sizeof(fftw_plan));
       para_fft_pkg3d->fftwPlan3DBackward = (fftw_plan*)cmalloc(sizeof(fftw_plan));

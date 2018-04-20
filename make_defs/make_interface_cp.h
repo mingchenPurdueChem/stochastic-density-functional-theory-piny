@@ -12,7 +12,7 @@ DMOL_PARMS1 = $(DCODE)/interface/mol_params
 #==================================================================
 set_wave_params.o   :    $(STANDARD) $(DEFINES) \
                          $(TYP_GEN) $(TYP_PAR) $(TYP_BND) \
-                         $(TYP_CLASS) $(TYP_CP) \
+                         $(TYP_CLASS) $(TYP_CP) $(FRND_ENT) \
                          $(MOL_LOC) $(HANDLE_ENT) \
                          $(MOL_PARMS1)/set_params/set_wave_params.c
 	$(ECHO) $@
@@ -119,7 +119,7 @@ set_cp_ewald_dvr.o     : $(STANDARD) $(DEFINES) \
 
 #------------------------------------------------------------------
 search_base_cp.o  :      $(STANDARD) $(DEFINES) \
-                         $(TYP_PAR) \
+                         $(TYP_PAR) $(FRND_ENT) \
                          $(SEARCH_ENT) $(VPS_LOC) $(HANDLE_ENT) \
                          $(CODE)/interface/search_base/search_base_cp.c
 	$(ECHO) $@

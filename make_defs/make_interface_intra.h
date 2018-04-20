@@ -44,7 +44,7 @@ fetch_residue.o     :    $(STANDARD) $(DEFINES) \
 
 #------------------------------------------------------------------
 fetch_resbond_prm.o  :   $(STANDARD) $(DEFINES) \
-                         $(TYP_CLASS) $(TYP_PAR) $(TYP_BND) \
+                         $(TYP_CLASS) $(TYP_PAR) $(TYP_BND) $(FRND_ENT) \
                          $(INTRA_LOC) \
                          $(CODE)/interface/intra_params/fetch_resbond_prm.c
 	$(ECHO) $@

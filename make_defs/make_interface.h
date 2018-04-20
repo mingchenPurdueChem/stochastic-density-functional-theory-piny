@@ -57,7 +57,7 @@ zero_cp.o     :          $(STANDARD) $(DEFINES) \
 
 #==================================================================
 interface_hand.o     :   $(STANDARD) $(DEFINES) \
-                         $(TYP_PAR) \
+                         $(TYP_PAR) $(FRND_ENT) \
                          $(HANDLE_ENT) \
                         $(CODE)/interface/handle/interface_hand.c
 	$(ECHO) $@

@@ -12,10 +12,10 @@
 #include <math.h>
 #include <time.h>
 #include <complex.h>
-#ifdef FFTW3
-#include "/home/mingchen/libPippen/include/fftw3.h"
-#endif
 #include <omp.h>
+#ifdef FFTW3
+#include "fftw3.h"
+#endif
 #include <mkl.h>
 #ifdef PARALLEL
 #include <mpi.h>

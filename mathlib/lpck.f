@@ -99,7 +99,7 @@ c
    50 continue
       return
       end
-      SUBROUTINE DGEMV ( TRANS, M, N, ALPHA, A, LDA, X, INCX,
+      SUBROUTINE DGEMV2 ( TRANS, M, N, ALPHA, A, LDA, X, INCX,
      $                   BETA, Y, INCY )
 *     .. Scalar Arguments ..
       DOUBLE PRECISION   ALPHA, BETA

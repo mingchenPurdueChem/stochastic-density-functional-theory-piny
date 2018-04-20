@@ -361,11 +361,11 @@ double dj0(double);
 double dj1(double);
 double dj2(double);
 
-double dsysvWrapper(double *,double *,int);
+void dsysvWrapper(double *,double *,int);
 
-double dsymvWrapper(char,int, double,double *,int,double *,int,double,double *,int);
+void dsymvWrapper(char,int, double,double *,int,double *,int,double,double *,int);
 
-double dgemvWrapper(char,int,int,double,double *,int,double *,int,double,double *,int);
+void dgemvWrapper(char,int,int,double,double *,int,double *,int,double,double *,int);
 
 
 

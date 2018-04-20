@@ -3,6 +3,7 @@
 #include "../typ_defs/typedefs_class.h"
 #include "../typ_defs/typedefs_par.h"
 #include "../typ_defs/typedefs_bnd.h"
+#include "../proto_defs/proto_friend_lib_entry.h"
 #include "../proto_defs/proto_intra_params_local.h"
 
 #define DEBUG_OFF

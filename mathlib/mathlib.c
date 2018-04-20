@@ -617,7 +617,7 @@ double normalize3d(double *a)
 /*========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*========================================================================*/
-double dsymvWrapper(char uplo,int n, double alpha,double *A,int lda,double *x,int incx,
+void dsymvWrapper(char uplo,int n, double alpha,double *A,int lda,double *x,int incx,
 		    double beta,double *y,int incy)
 {
   DSYMV(&uplo,&n,&alpha,A,&lda,x,&incx,&beta,y,&incy);
@@ -627,8 +627,9 @@ double dsymvWrapper(char uplo,int n, double alpha,double *A,int lda,double *x,in
 /*========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*========================================================================*/
-double dgemvWrapper(char trans,int m,int n, double alpha,double *A,int lda,double *x,int incx,
-                    double beta,double *y,int incy)
+void dgemvWrapper(char trans,int m,int n, double alpha,double *A,int lda,
+		  double *x,int incx,
+                  double beta,double *y,int incy)
 {
   DGEMV(&trans,&m,&n,&alpha,A,&lda,x,&incx,&beta,y,&incy);
 
@@ -863,7 +864,7 @@ double dj2(double x){
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-double dsysvWrapper(double *A,double *b,int n){
+void dsysvWrapper(double *A,double *b,int n){
   char uplo = 'U';
   int nrhs = 1;
   int lda = n;

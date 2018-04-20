@@ -15,6 +15,7 @@
 
 #include "standard_include.h"
 #include "../typ_defs/typedefs_par.h"
+#include "../proto_defs/proto_friend_lib_entry.h"
 #include "../proto_defs/proto_handle_entry.h"
 
 /* #define DEBUG */

@@ -17,6 +17,7 @@
 #include "../typ_defs/typedefs_gen.h"
 #include "../typ_defs/typedefs_par.h"
 #include "../typ_defs/typedefs_cp.h"
+#include "../proto_defs/proto_friend_lib_entry.h"
 #include "../proto_defs/proto_search_entry.h"
 #include "../proto_defs/proto_vps_params_local.h"
 #include "../proto_defs/proto_handle_entry.h"

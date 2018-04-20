@@ -19,6 +19,7 @@
 #include "../typ_defs/typedefs_bnd.h"
 #include "../typ_defs/typedefs_class.h"
 #include "../typ_defs/typedefs_cp.h"
+#include "../proto_defs/proto_friend_lib_entry.h"
 #include "../proto_defs/proto_mol_params_local.h"
 #include "../proto_defs/proto_handle_entry.h"
 

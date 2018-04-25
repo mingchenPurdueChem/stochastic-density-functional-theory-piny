@@ -725,7 +725,7 @@ void set_sim_dict_gen(int *num_dict,DICT_WORD *dict[])
 /*========================================================================*/
 /*  0) Malloc the dictionary                                              */ 
 
-  *num_dict = 26;
+  *num_dict = 27;
   *dict = (DICT_WORD *)cmalloc(*num_dict*sizeof(DICT_WORD))-1;
 
 /*========================================================================*/
@@ -877,6 +877,12 @@ void set_sim_dict_gen(int *num_dict,DICT_WORD *dict[])
         strcpy((*dict)[26].error_mes,"a integer number > 0");
         strcpy((*dict)[26].keyword,"num_threads");
         strcpy((*dict)[26].keyarg,"1");
+
+  /*-----------------------------------------------------------------------*/
+  /*  27)\num_threads_fftw3{#} */
+        strcpy((*dict)[27].error_mes,"a integer number > 0");
+        strcpy((*dict)[27].keyword,"num_threads_fftw3");
+        strcpy((*dict)[27].keyarg,"1");
 
 /*========================================================================*/
 /*                   End Subprogram:                                      */

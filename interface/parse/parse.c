@@ -305,6 +305,13 @@ void parse(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   cp->cp_sclr_fft_pkg3d_lg.numThreads = cp->communicate.numThreads;
   cp->cp_para_fft_pkg3d_lg.numThreads = cp->communicate.numThreads;
 
+  cp->cp_sclr_fft_pkg3d_sm.numThreadsFFTW3 = cp->communicate.numThreadsFFTW3;
+  cp->cp_para_fft_pkg3d_sm.numThreadsFFTW3 = cp->communicate.numThreadsFFTW3;
+  cp->cp_sclr_fft_pkg3d_dens_cp_box.numThreadsFFTW3 = cp->communicate.numThreadsFFTW3;
+  cp->cp_para_fft_pkg3d_dens_cp_box.numThreadsFFTW3 = cp->communicate.numThreadsFFTW3;
+  cp->cp_sclr_fft_pkg3d_lg.numThreadsFFTW3 = cp->communicate.numThreadsFFTW3;
+  cp->cp_para_fft_pkg3d_lg.numThreadsFFTW3 = cp->communicate.numThreadsFFTW3;
+
   if((nchrg > 0 && iperd > 0 && pme_on==1) || cp_on==1){
     if(myid_state < num_proc && myid_state >= 0){
       if(iopt_cp_pw == 1){

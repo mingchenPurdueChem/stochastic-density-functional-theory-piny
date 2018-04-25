@@ -483,6 +483,7 @@ void para_fft_gen3d_fwd_to_r_fftw3d_threads(double *zfft,PARA_FFT_PKG3D *para_ff
   if(fftFlag==0){
     //cputime(&time_st);
     time_st = omp_get_wtime();
+    #pragma omp parallel for private(igrid)
     for(igrid=0;igrid<nfft2_proc;igrid++){
       fftw3DForwardIn[igrid] = zfft[igrid*2+1]+zfft[igrid*2+2]*I;
     }
@@ -517,6 +518,7 @@ void para_fft_gen3d_fwd_to_r_fftw3d_threads(double *zfft,PARA_FFT_PKG3D *para_ff
     para_fft_pkg3d->cputime2 += time_end-time_st;
     */
     time_st = omp_get_wtime();
+    #pragma omp parallel for private(igrid)
     for(igrid=0;igrid<nfft2_proc;igrid++){
       zfft[igrid*2+1] = creal(fftw3DForwardOut[igrid]);
       zfft[igrid*2+2] = cimag(fftw3DForwardOut[igrid]);
@@ -527,6 +529,7 @@ void para_fft_gen3d_fwd_to_r_fftw3d_threads(double *zfft,PARA_FFT_PKG3D *para_ff
   else{
     //cputime(&time_st);
     time_st = omp_get_wtime();
+    #pragma omp parallel for private(igrid)
     for(igrid=0;igrid<nfft2_proc;igrid++){
       fftw3DBackwardIn[igrid] = zfft[igrid*2+1]+zfft[igrid*2+2]*I;
     }
@@ -561,6 +564,7 @@ void para_fft_gen3d_fwd_to_r_fftw3d_threads(double *zfft,PARA_FFT_PKG3D *para_ff
     para_fft_pkg3d->cputime2 += time_end-time_st;
     */
     time_st = omp_get_wtime();
+    #pragma omp parallel for private(igrid)
     for(igrid=0;igrid<nfft2_proc;igrid++){
       zfft[igrid*2+1] = creal(fftw3DBackwardOut[igrid]);
       zfft[igrid*2+2] = cimag(fftw3DBackwardOut[igrid]);

@@ -214,10 +214,11 @@ void cp_rho_calc_hybrid_threads_state(CPEWALD *cpewald,CPSCR *cpscr,
 
   time_st = omp_get_wtime();
   omp_set_num_threads(numThreads);
-  #pragma omp parallel private(iThread,is,ioff,ioff2)
-  {
-    iThread = omp_get_thread_num();
-    #pragma omp for
+  //#pragma omp parallel private(iThread,is,ioff,ioff2)
+  //{
+    iThread = 0;
+    //iThread = omp_get_thread_num();
+    //#pragma omp for
     for(is = 1; is <= iupper; is = is + 2){
       ioff = (is-1)*ncoef;
       ioff2 = (is)*ncoef;
@@ -262,7 +263,7 @@ void cp_rho_calc_hybrid_threads_state(CPEWALD *cpewald,CPSCR *cpscr,
 	sum_rho(zfft_threads[iThread],&rho_scr_threads[iThread*nfft2],cp_sclr_fft_pkg3d_lg);
       }//endif cp_dual_grid_opt
     }//endfor is
-  }//end omp
+  //}//end omp
 
   
   for(iThread=0;iThread<numThreads;iThread++){

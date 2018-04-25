@@ -136,6 +136,7 @@
   cp->communicate.np_forc_src    =  class->communicate.np_forc_src;
   cp->communicate.np_forc_trg    =  class->communicate.np_forc_trg;
   cp->communicate.numThreads     = class->communicate.numThreads;
+  cp->communicate.numThreadsFFTW3     = class->communicate.numThreadsFFTW3;
 
   cp->communicate.myid             = class->communicate.myid;
   cp->communicate.myid_bead        = class->communicate.myid_bead;

@@ -1598,6 +1598,7 @@ void para_fft_gen3d_init(PARA_FFT_PKG3D *para_fft_pkg3d)
   int nfft2_proc = nfft_proc/2;
   int threadFlag = para_fft_pkg3d->threadFlag;
   int numThreads = para_fft_pkg3d->numThreads;
+  int numThreadsFFTW3 = para_fft_pkg3d->numThreadsFFTW3;
   int iThread;
   //printf("nfft2_proc %i\n",nfft2_proc);
   //printf("%p %p %p %p\n",fftw3DForwardIn,fftw3DForwardOut,fftw3DBackwardIn,fftw3DBackwardOut);
@@ -1653,7 +1654,7 @@ void para_fft_gen3d_init(PARA_FFT_PKG3D *para_fft_pkg3d)
       fftw3DBackwardIn = para_fft_pkg3d->fftw3DBackwardIn;
       fftw3DBackwardOut = para_fft_pkg3d->fftw3DBackwardOut;
 
-      fftw_plan_with_nthreads(numThreads);
+      fftw_plan_with_nthreads(numThreadsFFTW3);
       para_fft_pkg3d->fftwPlan3DForward = (fftw_plan*)cmalloc(sizeof(fftw_plan));
       para_fft_pkg3d->fftwPlan3DBackward = (fftw_plan*)cmalloc(sizeof(fftw_plan));
       para_fft_pkg3d->fftwPlan3DForward[0] = fftw_plan_dft_3d(nkf_c,nkf_b,nkf_a,fftw3DForwardIn[0],

@@ -64,6 +64,7 @@ typedef struct communicate{
   MPI_Comm comm_faux;        /* NOTHING */
 
   int numThreads;
+  int numThreadsFFTW3;
 
 } COMMUNICATE;
 

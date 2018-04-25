@@ -140,6 +140,8 @@ void comm_communicate_info(COMMUNICATE *communicate,MPI_Comm world)
   Barrier(world);
   Bcast(&(communicate->numThreads),1,MPI_INT,0,world);
   Barrier(world);
+  Bcast(&(communicate->numThreads),1,MPI_INT,0,world);
+  Barrier(world);
 
 /*------------------------------------------------------------------------*/
 } /*end routine*/ 

@@ -1475,6 +1475,17 @@ void set_sim_params_gen(CLASS *class,GENERAL_DATA *general_data,BONDED *bonded,
          keyarg_barf(dict,filename_parse->input_name,fun_key,index);
       }
 
+  /*-----------------------------------------------------------------------*/
+  /*  27)\num_threads_fftw3{#} */
+
+      sscanf(dict[26].keyarg,"%lg",&real_key_arg);
+      class->communicate.numThreadsFFTW3 = (int)(real_key_arg);
+      index = 27;
+      if(class->communicate.numThreadsFFTW3<1){
+         keyarg_barf(dict,filename_parse->input_name,fun_key,index);
+      }
+
+
 /*========================================================================*/
     }/*end routine*/ 
 /*========================================================================*/

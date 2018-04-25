@@ -1161,7 +1161,6 @@ void mall_cp_scr(CPTHERM_INFO *cptherm_info,CPOPTS *cpopts,CPEWALD *cpewald,
     num += 2*(mtemp);
     
     if(threadFlag==1){
-      printf("11111111111 numThreads %i\n",numThreads);
       cpscr->cpscr_wave.zfft_threads = (double**)cmalloc(numThreads*sizeof(double*));
       cpscr->cpscr_wave.zfft_tmp_threads = (double**)cmalloc(numThreads*sizeof(double*));
       for(iThread=0;iThread<numThreads;iThread++){
@@ -1172,7 +1171,6 @@ void mall_cp_scr(CPTHERM_INFO *cptherm_info,CPOPTS *cpopts,CPEWALD *cpewald,
       }
       num += 2*(mtemp)*numThreads;
     }
-    
   }
   else{
    if(cp_dual_grid_opt_on >= 1){mtemp = 

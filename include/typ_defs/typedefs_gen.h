@@ -509,6 +509,7 @@ typedef struct para_fft_pkg3d {
   double cputime1,cputime2,cputime3,cputime4;
   int threadFlag;
   int numThreads;
+  int numThreadsFFTW3; // multithread could be very inefficient for many threads. I need smaller number of threads for threading FFTW3
   int iThread;
  } PARA_FFT_PKG3D;
 

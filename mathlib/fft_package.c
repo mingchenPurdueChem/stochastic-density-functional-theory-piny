@@ -1437,12 +1437,12 @@ void para_fft_gen3d_bck_to_g_fftw3d_threads(double *zfft,PARA_FFT_PKG3D *para_ff
     para_fft_pkg3d->cputime3 += time_end-time_st;
     */
     time_st = omp_get_wtime();
-    /*
+    #pragma omp parallel for private(igrid)
     for(igrid=0;igrid<nfft2_proc;igrid++){
       fftw3DBackwardIn[igrid] = zfft[2*igrid+1]+zfft[2*igrid+2]*I;
     }
-    */
-    memcpy(fftw3DBackwardIn,&zfft[1],nfft_proc);
+    
+    //memcpy(fftw3DBackwardIn,&zfft[1],nfft_proc);
     time_end = omp_get_wtime();
     para_fft_pkg3d->cputime3 += time_end-time_st;
 
@@ -1456,16 +1456,18 @@ void para_fft_gen3d_bck_to_g_fftw3d_threads(double *zfft,PARA_FFT_PKG3D *para_ff
 
     //cputime(&time_st);
     time_st = omp_get_wtime();
-    /*
+    #pragma omp parallel for private(igrid)
     for(igrid=0;igrid<nfft2_proc;igrid++){
       zfft[igrid*2+1] = creal(fftw3DBackwardOut[igrid])*nfft2Inv;
       zfft[igrid*2+2] = cimag(fftw3DBackwardOut[igrid])*nfft2Inv;
     }
-    */
+    
+    /*
     memcpy(&zfft[1],fftw3DBackwardOut,nfft_proc*sizeof(double));
     for(igrid=1;igrid<=nfft_proc;igrid++){
       zfft[igrid] *= nfft2Inv;
     }
+    */
     //cputime(&time_end);
     time_end = omp_get_wtime();
     para_fft_pkg3d->cputime4 += time_end-time_st;
@@ -1491,12 +1493,12 @@ void para_fft_gen3d_bck_to_g_fftw3d_threads(double *zfft,PARA_FFT_PKG3D *para_ff
     para_fft_pkg3d->cputime3 += time_end-time_st;
     */
     time_st = omp_get_wtime();
-    /*
+    #pragma omp parallel for private(igrid)
     for(igrid=0;igrid<nfft2_proc;igrid++){
       fftw3DForwardIn[igrid] = zfft[2*igrid+1]+zfft[2*igrid+2]*I;
     }
-    */
-    memcpy(fftw3DForwardIn,&zfft[1],nfft_proc*sizeof(double));
+    
+    //memcpy(fftw3DForwardIn,&zfft[1],nfft_proc*sizeof(double));
     time_end = omp_get_wtime();
     para_fft_pkg3d->cputime3 += time_end-time_st;
 
@@ -1511,16 +1513,17 @@ void para_fft_gen3d_bck_to_g_fftw3d_threads(double *zfft,PARA_FFT_PKG3D *para_ff
     //cputime(&time_st);
     time_st = omp_get_wtime();
  
-    /*   
+    #pragma omp parallel for private(igrid)   
     for(igrid=0;igrid<nfft2_proc;igrid++){
       zfft[igrid*2+1] = creal(fftw3DForwardOut[igrid])*nfft2Inv;
       zfft[igrid*2+2] = cimag(fftw3DForwardOut[igrid])*nfft2Inv;
     }
-    */
+    /*
     memcpy(&zfft[1],fftw3DForwardOut,nfft_proc*sizeof(double));
     for(igrid=1;igrid<=nfft_proc;igrid++){
       zfft[igrid] *= nfft2Inv;
-    }    
+    } 
+    */   
     //cputime(&time_end);
     time_end = omp_get_wtime();
     para_fft_pkg3d->cputime4 += time_end-time_st;

@@ -123,6 +123,7 @@ void gen_wave(CLASS *class,GENERAL_DATA *general_data,CP *cp,
   double **gpsi_now;                             /*(maxatmtyp,maxatmtyp)*/
   double *gpsi00;                                /*(maxatmtyp)*/
   double *psi_r,*psi_i; /*length(20)*/
+  double *psi_r_threads,*psi_i_threads;
 
 /*----------------------------------------------------------------------*/
 /* Gram-Schmidt and Kinetic energy Variables*/
@@ -142,11 +143,13 @@ void gen_wave(CLASS *class,GENERAL_DATA *general_data,CP *cp,
   double pi,tpi,aka,akb,akc,fpi;
   double xk,yk,zk,g2;
   double rad2;
-  double atemp,btemp,ctemp,arg,helr,heli;
+  double atemp,btemp,ctemp,arg;
+  double *helr,*heli;
   int itemp;
   double qseed=103481.0;
 
   double kappa = 1.0;
+  double *randnum;
 
 /* map from spherically cutoff half space to double full space     */
    int *kastore   = cp->cpewald.kastr_sm;
@@ -177,6 +180,8 @@ void gen_wave(CLASS *class,GENERAL_DATA *general_data,CP *cp,
 
   int cp_lsda         = cp->cpopts.cp_lsda;
   int cp_lda          = cp->cpopts.cp_lda;
+  int numThreads = cp->communicate.numThreads;
+  int iThread;
 
 /*----------------------------------------------------------------------*/
 /* Occupation Number Variables */
@@ -202,6 +207,10 @@ void gen_wave(CLASS *class,GENERAL_DATA *general_data,CP *cp,
   int *iatm_atm_typ_cp;
   
 /*====================================================================*/
+
+  double time_st,time_end;
+
+  time_st = omp_get_wtime();
 
    if(myid == master ){
      printf("\n-----------------------------------------\n");
@@ -301,43 +310,39 @@ void gen_wave(CLASS *class,GENERAL_DATA *general_data,CP *cp,
   for(i=1; i <= nab_initio; i++){
     ind1 = cp_atm_lst[i];
     for(j=i+1; j <= nab_initio;j++){
-     ind2 = cp_atm_lst[j];
-     if( iatm_atm_typ[ind2] == iatm_atm_typ[ind1] &&
-         cp_vlnc_up[ind2] != cp_vlnc_up[ind1]){
-    if(myid == master){
-     printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
-     printf("There are two different assigned values for    \n");
-     printf("cp_valence_up for the same atom type           \n");
-     printf("atom numbers %d and %d \n",ind1,ind2);
-     printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
-    }/*endif myid*/
-    if(nproc>1){
-     Barrier(comm_states);
-     Finalize();
-    }
-     exit(1);
-
-     }/*endif*/
-
-     if( cp_lsda == 1 && iatm_atm_typ[ind2] == iatm_atm_typ[ind1] &&
-         cp_vlnc_dn[ind2] != cp_vlnc_dn[ind1]){
-    if(myid == master){
-     printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
-     printf("There are two different assigned values for    \n");
-     printf("cp_valence_dn for the same atom type           \n");
-     printf("atom numbers %d and %d \n",ind1,ind2);
-     printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
-    }/*endif myid*/
-    if(nproc>1){
-     Barrier(comm_states);
-     Finalize();
-    }
-     exit(1);
-
-     }/*endif*/
+      ind2 = cp_atm_lst[j];
+      if( iatm_atm_typ[ind2] == iatm_atm_typ[ind1] &&
+        cp_vlnc_up[ind2] != cp_vlnc_up[ind1]){
+	if(myid == master){
+	  printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+	  printf("There are two different assigned values for    \n");
+	  printf("cp_valence_up for the same atom type           \n");
+	  printf("atom numbers %d and %d \n",ind1,ind2);
+	  printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+        }/*endif myid*/
+	if(nproc>1){
+	  Barrier(comm_states);
+	  Finalize();
+	}
+        exit(1);
+      }/*endif*/
+      if( cp_lsda == 1 && iatm_atm_typ[ind2] == iatm_atm_typ[ind1] &&
+        cp_vlnc_dn[ind2] != cp_vlnc_dn[ind1]){
+	if(myid == master){
+	  printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+	  printf("There are two different assigned values for    \n");
+	  printf("cp_valence_dn for the same atom type           \n");
+	  printf("atom numbers %d and %d \n",ind1,ind2);
+	  printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+	}/*endif myid*/
+	if(nproc>1){
+	  Barrier(comm_states);
+	  Finalize();
+	}
+	exit(1);
+      }/*endif*/
     }/*endfor*/
   }/*endfor*/
-
 
 /*=======================================================================*/
 /* Create number of ab initio atom types natm_typ_cp and make list       */
@@ -348,14 +353,14 @@ void gen_wave(CLASS *class,GENERAL_DATA *general_data,CP *cp,
    for(i=2; i<= nab_initio; i++){
      iflag = 0;
      ind1 = cp_atm_lst[i];
-    for(j=i-1; j >= 1; j--){
-     ind2 = cp_atm_lst[j];
-     if( iatm_atm_typ[ind2] == iatm_atm_typ[ind1] ) {
-       iflag = 0;break;
-     }else{
-      iflag = 1;
-     }/*endif*/
-    }/*endfor*/
+     for(j=i-1; j >= 1; j--){
+       ind2 = cp_atm_lst[j];
+       if( iatm_atm_typ[ind2] == iatm_atm_typ[ind1] ) {
+         iflag = 0;break;
+       }else{
+         iflag = 1;
+       }/*endif*/
+     }/*endfor*/
      natm_typ_cp += iflag;
    }/*endfor*/
 
@@ -484,8 +489,15 @@ void gen_wave(CLASS *class,GENERAL_DATA *general_data,CP *cp,
    dylmr_z  = (double *) cmalloc(16*sizeof(double)) -1;
    dylmi_z  = (double *) cmalloc(16*sizeof(double)) -1;
 
+   psi_r_threads    = (double *) cmalloc(numThreads*20*sizeof(double )) -1;
+   psi_i_threads    = (double *) cmalloc(numThreads*20*sizeof(double )) -1;
    psi_r    = (double *) cmalloc(20*sizeof(double )) -1;
    psi_i    = (double *) cmalloc(20*sizeof(double )) -1;
+
+   randnum = (double*)cmalloc((ncoef-1)*nab_initio*sizeof(double));
+   for(i=0;i<(ncoef-1)*nab_initio;i++){
+     randnum[i] = 3.0*ran_essl(&qseed);
+   }
 
 /*===========================================================================*/
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!! WARNING !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
@@ -499,21 +511,24 @@ void gen_wave(CLASS *class,GENERAL_DATA *general_data,CP *cp,
    gpsi2 = (double ***) cmalloc(natm_typ_cp*sizeof(double **))-1;
    gpsi3 = (double ***) cmalloc(natm_typ_cp*sizeof(double **))-1;
 
- for(i=1; i<= natm_typ_cp; i++){
-   gpsi0[i] = (double **) cmalloc(3*sizeof(double *))-1;
-   gpsi1[i] = (double **) cmalloc(3*sizeof(double *))-1;
-   gpsi2[i] = (double **) cmalloc(3*sizeof(double *))-1;
-   gpsi3[i] = (double **) cmalloc(3*sizeof(double *))-1;
-   for(j=1; j<=3; j++){
+  for(i=1; i<= natm_typ_cp; i++){
+    gpsi0[i] = (double **) cmalloc(3*sizeof(double *))-1;
+    gpsi1[i] = (double **) cmalloc(3*sizeof(double *))-1;
+    gpsi2[i] = (double **) cmalloc(3*sizeof(double *))-1;
+    gpsi3[i] = (double **) cmalloc(3*sizeof(double *))-1;
+    for(j=1; j<=3; j++){
       gpsi0[i][j] = (double *) cmalloc(nsplin*sizeof(double ))-1;
       gpsi1[i][j] = (double *) cmalloc(nsplin*sizeof(double ))-1;
       gpsi2[i][j] = (double *) cmalloc(nsplin*sizeof(double ))-1;
       gpsi3[i][j] = (double *) cmalloc(nsplin*sizeof(double ))-1;
-   }/*endfor*/
- }/*endfor*/
+    }/*endfor*/
+  }/*endfor*/
 
    gpsi_now = cmall_mat(1,natm_typ_cp,1,3);
    gpsi00   = (double *) cmalloc(natm_typ_cp*sizeof(double)) -1;
+  
+  helr = (double*)cmalloc(nab_initio*sizeof(double));
+  heli = (double*)cmalloc(nab_initio*sizeof(double));
 
 /*===========================================================================*/
 /* assign the occupation numbers  and rocc_sum matrices                      */
@@ -594,191 +609,213 @@ void gen_wave(CLASS *class,GENERAL_DATA *general_data,CP *cp,
 /* get the wave functions in g space                                       */
 /*=========================================================================*/
 
- for(i=1; i<=  ncoef-1; i++){
+  omp_set_num_threads(numThreads);
+
+  for(i=1; i<=  ncoef-1; i++){
 
 /*-------------------------------------------------------------------------*/
 /* get g vectors                                                           */
-   aka = -(double)(kastore[i]);
-   akb = -(double)(kbstore[i]);
-   akc = -(double)(kcstore[i]);
-   //printf("aka akb akc %lg %lg %lg\n",aka,akb,akc);
+    aka = -(double)(kastore[i]);
+    akb = -(double)(kbstore[i]);
+    akc = -(double)(kcstore[i]);
+    //printf("aka akb akc %lg %lg %lg\n",aka,akb,akc);
 
-   xk = (aka*hmati[1] + akb*hmati[2] +akc*hmati[3])*tpi;
-   yk = (aka*hmati[4] + akb*hmati[5] +akc*hmati[6])*tpi;
-   zk = (aka*hmati[7] + akb*hmati[8] +akc*hmati[9])*tpi;
-   g2 = (xk*xk+yk*yk+zk*zk);
-   g  = sqrt(g2);
+    xk = (aka*hmati[1] + akb*hmati[2] +akc*hmati[3])*tpi;
+    yk = (aka*hmati[4] + akb*hmati[5] +akc*hmati[6])*tpi;
+    zk = (aka*hmati[7] + akb*hmati[8] +akc*hmati[9])*tpi;
+    g2 = (xk*xk+yk*yk+zk*zk);
+    g  = sqrt(g2);
     //printf("aka akb akc g %lg %lg %lg %lg\n",aka,akb,akc,g);
   
 /*-------------------------------------------------------------------------*/
 /*  get ylm                                                                */
 
- get_ylm(xk,yk,zk,g,ylmr,ylmi,
-         dylmr_x,dylmi_x,dylmr_y,dylmi_y,dylmr_z,dylmi_z,&ylm_cons);
+    get_ylm(xk,yk,zk,g,ylmr,ylmi,
+            dylmr_x,dylmi_x,dylmr_y,dylmi_y,dylmr_z,dylmi_z,&ylm_cons);
 
 /*-------------------------------------------------------------------------*/
 /*  get the spherical bessel tranform of the radial wave functions         */
 /*  at this g space point using the spline.                                */
 
-   for(iatm=1; iatm <= natm_typ_cp; iatm++){
-    get_gpsi(g,nsplin,
+    for(iatm=1; iatm <= natm_typ_cp; iatm++){
+      get_gpsi(g,nsplin,
              gpsi0[iatm],gpsi1[iatm],gpsi2[iatm],gpsi3[iatm],
              gpsi_now[iatm],gmin,dg,n_ang[iatm]);
-   }/*endfor*/
+    }/*endfor*/
 
-  istate_up = 0;
-  istate_dn = 0;
+    istate_up = 0;
+    istate_dn = 0;
 
-  istate_up_proc = 0;
-  istate_dn_proc = 0;
+    istate_up_proc = 0;
+    istate_dn_proc = 0;
 
-  for(ipart = 1; ipart <= nab_initio; ipart++){
-/*  S STATE                                                                 */
-     psi_r[1] = ylmr[1]*gpsi_now[iatm_atm_typ_cp[ipart]][1]/volrt; 
-    /*     psi_r[1] = exp(-g2/(2.0*kappa*kappa))/volrt; */
-     psi_i[1] = 0.0;
-/* SPHERICALIZED P BAND                                                    */
-    if(n_ang[iatm_atm_typ_cp[ipart]] >= 1){
-      itemp = (int) (3.0*ran_essl(&qseed));
-      itemp = MAX(itemp,0);
-      itemp = MIN(itemp,2);
-      //itemp = 1;
-      switch(itemp){
-       case 0:
-        p_c = -ylmr[2]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
-        p_b = -rad2*ylmr[3]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
-        p_a = -rad2*ylmi[3]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
-       break;
-       case 1:
-        p_a = -ylmr[2]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
-        p_c = -rad2*ylmr[3]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
-        p_b = -rad2*ylmi[3]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
-       break;
-       case 2:
-        p_b = -ylmr[2]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
-        p_a = -rad2*ylmr[3]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
-        p_c = -rad2*ylmi[3]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
-       break;
-      }/*end switch*/
-      psi_r[2] = 0.0;
-      psi_i[2] = (p_c + (p_b+p_a)/rad2)/rad2;
-      psi_r[3] = 0.0;
-      psi_i[3] = (p_c - (p_b+p_a)/rad2)/rad2;
-      psi_r[4] = 0.0;
-      psi_i[4] = (p_b-p_a)/rad2;
-    }/*endif*/
-/*  D BAND                                                                   */
-   if(n_ang[iatm_atm_typ_cp[ipart]] >= 2){
-     psi_r[5] = -ylmr[5]*gpsi_now[iatm_atm_typ_cp[ipart]][3]/volrt;
-     psi_i[5] = 0.0;
-     psi_r[6] = -rad2*ylmr[6]*gpsi_now[iatm_atm_typ_cp[ipart]][3]/volrt;
-     psi_i[6] = 0.0;
-     psi_r[7] = -rad2*ylmi[6]*gpsi_now[iatm_atm_typ_cp[ipart]][3]/volrt;
-     psi_i[7] = 0.0;
-     psi_r[8] = -rad2*ylmr[8]*gpsi_now[iatm_atm_typ_cp[ipart]][3]/volrt;
-     psi_i[8] = 0.0;
-     psi_r[9] = -rad2*ylmi[8]*gpsi_now[iatm_atm_typ_cp[ipart]][3]/volrt;
-     psi_i[9] = 0.0;
-   }/*endif*/
+    #pragma omp parallel private(iThread,ipart,itemp,p_c,p_b,p_a,dx,dy,dz,asx,asy,asz,sx,sy,sz,atemp,btemp,ctemp,arg)
+    {
+      iThread = omp_get_thread_num();
+      #pragma omp for
+      for(ipart = 1; ipart <= nab_initio; ipart++){
+  /*  S STATE                                                                 */
+	psi_r_threads[iThread*20+1] = ylmr[1]*gpsi_now[iatm_atm_typ_cp[ipart]][1]/volrt; 
+      /*     psi_r[1] = exp(-g2/(2.0*kappa*kappa))/volrt; */
+	psi_i_threads[iThread*20+1] = 0.0;
+  /* SPHERICALIZED P BAND                                                    */
+	if(n_ang[iatm_atm_typ_cp[ipart]] >= 1){
+	  itemp = (int)randnum[(i-1)*nab_initio+ipart-1];
+	  //itemp = (int) (3.0*ran_essl(&qseed));
+	  itemp = MAX(itemp,0);
+	  itemp = MIN(itemp,2);
+	  //itemp = 1;
+	  switch(itemp){
+	    case 0:
+	      p_c = -ylmr[2]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
+	      p_b = -rad2*ylmr[3]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
+	      p_a = -rad2*ylmi[3]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
+	      break;
+	    case 1:
+	      p_a = -ylmr[2]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
+	      p_c = -rad2*ylmr[3]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
+	      p_b = -rad2*ylmi[3]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
+	      break;
+	    case 2:
+	      p_b = -ylmr[2]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
+	      p_a = -rad2*ylmr[3]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
+	      p_c = -rad2*ylmi[3]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
+	      break;
+	  }/*end switch*/
+	  psi_r_threads[iThread*20+2] = 0.0;
+	  psi_i_threads[iThread*20+2] = (p_c + (p_b+p_a)/rad2)/rad2;
+	  psi_r_threads[iThread*20+3] = 0.0;
+	  psi_i_threads[iThread*20+3] = (p_c - (p_b+p_a)/rad2)/rad2;
+	  psi_r_threads[iThread*20+4] = 0.0;
+	  psi_i_threads[iThread*20+4] = (p_b-p_a)/rad2;
+	}/*endif*/
+  /*  D BAND                                                                   */
+	if(n_ang[iatm_atm_typ_cp[ipart]] >= 2){
+	  psi_r_threads[iThread*20+5] = -ylmr[5]*gpsi_now[iatm_atm_typ_cp[ipart]][3]/volrt;
+	  psi_i_threads[iThread*20+5] = 0.0;
+	  psi_r_threads[iThread*20+6] = -rad2*ylmr[6]*gpsi_now[iatm_atm_typ_cp[ipart]][3]/volrt;
+	  psi_i_threads[iThread*20+6] = 0.0;
+	  psi_r_threads[iThread*20+7] = -rad2*ylmi[6]*gpsi_now[iatm_atm_typ_cp[ipart]][3]/volrt;
+	  psi_i_threads[iThread*20+7] = 0.0;
+	  psi_r_threads[iThread*20+8] = -rad2*ylmr[8]*gpsi_now[iatm_atm_typ_cp[ipart]][3]/volrt;
+	  psi_i_threads[iThread*20+8] = 0.0;
+	  psi_r_threads[iThread*20+9] = -rad2*ylmi[8]*gpsi_now[iatm_atm_typ_cp[ipart]][3]/volrt;
+	  psi_i_threads[iThread*20+9] = 0.0;
+	}/*endif*/
 
 /*---------------------------------------------------------------------------*/
 /*  structure factor                                                         */
 
-    dx  = x[ipart] - cp_box_center[1];
-    dy  = y[ipart] - cp_box_center[2];
-    dz  = z[ipart] - cp_box_center[3];
-    asx = dx*hmati_big[1]+dy*hmati_big[4]+dz*hmati_big[7];
-    asy = dx*hmati_big[2]+dy*hmati_big[5]+dz*hmati_big[8];
-    asz = dx*hmati_big[3]+dy*hmati_big[6]+dz*hmati_big[9];
-    //printf("dx dy dz %lg %lg %lg\n",dx,dy,dz);
+	dx  = x[ipart] - cp_box_center[1];
+	dy  = y[ipart] - cp_box_center[2];
+	dz  = z[ipart] - cp_box_center[3];
+	asx = dx*hmati_big[1]+dy*hmati_big[4]+dz*hmati_big[7];
+	asy = dx*hmati_big[2]+dy*hmati_big[5]+dz*hmati_big[8];
+	asz = dx*hmati_big[3]+dy*hmati_big[6]+dz*hmati_big[9];
+	//printf("dx dy dz %lg %lg %lg\n",dx,dy,dz);
 
-    sx  = asx - NINT(asx);
-    sy  = asy - NINT(asy);
-    sz  = asz - NINT(asz);
-    dx  = sx*hmat_big[1]+sy*hmat_big[4]+sz*hmat_big[7] + cp_box_center_rel[1];
-    dy  = sx*hmat_big[2]+sy*hmat_big[5]+sz*hmat_big[8] + cp_box_center_rel[2];
-    dz  = sx*hmat_big[3]+sy*hmat_big[6]+sz*hmat_big[9] + cp_box_center_rel[3];
+	sx  = asx - NINT(asx);
+	sy  = asy - NINT(asy);
+	sz  = asz - NINT(asz);
+	dx  = sx*hmat_big[1]+sy*hmat_big[4]+sz*hmat_big[7] + cp_box_center_rel[1];
+	dy  = sx*hmat_big[2]+sy*hmat_big[5]+sz*hmat_big[8] + cp_box_center_rel[2];
+	dz  = sx*hmat_big[3]+sy*hmat_big[6]+sz*hmat_big[9] + cp_box_center_rel[3];
 
-    atemp = dx*hmati[1] + dy*hmati[4] + dz*hmati[7];
-    btemp = dx*hmati[2] + dy*hmati[5] + dz*hmati[8];
-    ctemp = dx*hmati[3] + dy*hmati[6] + dz*hmati[9];
+	atemp = dx*hmati[1] + dy*hmati[4] + dz*hmati[7];
+	btemp = dx*hmati[2] + dy*hmati[5] + dz*hmati[8];
+	ctemp = dx*hmati[3] + dy*hmati[6] + dz*hmati[9];
 
-    arg = (aka*atemp + akb*btemp + akc*ctemp)*tpi;
-    //printf("arg %lg\n",arg);
+	arg = (aka*atemp + akb*btemp + akc*ctemp)*tpi;
+	//printf("arg %lg\n",arg);
 
-    helr = cos(arg);
-    heli = sin(arg);
- 
+	helr[ipart-1] = cos(arg);
+	heli[ipart-1] = sin(arg);
+      }//endfor ipart
+    }
+    
+    for(j=1;j<=20;j++){
+      psi_r[j] = 0.0;
+      psi_i[j] = 0.0;
+    }
+    for(iThread=0;iThread<numThreads;iThread++){
+      for(j=1;j<=20;j++){
+        psi_r[j] += psi_r_threads[iThread*20+j];
+	psi_i[j] += psi_i_threads[iThread*20+j];
+      }
+    }
+   
 /*=========================================================================*/
 /*  construct the coeff                                                    */
 
-   for(is=1; is <= nstate_up_atm[iatm_atm_typ_cp[ipart]] ; is++){
-   if( ((istate_up + is ) >= istate_up_st) &&
+    istate_up = 0;
+    istate_dn = 0;
+
+    for(ipart = 1; ipart <= nab_initio; ipart++){
+      for(is=1; is <= nstate_up_atm[iatm_atm_typ_cp[ipart]] ; is++){
+       if( ((istate_up + is ) >= istate_up_st) &&
        ((istate_up + is) <= istate_up_end)){  
-      ind = i + (istate_up - istate_up_st + is  )*ncoef;
-     creal_up[ind]  =  helr*psi_r[is] - heli*psi_i[is];
-     cimag_up[ind]  =  heli*psi_r[is] + helr*psi_i[is];
-    }/*endif*/
-   }/*endfor*/
+	 ind = i + (istate_up - istate_up_st + is  )*ncoef;
+	 creal_up[ind]  =  helr[ipart-1]*psi_r[is] - heli[ipart-1]*psi_i[is];
+	 cimag_up[ind]  =  heli[ipart-1]*psi_r[is] + helr[ipart-1]*psi_i[is];
+       }/*endif*/
+      }/*endfor*/
 
-   istate_up +=  nstate_up_atm[iatm_atm_typ_cp[ipart]];
+      istate_up +=  nstate_up_atm[iatm_atm_typ_cp[ipart]];
 
-  if((cp_lsda == 1) && (nstate_dn > 0)){
-   for(is=1 ; is <= nstate_dn_atm[iatm_atm_typ_cp[ipart]] ; is++){
-   if( ((istate_dn + is ) >= istate_dn_st) && 
-       ((istate_dn + is) <= istate_dn_end)){  
-     ind = i + (istate_dn - istate_dn_st + is  )*ncoef;
-     creal_dn[ind] =  helr*psi_r[is] - heli*psi_i[is];
-     cimag_dn[ind] =  heli*psi_r[is] + helr*psi_i[is];
-   }/*endif*/
-   }/*endfor*/
-  istate_dn +=  nstate_dn_atm[iatm_atm_typ_cp[ipart]];
- }/*endif*/
-
- }/*endfor*/
- }/*endfor:ncoef*/
+      if((cp_lsda == 1) && (nstate_dn > 0)){
+       for(is=1 ; is <= nstate_dn_atm[iatm_atm_typ_cp[ipart]] ; is++){
+	 if( ((istate_dn + is ) >= istate_dn_st) && 
+	 ((istate_dn + is) <= istate_dn_end)){  
+	   ind = i + (istate_dn - istate_dn_st + is  )*ncoef;
+	   creal_dn[ind] =  helr[ipart-1]*psi_r[is] - heli[ipart-1]*psi_i[is];
+	   cimag_dn[ind] =  heli[ipart-1]*psi_r[is] + helr[ipart-1]*psi_i[is];
+	 }/*endif*/
+       }/*endfor*/
+       istate_dn +=  nstate_dn_atm[iatm_atm_typ_cp[ipart]];
+      }/*endif*/
+    }/*endfor*/
+  }/*endfor:ncoef*/
 
 /*=======================================================================*/
 /*  g=0                                                                  */
-    i = ncoef;
-    istate_up = 0;
-    istate_dn = 0;
+  i = ncoef;
+  istate_up = 0;
+  istate_dn = 0;
   for(ipart=1; ipart <= nab_initio; ipart++){
-   if( ((istate_up + 1 ) >= istate_up_st) && 
+    if( ((istate_up + 1 ) >= istate_up_st) && 
        ((istate_up + 1) <= istate_up_end)){  
-     ind = i + ((1+istate_up) - istate_up_st )*ncoef;
-     creal_up[ind] = ylmr[1]*gpsi00[iatm_atm_typ_cp[ipart]]/volrt;
-     cimag_up[ind] = 0.0;
-   }/*endif*/
-    for(is = 2; is <= nstate_up_atm[iatm_atm_typ_cp[ipart]]; is++){
-   if( ((istate_up + is ) >= istate_up_st) && 
-       ((istate_up + is) <= istate_up_end)){  
-     ind = i + (istate_up - istate_up_st + is  )*ncoef;
-      creal_up[ind] = 0.0;
+      ind = i + ((1+istate_up) - istate_up_st )*ncoef;
+      creal_up[ind] = ylmr[1]*gpsi00[iatm_atm_typ_cp[ipart]]/volrt;
       cimag_up[ind] = 0.0;
-   }/*endif*/
-  }/*endfor*/
-
-   istate_up += nstate_up_atm[iatm_atm_typ_cp[ipart]];
-
-   if((cp_lsda == 1) &&(nstate_dn > 0)){
-   if( ((istate_dn + 1 ) >= istate_dn_st) && 
-       ((istate_dn + 1) <= istate_dn_end)){  
-     ind = i + ((1+istate_dn) - istate_dn_st )*ncoef; 
-     creal_dn[ind] = ylmr[1]*gpsi00[iatm_atm_typ_cp[ipart]]/volrt;
-     cimag_dn[ind] = 0.0;
-   }/*endif*/
-    for(is = 2; is<=nstate_dn_atm[iatm_atm_typ_cp[ipart]]; is++){
-   if( ((istate_dn + is ) >= istate_dn_st) && 
-       ((istate_dn + is) <= istate_dn_end)){  
-     ind = i + (istate_dn - istate_dn_st + is  )*ncoef;
-       creal_dn[ind] = 0.0;
-       cimag_dn[ind] = 0.0;
-   }/*endif*/
+    }/*endif*/
+    for(is = 2; is <= nstate_up_atm[iatm_atm_typ_cp[ipart]]; is++){
+      if( ((istate_up + is ) >= istate_up_st) && 
+	 ((istate_up + is) <= istate_up_end)){  
+        ind = i + (istate_up - istate_up_st + is  )*ncoef;
+	creal_up[ind] = 0.0;
+	cimag_up[ind] = 0.0;
+      }/*endif*/
     }/*endfor*/
-      istate_dn += nstate_dn_atm[iatm_atm_typ_cp[ipart]];
-   }/*endif*/
 
+    istate_up += nstate_up_atm[iatm_atm_typ_cp[ipart]];
+
+    if((cp_lsda == 1) &&(nstate_dn > 0)){
+      if( ((istate_dn + 1 ) >= istate_dn_st) && 
+      ((istate_dn + 1) <= istate_dn_end)){  
+        ind = i + ((1+istate_dn) - istate_dn_st )*ncoef; 
+	creal_dn[ind] = ylmr[1]*gpsi00[iatm_atm_typ_cp[ipart]]/volrt;
+	cimag_dn[ind] = 0.0;
+      }/*endif*/
+      for(is = 2; is<=nstate_dn_atm[iatm_atm_typ_cp[ipart]]; is++){
+	if( ((istate_dn + is ) >= istate_dn_st) && 
+        ((istate_dn + is) <= istate_dn_end)){  
+	  ind = i + (istate_dn - istate_dn_st + is  )*ncoef;
+          creal_dn[ind] = 0.0;
+          cimag_dn[ind] = 0.0;
+	}/*endif*/
+      }/*endfor*/
+      istate_dn += nstate_dn_atm[iatm_atm_typ_cp[ipart]];
+    }/*endif*/
   }/*endfor:ipart*/
 
 
@@ -846,23 +883,34 @@ void gen_wave(CLASS *class,GENERAL_DATA *general_data,CP *cp,
                         occ_up,ioff_upt,
                         ovlap,ovlap_tmp,&(cp->cp_comm_state_pkg_up));
   }else{
-
-   cp_gram_schmidt_scalar(creal_up,cimag_up,occ_up,
-                          ovlap,ioff_upt,nstate_up,ncoef); 
+    if(numThreads>1){
+      cp_gram_schmidt_threads(creal_up,cimag_up,occ_up,
+                             ovlap,ioff_upt,nstate_up,ncoef,numThreads);
+    }
+    else{
+      cp_gram_schmidt_scalar(creal_up,cimag_up,occ_up,
+                             ovlap,ioff_upt,nstate_up,ncoef); 
+    }
   }/*endif nproc*/
 
- if( (cp_lsda==1) && (nstate_dn > 0)){
-  if( nproc > 1 ){
-    cp_gram_schmidt_par(creal_dn,cimag_dn,icoef_form_dn,
-                        occ_dn,ioff_dnt,
-                        ovlap,ovlap_tmp,&(cp->cp_comm_state_pkg_dn));
-  }else{
-    cp_gram_schmidt_scalar(creal_dn,cimag_dn,occ_dn,
-                           ovlap,ioff_dnt,nstate_dn,ncoef);
-  }/*endif nproc*/
- }/*endif lsda*/
+  if( (cp_lsda==1) && (nstate_dn > 0)){
+    if( nproc > 1 ){
+      cp_gram_schmidt_par(creal_dn,cimag_dn,icoef_form_dn,
+                          occ_dn,ioff_dnt,
+                          ovlap,ovlap_tmp,&(cp->cp_comm_state_pkg_dn));
+    }else{
+      if(numThreads>1){
+	cp_gram_schmidt_threads(creal_dn,cimag_dn,occ_dn,
+                               ovlap,ioff_dnt,nstate_dn,ncoef,numThreads);
+      }
+      else{
+        cp_gram_schmidt_scalar(creal_dn,cimag_dn,occ_dn,
+                               ovlap,ioff_dnt,nstate_dn,ncoef);
+      }
+    }/*endif nproc*/
+  }/*endif lsda*/
 
- if(nproc>1){Barrier(comm_states);}
+  if(nproc>1){Barrier(comm_states);}
 
 /*=========================================================================*/
 /* transpose data back if necessary                                        */
@@ -1038,6 +1086,8 @@ void gen_wave(CLASS *class,GENERAL_DATA *general_data,CP *cp,
 
   cfree_mat(gpsi_now,1,natm_typ_cp,1,3);
   cfree(&(gpsi00[1]));
+  cfree(helr);
+  cfree(heli);
 
 /*===========================================================================*/
 
@@ -1046,6 +1096,9 @@ void gen_wave(CLASS *class,GENERAL_DATA *general_data,CP *cp,
      printf("Completed Constructing The Wave Function \n");
      printf("-----------------------------------------\n");
   }/*endif*/
+
+  time_end = omp_get_wtime();
+  printf("Initialization time is %.8lg\n",time_end-time_st);
 
 /*==========================================================================*/
     }/*  end routine*/

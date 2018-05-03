@@ -560,7 +560,7 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
   }/* endif */
 
   omp_set_num_threads(numThreads);
-  #pragma omp parallel private(iThread,is,ioff,ioff2)
+  #pragma omp parallel private(iThread,is,ioff,ioff2,gridOff1,gridOff2,i,j,k,igrid,jgrid)
   {
     iThread = omp_get_thread_num();
     #pragma omp for
@@ -591,7 +591,7 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
 /*--------------------------------------------------------------------------*/
 /* III) Copy the real sapce wave function and add the square of the two     
         wave functions to the density(real space)			    */
-      //transpose
+      //transpose zfft_threads xleading
       memcpy(&zfft_tmp_threads[iThread][1],&zfft_threads[iThread][1],nfft*sizeof(double));
       for(i=0;i<nkf1;i++){
 	for(j=0;j<nkf2;j++){
@@ -616,7 +616,7 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
   }//endomp
 
   for(iThread=0;iThread<numThreads;iThread++){
-    #pragma omp parallel for private(i)
+    #pragma omp parallel for private(igrid)
     for(igrid=0;igrid<nfft2;igrid++){
       rho[igrid] += rho_scr_threads[iThread*nfft2+igrid];
     }

@@ -305,7 +305,7 @@ void calcVnlRealDot(CP *cpMini, CLASS *classMini,GENERAL_DATA *generalDataMini,
   double eke;
   double sum_check,sum_check_tmp;
 
-  double *wfReal = (double*)cmalloc(nfft2*sizeof(double));
+  double *wfReal = (double*)cmalloc(nfft2*numThreads*sizeof(double));
   double *energyNl = (double *)cmalloc(numThreads*sizeof(double));
   double *fxThreads = (double *)cmalloc(numThreads*numAtomTot*sizeof(double));
   double *fyThreads = (double *)cmalloc(numThreads*numAtomTot*sizeof(double));
@@ -335,9 +335,10 @@ void calcVnlRealDot(CP *cpMini, CLASS *classMini,GENERAL_DATA *generalDataMini,
 /*  get the forces on the coefs of each state                      */
 
   omp_set_num_threads(numThreads);
-  #pragma omp parallel private(iThread,is,ioff,ioff2)
+  #pragma omp parallel private(iThread,is,ioff,ioff2,iGrid)
   {
     iThread = omp_get_thread_num();
+    
     #pragma omp for
     for(is=1;is<=iupper;is+=2){
       ioff = (is-1)*ncoef;
@@ -374,9 +375,9 @@ void calcVnlRealDot(CP *cpMini, CLASS *classMini,GENERAL_DATA *generalDataMini,
 /*   I) get  v|psi> in real space                                           */
 
       for(iGrid=0;iGrid<nfft2;iGrid++){
-	wfReal[iGrid] = zfft_threads[iThread][iGrid*2+1];
+	wfReal[iThread*nfft2+iGrid] = zfft_threads[iThread][iGrid*2+1];
       }
-      calcVnlRealDotState(cpMini,classMini,generalDataMini,wfReal,
+      calcVnlRealDotState(cpMini,classMini,generalDataMini,&wfReal[iThread*nfft2],
 			  &dotReAllStates[(is-1)*numNlppAll],
 			  &dotImAllStates[(is-1)*numNlppAll],
 			  &dotReAllDxStates[(is-1)*numNlppAll],
@@ -386,9 +387,9 @@ void calcVnlRealDot(CP *cpMini, CLASS *classMini,GENERAL_DATA *generalDataMini,
 			  &dotReAllDzStates[(is-1)*numNlppAll],
 			  &dotImAllDzStates[(is-1)*numNlppAll]);
       for(iGrid=0;iGrid<nfft2;iGrid++){
-	wfReal[iGrid] = zfft_threads[iThread][iGrid*2+2];
+	wfReal[iThread*nfft2+iGrid] = zfft_threads[iThread][iGrid*2+2];
       }
-      calcVnlRealDotState(cpMini,classMini,generalDataMini,wfReal,
+      calcVnlRealDotState(cpMini,classMini,generalDataMini,&wfReal[iThread*nfft2],
 			  &dotReAllStates[is*numNlppAll],
 			  &dotImAllStates[is*numNlppAll],
 			  &dotReAllDxStates[is*numNlppAll],

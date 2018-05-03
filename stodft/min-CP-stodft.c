@@ -619,9 +619,11 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     char wfname[100];
     //sprintf(wfname,"/scratch/mingchen/tmp/sto-wf-save-%i",myidState);
     printf("Read in stochastic orbitals...\n");
-    sprintf(wfname,"sto-wf-save-%i",myidState);
-
-    FILE *filePrintWF = fopen(wfname,"r");
+    sprintf(wfname,"sto-wf-save-new-%i",myidState);
+    
+    
+    //FILE *filePrintWF = fopen(wfname,"r");
+    FILE *filePrintWF = fopen("sto-wf-save-all-2","r");
     for(iChem=0;iChem<numChemPot;iChem++){
       for(iState=0;iState<numStateUp;iState++){
 	for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){

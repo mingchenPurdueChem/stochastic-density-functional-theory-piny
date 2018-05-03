@@ -831,8 +831,6 @@ void control_fft_pkg(PARA_FFT_PKG3D *cp_sclr_fft_pkg_sm,
                           cpewald->kastr_dens_cp_box,
                           cpewald->kbstr_dens_cp_box,
                           cpewald->kcstr_dens_cp_box,cp_dual_grid_opt_on);
-
-
   }/*endif*/
 
 /*=========================================================================*/

@@ -374,7 +374,7 @@ void calcVnlRealDot(CP *cpMini, CLASS *classMini,GENERAL_DATA *generalDataMini,
 /*   I) get  v|psi> in real space                                           */
 
       for(iGrid=0;iGrid<nfft2;iGrid++){
-	wfReal[iGrid] = zfft[iGrid*2+1];
+	wfReal[iGrid] = zfft_threads[iThread][iGrid*2+1];
       }
       calcVnlRealDotState(cpMini,classMini,generalDataMini,wfReal,
 			  &dotReAllStates[(is-1)*numNlppAll],
@@ -386,7 +386,7 @@ void calcVnlRealDot(CP *cpMini, CLASS *classMini,GENERAL_DATA *generalDataMini,
 			  &dotReAllDzStates[(is-1)*numNlppAll],
 			  &dotImAllDzStates[(is-1)*numNlppAll]);
       for(iGrid=0;iGrid<nfft2;iGrid++){
-	wfReal[iGrid] = zfft[iGrid*2+2];
+	wfReal[iGrid] = zfft_threads[iThread][iGrid*2+2];
       }
       calcVnlRealDotState(cpMini,classMini,generalDataMini,wfReal,
 			  &dotReAllStates[is*numNlppAll],
@@ -432,7 +432,7 @@ void calcVnlRealDot(CP *cpMini, CLASS *classMini,GENERAL_DATA *generalDataMini,
 /*   I) get  v|psi> in real space                                           */
 
      for(iGrid=0;iGrid<nfft2;iGrid++){
-       wfReal[iGrid] = zfft[iGrid*2+1];
+       wfReal[iGrid] = zfft_threads[0][iGrid*2+1];
      }
      calcVnlRealDotState(cpMini,classMini,generalDataMini,wfReal,
                          &dotReAllStates[(is-1)*numNlppAll],
@@ -607,6 +607,7 @@ void calcVnlRealDotState(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   	      dotRe[atomIndSt+countNlppRe] 
 				= ddotBlasWrapper(numGrid,wfNbhd,1,
 			          &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
+	      //if(iAtom==0)printf("dotRe %lg\n",dotRe);
 
               dotReDx[atomIndSt+countNlppRe] 
 				= ddotBlasWrapper(numGrid,wfNbhd,1,

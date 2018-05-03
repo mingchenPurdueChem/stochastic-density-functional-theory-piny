@@ -111,6 +111,7 @@ void cp_rho_calc_hybrid_threads_force(CPEWALD *cpewald,CPSCR *cpscr,
   double integral,int_tmp;
   int    *recv_counts_coef_dens_cp_box;
   int fftw3dFlag = cpcoeffs_info->fftw3dFlag;
+  int ind,indt;
 
  //debug
   int icoef;
@@ -197,7 +198,6 @@ void cp_rho_calc_hybrid_threads_force(CPEWALD *cpewald,CPSCR *cpscr,
   if((nstate % 2) != 0){ 
     iupper = nstate-1; 
   }// endif
-
 
   for(is=1;is<=iupper;is=is+2){
     ioff   = (is-1)*ncoef;
@@ -292,6 +292,7 @@ void cp_rho_calc_hybrid_threads_force(CPEWALD *cpewald,CPSCR *cpscr,
 
 /*--------------------------------------------------------------------------*/
 /*  II) back transform to g-space  convention exp(igr)                      */
+  printf("111111 fftw3dFlag %i\n",fftw3dFlag);
 
   if(cp_dual_grid_opt >= 1){ 
     para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_dens_cp_box); 
@@ -319,10 +320,19 @@ void cp_rho_calc_hybrid_threads_force(CPEWALD *cpewald,CPSCR *cpscr,
 
   if(cp_dual_grid_opt == 0){
     if(np_states == 1){
-      if(fftw3dFlag==0)sngl_upack_coef(rhocr,rhoci,zfft,cp_sclr_fft_pkg3d_lg);
-      else sngl_upack_coef_fftw3d(rhocr,rhoci,zfft,cp_sclr_fft_pkg3d_lg);
+      if(fftw3dFlag==0){
+	sngl_upack_coef(rhocr,rhoci,zfft,cp_sclr_fft_pkg3d_lg);
+      }
+      else{
+	sngl_upack_coef_fftw3d(rhocr,rhoci,zfft,cp_sclr_fft_pkg3d_lg);
+      }
     }else{
-      sngl_upack_coef(zfft_tmp,&zfft_tmp[ncoef_l],zfft,cp_sclr_fft_pkg3d_lg);
+      if(fftw3dFlag==0){
+        sngl_upack_coef(zfft_tmp,&zfft_tmp[ncoef_l],zfft,cp_sclr_fft_pkg3d_lg);
+      }
+      else{
+	sngl_upack_coef_fftw3d(zfft_tmp,&zfft_tmp[ncoef_l],zfft,cp_sclr_fft_pkg3d_lg);
+      }
     }//endif
   }else{
     if(np_states == 1){
@@ -410,6 +420,21 @@ void cp_rho_calc_hybrid_threads_force(CPEWALD *cpewald,CPSCR *cpscr,
       // now rho is z leading 
     }//endif cp_dual_grid_opt
   }//endif np_states
+  else{
+    // if np_states=1, we need transpose rho to z leading
+    for(kc=0;kc<nkf3;kc++){
+      for(kb=0;kb<nkf2;kb++){
+	for(ka=0;ka<nkf1;ka++){
+	  ind = kc*nkf2*nkf1+kb*nkf1+ka+1;
+	  indt = ka*nkf2*nkf3+kb*nkf3+kc+1;
+	  zfft[ind] = rho_scr[indt];
+	}
+      }
+    }
+    memcpy(&rho_scr[1],&zfft[1],nfft2*sizeof(double));
+  }
+  printf("11111111 rho %.16lg %.16lg\n",rho[2],rho[5185]);
+  //printf("11111111 rho %.16lg %.16lg\n",rho[3],rho[10369]);
 
 /*===========================================================================*/
 /* IF DUALED put rho real space onto the large grid and fft it to g space    */
@@ -442,6 +467,7 @@ void cp_rho_calc_hybrid_threads_force(CPEWALD *cpewald,CPSCR *cpscr,
     }//endfor
     if((myid_state+1) == np_states){rhocr[ncoef_l_proc]*=bw_r[ncoef_l_proc];}
   }//endif pme grid
+  printf("1111111111111111 rhock %.16lg %.16lg\n",rhocr[1],rhoci[1]);
 
 /*===========================================================================*/
 /* IV) finish the density in real space by dividing by the volume            */
@@ -1216,8 +1242,9 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
   // allow fftw3d used in the case of single process calculation
   // i.e. SCF for each fragment. 
 
-  if(np_states==1)fftw3dFlag = cpopts->fftw3dFlag;
-  else fftw3dFlag = 0;
+  //if(np_states==1)fftw3dFlag = cpopts->fftw3dFlag;
+  //else fftw3dFlag = 0;
+  fftw3dFlag = cpopts->fftw3dFlag;
 
    if( cp_dual_grid_opt >= 1){
     nfft_dens_cp_box       = cp_para_fft_pkg3d_dens_cp_box->nfft;
@@ -1400,22 +1427,22 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
 /*====================================================================*/
 /*  II) single pack the ks potential for fourier transform routine    */
    
-   if(fftw3dFlag==0){
+   //if(fftw3dFlag==0){
      sngl_pack_coef(vextr,vexti,zfft,cp_para_fft_pkg3d_lg);
-   }
-   else{
-     sngl_pack_coef_fftw3d(vextr,vexti,zfft,cp_para_fft_pkg3d_lg);
-   }
+   //}
+   //else{
+   //  sngl_pack_coef_fftw3d(vextr,vexti,zfft,cp_para_fft_pkg3d_lg);
+   //}
 
 /*====================================================================*/
 /* III) fourier transform ks potential to real space exp(-igr)        */
 
-   if(fftw3dFlag==0){
+   //if(fftw3dFlag==0){
      para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_para_fft_pkg3d_lg);
-   }
-   else{
-     para_fft_gen3d_fwd_to_r_fftw3d(zfft,cp_para_fft_pkg3d_lg,0);
-   }
+   //}
+   //else{
+   //  para_fft_gen3d_fwd_to_r_fftw3d(zfft,cp_para_fft_pkg3d_lg,0);
+   //}
 
 /*====================================================================*/
 /* IV) Contract and unpack rho for dual option, otherwise just upack  */
@@ -1425,10 +1452,14 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
                            cp_para_fft_pkg3d_dens_cp_box,
                            cp_para_fft_pkg3d_lg,cp_dual_grid_opt);   
    }else{
-      if(fftw3dFlag==0)sngl_upack_rho(zfft,v_ks_up,cp_para_fft_pkg3d_lg);    
-      else sngl_upack_rho_fftw3d(zfft,v_ks_up,cp_para_fft_pkg3d_lg);
+      //if(fftw3dFlag==0)sngl_upack_rho(zfft,v_ks_up,cp_para_fft_pkg3d_lg);    
+      //else sngl_upack_rho_fftw3d(zfft,v_ks_up,cp_para_fft_pkg3d_lg);
+      sngl_upack_rho(zfft,v_ks_up,cp_para_fft_pkg3d_lg);
       // now v_ks_up is z leading
    }/*endif cp_dual_grid_opt*/
+
+   //if(fftw3dFlag==0)printf("vvvvvvvvvksup %lg\n",v_ks_up[2]);
+   //else printf("vvvvvvvvvksup %lg\n",v_ks_up[5185]);
 
 /*=====================================================================*/
 /* V) Coulomb and Hartree erfc calculated on small grid for PME dualing*/
@@ -1504,6 +1535,24 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
 
   }/*endif cp_dual_grid_opt*/
 
+  // With fftw3 v_ks_up is x leading, we need to transpose to z leading 
+  // before summing v_exc
+
+   /*
+   if(fftw3dFlag==1){
+     for(i=0;i<nkf3;i++){
+       for(j=0;j<nkf2;j++){
+	 for(k=0;k<nkf1;k++){
+	   igrid = i*nkf2*nkf1+j*nkf1+k;
+	   jgrid = k*nkf2*nkf3+j*nkf3+i;
+	   zfft[igrid+1] = v_ks_up[jgrid+1];
+	 }//endfor k
+       }//endfor j
+     }//endfor i
+     memcpy(&v_ks_up[1],&(zfft[1]),nfft2*sizeof(double));
+   }//endif fftwedFlag
+   */
+
 /*====================================================================*/
 /* IV) Assign up to down for LSDA because vext is vext        */
 
@@ -1519,7 +1568,7 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
 /* V) calculate the exchange potential and add to v_ks if necessary   */
 /*    on the small grid only for dualing                              */
 
-  //printf("before xc v_ks_up[1] %lg\n",v_ks_up[1]);
+  //printf("before xc v_ks_up[2] %lg\n",v_ks_up[2]);
 
   if(cp_nonint==0){
     igo = 0;
@@ -1699,7 +1748,6 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
 /*  that is for hybrid parallel, allgather the puppy                  */
 
   if(np_states>1 && cp_para_opt == 0){/* hybrid parallel only */
-
     if(cp_dual_grid_opt >= 1){
       nfft2_proc_send = nfft2_proc_dens_cp_box;
       recv_counts_rho = cp_para_fft_pkg3d_dens_cp_box->recv_counts_rho;
@@ -1711,53 +1759,54 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
     }/*endif cp_dual_grid_opt*/
 
     for(i=1;i<=nfft2_proc_send;i++){zfft[i] = v_ks_up[i];}
-     Allgatherv(&(zfft[1]),nfft2_proc_send,MPI_DOUBLE,&(v_ks_up[1]),
-                &recv_counts_rho[1],&(displs_rho[1]),MPI_DOUBLE,0,comm);
-
-     if(cp_tau_functional==1){
+    Allgatherv(&(zfft[1]),nfft2_proc_send,MPI_DOUBLE,&(v_ks_up[1]),
+               &recv_counts_rho[1],&(displs_rho[1]),MPI_DOUBLE,0,comm);
+    if(cp_tau_functional==1){
       for(i=1;i<=nfft2_proc_send;i++){zfft[i] = v_ks_tau_up[i];}
       Allgatherv(&(zfft[1]),nfft2_proc_send,MPI_DOUBLE,&(v_ks_tau_up[1]),
                  &recv_counts_rho[1],&(displs_rho[1]),MPI_DOUBLE,0,comm);
-     }/* endif */
-     // All the above rho and v_ks using z as leading dimension. Now I 
-     // tanspose it to x leading.
-     if(fftw3dFlag==1){
-       for(i=0;i<nkf3;i++){
-	 for(j=0;j<nkf2;j++){
-	   for(k=0;k<nkf1;k++){
-	     igrid = i*nkf2*nkf1+j*nkf1+k;
-	     jgrid = k*nkf2*nkf3+j*nkf3+i;
-	     zfft[jgrid+1] = v_ks_up[igrid+1];
-	   }//endfor k
-	 }//endfor j
-       }//endfor i
-       memcpy(&v_ks_up[1],&(zfft[1]),nfft2*sizeof(double));
-     }//endif fftwedFlag
+    }/* endif */
     if(cp_lsda==1){
-       for(i=1;i<=nfft2_proc_send;i++){zfft[i]=v_ks_dn[i];}
-       Allgatherv(&(zfft[1]),nfft2_proc_send,MPI_DOUBLE,&(v_ks_dn[1]),
-                  &recv_counts_rho[1],&(displs_rho[1]),MPI_DOUBLE,0,comm);
-
-       if(cp_tau_functional==1){
-         for(i=1;i<=nfft2_proc_send;i++){zfft[i]=v_ks_tau_dn[i];}
-         Allgatherv(&(zfft[1]),nfft2_proc_send,MPI_DOUBLE,&(v_ks_tau_dn[1]),
-                    &recv_counts_rho[1],&(displs_rho[1]),MPI_DOUBLE,0,comm);
-       }/* endif */
-       if(fftw3dFlag==1){
-	 for(i=0;i<nkf3;i++){
-	   for(j=0;j<nkf2;j++){
-	     for(k=0;k<nkf1;k++){
-	       igrid = i*nkf2*nkf1+j*nkf1+k;
-	       jgrid = k*nkf2*nkf3+j*nkf3+i;
-	       zfft[jgrid+1] = v_ks_dn[igrid+1];
-	     }//endfor k
-	   }//endfor j
-	 }//endfor i
-	 memcpy(&v_ks_dn[1],&(zfft[1]),nfft2*sizeof(double));
-       }//endif fftwedFlag
-     }/*endif*/
+      for(i=1;i<=nfft2_proc_send;i++){zfft[i]=v_ks_dn[i];}
+      Allgatherv(&(zfft[1]),nfft2_proc_send,MPI_DOUBLE,&(v_ks_dn[1]),
+                 &recv_counts_rho[1],&(displs_rho[1]),MPI_DOUBLE,0,comm);
+      if(cp_tau_functional==1){
+        for(i=1;i<=nfft2_proc_send;i++){zfft[i]=v_ks_tau_dn[i];}
+        Allgatherv(&(zfft[1]),nfft2_proc_send,MPI_DOUBLE,&(v_ks_tau_dn[1]),
+                   &recv_counts_rho[1],&(displs_rho[1]),MPI_DOUBLE,0,comm);
+      }/* endif */
+    }/*endif*/
   }/*endif*/
+  //printf("after xc v_ks_up[2] %lg %lg\n",v_ks_up[2],v_ks_up[5185]);
 
+  // All the above rho and v_ks using z as leading dimension. Now I 
+  // tanspose it to x leading.
+  if(cp_para_opt==0&&fftw3dFlag==1){
+    for(i=0;i<nkf3;i++){
+     for(j=0;j<nkf2;j++){
+       for(k=0;k<nkf1;k++){
+	 igrid = i*nkf2*nkf1+j*nkf1+k;
+	 jgrid = k*nkf2*nkf3+j*nkf3+i;
+	 zfft[jgrid+1] = v_ks_up[igrid+1];
+       }//endfor k
+     }//endfor j
+    }//endfor i
+    memcpy(&v_ks_up[1],&(zfft[1]),nfft2*sizeof(double));
+    if(cp_lsda==1){
+      for(i=0;i<nkf3;i++){
+        for(j=0;j<nkf2;j++){
+	  for(k=0;k<nkf1;k++){
+	    igrid = i*nkf2*nkf1+j*nkf1+k;
+	    jgrid = k*nkf2*nkf3+j*nkf3+i;
+	    zfft[jgrid+1] = v_ks_dn[igrid+1];
+	  }//endfor k
+        }//endfor j
+      }//endfor i
+      memcpy(&v_ks_dn[1],&(zfft[1]),nfft2*sizeof(double));
+    }
+  }//endif fftwedFlag
+
+  //printf("after tp v_ks_up[2] %lg %lg\n",v_ks_up[2],v_ks_up[5185]);
     
 /*==========================================================================*/
    }/* end routine*/

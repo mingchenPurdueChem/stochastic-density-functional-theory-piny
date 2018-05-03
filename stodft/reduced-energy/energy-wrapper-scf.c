@@ -947,6 +947,7 @@ void calcCoefForceWrapSCF(CLASS *class,GENERAL_DATA *general_data,
   int cpMinOn = 0; //I don't want to calculate cp_hess
   int myidState = communicate->myid_state;
   int pseudoRealFlag = pseudoReal->pseudoRealFlag;
+  int numThreads = communicate->numThreads;
 
   int ncoef_l         =    cp_para_fft_pkg3d_lg->ncoef_proc;
   int ncoef_l_dens_cp_box = cp_para_fft_pkg3d_dens_cp_box->ncoef_proc;
@@ -969,11 +970,14 @@ void calcCoefForceWrapSCF(CLASS *class,GENERAL_DATA *general_data,
 /*==========================================================================*/
 /* 0) Copy the input wave function to CP coeff and zero the force */
 
+  omp_set_num_threads(numThreads);
+  #pragma omp parallel for private(iCoeff)
   for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
     fcre_up[iCoeff] = 0.0;
     fcim_up[iCoeff] = 0.0;
   }
   if(cpLsda==1&&numStateDnProc!=0){
+    #pragma omp parallel for private(iCoeff)
     for(iCoeff=1;iCoeff<=numCoeffDnTotal;iCoeff++){
       fcre_dn[iCoeff] = 0.0;
       fcim_dn[iCoeff] = 0.0;

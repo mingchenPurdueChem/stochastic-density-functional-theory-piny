@@ -232,7 +232,6 @@ void create_para_fft_pkg3d(PARA_FFT_PKG3D *para_fft_pkg3d,
 
   setfft_indx(nkf1,nkf2,nkf3,ncoef,kastr,kbstr,kcstr,
               indx,indx_c);
-
   // In case you need fftw3d
   setfft_indx(nkf1,nkf2,nkf3,ncoef-1,kastr,kbstr,kcstr,
 	       mapFFTW,mapConFFTW);
@@ -244,7 +243,7 @@ void create_para_fft_pkg3d(PARA_FFT_PKG3D *para_fft_pkg3d,
   /*
   printf("ncoef %i\n",ncoef);
   for(i=1;i<=ncoef;i++){
-    printf("kakbkc %i %i %i\n",kastr[i],kbstr[i],kcstr[i]);
+    printf("kakbkc %i %i %i %i %i\n",kastr[i],kbstr[i],kcstr[i],indx[i],indx_c[i]);
   }
   */
 
@@ -252,7 +251,8 @@ void create_para_fft_pkg3d(PARA_FFT_PKG3D *para_fft_pkg3d,
   sort_commence(ncoef,indx,map_inv);
   sort_commence(nktot,indx_c,map_c_inv);
   
-
+  //fflush(stdout); 
+  //exit(0);
 /*------------------------------------------------------------------------*/
 /* ii) Find the starting indicies of FFT's along kc                       */
 /*     and store them                                                     */
@@ -453,6 +453,13 @@ void create_para_fft_pkg3d(PARA_FFT_PKG3D *para_fft_pkg3d,
     for(i=1;i<=ncoef;i++){map_proc[i]   = map[i];}
     for(i=1;i<=nktot;i++){map_c_proc[i] = map_c[i];}
   }/*endif*/
+  
+  /*
+  printf("11111111111111111111111111\n");
+  for(i=1;i<=ncoef;i++){
+    printf("map_proc %i %i %i\n",i,map_proc[i],indx[i]);
+  }
+  */
 
 /*-----------------------------------------------------------------------*/
 /* ii) Determine the number of kc FFT's done on each proc                */
@@ -947,6 +954,9 @@ void create_para_fft_pkg3d(PARA_FFT_PKG3D *para_fft_pkg3d,
   free(&nfft_ka_proc_all[1]);
   free(&map_inv[1]);
 
+
+  //fflush(stdout);
+  //exit(0);
 /*-----------------------------------------------------------------------*/
    }/*end routine*/ 
 /*==========================================================================*/
@@ -1624,10 +1634,12 @@ void para_fft_gen3d_init(PARA_FFT_PKG3D *para_fft_pkg3d)
       para_fft_pkg3d->fftwPlan3DForward = (fftw_plan*)cmalloc(numThreads*sizeof(fftw_plan));
       para_fft_pkg3d->fftwPlan3DBackward = (fftw_plan*)cmalloc(numThreads*sizeof(fftw_plan));
       for(iThread=0;iThread<numThreads;iThread++){
-        para_fft_pkg3d->fftwPlan3DForward[iThread] = fftw_plan_dft_3d(nkf_c,nkf_b,nkf_a,fftw3DForwardIn[iThread],
-                                          fftw3DForwardOut[iThread],FFTW_FORWARD,FFTW_MEASURE);
-        para_fft_pkg3d->fftwPlan3DBackward[iThread] = fftw_plan_dft_3d(nkf_c,nkf_b,nkf_a,fftw3DBackwardIn[iThread],
-                                          fftw3DBackwardOut[iThread],FFTW_BACKWARD,FFTW_MEASURE);
+        para_fft_pkg3d->fftwPlan3DForward[iThread] 
+			= fftw_plan_dft_3d(nkf_a,nkf_b,nkf_c,fftw3DForwardIn[iThread],
+                                  fftw3DForwardOut[iThread],FFTW_FORWARD,FFTW_MEASURE);
+        para_fft_pkg3d->fftwPlan3DBackward[iThread] 
+			= fftw_plan_dft_3d(nkf_a,nkf_b,nkf_c,fftw3DBackwardIn[iThread],
+                                fftw3DBackwardOut[iThread],FFTW_BACKWARD,FFTW_MEASURE);
       }
       break;
     case 2: //threading at coefficient force level
@@ -1657,10 +1669,12 @@ void para_fft_gen3d_init(PARA_FFT_PKG3D *para_fft_pkg3d)
       fftw_plan_with_nthreads(numThreadsFFTW3);
       para_fft_pkg3d->fftwPlan3DForward = (fftw_plan*)cmalloc(sizeof(fftw_plan));
       para_fft_pkg3d->fftwPlan3DBackward = (fftw_plan*)cmalloc(sizeof(fftw_plan));
-      para_fft_pkg3d->fftwPlan3DForward[0] = fftw_plan_dft_3d(nkf_c,nkf_b,nkf_a,fftw3DForwardIn[0],
-                                          fftw3DForwardOut[0],FFTW_FORWARD,FFTW_MEASURE);
-      para_fft_pkg3d->fftwPlan3DBackward[0] = fftw_plan_dft_3d(nkf_c,nkf_b,nkf_a,fftw3DBackwardIn[0],
-                                          fftw3DBackwardOut[0],FFTW_BACKWARD,FFTW_MEASURE);
+      para_fft_pkg3d->fftwPlan3DForward[0] 
+			    = fftw_plan_dft_3d(nkf_a,nkf_b,nkf_c,fftw3DForwardIn[0],
+                                       fftw3DForwardOut[0],FFTW_FORWARD,FFTW_MEASURE);
+      para_fft_pkg3d->fftwPlan3DBackward[0] 
+			    = fftw_plan_dft_3d(nkf_a,nkf_b,nkf_c,fftw3DBackwardIn[0],
+                                     fftw3DBackwardOut[0],FFTW_BACKWARD,FFTW_MEASURE);
       break;      
   }
   

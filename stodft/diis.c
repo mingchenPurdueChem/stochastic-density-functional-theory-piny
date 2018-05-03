@@ -324,7 +324,7 @@ void calcDensityDiis(CP *cp,double **rhoBank,double **rhoErr)
   double mixRatioSM = stodftInfo->mixRatioSM; //alpha
   double pre = mixRatioSM-1.0;
   printf("mixRatioSM %lg pre %lg\n",mixRatioSM,pre);
-  //printf("pre %lg\n",pre);
+  printf("numDiisNow %i\n",numDiisNow);
 
   if(iScf<=4){
     for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
@@ -335,7 +335,6 @@ void calcDensityDiis(CP *cp,double **rhoBank,double **rhoErr)
       }//endfor iDiis
     }//endfor iGrid
   }//endif iScf
-  
   else{
     mixRatioSM = 0.5;
     pre = mixRatioSM-1.0;
@@ -345,6 +344,9 @@ void calcDensityDiis(CP *cp,double **rhoBank,double **rhoErr)
     }
   }
   
+  //printf("22222222 rho %.16lg %.16lg\n",rhoUp[2],rhoUp[5185]);
+  //printf("22222222 rho %.16lg %.16lg\n",rhoUp[3],rhoUp[10369]);
+
   /*
   else{
     for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){

@@ -116,6 +116,7 @@ void cp_rho_calc_hybrid_threads_state(CPEWALD *cpewald,CPSCR *cpscr,
   double integral,int_tmp;
   int    *recv_counts_coef_dens_cp_box;
   int fftw3dFlag = cpcoeffs_info->fftw3dFlag;
+  int ind,indt;
 
  //debug
   int icoef;
@@ -247,11 +248,26 @@ void cp_rho_calc_hybrid_threads_state(CPEWALD *cpewald,CPSCR *cpscr,
       else{
 	para_fft_gen3d_fwd_to_r_fftw3d(zfft_threads[iThread],cp_sclr_fft_pkg3d_sm,iThread);
       }
+      //printf("zfft_threads[0][2] %lg\n",zfft_threads[0][3]);
       /*
       if(iThread==0){
         time_end = omp_get_wtime();
         cp_sclr_fft_pkg3d_sm->cputime1 += time_end-time_st;
       }
+      */
+      /*
+      for(kc=0;kc<nkf3;kc++){
+	for(kb=0;kb<nkf2;kb++){
+	  for(ka=0;ka<nkf1;ka++){
+	    ind = kc*nkf2*nkf1+kb*nkf1+ka;
+	    indt = ka*nkf2*nkf3+kb*nkf3+kc;
+	    printf("zfft_threads %i %i %i %lg\n",kc,kb,ka,zfft_threads[iThread][indt*2+1]);
+	  }
+	}
+      }
+
+      fflush(stdout);
+      exit(0);
       */
 
 /*--------------------------------------------------------------------------*/
@@ -307,6 +323,9 @@ void cp_rho_calc_hybrid_threads_state(CPEWALD *cpewald,CPSCR *cpscr,
       sum_rho(zfft_threads[0],rho_scr,cp_sclr_fft_pkg3d_lg);
     }//endif cp_dual_grid_opt
   }//endif
+
+  //if(fftw3dFlag==0)printf("rrrrho_scr %lg\n",rho_scr[2]);
+  //else printf("rrrrho_scr %lg %lg\n",rho_scr[2],rho_scr[5185]);
 
   time_end = omp_get_wtime();
   //cp_sclr_fft_pkg3d_sm->cputime1 += time_end-time_st;
@@ -371,7 +390,12 @@ void cp_rho_calc_hybrid_threads_state(CPEWALD *cpewald,CPSCR *cpscr,
       if(fftw3dFlag==0)sngl_upack_coef(rhocr,rhoci,zfft,cp_sclr_fft_pkg3d_lg);
       else sngl_upack_coef_fftw3d(rhocr,rhoci,zfft,cp_sclr_fft_pkg3d_lg);
     }else{
-      sngl_upack_coef(zfft_tmp,&zfft_tmp[ncoef_l],zfft,cp_sclr_fft_pkg3d_lg);
+      if(fftw3dFlag==0){
+        sngl_upack_coef(zfft_tmp,&zfft_tmp[ncoef_l],zfft,cp_sclr_fft_pkg3d_lg);
+      }
+      else{
+	sngl_upack_coef_fftw3d(zfft_tmp,&zfft_tmp[ncoef_l],zfft,cp_sclr_fft_pkg3d_lg);
+      }
     }//endif
   }else{
     if(np_states == 1){
@@ -382,6 +406,8 @@ void cp_rho_calc_hybrid_threads_state(CPEWALD *cpewald,CPSCR *cpscr,
                       cp_sclr_fft_pkg3d_dens_cp_box);
     }//endif
   }//endif cp_dual_grid_opt
+
+  //printf("rhokkkkkkkk %lg %lg\n",rhocr[1],rhoci[1]);
 
 /*==========================================================================*/
 /* VII) Reduce rho in g space and get all of it in real space               */
@@ -419,7 +445,22 @@ void cp_rho_calc_hybrid_threads_state(CPEWALD *cpewald,CPSCR *cpscr,
       // now rho is z leading
       
    }/*endif cp_dual_grid_opt*/
- }/*endif np_states*/
+ }
+ else{ //transpose for sequential case
+    if(fftw3dFlag==1){
+      for(kc=0;kc<nkf3;kc++){
+	for(kb=0;kb<nkf2;kb++){
+	  for(ka=0;ka<nkf1;ka++){
+	    ind = kc*nkf2*nkf1+kb*nkf1+ka+1;
+	    indt = ka*nkf2*nkf3+kb*nkf3+kc+1;
+	    zfft[ind] = rho_scr[indt];
+	  }
+	}
+      }
+      memcpy(&rho_scr[1],&zfft[1],nfft2*sizeof(double)); // now rho is z leading
+    }
+ }//endif np_states
+ //printf("rrrrrho %lg %lg\n",rho[2],rho[3]);
 
 /*===========================================================================*/
 /* IF DUALED put rho real space onto the large grid and fft it to g space    */

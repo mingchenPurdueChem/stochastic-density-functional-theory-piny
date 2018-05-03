@@ -1123,6 +1123,18 @@ void noiseRealReGen(GENERAL_DATA *general_data,CP *cp,CLASS *class,int ip_now)
   gaussran2(numRandNum,&iseedNew,&iseedNew,&seedNew,randNum);
   //debug
 #endif
+  /*
+  char fileNameRand[100];
+  FILE *fileRand;
+  sprintf(fileNameRand,"rand-%i",myidState);
+  fileRand = fopen(fileNameRand,"w");
+  for(iGrid=0;iGrid<numStatUpProc*nfft2;iGrid++){
+    if(randNum[iGrid]<0.0)fprintf(fileRand,"-1.0\n");
+    else fprintf(fileRand,"1.0\n");
+  }
+  fclose(fileRand);
+  */
+  
   //printf("randNum[1] %lg\n",randNum[1]);
   for(iGrid=0;iGrid<numStatUpProc*nfft2;iGrid++){
     if(randNum[iGrid]<0.0)noiseWfUpReal[iGrid] = -ranValue;
@@ -1134,7 +1146,23 @@ void noiseRealReGen(GENERAL_DATA *general_data,CP *cp,CLASS *class,int ip_now)
       else noiseWfDnReal[iGrid] = ranValue;
     }
   }
+  /* 
+  char fileNameRand[100];
+  FILE *fileRand;
+  double test;
+  sprintf(fileNameRand,"rand-%i",myidState);
+  //fileRand = fopen(fileNameRand,"r");
+  fileRand = fopen("rand-all","r");
+  for(iGrid=0;iGrid<numStatUpProc*nfft2;iGrid++){
+    fscanf(fileRand,"%lg",&test);
+    if(test<0.0)noiseWfUpReal[iGrid] = -ranValue;
+    else noiseWfUpReal[iGrid] = ranValue;
+  }
+  */
   free(randNum);
+  Barrier(comm_states);
+  //fflush(stdout);
+  //exit(0);
   
 /*==========================================================================*/
 }/*end Routine*/

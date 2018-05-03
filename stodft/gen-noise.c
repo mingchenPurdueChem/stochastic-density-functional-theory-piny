@@ -251,7 +251,7 @@ void genNoiseOrbitalReal(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
 #endif
 #ifndef MKL_RANDOM
   double seedNew = randNumSeedTot[myidState];
-  //printf("proc %i seed %lg\n",myidState,seedNew);
+  printf("proc %i seed %lg\n",myidState,seedNew);
   int iseedNew;
   gaussran2(numRandNum,&iseedNew,&iseedNew,&seedNew,randNum);
   //printf("randNum[1] %lg\n",randNum[1]);
@@ -260,9 +260,23 @@ void genNoiseOrbitalReal(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
     coeffReUp[iStat] = 0.0;
     coeffImUp[iStat] = 0.0;
   }
+  //debug
+  /*
+  char fileNameRand[100];
+  FILE *fileRand;
+  sprintf(fileNameRand,"rand-%i",myidState);
+  fileRand = fopen(fileNameRand,"w");
   for(iStat=0;iStat<numStatUpProc;iStat++){
     for(iGrid=0;iGrid<nfft2;iGrid++){
-      if(randNum[iStat*nfft2+iGrid]<0.0)zfft[iGrid*2+1] = -ranValue;
+      if(randNum[iStat*nfft2+iGrid]<0.0)fprintf(fileRand,"-1.0\n");
+      else fprintf(fileRand,"1.0\n");
+    }
+  }
+  fclose(fileRand);
+  */
+  for(iStat=0;iStat<numStatUpProc;iStat++){
+    for(iGrid=0;iGrid<nfft2;iGrid++){
+      if(randNum[iStat*nfft2+iGrid]<0.0) zfft[iGrid*2+1] = -ranValue;
       else zfft[iGrid*2+1] = ranValue;
       zfft[iGrid*2+2] = 0.0;
     }
@@ -301,8 +315,39 @@ void genNoiseOrbitalReal(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
       coeffImUp[iOff+numCoeff] = 0.0;
     }
   }
-  
+  /* 
+  char fileNameRand[100];
+  FILE *fileRand;
+  double test;
+  //sprintf(fileNameRand,"rand-%i",myidState);
+  for(iStat=1;iStat<=numStatUpTot;iStat++){
+    coeffReUp[iStat] = 0.0;
+    coeffImUp[iStat] = 0.0;
+  }
+  fileRand = fopen("rand-all","r");
+  for(iStat=0;iStat<numStatUpProc;iStat++){
+    for(iGrid=0;iGrid<nfft2;iGrid++){
+      fscanf(fileRand,"%lg",&test);
+      if(test<0.0) zfft[iGrid*2+1] = -ranValue;
+      else zfft[iGrid*2+1] = ranValue;
+      zfft[iGrid*2+2] = 0.0;
+    }
+    iOff = iStat*numCoeff;
+    para_fft_gen3d_bck_to_g(zfft,zfft_temp,cp_sclr_fft_pkg3d_sm);
+    sngl_upack_coef_sum(&coeffReUp[iOff],&coeffImUp[iOff],zfft,
+                        cp_sclr_fft_pkg3d_sm);
+    for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
+      coeffReUp[iOff+iCoeff] *= 0.25;
+      coeffImUp[iOff+iCoeff] *= 0.25;
+    }
+    coeffReUp[iOff+numCoeff] *= 0.5;
+    coeffImUp[iOff+numCoeff] = 0.0;
+  }
+  */
   free(randNum);
+  Barrier(comm_states);
+  //fflush(stdout);
+  //exit(0);
 
 /*--------------------------------------------------------------------------*/
 }/*end routine*/

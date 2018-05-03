@@ -62,6 +62,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int *numElecUpFragProc = fragInfo->numElecUpFragProc;
 
   //debug
+  
   /*
   sprintf(fileNameFragMO,"frag-MO-%i",myidState);
   if(numFragProc>0){

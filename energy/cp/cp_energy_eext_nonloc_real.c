@@ -229,6 +229,9 @@ void nlppKBRealEnergy(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   for(iGrid=0;iGrid<numAtom*numGridMax;iGrid++){
     forceTemp[iGrid] = 0.0;
   }
+  //printf("wfReal[0] %lg\n",wfReal[0]);
+  //fflush(stdout);
+  //exit(0);  
 
   for(iAtom=0;iAtom<numAtom;iAtom++){
     atomType = iAtomAtomType[iAtom+1]-1;
@@ -275,6 +278,7 @@ void nlppKBRealEnergy(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 	      //	    &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
 	      dotRe = ddotBlasWrapper(numGrid,&wfNbhd[0],1,
 	                    &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
+	      //if(iAtom==0)printf("dotRe %lg\n",dotRe);
 	      if(forceCalcFlag==1){
 	        dotReAll[iAtom][countNlppRe] = dotRe;
 	      }

@@ -474,6 +474,8 @@ void cpGetVksStodft(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
 /*--------------------------------------------------------------------*/
 /*  c) Get Hartree + external contributions to VKS -- test for CBCs   */
  
+  printf("rhoc %lg %lg\n",rhocr[10],rhoci[10]);
+
   if(iperd==3){
     for(i=1;i<=ncoef_l_use;i++){
       //erf  long range piece on large grid for dual opt
@@ -645,6 +647,7 @@ void cpGetVksStodft(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
                  &recv_counts_rho[1],&(displs_rho[1]),MPI_DOUBLE,0,comm);
     // All the above rho and v_ks using z as leading dimension. Now I 
     // tanspose it to x leading.
+    /*
     if(fftw3dFlag==1){
       for(i=0;i<nkf3;i++){
         for(j=0;j<nkf2;j++){
@@ -657,10 +660,13 @@ void cpGetVksStodft(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
       }//endfor i
       memcpy(&v_ks_up[1],&(zfft[1]),nfft2*sizeof(double));
     }//endif fftwedFlag
+    */
+    //memcpy(&v_ks_up[1],&(zfft[1]),nfft2*sizeof(double));
     if(cp_lsda==1){
       for(i=1;i<=nfft2_proc_send;i++)zfft[i]=v_ks_dn[i];
       Allgatherv(&(zfft[1]),nfft2_proc_send,MPI_DOUBLE,&(v_ks_dn[1]),
                  &recv_counts_rho[1],&(displs_rho[1]),MPI_DOUBLE,0,comm);
+      /*
       if(fftw3dFlag==1){
         for(i=0;i<nkf3;i++){
           for(j=0;j<nkf2;j++){
@@ -673,8 +679,37 @@ void cpGetVksStodft(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
         }//endfor i
         memcpy(&v_ks_dn[1],&(zfft[1]),nfft2*sizeof(double));
       }//endif fftwedFlag
+      */
     }//endif cp_lsda
   }//endif hybrid
+
+  if(cp_para_opt==0&&fftw3dFlag==1){
+    for(i=0;i<nkf3;i++){
+      for(j=0;j<nkf2;j++){
+	for(k=0;k<nkf1;k++){
+	  igrid = i*nkf2*nkf1+j*nkf1+k;
+	  jgrid = k*nkf2*nkf3+j*nkf3+i;
+	  zfft[jgrid+1] = v_ks_up[igrid+1];
+	}//endfor k
+      }//endfor j
+    }//endfor i
+    memcpy(&v_ks_up[1],&(zfft[1]),nfft2*sizeof(double));
+    if(cp_lsda==1){
+      for(i=0;i<nkf3;i++){
+	for(j=0;j<nkf2;j++){
+	  for(k=0;k<nkf1;k++){
+	    igrid = i*nkf2*nkf1+j*nkf1+k;
+	    jgrid = k*nkf2*nkf3+j*nkf3+i;
+	    zfft[jgrid+1] = v_ks_dn[igrid+1];
+	  }//endfor k
+	}//endfor j
+      }//endfor i
+      memcpy(&v_ks_dn[1],&(zfft[1]),nfft2*sizeof(double));
+    }
+  }
+  Barrier(comm);
+  //fflush(stdout);
+  //exit(0);
 
 /*==========================================================================*/
    }/* end routine*/

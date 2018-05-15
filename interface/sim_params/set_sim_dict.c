@@ -324,7 +324,7 @@ void set_sim_dict_cp(int *num_dict,DICT_WORD *dict[])
 /*========================================================================*/
 /*  0) Malloc the dictionary                                              */ 
 
-  *num_dict = 67;
+  *num_dict = 68;
   *dict = (DICT_WORD *)cmalloc(*num_dict*sizeof(DICT_WORD))-1;
 
 /*========================================================================*/
@@ -702,6 +702,12 @@ void set_sim_dict_cp(int *num_dict,DICT_WORD *dict[])
        strcpy((*dict)[67].keyword,"cp_thread_option");
        strcpy((*dict)[67].keyarg,"state");
 
+  /*-----------------------------------------------------------------------*/
+  /* 68)\cp_real_sparse{#} */
+       strcpy((*dict)[68].error_mes,"Do you wanna use sparse real space grid? On or Off");
+       strcpy((*dict)[68].keyword,"cp_real_sparse");
+       strcpy((*dict)[68].keyarg,"off");
+  
 /*========================================================================*/
 /*------------------------------------------------------------------------*/
 /*========================================================================*/

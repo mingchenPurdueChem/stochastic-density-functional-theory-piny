@@ -57,6 +57,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   VPS_FILE *vpsFile = pseudo->vps_file;
   CPEWALD *cpewald = &(cp->cpewald);
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sparse = &(cp->cp_sclr_fft_pkg3d_sparse);
   CLATOMS_INFO *clatoms_info = &(class->clatoms_info);
   COMMUNICATE *commCP = &(cp->communicate);
 
@@ -66,9 +67,11 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   int smoothOpt	    = pseudoReal->smoothOpt;
   int numAtomType   = atommaps->natm_typ;
   int numAtomTot    = clatoms_info->natm_tot;
-  int nkf1 = cp_para_fft_pkg3d_lg->nkf1;
-  int nkf2 = cp_para_fft_pkg3d_lg->nkf2;
-  int nkf3 = cp_para_fft_pkg3d_lg->nkf3;
+  int realSparseOpt = cpewald->realSparseOpt;
+  int nkf1,nkf2,nkf3;
+  //int nkf1 = cp_para_fft_pkg3d_lg->nkf1;
+  //int nkf2 = cp_para_fft_pkg3d_lg->nkf2;
+  //int nkf3 = cp_para_fft_pkg3d_lg->nkf3;
   int countRad;
   int numR,angNow,numRadTot;
   int countR = 0;
@@ -116,6 +119,19 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 /*==========================================================================*/
 /* I) Initialize radial function and angular channel                        */
   
+  if(realSparseOpt==0){
+    nkf1 = cp_para_fft_pkg3d_lg->nkf1;
+    nkf2 = cp_para_fft_pkg3d_lg->nkf2;
+    nkf3 = cp_para_fft_pkg3d_lg->nkf3;
+  }
+  else{
+    nkf1 = cp_sclr_fft_pkg3d_sparse->nkf1;
+    nkf2 = cp_sclr_fft_pkg3d_sparse->nkf2;
+    nkf3 = cp_sclr_fft_pkg3d_sparse->nkf3;
+  }
+
+  //printf("1111111111 nkf %i %i %i\n",nkf1,nkf2,nkf3);
+
   pseudoReal->numLMax = (int*)cmalloc(numAtomType*sizeof(int));  
   pseudoReal->numRadMax = (int*)cmalloc(numAtomType*sizeof(int));
   pseudoReal->numGridRadSmooth = (int*)cmalloc(numAtomType*sizeof(int));
@@ -1269,16 +1285,19 @@ void mapRealSpaceGrid(CP *cp, CLASS *class, GENERAL_DATA *generalData)
   VPS_FILE *vpsFile = pseudo->vps_file;
   CPEWALD *cpewald = &(cp->cpewald);
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sparse = &(cp->cp_sclr_fft_pkg3d_sparse);  
   CLATOMS_INFO *clatoms_info = &(class->clatoms_info);
   CLATOMS_POS *clatoms_pos = &(class->clatoms_pos[1]);
 
   int numAtomTot = clatoms_info->natm_tot;
   int atomType,l;
-  int iAtom,i,j,k;
+  int iAtom,i,j,k,iGrid;
   int numGridCount;
-  int nkc = cp_para_fft_pkg3d_lg->nkf3;
-  int nkb = cp_para_fft_pkg3d_lg->nkf2;
-  int nka = cp_para_fft_pkg3d_lg->nkf1;
+  int realSparseOpt = cpewald->realSparseOpt;
+  int nkc,nkb,nka;
+  //int nkc = cp_para_fft_pkg3d_lg->nkf3;
+  //int nkb = cp_para_fft_pkg3d_lg->nkf2;
+  //int nka = cp_para_fft_pkg3d_lg->nkf1;
   int aNum,bNum,cNum;
   int xInd,yInd,zInd,xGridInd,yGridInd,zGridInd;
   int gridInd;
@@ -1310,6 +1329,17 @@ void mapRealSpaceGrid(CP *cp, CLASS *class, GENERAL_DATA *generalData)
  
   double aElem[3],bElem[3],cElem[3];
   double aOrth[3],bOrth[3],cOrth[3],acrossb[3];
+
+  if(realSparseOpt==0){
+    nkc = cp_para_fft_pkg3d_lg->nkf3;
+    nkb = cp_para_fft_pkg3d_lg->nkf2;
+    nka = cp_para_fft_pkg3d_lg->nkf1;
+  }
+  else{
+    nkc = cp_sclr_fft_pkg3d_sparse->nkf3;
+    nkb = cp_sclr_fft_pkg3d_sparse->nkf2;
+    nka = cp_sclr_fft_pkg3d_sparse->nkf1;
+  }
 
   aElem[0] = hmat[1]/nka;aElem[1] = hmat[2]/nka;aElem[2] = hmat[3]/nka;
   bElem[0] = hmat[4]/nkb;bElem[1] = hmat[5]/nkb;bElem[2] = hmat[6]/nkb;
@@ -1413,8 +1443,16 @@ void mapRealSpaceGrid(CP *cp, CLASS *class, GENERAL_DATA *generalData)
       }//endfor i
     }//endif numLMax
     numGridNlppMap[iAtom] = numGridCount;
+    /*
+    for(iGrid=0;iGrid<numGridNlppMap[iAtom];iGrid++){
+      printf("11111111mapp %i %i %i\n",iAtom,iGrid,gridNlppMap[iAtom][iGrid]);
+    }
+    */
     //printf("iAtom %i numGridNlppMap %i %i\n",iAtom,numGridNlppMap[iAtom],numGridCount);
   }//endfor iAtom
+
+  //fflush(stdout);
+  //exit(0);
 
 /*--------------------------------------------------------------------------*/
   }/*end routine*/
@@ -1437,18 +1475,22 @@ void testOverlap(CP *cp, CLASS *class, GENERAL_DATA *generalData)
   PSEUDO *pseudo = &(cp->pseudo);
   PSEUDO_REAL *pseudoReal = &(pseudo->pseudoReal);
   CELL *cell = &(generalData->cell);
+  CPEWALD *cpewald = &(cp->cpewald);
   CLATOMS_INFO *clatoms_info = &(class->clatoms_info);
   CLATOMS_POS *clatoms_pos = &(class->clatoms_pos[1]);
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sparse = &(cp->cp_sclr_fft_pkg3d_sparse);
   
   int iAtom,jAtom,iGrid;
   int numAtomTot = clatoms_info->natm_tot;
+  int realSparseOpt = cpewald->realSparseOpt;
   int atomType1,atomType2;
   int overlapFlag = 0;
   int countOverlap = 0;
   int countTotal = 0;
   int numGrid;
-  int numGridAll = (cp_para_fft_pkg3d_lg->nfft)/2;
+  int numGridAll;
+  //int numGridAll = (cp_para_fft_pkg3d_lg->nfft)/2;
   int numGridNlppAll;
   int *iAtomAtomType = atommaps->iatm_atm_typ;
   int *atomNbhdListNum;
@@ -1471,6 +1513,13 @@ void testOverlap(CP *cp, CLASS *class, GENERAL_DATA *generalData)
   double *xList = clatoms_pos->x;
   double *yList = clatoms_pos->y;
   double *zList = clatoms_pos->z; 
+  
+  if(realSparseOpt==0){
+    numGridAll = (cp_para_fft_pkg3d_lg->nfft)/2;
+  }
+  else{
+    numGridAll = (cp_sclr_fft_pkg3d_sparse->nfft)/2;
+  }
 
   gridNlppMapInvTemp = (int**)cmalloc(numGridAll*sizeof(int*));
   for(iGrid=0;iGrid<numGridAll;iGrid++){

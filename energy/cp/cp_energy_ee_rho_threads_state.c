@@ -53,7 +53,8 @@ void cp_rho_calc_hybrid_threads_state(CPEWALD *cpewald,CPSCR *cpscr,
                         PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_lg,
                         PARA_FFT_PKG3D *cp_para_fft_pkg3d_dens_cp_box,
                         PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_dens_cp_box,
-                        PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm)
+                        PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm,CP *cp,
+			CLASS *class,GENERAL_DATA *general_data)
       
 /*==========================================================================*/
 {/*begin routine*/
@@ -66,6 +67,7 @@ void cp_rho_calc_hybrid_threads_state(CPEWALD *cpewald,CPSCR *cpscr,
   int is,i,j,k,iupper;
   double vol_cp,rvol_cp;
   double temp_r,temp_i;
+  int realSparseOpt = cpewald->realSparseOpt;
 
 /*  Assign local pointers                                           */
   double *zfft           =    cpscr->cpscr_wave.zfft;
@@ -90,6 +92,9 @@ void cp_rho_calc_hybrid_threads_state(CPEWALD *cpewald,CPSCR *cpscr,
   int   np_states        =    communicate->np_states;
   int   laplacian_on     =    cpcoeffs_info->cp_laplacian_on;
 
+  //int *recv_counts_coef;
+  //int ncoef_l,ncoef_l_use,ncoef_l_proc,nfft_proc,nfft,nfft2,nfft2_proc;
+  
   int  *recv_counts_coef =    cp_para_fft_pkg3d_lg->recv_counts_coef;
   int   ncoef_l          =    cp_para_fft_pkg3d_lg->ncoef;
   int   ncoef_l_use      =    cp_para_fft_pkg3d_lg->ncoef_use;
@@ -122,6 +127,7 @@ void cp_rho_calc_hybrid_threads_state(CPEWALD *cpewald,CPSCR *cpscr,
   int icoef;
   int fftIndTrans;
   int fftInd;
+  //int nkf1,nkf2,nkf3;
   int nkf1    = cp_para_fft_pkg3d_lg->nkf1;
   int nkf2    = cp_para_fft_pkg3d_lg->nkf2;
   int nkf3    = cp_para_fft_pkg3d_lg->nkf3;
@@ -135,6 +141,34 @@ void cp_rho_calc_hybrid_threads_state(CPEWALD *cpewald,CPSCR *cpscr,
   double sum;
   double time_st,time_end;
   
+  /*
+  if(realSparseOpt==0){
+    nkf1    = cp_para_fft_pkg3d_lg->nkf1;
+    nkf2    = cp_para_fft_pkg3d_lg->nkf2;
+    nkf3    = cp_para_fft_pkg3d_lg->nkf3;
+    recv_counts_coef =    cp_para_fft_pkg3d_lg->recv_counts_coef;
+    ncoef_l          =    cp_para_fft_pkg3d_lg->ncoef;
+    ncoef_l_use      =    cp_para_fft_pkg3d_lg->ncoef_use;
+    ncoef_l_proc     =    cp_para_fft_pkg3d_lg->ncoef_proc;
+    nfft_proc        =    cp_para_fft_pkg3d_lg->nfft_proc;
+    nfft             =    cp_para_fft_pkg3d_lg->nfft;
+    nfft2            =    nfft/2;
+    nfft2_proc       =    nfft_proc/2;
+  }
+  else{
+    nkf1    = cp_para_fft_pkg3d_sparse->nkf1;
+    nkf2    = cp_para_fft_pkg3d_sparse->nkf2;
+    nkf3    = cp_para_fft_pkg3d_sparse->nkf3;
+    recv_counts_coef =    cp_para_fft_pkg3d_sparse->recv_counts_coef;
+    ncoef_l          =    cp_para_fft_pkg3d_sparse->ncoef;
+    ncoef_l_use      =    cp_para_fft_pkg3d_sparse->ncoef_use;
+    ncoef_l_proc     =    cp_para_fft_pkg3d_sparse->ncoef_proc;
+    nfft_proc        =    cp_para_fft_pkg3d_sparse->nfft_proc;
+    nfft             =    cp_para_fft_pkg3d_sparse->nfft;
+    nfft2            =    nfft/2;
+    nfft2_proc       =    nfft_proc/2;
+  }
+  */
 
 
   MPI_Comm comm_states   =    communicate->comm_states;
@@ -215,11 +249,11 @@ void cp_rho_calc_hybrid_threads_state(CPEWALD *cpewald,CPSCR *cpscr,
 
   time_st = omp_get_wtime();
   omp_set_num_threads(numThreads);
-  //#pragma omp parallel private(iThread,is,ioff,ioff2)
-  //{
-    iThread = 0;
-    //iThread = omp_get_thread_num();
-    //#pragma omp for
+  #pragma omp parallel private(iThread,is,ioff,ioff2)
+  {
+    //iThread = 0;
+    iThread = omp_get_thread_num();
+    #pragma omp for
     for(is = 1; is <= iupper; is = is + 2){
       ioff = (is-1)*ncoef;
       ioff2 = (is)*ncoef;
@@ -229,25 +263,53 @@ void cp_rho_calc_hybrid_threads_state(CPEWALD *cpewald,CPSCR *cpscr,
     the wavefunctions are reperesented in spherically cuttof 
     half g space                                                            */
 
+      //if(realSparseOpt==0){
       if(fftw3dFlag==0){
-        dble_pack_coef(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
-	               zfft_threads[iThread],cp_sclr_fft_pkg3d_sm);
+	dble_pack_coef(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
+		       zfft_threads[iThread],cp_sclr_fft_pkg3d_sm);
       }
       else{
 	dble_pack_coef_fftw3d(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
 	    zfft_threads[iThread],cp_sclr_fft_pkg3d_sm);
       }
+      //}
+      /*
+      else{
+        if(fftw3dFlag==0){
+          dble_pack_coef(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
+                         zfft_threads[iThread],cp_sclr_fft_pkg3d_sparse);
+        }
+        else{
+          dble_pack_coef_fftw3d(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
+              zfft_threads[iThread],cp_sclr_fft_pkg3d_sparse);
+        }
+      }
+      */
 /*--------------------------------------------------------------------------*/
 /*II) fourier transform the two wavefunctions to real space
      convention exp(-igr)                                                   */
       
       //if(iThread==0)time_st = omp_get_wtime();
+      //if(realSparseOpt==0){
       if(fftw3dFlag==0){
 	para_fft_gen3d_fwd_to_r(zfft_threads[iThread],zfft_tmp_threads[iThread],cp_sclr_fft_pkg3d_sm);
       }
       else{
 	para_fft_gen3d_fwd_to_r_fftw3d(zfft_threads[iThread],cp_sclr_fft_pkg3d_sm,iThread);
       }
+      //}
+      /*
+      else{
+        if(fftw3dFlag==0){
+          para_fft_gen3d_fwd_to_r(zfft_threads[iThread],zfft_tmp_threads[iThread],cp_sclr_fft_pkg3d_sparse);
+        }
+        else{
+          para_fft_gen3d_fwd_to_r_fftw3d(zfft_threads[iThread],cp_sclr_fft_pkg3d_sparse,iThread);
+
+        }
+      }
+      */
+      
       //printf("zfft_threads[0][2] %lg\n",zfft_threads[0][3]);
       /*
       if(iThread==0){
@@ -276,10 +338,17 @@ void cp_rho_calc_hybrid_threads_state(CPEWALD *cpewald,CPSCR *cpscr,
       if(cp_dual_grid_opt >= 1){
 	sum_rho(zfft_threads[iThread],&rho_scr_threads[iThread*nfft2],cp_sclr_fft_pkg3d_dens_cp_box); 
       }else{
+	//if(realSparseOpt==0){
 	sum_rho(zfft_threads[iThread],&rho_scr_threads[iThread*nfft2],cp_sclr_fft_pkg3d_lg);
+	//}
+	/*
+	else{
+	  sum_rho(zfft_threads[iThread],&rho_scr_threads[iThread*nfft2],cp_sclr_fft_pkg3d_sparse);
+        }
+	*/
       }//endif cp_dual_grid_opt
     }//endfor is
-  //}//end omp
+  }//end omp
 
   
   for(iThread=0;iThread<numThreads;iThread++){
@@ -295,6 +364,7 @@ void cp_rho_calc_hybrid_threads_state(CPEWALD *cpewald,CPSCR *cpscr,
 
   if((nstate % 2 ) != 0){
     ioff = (nstate-1)*ncoef;
+    //if(realSparseOpt==0){
     if(fftw3dFlag==0){
       //printf("ioff %i creal %lg cimag %lg\n",ioff+1,ccreal[ioff+1],ccimag[ioff+1]);
       sngl_pack_coef(&ccreal[ioff],&ccimag[ioff],zfft_threads[0],cp_sclr_fft_pkg3d_sm);
@@ -302,17 +372,41 @@ void cp_rho_calc_hybrid_threads_state(CPEWALD *cpewald,CPSCR *cpscr,
     else{
       sngl_pack_coef_fftw3d(&ccreal[ioff],&ccimag[ioff],zfft_threads[0],cp_sclr_fft_pkg3d_sm);
     }
+    //}
+    /*
+    else{
+      if(fftw3dFlag==0){
+        //printf("ioff %i creal %lg cimag %lg\n",ioff+1,ccreal[ioff+1],ccimag[ioff+1]);
+        sngl_pack_coef(&ccreal[ioff],&ccimag[ioff],zfft_threads[0],cp_sclr_fft_pkg3d_sparse);
+      }
+      else{
+        sngl_pack_coef_fftw3d(&ccreal[ioff],&ccimag[ioff],zfft_threads[0],cp_sclr_fft_pkg3d_sparse);
+      }
+    }
+    */
 
 /*--------------------------------------------------------------------------*/
 /* V) fourier transform the last wavefunction to real space
        convention exp(-igr)                                                 */
 
+    //if(realSparseOpt==0){
     if(fftw3dFlag==0){
       para_fft_gen3d_fwd_to_r(zfft_threads[0],zfft_tmp_threads[0],cp_sclr_fft_pkg3d_sm);
     }
     else{
       para_fft_gen3d_fwd_to_r_fftw3d(zfft_threads[0],cp_sclr_fft_pkg3d_sm,0);
     }
+    //}
+    /*
+    else{
+      if(fftw3dFlag==0){
+        para_fft_gen3d_fwd_to_r(zfft_threads[0],zfft_tmp_threads[0],cp_sclr_fft_pkg3d_sparse);
+      }
+      else{
+        para_fft_gen3d_fwd_to_r_fftw3d(zfft_threads[0],cp_sclr_fft_pkg3d_sparse,0);
+      }
+    }
+    */
 
 /*--------------------------------------------------------------------------*/
 /*VI) add the square of the last wave function to the density(real space)   */
@@ -320,7 +414,14 @@ void cp_rho_calc_hybrid_threads_state(CPEWALD *cpewald,CPSCR *cpscr,
     if(cp_dual_grid_opt >= 1){ 
       sum_rho(zfft_threads[0],rho_scr,cp_sclr_fft_pkg3d_dens_cp_box); 
     }else{
+      //if(realSparseOpt==0){
       sum_rho(zfft_threads[0],rho_scr,cp_sclr_fft_pkg3d_lg);
+      //}
+      /*
+      else{
+	sum_rho(zfft_threads[0],rho_scr,cp_sclr_fft_pkg3d_sparse);
+      }
+      */
     }//endif cp_dual_grid_opt
   }//endif
 
@@ -333,7 +434,7 @@ void cp_rho_calc_hybrid_threads_state(CPEWALD *cpewald,CPSCR *cpscr,
 /*=========================================================================*/
 /*=========================================================================*/
 /*  3) get density in g space                                              */
-/*  I)  pack it up                                                         */
+/*  I) pack it up                                                          */
 /*  rho_scr = rho in scalar                                                */
 
   time_st = omp_get_wtime();
@@ -341,15 +442,24 @@ void cp_rho_calc_hybrid_threads_state(CPEWALD *cpewald,CPSCR *cpscr,
   if(cp_dual_grid_opt >= 1){ 
     sngl_pack_rho(zfft,rho_scr,cp_sclr_fft_pkg3d_dens_cp_box); 
   }else{ // now the leading dimension of zfft is x
+    //if(realSparseOpt==0){
     sngl_pack_rho(zfft,rho_scr,cp_sclr_fft_pkg3d_lg);
+    //}
+    /*
+    else{
+      sngl_pack_rho(zfft,rho_scr,cp_sclr_fft_pkg3d_sparse);
+    }
+    */
   //if(fftw3dFlag==0)sngl_pack_rho(zfft,rho_scr,cp_sclr_fft_pkg3d_lg); 
   //else sngl_pack_rho_fftw3d(zfft,rho_scr,cp_sclr_fft_pkg3d_lg);
   }/*endif cp_dual_grid_opt*/
+  
   /*
-  for(i=1;i<=nfft2;i++){
+  for(i=0;i<nfft2;i++){
     printf("000000000 zfft %lg %lg\n",zfft[2*i+1],zfft[2*i+2]);
   }
   */
+  
 
 /*--------------------------------------------------------------------------*/
 /*  II) back transform to g-space  convention exp(igr)                      */
@@ -364,12 +474,24 @@ void cp_rho_calc_hybrid_threads_state(CPEWALD *cpewald,CPSCR *cpscr,
   if(cp_dual_grid_opt >= 1){ 
     para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_dens_cp_box); 
   }else{
+    //if(realSparseOpt==0){
     if(fftw3dFlag==0){
       para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_lg);
     }
     else{ //It's fine that zfft is x leading 
       para_fft_gen3d_bck_to_g_fftw3d(zfft,cp_sclr_fft_pkg3d_lg,0); 
     }
+    //}
+    /*
+    else{
+      if(fftw3dFlag==0){
+        para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sparse);
+      }
+      else{ //It's fine that zfft is x leading 
+        para_fft_gen3d_bck_to_g_fftw3d(zfft,cp_sclr_fft_pkg3d_sparse,0);
+      }      
+    }
+    */
   }/*endif cp_dual_grid_opt*/
 
 /*==========================================================================*/
@@ -387,15 +509,35 @@ void cp_rho_calc_hybrid_threads_state(CPEWALD *cpewald,CPSCR *cpscr,
 
   if(cp_dual_grid_opt == 0){
     if(np_states == 1){
+      //if(realSparseOpt==0){
       if(fftw3dFlag==0)sngl_upack_coef(rhocr,rhoci,zfft,cp_sclr_fft_pkg3d_lg);
       else sngl_upack_coef_fftw3d(rhocr,rhoci,zfft,cp_sclr_fft_pkg3d_lg);
+      //}
+      /*
+      else{
+        if(fftw3dFlag==0)sngl_upack_coef(rhocr,rhoci,zfft,cp_sclr_fft_pkg3d_sparse);
+        else sngl_upack_coef_fftw3d(rhocr,rhoci,zfft,cp_sclr_fft_pkg3d_sparse);
+      }//endif realSparseOpt
+      */
     }else{
+      //if(realSparseOpt==0){
       if(fftw3dFlag==0){
-        sngl_upack_coef(zfft_tmp,&zfft_tmp[ncoef_l],zfft,cp_sclr_fft_pkg3d_lg);
+	sngl_upack_coef(zfft_tmp,&zfft_tmp[ncoef_l],zfft,cp_sclr_fft_pkg3d_lg);
       }
       else{
 	sngl_upack_coef_fftw3d(zfft_tmp,&zfft_tmp[ncoef_l],zfft,cp_sclr_fft_pkg3d_lg);
       }
+      //}
+      /*
+      else{
+        if(fftw3dFlag==0){
+          sngl_upack_coef(zfft_tmp,&zfft_tmp[ncoef_l],zfft,cp_sclr_fft_pkg3d_sparse);
+        }
+        else{
+          sngl_upack_coef_fftw3d(zfft_tmp,&zfft_tmp[ncoef_l],zfft,cp_sclr_fft_pkg3d_sparse);
+        }
+      }
+      */
     }//endif
   }else{
     if(np_states == 1){
@@ -420,15 +562,21 @@ void cp_rho_calc_hybrid_threads_state(CPEWALD *cpewald,CPSCR *cpscr,
       Reduce_scatter(&zfft_tmp[(ncoef_l+1)],&rhoci[1],&recv_counts_coef[1],
                      MPI_DOUBLE,MPI_SUM,comm_states);  
 
+      //if(realSparseOpt==0){
       sngl_pack_coef(rhocr,rhoci,zfft,cp_para_fft_pkg3d_lg);
-
       para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_para_fft_pkg3d_lg);
-
       sngl_upack_rho(zfft,rho,cp_para_fft_pkg3d_lg); 
+      //}
+      /*
+      else{
+        sngl_pack_coef(rhocr,rhoci,zfft,cp_para_fft_pkg3d_sparse);
+        para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_para_fft_pkg3d_sparse);
+        sngl_upack_rho(zfft,rho,cp_para_fft_pkg3d_sparse);
+      }
+      */
       // now rho is z leading
-
       Barrier(comm_states);
-   }else{
+   }else{ //we dont need this
      Reduce_scatter(&zfft_tmp[1],&rhocr_dens_cp_box[1],
                     &recv_counts_coef_dens_cp_box[1],
                     MPI_DOUBLE,MPI_SUM,comm_states);
@@ -473,11 +621,21 @@ void cp_rho_calc_hybrid_threads_state(CPEWALD *cpewald,CPSCR *cpscr,
                         cp_para_fft_pkg3d_lg,cp_dual_grid_opt);  
 
   if(np_states == 1){
+    //if(realSparseOpt==0){
     para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_lg); 
     sngl_upack_coef(rhocr,rhoci,zfft,cp_sclr_fft_pkg3d_lg);
+    //}
+    /*
+    else{
+      para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sparse);
+      sngl_upack_coef(rhocr,rhoci,zfft,cp_sclr_fft_pkg3d_sparse);
+    }
+    */
   }else{
+    //if(realSparseOpt==0){
     para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_para_fft_pkg3d_lg); 
     sngl_upack_coef(rhocr,rhoci,zfft,cp_para_fft_pkg3d_lg);
+    //}
   }/*endif np_states*/
  }/*endif cp_dual_grid_opt*/
 
@@ -545,10 +703,20 @@ void cp_rho_calc_hybrid_threads_state(CPEWALD *cpewald,CPSCR *cpscr,
                      hmati_cp,vol_cp,laplacian_on,cp_dual_grid_opt,
                      cp_para_fft_pkg3d_dens_cp_box);
    }else{
+    //if(realSparseOpt==0){
     control_grad_rho(cpewald,cpscr,ewald,rhocr,rhoci,
-                     del_rho_x,del_rho_y,del_rho_z,del2_rho,
-                     hmati_cp,vol_cp,laplacian_on,cp_dual_grid_opt,
-                     cp_para_fft_pkg3d_lg);
+	             del_rho_x,del_rho_y,del_rho_z,del2_rho,
+	             hmati_cp,vol_cp,laplacian_on,cp_dual_grid_opt,
+	             cp_para_fft_pkg3d_lg);
+    //}
+    /*
+    else{
+      control_grad_rho(cpewald,cpscr,ewald,rhocr,rhoci,
+                       del_rho_x,del_rho_y,del_rho_z,del2_rho,
+                       hmati_cp,vol_cp,laplacian_on,cp_dual_grid_opt,
+                       cp_para_fft_pkg3d_sparse);
+    }
+    */
     // now rho and gradiant are z leading
    }/*endif cp_dual_grid_opt*/
   }/*endif*/
@@ -597,6 +765,7 @@ void coef_force_calc_hybrid_threads_state(CPEWALD *cpewald,int nstate,
   CLATOMS_POS *clatoms_pos = &(class->clatoms_pos[1]);
   PSEUDO *pseudo = &(cp->pseudo);
   PSEUDO_REAL *pseudoReal = &(pseudo->pseudoReal);
+  //PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sparse = &(cp->cp_sclr_fft_pkg3d_sparse);
 
   int is,i,j,k,iupper;
   int igrid,jgrid;
@@ -605,6 +774,7 @@ void coef_force_calc_hybrid_threads_state(CPEWALD *cpewald,int nstate,
   double eke;
   int ioff,ncoef1,ioff2;
   int iii,iis,nis;
+  //int realSparseOpt = cpewald->realSparseOpt;
 
   int nfft       = cp_sclr_fft_pkg3d_sm->nfft;
   int nfft2   = nfft/2;
@@ -674,6 +844,17 @@ void coef_force_calc_hybrid_threads_state(CPEWALD *cpewald,int nstate,
 /*=================================================================*/
 /*  Find the upper state limit                                     */
 
+  //reset variables
+  /*
+  if(realSparseOpt==1){
+    nfft = cp_sclr_fft_pkg3d_sparse->nfft;
+    nfft2 = nfft/2;
+    nkf1 = cp_sclr_fft_pkg3d_sparse->nkf1;
+    nkf2 = cp_sclr_fft_pkg3d_sparse->nkf2;
+    nkf3 = cp_sclr_fft_pkg3d_sparse->nkf3;
+  }
+  */
+
   ncoef1 = ncoef - 1;
   iupper = nstate;
   if(nstate % 2 == 1){
@@ -718,20 +899,34 @@ void coef_force_calc_hybrid_threads_state(CPEWALD *cpewald,int nstate,
 /*==========================================================================*/
 /* 1) get the wave functions in real space two at a time                    */
 /*   I) double pack the complex zfft array with two real wavefunctions      */
-
+     
+      //if(realSparseOpt==0){
       if(fftw3dFlag==0){
 	dble_pack_coef(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
 		    zfft_threads[iThread],cp_sclr_fft_pkg3d_sm);
       }
       else{
 	dble_pack_coef_fftw3d(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
-		           zfft_threads[iThread],cp_sclr_fft_pkg3d_sm);
+			   zfft_threads[iThread],cp_sclr_fft_pkg3d_sm);
       }
+      //}else{
+      /*
+        if(fftw3dFlag==0){
+          dble_pack_coef(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
+                      zfft_threads[iThread],cp_sclr_fft_pkg3d_sparse);
+        }
+        else{
+          dble_pack_coef_fftw3d(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
+                             zfft_threads[iThread],cp_sclr_fft_pkg3d_sparse);
+        }
+      }//endif realSparseOpt
+      */
 
 /*--------------------------------------------------------------------------*/
 /* II) fourier transform the wavefunctions to real space                    */
 /*      convention exp(-igr)                                                */
 
+      //if(realSparseOpt==0){
       if(fftw3dFlag==0){
 	para_fft_gen3d_fwd_to_r(zfft_threads[iThread],zfft_tmp_threads[iThread],cp_sclr_fft_pkg3d_sm);
       }
@@ -739,6 +934,18 @@ void coef_force_calc_hybrid_threads_state(CPEWALD *cpewald,int nstate,
 	para_fft_gen3d_fwd_to_r_fftw3d(zfft_threads[iThread],cp_sclr_fft_pkg3d_sm,iThread);
 	// x leading
       }
+      //}
+      /*
+      else{
+	if(fftw3dFlag==0){
+	  para_fft_gen3d_fwd_to_r(zfft_threads[iThread],zfft_tmp_threads[iThread],cp_sclr_fft_pkg3d_sparse);
+	}
+	else{
+	  para_fft_gen3d_fwd_to_r_fftw3d(zfft_threads[iThread],cp_sclr_fft_pkg3d_sparse,iThread);
+	  // x leading
+	}
+      }
+      */
 
 /*==========================================================================*/
 /* 2) get v|psi> in g space and store it in zfft                            */
@@ -752,37 +959,75 @@ void coef_force_calc_hybrid_threads_state(CPEWALD *cpewald,int nstate,
 			      zfft_threads[iThread],1,&energyNl[iThread],
 			      &fxThreads[iThread*numAtomTot],
 			      &fyThreads[iThread*numAtomTot],
-			      &fzThreads[iThread*numAtomTot]);
+			      &fzThreads[iThread*numAtomTot],
+			      cp_sclr_fft_pkg3d_sm);
       }
       else{
 	cp_vpsi(zfft_threads[iThread],v_ks,nfft);
       }
-
+      /*
+      for(i=1;i<=nfft2;i++){
+        printf("vvvvvvvvks %lg\n",v_ks[i]);
+      }
+      fflush(stdout);
+      exit(0);
+      */
+      
+      
 /*--------------------------------------------------------------------------*/
 /*  II) fourier transform  to g-space                                       */
 /*     convention exp(igr)                                                  */
 
+      //if(realSparseOpt==0){
       if(fftw3dFlag==0){
 	para_fft_gen3d_bck_to_g(zfft_threads[iThread],zfft_tmp_threads[iThread],cp_sclr_fft_pkg3d_sm);
       }
       else{
-        para_fft_gen3d_bck_to_g_fftw3d(zfft_threads[iThread],cp_sclr_fft_pkg3d_sm,iThread);
+	para_fft_gen3d_bck_to_g_fftw3d(zfft_threads[iThread],cp_sclr_fft_pkg3d_sm,iThread);
       }
+      //}
+      /*
+      else{
+        if(fftw3dFlag==0){
+          para_fft_gen3d_bck_to_g(zfft_threads[iThread],zfft_tmp_threads[iThread],cp_sclr_fft_pkg3d_sparse);
+        }
+        else{
+          para_fft_gen3d_bck_to_g_fftw3d(zfft_threads[iThread],cp_sclr_fft_pkg3d_sparse,iThread);
+        }
+      }
+      */
 
 /*==========================================================================*/
 /* 3) get forces on coefficients by double unpacking the array zfft         */
+    
+      //if(realSparseOpt==0){
+	if(fftw3dFlag==0){
+	  dble_upack_coef_sum(&fccreal[ioff],&fccimag[ioff],
+			  &fccreal[ioff2],&fccimag[ioff2],
+			  zfft_threads[iThread],cp_sclr_fft_pkg3d_sm);
+	}
+	else{
+	  dble_upack_coef_sum_fftw3d(&fccreal[ioff],&fccimag[ioff],
+			  &fccreal[ioff2],&fccimag[ioff2],
+			  zfft_threads[iThread],cp_sclr_fft_pkg3d_sm);
 
-      if(fftw3dFlag==0){
-	dble_upack_coef_sum(&fccreal[ioff],&fccimag[ioff],
-			&fccreal[ioff2],&fccimag[ioff2],
-			zfft_threads[iThread],cp_sclr_fft_pkg3d_sm);
-      }
+	}
+      //}
+      /*
       else{
-	dble_upack_coef_sum_fftw3d(&fccreal[ioff],&fccimag[ioff],
-		        &fccreal[ioff2],&fccimag[ioff2],
-			zfft_threads[iThread],cp_sclr_fft_pkg3d_sm);
+        if(fftw3dFlag==0){
+          dble_upack_coef_sum(&fccreal[ioff],&fccimag[ioff],
+                          &fccreal[ioff2],&fccimag[ioff2],
+                          zfft_threads[iThread],cp_sclr_fft_pkg3d_sparse);
+        }
+        else{
+          dble_upack_coef_sum_fftw3d(&fccreal[ioff],&fccimag[ioff],
+                          &fccreal[ioff2],&fccimag[ioff2],
+                          zfft_threads[iThread],cp_sclr_fft_pkg3d_sparse);
 
-      }
+        }
+      }//endif realSparseOpt
+      */
     }//endfor is
   }//end omp
 
@@ -806,8 +1051,10 @@ void coef_force_calc_hybrid_threads_state(CPEWALD *cpewald,int nstate,
       }
     }
   } 
-  for(iThread=0;iThread<numThreads;iThread++){
-    stat_avg->cp_enl += energyNl[iThread];
+  if(pseudoRealFlag==1){
+    for(iThread=0;iThread<numThreads;iThread++){
+      stat_avg->cp_enl += energyNl[iThread];
+    }
   }
 
 
@@ -829,25 +1076,50 @@ void coef_force_calc_hybrid_threads_state(CPEWALD *cpewald,int nstate,
 
 /*--------------------------------------------------------------------------*/
 /*   I) sngl pack                                                           */
-      
-    if(fftw3dFlag==0){
-      sngl_pack_coef(&ccreal[ioff],&ccimag[ioff],zfft_threads[0],cp_sclr_fft_pkg3d_sm);
-    }
+    
+    //if(realSparseOpt==0){  
+      if(fftw3dFlag==0){
+	sngl_pack_coef(&ccreal[ioff],&ccimag[ioff],zfft_threads[0],cp_sclr_fft_pkg3d_sm);
+      }
+      else{
+	sngl_pack_coef_fftw3d(&ccreal[ioff],&ccimag[ioff],zfft_threads[0],
+			       cp_sclr_fft_pkg3d_sm);
+      }
+    //}
+    /*
     else{
-      sngl_pack_coef_fftw3d(&ccreal[ioff],&ccimag[ioff],zfft_threads[0],
-			     cp_sclr_fft_pkg3d_sm);
+      if(fftw3dFlag==0){
+        sngl_pack_coef(&ccreal[ioff],&ccimag[ioff],zfft_threads[0],cp_sclr_fft_pkg3d_sparse);
+      }
+      else{
+        sngl_pack_coef_fftw3d(&ccreal[ioff],&ccimag[ioff],zfft_threads[0],
+                               cp_sclr_fft_pkg3d_sparse);
+      }
     }
+    */
 
 /*--------------------------------------------------------------------------*/
 /* II) fourier transform the wavefunctions to real space                    */
 /*      convention exp(-igr)                                                */
- 
+
+    //if(realSparseOpt==0){ 
     if(fftw3dFlag==0){
       para_fft_gen3d_fwd_to_r(zfft_threads[0],zfft_tmp_threads[0],cp_sclr_fft_pkg3d_sm);
     }
     else{ 
       para_fft_gen3d_fwd_to_r_fftw3d(zfft_threads[0],cp_sclr_fft_pkg3d_sm,0);
     }
+    //}
+    /*
+    else{
+      if(fftw3dFlag==0){
+        para_fft_gen3d_fwd_to_r(zfft_threads[0],zfft_tmp_threads[0],cp_sclr_fft_pkg3d_sparse);
+      }
+      else{
+        para_fft_gen3d_fwd_to_r_fftw3d(zfft_threads[0],cp_sclr_fft_pkg3d_sparse,0);
+      }
+    }
+    */
 
 /*==========================================================================*/
 /* 5) get v|psi> in g space and store it in zfft                            */
@@ -857,11 +1129,9 @@ void coef_force_calc_hybrid_threads_state(CPEWALD *cpewald,int nstate,
       memcpy(&zfft_tmp_threads[0][1],&zfft_threads[0][1],nfft*sizeof(double));
       if(nlppForceOnly==0)cp_vpsi(zfft_threads[0],v_ks,nfft);
       cp->pseudo.pseudoReal.energyCalcFlag = 1;
-      controlEnergyNlppReal(cp,class,general_data,zfft_tmp_threads[0],zfft_threads[0],0,
-			      &energyNl[0],
-                              &fxThreads[0],
-                              &fyThreads[0],
-                              &fzThreads[0]);
+      controlEnergyNlppReal(cp,class,general_data,zfft_tmp_threads[0],
+			    zfft_threads[0],0,&energyNl[0],&fxThreads[0],
+                            &fyThreads[0],&fzThreads[0],cp_sclr_fft_pkg3d_sm);
     }
     else{
       cp_vpsi(zfft_threads[0],v_ks,nfft);
@@ -870,24 +1140,50 @@ void coef_force_calc_hybrid_threads_state(CPEWALD *cpewald,int nstate,
 /*--------------------------------------------------------------------------*/
 /*   II) fourier transform the result back to g-space */
 /*     convention exp(igr)  */
-    if(fftw3dFlag==0){
-      para_fft_gen3d_bck_to_g(zfft_threads[0],zfft_tmp_threads[0],cp_sclr_fft_pkg3d_sm);
-    }
+    //if(realSparseOpt==0){
+      if(fftw3dFlag==0){
+	para_fft_gen3d_bck_to_g(zfft_threads[0],zfft_tmp_threads[0],cp_sclr_fft_pkg3d_sm);
+      }
+      else{
+	para_fft_gen3d_bck_to_g_fftw3d(zfft_threads[0],cp_sclr_fft_pkg3d_sm,0);
+      }
+    //}
+    /*
     else{
-      para_fft_gen3d_bck_to_g_fftw3d(zfft_threads[0],cp_sclr_fft_pkg3d_sm,0);
+      if(fftw3dFlag==0){
+        para_fft_gen3d_bck_to_g(zfft_threads[0],zfft_tmp_threads[0],cp_sclr_fft_pkg3d_sparse);
+      }
+      else{
+        para_fft_gen3d_bck_to_g_fftw3d(zfft_threads[0],cp_sclr_fft_pkg3d_sparse,0);
+      }
     }
+    */
 
 /*==========================================================================*/
 /* 6) get forces on coefficients by single unpacking the array zfft         */
 
+    //if(realSparseOpt==0){
     if(fftw3dFlag==0){
       sngl_upack_coef_sum(&fccreal[ioff],&fccimag[ioff],zfft_threads[0],
-                          cp_sclr_fft_pkg3d_sm);
+			  cp_sclr_fft_pkg3d_sm);
     }
     else{
       sngl_upack_coef_sum_fftw3d(&fccreal[ioff],&fccimag[ioff],zfft_threads[0],
-                            cp_sclr_fft_pkg3d_sm);
+			    cp_sclr_fft_pkg3d_sm);
     }
+    //}
+    /*
+    else{
+      if(fftw3dFlag==0){
+        sngl_upack_coef_sum(&fccreal[ioff],&fccimag[ioff],zfft_threads[0],
+                            cp_sclr_fft_pkg3d_sparse);
+      }
+      else{
+        sngl_upack_coef_sum_fftw3d(&fccreal[ioff],&fccimag[ioff],zfft_threads[0],
+                              cp_sclr_fft_pkg3d_sparse);
+      }
+    }
+    */
 
   }/* endif: odd number of states*/
 
@@ -922,42 +1218,56 @@ void coef_force_calc_hybrid_threads_state(CPEWALD *cpewald,int nstate,
 /* 8) If doing minimization, Fourier transform the KS potential to g-space  */
 /*    and unpack it into the diagonal Hessian                               */
 
-  if(cp_min_on > 0 ){
+  if(cp_min_on > 0){
     for(i=1;i<=ncoef;i++){ cp_hess_re[i] = cp_hess_im[i] = 0.0;}
-    if(fftw3dFlag==0){
-      sngl_pack_rho(zfft_threads[0],v_ks,cp_sclr_fft_pkg3d_sm);
-      para_fft_gen3d_bck_to_g(zfft_threads[0],zfft_tmp_threads[0],cp_sclr_fft_pkg3d_sm);
-      sngl_upack_coef(cp_hess_re,cp_hess_im,zfft_threads[0],cp_sclr_fft_pkg3d_sm);
-    }
-    else{
-      // we need transpose
-      sngl_pack_rho(zfft_threads[0],v_ks,cp_sclr_fft_pkg3d_sm);
-      for(i=0;i<nkf3;i++){
-        for(j=0;j<nkf2;j++){
-          for(k=0;k<nkf1;k++){
-            igrid = i*nkf2*nkf1+j*nkf1+k;
-            jgrid = k*nkf2*nkf3+j*nkf3+i;
-            zfft_tmp_threads[0][2*igrid+1] = zfft_threads[0][2*jgrid+1];
-            zfft_tmp_threads[0][2*igrid+2] = zfft_threads[0][2*jgrid+2];
-          }//endfor k
-        }//endfor j
-      }//endfor i
-      memcpy(&(zfft_threads[0][1]),&(zfft_tmp_threads[0][1]),nfft*sizeof(double));
-
-      para_fft_gen3d_bck_to_g_fftw3d(zfft_threads[0],cp_sclr_fft_pkg3d_sm,0);
-      
-      sngl_upack_coef_fftw3d(cp_hess_re,cp_hess_im,zfft_threads[0],cp_sclr_fft_pkg3d_sm);
-    }
-
-    /*
-    if(fftw3dFlag==0){
-      for(i=1;i<=ncoef;i++){
-    printf("hessiannnn %lg %lg\n",cp_hess_re[i],cp_hess_im[i]);
+    //if(realSparseOpt==0){
+      if(fftw3dFlag==0){
+	sngl_pack_rho(zfft_threads[0],v_ks,cp_sclr_fft_pkg3d_sm);
+	para_fft_gen3d_bck_to_g(zfft_threads[0],zfft_tmp_threads[0],cp_sclr_fft_pkg3d_sm);
+	sngl_upack_coef(cp_hess_re,cp_hess_im,zfft_threads[0],cp_sclr_fft_pkg3d_sm);
+	//printf("hhhess %lg %lg\n",cp_hess_re[1],cp_hess_im[1]);
       }
-      exit(0);
+      else{
+	// if using fftw3d, v_ks is x leading, we don't need transpose
+	sngl_pack_rho(zfft_threads[0],v_ks,cp_sclr_fft_pkg3d_sm);
+	/*
+	for(i=0;i<nkf3;i++){
+	  for(j=0;j<nkf2;j++){
+	    for(k=0;k<nkf1;k++){
+	      igrid = i*nkf2*nkf1+j*nkf1+k; //z leading
+	      jgrid = k*nkf2*nkf3+j*nkf3+i; //x leading
+	      zfft_tmp_threads[0][2*igrid+1] = zfft_threads[0][2*jgrid+1];
+	      zfft_tmp_threads[0][2*igrid+2] = zfft_threads[0][2*jgrid+2];
+	    }//endfor k
+	  }//endfor j
+	}//endfor i
+	memcpy(&(zfft_threads[0][1]),&(zfft_tmp_threads[0][1]),nfft*sizeof(double));
+	*/
+	para_fft_gen3d_bck_to_g_fftw3d(zfft_threads[0],cp_sclr_fft_pkg3d_sm,0);
+	
+	sngl_upack_coef_fftw3d(cp_hess_re,cp_hess_im,zfft_threads[0],cp_sclr_fft_pkg3d_sm);
+	//printf("hhhess %lg %lg\n",cp_hess_re[1],cp_hess_im[1]);
+      }
+    //}
+    /*
+    else{
+      if(fftw3dFlag==0){
+        sngl_pack_rho(zfft_threads[0],v_ks,cp_sclr_fft_pkg3d_sm);
+        para_fft_gen3d_bck_to_g(zfft_threads[0],zfft_tmp_threads[0],cp_sclr_fft_pkg3d_sparse);
+        sngl_upack_coef(cp_hess_re,cp_hess_im,zfft_threads[0],cp_sclr_fft_pkg3d_sparse);
+        //printf("hhhess %lg %lg\n",cp_hess_re[1],cp_hess_im[1]);
+      }
+      else{
+        // if using fftw3d, v_ks is x leading, we don't need transpose
+        sngl_pack_rho(zfft_threads[0],v_ks,cp_sclr_fft_pkg3d_sm);
+        para_fft_gen3d_bck_to_g_fftw3d(zfft_threads[0],cp_sclr_fft_pkg3d_sparse,0);
+       
+        sngl_upack_coef_fftw3d(cp_hess_re,cp_hess_im,zfft_threads[0],cp_sclr_fft_pkg3d_sparse);
+        //printf("hhhess %lg %lg\n",cp_hess_re[1],cp_hess_im[1]);
+      }
     }
     */
-  }/* endif cp_min_on */
+  }// endif cp_min_on
 
 
 /*==========================================================================*/

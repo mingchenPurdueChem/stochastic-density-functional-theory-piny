@@ -57,9 +57,11 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
   EWALD *ewald			= &(general_data->ewald);
   PTENS *ptens			= &(general_data->ptens);
   FRAGINFO *fragInfo            = stodftInfo->fragInfo;
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d;
   
   int pseudoRealFlag = pseudoReal->pseudoRealFlag;
   int cpLsda         = cpopts->cp_lsda;
+  int realSparseOpt  = cpopts->realSparseOpt;
   int cpGGA  = cpopts->cp_gga;
   int numStateStoUp  = stodftInfo->numStateStoUp;
   int atomForceFlag  = stodftInfo->atomForceFlag;
@@ -71,7 +73,8 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
   int numCoeffUpTotal = numStateUpProc*numCoeff;
   int numCoeffDnTotal = numStateDnProc*numCoeff;
   int numCoeffLarge       = cpcoeffs_info->ncoef_l;
-  int numCoeffLargeProc   = cp->cp_para_fft_pkg3d_lg.ncoef_proc;
+  int numCoeffLargeProc;
+  //int numCoeffLargeProc   = cp->cp_para_fft_pkg3d_lg.ncoef_proc;
   int numCoeffLargeProcDensCpBox = cp->cp_para_fft_pkg3d_dens_cp_box.ncoef_proc;
   int cpDualGridOptOn = cpopts->cp_dual_grid_opt;
   int rhoRealGridNum    = stodftInfo->rhoRealGridNum;
@@ -161,6 +164,9 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
 
 /*======================================================================*/
 /* 0) Initialize force calculation                                      */
+  if(realSparseOpt==0)cp_para_fft_pkg3d = &(cp->cp_para_fft_pkg3d_lg);
+  else cp_para_fft_pkg3d = &(cp->cp_para_fft_pkg3d_sparse);
+  numCoeffLargeProc = cp_para_fft_pkg3d->ncoef_proc;
 
   if(myidState==0){
     energyHartTemp = stat_avg->cp_ehart;
@@ -191,12 +197,12 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
   calcRhoStoRecipFullg(cpewald,cpscr,cpcoeffs_info,ewald,cell,
                      rhoCoeffReUp,rhoCoeffImUp,rhoUp,rhoCoeffReUpDensCpBox,rhoCoeffImUpDensCpBox,
                      divRhoxUp,divRhoyUp,divRhozUp,d2RhoUp,cpGGA,cpDualGridOptOn,numInterpPmeDual,
-                     communicate,&(cp->cp_para_fft_pkg3d_lg),&(cp->cp_para_fft_pkg3d_dens_cp_box));
+                     communicate,cp_para_fft_pkg3d,&(cp->cp_para_fft_pkg3d_dens_cp_box));
   if(cpLsda==1&&numStateDnProc!=0){
     calcRhoStoRecipFullg(cpewald,cpscr,cpcoeffs_info,ewald,cell,
                        rhoCoeffReDn,rhoCoeffImDn,rhoDn,rhoCoeffReDnDensCpBox,rhoCoeffImDnDensCpBox,
                        divRhoxDn,divRhoyDn,divRhozDn,d2RhoDn,cpGGA,cpDualGridOptOn,numInterpPmeDual,
-                       communicate,&(cp->cp_para_fft_pkg3d_lg),&(cp->cp_para_fft_pkg3d_dens_cp_box));
+                       communicate,cp_para_fft_pkg3d,&(cp->cp_para_fft_pkg3d_dens_cp_box));
     for(iCoeff=1;iCoeff<=numCoeffLargeProc;iCoeff++){
       rhoCoeffReUp[iCoeff] += rhoCoeffReDn[iCoeff];
       rhoCoeffImUp[iCoeff] += rhoCoeffImDn[iCoeff];

@@ -35,7 +35,8 @@
 /*==========================================================================*/
 void nlppKBRealEnergyForce(CP *cp,CLASS *class,GENERAL_DATA *generalData,
                            double *wfReal,double *fx,double *fy,double *fz,
-			   double **dotReAll,double **dotImAll)
+			   double **dotReAll,double **dotImAll,
+			   PARA_FFT_PKG3D *cpParaFftPkg3d)
 /*==========================================================================*/
 /*               Begin subprogram:                                          */
       {/*begin routine*/
@@ -45,7 +46,6 @@ void nlppKBRealEnergyForce(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 /*==========================================================================*/
 /*               Local variable declarations                                */
 
-  PARA_FFT_PKG3D *cpParaFftPkg3dLgBigBox = &(cp->cp_para_fft_pkg3d_lg);
   PSEUDO *pseudo = &(cp->pseudo);
   PSEUDO_REAL *pseudoReal = &(pseudo->pseudoReal);
   CELL *cell = &(generalData->cell);
@@ -53,6 +53,7 @@ void nlppKBRealEnergyForce(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   CLATOMS_INFO *clatoms_info = &(class->clatoms_info);
   ATOMMAPS *atommaps = &(class->atommaps);
   STAT_AVG *stat_avg = &(generalData->stat_avg);
+  CPEWALD *cpewald = &(cp->cpewald);
   
   int numAtomType = atommaps->natm_typ;
   int numAtom = clatoms_info->natm_tot;
@@ -63,9 +64,11 @@ void nlppKBRealEnergyForce(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   int radIndex,gridIndex;
   int aIndex,bIndex,cIndex;
   int atomType;
-  int nkc = cpParaFftPkg3dLgBigBox->nkf3;
-  int nkb = cpParaFftPkg3dLgBigBox->nkf2;
-  int nka = cpParaFftPkg3dLgBigBox->nkf1;
+  int realSparseOpt = cpewald->realSparseOpt;
+  //int nkc,nkb,nka,numGridTot;
+  int nkc = cpParaFftPkg3d->nkf3;
+  int nkb = cpParaFftPkg3d->nkf2;
+  int nka = cpParaFftPkg3d->nkf1;
   int numGridTot = nka*nkb*nkc;
   int div,res;
   int gridShiftNowRe,gridShiftNowIm;
@@ -241,11 +244,13 @@ void calcPseudoWfDev(CP *cp,CLASS *class,GENERAL_DATA *generalData)
   PSEUDO *pseudo = &(cp->pseudo);
   CPOPTS *cpopts = &(cp->cpopts);
   PARA_FFT_PKG3D *cpParaFftPkg3dLgBigBox = &(cp->cp_para_fft_pkg3d_lg);
+  PARA_FFT_PKG3D *cpParaFftPkg3dSparse = &(cp->cp_sclr_fft_pkg3d_sparse);
   PSEUDO_REAL *pseudoReal = &(pseudo->pseudoReal);
   CELL *cell = &(generalData->cell);
   CLATOMS_POS *clatoms_pos = &(class->clatoms_pos[1]);
   CLATOMS_INFO *clatoms_info = &(class->clatoms_info);
   ATOMMAPS *atommaps = &(class->atommaps);
+  CPEWALD *cpewald = &(cp->cpewald);
 
   int numAtomType = atommaps->natm_typ;
   int numAtomTot = clatoms_info->natm_tot;
@@ -259,9 +264,11 @@ void calcPseudoWfDev(CP *cp,CLASS *class,GENERAL_DATA *generalData)
   int atomType;
   int countWfTot;
   int gridShiftRe,gridShiftIm;
-  int nkc = cpParaFftPkg3dLgBigBox->nkf3;
-  int nkb = cpParaFftPkg3dLgBigBox->nkf2;
-  int nka = cpParaFftPkg3dLgBigBox->nkf1;
+  int realSparseOpt = cpewald->realSparseOpt;
+  int nkc,nkb,nka;
+  //int nkc = cpParaFftPkg3dLgBigBox->nkf3;
+  //int nkb = cpParaFftPkg3dLgBigBox->nkf2;
+  //int nka = cpParaFftPkg3dLgBigBox->nkf1;
   int div,res;
   int ylmShift;
   int fftw3dFlag = cpopts->fftw3dFlag;
@@ -308,10 +315,23 @@ void calcPseudoWfDev(CP *cp,CLASS *class,GENERAL_DATA *generalData)
   double *vnlPhiDzAtomGridIm = pseudoReal->vnlPhiDzAtomGridIm;
     
   //debug
-  int nfft = cpParaFftPkg3dLgBigBox->nfft;
-  int numGridTot = nfft/2;
+  int nfft,numGridTot;
 
   //double *testwfReal = (double*)calloc(numGridTot,sizeof(double));
+
+  if(realSparseOpt==0){
+    nkc = cpParaFftPkg3dLgBigBox->nkf3;
+    nkb = cpParaFftPkg3dLgBigBox->nkf2;
+    nka = cpParaFftPkg3dLgBigBox->nkf1;
+    nfft = cpParaFftPkg3dLgBigBox->nfft;
+  }
+  else{
+    nkc = cpParaFftPkg3dSparse->nkf3;
+    nkb = cpParaFftPkg3dSparse->nkf2;
+    nka = cpParaFftPkg3dSparse->nkf1;
+    nfft = cpParaFftPkg3dSparse->nfft;
+  }
+  numGridTot = nfft/2;
 
   numGridMax = numGridNlppMap[0];
   for(iAtom=0;iAtom<numAtomTot;iAtom++){

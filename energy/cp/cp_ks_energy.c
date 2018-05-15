@@ -121,11 +121,15 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
 /*         Local Variable declarations                                   */
 
 #include "../typ_defs/typ_mask.h"
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg;
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_lg;
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm;
   
   int i,iii,is,icoef;
   int cp_debug_xc=0;
   int cp_dual_grid_opt_on  = cp->cpopts.cp_dual_grid_opt;
   int itime = cp->cpcoeffs_info.itime_ks;
+  int realSparseOpt = cp->cpewald.realSparseOpt;
   double cpu1,cpu2;
 /*        Local pointers */
 
@@ -245,6 +249,18 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
   cp_wave_min = simopts->cp_wave_min;
   cp_min      = simopts->cp_min;
   cp_min_on = cp_wave_min + cp_min + cp_wave_min_pimd;
+
+  if(realSparseOpt==0){
+    cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
+    cp_sclr_fft_pkg3d_lg = &(cp->cp_sclr_fft_pkg3d_lg);
+    cp_sclr_fft_pkg3d_sm = &(cp->cp_sclr_fft_pkg3d_sm);
+  }
+  else{
+    cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_sparse);
+    cp_sclr_fft_pkg3d_lg = &(cp->cp_sclr_fft_pkg3d_sparse);
+    cp_sclr_fft_pkg3d_sm = &(cp->cp_sclr_fft_pkg3d_sparse);
+  }
+
 
 /*======================================================================*/
 /* 0) Check the forms                                                   */
@@ -415,10 +431,10 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
 			 d_rhoz_up,d2_rho_up,nstate_up,ncoef,
 			 cp_gga,cp_dual_grid_opt_on,n_interp_pme_dual,
 			 &(cp->communicate),
-			 &(cp->cp_para_fft_pkg3d_lg),&(cp->cp_sclr_fft_pkg3d_lg),
+			 cp_para_fft_pkg3d_lg,cp_sclr_fft_pkg3d_lg,
 			 &(cp->cp_para_fft_pkg3d_dens_cp_box),
 			 &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
-			 &(cp->cp_sclr_fft_pkg3d_sm));
+			 cp_sclr_fft_pkg3d_sm,cp,class,general_data);
 
       if((cp_lsda== 1) && (nstate_dn!= 0) ){
 	cp_rho_calc_hybrid_threads_state(&(cp->cpewald),&(cp->cpscr),&(cp->cpcoeffs_info),
@@ -427,11 +443,11 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
 			 d_rhox_dn,d_rhoy_dn,
 			 d_rhoz_dn,d2_rho_dn,nstate_dn,ncoef,
 			 cp_gga,cp_dual_grid_opt_on,n_interp_pme_dual,
-			 &(cp->communicate),&(cp->cp_para_fft_pkg3d_lg),
-			 &(cp->cp_sclr_fft_pkg3d_lg),
+			 &(cp->communicate),cp_para_fft_pkg3d_lg,
+			 cp_sclr_fft_pkg3d_lg,
 			 &(cp->cp_para_fft_pkg3d_dens_cp_box),
 			 &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
-			 &(cp->cp_sclr_fft_pkg3d_sm));
+			 cp_sclr_fft_pkg3d_sm,cp,class,general_data);
 	for(i=1;i <= ncoef_l_proc;i++) {
 	  rhocr_up[i] += rhocr_dn[i];
 	  rhoci_up[i] += rhoci_dn[i];
@@ -452,10 +468,10 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
                          d_rhoz_up,d2_rho_up,nstate_up,ncoef,
                          cp_gga,cp_dual_grid_opt_on,n_interp_pme_dual,
                          &(cp->communicate),
-                         &(cp->cp_para_fft_pkg3d_lg),&(cp->cp_sclr_fft_pkg3d_lg),
+                         cp_para_fft_pkg3d_lg,cp_sclr_fft_pkg3d_lg,
                          &(cp->cp_para_fft_pkg3d_dens_cp_box),
                          &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
-                         &(cp->cp_sclr_fft_pkg3d_sm));
+                         cp_sclr_fft_pkg3d_sm);
 
       if((cp_lsda== 1) && (nstate_dn!= 0) ){
         cp_rho_calc_hybrid_threads_force(&(cp->cpewald),&(cp->cpscr),&(cp->cpcoeffs_info),
@@ -464,11 +480,11 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
                          d_rhox_dn,d_rhoy_dn,
                          d_rhoz_dn,d2_rho_dn,nstate_dn,ncoef,
                          cp_gga,cp_dual_grid_opt_on,n_interp_pme_dual,
-                         &(cp->communicate),&(cp->cp_para_fft_pkg3d_lg),
-                         &(cp->cp_sclr_fft_pkg3d_lg),
+                         &(cp->communicate),cp_para_fft_pkg3d_lg,
+                         cp_sclr_fft_pkg3d_lg,
                          &(cp->cp_para_fft_pkg3d_dens_cp_box),
                          &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
-                         &(cp->cp_sclr_fft_pkg3d_sm));
+                         cp_sclr_fft_pkg3d_sm);
         for(i=1;i <= ncoef_l_proc;i++) {
           rhocr_up[i] += rhocr_dn[i];
           rhoci_up[i] += rhoci_dn[i];
@@ -602,12 +618,12 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
                             &(cp->communicate),
                             &(cp->cp_comm_state_pkg_up),
                             &(cp->cp_comm_state_pkg_dn),
-                            &(cp->cp_para_fft_pkg3d_lg),
-                            &(cp->cp_sclr_fft_pkg3d_lg),
+                            cp_para_fft_pkg3d_lg,
+                            cp_sclr_fft_pkg3d_lg,
                             &(cp->cp_para_fft_pkg3d_dens_cp_box),
                             &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
                             &(cp->cp_para_fft_pkg3d_sm),
-                            &(cp->cp_sclr_fft_pkg3d_sm),
+                            cp_sclr_fft_pkg3d_sm,
                             cp_dual_grid_opt_on,cp,class,general_data);
   
   // We will try to construct and diag ks_mat. Then try to rotate the MO to eigenfunctions

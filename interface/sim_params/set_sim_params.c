@@ -1080,6 +1080,11 @@ int iii;
   /* 67)\cp_thread_option{#} */
   if(strcasecmp(dict[67].keyarg,"state")==0)cp->cpopts.threadFlag = 1; 
   if(strcasecmp(dict[67].keyarg,"force")==0)cp->cpopts.threadFlag = 2;               
+  /*-----------------------------------------------------------------------*/
+  /* 68)\cp_real_sparse{#} */
+  if(strcasecmp(dict[68].keyarg,"on")==0)cp->cpopts.realSparseOpt = 1;
+  if(strcasecmp(dict[68].keyarg,"off")==0)cp->cpopts.realSparseOpt = 0;
+
  
 /*========================================================================*/
     }/*end routine*/ 
@@ -1323,6 +1328,8 @@ void set_sim_params_gen(CLASS *class,GENERAL_DATA *general_data,BONDED *bonded,
         if(strcasecmp(dict[16].keyarg,"on")==0)  {
            cp->cp_sclr_fft_pkg3d_sm.igeneric_opt  = 1;
            cp->cp_para_fft_pkg3d_sm.igeneric_opt  = 1;
+	   cp->cp_sclr_fft_pkg3d_sparse.igeneric_opt = 1;
+           cp->cp_para_fft_pkg3d_sparse.igeneric_opt = 1;
            cp->cp_sclr_fft_pkg3d_lg.igeneric_opt  = 1;
            cp->cp_para_fft_pkg3d_lg.igeneric_opt  = 1;
            cp->cp_sclr_fft_pkg3d_dens_cp_box.igeneric_opt  = 1;
@@ -1333,6 +1340,8 @@ void set_sim_params_gen(CLASS *class,GENERAL_DATA *general_data,BONDED *bonded,
         if(strcasecmp(dict[16].keyarg,"off")==0)  {
            cp->cp_sclr_fft_pkg3d_sm.igeneric_opt  = 0;
            cp->cp_para_fft_pkg3d_sm.igeneric_opt  = 0;
+           cp->cp_sclr_fft_pkg3d_sparse.igeneric_opt = 0;
+           cp->cp_para_fft_pkg3d_sparse.igeneric_opt = 0;
            cp->cp_sclr_fft_pkg3d_lg.igeneric_opt  = 0;
            cp->cp_para_fft_pkg3d_lg.igeneric_opt  = 0;
            cp->cp_sclr_fft_pkg3d_dens_cp_box.igeneric_opt  = 0;

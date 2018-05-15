@@ -54,6 +54,7 @@ void controlEwdLocPreScf(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
   int ipart,jpart,iii,itype,i;
   int icount,koff,natm_use;
   int hess_ind;
+  int realSparseOpt = cpewald->realSparseOpt;
 
   double falp2,falp_clus2,vol,rvol,pivol,fpi,arg,q_sum1,bgr;
   double aka,akb,akc,xk,yk,zk,atemp,btemp,ctemp;
@@ -178,11 +179,34 @@ void controlEwdLocPreScf(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
     /* large sparse grid when cp_dual_grid_opt == 2*/
     idens_opt = 0;
     ipseud_opt= (cp_dual_grid_opt==2 ? 0 : 1);
+
+    if(realSparseOpt==0){
+      kastore   = ewald->kastr;
+      kbstore   = ewald->kbstr;
+      kcstore   = ewald->kcstr;
+      ak2       = cpewald->ak2;
+      nktot     = ewald->nktot;
+      ibreak1   = ewald->ibrk1;
+      ibreak2   = ewald->ibrk2;
+      printf("nktot %i\n",nktot);
+    }
+    else{
+      kastore = cpewald->kastr_sm;
+      kbstore = cpewald->kbstr_sm;
+      kcstore = cpewald->kcstr_sm;
+      ak2 = cpewald->ak2_sm;
+      nktot = cpewald->nktot_sm;
+      ibreak1   = cpewald->ibrk1_sm;
+      ibreak2   = cpewald->ibrk2_sm;
+      printf("nktot %i\n",nktot);
+    }
+    /*
     kastore   = ewald->kastr;
     kbstore   = ewald->kbstr;
     kcstore   = ewald->kcstr;
     ibreak1   = ewald->ibrk1;
     ibreak2   = ewald->ibrk2;
+    */
     vextr     = cpscr->cpscr_loc.vextr;
     vexti     = cpscr->cpscr_loc.vexti;
     vextr_loc = cpscr->cpscr_loc.vextr_loc;
@@ -191,8 +215,8 @@ void controlEwdLocPreScf(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
     dvexti    = cpscr->cpscr_loc.dvexti;
     rhocr     = cpscr->cpscr_rho.rhocr_up;
     rhoci     = cpscr->cpscr_rho.rhoci_up;
-    ak2       = cpewald->ak2;
-    nktot     = ewald->nktot;
+    //ak2       = cpewald->ak2;
+    //nktot     = ewald->nktot;
     hmat      = cell->hmat;
     hmati     = cell->hmati;
     natm_use  = natm_tot;

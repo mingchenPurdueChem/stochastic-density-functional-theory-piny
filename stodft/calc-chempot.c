@@ -55,8 +55,6 @@ void calcChemPotInterp(CP *cp)
   COMMUNICATE *commCP = &(cp->communicate);
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
 
-  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
-
   int i,j,k;
   int iChem,iGrid,iProc;
   int chemPotIndex,chemPotIndexProc;
@@ -68,10 +66,6 @@ void calcChemPotInterp(CP *cp)
   int cpParaOpt      = cpopts->cp_para_opt;
   int rhoRealGridNum = stodftInfo->rhoRealGridNum;
   int rhoRealGridTot = stodftInfo->rhoRealGridTot;
-  int numFFTProc = cp_para_fft_pkg3d_lg->nfft_proc;
-  int numFFT2Proc = numFFTProc/2; 
-  int numFFT = cp_para_fft_pkg3d_lg->nfft;
-  int numFFT2 = numFFT/2;
   int myidState = commCP->myid_state;
   int numProcStates = commCP->np_states;
   MPI_Comm comm_states = commCP->comm_states;

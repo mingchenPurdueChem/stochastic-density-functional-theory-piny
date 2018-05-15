@@ -97,7 +97,8 @@ INTERFACE_FILES       = parse.o zero_class.o zero_bnd.o zero_par.o zero_cp.o \
 INTERFACE_CP_FILES    = set_wave_params.o set_coef_NHC.o read_coef.o \
                         read_coef_dvr.o mall_properties.o \
                         gen_wave.o gen_wave_dvr.o mall_coef.o control_scale_cp.o \
-                        control_set_cp_ewald.o set_cp_ewald.o \
+                        control_set_cp_ewald.o control_set_cp_ewald_sparse.o \
+			set_cp_ewald.o \
                         search_base_cp.o proj_vel_cp.o \
                         set_vps_dict.o samp_vel_cp.o control_vps_params.o \
                         control_vps_params_dvr.o weight_node_gauss_hermite.o \

@@ -34,7 +34,7 @@
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 void nlppKBRealEnergyForceThreads(CP *cp,CLASS *class,GENERAL_DATA *generalData,
-                           double *wfReal)
+                           double *wfReal,PARA_FFT_PKG3D *cpParaFftPkg3d)
 /*==========================================================================*/
 /*               Begin subprogram:                                          */
       {/*begin routine*/
@@ -44,14 +44,15 @@ void nlppKBRealEnergyForceThreads(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 /*==========================================================================*/
 /*               Local variable declarations                                */
 
-  PARA_FFT_PKG3D *cpParaFftPkg3dLgBigBox = &(cp->cp_para_fft_pkg3d_lg);
   PSEUDO *pseudo = &(cp->pseudo);
   PSEUDO_REAL *pseudoReal = &(pseudo->pseudoReal);
+  CPOPTS *cpopts = &(cp->cpopts);
   CELL *cell = &(generalData->cell);
   CLATOMS_POS *clatoms_pos = &(class->clatoms_pos[1]);
   CLATOMS_INFO *clatoms_info = &(class->clatoms_info);
   ATOMMAPS *atommaps = &(class->atommaps);
   STAT_AVG *stat_avg = &(generalData->stat_avg);
+  CPEWALD *cpewald = &(cp->cpewald);
   
   int numAtomType = atommaps->natm_typ;
   int numAtom = clatoms_info->natm_tot;
@@ -62,9 +63,11 @@ void nlppKBRealEnergyForceThreads(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   int radIndex,gridIndex;
   int aIndex,bIndex,cIndex;
   int atomType;
-  int nkc = cpParaFftPkg3dLgBigBox->nkf3;
-  int nkb = cpParaFftPkg3dLgBigBox->nkf2;
-  int nka = cpParaFftPkg3dLgBigBox->nkf1;
+  int realSparseOpt = cpewald->realSparseOpt;
+  //int nkc,nkb,nka,numGridTot;
+  int nkc = cpParaFftPkg3d->nkf3;
+  int nkb = cpParaFftPkg3d->nkf2;
+  int nka = cpParaFftPkg3d->nkf1;
   int numGridTot = nka*nkb*nkc;
   int div,res;
   int gridShiftNowRe,gridShiftNowIm;
@@ -156,23 +159,23 @@ void nlppKBRealEnergyForceThreads(CP *cp,CLASS *class,GENERAL_DATA *generalData,
               dotIm = dotImAll[iAtom][countNlppIm+m-1];
               //printf("dottttttttt %i %i %lg %i %lg\n",
               //       iAtom,countNlppRe+m,dotRe,countNlppIm+m-1,dotIm);
-          // x    
-          //printf("dddddx %lg %lg dy %lg %lg dz %lg %lg\n",vnlPhiDxAtomGridRe[gridShiftNowRe],vnlPhiDxAtomGridIm[gridShiftNowIm],vnlPhiDyAtomGridRe[gridShiftNowRe],vnlPhiDyAtomGridIm[gridShiftNowIm],vnlPhiDzAtomGridRe[gridShiftNowRe],vnlPhiDzAtomGridIm[gridShiftNowIm]);
+              // x    
+              //printf("dddddx %lg %lg dy %lg %lg dz %lg %lg\n",vnlPhiDxAtomGridRe[gridShiftNowRe],vnlPhiDxAtomGridIm[gridShiftNowIm],vnlPhiDyAtomGridRe[gridShiftNowRe],vnlPhiDyAtomGridIm[gridShiftNowIm],vnlPhiDzAtomGridRe[gridShiftNowRe],vnlPhiDzAtomGridIm[gridShiftNowIm]);
               dotDevRe = ddotBlasWrapper(numGrid,wfNbhd,1,
 		     &vnlPhiDxAtomGridRe[gridShiftNowRe],1)*volElem;
               dotDevIm = ddotBlasWrapper(numGrid,wfNbhd,1,
 		         &vnlPhiDxAtomGridIm[gridShiftNowIm],1)*volElem;
-          //printf("xxx m %i dotRe %lg dotIm %lg dotDevRe %lg dotDevIm %lg\n",m,dotRe,dotIm,dotDevRe,dotDevIm);
-          forceNlX += (dotRe*dotDevRe+dotIm*dotDevIm)*4.0*vpsNormList[radIndex]*volInv;
-          // y
-          dotDevRe = ddotBlasWrapper(numGrid,wfNbhd,1,
+              //printf("xxx m %i dotRe %lg dotIm %lg dotDevRe %lg dotDevIm %lg\n",m,dotRe,dotIm,dotDevRe,dotDevIm);
+	      forceNlX += (dotRe*dotDevRe+dotIm*dotDevIm)*4.0*vpsNormList[radIndex]*volInv;
+              // y
+	      dotDevRe = ddotBlasWrapper(numGrid,wfNbhd,1,
                                          &vnlPhiDyAtomGridRe[gridShiftNowRe],1)*volElem;
               dotDevIm = ddotBlasWrapper(numGrid,wfNbhd,1,
                                          &vnlPhiDyAtomGridIm[gridShiftNowIm],1)*volElem;
               //printf("yyy m %i dotRe %lg dotIm %lg dotDevRe %lg dotDevIm %lg\n",m,dotRe,dotIm,dotDevRe,dotDevIm);
 
-          forceNlY += (dotRe*dotDevRe+dotIm*dotDevIm)*4.0*vpsNormList[radIndex]*volInv;
-          // z
+              forceNlY += (dotRe*dotDevRe+dotIm*dotDevIm)*4.0*vpsNormList[radIndex]*volInv;
+              // z
               dotDevRe = ddotBlasWrapper(numGrid,wfNbhd,1,
                                          &vnlPhiDzAtomGridRe[gridShiftNowRe],1)*volElem;
               dotDevIm = ddotBlasWrapper(numGrid,wfNbhd,1,
@@ -184,32 +187,32 @@ void nlppKBRealEnergyForceThreads(CP *cp,CLASS *class,GENERAL_DATA *generalData,
               gridShiftNowIm += numGrid;
             }
             else{
-          dotRe = dotReAll[iAtom][countNlppRe];
+              dotRe = dotReAll[iAtom][countNlppRe];
               //printf("dottttttttt %i %i %lg\n",
-          //      iAtom,countNlppRe,dotRe);
-          // x
+              //      iAtom,countNlppRe,dotRe);
+              // x
               dotDevRe = ddotBlasWrapper(numGrid,wfNbhd,1,
 		     &vnlPhiDxAtomGridRe[gridShiftNowRe],1)*volElem;
               //printf("xxx m %i dotRe %lg dotDevRe %lg\n",m,dotRe,dotDevRe);
 
-          forceNlX += dotRe*dotDevRe*2.0*vpsNormList[radIndex]*volInv;
-          // y
+              forceNlX += dotRe*dotDevRe*2.0*vpsNormList[radIndex]*volInv;
+              // y
               dotDevRe = ddotBlasWrapper(numGrid,wfNbhd,1,
                                          &vnlPhiDyAtomGridRe[gridShiftNowRe],1)*volElem;
               //printf("yyy m %i dotRe %lg dotDevRe %lg\n",m,dotRe,dotDevRe);
 
               forceNlY += dotRe*dotDevRe*2.0*vpsNormList[radIndex]*volInv;
-          // z
+              // z
               dotDevRe = ddotBlasWrapper(numGrid,wfNbhd,1,
                                          &vnlPhiDzAtomGridRe[gridShiftNowRe],1)*volElem;
               //printf("zzz m %i dotRe %lg dotDevRe %lg\n",m,dotRe,dotDevRe);
 
-          forceNlZ += dotRe*dotDevRe*2.0*vpsNormList[radIndex]*volInv;
+              forceNlZ += dotRe*dotDevRe*2.0*vpsNormList[radIndex]*volInv;
               gridShiftNowRe += numGrid;
             }//endif m
           }//endfor m
-      countNlppRe += l+1;
-      countNlppIm += l;
+          countNlppRe += l+1;
+          countNlppIm += l;
         }//endfor iRad
         countRad += atomLRadNum[atomType][l];
       }//endfor l

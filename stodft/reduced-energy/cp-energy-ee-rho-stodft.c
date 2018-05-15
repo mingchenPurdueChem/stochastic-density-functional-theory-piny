@@ -156,7 +156,8 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
       memcpy(&zfft_tmp[1],&zfft[1],nfft*sizeof(double));
       cp_vpsi(zfft,v_ks,nfft);
       cp->pseudo.pseudoReal.energyCalcFlag = 1;
-      controlEnergyNlppRealThreads(cp,class,general_data,zfft_tmp,zfft,1);
+      controlEnergyNlppRealThreads(cp,class,general_data,zfft_tmp,zfft,1,
+				   cp_sclr_fft_pkg3d_sm);
     }
     else cp_vpsi(zfft,v_ks,nfft);
     //printf("v_ks %lg\n",v_ks);
@@ -249,7 +250,8 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
       //cputime(&time_end);
       stodftInfo->cputime3 += time_end-time_st;
       cp->pseudo.pseudoReal.energyCalcFlag = 1;
-      controlEnergyNlppRealThreads(cp,class,general_data,zfft_tmp,zfft,0);
+      controlEnergyNlppRealThreads(cp,class,general_data,zfft_tmp,zfft,0,
+				   cp_sclr_fft_pkg3d_sm);
     }
     else cp_vpsi(zfft,v_ks,nfft);
 

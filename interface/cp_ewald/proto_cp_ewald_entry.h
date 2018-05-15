@@ -5,12 +5,30 @@ void control_set_cp_ewald(SIMOPTS *,CELL *,CPCOEFFS_INFO *,
                           double *,int ,PART_MESH *,ECOR *,int,
                           int,int,int);
 
+void control_set_cp_ewald_sparse(SIMOPTS *,CELL *,CPCOEFFS_INFO *,
+                          EWALD *, CPEWALD *,CP_PARSE *,
+                          double *,double *,double *,
+                          EWD_SCR *,int ,int ,
+                          double *,int ,PART_MESH *,ECOR *,int,
+                          int,int,int);
+
 void control_set_cp_ewald_dvr(SIMOPTS *,CELL *, CPCOEFFS_INFO *,
                           EWALD *, CPEWALD *,CP_PARSE *, double *, double *, 
                           int , double *,int , ECOR *, int , int , int);
 
 
 void control_fft_pkg(PARA_FFT_PKG3D *,PARA_FFT_PKG3D *,
+                     PARA_FFT_PKG3D *,PARA_FFT_PKG3D *,
+                     PARA_FFT_PKG3D *,PARA_FFT_PKG3D *,
+                     PARA_FFT_PKG3D *,PARA_FFT_PKG3D *,
+		     PARA_FFT_PKG3D *,PARA_FFT_PKG3D *,
+                     EWALD* ,CPEWALD *,
+                     PART_MESH *, CPCOEFFS_INFO *,
+                     COMMUNICATE *,int ,int,
+                     double *,int ,int,int );
+
+void control_fft_pkg_sparse(PARA_FFT_PKG3D *,PARA_FFT_PKG3D *,
+                     PARA_FFT_PKG3D *,PARA_FFT_PKG3D *,
                      PARA_FFT_PKG3D *,PARA_FFT_PKG3D *,
                      PARA_FFT_PKG3D *,PARA_FFT_PKG3D *,
                      PARA_FFT_PKG3D *,PARA_FFT_PKG3D *,

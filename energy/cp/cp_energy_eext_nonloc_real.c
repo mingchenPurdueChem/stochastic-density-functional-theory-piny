@@ -35,7 +35,8 @@
 /*==========================================================================*/
 void controlEnergyNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 			   double *zfft_tmp,double *zfft,int flag,double *energyNl,
-			   double *fx,double *fy,double *fz)
+			   double *fx,double *fy,double *fz,
+			   PARA_FFT_PKG3D *cpParaFftPkg3d)
 /*==========================================================================*/
 /*               Begin subprogram:                                          */
       {/*begin routine*/
@@ -46,9 +47,11 @@ void controlEnergyNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   PSEUDO_REAL *pseudoReal = &(pseudo->pseudoReal);
   CLATOMS_INFO *clatoms_info = &(class->clatoms_info);
   ATOMMAPS *atommaps = &(class->atommaps);
+  CPEWALD *cpewald = &(cp->cpewald);
 
-  PARA_FFT_PKG3D *cpParaFftPkg3dLgBigBox = &(cp->cp_para_fft_pkg3d_lg);
-  int nfft = cpParaFftPkg3dLgBigBox->nfft;
+  int realSparseOpt = cpewald->realSparseOpt;
+  //int nfft,numGrid;
+  int nfft = cpParaFftPkg3d->nfft;
   int numGrid = nfft/2;
   int iGrid,iAtom,atomType;
   int forceCalcFlag = pseudoReal->forceCalcFlag;
@@ -78,13 +81,13 @@ void controlEnergyNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   wfReal = (double*)cmalloc(numGrid*sizeof(double));
   wfForceReal = (double*)cmalloc(numGrid*sizeof(double));
   //printf("forceCalcFlag %i\n",forceCalcFlag);
-
+  //printf("zzzzzzfft %lg\n",zfft_tmp[5481*2+1]);
   for(iGrid=0;iGrid<numGrid;iGrid++){
     wfReal[iGrid] = zfft_tmp[iGrid*2+1];
     wfForceReal[iGrid] = 0.0;
   }
-  nlppKBRealEnergy(cp,class,generalData,wfReal,wfForceReal,energyNl,dotReAll,dotImAll);
-  if(forceCalcFlag==1)nlppKBRealEnergyForce(cp,class,generalData,wfReal,fx,fy,fz,dotReAll,dotImAll);
+  nlppKBRealEnergy(cp,class,generalData,wfReal,wfForceReal,energyNl,dotReAll,dotImAll,cpParaFftPkg3d);
+  if(forceCalcFlag==1)nlppKBRealEnergyForce(cp,class,generalData,wfReal,fx,fy,fz,dotReAll,dotImAll,cpParaFftPkg3d);
   for(iGrid=0;iGrid<numGrid;iGrid++){
 #ifdef REAL_PP_DEBUG  
     zfft[iGrid*2+1] = wfForceReal[iGrid];
@@ -98,8 +101,8 @@ void controlEnergyNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
       wfReal[iGrid] = zfft_tmp[iGrid*2+2];
       wfForceReal[iGrid] = 0.0;
     }
-    nlppKBRealEnergy(cp,class,generalData,wfReal,wfForceReal,energyNl,dotReAll,dotImAll);
-    if(forceCalcFlag==1)nlppKBRealEnergyForce(cp,class,generalData,wfReal,fx,fy,fz,dotReAll,dotImAll);
+    nlppKBRealEnergy(cp,class,generalData,wfReal,wfForceReal,energyNl,dotReAll,dotImAll,cpParaFftPkg3d);
+    if(forceCalcFlag==1)nlppKBRealEnergyForce(cp,class,generalData,wfReal,fx,fy,fz,dotReAll,dotImAll,cpParaFftPkg3d);
     for(iGrid=0;iGrid<numGrid;iGrid++){
 #ifdef REAL_PP_DEBUG  
       zfft[iGrid*2+2] = wfForceReal[iGrid];
@@ -133,7 +136,8 @@ void controlEnergyNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 /*==========================================================================*/
 void nlppKBRealEnergy(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 		      double *wfReal,double *forceRealNlpp,double *energyNl,
-		      double **dotReAll,double **dotImAll)
+		      double **dotReAll,double **dotImAll,
+		      PARA_FFT_PKG3D *cpParaFftPkg3d)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
@@ -145,7 +149,6 @@ void nlppKBRealEnergy(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 #include "../typ_defs/typ_mask.h"
 
   PSEUDO *pseudo = &(cp->pseudo);
-  PARA_FFT_PKG3D *cpParaFftPkg3dLgBigBox = &(cp->cp_para_fft_pkg3d_lg);
   PSEUDO_REAL *pseudoReal = &(pseudo->pseudoReal);
   CELL *cell = &(generalData->cell);
   CLATOMS_POS *clatoms_pos = &(class->clatoms_pos[1]);
@@ -153,7 +156,9 @@ void nlppKBRealEnergy(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   ATOMMAPS *atommaps = &(class->atommaps);
   STAT_AVG *stat_avg = &(generalData->stat_avg);
   COMMUNICATE *communicate = &(cp->communicate);
+  CPEWALD *cpewald = &(cp->cpewald);
 
+  int realSparseOpt = cpewald->realSparseOpt;
   int numAtomType = atommaps->natm_typ;
   int numAtom = clatoms_info->natm_tot;
   int numGrid;
@@ -163,9 +168,10 @@ void nlppKBRealEnergy(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   int radIndex,gridIndex;
   int aIndex,bIndex,cIndex;
   int atomType;
-  int nkc = cpParaFftPkg3dLgBigBox->nkf3;
-  int nkb = cpParaFftPkg3dLgBigBox->nkf2;
-  int nka = cpParaFftPkg3dLgBigBox->nkf1;
+  //int nkc,nkb,nka,numGridTot;
+  int nkc = cpParaFftPkg3d->nkf3;
+  int nkb = cpParaFftPkg3d->nkf2;
+  int nka = cpParaFftPkg3d->nkf1;
   int numGridTot = nka*nkb*nkc;
   int div,res;
   int gridShiftNowRe,gridShiftNowIm;
@@ -229,9 +235,6 @@ void nlppKBRealEnergy(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   for(iGrid=0;iGrid<numAtom*numGridMax;iGrid++){
     forceTemp[iGrid] = 0.0;
   }
-  //printf("wfReal[0] %lg\n",wfReal[0]);
-  //fflush(stdout);
-  //exit(0);  
 
   for(iAtom=0;iAtom<numAtom;iAtom++){
     atomType = iAtomAtomType[iAtom+1]-1;
@@ -278,7 +281,18 @@ void nlppKBRealEnergy(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 	      //	    &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
 	      dotRe = ddotBlasWrapper(numGrid,&wfNbhd[0],1,
 	                    &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
-	      //if(iAtom==0)printf("dotRe %lg\n",dotRe);
+	      //printf("volElem %lg\n",volElem);
+	      //printf("11111111 dotRe %.8lg\n",dotRe);
+	      
+	      //if(l==1&&m==0){
+		//printf("%lg\n",wfNbhd[4138]);
+		//for(iGrid=0;iGrid<numGrid;iGrid++){
+		//  printf("333333333 %i %i %i %lg %lg\n",iAtom,iGrid,gridShiftNowRe+iGrid,wfNbhd[iGrid],vnlPhiAtomGridRe[gridShiftNowRe+iGrid]);
+		//}
+		//fflush(stdout);
+		//exit(0);
+	      //}
+	      
 	      if(forceCalcFlag==1){
 	        dotReAll[iAtom][countNlppRe] = dotRe;
 	      }
@@ -298,6 +312,8 @@ void nlppKBRealEnergy(CP *cp,CLASS *class,GENERAL_DATA *generalData,
       }//endfor l
     }//endif numGrid
   }//endfor iAtom
+  //fflush(stdout);
+  //exit(0);
   //printf("energy %lg\n",energy);
 
   int numUpdate,atomInd,gridInd2;
@@ -359,12 +375,14 @@ void calcPseudoWf(CP *cp,CLASS *class,GENERAL_DATA *generalData)
   PSEUDO *pseudo = &(cp->pseudo);
   CPOPTS *cpopts = &(cp->cpopts);
   PARA_FFT_PKG3D *cpParaFftPkg3dLgBigBox = &(cp->cp_para_fft_pkg3d_lg);
+  PARA_FFT_PKG3D *cpParaFftPkg3dSparse = &(cp->cp_sclr_fft_pkg3d_sparse);
   PSEUDO_REAL *pseudoReal = &(pseudo->pseudoReal);
   CELL *cell = &(generalData->cell);
   CLATOMS_POS *clatoms_pos = &(class->clatoms_pos[1]);
   CLATOMS_INFO *clatoms_info = &(class->clatoms_info);
   ATOMMAPS *atommaps = &(class->atommaps);
   COMMUNICATE *communicate = &(cp->communicate);
+  CPEWALD *cpewald = &(cp->cpewald);
 
   int numAtomType = atommaps->natm_typ;
   int numAtomTot = clatoms_info->natm_tot;
@@ -378,9 +396,11 @@ void calcPseudoWf(CP *cp,CLASS *class,GENERAL_DATA *generalData)
   int atomType;
   int countWfTot;
   int gridShiftRe,gridShiftIm;
-  int nkc = cpParaFftPkg3dLgBigBox->nkf3;
-  int nkb = cpParaFftPkg3dLgBigBox->nkf2;
-  int nka = cpParaFftPkg3dLgBigBox->nkf1;
+  int realSparseOpt = cpewald->realSparseOpt;
+  int nkc,nkb,nka;
+  //int nkc = cpParaFftPkg3dLgBigBox->nkf3;
+  //int nkb = cpParaFftPkg3dLgBigBox->nkf2;
+  //int nka = cpParaFftPkg3dLgBigBox->nkf1;
   int div,res;
   int ylmShift;
   int fftw3dFlag = cpopts->fftw3dFlag;
@@ -421,10 +441,24 @@ void calcPseudoWf(CP *cp,CLASS *class,GENERAL_DATA *generalData)
   double *vnlPhiAtomGridRe = pseudoReal->vnlPhiAtomGridRe;
   double *vnlPhiAtomGridIm = pseudoReal->vnlPhiAtomGridIm;
   //debug
-  int nfft = cpParaFftPkg3dLgBigBox->nfft;
-  int numGridTot = nfft/2;
+  int nfft,numGridTot;
+  double *testwfReal;
   
-  double *testwfReal = (double*)calloc(numGridTot,sizeof(double));
+  if(realSparseOpt==0){
+    nkc = cpParaFftPkg3dLgBigBox->nkf3;
+    nkb = cpParaFftPkg3dLgBigBox->nkf2;
+    nka = cpParaFftPkg3dLgBigBox->nkf1;
+    nfft = cpParaFftPkg3dLgBigBox->nfft;
+    numGridTot = nfft/2;
+  }
+  else{
+    nkc = cpParaFftPkg3dSparse->nkf3;
+    nkb = cpParaFftPkg3dSparse->nkf2;
+    nka = cpParaFftPkg3dSparse->nkf1;
+    nfft = cpParaFftPkg3dSparse->nfft;
+    numGridTot = nfft/2;
+  }
+  testwfReal = (double*)calloc(numGridTot,sizeof(double));
 
   numGridMax = numGridNlppMap[0];
   for(iAtom=0;iAtom<numAtomTot;iAtom++){
@@ -511,13 +545,20 @@ void calcPseudoWf(CP *cp,CLASS *class,GENERAL_DATA *generalData)
 	    }else{
 	      for(iGrid=0;iGrid<numGrid;iGrid++){
 		vnlPhiAtomGridRe[gridShiftRe+iGrid] = radFun[iThread*numGridMax+iGrid]*ylm[iThread*(2*l+1)*numGridMax+iGrid];
+                //printf("radFun %lg ylm %lg vnl %lg\n",radFun[iThread*numGridMax+iGrid],ylm[iThread*(2*l+1)*numGridMax+iGrid],vnlPhiAtomGridRe[gridShiftRe+iGrid]);
+
 		//gridIndex = gridNlppMap[iAtom][iGrid];
 		//testwfReal[gridIndex] = vnlPhiAtomGridRe[gridShiftRe+iGrid];
 	      }
 	      gridShiftRe += numGrid;
 	    }//endif m
+	    /*
+	    if(l==1&&m==0){
+	      fflush(stdout);
+	      exit(0);
+	    }
+	    */
 	  }//endfor m
-	  
 	}//endfor iRad
 	countRad += atomLRadNum[atomType][l];
 	free(ylm);
@@ -533,13 +574,15 @@ void calcPseudoWf(CP *cp,CLASS *class,GENERAL_DATA *generalData)
   for(iGrid=0;iGrid<numGridTot;iGrid++){
     printf("55555 %.16lg\n",testwfReal[iGrid]);
   }
-  fflush(stdout);
-  exit(0);
   */
+  //fflush(stdout);
+  //exit(0);
   free(radFun);
   free(trig);
   free(gridAtomNbhd);
   free(nucleiCoord);
+  free(testwfReal);
+  
 
 /*--------------------------------------------------------------------------*/
    }/* end routine */
@@ -579,15 +622,18 @@ void calcTrig(double *gridAtomNbhd,int numGrid,double *trig)
     trig[iGrid*4+1] = z*rInv; //cos(theta)
     trig[iGrid*4+2] = y*rProjInv;
     trig[iGrid*4+3] = x*rProjInv;
+    
+    //debugFlag = 0;
     /*
-    debugFlag = 0;
     for(j=0;j<4;j++){
-      if(isinf(trig[iGrid*4+j])==1||isnan(trig[iGrid*4+j])==1){
-	printf("iGrid %i j %i x %lg y %lg z %lg trig %lg\n",iGrid,j,x,y,z,trig[iGrid*4+j]);
-      }
+      //if(isinf(trig[iGrid*4+j])==1||isnan(trig[iGrid*4+j])==1){
+	printf("iiiiiGrid %i j %i x %lg y %lg z %lg trig %lg\n",iGrid,j,x,y,z,trig[iGrid*4+j]);
+      //}
     }
     */
   }
+  //fflush(stdout);
+  //exit(0);
   
 /*--------------------------------------------------------------------------*/
    }/* end routine */
@@ -632,7 +678,7 @@ void calcSpHarm(double *ylm,int l,double *gridAtomNbhd,int numGrid,
 	ylm[ind] = temp1*trig[iGrid*4+3];
 	ylm[ind+1] = temp1*trig[iGrid*4+2];
       }
-      //printf("m=0 ylm %.16lg\n",ylm[1]);
+      //if(l==1)printf("m=0 ylm %.16lg\n",ylm[1]);
       //printf("m=1 ylm Re %.16lg im %.16lg\n",ylm[numGrid+2],ylm[numGrid+3]);
       break;
     case 2:

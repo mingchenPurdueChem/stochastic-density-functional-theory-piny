@@ -76,6 +76,7 @@ void parse(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   int myid_state,myid_forc,myatm_start,myatm_end;
   int cp_dual_grid_opt_on;        /*dualed option flag for CP */
   int ncons,ncons_dn;
+  int realSparseOpt;
 
   CLASS_PARSE      class_parse;
   CP_PARSE         cp_parse;
@@ -184,7 +185,7 @@ void parse(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   iopt_cp_pw  = cp->cpcoeffs_info.iopt_cp_pw;
   iopt_cp_dvr = cp->cpcoeffs_info.iopt_cp_dvr;
   
-  int testflag = 1;
+  int testflag = 0;
   //cp->cpopts.fftw3dFlag = 0;
   //cp->cpcoeffs_info.fftw3dFlag = 0;
   //cp->cpewald.fftw3dFlag = 0;
@@ -198,6 +199,7 @@ void parse(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   }
   cp->cp_comm_state_pkg_up.numThreads = cp->communicate.numThreads;
   cp->cp_comm_state_pkg_dn.numThreads = cp->communicate.numThreads;
+  cp->cpewald.realSparseOpt = cp->cpopts.realSparseOpt;
 
   class->clatoms_info.ifirst_vps = 0;
   cp->cpcoeffs_info.itime_ks = 0;
@@ -227,25 +229,46 @@ void parse(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*                            CP/Ewald mallocing                          */
 /*                (interface/cp_ewald/control_set_cp_ewald                */
 
+  realSparseOpt = cp->cpewald.realSparseOpt;
+  //debug
+  //realSparseOpt = 1;
+
 /*--------------------------------------------------------------------------*/
   if((nchrg > 0 && iperd > 0) || cp_on==1){
 /*--------------------------------------------------------------------------*/
 /* Set up CP and Ewald stuff                                                */
 
     if(iopt_cp_pw == 1) {
-      control_set_cp_ewald(&(general_data->simopts),&(general_data->cell),
-                           &(cp->cpcoeffs_info),&(general_data->ewald),
-                           &(cp->cpewald),&cp_parse,
-                           &(cp->pseudo.gmin_true),
-                           &(cp->pseudo.gmin_spl),
-                           &(cp->pseudo.gmax_spl),
-                           &(class->ewd_scr),(class_parse.kmax_ewd),
-                           (class_parse.kmax_res),
-                           tot_memory,general_data->timeinfo.int_res_ter,
-                           &(class->part_mesh),&(bonded->ecor),myid,
-                           cp->cpopts.cp_lsda,
-                           general_data->minopts.cp_min_diis,
-                           cp_dual_grid_opt_on); 
+      if(realSparseOpt==0){
+        control_set_cp_ewald(&(general_data->simopts),&(general_data->cell),
+			     &(cp->cpcoeffs_info),&(general_data->ewald),
+			     &(cp->cpewald),&cp_parse,
+			     &(cp->pseudo.gmin_true),
+			     &(cp->pseudo.gmin_spl),
+			     &(cp->pseudo.gmax_spl),
+			     &(class->ewd_scr),(class_parse.kmax_ewd),
+			     (class_parse.kmax_res),
+			     tot_memory,general_data->timeinfo.int_res_ter,
+			     &(class->part_mesh),&(bonded->ecor),myid,
+			     cp->cpopts.cp_lsda,
+			     general_data->minopts.cp_min_diis,
+			     cp_dual_grid_opt_on); 
+      }
+      else{
+        control_set_cp_ewald_sparse(&(general_data->simopts),&(general_data->cell),
+				   &(cp->cpcoeffs_info),&(general_data->ewald),
+				   &(cp->cpewald),&cp_parse,
+				   &(cp->pseudo.gmin_true),
+				   &(cp->pseudo.gmin_spl),
+				   &(cp->pseudo.gmax_spl),
+				   &(class->ewd_scr),(class_parse.kmax_ewd),
+				   (class_parse.kmax_res),
+				   tot_memory,general_data->timeinfo.int_res_ter,
+				   &(class->part_mesh),&(bonded->ecor),myid,
+				   cp->cpopts.cp_lsda,
+				   general_data->minopts.cp_min_diis,
+				   cp_dual_grid_opt_on);
+      }
     }
 
     if(iopt_cp_dvr ==1){
@@ -298,6 +321,9 @@ void parse(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   cp->cp_para_fft_pkg3d_dens_cp_box.threadFlag = cp->cpopts.threadFlag;
   cp->cp_sclr_fft_pkg3d_lg.threadFlag = cp->cpopts.threadFlag;
   cp->cp_para_fft_pkg3d_lg.threadFlag = cp->cpopts.threadFlag;
+  cp->cp_sclr_fft_pkg3d_sparse.threadFlag = cp->cpopts.threadFlag;
+  cp->cp_para_fft_pkg3d_sparse.threadFlag = cp->cpopts.threadFlag;
+
 
   cp->cp_sclr_fft_pkg3d_sm.numThreads = cp->communicate.numThreads;
   cp->cp_para_fft_pkg3d_sm.numThreads = cp->communicate.numThreads;
@@ -305,6 +331,9 @@ void parse(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   cp->cp_para_fft_pkg3d_dens_cp_box.numThreads = cp->communicate.numThreads;
   cp->cp_sclr_fft_pkg3d_lg.numThreads = cp->communicate.numThreads;
   cp->cp_para_fft_pkg3d_lg.numThreads = cp->communicate.numThreads;
+  cp->cp_sclr_fft_pkg3d_sparse.numThreads = cp->communicate.numThreads;
+  cp->cp_para_fft_pkg3d_sparse.numThreads = cp->communicate.numThreads;
+
 
   cp->cp_sclr_fft_pkg3d_sm.numThreadsFFTW3 = cp->communicate.numThreadsFFTW3;
   cp->cp_para_fft_pkg3d_sm.numThreadsFFTW3 = cp->communicate.numThreadsFFTW3;
@@ -312,23 +341,47 @@ void parse(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   cp->cp_para_fft_pkg3d_dens_cp_box.numThreadsFFTW3 = cp->communicate.numThreadsFFTW3;
   cp->cp_sclr_fft_pkg3d_lg.numThreadsFFTW3 = cp->communicate.numThreadsFFTW3;
   cp->cp_para_fft_pkg3d_lg.numThreadsFFTW3 = cp->communicate.numThreadsFFTW3;
+  cp->cp_sclr_fft_pkg3d_sparse.numThreadsFFTW3 = cp->communicate.numThreadsFFTW3;
+  cp->cp_para_fft_pkg3d_sparse.numThreadsFFTW3 = cp->communicate.numThreadsFFTW3;
+
 
   if((nchrg > 0 && iperd > 0 && pme_on==1) || cp_on==1){
     if(myid_state < num_proc && myid_state >= 0){
       if(iopt_cp_pw == 1){
-        control_fft_pkg(&(cp->cp_sclr_fft_pkg3d_sm),
-                        &(cp->cp_para_fft_pkg3d_sm),
-                        &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
-                        &(cp->cp_para_fft_pkg3d_dens_cp_box),
-                        &(cp->cp_sclr_fft_pkg3d_lg),
-                        &(cp->cp_para_fft_pkg3d_lg),
-                        &(general_data->pme_fft_pkg),
-                        &(general_data->pme_res_fft_pkg),
-                        &(general_data->ewald),&(cp->cpewald),
-                        &(class->part_mesh),&(cp->cpcoeffs_info),
-                        &(class->communicate),cp_on,cp->cpopts.cp_lsda,
-                        tot_memory,general_data->timeinfo.int_res_ter,
-                        cp->cpopts.cp_para_opt,cp_dual_grid_opt_on);
+	if(realSparseOpt==0){
+	  control_fft_pkg(&(cp->cp_sclr_fft_pkg3d_sm),
+			  &(cp->cp_para_fft_pkg3d_sm),
+			  &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
+			  &(cp->cp_para_fft_pkg3d_dens_cp_box),
+			  &(cp->cp_sclr_fft_pkg3d_lg),
+			  &(cp->cp_para_fft_pkg3d_lg),
+			  &(cp->cp_sclr_fft_pkg3d_sparse),
+			  &(cp->cp_para_fft_pkg3d_sparse),
+			  &(general_data->pme_fft_pkg),
+			  &(general_data->pme_res_fft_pkg),
+			  &(general_data->ewald),&(cp->cpewald),
+			  &(class->part_mesh),&(cp->cpcoeffs_info),
+			  &(class->communicate),cp_on,cp->cpopts.cp_lsda,
+			  tot_memory,general_data->timeinfo.int_res_ter,
+			  cp->cpopts.cp_para_opt,cp_dual_grid_opt_on);
+        }
+	else{
+          control_fft_pkg_sparse(&(cp->cp_sclr_fft_pkg3d_sm),
+                          &(cp->cp_para_fft_pkg3d_sm),
+                          &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
+                          &(cp->cp_para_fft_pkg3d_dens_cp_box),
+                          &(cp->cp_sclr_fft_pkg3d_lg),
+                          &(cp->cp_para_fft_pkg3d_lg),
+                          &(cp->cp_sclr_fft_pkg3d_sparse),
+                          &(cp->cp_para_fft_pkg3d_sparse),
+                          &(general_data->pme_fft_pkg),
+                          &(general_data->pme_res_fft_pkg),
+                          &(general_data->ewald),&(cp->cpewald),
+                          &(class->part_mesh),&(cp->cpcoeffs_info),
+                          &(class->communicate),cp_on,cp->cpopts.cp_lsda,
+                          tot_memory,general_data->timeinfo.int_res_ter,
+                          cp->cpopts.cp_para_opt,cp_dual_grid_opt_on);
+	}
       }
       if(iopt_cp_dvr == 1) {
         control_fft_pkg_dvr(&(cp->cp_sclr_fft_pkg3d_sm),

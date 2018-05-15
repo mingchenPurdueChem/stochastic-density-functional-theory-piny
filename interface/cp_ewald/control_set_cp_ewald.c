@@ -56,6 +56,7 @@ void control_set_cp_ewald(SIMOPTS *simopts,CELL *cell,
 /*=======================================================================*/
 /*            Local variable declarations:                               */
 
+   int realSparseOpt = cpewald->realSparseOpt;
    double ecut_now;                    /* Num: Energy cutoff                 */
    double ecut_dens_cp_box_now;        /* Num: Energy cutoff                 */
    double ecut_res,ecut_tmp;
@@ -550,7 +551,6 @@ if(cp_on == 1){
                    cpewald->kastr_sm,cpewald->kbstr_sm,cpewald->kcstr_sm,
                    cpewald->ibrk1_sm,cpewald->ibrk2_sm,
                    &(cpewald->gw_gmin),&(cpewald->gw_gmax));
-      printf("222222222 gw_gmax %lg\n",cpewald->gw_gmax);
       //cpewald->gmaxTrueSm = cpewald->gw_gmax*0.74;
       cpewald->gmaxTrueSm = cpewald->gw_gmax;
 
@@ -687,8 +687,6 @@ if(cp_on == 1){
 /*=======================================================================*/
 
 
-
-
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
@@ -701,6 +699,8 @@ void control_fft_pkg(PARA_FFT_PKG3D *cp_sclr_fft_pkg_sm,
                      PARA_FFT_PKG3D *cp_para_fft_pkg_dens_cp_box,
                      PARA_FFT_PKG3D *cp_sclr_fft_pkg_lg,
                      PARA_FFT_PKG3D *cp_para_fft_pkg_lg,
+		     PARA_FFT_PKG3D *cp_sclr_fft_pkg_sparse,
+		     PARA_FFT_PKG3D *cp_para_fft_pkg_sparse,
                      PARA_FFT_PKG3D *pme_fft_pkg,
                      PARA_FFT_PKG3D *pme_res_fft_pkg,
                      EWALD* ewald,CPEWALD *cpewald,
@@ -715,6 +715,7 @@ void control_fft_pkg(PARA_FFT_PKG3D *cp_sclr_fft_pkg_sm,
 /*    Local Variables */
 
   int nkf1,nkf2,nkf3,nfft_ext,iii;
+  int nkf1Sm,nkf2Sm,nkf3Sm;
   int nkf1_dens_cp_box,nkf2_dens_cp_box,nkf3_dens_cp_box;
           /* used for denisty on cp grid when have 2 boxes*/
 
@@ -741,6 +742,7 @@ void control_fft_pkg(PARA_FFT_PKG3D *cp_sclr_fft_pkg_sm,
   int n_interp           = part_mesh->n_interp;
   int n_interp_res       = part_mesh->n_interp_res;
   int pme_para_opt       = part_mesh->pme_para_opt;
+  int realSparseOpt      = cpewald->realSparseOpt;
 
 /*=========================================================================*/
 /* 0) Print to screen and check for nproc > nstate error */
@@ -844,6 +846,11 @@ void control_fft_pkg(PARA_FFT_PKG3D *cp_sclr_fft_pkg_sm,
      nkf1 = 4*(kmax_cp[1]+1);
      nkf2 = 4*(kmax_cp[2]+1);
      nkf3 = 4*(kmax_cp[3]+1);
+     if(realSparseOpt==1){
+       nkf1Sm = 2*(kmax_cp[1]+1);
+       nkf2Sm = 2*(kmax_cp[2]+1);
+       nkf3Sm = 2*(kmax_cp[3]+1);
+     }
     break;
     case 1:
      nkf1 = 4*box_rat*(kmax_cp_dens_cp_box[1]+1);
@@ -960,6 +967,48 @@ void control_fft_pkg(PARA_FFT_PKG3D *cp_sclr_fft_pkg_sm,
                           cpewald->kcstr_sm,cp_dual_grid_opt_on);
 
   }/*endif*/
+
+/*=========================================================================*/
+/* III) Small  CP sparse scalar package                                    */
+
+  if(cp_on==1&&cp_para_opt==0&&realSparseOpt==1){
+    nkf1 = 2*(kmax_cp_dens_cp_box[1]+1);
+    nkf2 = 2*(kmax_cp_dens_cp_box[2]+1);
+    nkf3 = 2*(kmax_cp_dens_cp_box[3]+1);
+    //nkf1 = 4*(kmax_cp_dens_cp_box[1]+1);
+    //nkf2 = 4*(kmax_cp_dens_cp_box[2]+1);
+    //nkf3 = 4*(kmax_cp_dens_cp_box[3]+1);
+
+
+    cp_sclr_fft_pkg_sparse->nkf1 = nkf1;
+    cp_sclr_fft_pkg_sparse->nkf2 = nkf2;
+    cp_sclr_fft_pkg_sparse->nkf3 = nkf3;
+    cp_sclr_fft_pkg_sparse->nktot = ncoef-1;
+    cp_sclr_fft_pkg_sparse->ncoef = ncoef;
+    cp_sclr_fft_pkg_sparse->myid = 0;
+    cp_sclr_fft_pkg_sparse->myidp1 = 1;
+    cp_sclr_fft_pkg_sparse->num_proc = 1;
+    cp_sclr_fft_pkg_sparse->comm = communicate->comm_faux;
+
+    create_para_fft_pkg3d(cp_sclr_fft_pkg_sparse,
+                          cpewald->kastr_sm,cpewald->kbstr_sm,
+                          cpewald->kcstr_sm,cp_dual_grid_opt_on);
+
+    cp_para_fft_pkg_sparse->nkf1 = nkf1;
+    cp_para_fft_pkg_sparse->nkf2 = nkf2;
+    cp_para_fft_pkg_sparse->nkf3 = nkf3;
+    cp_para_fft_pkg_sparse->nktot = ncoef-1;
+    cp_para_fft_pkg_sparse->ncoef = ncoef;
+    cp_para_fft_pkg_sparse->myid = myid_state;
+    cp_para_fft_pkg_sparse->myidp1 = myid_state+1;
+    cp_para_fft_pkg_sparse->num_proc = np_states;
+    cp_para_fft_pkg_sparse->comm = communicate->comm_states;
+
+    create_para_fft_pkg3d(cp_para_fft_pkg_sparse,
+                          cpewald->kastr_sm,cpewald->kbstr_sm,
+                          cpewald->kcstr_sm,cp_dual_grid_opt_on);
+
+  }
 
 /*=========================================================================*/
 /* IV) Small  CP parallel package                                         */

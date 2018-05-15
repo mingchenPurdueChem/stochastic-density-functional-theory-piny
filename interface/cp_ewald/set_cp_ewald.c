@@ -294,6 +294,101 @@ void set_pme_grid(double ecut_now,double deth,double *hmatik,int *kmaxv,
      } /* end routine */
 /*==========================================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+
+void set_pme_grid_sm(double ecut_now,double deth,double *hmatik,int *kmaxv,
+                     int *ngrid_a,int *ngrid_b,int *ngrid_c,int n_interp,
+                     int kmax_pme)
+
+/*==========================================================================*/
+/*               Begin subprogram:                                          */
+      {/*begin routine*/
+/*==========================================================================*/
+/*               Local variable declarations:                               */
+
+  int iii,igo;
+  double rtwoth,tpi,rvol23;
+  double d1,d2,d3;
+  double try1,try2,try3;
+  double temp1,temp2,temp3,ecut_pme,ecut;
+  int ktemp1,ktemp2,ktemp3;
+
+
+/*==========================================================================*/
+/* IV) Calculate PME cutoff                                                 */
+
+   rtwoth = -(2./3.);
+   rvol23 = pow(deth,rtwoth);
+   tpi = M_PI * 2.0;
+   ecut_pme = M_PI * .5 * M_PI * (double) (kmax_pme * kmax_pme)*rvol23;
+   if(ecut_pme < ecut_now){
+    printf("$$$$$$$$$$$$$$$$$$$$_Warning_$$$$$$$$$$$$$$$$$$$$\n");
+    printf("Warning PME cutoff taken too small             \n");
+    printf("Using an appropriate larger value.             \n");
+    printf("$$$$$$$$$$$$$$$$$$$$_Warning_$$$$$$$$$$$$$$$$$$$$\n");
+    fflush(stdout);
+   }/*endif*/
+   ecut = MAX(ecut_pme,ecut_now);
+  
+
+/*==========================================================================*/
+/* III) Adjust shape of reciprocal space  */
+
+   d1 = hmatik[1];  d2 = hmatik[4];   d3 = hmatik[7];
+   try1 = sqrt(d1 * d1 + d2 * d2 + d3 * d3);
+   d1 = hmatik[2];  d2 = hmatik[5];   d3 = hmatik[8];
+   try2 = sqrt(d1 * d1 + d2 * d2 + d3 * d3);
+   d1 = hmatik[3];  d2 = hmatik[6];   d3 = hmatik[9];
+   try3 = sqrt(d1 * d1 + d2 * d2 + d3 * d3);
+   temp1 = sqrt(ecut * .5) / (M_PI * try1);
+   temp2 = sqrt(ecut * .5) / (M_PI * try2);
+   temp3 = sqrt(ecut * .5) / (M_PI * try3);
+   ktemp1 = NINT(temp1);
+   ktemp2 = NINT(temp2);
+   ktemp3 = NINT(temp3);
+   radixme(&ktemp1,&ktemp2,&ktemp3);
+   *ngrid_a = 2*(ktemp1 + 1);
+   *ngrid_b = 2*(ktemp2 + 1);
+   *ngrid_c = 2*(ktemp3 + 1);
+   igo=0;
+   if(*ngrid_a < 2*(kmaxv[1]+2)){igo=1;}
+   if(*ngrid_b < 2*(kmaxv[2]+2)){igo=1;}
+   if(*ngrid_c < 2*(kmaxv[3]+2)){igo=1;}
+   while(igo==1){
+       if(*ngrid_a < 2*(kmaxv[1]+2)){temp1+=1.0;}
+       if(*ngrid_b < 2*(kmaxv[2]+2)){temp2+=1.0;}
+       if(*ngrid_c < 2*(kmaxv[3]+2)){temp3+=1.0;}
+       ktemp1 = NINT(temp1);
+       ktemp2 = NINT(temp2);
+       ktemp3 = NINT(temp3);
+       radixme(&ktemp1,&ktemp2,&ktemp3);
+       *ngrid_a = 2*(ktemp1 + 1);
+       *ngrid_b = 2*(ktemp2 + 1);
+       *ngrid_c = 2*(ktemp3 + 1);
+       igo = 0;
+       if(*ngrid_a < 2*(kmaxv[1]+2)){igo=1;}
+       if(*ngrid_b < 2*(kmaxv[2]+2)){igo=1;}
+       if(*ngrid_c < 2*(kmaxv[3]+2)){igo=1;}
+   }/*endwhile*/
+   if((n_interp > *ngrid_a) || 
+      (n_interp > *ngrid_b) || 
+      (n_interp > *ngrid_c) ){
+       printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+       printf("PME parameter n_interp too large for pme cutoff\n");
+       printf("%d > %d or %d or %d \n",
+            n_interp, *ngrid_a, *ngrid_b, *ngrid_c);
+       printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+       fflush(stdout);
+       exit(1);
+   }/*endif*/
+   
+
+/*-------------------------------------------------------------------------*/
+     } /* end routine */
+/*==========================================================================*/
+
 
 
 
@@ -700,7 +795,7 @@ void setkvec3d_sm(int nktot,double ecut,int *kmax_cp,double *hmatik,
 	aka = (double) ka;
 	akb = (double) kb;
 	akc = (double) kc;
-	//printf("aka %lg akb %lg akc %lg icount %i\n",aka,akb,akc,icount);
+	//printf("aaaaaaka %lg akb %lg akc %lg icount %i\n",aka,akb,akc,icount);
 	xk = (aka * hmatik[1] + akb * hmatik[2] + akc * hmatik[3]) * tpi;
 	yk = (aka * hmatik[4] + akb * hmatik[5] + akc * hmatik[6]) * tpi;
 	zk = (aka * hmatik[7] + akb * hmatik[8] + akc * hmatik[9]) * tpi;

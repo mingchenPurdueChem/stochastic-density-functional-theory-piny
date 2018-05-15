@@ -75,6 +75,9 @@ void create_pme_fft_pkg(PARA_FFT_PKG3D *,double *,int);
 void set_pme_grid(double ,double ,double *,int *,
                   int *,int *,int *,int ,int );
 
+void set_pme_grid_sm(double ,double ,double *,int *,
+                     int *,int *,int *,int ,int );
+
 void set_pme_wght(int ,int *,int *,int *,
                    int ,int ,int ,int,
                    int ,int ,int ,

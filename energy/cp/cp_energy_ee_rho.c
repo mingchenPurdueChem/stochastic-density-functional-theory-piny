@@ -1026,7 +1026,7 @@ void coef_force_control(CPOPTS *cpopts,CPCOEFFS_INFO *cpcoeffs_info,
               cp_ptens_calc,nstate_dn_tot,
               cp_tau_functional,laplacian_on,cp_sclr_fft_pkg3d_dens_cp_box,
               cp_para_fft_pkg3d_dens_cp_box,cp_sclr_fft_pkg3d_lg,
-              cp_para_fft_pkg3d_lg,cp_dual_grid_opt); 
+              cp_para_fft_pkg3d_lg,cp_dual_grid_opt,cp,class,general_data); 
 
 /*==========================================================================*/
 /* III) get the force on the states (up and down)                           */
@@ -1142,7 +1142,7 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
                 PARA_FFT_PKG3D *cp_para_fft_pkg3d_dens_cp_box,
                 PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_lg,
                 PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg,
-                int cp_dual_grid_opt)
+                int cp_dual_grid_opt,CP *cp, CLASS *class,GENERAL_DATA *general_data)
 
 /*==========================================================================*/
 /*         Begin Routine                                                    */
@@ -1151,6 +1151,10 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
 #include "../typ_defs/typ_mask.h"
 
 /* assign local pointers */
+   CPCOEFFS_POS *cpcoeffs_pos = &(cp->cpcoeffs_pos[1]);
+   //PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sparse = &(cp->cp_sclr_fft_pkg3d_sparse);
+   //PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm = &(cp->cp_sclr_fft_pkg3d_sm);
+   //PARA_FFT_PKG3D *cp_para_fft_pkg3d_sparse = &(cp->cp_para_fft_pkg3d_sparse);
   
    double cpu1,cpu2;
 
@@ -1171,7 +1175,8 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
    double    *vexti_dens_cp_box =    cpscr->cpscr_loc.vexti_dens_cp_box;
    double    *dvextr         =    cpscr->cpscr_loc.dvextr;
    double    *dvexti         =    cpscr->cpscr_loc.dvexti;
-   double    *ak2            =    cpewald->ak2;
+   //double    *ak2            =    cpewald->ak2;
+   double    *ak2;
    double    *ak2_cp_box     =    cpewald->ak2_dens_cp_box;
    double    *v_ks_up        =    cpscr->cpscr_rho.v_ks_up;
    double    *v_ks_dn        =    cpscr->cpscr_rho.v_ks_dn;
@@ -1191,10 +1196,13 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
    int       nstate_up       =    cp_comm_state_pkg_up->nstate;
    int       cp_lyp          =    cpopts->cp_lyp;
    int       cp_lypm1        =    cpopts->cp_lypm1;
+   //int     nfft,nfft_proc,nfft2,nfft2_proc,nkf1,nkf2,nkf3;
+   
    int       nfft            =    cp_para_fft_pkg3d_lg->nfft;
    int       nfft_proc       =    cp_para_fft_pkg3d_lg->nfft_proc;
    int       nfft2           =    nfft/2;
    int       nfft2_proc      =    nfft_proc/2;
+   
 
    double    *hmat_cp        =    cell->hmat_cp;
    double    *hmati          =    cell->hmati;
@@ -1204,6 +1212,9 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
    double    *exc_ret        =    &(stat_avg->cp_exc);
    double    *muxc_ret       =    &(stat_avg->cp_muxc);
    MPI_Comm  comm            =    communicate->comm_states;
+   //int     ncoef	     =	  cp_sclr_fft_pkg3d_sm->ncoef;
+   //int ncoef_l,ncoef_l_use,icoef_off;
+   
    int       ncoef_l         =    cp_para_fft_pkg3d_lg->ncoef_proc;
    int       ncoef_l_dens_cp_box =    
                                   cp_para_fft_pkg3d_dens_cp_box->ncoef_proc;
@@ -1212,7 +1223,7 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
                                   cp_para_fft_pkg3d_dens_cp_box->ncoef_use;
    int       icoef_off       =    cp_para_fft_pkg3d_lg->icoef_off;
    int       iperd           =    cell->iperd;
-
+    
    int       *recv_counts_rho;
    int       *displs_rho;
    int       nfft_dens_cp_box;
@@ -1220,9 +1231,11 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
 
    int       nfft2_proc_dens_cp_box;
    int       nfft2_proc_send;
+  
    int nkf1 = cp_para_fft_pkg3d_lg->nkf1;
    int nkf2 = cp_para_fft_pkg3d_lg->nkf2;
    int nkf3 = cp_para_fft_pkg3d_lg->nkf3;
+   
    int igrid,jgrid;
 
 /*         Local Variable declarations                                   */
@@ -1236,6 +1249,11 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
 
    // fftw3d options
    int fftw3dFlag;
+   int realSparseOpt = cpewald->realSparseOpt;
+   double   *cp_hess_re_up    =  cpcoeffs_pos->cp_hess_re_up;
+   double   *cp_hess_im_up    =  cpcoeffs_pos->cp_hess_im_up;
+   double   *cp_hess_re_dn    =  cpcoeffs_pos->cp_hess_re_dn;
+   double   *cp_hess_im_dn    =  cpcoeffs_pos->cp_hess_im_dn;
   // fftw3d will have different interface, i.e. real space 
   // vector will have x leading but we have z leading for 
   // anything calculated in density/V_xc. Therefore we only 
@@ -1245,6 +1263,45 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
   //if(np_states==1)fftw3dFlag = cpopts->fftw3dFlag;
   //else fftw3dFlag = 0;
   fftw3dFlag = cpopts->fftw3dFlag;
+
+  //debug, only do sparse on vext and vh
+  int ism,jsm,ksm,ind,indsm;
+  int nfft_lg = cp_para_fft_pkg3d_lg->nfft;
+  int nfft2_lg = nfft_lg/2;
+  //double *vext_dense = (double*)calloc((nfft2_lg+1),sizeof(double));
+  //double *vext_sparse;
+  double test_vext = 0.0;
+
+  if(realSparseOpt==0)ak2 = cpewald->ak2;
+  else ak2 = cpewald->ak2_sm;
+  /*
+  if(realSparseOpt==0){
+    nfft            =    cp_para_fft_pkg3d_lg->nfft;
+    nfft_proc       =    cp_para_fft_pkg3d_lg->nfft_proc;
+    nfft2           =    nfft/2;
+    nfft2_proc      =    nfft_proc/2;
+    ncoef_l         =    cp_para_fft_pkg3d_lg->ncoef_proc;
+    ncoef_l_use     =    cp_para_fft_pkg3d_lg->ncoef_use;
+    icoef_off       =    cp_para_fft_pkg3d_lg->icoef_off;
+    ak2		    =    cpewald->ak2;
+    nkf1 = cp_para_fft_pkg3d_lg->nkf1;
+    nkf2 = cp_para_fft_pkg3d_lg->nkf2;
+    nkf3 = cp_para_fft_pkg3d_lg->nkf3;    
+  }
+  else{
+    nfft            =    cp_para_fft_pkg3d_sparse->nfft;
+    nfft_proc       =    cp_para_fft_pkg3d_sparse->nfft_proc;
+    nfft2           =    nfft/2;
+    nfft2_proc      =    nfft_proc/2;
+    ncoef_l         =    cp_para_fft_pkg3d_sparse->ncoef_proc;
+    ncoef_l_use     =    cp_para_fft_pkg3d_sparse->ncoef_use;
+    icoef_off       =    cp_para_fft_pkg3d_sparse->icoef_off;
+    ak2		    =    cpewald->ak2_sm;
+    nkf1 = cp_para_fft_pkg3d_sparse->nkf1;
+    nkf2 = cp_para_fft_pkg3d_sparse->nkf2;
+    nkf3 = cp_para_fft_pkg3d_sparse->nkf3;
+  }
+  */
 
    if( cp_dual_grid_opt >= 1){
     nfft_dens_cp_box       = cp_para_fft_pkg3d_dens_cp_box->nfft;
@@ -1270,7 +1327,6 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
    exc  = 0.0;
    muxc = 0.0;
 
-
   if(cp_nonint==0){
 
 /*--------------------------------------------------------------------*/
@@ -1281,12 +1337,20 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
                   /*erf  long range piece on large grid for dual opt */
         ghfact    = fpi*exp(-ak2[i]*pre)/(ak2[i]*vol);  
         eh       +=  0.50*ghfact*(rhocr[i]*rhocr[i] + rhoci[i]*rhoci[i]); 
+	test_vext += vextr[i]*rhocr[i] + vexti[i]*rhoci[i];
         eext     +=  vextr[i]*rhocr[i] + vexti[i]*rhoci[i];
-        //printf("11111 vext %lg %lg rhocr %lg %lg\n",vextr[i],vexti[i],rhocr[i],rhoci[i]);
-
+        //printf("11111 kkkkkk %lg %lg vext %lg %lg rhocr %lg %lg\n",ak2[i],ghfact,vextr[i],vexti[i],rhocr[i],rhoci[i]);
+        // debug, vext only
+	//printf("vvvvext %lg %lg\n",vextr[i],vexti[i]);
         vextr[i] +=  ghfact*rhocr[i];
         vexti[i] +=  ghfact*rhoci[i]; 
+        // debug hartree only
+	//vextr[i] =  ghfact*rhocr[i];
+        //vexti[i] =  ghfact*rhoci[i];
       }/*endfor*/
+      //printf("tttttest vext %lg\n",test_vext);
+      //fflush(stdout);
+      //exit(0);
     }else{
 
       for(i=1 ; i<= ncoef_l_use; i++){            
@@ -1325,7 +1389,7 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
     }/*endif*/
 
 /*--------------------------------------------------------------------*/
-/*  f) get hartree contribution to pressure tensor                   */
+/*  f) get hartree contribution to pressure tensor                    */
 
     if(cp_ptens_calc == 1){
       for(i=1; i<= ncoef_l_use; i++){
@@ -1428,17 +1492,21 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
 /*  II) single pack the ks potential for fourier transform routine    */
    
    //if(fftw3dFlag==0){
-     sngl_pack_coef(vextr,vexti,zfft,cp_para_fft_pkg3d_lg);
-   //}
-   //else{
-   //  sngl_pack_coef_fftw3d(vextr,vexti,zfft,cp_para_fft_pkg3d_lg);
-   //}
+   /*
+   for(i=1;i<=ncoef_l;i++){
+     printf("beforeeee %i %lg %lg\n",i,vextr[i],vexti[i]);
+   }
+   fflush(stdout);
+   exit(0);
+   */
+
+   sngl_pack_coef(vextr,vexti,zfft,cp_para_fft_pkg3d_lg);
 
 /*====================================================================*/
 /* III) fourier transform ks potential to real space exp(-igr)        */
 
    //if(fftw3dFlag==0){
-     para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_para_fft_pkg3d_lg);
+   para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_para_fft_pkg3d_lg);  
    //}
    //else{
    //  para_fft_gen3d_fwd_to_r_fftw3d(zfft,cp_para_fft_pkg3d_lg,0);
@@ -1452,15 +1520,17 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
                            cp_para_fft_pkg3d_dens_cp_box,
                            cp_para_fft_pkg3d_lg,cp_dual_grid_opt);   
    }else{
-      //if(fftw3dFlag==0)sngl_upack_rho(zfft,v_ks_up,cp_para_fft_pkg3d_lg);    
-      //else sngl_upack_rho_fftw3d(zfft,v_ks_up,cp_para_fft_pkg3d_lg);
-      sngl_upack_rho(zfft,v_ks_up,cp_para_fft_pkg3d_lg);
-      // now v_ks_up is z leading
+     sngl_upack_rho(zfft,v_ks_up,cp_para_fft_pkg3d_lg);
+     // now v_ks_up is z leading
    }/*endif cp_dual_grid_opt*/
-
-   //if(fftw3dFlag==0)printf("vvvvvvvvvksup %lg\n",v_ks_up[2]);
-   //else printf("vvvvvvvvvksup %lg\n",v_ks_up[5185]);
-
+   
+   //printf("vvvvvks %lg\n",v_ks_up[3]);
+  
+   /*
+   for(i=1;i<=nfft2;i++){
+     printf("vvvvvks %lg %lg\n",v_ks_up[i],vks_test[i]);
+   }
+   */
 /*=====================================================================*/
 /* V) Coulomb and Hartree erfc calculated on small grid for PME dualing*/
 
@@ -1539,18 +1609,11 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
   // before summing v_exc
 
    /*
-   if(fftw3dFlag==1){
-     for(i=0;i<nkf3;i++){
-       for(j=0;j<nkf2;j++){
-	 for(k=0;k<nkf1;k++){
-	   igrid = i*nkf2*nkf1+j*nkf1+k;
-	   jgrid = k*nkf2*nkf3+j*nkf3+i;
-	   zfft[igrid+1] = v_ks_up[jgrid+1];
-	 }//endfor k
-       }//endfor j
-     }//endfor i
-     memcpy(&v_ks_up[1],&(zfft[1]),nfft2*sizeof(double));
-   }//endif fftwedFlag
+   if(realSparseOpt==0){
+     for(i=1;i<=nfft2;i++){
+       v_ks_up[i] += vext_sparse[i];
+     }
+   }
    */
 
 /*====================================================================*/
@@ -1586,8 +1649,11 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
                        nfft_proc_dens_cp_box,vol_cp,
                        cp_lyp,cp_lypm1,pvten_cp,cp_ptens_calc); 
        }else{
+	 //debug turn off xc
          excpot_pz_lda(v_ks_up,rho_up,&exc,&muxc,nfft,nfft_proc,vol_cp,
                       cp_lyp,cp_lypm1,pvten_cp,cp_ptens_calc);
+         //excpot_pz_lda(vxc,rho_up,&exc,&muxc,nfft,nfft_proc,vol_cp,
+         //             cp_lyp,cp_lypm1,pvten_cp,cp_ptens_calc);
 	 //printf("exc %lg\n",exc);
        }/*endif cp_dual_grid_opt*/
       igo = 1;
@@ -1788,10 +1854,12 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
 	 igrid = i*nkf2*nkf1+j*nkf1+k;
 	 jgrid = k*nkf2*nkf3+j*nkf3+i;
 	 zfft[jgrid+1] = v_ks_up[igrid+1];
+	 //zfft_tmp[jgrid+1] = vxc[igrid+1];
        }//endfor k
      }//endfor j
     }//endfor i
     memcpy(&v_ks_up[1],&(zfft[1]),nfft2*sizeof(double));
+    //memcpy(&vxc[1],&(zfft_tmp[1]),nfft2*sizeof(double));
     if(cp_lsda==1){
       for(i=0;i<nkf3;i++){
         for(j=0;j<nkf2;j++){
@@ -1805,6 +1873,13 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
       memcpy(&v_ks_dn[1],&(zfft[1]),nfft2*sizeof(double));
     }
   }//endif fftwedFlag
+  
+  /*
+  for(i=1;i<=nfft2;i++){
+    v_ks_up[i] += vxc[i];
+  } 
+  */
+  //free(vxc);
 
   //printf("after tp v_ks_up[2] %lg %lg\n",v_ks_up[2],v_ks_up[5185]);
     
@@ -1971,7 +2046,8 @@ void coef_force_calc_hybrid_threads_force(CPEWALD *cpewald,int nstate,
       */
       if(nlppForceOnly==0)cp_vpsi(zfft,v_ks,nfft);  
       cp->pseudo.pseudoReal.energyCalcFlag = 1;
-      controlEnergyNlppRealThreads(cp,class,general_data,zfft_tmp,zfft,1);
+      controlEnergyNlppRealThreads(cp,class,general_data,zfft_tmp,zfft,1,
+				   cp_sclr_fft_pkg3d_sm);
       //Ming
       /*
       for(i=1;i<=nfft;i++)zfft_tmp[i] = 0.0;
@@ -2064,7 +2140,8 @@ void coef_force_calc_hybrid_threads_force(CPEWALD *cpewald,int nstate,
       memcpy(&zfft_tmp[1],&zfft[1],nfft*sizeof(double));
       if(nlppForceOnly==0)cp_vpsi(zfft,v_ks,nfft);
       cp->pseudo.pseudoReal.energyCalcFlag = 1;
-      controlEnergyNlppRealThreads(cp,class,general_data,zfft_tmp,zfft,0);
+      controlEnergyNlppRealThreads(cp,class,general_data,zfft_tmp,zfft,0,
+				   cp_sclr_fft_pkg3d_sm);
     }
     else{
       cp_vpsi(zfft,v_ks,nfft);

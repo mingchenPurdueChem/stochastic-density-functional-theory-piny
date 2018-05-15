@@ -120,7 +120,9 @@ typedef struct cpopts{
 				  /*	  fragmentation method in stochastic dft */
   int threadFlag;		  /* Opt: multithread flag 1=thread parallel at  */
 				  /*	  state level, 2=thread parallel at FFT  */
-				  /*	  and nl pp level.			 */		     
+				  /*	  and nl pp level.			 */
+
+  int realSparseOpt;		  /* Opt: Use sparse real space grid 0=off 1=on  */   
 } CPOPTS;
 
 /*==========================================================================*/
@@ -1084,12 +1086,15 @@ typedef struct cpewald {
   double *ak2,*ak2_sm;         /* Square of k vectors on big and small grid */
   double *ak2_dens_cp_box;      /* Square of k vectors on big and small grid */
 
+  int realSparseOpt;              /* Opt: Use sparse real space grid 0=off 1=on  */   
+
   // I'm sorry but cpewald is the only structure passing into force calculation routine
   int fftw3dFlag; /* Replica from cpopts*/
   int onebodyMatrixFlag; /*Replica from cpopts*/
   double *fcre_up_onebody,*fcim_up_onebody;
   double *fcre_dn_onebody,*fcim_dn_onebody;
   double *keMatrix;
+
 } CPEWALD;
 
 typedef struct pseudo_real{
@@ -1777,6 +1782,8 @@ typedef struct cp {
   PARA_FFT_PKG3D cp_para_fft_pkg3d_dens_cp_box;
   PARA_FFT_PKG3D cp_sclr_fft_pkg3d_lg;
   PARA_FFT_PKG3D cp_para_fft_pkg3d_lg;
+  PARA_FFT_PKG3D cp_sclr_fft_pkg3d_sparse; // real space sparse grid
+  PARA_FFT_PKG3D cp_para_fft_pkg3d_sparse;
   CP_COMM_STATE_PKG cp_comm_state_pkg_up;
   CP_COMM_STATE_PKG cp_comm_state_pkg_dn;
   CP_COMM_STATE_PKG cp_comm_state_pkg_dvr_up;

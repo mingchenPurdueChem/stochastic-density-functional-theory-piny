@@ -644,6 +644,7 @@ void control_ewd_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
   int ipart,jpart,iii,itype,i;
   int icount,koff,natm_use;
   int hess_ind;
+  int realSparseOpt = cpewald->realSparseOpt;
 
   double falp2,falp_clus2,vol,rvol,pivol,fpi,arg,q_sum1,bgr;
   double aka,akb,akc,xk,yk,zk,atemp,btemp,ctemp;
@@ -762,23 +763,52 @@ void control_ewd_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 /*======================================================================*/
 /* 0) Assign local pointers                                             */
 
+  //Let's test the following:
+  //generating vext on dense k grid, then transform back to r space
+  //then pooling it by select the sparse grid
+  //realSparseOpt = 0;
+
   if(cp_dual_grid_opt < 2 || idual_switch == 0){
     /* large sparse grid when cp_dual_grid_opt == 2*/
     idens_opt = 0;
     ipseud_opt= (cp_dual_grid_opt==2 ? 0 : 1);
+    
+    if(realSparseOpt==0){
+      kastore   = ewald->kastr;
+      kbstore   = ewald->kbstr;
+      kcstore   = ewald->kcstr;
+      ak2       = cpewald->ak2;
+      nktot     = ewald->nktot;
+      ibreak1   = ewald->ibrk1;
+      ibreak2   = ewald->ibrk2;
+      printf("nktot %i\n",nktot);
+    }
+    else{
+      kastore = cpewald->kastr_sm;
+      kbstore = cpewald->kbstr_sm;
+      kcstore = cpewald->kcstr_sm;
+      ak2 = cpewald->ak2_sm;
+      nktot = cpewald->nktot_sm;
+      ibreak1   = cpewald->ibrk1_sm;
+      ibreak2   = cpewald->ibrk2_sm;
+      printf("nktot %i\n",nktot);
+    }
+    
+    /*
     kastore   = ewald->kastr;
     kbstore   = ewald->kbstr;
     kcstore   = ewald->kcstr;
-    ibreak1   = ewald->ibrk1;
-    ibreak2   = ewald->ibrk2;
+    ak2       = cpewald->ak2;
+    nktot     = ewald->nktot;
+    */
     vextr     = cpscr->cpscr_loc.vextr;
     vexti     = cpscr->cpscr_loc.vexti;
     dvextr    = cpscr->cpscr_loc.dvextr;
     dvexti    = cpscr->cpscr_loc.dvexti;
     rhocr     = cpscr->cpscr_rho.rhocr_up;
     rhoci     = cpscr->cpscr_rho.rhoci_up;
-    ak2       = cpewald->ak2;
-    nktot     = ewald->nktot;
+    //ak2       = cpewald->ak2;
+    //nktot     = ewald->nktot;
     hmat      = cell->hmat;
     hmati     = cell->hmati;
     natm_use  = natm_tot;
@@ -904,229 +934,219 @@ void control_ewd_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 /*======================================================================*/
 /* I) Get the k vectors                                                 */
 
-   aka = (double)(kastore[(icount+koff)]);
-   akb = (double)(kbstore[(icount+koff)]);
-   akc = (double)(kcstore[(icount+koff)]);
-   xk = (aka*hmati[1]+akb*hmati[2]+akc*hmati[3])*tpi;
-   yk = (aka*hmati[4]+akb*hmati[5]+akc*hmati[6])*tpi;
-   zk = (aka*hmati[7]+akb*hmati[8]+akc*hmati[9])*tpi;
-   g2 = xk*xk+yk*yk+zk*zk;
-   g4 = g2*g2;
-   g  = sqrt(g2);
-   ak2[icount] = g2;
+    aka = (double)(kastore[(icount+koff)]);
+    akb = (double)(kbstore[(icount+koff)]);
+    akc = (double)(kcstore[(icount+koff)]);
+    xk = (aka*hmati[1]+akb*hmati[2]+akc*hmati[3])*tpi;
+    yk = (aka*hmati[4]+akb*hmati[5]+akc*hmati[6])*tpi;
+    zk = (aka*hmati[7]+akb*hmati[8]+akc*hmati[9])*tpi;
+    g2 = xk*xk+yk*yk+zk*zk;
+    g4 = g2*g2;
+    g  = sqrt(g2);
+    ak2[icount] = g2;
 
 /*======================================================================*/
 /* II) If break point number one or you are just starting out calculate */
 /*     the helpful vectors                                              */
 
-   //printf("aka %lg akb %lg akc %lg\n",aka,akb,akc);
-   if(ibreak1[(icount+koff)]==1||icount==1){
-    for(ipart=1;ipart<=natm_use;ipart++){
-      atemp = ewd_scr_x[ipart];
-      btemp = ewd_scr_y[ipart];
-      ctemp = ewd_scr_z[ipart];
-      arg = (aka*atemp + akb*btemp + akc*ctemp)*tpi;
-      //printf("aka %lg akb %lg akc %lg\n",aka,akb,akc);
-      //printf("arg %lg\n",arg);
-      helr[ipart] = cos(arg);
-      heli[ipart] = sin(arg);
-    }/*endfor*/
-   }/*endif*/
+    //printf("aka %lg akb %lg akc %lg\n",aka,akb,akc);
+    //printf("ibreak1 %i ibreak2 %i\n",ibreak1[icount+koff],ibreak2[icount+koff]);
+    if(ibreak1[(icount+koff)]==1||icount==1){
+      for(ipart=1;ipart<=natm_use;ipart++){
+	atemp = ewd_scr_x[ipart];
+	btemp = ewd_scr_y[ipart];
+	ctemp = ewd_scr_z[ipart];
+	arg = (aka*atemp + akb*btemp + akc*ctemp)*tpi;
+	//printf("aka %lg akb %lg akc %lg\n",aka,akb,akc);
+	//printf("arg %lg\n",arg);
+	helr[ipart] = cos(arg);
+	heli[ipart] = sin(arg);
+      }/*endfor*/
+    }/*endif*/
 
 /*======================================================================*/
 /* III) Get the external potential                                      */
 /*               (interaction of electron with particles)               */
 
-   if(ipseud_opt==1){
-    for(itype=1;itype<=natm_typ;itype++){
-      index_atm[itype] =  (itype-1)*nsplin_g*(n_ang_max+1)*n_rad_max
-                       +  loc_opt[itype]*nsplin_g*n_rad_max;
-    }/*endfor*/
+    if(ipseud_opt==1){
+      for(itype=1;itype<=natm_typ;itype++){
+	index_atm[itype] =  (itype-1)*nsplin_g*(n_ang_max+1)*n_rad_max
+			 +  loc_opt[itype]*nsplin_g*n_rad_max;
+      }/*endfor*/
 
-    get_vpsnow(index_atm,nsplin_g,gmin_spl,dg_spl,g,
-                vps0,vps1,vps2,vps3,vtemp,iatm_typ,natm_typ,natm_use,1); 
+      get_vpsnow(index_atm,nsplin_g,gmin_spl,dg_spl,g,
+                  vps0,vps1,vps2,vps3,vtemp,iatm_typ,natm_typ,natm_use,1); 
 
 /*-------------------------*/
 /* charge correction */
-     for(i=1; i<= natm_use; i++){
-          vtemp[i] += -fpi*(q_tmp[i] - q_pseud[iatm_typ[i]])/g2;
-     }
-   }else{  /*q_temp is q */
-     get_vpslong(natm_use,vtemp,g2,q_tmp,alpha_conv_dual,pivol);    
-   }/*endif*/
+      for(i=1; i<= natm_use; i++){
+        vtemp[i] += -fpi*(q_tmp[i] - q_pseud[iatm_typ[i]])/g2;
+      }
+    }else{  /*q_temp is q */
+      get_vpslong(natm_use,vtemp,g2,q_tmp,alpha_conv_dual,pivol);    
+    }/*endif*/
 
  /*----------------------------------------------------------------------*/
  /* Cluster boundary condition correction                                */
 
-   if( (iperd != 3) && (idens_opt==0)){
-     for(ipart=1;ipart<=natm_use;ipart++){
-       vtemp[ipart] -= q[ipart]*clus_corr_r[icount];
-     }/* endfor */
-   }/* endif cluster boundary conditions */
+    if( (iperd != 3) && (idens_opt==0)){
+      for(ipart=1;ipart<=natm_use;ipart++){
+        vtemp[ipart] -= q[ipart]*clus_corr_r[icount];
+      }/* endfor */
+    }/* endif cluster boundary conditions */
  
 /*----------------------------------------------------------------------*/
 
-   if( (cp_ptens==1) && (idens_opt==0) ){
-     if(ipseud_opt == 1){
-       get_vpsnow(index_atm,nsplin_g,gmin_spl,dg_spl,g,
-                  dvps0,dvps1,dvps2,dvps3,dvtemp,iatm_typ,natm_typ,natm_use,1);
-       for(i=1; i<= natm_use; i++){
-         dvtemp[i] += 2.0*fpi*(q_tmp[i]-q_pseud[iatm_typ[i]])/(g2*g2);
-       }/* endfor */
-     } else {
-       get_dvpslong(natm_use,dvtemp,g2,q_tmp,alpha_conv_dual,pivol);
-     }/*endif ipseud_opt */
-   }/*endif cp_ptens*/
+    if( (cp_ptens==1) && (idens_opt==0) ){
+      if(ipseud_opt == 1){
+        get_vpsnow(index_atm,nsplin_g,gmin_spl,dg_spl,g,
+                   dvps0,dvps1,dvps2,dvps3,dvtemp,iatm_typ,natm_typ,natm_use,1);
+        for(i=1; i<= natm_use; i++){
+          dvtemp[i] += 2.0*fpi*(q_tmp[i]-q_pseud[iatm_typ[i]])/(g2*g2);
+        }/* endfor */
+      }else{
+        get_dvpslong(natm_use,dvtemp,g2,q_tmp,alpha_conv_dual,pivol);
+      }/*endif ipseud_opt */
+    }/*endif cp_ptens*/
 
     vextr[icount]  =  ddot1(natm_use,helr,1,vtemp,1)*rvol;
     vexti[icount]  = -ddot1(natm_use,heli,1,vtemp,1)*rvol;
-    //printf("icount %i vext %lg %lg\n",icount,vextr[icount],vexti[icount]);
 
-   if( (cp_ptens==1) && (idens_opt==0) ) {
-     dvextr[icount] =  ddot1(natm_use,helr,1,dvtemp,1)*rvol;
-     dvexti[icount] = -ddot1(natm_use,heli,1,dvtemp,1)*rvol;
-   }/*endif*/
+    if( (cp_ptens==1) && (idens_opt==0) ) {
+      dvextr[icount] =  ddot1(natm_use,helr,1,dvtemp,1)*rvol;
+      dvexti[icount] = -ddot1(natm_use,heli,1,dvtemp,1)*rvol;
+    }/*endif*/
  
 /*======================================================================*/
 /* IV) Get the real and imag parts of the structure factor              */
 
-   if(idens_opt==0){/*create charge weighted structure factor*/
-     sumr = ddot1(natm_use,helr,1,q,1); 
-     sumi = ddot1(natm_use,heli,1,q,1);
-     smag = sumr*sumr+sumi*sumi;
-   }/*endif*/
+    if(idens_opt==0){/*create charge weighted structure factor*/
+      sumr = ddot1(natm_use,helr,1,q,1); 
+      sumi = ddot1(natm_use,heli,1,q,1);
+      smag = sumr*sumr+sumi*sumi;
+    }/*endif*/
 
 /*======================================================================*/
 /* V) Use the stucture factor to get the                                */
 /*      classical potential energy and the pressure*volume tensor       */
  
-   preg    = exp(-g2/falp2)/(g2*pivol);
-   prep    = -2.0*preg*(g2/falp2+1.0)/g2;
+    preg    = exp(-g2/falp2)/(g2*pivol);
+    prep    = -2.0*preg*(g2/falp2+1.0)/g2;
 
-   if(iperd == 2 && ((kastore[icount+koff] == 0) && (kbstore[icount+koff] == 0))){
-     phase = cos(0.5*zk*hmat[9]);
-     preg  += phase*(1.0-exp(-g2/falp_clus2))/(g2*pivol);
-   }
-   prep    = -2.0*preg*(g2/falp2+1.0)/g2;
-   if(iperd == 2 && ((kastore[icount+koff] == 0) && (kbstore[icount+koff] == 0))){
-     phase = cos(0.5*zk*hmat[9]);
-     prep += 2.0*phase/(g2*pivol*falp_clus2);
-   }
+    if(iperd == 2 && ((kastore[icount+koff] == 0) && (kbstore[icount+koff] == 0))){
+      phase = cos(0.5*zk*hmat[9]);
+      preg  += phase*(1.0-exp(-g2/falp_clus2))/(g2*pivol);
+    }
+    prep    = -2.0*preg*(g2/falp2+1.0)/g2;
+    if(iperd == 2 && ((kastore[icount+koff] == 0) && (kbstore[icount+koff] == 0))){
+      phase = cos(0.5*zk*hmat[9]);
+      prep += 2.0*phase/(g2*pivol*falp_clus2);
+    }
 
-   if( (iperd>0) && (iperd !=3) && (idens_opt==0) ){
-     preg += clus_corr_r[icount]*rvol;
-     prep += dclus_corr_r[icount]*rvol;
-   }/*endif*/
+    if( (iperd>0) && (iperd !=3) && (idens_opt==0) ){
+      preg += clus_corr_r[icount]*rvol;
+      prep += dclus_corr_r[icount]*rvol;
+    }/*endif*/
 
-   if( (iperd>0) &&(idens_opt==0) ){
-     vrecip  = vrecip + smag*preg; 
-   }
+    if( (iperd>0) &&(idens_opt==0) ){
+      vrecip  = vrecip + smag*preg; 
+    }
 
-   prep    = prep*smag; 
-   if((cp_ptens==1) && (idens_opt==0) ) {
-     pvten[1] = pvten[1] + prep*xk*xk;
-     pvten[5] = pvten[5] + prep*yk*yk;
-     pvten[9] = pvten[9] + prep*zk*zk;
-     pvten[4] = pvten[4] + prep*xk*yk;
-     pvten[2] = pvten[2] + prep*xk*yk;
-     pvten[7] = pvten[7] + prep*xk*zk;
-     pvten[3] = pvten[3] + prep*xk*zk;
-     pvten[8] = pvten[8] + prep*yk*zk;
-     pvten[6] = pvten[6] + prep*yk*zk;
-   }/*endif*/
+    prep    = prep*smag; 
+    if((cp_ptens==1) && (idens_opt==0) ) {
+      pvten[1] = pvten[1] + prep*xk*xk;
+      pvten[5] = pvten[5] + prep*yk*yk;
+      pvten[9] = pvten[9] + prep*zk*zk;
+      pvten[4] = pvten[4] + prep*xk*yk;
+      pvten[2] = pvten[2] + prep*xk*yk;
+      pvten[7] = pvten[7] + prep*xk*zk;
+      pvten[3] = pvten[3] + prep*xk*zk;
+      pvten[8] = pvten[8] + prep*yk*zk;
+      pvten[6] = pvten[6] + prep*yk*zk;
+    }/*endif*/
 
 /*======================================================================*/
 /* VI) Get the force on the particles, checking for CBC                 */
 
  
- if( (iperd == 0) || (idens_opt==1) ) {
-
-    for(ipart=1;ipart<=natm_use;ipart++){
-     srx = xk*(2.0*rhocr[icount]*vtemp[ipart]*rvol);
-     sry = yk*(2.0*rhocr[icount]*vtemp[ipart]*rvol);
-     srz = zk*(2.0*rhocr[icount]*vtemp[ipart]*rvol);
-     six = xk*(-2.0*rhoci[icount]*vtemp[ipart]*rvol);
-     siy = yk*(-2.0*rhoci[icount]*vtemp[ipart]*rvol);
-     siz = zk*(-2.0*rhoci[icount]*vtemp[ipart]*rvol);
-     fx_tmp[ipart] += (srx*heli[ipart] - six*helr[ipart]);
-     fy_tmp[ipart] += (sry*heli[ipart] - siy*helr[ipart]);
-     fz_tmp[ipart] += (srz*heli[ipart] - siz*helr[ipart]);
-    }/* endfor */
-
-  }else{
-
-    sumr_h = sumr;
-    sumi_h = sumi;
-    sumr = sumr*preg*2.0;
-    sumi = sumi*preg*2.0;
-    for(ipart=1;ipart<=natm_use;ipart++){
-      srx = xk*(sumr*q[ipart]+2.0*rhocr[icount]*vtemp[ipart]*rvol);
-      sry = yk*(sumr*q[ipart]+2.0*rhocr[icount]*vtemp[ipart]*rvol);
-      srz = zk*(sumr*q[ipart]+2.0*rhocr[icount]*vtemp[ipart]*rvol);
-      six = xk*(sumi*q[ipart]-2.0*rhoci[icount]*vtemp[ipart]*rvol);
-      siy = yk*(sumi*q[ipart]-2.0*rhoci[icount]*vtemp[ipart]*rvol);
-      siz = zk*(sumi*q[ipart]-2.0*rhoci[icount]*vtemp[ipart]*rvol);
-      fx_tmp[ipart] += (srx*heli[ipart]  - six*helr[ipart]);
-      fy_tmp[ipart] += (sry*heli[ipart]  - siy*helr[ipart]);
-      fz_tmp[ipart] += (srz*heli[ipart]  - siz*helr[ipart]); 
-   }/*endfor*/
-
- } /* endif cluster BC */
+    if((iperd == 0)||(idens_opt==1)){
+      for(ipart=1;ipart<=natm_use;ipart++){
+        srx = xk*(2.0*rhocr[icount]*vtemp[ipart]*rvol);
+        sry = yk*(2.0*rhocr[icount]*vtemp[ipart]*rvol);
+        srz = zk*(2.0*rhocr[icount]*vtemp[ipart]*rvol);
+        six = xk*(-2.0*rhoci[icount]*vtemp[ipart]*rvol);
+        siy = yk*(-2.0*rhoci[icount]*vtemp[ipart]*rvol);
+        siz = zk*(-2.0*rhoci[icount]*vtemp[ipart]*rvol);
+        fx_tmp[ipart] += (srx*heli[ipart] - six*helr[ipart]);
+        fy_tmp[ipart] += (sry*heli[ipart] - siy*helr[ipart]);
+        fz_tmp[ipart] += (srz*heli[ipart] - siz*helr[ipart]);
+      }/* endfor */
+    }else{
+      sumr_h = sumr;
+      sumi_h = sumi;
+      sumr = sumr*preg*2.0;
+      sumi = sumi*preg*2.0;
+      for(ipart=1;ipart<=natm_use;ipart++){
+	srx = xk*(sumr*q[ipart]+2.0*rhocr[icount]*vtemp[ipart]*rvol);
+	sry = yk*(sumr*q[ipart]+2.0*rhocr[icount]*vtemp[ipart]*rvol);
+	srz = zk*(sumr*q[ipart]+2.0*rhocr[icount]*vtemp[ipart]*rvol);
+	six = xk*(sumi*q[ipart]-2.0*rhoci[icount]*vtemp[ipart]*rvol);
+	siy = yk*(sumi*q[ipart]-2.0*rhoci[icount]*vtemp[ipart]*rvol);
+	siz = zk*(sumi*q[ipart]-2.0*rhoci[icount]*vtemp[ipart]*rvol);
+	fx_tmp[ipart] += (srx*heli[ipart]  - six*helr[ipart]);
+	fy_tmp[ipart] += (sry*heli[ipart]  - siy*helr[ipart]);
+	fz_tmp[ipart] += (srz*heli[ipart]  - siz*helr[ipart]); 
+      }/*endfor*/
+    } /* endif cluster BC */
 
 /*======================================================================*/
 /* VI) Get the nuclear hessian if necessary                             */
 /*     Routine must be modified for idens_opt==1                        */
 
-   if( (hess_calc == 3) && (idens_opt==0) ){
-     get_atm_hess_recip(xk,yk,zk,hess_xx,hess_yy,hess_zz,
-                        hess_xy,hess_xz,hess_yz,rhocr,rhoci,vtemp,
-                        helr,heli,q,q_tmp,rvol,preg,sumr_h,sumi_h,
-                        icount,hess_calc,iperd,
-                        idens_opt,natm_use,ip_loc_cp_box);
-   }/* endif */
+    if( (hess_calc == 3) && (idens_opt==0) ){
+      get_atm_hess_recip(xk,yk,zk,hess_xx,hess_yy,hess_zz,
+                         hess_xy,hess_xz,hess_yz,rhocr,rhoci,vtemp,
+                         helr,heli,q,q_tmp,rvol,preg,sumr_h,sumi_h,
+                         icount,hess_calc,iperd,
+                         idens_opt,natm_use,ip_loc_cp_box);
+    }/* endif */
 
-   if( (hess_calc == 3) && (idens_opt==1) ){
+    if( (hess_calc == 3) && (idens_opt==1) ){
 #ifdef STILL_BROKEN
-    printf("@@@@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@\n");
-    printf("Hess calc not working with dual grid option, yet.\n");
-    printf("How did I get here?\n");
-    printf("Required changes are given in get_atm_hess_recip.\n");
-    printf("Dawn, as always, has the required references.\n");
-    printf("@@@@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@\n");
-    exit(1);
+      printf("@@@@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@\n");
+      printf("Hess calc not working with dual grid option, yet.\n");
+      printf("How did I get here?\n");
+      printf("Required changes are given in get_atm_hess_recip.\n");
+      printf("Dawn, as always, has the required references.\n");
+      printf("@@@@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@\n");
+      exit(1);
 #endif
-     get_atm_hess_recip(xk,yk,zk,hess_xx,hess_yy,hess_zz,
+      get_atm_hess_recip(xk,yk,zk,hess_xx,hess_yy,hess_zz,
                         hess_xy,hess_xz,hess_yz,rhocr,rhoci,vtemp,
                         helr,heli,q,q_tmp,rvol,preg,sumr_h,sumi_h,
                         icount,hess_calc,iperd,
                         idens_opt,natm_use,ip_loc_cp_box);
-   }/* endif */
+    }/* endif */
 
 /*======================================================================*/
 /* VII) If break point two, increment the helpful vectors                 */
 
-   if(ibreak2[(icount+koff)]==1){
-     for(ipart=1;ipart<=natm_use;ipart++){
-       temp = helr[ipart];
-       helr[ipart] = helr[ipart]*cossc[ipart] - heli[ipart]*sinsc[ipart];
-       heli[ipart] = heli[ipart]*cossc[ipart] + temp*sinsc[ipart];
-     }/*endfor*/
-   }/*endif*/
+    if(ibreak2[(icount+koff)]==1){
+      for(ipart=1;ipart<=natm_use;ipart++){
+        temp = helr[ipart];
+        helr[ipart] = helr[ipart]*cossc[ipart] - heli[ipart]*sinsc[ipart];
+        heli[ipart] = heli[ipart]*cossc[ipart] + temp*sinsc[ipart];
+      }/*endfor*/
+    }/*endif*/
 
-
-
- }/*endfor:icount loop over k vectors */
-
-
+  }/*endfor:icount loop over k vectors */
 
 /*======================================================================*/
 /* VIII) g=0 term (local pseudopotential) including term for CBCs       */
 
-  if((myid_state+1)==np_states){
-  
+  if((myid_state+1)==np_states){  
     if(ipseud_opt==1){
       ak2[(ngo+1)] = 0.0;
-
       for(ipart=1;ipart<=natm_use;ipart++){
         vtemp[ipart] = gzvps[iatm_typ[ipart]];
       }/*endfor*/
@@ -1154,7 +1174,6 @@ void control_ewd_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
          vrecip += 0.5*q_sum1*q_sum1*clus_corr_r[(ngo+1)]*rvol;
        }/* endif iperd */
     }/*endif*/
-
   }/*endif*/
 
   /*
@@ -1262,8 +1281,9 @@ void control_ewd_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
   if(idual_switch == 0){
     *vrecip_ret = vrecip;
   }
+ //fflush(stdout);
+ //exit(0);
   
-
 /*======================================================================*/
     }/*end routine*/
 /*======================================================================*/

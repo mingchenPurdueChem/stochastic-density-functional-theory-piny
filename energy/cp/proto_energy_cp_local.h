@@ -311,10 +311,10 @@ void non_loc_restore_ord(CLATOMS_POS *, CLATOMS_INFO *,
 /*====================================================================*/
 /* cp_energy_eext_nonloc_real.c */
   void controlEnergyNlppReal(CP *,CLASS *,GENERAL_DATA *,double *,double *,int,
-			     double *,double *,double *,double *);
+			     double *,double *,double *,double *,PARA_FFT_PKG3D *);
   
   void nlppKBRealEnergy(CP *,CLASS *,GENERAL_DATA *,double *,double *,
-			double *,double **,double **);
+			double *,double **,double **,PARA_FFT_PKG3D *);
   void calcPseudoWf(CP *,CLASS *,GENERAL_DATA *);
   void calcTrig(double *,int,double *);
   void calcSpHarm(double *,int,double *,int,double *);
@@ -324,14 +324,16 @@ void non_loc_restore_ord(CLATOMS_POS *, CLATOMS_INFO *,
 /*====================================================================*/
 /* cp_energy_eext_nonloc_real_threads.c */
   
-  void controlEnergyNlppRealThreads(CP *,CLASS *,GENERAL_DATA *,double *,double *,int);
-  void nlppKBRealEnergyThreads(CP *,CLASS *,GENERAL_DATA *,double *,double *);
+  void controlEnergyNlppRealThreads(CP *,CLASS *,GENERAL_DATA *,double *,double *,int,
+				    PARA_FFT_PKG3D *);
+  void nlppKBRealEnergyThreads(CP *,CLASS *,GENERAL_DATA *,double *,double *,
+			       PARA_FFT_PKG3D *);
   
 /*====================================================================*/
 /* cp_energy_eext_nonloc_real_force.c */
 
   void nlppKBRealEnergyForce(CP *,CLASS *,GENERAL_DATA *,double *,double *,
-			     double *,double *,double **,double **);
+			     double *,double *,double **,double **,PARA_FFT_PKG3D *);
   void calcPseudoWfDev(CP *,CLASS *,GENERAL_DATA *);
   void calcSpHarmDeriv(double *,double *, double *,int ,double *,int ,double *);
   void calcAngleDeriv(double *,double *,double *,double *,int);
@@ -340,7 +342,8 @@ void non_loc_restore_ord(CLATOMS_POS *, CLATOMS_INFO *,
 /*====================================================================*/
 /* cp_energy_eext_nonloc_real_force_threads.c */
 
-  void nlppKBRealEnergyForceThreads(CP *,CLASS *,GENERAL_DATA *,double *);
+  void nlppKBRealEnergyForceThreads(CP *,CLASS *,GENERAL_DATA *,double *,
+				    PARA_FFT_PKG3D *);
     
 /*====================================================================*/
 /* cp_energy_ee_rho.c */
@@ -406,7 +409,7 @@ void cp_get_vks(CPOPTS *,CPSCR *,CPEWALD *, EWALD *,
                 COMMUNICATE *, CP_COMM_STATE_PKG *, CP_COMM_STATE_PKG *,
                 STAT_AVG *, double *,CELL *, char *, double *,double ,double ,int ,
                 int ,int ,int ,int , int , PARA_FFT_PKG3D *, PARA_FFT_PKG3D *,
-                PARA_FFT_PKG3D *, PARA_FFT_PKG3D *, int );
+                PARA_FFT_PKG3D *, PARA_FFT_PKG3D *, int,CP*,CLASS*,GENERAL_DATA*);
 
 void coef_force_calc_hybrid_threads_force(CPEWALD *,int ,double *,double *, 
                              double *,double *,double *,double *,double *,double *,
@@ -450,7 +453,8 @@ void cp_rho_calc_hybrid_threads_state(CPEWALD *,CPSCR *, CPCOEFFS_INFO *,EWALD *
                         double *, double *,double *, double *,double *,
                         double *,int ,int ,int ,int ,int ,COMMUNICATE *,
                         PARA_FFT_PKG3D *, PARA_FFT_PKG3D *,
-                        PARA_FFT_PKG3D *, PARA_FFT_PKG3D *, PARA_FFT_PKG3D *);
+                        PARA_FFT_PKG3D *, PARA_FFT_PKG3D *, PARA_FFT_PKG3D *,
+			CP *,CLASS *,GENERAL_DATA *);
 
 void coef_force_calc_hybrid_threads_state(CPEWALD *,int ,double *,double *,
                              double *,double *,double *,double *,double *,double *,

@@ -410,12 +410,12 @@ void genEigenOrb(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   PSEUDO *pseudo                = &(cp->pseudo);
   COMMUNICATE *communicate      = &(cp->communicate);
 
-  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm            = &(cp->cp_sclr_fft_pkg3d_sm);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm;
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_sm            = &(cp->cp_para_fft_pkg3d_sm);
   PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_dens_cp_box   = &(cp->cp_sclr_fft_pkg3d_dens_cp_box);
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_dens_cp_box   = &(cp->cp_para_fft_pkg3d_dens_cp_box);
-  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_lg             = &(cp->cp_sclr_fft_pkg3d_lg);
-  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg             = &(cp->cp_para_fft_pkg3d_lg);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_lg;
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg;
   CP_COMM_STATE_PKG *cp_comm_state_pkg_up          = &(cp->cp_comm_state_pkg_up);
   CP_COMM_STATE_PKG *cp_comm_state_pkg_dn          = &(cp->cp_comm_state_pkg_dn);
 
@@ -424,6 +424,7 @@ void genEigenOrb(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int numCoeff        = cpcoeffs_info->ncoef;
   int cpDualGridOptOn = cpopts->cp_dual_grid_opt;
   int cpLsda          = cpopts->cp_lsda;
+  int realSparseOpt   = cpopts->realSparseOpt;
   int numCoeffUpTot   = numStateUpProc*numCoeff;
   int numCoeffDnTot   = numStateUpProc*numCoeff;
   int iCoeff;
@@ -452,6 +453,17 @@ void genEigenOrb(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   double *fcim_up = cpcoeffs_pos->fcim_up;
   double *cre_temp = (double*)cmalloc(numCoeffUpTot*sizeof(double))-1;
   double *cim_temp = (double*)cmalloc(numCoeffUpTot*sizeof(double))-1;
+
+  if(realSparseOpt==0){
+    cp_sclr_fft_pkg3d_sm = &(cp->cp_sclr_fft_pkg3d_sm);
+    cp_sclr_fft_pkg3d_lg = &(cp->cp_sclr_fft_pkg3d_lg);
+    cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
+  }
+  else{
+    cp_sclr_fft_pkg3d_sm = &(cp->cp_sclr_fft_pkg3d_sparse);
+    cp_sclr_fft_pkg3d_lg = &(cp->cp_sclr_fft_pkg3d_sparse);
+    cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_sparse);
+  }
 
   calcCoefForceWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
 

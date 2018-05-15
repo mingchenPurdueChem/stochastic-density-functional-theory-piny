@@ -92,6 +92,17 @@ control_set_cp_ewald.o : $(STANDARD) $(DEFINES) \
 	$(COBJ_CARE) $(CODE)/interface/cp_ewald/control_set_cp_ewald.c
 
 #------------------------------------------------------------------
+control_set_cp_ewald_sparse.o : $(STANDARD) $(DEFINES) \
+                         $(TYP_CLASS) $(TYP_GEN) $(TYP_CP) \
+                         $(TYP_BND) $(TYP_PAR) \
+                         $(CPEWALD_ENT) $(CPEWALD_LOC) $(ENR_CP_LOC) \
+                         $(MATH) $(FRND_ENT) $(COMM_WRAP) \
+                         $(CODE)/interface/cp_ewald/control_set_cp_ewald_sparse.c
+	$(ECHO) $@
+	$(COBJ_CARE) $(CODE)/interface/cp_ewald/control_set_cp_ewald_sparse.c
+
+
+#------------------------------------------------------------------
 control_set_cp_ewald_dvr.o : $(STANDARD) $(DEFINES) \
                              $(TYP_CLASS) $(TYP_GEN) $(TYP_CP) \
                              $(TYP_BND) $(TYP_PAR) \

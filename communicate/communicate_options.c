@@ -206,6 +206,8 @@ void comm_cpopts(CPOPTS *cpopts,MPI_Comm world)
   Type_free(&cpopts_comm);
   Barrier(world);
   Bcast(&(cpopts->threadFlag),1,MPI_INT,0,world);
+  Barrier(world);
+  Bcast(&(cpopts->realSparseOpt),1,MPI_INT,0,world);
 
 /*------------------------------------------------------------------------*/
 } /*end routine*/ 

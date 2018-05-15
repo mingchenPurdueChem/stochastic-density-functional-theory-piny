@@ -133,13 +133,16 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   NEWTONINFO    *newtonInfo;
   CHEBYSHEVINFO *chebyshevInfo;
   FRAGINFO	*fragInfo;
-  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
+  //PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d; // use lg or sparse
+  
 
 
   int iperd          = cell->iperd;
   int cpLsda         = cpopts->cp_lsda;
   int cpGga          = cpopts->cp_gga;
   int cpParaOpt      = cpopts->cp_para_opt;
+  int realSparseOpt  = cpopts->realSparseOpt;
   int expanType      = stodftInfo->expanType;
   int numOrbital     = stodftInfo->numOrbital;
   int polynormLength = stodftInfo->polynormLength;
@@ -175,10 +178,11 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   int forceCoefOrthDn           = cpcoeffs_pos->ifcoef_orth_dn;
   int numProcStates             = communicate->np_states;
   int myidState                 = communicate->myid_state;
-  int numFFTProc        = cp_para_fft_pkg3d_lg->nfft_proc;
-  int numFFT            = cp_para_fft_pkg3d_lg->nfft;
-  int numFFT2           = numFFT/2;
-  int numFFT2Proc       = numFFTProc/2;
+  //int numFFTProc        = cp_para_fft_pkg3d_lg->nfft_proc;
+  //int numFFT            = cp_para_fft_pkg3d_lg->nfft;
+  //int numFFT2           = numFFT/2;
+  //int numFFT2Proc       = numFFTProc/2;
+  int numFFTProc,numFFT,numFFT2,numFFT2Proc;
   int iChem,iSamp,iCell,iProc,iCoeff,iMol,iDiis;
   int div,res;
   int count,numChemProc,rhoRealGridNum,rhoRealGridTot;
@@ -233,6 +237,18 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
 /*==========================================================================*/
 /* I) General parameters and malloc					    */
+  if(realSparseOpt==0){
+    cp_para_fft_pkg3d = &(cp->cp_para_fft_pkg3d_lg);
+  }
+  else{
+    cp_para_fft_pkg3d = &(cp->cp_para_fft_pkg3d_sparse);
+  }
+  numFFTProc = cp_para_fft_pkg3d->nfft_proc;
+  numFFT = cp_para_fft_pkg3d->nfft;
+  numFFT2 = numFFT/2;
+  numFFT2Proc = numFFTProc/2;
+  
+
   stodftInfo->vpsAtomListFlag = 0;
   stodftInfo->filterFlag = 0;
   // Chebyshev way to calculate chem pot
@@ -763,10 +779,12 @@ void reInitWaveFunMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   COMMUNICATE  *communicate     = &(cp->communicate);
   CPOPTS       *cpopts          = &(cp->cpopts);
   CPSCR        *cpscr           = &(cp->cpscr);
-  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_sclr_fft_pkg3d_lg);
+  //PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_sclr_fft_pkg3d_lg);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d;
 
   int numStateStoUp = stodftInfo->numStateStoUp;
   int numStateStoDn = stodftInfo->numStateStoDn;
+  int realSparseOpt = cpopts->realSparseOpt;
   int numCoeff       = cpcoeffs_info->ncoef;
   int numStateUpProc,numStateDnProc;
   int numStateUpTot,numStateDnTot;
@@ -778,8 +796,9 @@ void reInitWaveFunMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int numChemPot = stodftInfo->numChemPot;
   int numSendNoise;
   int iState,iChem,iProc;
-  int nfft             = cp_para_fft_pkg3d_lg->nfft;
-  int nfft2	       = nfft/2; 
+  int nfft,nfft2;
+  //int nfft             = cp_para_fft_pkg3d_lg->nfft;
+  //int nfft2	       = nfft/2; 
   MPI_Comm comm_states = communicate->comm_states;
 
   int *noiseSendCounts;
@@ -789,6 +808,15 @@ void reInitWaveFunMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
 /*==========================================================================*/
 /* I) Initialize Check                                                      */
+
+  if(realSparseOpt==0){
+    cp_para_fft_pkg3d = &(cp->cp_sclr_fft_pkg3d_lg);
+  }
+  else{
+    cp_para_fft_pkg3d = &(cp->cp_sclr_fft_pkg3d_sparse);
+  }
+  nfft = cp_para_fft_pkg3d->nfft;
+  nfft2 = nfft/2;
      
   cpcoeffs_info->nstate_up = numStateStoUp;
   cpcoeffs_info->nstate_dn = numStateStoDn;
@@ -1207,7 +1235,8 @@ void reallocScratch(CP *cp,int hess_calc)
   CPTHERM_INFO *cptherm_info = &(cp->cptherm_info);
   PSEUDO *pseudo = &(cp->pseudo);
   CP_COMM_STATE_PKG *cp_comm_state_pkg_up = &(cp->cp_comm_state_pkg_up);
-  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
+  //PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d;
  
   CPSCR_LOC    *cpscr_loc = &(cpscr->cpscr_loc);
   CPSCR_NONLOC *cpscr_nonloc = &(cpscr->cpscr_nonloc);
@@ -1235,6 +1264,7 @@ void reallocScratch(CP *cp,int hess_calc)
   int natm_nls_max      = cpscr_nonloc->natm_nls_max;
   int cp_lsda           = cpopts->cp_lsda;
   int cp_norb           = cpopts->cp_norb;
+  int realSparseOpt	= cpopts->realSparseOpt;
   int np_states         = cp_comm_state_pkg_up->num_proc;
   int nstate_max_up     = cp_comm_state_pkg_up->nstate_max;
   int nstate_ncoef_proc_max_up = cp_comm_state_pkg_up->nstate_ncoef_proc_max;
@@ -1261,10 +1291,15 @@ void reallocScratch(CP *cp,int hess_calc)
   int ndim_wannier;
   int mm=5;
 
-
-
 /*==========================================================================*/
 /* Free everything*/
+
+  if(realSparseOpt==0){
+    cp_para_fft_pkg3d = &(cp->cp_para_fft_pkg3d_lg);
+  }
+  else{
+    cp_para_fft_pkg3d = &(cp->cp_para_fft_pkg3d_sparse);
+  }
 
   free(&(cpscr_nonloc->vnlre_up[1]));
   free(&(cpscr_nonloc->vnlim_up[1]));
@@ -1372,7 +1407,7 @@ void reallocScratch(CP *cp,int hess_calc)
  /* i) Dual grid CP : Define the small dense grid sizes */
 
  if(cp_dual_grid_opt_on == 2){
-   ncoef_l_pme_dual = cp_para_fft_pkg3d_lg->ncoef;
+   ncoef_l_pme_dual = cp_para_fft_pkg3d->ncoef;
  }/*endif cp_dual_grid_opt_on*/
 
  /*-------------------------------------------------------------------------*/

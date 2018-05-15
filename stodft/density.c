@@ -827,10 +827,12 @@ void calcRhoStoHybridInterp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_da
   CPCOEFFS_POS  *cpcoeffs_pos   = &(cp->cpcoeffs_pos[ip_now]);
   PSEUDO        *pseudo         = &(cp->pseudo);
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
+  //PARA_FFT_PKG3D *cp_para_fft_pkg3d;
 
   int cpParaOpt = cpopts->cp_para_opt;
   int cpLsda = cpopts->cp_lsda;
   int cpGGA  = cpopts->cp_gga;
+  int realSparseOpt = cpopts->realSparseOpt;
   int numCoeffLarge       = cpcoeffs_info->ncoef_l;
   int numCoeffLargeProc   = cp->cp_para_fft_pkg3d_lg.ncoef_proc;
   int numCoeffLargeProcDensCpBox = cp->cp_para_fft_pkg3d_dens_cp_box.ncoef_proc;
@@ -920,6 +922,16 @@ void calcRhoStoHybridInterp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_da
 
   //vol_cp  = getdeth(hmat_cp);
   //rvol_cp = 1.0/vol_cp;
+  /*
+  if(realSparseOpt==0){
+    cp_para_fft_pkg3d = &(cp->cp_para_fft_pkg3d_lg);
+  }
+  else{
+    cp_para_fft_pkg3d = &(cp->cp_para_fft_pkg3d_sparse);
+  }
+  */
+  
+
   if(numProcStates>1)Barrier(commStates);
   
   for(iChem=0;iChem<numChemProc;iChem++){

@@ -817,6 +817,7 @@ void coef_force_calc_hybrid_threads_state(CPEWALD *cpewald,int nstate,
   double *fx = clatoms_pos->fx;
   double *fy = clatoms_pos->fy;
   double *fz = clatoms_pos->fz;
+  double *ak2Kinetic = cpewald->ak2Kinetic;
 
   double time_st,time_end;
 
@@ -1282,9 +1283,9 @@ void coef_force_calc_hybrid_threads_state(CPEWALD *cpewald,int nstate,
     ioff = (is-1)*ncoef;
     for(i=1; i<= ncoef1 ; i++){
       iis = ioff + i;
-      fccreal[iis] -= 2.0*ak2_sm[i]*ccreal[iis];
-      fccimag[iis] -= 2.0*ak2_sm[i]*ccimag[iis];
-      eke += (2.0*ak2_sm[i]*(ccreal[iis]*ccreal[iis] + ccimag[iis]*ccimag[iis]));
+      fccreal[iis] -= 2.0*ak2Kinetic[i]*ccreal[iis];
+      fccimag[iis] -= 2.0*ak2Kinetic[i]*ccimag[iis];
+      eke += (2.0*ak2Kinetic[i]*(ccreal[iis]*ccreal[iis] + ccimag[iis]*ccimag[iis]));
     }/*endfor i*/
    nis = is*ncoef;
    fccimag[nis] = 0.0;
@@ -1302,8 +1303,10 @@ void coef_force_calc_hybrid_threads_state(CPEWALD *cpewald,int nstate,
       cp_hess_im[i] *= -1;
     }/* endfor */
     for(i=1; i<= ncoef1 ; i++){
-      cp_hess_re[i] += 2.0*ak2_sm[i];
-      cp_hess_im[i] += 2.0*ak2_sm[i];
+      //cp_hess_re[i] += 2.0*ak2_sm[i];
+      //cp_hess_im[i] += 2.0*ak2_sm[i];
+      cp_hess_re[i] += 2.0*ak2Kinetic[i];
+      cp_hess_im[i] += 2.0*ak2Kinetic[i];      
     }/* endfor */
   }/* endif cp_min_on */
 

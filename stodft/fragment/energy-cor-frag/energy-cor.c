@@ -251,6 +251,7 @@ void calcKEMatrix(CP *cpMini,CP *cp)
   double *cre_dn = cpcoeffs_pos->cre_dn;
   double *cim_dn = cpcoeffs_pos->cim_dn;
   double *ak2Small = cpEwald->ak2_sm;
+  double *ak2Kinetic = cpEwald->ak2Kinetic;
   double *coefForceRe,*coefForceIm;
   double *keMatrixUp;
   double *keMatrixDn;
@@ -272,8 +273,8 @@ void calcKEMatrix(CP *cpMini,CP *cp)
   for(iState=0;iState<numStateUp;iState++){
     for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
       index = iState*numCoeff+iCoeff;
-      coefForceRe[index] = 0.5*ak2Small[iCoeff]*cre_up[index];
-      coefForceIm[index] = 0.5*ak2Small[iCoeff]*cim_up[index];
+      coefForceRe[index] = 0.5*ak2Kinetic[iCoeff]*cre_up[index];
+      coefForceIm[index] = 0.5*ak2Kinetic[iCoeff]*cim_up[index];
     }//endfor iCoeff
     coefForceRe[iState*numCoeff+numCoeff] = 0.0;
     coefForceIm[iState*numCoeff+numCoeff] = 0.0;
@@ -305,8 +306,8 @@ void calcKEMatrix(CP *cpMini,CP *cp)
     for(iState=0;iState<numStateDn;iState++){
       for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
 	index = iState*numCoeff+iCoeff;
-	coefForceRe[index] = 0.5*ak2Small[iCoeff]*cre_dn[index];
-	coefForceIm[index] = 0.5*ak2Small[iCoeff]*cim_dn[index];
+	coefForceRe[index] = 0.5*ak2Kinetic[iCoeff]*cre_dn[index];
+	coefForceIm[index] = 0.5*ak2Kinetic[iCoeff]*cim_dn[index];
       }
       coefForceRe[iState*numCoeff+numCoeff] = 0.0;
       coefForceIm[iState*numCoeff+numCoeff] = 0.0;

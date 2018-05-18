@@ -919,6 +919,7 @@ void coef_force_control(CPOPTS *cpopts,CPCOEFFS_INFO *cpcoeffs_info,
    double   *cp_hess_im_dn    =  cpcoeffs_pos->cp_hess_im_dn;
 
    double   *ak2_sm           =  cpewald->ak2_sm;
+   double   *ak2Kinetic	      =  cpewald->ak2Kinetic;
    double   *v_ks_up          =  cpscr->cpscr_rho.v_ks_up;
    double   *v_ks_dn          =  cpscr->cpscr_rho.v_ks_dn;
    double   *v_ks_tau_up      =  cpscr->cpscr_rho.v_ks_tau_up;
@@ -1272,8 +1273,9 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
   //double *vext_sparse;
   double test_vext = 0.0;
 
-  if(realSparseOpt==0)ak2 = cpewald->ak2;
-  else ak2 = cpewald->ak2_sm;
+  //if(realSparseOpt==0)ak2 = cpewald->ak2;
+  //else ak2 = cpewald->ak2_sm;
+  ak2 = cpewald->ak2;
   /*
   if(realSparseOpt==0){
     nfft            =    cp_para_fft_pkg3d_lg->nfft;
@@ -1951,6 +1953,7 @@ void coef_force_calc_hybrid_threads_force(CPEWALD *cpewald,int nstate,
   int fftw3dFlag = cpewald->fftw3dFlag;
   int onebodyMatrixFlag = cpewald->onebodyMatrixFlag;
   double *keMatrix = cpewald->keMatrix;
+  double *ak2Kinetic = cpewald->ak2Kinetic;
 
 /* ================================================================= */
 /*0) Check the form of the coefficients                              */
@@ -2227,9 +2230,9 @@ void coef_force_calc_hybrid_threads_force(CPEWALD *cpewald,int nstate,
     ioff = (is-1)*ncoef;
     for(i=1; i<= ncoef1 ; i++){
       iis = ioff + i;
-      fccreal[iis] -= 2.0*ak2_sm[i]*ccreal[iis];
-      fccimag[iis] -= 2.0*ak2_sm[i]*ccimag[iis];
-      eke += (2.0*ak2_sm[i]*(ccreal[iis]*ccreal[iis] + ccimag[iis]*ccimag[iis]));
+      fccreal[iis] -= 2.0*ak2Kinetic[i]*ccreal[iis];
+      fccimag[iis] -= 2.0*ak2Kinetic[i]*ccimag[iis];
+      eke += (2.0*ak2Kinetic[i]*(ccreal[iis]*ccreal[iis] + ccimag[iis]*ccimag[iis]));
     }/*endfor i*/
    nis = is*ncoef;
    fccimag[nis] = 0.0;
@@ -2247,8 +2250,10 @@ void coef_force_calc_hybrid_threads_force(CPEWALD *cpewald,int nstate,
       cp_hess_im[i] *= -1;
     }/* endfor */
     for(i=1; i<= ncoef1 ; i++){
-      cp_hess_re[i] += 2.0*ak2_sm[i];
-      cp_hess_im[i] += 2.0*ak2_sm[i];
+      //cp_hess_re[i] += 2.0*ak2_sm[i];
+      //cp_hess_im[i] += 2.0*ak2_sm[i];
+      cp_hess_re[i] += 2.0*ak2Kinetic[i];
+      cp_hess_im[i] += 2.0*ak2Kinetic[i];
     }/* endfor */
   }/* endif cp_min_on */
 

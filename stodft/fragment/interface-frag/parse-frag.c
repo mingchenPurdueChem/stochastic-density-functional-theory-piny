@@ -75,6 +75,7 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   int myid_state,myid_forc,myatm_start,myatm_end;
   int cp_dual_grid_opt_on;        /*dualed option flag for CP */
   int ncons,ncons_dn;
+  int realSparseOpt;
 
   CLASS_PARSE      classParse;
   CP_PARSE         cpParse;
@@ -204,6 +205,7 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
   classMini->clatoms_info.ifirst_vps = 0;
   cpMini->cpcoeffs_info.itime_ks = 0;
+  cpMini->cpewald.realSparseOpt = cpMini->cpopts.realSparseOpt;
 
 /*========================================================================*/
 /*    VII) Read in hmat. Do before set_cp_ewald                           */
@@ -234,13 +236,21 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*                            CP/Ewald mallocing                          */
 /*                (interface/cp_ewald/control_set_cp_ewald                */
 
+  realSparseOpt = cpMini->cpewald.realSparseOpt;
+
 /*--------------------------------------------------------------------------*/
   if((nchrg>0&&iperd>0)||cp_on==1){
 /*--------------------------------------------------------------------------*/
 /* Set up CP and Ewald stuff                                                */
     if(iopt_cp_pw == 1){//change
-      controlSetCpEwaldFrag(generalDataMini,classMini,cpMini,bondedMini,
-			    cp,class,general_data,bonded,&cpParse,&classParse);
+      if(realSparseOpt==0){
+        controlSetCpEwaldFrag(generalDataMini,classMini,cpMini,bondedMini,
+	  		      cp,class,general_data,bonded,&cpParse,&classParse);
+      }
+      else{
+        controlSetCpEwaldFragSparse(generalDataMini,classMini,cpMini,bondedMini,
+                              cp,class,general_data,bonded,&cpParse,&classParse);
+      }
     }
     classMini->clatoms_info.alp_ewd = generalDataMini->ewald.alp_ewd;
 /*--------------------------------------------------------------------------*/

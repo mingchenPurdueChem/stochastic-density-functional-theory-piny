@@ -335,6 +335,10 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
 
   /* 67)\cp_thread_option{#} */
   cpMini->cpopts.threadFlag = 1;
+  /* 68)\cp_real_sparse{#} */
+  cpMini->cpopts.realSparseOpt = cp->cpopts.realSparseOpt;
+  /* 69)\cp_ke_ecut{#}     */
+  cpMini->cpewald.eCutoffKe = cp->cpewald.eCutoffKe;
 /*=======================================================================*/
 /*  IV) set_sim_params_vpot                                              */
 

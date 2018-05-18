@@ -1130,6 +1130,7 @@ void mall_cp_scr(CPTHERM_INFO *cptherm_info,CPOPTS *cpopts,CPEWALD *cpewald,
   cpewald->ak2    =  (double *)
               cmalloc((ncoef_l_proc_max_mall)*sizeof(double))-1;
   cpewald->ak2_sm = (double *)cmalloc(ncoef*sizeof(double))-1;
+  cpewald->ak2Kinetic = (double *)cmalloc(ncoef*sizeof(double))-1;
   num += (ncoef_l_proc_max + ncoef);
   if(cp_dual_grid_opt_on == 2){
    cpewald->ak2_dens_cp_box = (double *)cmalloc(ncoef_l_proc_max_mall_cp_box*

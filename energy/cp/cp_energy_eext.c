@@ -773,16 +773,17 @@ void control_ewd_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
     idens_opt = 0;
     ipseud_opt= (cp_dual_grid_opt==2 ? 0 : 1);
     
-    if(realSparseOpt==0){
-      kastore   = ewald->kastr;
-      kbstore   = ewald->kbstr;
-      kcstore   = ewald->kcstr;
-      ak2       = cpewald->ak2;
-      nktot     = ewald->nktot;
-      ibreak1   = ewald->ibrk1;
-      ibreak2   = ewald->ibrk2;
-      printf("nktot %i\n",nktot);
-    }
+    //if(realSparseOpt==0){
+    kastore   = ewald->kastr;
+    kbstore   = ewald->kbstr;
+    kcstore   = ewald->kcstr;
+    ak2       = cpewald->ak2;
+    nktot     = ewald->nktot;
+    ibreak1   = ewald->ibrk1;
+    ibreak2   = ewald->ibrk2;
+    printf("nktot %i\n",nktot);
+    //}
+    /*
     else{
       kastore = cpewald->kastr_sm;
       kbstore = cpewald->kbstr_sm;
@@ -793,7 +794,7 @@ void control_ewd_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
       ibreak2   = cpewald->ibrk2_sm;
       printf("nktot %i\n",nktot);
     }
-    
+    */
     /*
     kastore   = ewald->kastr;
     kbstore   = ewald->kbstr;
@@ -2193,14 +2194,19 @@ void get_ak2_sm(CPEWALD *cpewald,CELL *cell)
   int *kbstore_sm    = cpewald->kbstr_sm;
   int *kcstore_sm    = cpewald->kcstr_sm;
   double *ak2_sm     = cpewald->ak2_sm;
+  double *ak2Kinetic = cpewald->ak2Kinetic;
+  double gmaxTrueSm  = cpewald->gmaxTrueSm;
+  double eCutoffKe   = cpewald->eCutoffKe;
+  double gcut = cpewald->gCutoffKe;
+  double gcut2 = gcut*gcut;
 
 /*======================================================================*/
 /* I) Get the k vectors                                                 */
 
  tpi = 2.0*M_PI;
+ if(eCutoffKe<0.0)gcut2 = 1.0e30;
 
  for(icount=1;icount<=nktot_sm;icount++){
-  
    aka = (double)(kastore_sm[icount]);
    akb = (double)(kbstore_sm[icount]);
    akc = (double)(kcstore_sm[icount]);
@@ -2209,13 +2215,13 @@ void get_ak2_sm(CPEWALD *cpewald,CELL *cell)
    zk = (aka*hmati[7]+akb*hmati[8]+akc*hmati[9])*tpi;
    g2 = xk*xk+yk*yk+zk*zk;
    ak2_sm[icount] = g2;
-
+   if(g2>gcut2)ak2Kinetic[icount] = gcut2;
+   else ak2Kinetic[icount] = g2;
  }/*endfor*/
 
 /*========================================================================*/
 }/*end routine */
 /*========================================================================*/
-
 
 
 /*==========================================================================*/

@@ -245,22 +245,24 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
   double tol_edge_dist = cp->cpopts.tol_edge_dist;
   int icheck_perd_size = cp->cpopts.icheck_perd_size;
   int icheck_dual_size = cp->cpopts.icheck_dual_size;
+  double eCutoffKe = cp->cpewald.eCutoffKe;
 
   cp_wave_min = simopts->cp_wave_min;
   cp_min      = simopts->cp_min;
   cp_min_on = cp_wave_min + cp_min + cp_wave_min_pimd;
 
-  if(realSparseOpt==0){
-    cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
-    cp_sclr_fft_pkg3d_lg = &(cp->cp_sclr_fft_pkg3d_lg);
-    cp_sclr_fft_pkg3d_sm = &(cp->cp_sclr_fft_pkg3d_sm);
-  }
+  //if(realSparseOpt==0){
+  cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
+  cp_sclr_fft_pkg3d_lg = &(cp->cp_sclr_fft_pkg3d_lg);
+  cp_sclr_fft_pkg3d_sm = &(cp->cp_sclr_fft_pkg3d_sm);
+  //}
+  /*
   else{
     cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_sparse);
     cp_sclr_fft_pkg3d_lg = &(cp->cp_sclr_fft_pkg3d_sparse);
     cp_sclr_fft_pkg3d_sm = &(cp->cp_sclr_fft_pkg3d_sparse);
   }
-
+  */
 
 /*======================================================================*/
 /* 0) Check the forms                                                   */
@@ -592,7 +594,7 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
     */
     cp->pseudo.pseudoReal.pseudoWfCalcFlag = 0;
   }
-
+  
 #ifdef TIME_CP
   cputime(&cpu2);
   par_cpu_vomit((cpu2-cpu1),comm_states,np_states,myid_state,

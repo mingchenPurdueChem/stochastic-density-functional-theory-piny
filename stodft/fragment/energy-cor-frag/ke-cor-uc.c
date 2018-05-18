@@ -169,6 +169,7 @@ void calcKEMatrixUC(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,
   double *fcre_dn = cpcoeffs_pos->fcre_dn;
   double *fcim_dn = cpcoeffs_pos->fcim_dn;
   double *ak2Small = cpEwald->ak2_sm;
+  double *ak2Kinetic = cpEwald->ak2Kinetic;
   double *coefForceRe,*coefForceIm;
   double *coefTemp,*wfTemp;
   double *keMatrixUp;
@@ -316,8 +317,8 @@ void calcKEMatrixUC(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,
   for(iState=0;iState<numStateUp;iState++){
     for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
       index = iState*numCoeff+iCoeff;
-      fcre_up[index] = 0.5*ak2Small[iCoeff]*cre_up[index];
-      fcim_up[index] = 0.5*ak2Small[iCoeff]*cim_up[index];
+      fcre_up[index] = 0.5*ak2Kinetic[iCoeff]*cre_up[index];
+      fcim_up[index] = 0.5*ak2Kinetic[iCoeff]*cim_up[index];
     }//endfor iCoeff
     fcre_up[iState*numCoeff+numCoeff] = 0.0;
     fcim_up[iState*numCoeff+numCoeff] = 0.0;
@@ -333,8 +334,8 @@ void calcKEMatrixUC(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,
     for(iState=0;iState<numStateDn;iState++){
       for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
 	index = iState*numCoeff+iCoeff;
-	fcre_dn[index] = 0.5*ak2Small[iCoeff]*cre_dn[index];
-	fcim_dn[index] = 0.5*ak2Small[iCoeff]*cim_dn[index];
+	fcre_dn[index] = 0.5*ak2Kinetic[iCoeff]*cre_dn[index];
+	fcim_dn[index] = 0.5*ak2Kinetic[iCoeff]*cim_dn[index];
       }//endfor iCoeff
       fcre_dn[iState*numCoeff+numCoeff] = 0.0;
       fcim_dn[iState*numCoeff+numCoeff] = 0.0;

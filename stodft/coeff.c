@@ -454,16 +454,18 @@ void genEigenOrb(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   double *cre_temp = (double*)cmalloc(numCoeffUpTot*sizeof(double))-1;
   double *cim_temp = (double*)cmalloc(numCoeffUpTot*sizeof(double))-1;
 
-  if(realSparseOpt==0){
-    cp_sclr_fft_pkg3d_sm = &(cp->cp_sclr_fft_pkg3d_sm);
-    cp_sclr_fft_pkg3d_lg = &(cp->cp_sclr_fft_pkg3d_lg);
-    cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
-  }
+  //if(realSparseOpt==0){
+  cp_sclr_fft_pkg3d_sm = &(cp->cp_sclr_fft_pkg3d_sm);
+  cp_sclr_fft_pkg3d_lg = &(cp->cp_sclr_fft_pkg3d_lg);
+  cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
+  //}
+  /*
   else{
     cp_sclr_fft_pkg3d_sm = &(cp->cp_sclr_fft_pkg3d_sparse);
     cp_sclr_fft_pkg3d_lg = &(cp->cp_sclr_fft_pkg3d_sparse);
     cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_sparse);
   }
+  */
 
   calcCoefForceWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
 

@@ -1084,9 +1084,13 @@ typedef struct cpewald {
                                         Lth: nktot_sm                       */ 
 
   double *ak2,*ak2_sm;         /* Square of k vectors on big and small grid */
+  double *ak2Kinetic;	       /* Square of k vectors for kinetic. Need this to */
+			       /* reduce energy range.			        */
   double *ak2_dens_cp_box;      /* Square of k vectors on big and small grid */
 
   int realSparseOpt;              /* Opt: Use sparse real space grid 0=off 1=on  */   
+  double eCutoffKe,gCutoffKe;		  /* Truncate g before gmax, used in calcuating */
+				  /* kinetic energy before */
 
   // I'm sorry but cpewald is the only structure passing into force calculation routine
   int fftw3dFlag; /* Replica from cpopts*/

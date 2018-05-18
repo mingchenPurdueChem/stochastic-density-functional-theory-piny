@@ -164,8 +164,9 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
 
 /*======================================================================*/
 /* 0) Initialize force calculation                                      */
-  if(realSparseOpt==0)cp_para_fft_pkg3d = &(cp->cp_para_fft_pkg3d_lg);
-  else cp_para_fft_pkg3d = &(cp->cp_para_fft_pkg3d_sparse);
+  //if(realSparseOpt==0)cp_para_fft_pkg3d = &(cp->cp_para_fft_pkg3d_lg);
+  //else cp_para_fft_pkg3d = &(cp->cp_para_fft_pkg3d_sparse);
+  cp_para_fft_pkg3d = &(cp->cp_para_fft_pkg3d_lg);
   numCoeffLargeProc = cp_para_fft_pkg3d->ncoef_proc;
 
   if(myidState==0){

@@ -162,6 +162,7 @@ void calcChemPotCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     printf("Start Calculating Chemical Potential\n");
     for(iPoly=0;iPoly<=polynormLength;iPoly++){
       chebyMomentsUp[iPoly] /= (double)numStateStoUp;
+      //printf("chebyMomentsUp %i %lg\n",iPoly,chebyMomentsUp[iPoly]);
     }
     if(cpLsda==1&&numStateDnProc!=0){
       for(iPoly=0;iPoly<=polynormLength;iPoly++){

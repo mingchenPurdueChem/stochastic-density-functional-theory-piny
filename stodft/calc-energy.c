@@ -87,6 +87,7 @@ void calcEnergyChemPot(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   double *fcre_dn = cpcoeffs_pos->fcre_dn;
   double *fcim_dn = cpcoeffs_pos->fcim_dn;
   double *ak2_sm  =  cpewald->ak2_sm;
+  double *ak2Kinetic = cpewald->ak2Kinetic;
   double *chemPot = stodftCoefPos->chemPot;
   double *fx = clatoms_pos->fx;
   double *fy = clatoms_pos->fy;
@@ -134,7 +135,7 @@ void calcEnergyChemPot(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       ioff = iState*numCoeff;
       for(iCoeff=1;iCoeff<=numCoeff-1;iCoeff++){
         iis = ioff+iCoeff;
-        eke += 2.0*ak2_sm[iCoeff]*(cre_up[iis]*cre_up[iis]+cim_up[iis]*cim_up[iis]);
+        eke += 2.0*ak2Kinetic[iCoeff]*(cre_up[iis]*cre_up[iis]+cim_up[iis]*cim_up[iis]);
       }//endfor iCoeff
     }//endfor iState
     eke *= occNumber*0.5;
@@ -144,7 +145,7 @@ void calcEnergyChemPot(CP *cp,CLASS *class,GENERAL_DATA *general_data,
         ioff = iState*numCoeff;
         for(iCoeff=1;iCoeff<=numCoeff-1;iCoeff++){
           iis = ioff+iCoeff;
-          ekeDn += 2.0*ak2_sm[iCoeff]*(cre_dn[iis]*cre_dn[iis]+cim_dn[iis]*cim_dn[iis]);
+          ekeDn += 2.0*ak2Kinetic[iCoeff]*(cre_dn[iis]*cre_dn[iis]+cim_dn[iis]*cim_dn[iis]);
         }//endfor iCoeff
       }//endfor iState
       eke += ekeDn*occNumber*0.5;
@@ -386,6 +387,7 @@ void calcKNEEnergyFilterDiag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   double *fcre_dn = cpcoeffs_pos->fcre_dn;
   double *fcim_dn = cpcoeffs_pos->fcim_dn;
   double *ak2_sm  =  cpewald->ak2_sm;
+  double *ak2Kinetic = cpewald->ak2Kinetic;
   double *chemPot = stodftCoefPos->chemPot;
 
   double **stoWfUpRe = stodftCoefPos->stoWfUpRe;
@@ -428,7 +430,7 @@ void calcKNEEnergyFilterDiag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       ioff = iState*numCoeff;
       for(iCoeff=1;iCoeff<=numCoeff-1;iCoeff++){
         iis = ioff+iCoeff;
-        eke += 2.0*ak2_sm[iCoeff]*(cre_up[iis]*cre_up[iis]+cim_up[iis]*cim_up[iis]);
+        eke += 2.0*ak2Kinetic[iCoeff]*(cre_up[iis]*cre_up[iis]+cim_up[iis]*cim_up[iis]);
       }//endfor iCoeff
     }//endfor iState
     eke *= 0.5;
@@ -438,7 +440,7 @@ void calcKNEEnergyFilterDiag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
         ioff = iState*numCoeff;
         for(iCoeff=1;iCoeff<=numCoeff-1;iCoeff++){
           iis = ioff+iCoeff;
-          ekeDn += 2.0*ak2_sm[iCoeff]*(cre_dn[iis]*cre_dn[iis]+cim_dn[iis]*cim_dn[iis]);
+          ekeDn += 2.0*ak2Kinetic[iCoeff]*(cre_dn[iis]*cre_dn[iis]+cim_dn[iis]*cim_dn[iis]);
         }//endfor iCoeff
       }//endfor iState
       eke += ekeDn*0.5;

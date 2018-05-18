@@ -324,7 +324,7 @@ void set_sim_dict_cp(int *num_dict,DICT_WORD *dict[])
 /*========================================================================*/
 /*  0) Malloc the dictionary                                              */ 
 
-  *num_dict = 68;
+  *num_dict = 69;
   *dict = (DICT_WORD *)cmalloc(*num_dict*sizeof(DICT_WORD))-1;
 
 /*========================================================================*/
@@ -707,6 +707,11 @@ void set_sim_dict_cp(int *num_dict,DICT_WORD *dict[])
        strcpy((*dict)[68].error_mes,"Do you wanna use sparse real space grid? On or Off");
        strcpy((*dict)[68].keyword,"cp_real_sparse");
        strcpy((*dict)[68].keyarg,"off");
+  /*-----------------------------------------------------------------------*/
+  /* 69)\cp_ke_ecut{#} */
+       strcpy((*dict)[69].error_mes,"Positive number of energy cutoff(Ryd) in kinetic energy(force) calculation. Negative for nothing");
+       strcpy((*dict)[69].keyword,"cp_ke_ecut");
+       strcpy((*dict)[69].keyarg,"-1.0");
   
 /*========================================================================*/
 /*------------------------------------------------------------------------*/

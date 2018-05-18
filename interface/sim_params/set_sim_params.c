@@ -1084,8 +1084,11 @@ int iii;
   /* 68)\cp_real_sparse{#} */
   if(strcasecmp(dict[68].keyarg,"on")==0)cp->cpopts.realSparseOpt = 1;
   if(strcasecmp(dict[68].keyarg,"off")==0)cp->cpopts.realSparseOpt = 0;
+  /*-----------------------------------------------------------------------*/
+  /* 69)\cp_ke_ecut{#}	   */ 
+  sscanf(dict[69].keyarg,"%lg",&real_key_arg);
+  cp->cpewald.eCutoffKe = real_key_arg;
 
- 
 /*========================================================================*/
     }/*end routine*/ 
 /*========================================================================*/

@@ -32,6 +32,9 @@ void setIntraPotentFrag(BONDED *,BUILD_INTRA *,NAME [],NAME []);
 void controlSetCpEwaldFrag(GENERAL_DATA *,CLASS *,CP *,BONDED *,CP *,CLASS *,
                            GENERAL_DATA *,BONDED *,CP_PARSE *,CLASS_PARSE *);
 
+void controlSetCpEwaldFragSparse(GENERAL_DATA *,CLASS *,CP *,BONDED *,CP *,CLASS *,
+                           GENERAL_DATA *,BONDED *,CP_PARSE *,CLASS_PARSE *);
+
 void controlGroupCommunicatorsFrag(CLASS *,CP *,int);
 
 void controlFFTPkgFrag(GENERAL_DATA *,CLASS *,CP *,CP *);

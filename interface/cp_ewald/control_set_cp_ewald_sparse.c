@@ -605,6 +605,9 @@ if(cp_on == 1){
                    &(cpewald->gw_gmin),&(cpewald->gw_gmax));
       //cpewald->gmaxTrueSm = cpewald->gw_gmax*0.74;
       cpewald->gmaxTrueSm = cpewald->gw_gmax;
+      if(cpewald->eCutoffKe>0.0){
+        cpewald->gCutoffKe = cpewald->gmaxTrueSm*sqrt(0.5*cpewald->eCutoffKe/ecut_sm);
+      }
 
     if(cp_dual_grid_opt_on == 0 && cp_on == 1){
       check_kvec(ewald->nktot,ewald->kastr,ewald->kbstr,ewald->kcstr,nktot_sm,

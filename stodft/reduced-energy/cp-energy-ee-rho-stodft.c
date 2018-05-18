@@ -79,6 +79,7 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
   double sum_check,sum_check_tmp;
   double time_st,time_end;
   double *keMatrix = cpewald->keMatrix;
+  double *ak2Kinetic = cpewald->ak2Kinetic;
 #define DEBUG_OFF
 #ifdef DEBUG
   int icount;
@@ -305,9 +306,9 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
     ioff = (is-1)*ncoef;
     for(i=1; i<= ncoef1 ; i++){
       iis = ioff + i;
-      fccreal[iis] -= 2.0*ak2_sm[i]*ccreal[iis];
-      fccimag[iis] -= 2.0*ak2_sm[i]*ccimag[iis];
-      eke += (2.0*ak2_sm[i]*(ccreal[iis]*ccreal[iis] + ccimag[iis]*ccimag[iis]));
+      fccreal[iis] -= 2.0*ak2Kinetic[i]*ccreal[iis];
+      fccimag[iis] -= 2.0*ak2Kinetic[i]*ccimag[iis];
+      eke += (2.0*ak2Kinetic[i]*(ccreal[iis]*ccreal[iis] + ccimag[iis]*ccimag[iis]));
     }/*endfor i*/
    nis = is*ncoef;
    fccimag[nis] = 0.0;
@@ -477,6 +478,7 @@ void cpGetVksStodft(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
 /*  c) Get Hartree + external contributions to VKS -- test for CBCs   */
  
   printf("rhoc %lg %lg\n",rhocr[10],rhoci[10]);
+  printf("ak2[1] %lg\n",ak2[1]);
 
   if(iperd==3){
     for(i=1;i<=ncoef_l_use;i++){
@@ -497,6 +499,7 @@ void cpGetVksStodft(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
       vexti[i] += ghfact*rhoci[i];
     }//endfor
   }//endif periodic
+
 
   eext *= 2.0;
   if((myid_state+1)==np_states)eext +=  vextr[ncoef_l]*rhocr[ncoef_l];
@@ -521,6 +524,7 @@ void cpGetVksStodft(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
 /* j) Multiply the external potential by the pme g-space weight       */
 /*====================================================================*/
 /*  II) single pack the ks potential for fourier transform routine    */
+  printf("vextr vexti %lg %lg\n",vextr[1],vexti[1]);
   sngl_pack_coef(vextr,vexti,zfft,cp_para_fft_pkg3d_lg);
 /*====================================================================*/
 /* III) fourier transform ks potential to real space exp(-igr)        */
@@ -528,6 +532,8 @@ void cpGetVksStodft(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
 /*====================================================================*/
 /* IV) Contract and unpack rho for dual option, otherwise just upack  */
   sngl_upack_rho(zfft,v_ks_up,cp_para_fft_pkg3d_lg);
+
+  printf("1111111111111 v_ks_up[1] %lg\n",v_ks_up[1]);
 /*=====================================================================*/
 /* V) Coulomb and Hartree erfc calculated on small grid for PME dualing*/
 /*====================================================================*/
@@ -710,6 +716,8 @@ void cpGetVksStodft(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
     }
   }
   Barrier(comm);
+
+  printf("11111111111111 v_ks_up[1] %lg\n",v_ks_up[1]);
   //fflush(stdout);
   //exit(0);
 

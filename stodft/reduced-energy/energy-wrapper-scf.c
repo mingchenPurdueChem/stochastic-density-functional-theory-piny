@@ -119,6 +119,7 @@ void calcLocalPseudoScf(CLASS *class,GENERAL_DATA *general_data,
 /* II) Calculate all ak2 needed					        */
 
   // I move the get_ak2_sm here, so we don't have to calculate during filtering
+  //printf("eecut %lg gcut %lg\n",cpewald->eCutoffKe,cpewald->gCutoffKe);
   get_ak2_sm(cpewald,cell);
 /*==========================================================================*/
 }/*end Routine*/
@@ -827,16 +828,18 @@ void calcCoefForceScf(CLASS *class,GENERAL_DATA *general_data,
   MPI_Comm comm_states = communicate->comm_states;
   MPI_Comm world       = communicate->world;
 
-  if(realSparseOpt==0){
-    cp_sclr_fft_pkg3d_sm = &(cp->cp_sclr_fft_pkg3d_sm);
-    cp_sclr_fft_pkg3d_lg = &(cp->cp_sclr_fft_pkg3d_lg);
-    cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
-  }
+  //if(realSparseOpt==0){
+  cp_sclr_fft_pkg3d_sm = &(cp->cp_sclr_fft_pkg3d_sm);
+  cp_sclr_fft_pkg3d_lg = &(cp->cp_sclr_fft_pkg3d_lg);
+  cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
+  //}
+  /*
   else{
     cp_sclr_fft_pkg3d_sm = &(cp->cp_sclr_fft_pkg3d_sparse);
     cp_sclr_fft_pkg3d_lg = &(cp->cp_sclr_fft_pkg3d_sparse);
     cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_sparse);
   }
+  */
 
 /*-------------------------------------------------------------------------*/
 

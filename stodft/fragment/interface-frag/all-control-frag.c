@@ -1779,7 +1779,7 @@ void controlSetCpEwaldFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
   kmaxv[1] = numGridDim[0]/2-1;
   kmaxv[2] = numGridDim[1]/2-1;
   kmaxv[3] = numGridDim[2]/2-1;
-  printf("kmaxv %i %i %i\n",kmaxv[1],kmaxv[2],kmaxv[3]);
+  //printf("kmaxv %i %i %i\n",kmaxv[1],kmaxv[2],kmaxv[3]);
 
   countkvec3d(&(ewald->nktot),ecut_now,kmaxv,hmati_ewd_cp);
 
@@ -2069,7 +2069,7 @@ void controlSetCpEwaldFragSparse(GENERAL_DATA *generalDataMini,CLASS *classMini,
   calc_cutoff(kmax_ewd,&ecut_now,&(cp_parse->cp_ecut),cp_on,
               kmax_cp,kmaxv,hmati_ewd_cp,deth_cp);  
   
-  printf("ecut %lg\n",cp_parse->cp_ecut);
+  //printf("ecut %lg\n",cp_parse->cp_ecut);
   if(kmax_cp[1]>numGridDim[0]/2-1||kmax_cp[2]>numGridDim[1]/2-1||
      kmax_cp[3]>numGridDim[2]/2-1){
 
@@ -2080,8 +2080,8 @@ void controlSetCpEwaldFragSparse(GENERAL_DATA *generalDataMini,CLASS *classMini,
   kmaxv[1] = kmax_cp[1];
   kmaxv[2] = kmax_cp[2];
   kmaxv[3] = kmax_cp[3];
-  printf("kmaxv %i %i %i\n",kmaxv[1],kmaxv[2],kmaxv[3]);
-  printf("kmax_cp %i %i %i\n",kmax_cp[1],kmax_cp[2],kmax_cp[3]);
+  //printf("kmaxv %i %i %i\n",kmaxv[1],kmaxv[2],kmaxv[3]);
+  //printf("kmax_cp %i %i %i\n",kmax_cp[1],kmax_cp[2],kmax_cp[3]);
 
   countkvec3d_sm(&(ewald->nktot),ecut_now,kmax_cp,hmati_ewd_cp);
 
@@ -2498,7 +2498,7 @@ void controlFFTPkgFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,CP *cpMini
   nkf1 = numGridDim[0];
   nkf2 = numGridDim[1];
   nkf3 = numGridDim[2];
-  printf("nkf1 %i nkf2 %i nkf3 %i\n",nkf1,nkf2,nkf3);
+  //printf("nkf1 %i nkf2 %i nkf3 %i\n",nkf1,nkf2,nkf3);
   //nkf1 = 4*(kmax_cp_dens_cp_box[1]+1);
   //nkf2 = 4*(kmax_cp_dens_cp_box[2]+1);
   //nkf3 = 4*(kmax_cp_dens_cp_box[3]+1);
@@ -2589,7 +2589,7 @@ void controlFFTPkgFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,CP *cpMini
   }/*endif*/
 
   if(cp_on==1&&cp_para_opt==0&&realSparseOpt==1){
-    printf("11111111111111111111111111111 initial fft");
+    //printf("11111111111111111111111111111 initial fft");
     cp_sclr_fft_pkg_sparse->nkf1 = nkf1;
     cp_sclr_fft_pkg_sparse->nkf2 = nkf2;
     cp_sclr_fft_pkg_sparse->nkf3 = nkf3;
@@ -2843,7 +2843,7 @@ void controlVpsParamsFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
 
 	}//endif
       }//endif
-      printf("vnl_kb_flag %i\n",pseudo->vnl_kb_flag);
+      //printf("vnl_kb_flag %i\n",pseudo->vnl_kb_flag);
   /*--------------------------------------------------------------------------*/
   /*     C) Make sure you have now found this puppy, if not exit              */
 

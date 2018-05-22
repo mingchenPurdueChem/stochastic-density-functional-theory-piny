@@ -189,7 +189,7 @@ void control_set_cp_ewald_sparse(SIMOPTS *simopts,CELL *cell,
    //ecut_now in countkvec3d. Therefore I need to use countkvec3d_sm 
    //k range: -kmax_cp->kmax_cp
 
-   printf("!!!!!!!!!!!!!! ecut_now %.16lg\n",ecut_now);
+   //printf("!!!!!!!!!!!!!! ecut_now %.16lg\n",ecut_now);
 
    countkvec3d_sm(&(ewald->nktot),ecut_now,kmax_cp,hmati_ewd_cp); 
 
@@ -202,8 +202,8 @@ void control_set_cp_ewald_sparse(SIMOPTS *simopts,CELL *cell,
    ecor->ecut              = ecut_now;
    ewald->ecut             = ecut_now;
    ewald->nkc_max          = kmaxv[3];
-   printf("kmaxv[1] %i %i %i kmax_cp[1] %i %i %i\n",kmaxv[1],kmaxv[2],kmaxv[3],
-	  kmax_cp[1],kmax_cp[2],kmax_cp[3]);
+   //printf("kmaxv[1] %i %i %i kmax_cp[1] %i %i %i\n",kmaxv[1],kmaxv[2],kmaxv[3],
+   //	  kmax_cp[1],kmax_cp[2],kmax_cp[3]);
 
 /*----------------------------------------------------------------------*/
 /* A.1) For dualing : Calculate cutoff and count kvectors for the large */
@@ -380,9 +380,6 @@ if(cp_on == 1){
    //gmin_spl, gmax_spl is scaled in setkvec3d, we need to get the same scaling 
    //here. For real space nonlocal pp, we need to have gmaxTrueLg double.
 
-   printf("nktot %i ecut_now %.16lg kmaxv %i %i %i\n",nktot,ecut_now,kmaxv[1],
-	  kmaxv[2],kmaxv[3]);
-   printf("boxinv %.16lg %.16lg %.16lg\n",hmati_ewd[1],hmati_ewd[2],hmati_ewd[3]);
    setkvec3d_sm(nktot,ecut_now,kmaxv,hmati_ewd,
              ewald->kastr,ewald->kbstr,ewald->kcstr,
              ewald->ibrk1,ewald->ibrk2,
@@ -595,10 +592,6 @@ if(cp_on == 1){
 /*--------------------------------------------------------------------*/
 /*  C)  Fill and check                                                */
 
-      printf("ecut_sm %.16lg nktot_sm %i\n",ecut_sm,nktot_sm);
-      printf("%i %i %i\n",kmax_cp_dens_cp_box[1],kmax_cp_dens_cp_box[2],kmax_cp_dens_cp_box[3]);
-      printf("boxinv %.16lg %.16lg %.16lg\n",hmati_ewd_cp[1],
-	     hmati_ewd_cp[2],hmati_ewd_cp[3]);
       setkvec3d_sm(nktot_sm,ecut_sm,kmax_cp_dens_cp_box,hmati_ewd_cp,
                    cpewald->kastr_sm,cpewald->kbstr_sm,cpewald->kcstr_sm,
                    cpewald->ibrk1_sm,cpewald->ibrk2_sm,

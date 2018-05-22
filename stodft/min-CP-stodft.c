@@ -101,6 +101,7 @@ void scfStodftInterp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   double tolEdgeDist 		= cpopts->tol_edge_dist;
   double energyDiff		= -1.0;
   double energyTol		= stodftInfo->energyTol;
+  double timeStart,timeEnd;
 
   double *coeffReUp        = cpcoeffs_pos->cre_up;
   double *coeffImUp        = cpcoeffs_pos->cim_up;
@@ -205,6 +206,7 @@ void scfStodftInterp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   //for(iScf=1;iScf<=numScf;iScf++){
   iScf = 0;
   while(scfStopFlag==0){ 
+    timeStart = omp_get_wtime();
     iScf += 1;
     stodftInfo->iScf = iScf;
     if(myidState==0){
@@ -383,7 +385,10 @@ void scfStodftInterp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*----------------------------------------------------------------------*/
 /* v) Finish this SCF step			                        */
 
+    timeEnd = omp_get_wtime();
+
     if(myidState==0){
+      printf("The master process spend %lgs in this SCF step.\n",timeEnd-timeStart);
       printf("--------------------------------------------------------\n");
       printf("Finish SCF Step %i\n",iScf);
       printf("********************************************************\n");
@@ -495,6 +500,7 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   double tolEdgeDist		= cpopts->tol_edge_dist;
   double energyDiff		= -1.0;
   double energyTol		= stodftInfo->energyTol;
+  double timeStart,timeEnd;
 
   double *coeffReUp        = cpcoeffs_pos->cre_up;
   double *coeffImUp        = cpcoeffs_pos->cim_up;
@@ -584,6 +590,7 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   //for(iScf=1;iScf<=numScf;iScf++){
   iScf = 0;
   while(scfStopFlag==0){
+    timeStart = omp_get_wtime();
     iScf += 1;
     stodftInfo->iScf = iScf;
 
@@ -736,7 +743,9 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*----------------------------------------------------------------------*/
 /* v) Finish this SCF step			                        */
 
+    timeEnd = omp_get_wtime();
     if(myidState==0){
+      printf("**The master process spend %lgs in this SCF step.\n",timeEnd-timeStart);
       printf("--------------------------------------------------------\n");
       printf("Finish SCF Step %i\n",iScf);
       printf("********************************************************\n");

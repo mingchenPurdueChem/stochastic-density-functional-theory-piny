@@ -477,8 +477,8 @@ void cpGetVksStodft(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
 /*--------------------------------------------------------------------*/
 /*  c) Get Hartree + external contributions to VKS -- test for CBCs   */
  
-  printf("rhoc %lg %lg\n",rhocr[10],rhoci[10]);
-  printf("ak2[1] %lg\n",ak2[1]);
+  //printf("rhoc %lg %lg\n",rhocr[10],rhoci[10]);
+  //printf("ak2[1] %lg\n",ak2[1]);
 
   if(iperd==3){
     for(i=1;i<=ncoef_l_use;i++){
@@ -524,7 +524,7 @@ void cpGetVksStodft(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
 /* j) Multiply the external potential by the pme g-space weight       */
 /*====================================================================*/
 /*  II) single pack the ks potential for fourier transform routine    */
-  printf("vextr vexti %lg %lg\n",vextr[1],vexti[1]);
+  //printf("vextr vexti %lg %lg\n",vextr[1],vexti[1]);
   sngl_pack_coef(vextr,vexti,zfft,cp_para_fft_pkg3d_lg);
 /*====================================================================*/
 /* III) fourier transform ks potential to real space exp(-igr)        */
@@ -533,7 +533,7 @@ void cpGetVksStodft(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
 /* IV) Contract and unpack rho for dual option, otherwise just upack  */
   sngl_upack_rho(zfft,v_ks_up,cp_para_fft_pkg3d_lg);
 
-  printf("1111111111111 v_ks_up[1] %lg\n",v_ks_up[1]);
+  //printf("1111111111111 v_ks_up[1] %lg\n",v_ks_up[1]);
 /*=====================================================================*/
 /* V) Coulomb and Hartree erfc calculated on small grid for PME dualing*/
 /*====================================================================*/
@@ -717,7 +717,7 @@ void cpGetVksStodft(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
   }
   Barrier(comm);
 
-  printf("11111111111111 v_ks_up[1] %lg\n",v_ks_up[1]);
+  //printf("11111111111111 v_ks_up[1] %lg\n",v_ks_up[1]);
   //fflush(stdout);
   //exit(0);
 

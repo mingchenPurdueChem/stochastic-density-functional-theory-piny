@@ -188,7 +188,7 @@ void controlEwdLocPreScf(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
     nktot     = ewald->nktot;
     ibreak1   = ewald->ibrk1;
     ibreak2   = ewald->ibrk2;
-    printf("nktot %i\n",nktot);
+    //printf("nktot %i\n",nktot);
     //}
     /*
     else{

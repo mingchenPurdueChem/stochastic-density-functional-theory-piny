@@ -1473,7 +1473,7 @@ void calcRhoStoHybridCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
 
 /*==========================================================================*/
 /* V) Output the density                                                    */
-  printf("22222222 rho %.16lg %.16lg\n",rhoUpCorrect[1],rhoUpCorrect[2]);
+  //printf("22222222 rho %.16lg %.16lg\n",rhoUpCorrect[1],rhoUpCorrect[2]);
 
   outputDensity(cp,cell);
 
@@ -1540,7 +1540,7 @@ void calcRhoStoHybridCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
       }/* endfor */
     } /* endif */
   }/* endif */
-  printf("2222222222222 rhok %.16lg %.16lg\n",rhoCoeffReUp[1],rhoCoeffImUp[1]);
+  //printf("2222222222222 rhok %.16lg %.16lg\n",rhoCoeffReUp[1],rhoCoeffImUp[1]);
 
    //exit(0);
 /*==========================================================================*/

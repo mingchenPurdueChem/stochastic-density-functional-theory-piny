@@ -92,7 +92,7 @@ void calcKECorUC(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,
   }
   */
   //debug
-  printf("wfProjUp %lg %lg %lg\n",wfProjUp[0],wfProjUp[1],wfProjUp[2]);
+  //printf("wfProjUp %lg %lg %lg\n",wfProjUp[0],wfProjUp[1],wfProjUp[2]);
   temp = (double*)cmalloc(numStateUp*sizeof(double));
   keCorUp = 0.0;
   for(iStoc=0;iStoc<numStateStoUp;iStoc++){
@@ -114,7 +114,7 @@ void calcKECorUC(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,
     keCor += keCorDn;
     free(temp);
   }
-  printf("ke %lg keCor %lg\n",ke,keCor);
+  //printf("ke %lg keCor %lg\n",ke,keCor);
   *keCorProc += ke-occNumber*keCor;
 
 /*==========================================================================*/

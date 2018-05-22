@@ -578,6 +578,8 @@ typedef struct stodftInfo{
 				    /*	    grid = nfft2			*/
   int rhoRealGridProc;		    /* Num: number of real space density grid   */
 				    /*	    on thid proc =nfft2_proc		*/
+  int numThreads;		    /* Num: number of threads when using multi- */
+				    /*	    threading			        */
   int *densityMap;		    /* Lst: Map the density to different proc	*/
 				    /*	    We store the density for different  */
 				    /*	    chemical potential on different	*/

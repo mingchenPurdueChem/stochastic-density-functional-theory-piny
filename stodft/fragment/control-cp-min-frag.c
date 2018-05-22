@@ -251,7 +251,7 @@ void controlCpMinFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     (general_data->simopts.cp_min)      = 1;
     (general_data->simopts.cp_wave_min) = 0;
 
-    printf("111111111 ke %lg\n",general_data->stat_avg.cp_eke);
+    //printf("111111111 ke %lg\n",general_data->stat_avg.cp_eke);
 
     //int cpBack = general_data->simopts.cp;
     //general_data->simopts.cp = 1000;
@@ -267,7 +267,7 @@ void controlCpMinFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
                &(general_data->ensopts),&(general_data->simopts),
                &(general_data->ptens),cp,&(class->communicate),
                &(class->nbr_list.verlist),&(class->energy_ctrl));
-    printf("ke %lg\n",general_data->stat_avg.cp_eke);
+    //printf("ke %lg\n",general_data->stat_avg.cp_eke);
 
     general_data->filenames.ifile_open    = 0;
     general_data->filenames.iwrite_screen = itime;

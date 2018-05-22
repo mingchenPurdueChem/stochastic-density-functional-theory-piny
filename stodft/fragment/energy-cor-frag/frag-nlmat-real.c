@@ -831,6 +831,8 @@ void calcMatrixFromDot(CP *cp, CP *cpMini,CLASS *classMini,
     //fflush(stdout);
     //exit(0);
   }//endfor iState
+  
+  /*
   countAtom = 0;
   for(iAtom=0;iAtom<numAtomTot;iAtom++){
     if(atomFragVnlCalcMapInv[iAtom]!=-1){
@@ -838,6 +840,7 @@ void calcMatrixFromDot(CP *cp, CP *cpMini,CLASS *classMini,
       countAtom += 1;
     }
   }
+  */
 
   // Generate the other half
   for(iState=0;iState<numStates;iState++){

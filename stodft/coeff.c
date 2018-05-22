@@ -308,6 +308,7 @@ void genSampNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   int numSampCand	     = 32*polynormLength;
   int iPoly,jPoly,iCand;
   int objMaxIndex;
+  int numThreads = stodftInfo->numThreads;
   double Smin = newtonInfo->Smin;
   double Smax = newtonInfo->Smax;
   double scale = 1.0/newtonInfo->scale;
@@ -324,7 +325,7 @@ void genSampNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
 
 /*==========================================================================*/
 /* 0) Generate sample candidates in range [Smin,Smax] */
-  cputime(&timeStart); 
+  timeStart = omp_get_wtime();
  
   stodftInfo->polynormLength = polynormLength;
   for(iCand=0;iCand<numSampCand;iCand++)sampCand[iCand] = Smin+iCand*delta;
@@ -341,6 +342,7 @@ void genSampNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
     else objValueArray[iCand] = log(diff);
   }
 
+  omp_set_num_threads(numThreads);
   for(iPoly=1;iPoly<polynormLength;iPoly++){
     //if(iPoly%1000==0)printf("iPoly %i\n",iPoly);
     objMax = -100000.0;
@@ -364,9 +366,9 @@ void genSampNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   }
 
   //debug
-  
-  cputime(&timeEnd);
-  printf("Samp time %lg\n",timeEnd-timeStart);
+
+  timeEnd = omp_get_wtime();
+  printf("Sampling interpolation point time is %lgs.\n",timeEnd-timeStart);
   
   /*
   FILE *fileSampPoint = fopen("samp-point","w");

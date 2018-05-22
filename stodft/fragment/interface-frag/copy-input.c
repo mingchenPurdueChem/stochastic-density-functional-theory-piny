@@ -703,8 +703,8 @@ void copyNlppReal(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
       for(iRad=0;iRad<atomLRadNum[iType][l];iRad++){
 	radIndexLg = atomRadMapLg[indTypeLg][countRad+iRad];
 	radIndexFrag = atomRadMap[iType][countRad+iRad];
-	printf("iType %i indTypeLg %i l %i iRad %i radIndexLg %i radIndexFrag %i\n",
-		iType,indTypeLg,l,iRad,radIndexLg,radIndexFrag);
+	//printf("iType %i indTypeLg %i l %i iRad %i radIndexLg %i radIndexFrag %i\n",
+	//	iType,indTypeLg,l,iRad,radIndexLg,radIndexFrag);
 	memcpy(&(pseudoRealMini->vpsReal0[radIndexFrag*numInterpGrid+1]),
 	       &(pseudoReal->vpsReal0[radIndexLg*numInterpGrid+1]),
 	        numInterpGrid*sizeof(double));

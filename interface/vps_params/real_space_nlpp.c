@@ -118,6 +118,10 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   FILE *fvps;
 /*==========================================================================*/
 /* I) Initialize radial function and angular channel                        */
+
+  if(myidState==0){
+    printf("Start smoothing real space non-local pseudopotential...\n");
+  }
   
   if(realSparseOpt==0){
     nkf1 = cp_para_fft_pkg3d_lg->nkf1;
@@ -214,7 +218,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   gmaxTrueLgLg = MIN(aiLength,biLength);
   gmaxTrueLgLg = MIN(gmaxTrueLgLg,ciLength)-gmaxTrueSm;
 
-  printf("ggggggg %lg %lg %lg\n",gmaxTrueSm,gmaxTrueLg,gmaxTrueLgLg);
+  //printf("ggggggg %lg %lg %lg\n",gmaxTrueSm,gmaxTrueLg,gmaxTrueLgLg);
   pseudoReal->gMaxSm = gmaxTrueSm;
   pseudoReal->gMaxLg = gmaxTrueLg;
   //pseudoReal->gMaxLg = 3.0*gmaxTrueSm;
@@ -330,7 +334,6 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 	if(r>rCutoffMax)rCutoffMax = r;
       }//endfor iAng
       ppRealCut[iType] = rCutoffMax;
-      printf("type %i ppRealCut %.8lg\n",iType,ppRealCut[iType]);
       numGridRadSmooth[iType] = (int)(rCutoffMax/dr)+1;
     }//endif ivpsLabel
     // 3. Smooth the radius function
@@ -416,6 +419,10 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 /* VI) Initialize other flags                                           */
 
   pseudoReal->nlppForceOnly = 0;
+
+  if(myidState==0){
+    printf("Finish smoothing real space non-local pseudopotential...\n");
+  }
   
 /*--------------------------------------------------------------------------*/
   }/*end routine*/
@@ -729,7 +736,6 @@ void optGCoeff(PSEUDO_REAL *pseudoReal,int numGLg,int numGSm,int numR,
   double *subA;
   //Construct the A matrix
 
-  printf("numGSolve %i\n",numGSolve);
   A = (double*)calloc(numGLg*numGLg,sizeof(double));
   B = (double*)calloc(numGSolve,sizeof(double));
   subA = (double*)calloc(numGSolve*numGSolve,sizeof(double));
@@ -805,7 +811,6 @@ void optGCoeff(PSEUDO_REAL *pseudoReal,int numGLg,int numGSm,int numR,
   free(A);
   free(B);
   free(subA);
-  printf("11111111111111111 end solve g\n");
 
 /*--------------------------------------------------------------------------*/
   }/*end routine*/
@@ -1086,7 +1091,6 @@ void interpReal(PSEUDO *pseudo,int numAtomType,int *lMap)
   }
   numInterpGrid += 5;
   rMax = dr*(numInterpGrid-1);
-  printf("1111111111 numInterpGrid %i %lg\n",numInterpGrid,rMax);
 
   for(iType=0;iType<numAtomType;iType++){
     ppRealCut[iType] = rMax-4.0*dr; // actura cutoff is smaller then interpolation cutoff
@@ -1222,7 +1226,6 @@ void interpReal(PSEUDO *pseudo,int numAtomType,int *lMap)
       dr = rMax/((double)(numInterpGrid-1));
     }
   }//endwhile
-  printf("Number of interpolation point for rational functions: %i\n",numInterpGrid);
 
   pseudoReal->numInterpGrid = numInterpGrid;
   pseudoReal->dr = dr;
@@ -1480,6 +1483,7 @@ void testOverlap(CP *cp, CLASS *class, GENERAL_DATA *generalData)
   CLATOMS_POS *clatoms_pos = &(class->clatoms_pos[1]);
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
   PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sparse = &(cp->cp_sclr_fft_pkg3d_sparse);
+  COMMUNICATE *commCP = &(cp->communicate);
   
   int iAtom,jAtom,iGrid;
   int numAtomTot = clatoms_info->natm_tot;
@@ -1492,6 +1496,7 @@ void testOverlap(CP *cp, CLASS *class, GENERAL_DATA *generalData)
   int numGridAll;
   //int numGridAll = (cp_para_fft_pkg3d_lg->nfft)/2;
   int numGridNlppAll;
+  int myidState = commCP->myid_state;
   int *iAtomAtomType = atommaps->iatm_atm_typ;
   int *atomNbhdListNum;
   int *gridNlppInd;
@@ -1567,7 +1572,7 @@ void testOverlap(CP *cp, CLASS *class, GENERAL_DATA *generalData)
   }
   */
 
-  if(overlapFlag==1){
+  if(overlapFlag==1&&myidState==0){
     printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
     printf("Non-local pseudopotential regions are overlapped.\n");
     printf("Be careful when you use multithread.\n");

@@ -176,7 +176,7 @@ void control_set_cp_ewald(SIMOPTS *simopts,CELL *cell,
    //round if fragment stochastic DFT
    
 
-   printf("!!!!!!!!!!!!!! ecut_now %lg\n",ecut_now);
+   //printf("!!!!!!!!!!!!!! ecut_now %lg\n",ecut_now);
 
    countkvec3d(&(ewald->nktot),ecut_now,kmaxv,hmati_ewd_cp); 
 

@@ -251,6 +251,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
   stodftInfo->vpsAtomListFlag = 0;
   stodftInfo->filterFlag = 0;
+  stodftInfo->numThreads = communicate->numThreads;
   // Chebyshev way to calculate chem pot
   if(chemPotOpt==2)stodftInfo->numChemPot = 1;
 

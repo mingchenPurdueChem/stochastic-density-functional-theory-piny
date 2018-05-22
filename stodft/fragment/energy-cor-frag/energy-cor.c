@@ -438,7 +438,7 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
   }
   vnl = statAvg->cp_enl;
 
-  printf("vvvvvvvvvnl %.16lg\n",vnl);
+  //printf("vvvvvvvvvnl %.16lg\n",vnl);
   
   for(iAtom=0;iAtom<numAtomCalc;iAtom++){
     Fx[iAtom] = fx[iAtom+1];

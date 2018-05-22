@@ -682,7 +682,6 @@ void initFragUnitCell(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP 
     mapFragMolHalf(fragInfo,communicate,numMolType,molType,
 		    &numGridBox[0],comMolReduce);
   }
-  printf("myidState %i 1111111111111\n",myidState);
   Barrier(commStates);
   
   molFragMapProc = fragInfo->molFragMapProc;
@@ -850,11 +849,11 @@ void initFragUnitCell(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP 
     }//endfor iAtom
   }//endfor iFrag
   
-  
+  /*
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     printf("iFrag %i numElecUpFragProc %i numElecDnFragProc %i\n",iFrag,numElecUpFragProc[iFrag],numElecDnFragProc[iFrag]);
   }
-    
+  */  
 
 /*======================================================================*/
 /* 3) Malloc fragment wave functions	                                */
@@ -1550,7 +1549,7 @@ void reorderMol(FRAGINFO *fragInfo,int molTypeNumFragTemp,int molNumFragTemp,
   numMolTypeFrag[iFrag] = molTypeNumFragTemp;
   numMolFragProc[iFrag] = molNumFragTemp;
 
-  printf("iFrag %i molNumFragTemp %i\n",iFrag,molNumFragTemp);
+  //printf("iFrag %i molNumFragTemp %i\n",iFrag,molNumFragTemp);
   fragInfo->molTypeFrag[iFrag] = (int*)cmalloc(molTypeNumFragTemp*sizeof(int));
   fragInfo->molNumTypeFrag[iFrag] = (int*)cmalloc(molTypeNumFragTemp*sizeof(int));
   fragInfo->molFragMapProc[iFrag] = (int*)cmalloc(molNumFragTemp*sizeof(int));

@@ -464,7 +464,7 @@ void calcPseudoWf(CP *cp,CLASS *class,GENERAL_DATA *generalData)
   for(iAtom=0;iAtom<numAtomTot;iAtom++){
     if(numGridNlppMap[iAtom]>numGridMax)numGridMax = numGridNlppMap[iAtom];
   }
-  printf("numGridMax %i\n",numGridMax);
+  //printf("numGridMax %i\n",numGridMax);
   gridAtomNbhd = (double*)cmalloc(numThreads*numGridMax*3*sizeof(double));
   radFun = (double*)cmalloc(numThreads*numGridMax*sizeof(double));
   trig = (double*)cmalloc(4*numGridMax*numThreads*sizeof(double));

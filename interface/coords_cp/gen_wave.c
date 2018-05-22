@@ -1098,7 +1098,9 @@ void gen_wave(CLASS *class,GENERAL_DATA *general_data,CP *cp,
   }/*endif*/
 
   time_end = omp_get_wtime();
-  printf("Initialization time is %.8lg\n",time_end-time_st);
+  if(myid==0){
+    printf("Initialization time is %.8lg\n",time_end-time_st);
+  }
 
 /*==========================================================================*/
     }/*  end routine*/

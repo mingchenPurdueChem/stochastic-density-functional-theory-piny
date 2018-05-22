@@ -62,6 +62,8 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int numCoeffDnTotal = numStateDnProc*numCoeff;
   int myidState       = communicate->myid_state;
   int numProcStates = communicate->np_states;
+  int numThreads = cp_sclr_fft_pkg3d_sm->numThreads;
+  int pseudoRealFlag = cp->pseudo.pseudoReal.pseudoRealFlag;
   int imu,iCoeff,iPoly,indexStart;
   int startIndex;
   MPI_Comm comm_states   =    communicate->comm_states;
@@ -126,11 +128,13 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /* 0) Copy the initial stochastic orbital */
  
   for(imu=0;imu<numChemPot;imu++){
+    #pragma omp parallel private(iCoeff)
     for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
       stoWfUpRe[imu][iCoeff] = expanCoeff[imu]*cre_up[iCoeff];
       stoWfUpIm[imu][iCoeff] = expanCoeff[imu]*cim_up[iCoeff];
     }//endfor iCoeff
     if(cpLsda==1&&numStateDnProc!=0){
+      #pragma omp parallel private(iCoeff)
       for(iCoeff=1;iCoeff<=numCoeffDnTotal;iCoeff++){
 	stoWfDnRe[imu][iCoeff] = expanCoeff[imu]*cre_dn[iCoeff];
 	stoWfDnIm[imu][iCoeff] = expanCoeff[imu]*cim_dn[iCoeff];
@@ -141,7 +145,7 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*==========================================================================*/
 /* 1) Loop over all polynomial terms (iPoly=0<=>polynomial order 1) */
 
-  cputime(&timeStart);  
+  timeStart = omp_get_wtime();
 
   for(iPoly=1;iPoly<polynormLength;iPoly++){
     if(iPoly%1000==0&&myidState==0){
@@ -152,12 +156,15 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
                  cpcoeffs_pos,clatoms_pos,sampPoint[iPoly-1]);
     for(imu=0;imu<numChemPot;imu++){
       polyCoeff = expanCoeff[iPoly*numChemPot+imu];
+      omp_set_num_threads(numThreads);
+      #pragma omp parallel private(iCoeff)
       for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
 	stoWfUpRe[imu][iCoeff] += polyCoeff*cre_up[iCoeff];	
         stoWfUpIm[imu][iCoeff] += polyCoeff*cim_up[iCoeff];                       
 
       }//endfor iCoeff
       if(cpLsda==1&&numStateDnProc!=0){
+	#pragma omp parallel private(iCoeff)
         for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
 	  stoWfDnRe[imu][iCoeff] += polyCoeff*cre_dn[iCoeff];                     
 	  stoWfDnIm[imu][iCoeff] += polyCoeff*cim_dn[iCoeff];
@@ -165,20 +172,37 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       }//endif 
     }//endfor imu
   }//endfor iPoly
-  cputime(&timeEnd);
+  timeEnd = omp_get_wtime();
   if(myidState==0)printf("\n");
   timeProc = timeEnd-timeStart;
   if(numProcStates>1)Reduce(&timeProc,&timeTot,1,MPI_DOUBLE,MPI_SUM,0,comm_states);
   else timeTot = timeProc;
   if(myidState==0){
-    printf("Total Filter time is %lg\n",timeTot);
-    printf("0th process filter time is %lg\n",timeProc);
-    printf("non-local pp time %.8lg\n",stodftInfo->cputime1);
-    printf("calc force(fft) time %.8lg\n",stodftInfo->cputime2);
-    printf("FFTW3D time %.8lg\n",cp_sclr_fft_pkg3d_sm->cputime);
-    printf("non-local pp matrix %.8lg\n",stodftInfo->cputime3);
-    printf("non-local pp energy %.8lg\n",stodftInfo->cputime4);
-    printf("non-local pp coef force %.8lg\n",stodftInfo->cputime5);
+    if(pseudoRealFlag==0){
+      printf("Average Filter time is %lg\n",timeTot/numProcStates);
+      printf("0th process filter time is %lg\n",timeProc);
+      printf("non-local pp time %.8lg\n",stodftInfo->cputime1);
+      printf("calc force(fft) time %.8lg\n",stodftInfo->cputime2);
+      printf("FFTW3D time %.8lg\n",cp_sclr_fft_pkg3d_sm->cputime);
+      printf("non-local pp matrix %.8lg\n",stodftInfo->cputime3);
+      printf("non-local pp energy %.8lg\n",stodftInfo->cputime4);
+      printf("non-local pp coef force %.8lg\n",stodftInfo->cputime5);
+    }
+    else{
+      printf("Average Filter time is %lg\n",timeTot/numProcStates);
+      printf("0th process filter time is %lg\n",timeProc);
+      printf("Nlpp part 1 %.8lg\n",stodftInfo->cputime0);
+      printf("Nlpp part 2 %.8lg\n",stodftInfo->cputime1);
+      printf("Apply KS pot %.8lg\n",stodftInfo->cputime2);
+      printf("Pack fft %.8lg\n",stodftInfo->cputime3);
+      printf("Unpack fft %.8lg\n",stodftInfo->cputime4);
+      printf("Kinetic %.8lg\n",stodftInfo->cputime5);
+      printf("FFTW3D time %.8lg\n",cp_sclr_fft_pkg3d_sm->cputime);
+      printf("FFTW3D to r pre time %.8lg\n",cp_sclr_fft_pkg3d_sm->cputime1);
+      printf("FFTW3D to r post time %.8lg\n",cp_sclr_fft_pkg3d_sm->cputime2);
+      printf("FFTW3D to g pre time %.8lg\n",cp_sclr_fft_pkg3d_sm->cputime3);
+      printf("FFTW3D to g post time %.8lg\n",cp_sclr_fft_pkg3d_sm->cputime4);
+    }
   }
   //debug
   /*

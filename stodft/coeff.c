@@ -309,6 +309,8 @@ void genSampNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   int iPoly,jPoly,iCand;
   int objMaxIndex;
   int numThreads = stodftInfo->numThreads;
+  int iThread;
+  int *objMaxIndexThreads = (int*)cmalloc(numThreads*sizeof(int));
   double Smin = newtonInfo->Smin;
   double Smax = newtonInfo->Smax;
   double scale = 1.0/newtonInfo->scale;
@@ -319,6 +321,7 @@ void genSampNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   double *sampPointUnscale = (double*)newtonInfo->sampPointUnscale;
   double *sampCand = (double*)cmalloc(numSampCand*sizeof(double));
   double *objValueArray = (double*)cmalloc(numSampCand*sizeof(double));
+  double *objMaxThreads = (double*)cmalloc(numThreads*sizeof(double));
 
   double timeStart,timeEnd;
   double prod;
@@ -345,14 +348,27 @@ void genSampNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   omp_set_num_threads(numThreads);
   for(iPoly=1;iPoly<polynormLength;iPoly++){
     //if(iPoly%1000==0)printf("iPoly %i\n",iPoly);
+    #pragma omp parallel private(iThread,iCand)
+    {
+      iThread = omp_get_thread_num();
+      objMaxThreads[iThread] = -100000.0;
+      #pragma omp for
+      for(iCand=0;iCand<numSampCand;iCand++){
+	if(objValueArray[iCand]>objMaxThreads[iThread]){
+	  objMaxThreads[iThread] = objValueArray[iCand];
+	  objMaxIndexThreads[iThread] = iCand;
+	}
+      }//endfor iCand
+    }//omp
     objMax = -100000.0;
-    for(iCand=0;iCand<numSampCand;iCand++){
-      if(objValueArray[iCand]>objMax){
-	objMax = objValueArray[iCand];
-	objMaxIndex = iCand;
+    for(iThread=0;iThread<numThreads;iThread++){
+      if(objMaxThreads[iThread]>objMax){
+	objMax = objMaxThreads[iThread];
+	objMaxIndex = objMaxIndexThreads[iThread];
       }
-    }//endfor iCand
+    }
     sampPoint[iPoly] = sampCand[objMaxIndex];
+    #pragma omp parallel for private(iCand,diff)
     for(iCand=0;iCand<numSampCand;iCand++){
       diff = sampCand[iCand]-sampPoint[iPoly];
       diff = diff*diff;
@@ -380,6 +396,8 @@ void genSampNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   
   free(&sampCand[0]);
   free(&objValueArray[0]);
+  free(&objMaxIndexThreads[0]);
+  free(&objMaxThreads[0]);
 
 /*==========================================================================*/
 }/*end Routine*/

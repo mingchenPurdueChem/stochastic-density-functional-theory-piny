@@ -128,13 +128,13 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /* 0) Copy the initial stochastic orbital */
  
   for(imu=0;imu<numChemPot;imu++){
-    #pragma omp parallel private(iCoeff)
+    #pragma omp parallel for private(iCoeff)
     for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
       stoWfUpRe[imu][iCoeff] = expanCoeff[imu]*cre_up[iCoeff];
       stoWfUpIm[imu][iCoeff] = expanCoeff[imu]*cim_up[iCoeff];
     }//endfor iCoeff
     if(cpLsda==1&&numStateDnProc!=0){
-      #pragma omp parallel private(iCoeff)
+      #pragma omp parallel for private(iCoeff)
       for(iCoeff=1;iCoeff<=numCoeffDnTotal;iCoeff++){
 	stoWfDnRe[imu][iCoeff] = expanCoeff[imu]*cre_dn[iCoeff];
 	stoWfDnIm[imu][iCoeff] = expanCoeff[imu]*cim_dn[iCoeff];
@@ -157,14 +157,14 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     for(imu=0;imu<numChemPot;imu++){
       polyCoeff = expanCoeff[iPoly*numChemPot+imu];
       omp_set_num_threads(numThreads);
-      #pragma omp parallel private(iCoeff)
+      #pragma omp parallel for private(iCoeff)
       for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
 	stoWfUpRe[imu][iCoeff] += polyCoeff*cre_up[iCoeff];	
         stoWfUpIm[imu][iCoeff] += polyCoeff*cim_up[iCoeff];                       
 
       }//endfor iCoeff
       if(cpLsda==1&&numStateDnProc!=0){
-	#pragma omp parallel private(iCoeff)
+	#pragma omp parallel for private(iCoeff)
         for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
 	  stoWfDnRe[imu][iCoeff] += polyCoeff*cre_dn[iCoeff];                     
 	  stoWfDnIm[imu][iCoeff] += polyCoeff*cim_dn[iCoeff];

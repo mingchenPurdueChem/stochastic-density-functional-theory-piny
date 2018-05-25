@@ -61,12 +61,14 @@ void controlEnergyNlppRealThreads(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   wfForceReal = (double*)cmalloc(numGrid*sizeof(double));
   //printf("forceCalcFlag %i\n",forceCalcFlag);
 
+  #pragma omp parallel for private(iGrid)
   for(iGrid=0;iGrid<numGrid;iGrid++){
     wfReal[iGrid] = zfft_tmp[iGrid*2+1];
     wfForceReal[iGrid] = 0.0;
   }
   nlppKBRealEnergyThreads(cp,class,generalData,wfReal,wfForceReal,cpParaFftPkg3d);
   if(forceCalcFlag==1)nlppKBRealEnergyForceThreads(cp,class,generalData,wfReal,cpParaFftPkg3d);
+  #pragma omp parallel for private(iGrid)
   for(iGrid=0;iGrid<numGrid;iGrid++){
 #ifdef REAL_PP_DEBUG  
     zfft[iGrid*2+1] = wfForceReal[iGrid];
@@ -76,12 +78,14 @@ void controlEnergyNlppRealThreads(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 #endif
   }
   if(flag==1){//double
+    #pragma omp parallel for private(iGrid)
     for(iGrid=0;iGrid<numGrid;iGrid++){
       wfReal[iGrid] = zfft_tmp[iGrid*2+2];
       wfForceReal[iGrid] = 0.0;
     }
     nlppKBRealEnergyThreads(cp,class,generalData,wfReal,wfForceReal,cpParaFftPkg3d);
     if(forceCalcFlag==1)nlppKBRealEnergyForceThreads(cp,class,generalData,wfReal,cpParaFftPkg3d);
+    #pragma omp parallel for private(iGrid)
     for(iGrid=0;iGrid<numGrid;iGrid++){
 #ifdef REAL_PP_DEBUG  
       zfft[iGrid*2+2] = wfForceReal[iGrid];

@@ -816,6 +816,59 @@ void sngl_pack_coef_fftw3d(double *cre,double *cim,double *zfft,
    }/*end routine*/
 /*==========================================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+/*   Sngl pack the coefs for 3D FFT */
+/*==========================================================================*/
+
+void sngl_pack_coef_fftw3d_threads(double *cre,double *cim,double *zfft,
+                    PARA_FFT_PKG3D *para_fft_pkg3d)
+
+/*=======================================================================*/
+/*            Begin subprogram:                                          */
+   {/*begin routine*/
+/*=======================================================================*/
+/*          Local variable declarations                                  */
+
+   int i;
+   int nfft_proc = para_fft_pkg3d->nfft_proc;
+   int nfft2_proc = nfft_proc/2;
+   int ndata       = para_fft_pkg3d->ndata_kc;
+   int num_proc    = para_fft_pkg3d->num_proc;
+   int ncoef_use   = para_fft_pkg3d->ncoef_use;
+   int ncoef_proc  = para_fft_pkg3d->ncoef_proc;
+   int *mapFFTW = para_fft_pkg3d->mapFFTW;
+   int *mapConFFTW = para_fft_pkg3d->mapConFFTW;
+
+/*=========================================================================*/
+/* Pack the data up: top and bottom half of k-space : zero fill in scalar */
+
+  if(num_proc==1){
+    #pragma omp parallel for private(i)
+    for(i=1;i<=nfft_proc;i++){
+      zfft[i]=0.0;
+    } 
+  }
+
+  #pragma omp parallel for private(i)
+  for(i=1;i<=ncoef_use;i++){
+    zfft[mapFFTW[i]]      =  cre[i];
+    zfft[mapFFTW[i]+1]    =  cim[i];
+    zfft[mapConFFTW[i]]   =  cre[i];
+    zfft[mapConFFTW[i]+1] = -cim[i];
+  }/*endfor*/
+
+  if(ncoef_proc > ncoef_use){
+    zfft[1]     = cre[ncoef_proc];
+    zfft[2]     = cim[ncoef_proc];
+  }/*endif*/
+
+
+/*-----------------------------------------------------------------------*/
+   }/*end routine*/
+/*==========================================================================*/
+
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
@@ -965,11 +1018,75 @@ void dble_pack_coef_fftw3d(double *c1re, double *c1im,double *c2re, double *c2im
     printf("zfftpack %lg %lg\n",zfft[2*i+1],zfft[2*i+2]);
   }
   */
-  
 
 /*-----------------------------------------------------------------------*/
    }/*end routine*/
 /*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+/*   Dble pack the coefs for 3D FFT */
+/*==========================================================================*/
+
+void dble_pack_coef_fftw3d_threads(double *c1re, double *c1im,
+		    double *c2re, double *c2im,
+                    double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
+
+/*=======================================================================*/
+/*            Begin subprogram:                                          */
+   {/*begin routine*/
+/*=======================================================================*/
+/*          Local variable declarations                                  */
+   int i;
+   int nfft_proc = para_fft_pkg3d->nfft_proc;
+   int nfft2_proc = nfft_proc/2;
+   int num_proc    = para_fft_pkg3d->num_proc;
+   int ncoef_use   = para_fft_pkg3d->ncoef_use;
+   int ncoef_proc  = para_fft_pkg3d->ncoef_proc;
+   int *mapFFTW = para_fft_pkg3d->mapFFTW;
+   int *mapConFFTW = para_fft_pkg3d->mapConFFTW;
+
+   /*
+   for(i=1;i<=ncoef_proc;i++){
+     printf("i %i mapFFTW %i mapConFFTW %i\n",i,mapFFTW[i],mapConFFTW[i]);
+   }
+   */
+   // ndata is not complete grid  
+/*=========================================================================*/
+/* Pack the data up: top and bottom half of k-space : zero fill in scalar */
+
+  if(num_proc==1){
+    #pragma omp parallel for private(i)
+    for(i=1;i<=nfft_proc;i++){
+      zfft[i]=0.0;
+    } 
+  }
+
+  #pragma omp parallel for private(i)
+  for(i=1;i<=ncoef_use;i++){
+    zfft[mapFFTW[i]]     =   c1re[i] - c2im[i];
+    zfft[mapFFTW[i]+1]   =   c1im[i] + c2re[i];
+    zfft[mapConFFTW[i]]   =   c1re[i] + c2im[i];
+    zfft[mapConFFTW[i]+1] =  -c1im[i] + c2re[i];
+  }/*endfor*/
+
+  if(ncoef_proc > ncoef_use){
+    zfft[1]     = c1re[ncoef_proc];
+    zfft[2]     = c2re[ncoef_proc];
+  }/*endif*/
+  //exit(0);
+
+  /*
+  for(i=0;i<nfft2_proc;i++){
+    printf("zfftpack %lg %lg\n",zfft[2*i+1],zfft[2*i+2]);
+  }
+  */
+
+/*-----------------------------------------------------------------------*/
+   }/*end routine*/
+/*==========================================================================*/
+
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
@@ -1834,6 +1951,46 @@ void sngl_upack_coef_sum_fftw3d(double *cre,double *cim,double *zfft,
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
+/*  Sngl unpack the coefs */
+/*==========================================================================*/
+
+void sngl_upack_coef_sum_fftw3d_threads(double *cre,double *cim,double *zfft,
+                         PARA_FFT_PKG3D *para_fft_pkg3d)
+
+/*=======================================================================*/
+/*            Begin subprogram:                                          */
+   {/*begin routine*/
+/*=======================================================================*/
+/*          Local variable declarations                                  */
+
+ int i,ncoef_min;
+ int ncoef_proc = para_fft_pkg3d->ncoef_proc;
+ int ncoef_use  = para_fft_pkg3d->ncoef_use;
+ int *map_proc  = para_fft_pkg3d->map_proc;
+ int *mapFFTW = para_fft_pkg3d->mapFFTW;
+
+/*=======================================================================*/
+/*  Unpack the data : Top half of k space only */
+
+  ncoef_min = MIN(ncoef_proc,ncoef_use);
+  #pragma omp parallel for private(i)
+  for(i=1;i<=ncoef_min;i++){
+    cre[i] -= (4.0*zfft[mapFFTW[i]]);
+    cim[i] -= (4.0*zfft[mapFFTW[i]+1]);
+  }/*endfor*/
+  if(ncoef_proc>ncoef_use){
+    i = ncoef_proc;
+    cre[i]-=(2.0*zfft[1]);
+  }/*endif*/
+
+/*-----------------------------------------------------------------------*/
+   }/*end routine*/
+/*==========================================================================*/
+
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
 /*  Sngl unpack the density */
 /*==========================================================================*/
 
@@ -2282,6 +2439,57 @@ void dble_upack_coef_sum_fftw3d(double *c1re,double *c1im,double *c2re,double *c
    }/*end routine*/
 /*==========================================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+/*  Dble upack the coefs */
+/*==========================================================================*/
+
+void dble_upack_coef_sum_fftw3d_threads(double *c1re,double *c1im,double *c2re,double *c2im,
+                         double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
+
+/*=======================================================================*/
+/*            Begin subprogram:                                          */
+   {/*begin routine*/
+/*=======================================================================*/
+/*          Local variable declarations                                  */
+
+ int i,ncoef_min;
+ double tempr ,tempi;
+ double temprc,tempic;
+ int ncoef_proc   = para_fft_pkg3d->ncoef_proc;
+ int ncoef_use    = para_fft_pkg3d->ncoef_use;
+ int *mapFFTW = para_fft_pkg3d->mapFFTW;
+ int *mapConFFTW = para_fft_pkg3d->mapConFFTW;
+
+/*=======================================================================*/
+/*  Unpack the data :  */
+
+  ncoef_min = MIN(ncoef_proc,ncoef_use);
+  #pragma omp parallel for private(i,tempr,tempi,temprc,tempic)
+  for(i=1;i<=ncoef_min;i++){
+
+    tempr  = zfft[mapFFTW[i]];
+    tempi  = zfft[mapFFTW[i]+1];
+    temprc = zfft[mapConFFTW[i]];
+    tempic = zfft[mapConFFTW[i]+1];
+
+    c2im[i] -= (2.0*(-tempr + temprc));
+    c1re[i] -= (2.0*( tempr + temprc));
+
+    c1im[i] -= (2.0*( tempi - tempic));
+    c2re[i] -= (2.0*( tempi + tempic));
+
+  }/*endfor*/
+  if(ncoef_proc>ncoef_use){
+    i = ncoef_proc;
+    c1re[ncoef_proc] -= (2.0*zfft[1]);
+    c2re[ncoef_proc] -= (2.0*zfft[2]);
+  }/*endif*/
+
+/*-----------------------------------------------------------------------*/
+   }/*end routine*/
+/*==========================================================================*/
 
 
 /*==========================================================================*/

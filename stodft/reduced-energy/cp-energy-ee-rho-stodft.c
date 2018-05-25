@@ -65,6 +65,7 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
   int np_states  = communicate->np_states;
   int fftw3dFlag = cpewald->fftw3dFlag;
   //int fftw3dFlag = 1;
+  int numThreads = communicate->numThreads;
   int onebodyMatrixFlag = cpewald->onebodyMatrixFlag;
   int pseudoRealFlag = cp->pseudo.pseudoReal.pseudoRealFlag;
 
@@ -91,6 +92,7 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
 /* ================================================================= */
 /*0) Check the form of the coefficients                              */
 
+  /*
   if(icoef_orth!=1){
     printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
     printf("The coefficients must be in orthogonal form    \n");
@@ -108,6 +110,7 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
     printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
     fflush(stdout);exit(1);
   }//endif
+  */
 
   cp_sclr_fft_pkg3d_sm->numThreads = communicate->numThreads;
 
@@ -135,7 +138,8 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
                      zfft,cp_sclr_fft_pkg3d_sm);
     }
     else{
-      dble_pack_coef_fftw3d(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
+      dble_pack_coef_fftw3d_threads(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],
+		     &ccimag[ioff2],
                      zfft,cp_sclr_fft_pkg3d_sm);
     }
     time_end = omp_get_wtime();
@@ -158,7 +162,7 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
     if(pseudoRealFlag==1){
       time_st = omp_get_wtime();
       memcpy(&zfft_tmp[1],&zfft[1],nfft*sizeof(double));
-      cp_vpsi(zfft,v_ks,nfft);
+      cp_vpsi_threads(zfft,v_ks,nfft);
       time_end = omp_get_wtime();
       stodftInfo->cputime3 += time_end-time_st;
       cp->pseudo.pseudoReal.energyCalcFlag = 1;
@@ -191,7 +195,7 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
       //printf("fccreal %lg\n",fccreal[ioff+ncoef]);
     }
     else{
-      dble_upack_coef_sum_fftw3d(&fccreal[ioff],&fccimag[ioff],
+      dble_upack_coef_sum_fftw3d_threads(&fccreal[ioff],&fccimag[ioff],
                           &fccreal[ioff2],&fccimag[ioff2],
                           zfft,cp_sclr_fft_pkg3d_sm);
       //printf("fccreal fftw %lg\n",fccreal[ioff+ncoef]);
@@ -229,7 +233,7 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
       sngl_pack_coef(&ccreal[ioff],&ccimag[ioff],zfft,cp_sclr_fft_pkg3d_sm);
     }
     else{
-      sngl_pack_coef_fftw3d(&ccreal[ioff],&ccimag[ioff],zfft,cp_sclr_fft_pkg3d_sm);
+      sngl_pack_coef_fftw3d_threads(&ccreal[ioff],&ccimag[ioff],zfft,cp_sclr_fft_pkg3d_sm);
     }
     //cputime(&time_end);
     time_end = omp_get_wtime();
@@ -254,7 +258,7 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
       //cputime(&time_st);
       time_st = omp_get_wtime();
       memcpy(&zfft_tmp[1],&zfft[1],nfft*sizeof(double));
-      cp_vpsi(zfft,v_ks,nfft);
+      cp_vpsi_threads(zfft,v_ks,nfft);
       time_end = omp_get_wtime();
       //cputime(&time_end);
       stodftInfo->cputime3 += time_end-time_st;
@@ -285,7 +289,7 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
 			  cp_sclr_fft_pkg3d_sm);
     }
     else{
-      sngl_upack_coef_sum_fftw3d(&fccreal[ioff],&fccimag[ioff],zfft,
+      sngl_upack_coef_sum_fftw3d_threads(&fccreal[ioff],&fccimag[ioff],zfft,
 			  cp_sclr_fft_pkg3d_sm);
     }
     //cputime(&time_end);
@@ -312,14 +316,15 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
   eke = 0.0;
   for(is=1 ; is<= nstate ; is++){
     ioff = (is-1)*ncoef;
+    #pragma omp parallel for private(i,iis)
     for(i=1; i<= ncoef1 ; i++){
       iis = ioff + i;
       fccreal[iis] -= 2.0*ak2Kinetic[i]*ccreal[iis];
       fccimag[iis] -= 2.0*ak2Kinetic[i]*ccimag[iis];
-      eke += (2.0*ak2Kinetic[i]*(ccreal[iis]*ccreal[iis] + ccimag[iis]*ccimag[iis]));
+      //eke += (2.0*ak2Kinetic[i]*(ccreal[iis]*ccreal[iis] + ccimag[iis]*ccimag[iis]));
     }/*endfor i*/
-   nis = is*ncoef;
-   fccimag[nis] = 0.0;
+    nis = is*ncoef;
+    fccimag[nis] = 0.0;
   }/*endfor*/
   //cputime(&time_end);
   time_end = omp_get_wtime();
@@ -342,8 +347,8 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
   printf("fcre %lg\n",fccreal[ncoef]);
   */
 
-  eke *= .50;
-  *eke_ret = eke;
+  //eke *= .50;
+  //*eke_ret = eke;
 
 /*================================================================================*/
 /* 10) If doing minimization, calculat kinetic contribution to diagonal Hessian   */

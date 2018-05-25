@@ -442,6 +442,8 @@ void coef_force_tau_fun_full_g(CPEWALD *,int ,double *,double *,
 
 void cp_vpsi(double *,double *,int );
 
+void cp_vpsi_threads(double *,double *,int );
+
 void cp_pack_vks(double *,double *,int );
 
 /*====================================================================*/

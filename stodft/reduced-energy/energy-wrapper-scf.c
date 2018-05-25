@@ -966,8 +966,14 @@ void calcCoefForceWrapSCF(CLASS *class,GENERAL_DATA *general_data,
     }
   }
 
-  memcpy(&vextr[1],&(vextr_loc[1]),ncoef_l*sizeof(double));
-  memcpy(&vexti[1],&(vexti_loc[1]),ncoef_l*sizeof(double));
+  #pragma omp parallel for private(iCoeff)
+  for(iCoeff=1;iCoeff<=ncoef_l;iCoeff++){
+    vextr[iCoeff] = vextr_loc[iCoeff];
+    vexti[iCoeff] = vexti_loc[iCoeff];
+  }
+
+  //memcpy(&vextr[1],&(vextr_loc[1]),ncoef_l*sizeof(double));
+  //memcpy(&vexti[1],&(vexti_loc[1]),ncoef_l*sizeof(double));
   if(cpDualGridOptOn==2){
     memcpy(&vextr_dens_cp_box[1],&vextr_dens_cp_box_loc[1],
             ncoef_l_dens_cp_box*sizeof(double));

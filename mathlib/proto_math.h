@@ -235,12 +235,17 @@ void sngl_pack_coef(double *,double *,double *,PARA_FFT_PKG3D *);
 
 void sngl_pack_coef_fftw3d(double *,double *,double *,PARA_FFT_PKG3D *);
 
+void sngl_pack_coef_fftw3d_threads(double *,double *,double *,PARA_FFT_PKG3D *);
+
 void pme_sngl_pack_coef(double *,double *,double *,PARA_FFT_PKG3D *);
 
 void dble_pack_coef(double *, double *,double *, double *,double *,
                     PARA_FFT_PKG3D *);
 
 void dble_pack_coef_fftw3d(double *, double *,double *, double *,
+                    double *,PARA_FFT_PKG3D *);
+
+void dble_pack_coef_fftw3d_threads(double *, double *,double *, double *,
                     double *,PARA_FFT_PKG3D *);
 
 void para_fft_gen3d_bck_to_g(double *, double *,PARA_FFT_PKG3D *);
@@ -256,6 +261,9 @@ void sngl_upack_coef_fftw3d(double *,double *,double *,PARA_FFT_PKG3D *);
 void sngl_upack_coef_sum(double *,double *,double *,PARA_FFT_PKG3D *);
 
 void sngl_upack_coef_sum_fftw3d(double *,double *,double *,
+                         PARA_FFT_PKG3D *);
+
+void sngl_upack_coef_sum_fftw3d_threads(double *,double *,double *,
                          PARA_FFT_PKG3D *);
 
 void sngl_upack_rho(double *,double *,PARA_FFT_PKG3D *);
@@ -296,6 +304,9 @@ void dble_upack_coef_sum(double *,double *,double *,double *,double *,
                          PARA_FFT_PKG3D *);
 
 void dble_upack_coef_sum_fftw3d(double *,double *,double *,double *,
+                         double *,PARA_FFT_PKG3D *);
+
+void dble_upack_coef_sum_fftw3d_threads(double *,double *,double *,double *,
                          double *,PARA_FFT_PKG3D *);
 
 void sum_rho(double *,double *,PARA_FFT_PKG3D *);

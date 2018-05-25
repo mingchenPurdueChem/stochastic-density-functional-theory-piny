@@ -791,6 +791,7 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* VI) In parallel, transpose coefs and coef forces fwd                 */
 
+  /*
   if(numProcStates>1){
     cp_transpose_fwd(coeffReUp,coeffImUp,pcoefFormUp,
                     cpScrCoeffReUp,cpScrCoeffImUp,&(cp->cp_comm_state_pkg_up));
@@ -801,9 +802,9 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
                     cpScrCoeffReDn,cpScrCoeffImDn,&(cp->cp_comm_state_pkg_dn));
     cp_transpose_fwd(forceCoeffReDn,forceCoeffImDn,pforceCoefFormDn,
                     cpScrCoeffReDn,cpScrCoeffImDn,&(cp->cp_comm_state_pkg_dn));
-    }/*endif*/
-  }/*endif*/
-
+    }//endif
+  }//endif
+  */
 /*-----------------------------------------------------------------------*/
 }/*end routine*/
 /*==========================================================================*/

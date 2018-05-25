@@ -12,7 +12,7 @@ void mall_cp_scr(CPTHERM_INFO *,CPOPTS *,CPEWALD *,
                  CPSCR *,CPCOEFFS_INFO *,PSEUDO *,
                  PARA_FFT_PKG3D *,PARA_FFT_PKG3D *,
                  CP_COMM_STATE_PKG *,CP_COMM_STATE_PKG *,int,double *,
-                 int ,int ,MPI_Comm);
+                 int ,int ,MPI_Comm,CP *);
 
 void mall_cp_scr_dvr(CPTHERM_INFO *,CPOPTS *,CPEWALD *,
                  CPSCR *,CPCOEFFS_INFO *, DVR_MATRIX *, PSEUDO *,

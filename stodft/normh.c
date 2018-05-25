@@ -61,6 +61,7 @@ void normHNewtonHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   double prefact	= -scale*energyMean-zn;
   double scale1		= -scale*0.25;
   double scale2		= -scale*0.5;
+  double timeStart,timeEnd;
 
   int cpLsda         = cpopts->cp_lsda;
   int numStateUpProc = cpcoeffs_info->nstate_up_proc;
@@ -73,6 +74,7 @@ void normHNewtonHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int incx = 1;
   int incy = 1;
   int iState,iCoeff,iCoeffStart,index1,index2;
+  int numThreads = communicate->numThreads;
   
   double *expanCoeff = (double*)stodftCoefPos->expanCoeff;
   
@@ -98,8 +100,11 @@ void normHNewtonHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   */
   calcCoefForceWrapSCF(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
 
+  timeStart = omp_get_wtime();
+
   for(iState=0;iState<numStateUpProc;iState++){
     iCoeffStart = iState*numCoeff;
+    #pragma omp parallel for private(iCoeff,index1)
     for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
       index1 = iCoeffStart+iCoeff;
       fcre_up[index1] *= scale1;
@@ -111,6 +116,7 @@ void normHNewtonHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   if(cpLsda==1&&numStateDnProc!=0){
     for(iState=0;iState<numStateDnProc;iState++){
       iCoeffStart = iState*numCoeff;
+      #pragma omp parallel for private(iCoeff,index1)
       for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
 	index1 = iCoeffStart+iCoeff;
 	fcre_dn[index1] *= scale1;
@@ -124,8 +130,11 @@ void normHNewtonHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*==========================================================================*/
 /* 2) Calculate P_(n+1)(H)|phi>. Everything store in fcre(im)_up(dn) */
 
-  DAXPY(&numCoeffUpTotal,&prefact,&cre_up[1],&incx,&fcre_up[1],&incy);
-  DAXPY(&numCoeffUpTotal,&prefact,&cim_up[1],&incx,&fcim_up[1],&incy);
+  daxpyBlasWrapperThreads(numCoeffUpTotal,prefact,&cre_up[1],incx,&fcre_up[1],incy,numThreads);
+  daxpyBlasWrapperThreads(numCoeffUpTotal,prefact,&cim_up[1],incx,&fcim_up[1],incy,numThreads);
+ 
+  //DAXPY(&numCoeffUpTotal,&prefact,&cre_up[1],&incx,&fcre_up[1],&incy);
+  //DAXPY(&numCoeffUpTotal,&prefact,&cim_up[1],&incx,&fcim_up[1],&incy);
   if(cpLsda==1&&numStateDnProc!=0){
     DAXPY(&numCoeffDnTotal,&prefact,&cre_dn[1],&incx,&fcre_dn[1],&incy);
     DAXPY(&numCoeffDnTotal,&prefact,&cim_dn[1],&incx,&fcim_dn[1],&incy);
@@ -147,16 +156,21 @@ void normHNewtonHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     printf("zn %lg dot %lg\n",zn,dot);
   } 
   */
+  #pragma omp parallel for private(iCoeff)
   for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
     cre_up[iCoeff] = fcre_up[iCoeff];
     cim_up[iCoeff] = fcim_up[iCoeff];
   }
   if(cpLsda==1&&numStateDnProc!=0){
+    #pragma omp parallel for private(iCoeff)
     for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
       cre_dn[iCoeff] = fcre_dn[iCoeff];
       cim_dn[iCoeff] = fcim_dn[iCoeff];
     }
   }
+
+  timeEnd = omp_get_wtime();
+  stodftInfo->cputime7 += timeEnd-timeStart;
 
 /*==========================================================================*/
 }/*end Routine*/
@@ -206,6 +220,7 @@ void normHCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int incy = 1;
   int iState,iCoeff,iCoeffStart,index1,index2;
 
+  double timeStart,timeEnd;
   double *expanCoeff = (double*)stodftCoefPos->expanCoeff;
 
   double *cre_up = cpcoeffs_pos->cre_up;
@@ -237,6 +252,7 @@ void normHCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*==========================================================================*/
 /* 2) Calculate T_(n+1)|phi> */
 
+  timeStart = omp_get_wtime();
 
   if(iPoly==1){//iPoly=1
     for(iState=0;iState<numStateUpProc;iState++){
@@ -289,6 +305,9 @@ void normHCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       }//endfor iState
     }
   }
+   
+  timeEnd = omp_get_wtime();
+  stodftInfo->cputime7 += timeEnd-timeStart;
 
 /*==========================================================================*/
 }/*end Routine*/

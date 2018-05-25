@@ -118,7 +118,7 @@ void control_mall_scratch(CLASS *class,BONDED *bonded,CP *cp,
                   &(cp->cp_para_fft_pkg3d_lg),
                   &(cp->cp_comm_state_pkg_up),&(cp->cp_comm_state_pkg_dn),
                   class->clatoms_info.hess_calc,
-                  tot_memory,myid,cp_dual_grid_opt_on,world);
+                  tot_memory,myid,cp_dual_grid_opt_on,world,cp);
     }
 
     if( cp->cpcoeffs_info.iopt_cp_dvr == 1 ){
@@ -582,7 +582,7 @@ void mall_cp_scr(CPTHERM_INFO *cptherm_info,CPOPTS *cpopts,CPEWALD *cpewald,
                  CP_COMM_STATE_PKG *cp_comm_state_pkg_up,
                  CP_COMM_STATE_PKG *cp_comm_state_pkg_dn,int atm_hess_calc,
                  double *tot_memory,
-                 int myid,int cp_dual_grid_opt_on, MPI_Comm world)
+                 int myid,int cp_dual_grid_opt_on, MPI_Comm world,CP *cp)
 
 /*==========================================================================*/
   {/*begin routine*/
@@ -622,6 +622,8 @@ void mall_cp_scr(CPTHERM_INFO *cptherm_info,CPOPTS *cpopts,CPEWALD *cpewald,
   int fftw3dFlag = cpopts->fftw3dFlag;
   int threadFlag = cpopts->threadFlag;
   int numThreads = cp_para_fft_pkg3d_lg->numThreads; 
+  int stodftOn = cpopts->stodftOn;
+  int readCoeffFlag = cp->stodftInfo->readCoeffFlag;
 
   int ncoef_l_pme_dual,ncoef_l_pme_dual_proc;
   int ncoef_l_proc_max_mall;
@@ -1140,6 +1142,16 @@ void mall_cp_scr(CPTHERM_INFO *cptherm_info,CPOPTS *cpopts,CPEWALD *cpewald,
 
 /*------------------------------------------------------------------*/
 /* wave */
+  /*
+  if(stodftOn==1&&readCoeffFlag!=0){
+    // A fake malloc, just in case we need to free.
+    cpscr->cpscr_wave.cre_up = (double*)cmalloc(sizeof(double))-1;
+    cpscr->cpscr_wave.cim_up = (double*)cmalloc(sizeof(double))-1;
+    cpscr->cpscr_wave.cre_dn = (double*)cmalloc(sizeof(double))-1;
+    cpscr->cpscr_wave.cim_dn = (double*)cmalloc(sizeof(double))-1;
+  }
+  else{
+  */
   cpscr->cpscr_wave.cre_up       
                     = (double *)cmalloc(ncoef2_up_c*sizeof(double))-1;
   cpscr->cpscr_wave.cim_up       
@@ -1148,6 +1160,7 @@ void mall_cp_scr(CPTHERM_INFO *cptherm_info,CPOPTS *cpopts,CPEWALD *cpewald,
                     = (double *)cmalloc(ncoef2_dn*sizeof(double))-1;
   cpscr->cpscr_wave.cim_dn       
                     = (double *)cmalloc(ncoef2_dn*sizeof(double))-1;
+  //}
 
   num += 2*(ncoef2_up + ncoef2_dn);
 

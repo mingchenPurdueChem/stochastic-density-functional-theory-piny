@@ -128,7 +128,8 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
 /*==========================================================================*/
 /* 1) get the wave functions in real space two at a time                    */
 /*   I) double pack the complex zfft array with two real wavefunctions      */
-  
+ 
+    time_st = omp_get_wtime(); 
     if(fftw3dFlag==0){
       dble_pack_coef(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
                      zfft,cp_sclr_fft_pkg3d_sm);
@@ -137,6 +138,8 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
       dble_pack_coef_fftw3d(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
                      zfft,cp_sclr_fft_pkg3d_sm);
     }
+    time_end = omp_get_wtime();
+    stodftInfo->cputime2 += time_end-time_st;
 
 /*--------------------------------------------------------------------------*/
 /* II) fourier transform the wavefunctions to real space                    */
@@ -148,14 +151,16 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
     else{
       para_fft_gen3d_fwd_to_r_fftw3d_threads(zfft,cp_sclr_fft_pkg3d_sm);
     }
-    cputime(&time_end);
 
 /*==========================================================================*/
 /* 2) get v|psi> in g space and store it in zfft                            */
 /*   I) get  v|psi> in real space                                           */
     if(pseudoRealFlag==1){
+      time_st = omp_get_wtime();
       memcpy(&zfft_tmp[1],&zfft[1],nfft*sizeof(double));
       cp_vpsi(zfft,v_ks,nfft);
+      time_end = omp_get_wtime();
+      stodftInfo->cputime3 += time_end-time_st;
       cp->pseudo.pseudoReal.energyCalcFlag = 1;
       controlEnergyNlppRealThreads(cp,class,general_data,zfft_tmp,zfft,1,
 				   cp_sclr_fft_pkg3d_sm);
@@ -178,6 +183,7 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
 /*==========================================================================*/
 /* 3) get forces on coefficients by double unpacking the array zfft         */
 
+    time_st = omp_get_wtime();
     if(fftw3dFlag==0){
       dble_upack_coef_sum(&fccreal[ioff],&fccimag[ioff],
                           &fccreal[ioff2],&fccimag[ioff2],
@@ -190,6 +196,8 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
                           zfft,cp_sclr_fft_pkg3d_sm);
       //printf("fccreal fftw %lg\n",fccreal[ioff+ncoef]);
     }
+    time_end = omp_get_wtime();
+    stodftInfo->cputime4 += time_end-time_st;
 
   }//endfor is
 

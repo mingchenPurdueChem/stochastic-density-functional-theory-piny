@@ -89,6 +89,8 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 
   double *expanCoeff = (double*)stodftCoefPos->expanCoeff;
   double timeStart,timeEnd; 
+  double timeStart2,timeEnd2;
+  double deltaTime = 0.0;
 
   // performance
   stodftInfo->cputime1 = 0.0;
@@ -97,6 +99,7 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   stodftInfo->cputime4 = 0.0;
   stodftInfo->cputime5 = 0.0;
   stodftInfo->cputime6 = 0.0;
+  stodftInfo->cputime7 = 0.0;
   cp_sclr_fft_pkg3d_sm->cputime = 0.0;
 //debug
 /*  
@@ -123,6 +126,8 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   exit(0);
 */
 //debug
+
+  omp_set_num_threads(numThreads);
  
 /*==========================================================================*/
 /* 0) Copy the initial stochastic orbital */
@@ -154,9 +159,10 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     }  
     normHNewtonHerm(cp,class,general_data,
                  cpcoeffs_pos,clatoms_pos,sampPoint[iPoly-1]);
+    timeStart2 = omp_get_wtime();
     for(imu=0;imu<numChemPot;imu++){
       polyCoeff = expanCoeff[iPoly*numChemPot+imu];
-      omp_set_num_threads(numThreads);
+      //omp_set_num_threads(numThreads);
       #pragma omp parallel for private(iCoeff)
       for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
 	stoWfUpRe[imu][iCoeff] += polyCoeff*cre_up[iCoeff];	
@@ -171,6 +177,8 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
         }//endfor iCoeff        
       }//endif 
     }//endfor imu
+    timeEnd2 = omp_get_wtime();
+    deltaTime += timeEnd2-timeStart2;
   }//endfor iPoly
   timeEnd = omp_get_wtime();
   if(myidState==0)printf("\n");
@@ -202,6 +210,8 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       printf("FFTW3D to r post time %.8lg\n",cp_sclr_fft_pkg3d_sm->cputime2);
       printf("FFTW3D to g pre time %.8lg\n",cp_sclr_fft_pkg3d_sm->cputime3);
       printf("FFTW3D to g post time %.8lg\n",cp_sclr_fft_pkg3d_sm->cputime4);
+      printf("Scale H|phi> time %.8lg\n",stodftInfo->cputime7);
+      printf("Accumulate P(H)|phi> time %.8lg\n",deltaTime);
     }
   }
   //debug

@@ -552,6 +552,7 @@ typedef struct stodftInfo{
 				    /*	    1 = stochastic			*/
                                     /*      2 = deterministic                   */
 				    /*	    3 = read density			*/
+				    /*	    -1 = combine fragment densities     */
   int reInitFlag;		    /* Opt: Flag to control realloc WF arraies  */
 				    /*	    0 = don't realloc (read sto)	*/
 				    /*	    1 = realloc (read det/gen wf)	*/
@@ -746,7 +747,7 @@ typedef struct stodftInfo{
   /* Monitering performance */
   int filterFlag;		    /* Opt:Use simplied energy routine for      */
 				    /*	   massive H|phi> calculations		*/
-  double cputime0,cputime1,cputime2,cputime3,cputime4,cputime5,cputime6;
+  double cputime0,cputime1,cputime2,cputime3,cputime4,cputime5,cputime6,cputime7,cputime8;
   
 }STODFTINFO;
 

@@ -62,6 +62,11 @@ void read_coef(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 
   int iopt_cp_pw         = cp->cpcoeffs_info.iopt_cp_pw;
   int iopt_cp_dvr        = cp->cpcoeffs_info.iopt_cp_dvr;
+  int stodftOn = cp->cpopts.stodftOn;
+  int readCoeffFlag = cp->stodftInfo->readCoeffFlag;
+  int genWaveFlag = 0;
+  
+  if(stodftOn==0||readCoeffFlag==0)genWaveFlag = 1;
 
   cp_min_on = cp_wave_min + cp_wave_min_pimd + cp_min;
 
@@ -129,7 +134,10 @@ void read_coef(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     if(istart >= 1){
       read_coef_fetch_coefs(cp,fp_dnameci,dnameci,initial_spread_opt);
     }else{
-      gen_wave(class,general_data,cp,cp_parse,filename_parse->vps_name);
+      if(genWaveFlag==1){ 
+	//printf("11111111111111111111111111111111111111111111\n");
+        gen_wave(class,general_data,cp,cp_parse,filename_parse->vps_name);
+      }
     }
   }
 
@@ -137,7 +145,7 @@ void read_coef(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 
     if(istart >= 1){
       read_coef_fetch_coefs_dvr(cp,fp_dnameci,dnameci,initial_spread_opt);
-    }else{ 
+    }else{
       gen_wave_dvr(class,general_data,cp,cp_parse,filename_parse->vps_name);
     }/*endif restart*/
   }/*endif dvr*/

@@ -111,10 +111,10 @@ void scfStodftInterp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   double *coeffImDn        = cpcoeffs_pos->cim_dn;
   double *forceCoeffReDn   = cpcoeffs_pos->fcre_dn;
   double *forceCoeffImDn   = cpcoeffs_pos->fcre_dn;
-  double *cpScrCoeffReUp   = cpscr->cpscr_wave.cre_up;
-  double *cpScrCoeffImUp   = cpscr->cpscr_wave.cim_up;
-  double *cpScrCoeffReDn   = cpscr->cpscr_wave.cre_dn;
-  double *cpScrCoeffImDn   = cpscr->cpscr_wave.cim_dn;
+  //double *cpScrCoeffReUp   = cpscr->cpscr_wave.cre_up;
+  //double *cpScrCoeffImUp   = cpscr->cpscr_wave.cim_up;
+  //double *cpScrCoeffReDn   = cpscr->cpscr_wave.cre_dn;
+  //double *cpScrCoeffImDn   = cpscr->cpscr_wave.cim_dn;
   double *ptensPvtenTmp    = ptens->pvten_tmp;
   double *chemPot          = stodftCoefPos->chemPot;
 
@@ -408,19 +408,6 @@ void scfStodftInterp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* VI) In parallel, transpose coefs and coef forces fwd                 */
 
-  if(numProcStates>1){
-    cp_transpose_fwd(coeffReUp,coeffImUp,pcoefFormUp,
-                    cpScrCoeffReUp,cpScrCoeffImUp,&(cp->cp_comm_state_pkg_up));
-    cp_transpose_fwd(forceCoeffReUp,forceCoeffImUp,pforceCoefFormUp,
-                    cpScrCoeffReUp,cpScrCoeffImUp,&(cp->cp_comm_state_pkg_up));
-    if(cpLsda==1&&numStateDn>0){
-    cp_transpose_fwd(coeffReDn,coeffImDn,pcoefFormDn,
-                    cpScrCoeffReDn,cpScrCoeffImDn,&(cp->cp_comm_state_pkg_dn));
-    cp_transpose_fwd(forceCoeffReDn,forceCoeffImDn,pforceCoefFormDn,
-                    cpScrCoeffReDn,cpScrCoeffImDn,&(cp->cp_comm_state_pkg_dn));
-    }/*endif*/
-  }/*endif*/
-
   
 
 /*-----------------------------------------------------------------------*/
@@ -510,10 +497,10 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   double *coeffImDn        = cpcoeffs_pos->cim_dn;
   double *forceCoeffReDn   = cpcoeffs_pos->fcre_dn;
   double *forceCoeffImDn   = cpcoeffs_pos->fcre_dn;
-  double *cpScrCoeffReUp   = cpscr->cpscr_wave.cre_up;
-  double *cpScrCoeffImUp   = cpscr->cpscr_wave.cim_up;
-  double *cpScrCoeffReDn   = cpscr->cpscr_wave.cre_dn;
-  double *cpScrCoeffImDn   = cpscr->cpscr_wave.cim_dn;
+  //double *cpScrCoeffReUp   = cpscr->cpscr_wave.cre_up;
+  //double *cpScrCoeffImUp   = cpscr->cpscr_wave.cim_up;
+  //double *cpScrCoeffReDn   = cpscr->cpscr_wave.cre_dn;
+  //double *cpScrCoeffImDn   = cpscr->cpscr_wave.cim_dn;
   double *ptensPvtenTmp    = ptens->pvten_tmp;
   double *chemPot          = stodftCoefPos->chemPot;
 
@@ -791,20 +778,6 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* VI) In parallel, transpose coefs and coef forces fwd                 */
 
-  /*
-  if(numProcStates>1){
-    cp_transpose_fwd(coeffReUp,coeffImUp,pcoefFormUp,
-                    cpScrCoeffReUp,cpScrCoeffImUp,&(cp->cp_comm_state_pkg_up));
-    cp_transpose_fwd(forceCoeffReUp,forceCoeffImUp,pforceCoefFormUp,
-                    cpScrCoeffReUp,cpScrCoeffImUp,&(cp->cp_comm_state_pkg_up));
-    if(cpLsda==1&&numStateDn>0){
-    cp_transpose_fwd(coeffReDn,coeffImDn,pcoefFormDn,
-                    cpScrCoeffReDn,cpScrCoeffImDn,&(cp->cp_comm_state_pkg_dn));
-    cp_transpose_fwd(forceCoeffReDn,forceCoeffImDn,pforceCoefFormDn,
-                    cpScrCoeffReDn,cpScrCoeffImDn,&(cp->cp_comm_state_pkg_dn));
-    }//endif
-  }//endif
-  */
 /*-----------------------------------------------------------------------*/
 }/*end routine*/
 /*==========================================================================*/
@@ -888,10 +861,10 @@ void scfStodftFilterDiag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   double *coeffImDn        = cpcoeffs_pos->cim_dn;
   double *forceCoeffReDn   = cpcoeffs_pos->fcre_dn;
   double *forceCoeffImDn   = cpcoeffs_pos->fcre_dn;
-  double *cpScrCoeffReUp   = cpscr->cpscr_wave.cre_up;
-  double *cpScrCoeffImUp   = cpscr->cpscr_wave.cim_up;
-  double *cpScrCoeffReDn   = cpscr->cpscr_wave.cre_dn;
-  double *cpScrCoeffImDn   = cpscr->cpscr_wave.cim_dn;
+  //double *cpScrCoeffReUp   = cpscr->cpscr_wave.cre_up;
+  //double *cpScrCoeffImUp   = cpscr->cpscr_wave.cim_up;
+  //double *cpScrCoeffReDn   = cpscr->cpscr_wave.cre_dn;
+  //double *cpScrCoeffImDn   = cpscr->cpscr_wave.cim_dn;
   double *ptensPvtenTmp    = ptens->pvten_tmp;
   double *chemPot          = stodftCoefPos->chemPot;
 
@@ -1103,20 +1076,6 @@ void scfStodftFilterDiag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
 /*======================================================================*/
 /* VI) In parallel, transpose coefs and coef forces fwd                 */
-
-  if(numProcStates>1){
-    cp_transpose_fwd(coeffReUp,coeffImUp,pcoefFormUp,
-                    cpScrCoeffReUp,cpScrCoeffImUp,&(cp->cp_comm_state_pkg_up));
-    cp_transpose_fwd(forceCoeffReUp,forceCoeffImUp,pforceCoefFormUp,
-                    cpScrCoeffReUp,cpScrCoeffImUp,&(cp->cp_comm_state_pkg_up));
-    if(cpLsda==1&&numStateDn>0){
-    cp_transpose_fwd(coeffReDn,coeffImDn,pcoefFormDn,
-                    cpScrCoeffReDn,cpScrCoeffImDn,&(cp->cp_comm_state_pkg_dn));
-    cp_transpose_fwd(forceCoeffReDn,forceCoeffImDn,pforceCoefFormDn,
-                    cpScrCoeffReDn,cpScrCoeffImDn,&(cp->cp_comm_state_pkg_dn));
-    }/*endif*/
-  }/*endif*/
-
 
 
 /*-----------------------------------------------------------------------*/

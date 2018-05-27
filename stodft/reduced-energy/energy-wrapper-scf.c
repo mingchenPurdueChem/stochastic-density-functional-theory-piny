@@ -662,8 +662,8 @@ void calcKSPot(CLASS *class,GENERAL_DATA *general_data,
   double *v_ks_tau_dn      =  cpscr->cpscr_rho.v_ks_tau_dn;
   double *zfft             =  cpscr->cpscr_wave.zfft;
   double *zfft_tmp         =  cpscr->cpscr_wave.zfft_tmp;
-  double *cre_scr          =  cpscr->cpscr_wave.cre_up;
-  double *cim_scr          =  cpscr->cpscr_wave.cim_up;
+  //double *cre_scr          =  cpscr->cpscr_wave.cre_up;
+  //double *cim_scr          =  cpscr->cpscr_wave.cim_up;
   double *hmati_cp         =  cell->hmati_cp;
   double *pvten_cp         =  ptens->pvten_tmp;
   double *cp_eke_ret       =   &(stat_avg->cp_eke);
@@ -818,8 +818,8 @@ void calcCoefForceScf(CLASS *class,GENERAL_DATA *general_data,
   double *v_ks_tau_dn      =  cpscr->cpscr_rho.v_ks_tau_dn;
   double *zfft             =  cpscr->cpscr_wave.zfft;
   double *zfft_tmp         =  cpscr->cpscr_wave.zfft_tmp;
-  double *cre_scr          =  cpscr->cpscr_wave.cre_up;
-  double *cim_scr          =  cpscr->cpscr_wave.cim_up;
+  //double *cre_scr          =  cpscr->cpscr_wave.cre_up;
+  //double *cim_scr          =  cpscr->cpscr_wave.cim_up;
   double *hmati_cp         =  cell->hmati_cp;
   double *pvten_cp         =  ptens->pvten_tmp;
   double *cp_eke_ret       =  &(stat_avg->cp_eke);
@@ -846,7 +846,7 @@ void calcCoefForceScf(CLASS *class,GENERAL_DATA *general_data,
  /*-----------------------------------------*/
  /* i)  Up states                           */
   coefForceCalcHybridSCF(cpewald,nstate_up,creal_up,cimag_up,
-                          fcreal_up,fcimag_up,cre_scr,cim_scr,cp_hess_re_up,cp_hess_im_up,
+                          fcreal_up,fcimag_up,
                           zfft,zfft_tmp,v_ks_up,v_ks_tau_up,ak2_sm,&cp_eke,pvten_cp,
                           cp_ptens_calc,hmati_cp,communicate,icoef_form_up,
                           icoef_orth_up,ifcoef_form_up,cp_tau_functional,cp_min_on,
@@ -858,7 +858,7 @@ void calcCoefForceScf(CLASS *class,GENERAL_DATA *general_data,
 
   if(cp_lsda == 1 && nstate_dn != 0){
     coefForceCalcHybridSCF(cpewald,nstate_dn,creal_dn,cimag_dn,
-                          fcreal_dn,fcimag_dn,cre_scr,cim_scr,cp_hess_re_dn,cp_hess_im_dn,
+                          fcreal_dn,fcimag_dn,
                           zfft,zfft_tmp,v_ks_dn,v_ks_tau_dn,ak2_sm,&cp_eke_dn,pvten_cp,
                           cp_ptens_calc,hmati_cp,communicate,icoef_form_dn,
                           icoef_orth_dn,ifcoef_form_dn,cp_tau_functional,cp_min_on,

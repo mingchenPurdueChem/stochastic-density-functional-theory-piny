@@ -1142,8 +1142,12 @@ void mall_cp_scr(CPTHERM_INFO *cptherm_info,CPOPTS *cpopts,CPEWALD *cpewald,
 
 /*------------------------------------------------------------------*/
 /* wave */
-  /*
-  if(stodftOn==1&&readCoeffFlag!=0){
+  int allocFlag = 1;
+  if(stodftOn==1){
+    if(readCoeffFlag==-1||readCoeffFlag==1||readCoeffFlag==3)allocFlag = 0;
+  }
+  
+  if(allocFlag==0){
     // A fake malloc, just in case we need to free.
     cpscr->cpscr_wave.cre_up = (double*)cmalloc(sizeof(double))-1;
     cpscr->cpscr_wave.cim_up = (double*)cmalloc(sizeof(double))-1;
@@ -1151,16 +1155,16 @@ void mall_cp_scr(CPTHERM_INFO *cptherm_info,CPOPTS *cpopts,CPEWALD *cpewald,
     cpscr->cpscr_wave.cim_dn = (double*)cmalloc(sizeof(double))-1;
   }
   else{
-  */
-  cpscr->cpscr_wave.cre_up       
-                    = (double *)cmalloc(ncoef2_up_c*sizeof(double))-1;
-  cpscr->cpscr_wave.cim_up       
-                    = (double *)cmalloc(ncoef2_up*sizeof(double))-1;
-  cpscr->cpscr_wave.cre_dn       
-                    = (double *)cmalloc(ncoef2_dn*sizeof(double))-1;
-  cpscr->cpscr_wave.cim_dn       
-                    = (double *)cmalloc(ncoef2_dn*sizeof(double))-1;
-  //}
+
+    cpscr->cpscr_wave.cre_up       
+		      = (double *)cmalloc(ncoef2_up_c*sizeof(double))-1;
+    cpscr->cpscr_wave.cim_up       
+		      = (double *)cmalloc(ncoef2_up*sizeof(double))-1;
+    cpscr->cpscr_wave.cre_dn       
+		      = (double *)cmalloc(ncoef2_dn*sizeof(double))-1;
+    cpscr->cpscr_wave.cim_dn       
+		      = (double *)cmalloc(ncoef2_dn*sizeof(double))-1;
+  }
 
   num += 2*(ncoef2_up + ncoef2_dn);
 

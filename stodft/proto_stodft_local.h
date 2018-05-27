@@ -118,8 +118,8 @@ void calcForceWrapper(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,CLATOMS_POS *,
 // Reduced Energy Calculation
 /*-----------------------------------------------------------------*/
 /* cp-energy-ee-rho-stodft.c                                       */
-void coefForceCalcHybridSCF(CPEWALD *,int,double *,double *,double *,double  *,
-                            double *,double *,double *,double *,double *,double *,
+void coefForceCalcHybridSCF(CPEWALD *,int,double *,double *,
+                            double *,double *,double *,double *,
                             double *,double *,double *,double *,double *,
                             int ,double *,COMMUNICATE *,int ,int ,int ,int ,int ,
                             PARA_FFT_PKG3D *,CP *,CLASS *,GENERAL_DATA *);

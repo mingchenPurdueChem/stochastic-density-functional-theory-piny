@@ -354,8 +354,8 @@ void genStoOrbitalCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   double *divRhoyUp       = cpscr->cpscr_grho.d_rhoy_up;
   double *divRhozUp       = cpscr->cpscr_grho.d_rhoz_up;
   double *d2RhoUp        = cpscr->cpscr_grho.d2_rho_up;
-  double *scrCoeffReDn   = cpscr->cpscr_wave.cre_dn;
-  double *scrCoeffImDn   = cpscr->cpscr_wave.cim_dn;
+  //double *scrCoeffReDn   = cpscr->cpscr_wave.cre_dn;
+  //double *scrCoeffImDn   = cpscr->cpscr_wave.cim_dn;
   double *rhoCoeffReDn   = cpscr->cpscr_rho.rhocr_dn;
   double *rhoCoeffImDn   = cpscr->cpscr_rho.rhoci_dn;
   double *rhoDn          = cpscr->cpscr_rho.rho_dn;

@@ -38,8 +38,6 @@
 void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
                              double *ccreal,double *ccimag,
                              double *fccreal,double  *fccimag,
-                             double *cre_scr,double *cim_scr,
-                             double *cp_hess_re,double *cp_hess_im,
                              double *zfft,double *zfft_tmp,
                              double *v_ks,double *v_ks_tau,double *ak2_sm,
                              double *eke_ret,double *pvten_cp,

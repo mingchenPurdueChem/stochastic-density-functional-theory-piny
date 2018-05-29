@@ -284,6 +284,20 @@ void control_mol_params(CLASS *class,GENERAL_DATA *general_data,
       exit(1);
     }
   }
+  if(stodftOn==1){
+    if(readCoeffFlag<0){
+      if((numStateStoUp!=cpcoeffs_info->nstate_up)||
+        (numStateStoDn!=cpcoeffs_info->nstate_dn)){
+	printf("$$$$$$$$$$$$$$$$$$$$_WARNING_$$$$$$$$$$$$$$$$$$$$\n");
+	printf("You choose to generating initial guess without \n");
+	printf("deterministic wave function. I'll reset nstate_up(dn)\n");
+	printf("to numStateStoUp(Dn).\n");
+	printf("$$$$$$$$$$$$$$$$$$$$_WARNING_$$$$$$$$$$$$$$$$$$$$\n");
+	cpcoeffs_info->nstate_up = numStateStoUp;
+	cpcoeffs_info->nstate_dn = numStateStoDn;
+      }	  
+    }
+  }
 
 /*========================================================================*/
 /* V) Free some memory and malloc some other                              */

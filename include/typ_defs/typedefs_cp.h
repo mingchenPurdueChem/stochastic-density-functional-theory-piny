@@ -551,7 +551,7 @@ typedef struct stodftInfo{
 				    /*	    0 = off				*/
 				    /*	    1 = stochastic			*/
                                     /*      2 = deterministic                   */
-				    /*	    3 = read density			*/
+				    /*	    -2 = read density			*/
 				    /*	    -1 = combine fragment densities     */
   int reInitFlag;		    /* Opt: Flag to control realloc WF arraies  */
 				    /*	    0 = don't realloc (read sto)	*/

@@ -9,6 +9,8 @@
 #include <math.h>
 #include <time.h>
 #include <complex.h>
+#include <omp.h>
+#include <mkl.h>
 #ifdef PARALLEL
 #include "mpi.h"
 #else

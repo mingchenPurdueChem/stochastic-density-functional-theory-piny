@@ -379,7 +379,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     if(strcasecmp(ggacTyp,"debug97x")==0){cpopts->cp_debug_xc=1;}
   }/*endif*/
 
-  if(readCoeffFlag==1)stodftInfo->reInitFlag = 0;
+  if(readCoeffFlag==1||readCoeffFlag<0)stodftInfo->reInitFlag = 0;
   else stodftInfo->reInitFlag = 1;
 
   stodftInfo->energyElecTot = 0.0;

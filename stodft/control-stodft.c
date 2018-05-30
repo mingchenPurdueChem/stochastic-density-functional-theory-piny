@@ -168,14 +168,18 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* IV) Realloc wave function arrays if necessary		        */
   
-  if(reInitFlag==1){
-    if(myid==0){
-      PRINT_LINE_STAR;
-      printf("Reinit wave function\n");
-      PRINT_LINE_DASH;
-    }
-    reInitWaveFunMin(class,bonded,general_data,cp,ip_now);
+  //if(reInitFlag==1){
+  // I found that I've put some important memory allocation in reInitWaveFunMin. 
+  // Therefore I enforce doing this for every initial condition. But reInitFlag 
+  // is used within reInitWaveFunMin to prevent redo initialization for certain 
+  // flags
+  if(myid==0){
+    PRINT_LINE_STAR;
+    printf("Reinit wave function\n");
+    PRINT_LINE_DASH;
   }
+  reInitWaveFunMin(class,bonded,general_data,cp,ip_now);
+  //}
 
   //filterDiagFlag = 0;
   filterDiagFlag = cp->stodftInfo->filterDiagFlag;

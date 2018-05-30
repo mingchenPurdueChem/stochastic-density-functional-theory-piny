@@ -248,7 +248,6 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   numFFT2 = numFFT/2;
   numFFT2Proc = numFFTProc/2;
   
-
   stodftInfo->vpsAtomListFlag = 0;
   stodftInfo->filterFlag = 0;
   stodftInfo->numThreads = communicate->numThreads;
@@ -798,6 +797,8 @@ void reInitWaveFunMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int numSendNoise;
   int iState,iChem,iProc;
   int nfft,nfft2;
+  int reInitFlag = stodftInfo->reInitFlag;
+
   //int nfft             = cp_para_fft_pkg3d_lg->nfft;
   //int nfft2	       = nfft/2; 
   MPI_Comm comm_states = communicate->comm_states;
@@ -848,7 +849,8 @@ void reInitWaveFunMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /* II) Reinit communication group for new number of wave function           */
 /*     (//N means don't remalloc these arrays)				    */
 
-  reInitComm(cp,cpcoeffs_pos);
+  
+  if(reInitFlag==1)reInitComm(cp,cpcoeffs_pos);
 
   numStateUpProc = cpcoeffs_info->nstate_up_proc;
   numStateDnProc = cpcoeffs_info->nstate_dn_proc;
@@ -858,12 +860,12 @@ void reInitWaveFunMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*==========================================================================*/
 /* III) Reinit arrays, except scratch					    */
   
-  stoRealloc(cp,cpcoeffs_pos);
+  if(reInitFlag==1)stoRealloc(cp,cpcoeffs_pos);
 
 /*==========================================================================*/
 /* IV) Reinit scratch		                                            */
 
-  reallocScratch(cp,hessCalc);
+  if(reInitFlag==1)reallocScratch(cp,hessCalc);
 
 
 /*==========================================================================*/

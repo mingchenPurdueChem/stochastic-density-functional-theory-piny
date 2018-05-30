@@ -63,7 +63,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
   //debug
   
-   
+    
   sprintf(fileNameFragMO,"frag-MO-%i",myidState);
   if(numFragProc>0){
     fileFragMO = fopen(fileNameFragMO,"r");

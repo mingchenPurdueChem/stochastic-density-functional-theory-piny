@@ -63,6 +63,9 @@ void communicate_cp_info(GENERAL_DATA *general_data, CP *cp,CP_PARSE *cp_parse,
   Bcast(&(cp->cpscr.cpscr_atom_pme.pme_on),1,MPI_INT,0,world);
   Bcast(&(cp->cpscr.cpscr_atom_pme.nlen_pme),1,MPI_INT,0,world);
   Bcast(&(cp->cpewald.eCutoffKe),1,MPI_DOUBLE,0,world);
+  if(cp->cpopts.stodftOn==1){
+    Bcast(&(cp->cpopts.readCoeffFlag),1,MPI_INT,0,world);
+  }
   Barrier(world);
 
   if(cp->cpcoeffs_info.iopt_cp_dvr ==1 && general_data->cell.iperd ==0){

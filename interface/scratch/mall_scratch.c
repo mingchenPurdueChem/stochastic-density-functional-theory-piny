@@ -623,7 +623,8 @@ void mall_cp_scr(CPTHERM_INFO *cptherm_info,CPOPTS *cpopts,CPEWALD *cpewald,
   int threadFlag = cpopts->threadFlag;
   int numThreads = cp_para_fft_pkg3d_lg->numThreads; 
   int stodftOn = cpopts->stodftOn;
-  int readCoeffFlag = cp->stodftInfo->readCoeffFlag;
+  //int readCoeffFlag = cp->stodftInfo->readCoeffFlag;
+  int readCoeffFlag;
 
   int ncoef_l_pme_dual,ncoef_l_pme_dual_proc;
   int ncoef_l_proc_max_mall;
@@ -1144,6 +1145,7 @@ void mall_cp_scr(CPTHERM_INFO *cptherm_info,CPOPTS *cpopts,CPEWALD *cpewald,
 /* wave */
   int allocFlag = 1;
   if(stodftOn==1){
+    readCoeffFlag = cp->cpopts.readCoeffFlag;
     if(readCoeffFlag==-1||readCoeffFlag==1||readCoeffFlag==3)allocFlag = 0;
   }
   

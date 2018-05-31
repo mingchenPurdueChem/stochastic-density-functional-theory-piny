@@ -63,10 +63,13 @@ void read_coef(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   int iopt_cp_pw         = cp->cpcoeffs_info.iopt_cp_pw;
   int iopt_cp_dvr        = cp->cpcoeffs_info.iopt_cp_dvr;
   int stodftOn = cp->cpopts.stodftOn;
-  int readCoeffFlag = cp->stodftInfo->readCoeffFlag;
+  int readCoeffFlag = cp->cpopts.readCoeffFlag;
   int genWaveFlag = 0;
+  int transposeFlag = 0;
+  
   
   if(stodftOn==0||readCoeffFlag==0)genWaveFlag = 1;
+  if(stodftOn==0||readCoeffFlag>0)transposeFlag = 1;
 
   cp_min_on = cp_wave_min + cp_wave_min_pimd + cp_min;
 
@@ -192,7 +195,7 @@ void read_coef(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 /*=======================================================================*/
 /* XI) Transpose the coefs, coef vels and thermostats (massiv only)      */
 
-  if(np_states>1){
+  if(np_states>1&&transposeFlag==1){
     read_coef_transpose(cp,istart,cp_wave_min,cp_min);
   }/*endif np_states > 1*/
   if(num_proc>1){Barrier(world);}

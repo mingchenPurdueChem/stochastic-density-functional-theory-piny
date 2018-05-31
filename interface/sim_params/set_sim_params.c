@@ -4613,6 +4613,7 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   if(strcasecmp(dict[8].keyarg,"det")==0)stodftInfo->readCoeffFlag = 2;
   if(strcasecmp(dict[8].keyarg,"rho")==0)stodftInfo->readCoeffFlag = -2;
   if(strcasecmp(dict[8].keyarg,"frag")==0)stodftInfo->readCoeffFlag = -1;
+  cpopts->readCoeffFlag = stodftInfo->readCoeffFlag;
 
   /*-----------------------------------------------------------------------*/
   /*  9)\num_sto_state_up{#} */

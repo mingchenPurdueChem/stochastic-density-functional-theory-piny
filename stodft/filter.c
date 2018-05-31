@@ -90,7 +90,9 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   double *expanCoeff = (double*)stodftCoefPos->expanCoeff;
   double timeStart,timeEnd; 
   double timeStart2,timeEnd2;
+  double timeStart3,timeEnd3;
   double deltaTime = 0.0;
+  double deltaTime2 = 0.0;
 
   // performance
   stodftInfo->cputime1 = 0.0;
@@ -101,6 +103,7 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   stodftInfo->cputime6 = 0.0;
   stodftInfo->cputime7 = 0.0;
   cp_sclr_fft_pkg3d_sm->cputime = 0.0;
+  for(imu=0;imu<100;imu++)stodftInfo->cputime_new[imu] = 0.0;
 //debug
 /*  
   int numPointTest = 100;
@@ -156,9 +159,12 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     if(iPoly%1000==0&&myidState==0){
       printf("%lg%% ",iPoly*100.0/polynormLength);
       fflush(stdout);
-    }  
+    }
+    timeStart3 = omp_get_wtime();  
     normHNewtonHerm(cp,class,general_data,
                  cpcoeffs_pos,clatoms_pos,sampPoint[iPoly-1]);
+    timeEnd3 = omp_get_wtime();
+    deltaTime2 += timeEnd3-timeStart3;
     timeStart2 = omp_get_wtime();
     for(imu=0;imu<numChemPot;imu++){
       polyCoeff = expanCoeff[iPoly*numChemPot+imu];
@@ -185,6 +191,7 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   timeProc = timeEnd-timeStart;
   if(numProcStates>1)Reduce(&timeProc,&timeTot,1,MPI_DOUBLE,MPI_SUM,0,comm_states);
   else timeTot = timeProc;
+  /*
   if(myidState==0){
     if(pseudoRealFlag==0){
       printf("Average Filter time is %lg\n",timeTot/numProcStates);
@@ -198,7 +205,7 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     }
     else{
       printf("Average Filter time is %lg\n",timeTot/numProcStates);
-      printf("0th process filter time is %lg\n",timeProc);
+      //printf("0th process filter time is %lg\n",timeProc);
       printf("Nlpp part 1 %.8lg\n",stodftInfo->cputime0);
       printf("Nlpp part 2 %.8lg\n",stodftInfo->cputime1);
       printf("Apply KS pot %.8lg\n",stodftInfo->cputime2);
@@ -214,6 +221,19 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       printf("Accumulate P(H)|phi> time %.8lg\n",deltaTime);
     }
   }
+  */
+  printf("Process ID %i filter time %.8lg total NormH time %.8lg Accumulate P(H)|phi> time %.8lg\n",myidState,timeProc,deltaTime2,deltaTime);
+  fflush(stdout);
+  Barrier(comm_states);
+  printf("Process ID %i Nlpp %.8lg Apply-KS-pot %.8lg Pack-fft %.8lg Unpack-fft %.8lg kinetic %.8lg scale-H|phi> %.8lg\n",myidState,stodftInfo->cputime_new[0],stodftInfo->cputime2,stodftInfo->cputime3,stodftInfo->cputime4,stodftInfo->cputime5,stodftInfo->cputime7);
+  fflush(stdout);
+  Barrier(comm_states);
+  printf("Process ID Nlpp-part1 %.8lg Nlpp-part2 %.8lg\n",stodftInfo->cputime0,stodftInfo->cputime1);
+  fflush(stdout);
+  Barrier(comm_states);
+  printf("Process ID %i FFTW3D time %.8lg FFTW3D-to-r-pre %.8lg FFTW3D-to-r-post %.8lg FFTW3D-to-g-pre %.8lg FFTW3D-to-g-post %.8lg\n",myidState,cp_sclr_fft_pkg3d_sm->cputime,cp_sclr_fft_pkg3d_sm->cputime1,cp_sclr_fft_pkg3d_sm->cputime2,cp_sclr_fft_pkg3d_sm->cputime3,cp_sclr_fft_pkg3d_sm->cputime4);
+  fflush(stdout);
+  Barrier(comm_states);
   //debug
   /*
   for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){

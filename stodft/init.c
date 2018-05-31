@@ -70,7 +70,7 @@ void commStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
   Bcast(&(stodftInfo->filterFunType),1,MPI_INT,0,world);
   Bcast(&(stodftInfo->numOrbital),1,MPI_INT,0,world);
   Bcast(&(stodftInfo->numChemPot),1,MPI_INT,0,world);
-  Bcast(&(stodftInfo->readCoeffFlag),1,MPI_INT,0,world);
+  //Bcast(&(stodftInfo->readCoeffFlag),1,MPI_INT,0,world);
   Bcast(&(stodftInfo->numStateStoUp),1,MPI_INT,0,world);
   Bcast(&(stodftInfo->numStateStoDn),1,MPI_INT,0,world);
   Bcast(&(stodftInfo->chemPotOpt),1,MPI_INT,0,world);
@@ -147,7 +147,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   int numOrbital     = stodftInfo->numOrbital;
   int polynormLength = stodftInfo->polynormLength;
   int numChemPot     = stodftInfo->numChemPot;
-  int readCoeffFlag  = stodftInfo->readCoeffFlag;
+  int readCoeffFlag  = cpopts->readCoeffFlag;
   int densityMixFlag = stodftInfo->densityMixFlag;
   int numDiis	     = stodftInfo->numDiis;
   int numStepMix     = stodftInfo->numStepMix;
@@ -378,6 +378,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     if(strcasecmp(ggacTyp,"debug97x")==0){cpopts->cp_debug_xc=1;}
   }/*endif*/
 
+  stodftInfo->readCoeffFlag = readCoeffFlag;
   if(readCoeffFlag==1||readCoeffFlag<0)stodftInfo->reInitFlag = 0;
   else stodftInfo->reInitFlag = 1;
 
@@ -451,46 +452,49 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /* V) Initialize for the density calculation				    */
 
   // I need to do this for both deterministic/stochastic density calculation since
-  // I use similiar functions
+  // I use similiar functions. I don't need this if I read in density or generate 
+  // density from fragmentation.
 
-  if(numProcStates>1){
-    if((coefFormUp+forceCoefFormUp)!=2){
-      printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
-      printf("Up CP vectors are not in transposed form \n");
-      printf("on state processor %d in min_STD_cp \n",myidState);
-      printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
-      fflush(stdout);
-      exit(1);
-    }/*endif*/
-    if(cpLsda==1){
-      if((coefFormDn+forceCoefFormDn)!=2){
-        printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
-        printf("Up CP vectors are not in transposed form \n");
-        printf("on state processor %d in min_STD_cp \n",myidState);
-        printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
-        fflush(stdout);
-        exit(1);
+  if(readCoeffFlag>=0){
+    if(numProcStates>1){
+      if((coefFormUp+forceCoefFormUp)!=2){
+	printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+	printf("Up CP vectors are not in transposed form \n");
+	printf("on state processor %d in min_STD_cp \n",myidState);
+	printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+	fflush(stdout);
+	exit(1);
+      }/*endif*/
+      if(cpLsda==1){
+	if((coefFormDn+forceCoefFormDn)!=2){
+	  printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+	  printf("Up CP vectors are not in transposed form \n");
+	  printf("on state processor %d in min_STD_cp \n",myidState);
+	  printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+	  fflush(stdout);
+	  exit(1);
+	}/*endif*/
       }/*endif*/
     }/*endif*/
-  }/*endif*/
-  Barrier(comm_states);
+    Barrier(comm_states);
 
-  if((iperd<3||iperd==4)&&checkPerdSize==1){
-    cp_boundary_check(cell,clatoms_info,clatoms_pos,tolEdgeDist);
-  }/*endif*/
-  if(cpDualGridOptOn>=1&&checkDualSize==1){
-    cp_dual_check(cell,clatoms_info,clatoms_pos,
-                  atommaps->cp_atm_lst,tolEdgeDist);
-  }/*endif*/
-
-  if(numProcStates>1){
-    cp_transpose_bck(coeffReUp,coeffImUp,pcoefFormUp,
-                    cpScrCoeffReUp,cpScrCoeffImUp,&(cp->cp_comm_state_pkg_up));
-    if(cpLsda==1&&numStateDnProc>0){
-      cp_transpose_bck(coeffReDn,coeffImDn,pcoefFormDn,
-                     cpScrCoeffReDn,cpScrCoeffImDn,&(cp->cp_comm_state_pkg_dn));
+    if((iperd<3||iperd==4)&&checkPerdSize==1){
+      cp_boundary_check(cell,clatoms_info,clatoms_pos,tolEdgeDist);
     }/*endif*/
-  }/*endif*/
+    if(cpDualGridOptOn>=1&&checkDualSize==1){
+      cp_dual_check(cell,clatoms_info,clatoms_pos,
+		    atommaps->cp_atm_lst,tolEdgeDist);
+    }/*endif*/
+
+    if(numProcStates>1){
+      cp_transpose_bck(coeffReUp,coeffImUp,pcoefFormUp,
+		      cpScrCoeffReUp,cpScrCoeffImUp,&(cp->cp_comm_state_pkg_up));
+      if(cpLsda==1&&numStateDnProc>0){
+	cp_transpose_bck(coeffReDn,coeffImDn,pcoefFormDn,
+		       cpScrCoeffReDn,cpScrCoeffImDn,&(cp->cp_comm_state_pkg_dn));
+      }/*endif*/
+    }/*endif*/
+  }
 
   cpcoeffs_pos->ifcoef_form_up = 0;
   cpcoeffs_pos->ifcoef_orth_up = 1;

@@ -515,6 +515,20 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   double *rhoCoeffReUp = cpscr->cpscr_rho.rhocr_up;
   double *rhoCoeffImUp = cpscr->cpscr_rho.rhoci_up;
 
+  //timeing
+  double timeStart1,timeEnd1;
+  double timeStart2,timeEnd2;
+  double timeStart3,timeEnd3;
+  double timeStart4,timeEnd4;
+  double timeStart5,timeEnd5;
+  double timeStart6,timeEnd6;
+  double diffTime1 = 0.0;
+  double diffTime2 = 0.0;
+  double diffTime3 = 0.0;
+  double diffTime4 = 0.0;
+  double diffTime5 = 0.0;
+  double diffTime6 = 0.0;
+
 /*======================================================================*/
 /* I) Check the approximations in the methods				*/
 
@@ -589,6 +603,7 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*----------------------------------------------------------------------*/
 /* i) Generate stochastic WF for different chemical potentials          */
 
+    timeStart1 = omp_get_wtime();
     if(myidState==0)printf("**Generating Stochastic Orbitals...\n");
     genStoOrbitalCheby(class,bonded,general_data,cp,ip_now);
     //genStoOrbitalFake(class,bonded,general_data,cp,ip_now);
@@ -606,6 +621,8 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     }
     */
     if(myidState==0)printf("**Finish Generating Stochastic Orbitals\n");
+    timeEnd1 = omp_get_wtime();
+    diffTime1 += timeEnd1-timeStart1;
 
     //exit(0);
     
@@ -660,10 +677,13 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     printf("Finish Readin WF\n");
     */
     
-    
+    timeStart2 = omp_get_wtime();
     if(myidState==0)printf("**Calculating KE and NLPPE...\n");
     calcEnergyChemPot(cp,class,general_data,cpcoeffs_pos,clatoms_pos);   
     if(myidState==0)printf("**Finish Calculating KE and NLP E\n");
+    timeEnd2 = omp_get_wtime();
+    diffTime2 += timeEnd2-timeStart2;
+    
 
     
 //debug 
@@ -687,15 +707,19 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*----------------------------------------------------------------------*/
 /* ii)  Get the total density.						*/
 
+    timeStart3 = omp_get_wtime();
     if(myidState==0)printf("**Calculating Density...\n");
     if(cpParaOpt==0) calcRhoStoHybridCheby(class,bonded,general_data,cp,ip_now); 
     if(myidState==0)printf("**Finish Calculating Density\n");
+    timeEnd3 = omp_get_wtime();
+    diffTime3 += timeEnd3-timeStart3;
 
 /*----------------------------------------------------------------------*/
 /* iv) Generate KS potential                                            */
-
+    
     if(numProcStates>1)Barrier(commStates);
 
+    timeStart4 = omp_get_wtime();
     stat_avg->cp_ehart = 0.0;
     stat_avg->cp_eext = 0.0;
     stat_avg->cp_exc = 0.0;
@@ -714,16 +738,22 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     }
     */
     if(myidState==0)printf("**Finish Calculating Kohn-Sham Potential\n");
+    timeEnd4 = omp_get_wtime();
+    diffTime4 += timeEnd4-timeStart4;
 
 /*----------------------------------------------------------------------*/
 /* v) Calculate the total energy		                        */
 
 
+    timeStart5 = omp_get_wtime();
     if(myidState==0)printf("**Calculating Total Energy...\n");
     stodftInfo->energyElecTotOld = stodftInfo->energyElecTot;
     calcTotEnergy(cp,class,general_data,cpcoeffs_pos,clatoms_pos);
     energyDiff = fabs(stodftInfo->energyElecTot-stodftInfo->energyElecTotOld);
     if(myidState==0)printf("**Finish Calculating Total Energy\n");
+    timeEnd5 = omp_get_wtime();
+    diffTime5 += timeEnd5-timeStart5;
+
 
     //exit(0);   
     
@@ -741,6 +771,8 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     if(energyDiff<energyTol||iScf>=numScf)scfStopFlag = 1;
     //exit(0);
   }//endfor iScf
+
+  printf("SCF time myid %i gen-stowf %.8lg energy %.8lg density %.8lg KS potential %.8lg total-energy %.8lg\n",myidState,diffTime1,diffTime2,diffTime3,diffTime4,diffTime5);
 
   /*  
   char wfname[100];
@@ -777,6 +809,7 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
 /*======================================================================*/
 /* VI) In parallel, transpose coefs and coef forces fwd                 */
+
 
 /*-----------------------------------------------------------------------*/
 }/*end routine*/

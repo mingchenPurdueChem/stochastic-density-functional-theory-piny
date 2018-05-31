@@ -123,6 +123,8 @@ typedef struct cpopts{
 				  /*	  and nl pp level.			 */
 
   int realSparseOpt;		  /* Opt: Use sparse real space grid 0=off 1=on  */   
+
+  int readCoeffFlag;		  /* Opt: A copy from stodftInfo, makes life easier*/
 } CPOPTS;
 
 /*==========================================================================*/
@@ -748,6 +750,7 @@ typedef struct stodftInfo{
   int filterFlag;		    /* Opt:Use simplied energy routine for      */
 				    /*	   massive H|phi> calculations		*/
   double cputime0,cputime1,cputime2,cputime3,cputime4,cputime5,cputime6,cputime7,cputime8;
+  double cputime_new[100]; // I need more cputime LOL
   
 }STODFTINFO;
 

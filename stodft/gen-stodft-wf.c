@@ -373,6 +373,22 @@ void genStoOrbitalCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
   double *coeffReUpBackup = stodftCoefPos->coeffReUpBackup;
   double *coeffImUpBackup = stodftCoefPos->coeffImUpBackup;
+
+  //timing
+  double timeStart1,timeEnd1;
+  double timeStart2,timeEnd2;
+  double timeStart3,timeEnd3;
+  double timeStart4,timeEnd4;
+  double timeStart5,timeEnd5;
+  double timeStart6,timeEnd6;
+  double diffTime1 = 0.0;
+  double diffTime2 = 0.0;
+  double diffTime3 = 0.0;
+  double diffTime4 = 0.0;
+  double diffTime5 = 0.0;
+  double diffTime6 = 0.0;
+
+
   
 /*======================================================================*/
 /* I) Set flags			    */
@@ -388,6 +404,7 @@ void genStoOrbitalCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* II) Calculate Emax and Emin                                          */
 
+  timeStart1 = omp_get_wtime();
   //if(myidState==0){
   genEnergyMax(cp,class,general_data,cpcoeffs_pos,clatoms_pos);
   //fflush(stdout);
@@ -407,11 +424,14 @@ void genStoOrbitalCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   stodftInfo->energyDiff = energyMax-energyMin;
   energyDiff = stodftInfo->energyDiff;
   stodftInfo->energyMean = 0.5*(energyMin+energyMax);
+  timeEnd1 = omp_get_wtime();
+  diffTime1 = timeEnd1-timeStart1;
 
 
 /*======================================================================*/
 /* III) Generate Length of Polynomial Chain		                */
   
+  timeStart2 = omp_get_wtime();
   if(expanType==2){
     Smin = newtonInfo->Smin;
     Smax = newtonInfo->Smax;
@@ -434,17 +454,22 @@ void genStoOrbitalCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     stodftCoefPos->chemPot = (double*)cmalloc(sizeof(double));    
     //finish cheating my code
   }
+  timeEnd2 = omp_get_wtime();
+  diffTime2 = timeEnd2-timeStart2;
 
 /*======================================================================*/
 /* IV) Calculate the True Chemical Potential                            */
 
-  calcChemPotCheby(cp,class,general_data,ip_now);  
+  timeStart3 = omp_get_wtime();
+  calcChemPotCheby(cp,class,general_data,ip_now);
+  timeEnd3 = omp_get_wtime();
+  diffTime3 = timeEnd3-timeStart3;
 
 /*======================================================================*/
 /* V) Generate Coeffcients for Polynormial interpolation with Correct   */
 /*    Chemical Potential.						*/
   
-  
+  timeStart4 = omp_get_wtime();
   if(expanType==2){
     Smin = newtonInfo->Smin;
     Smax = newtonInfo->Smax;
@@ -478,21 +503,33 @@ void genStoOrbitalCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     genCoeffNewtonHermit(stodftInfo,stodftCoefPos);
     */
   }
+  timeEnd4 = omp_get_wtime();
+  diffTime4 = timeEnd4-timeStart4;
+
 
 /*======================================================================*/
 /* IV) Generate random orbital                                          */
 
+  timeStart5 = omp_get_wtime();
   genNoiseOrbitalReal(cp,cpcoeffs_pos);
+  timeEnd5 = omp_get_wtime();
+  diffTime5 = timeEnd5-timeStart5;
 
 /*======================================================================*/
 /* V) Filter the stochastic orbitals			*/
 
+  timeStart6 = omp_get_wtime();
   switch(expanType){
     case 2:
       filterNewtonPolyHerm(cp,class,general_data,ip_now);
       break;
   }
   stodftInfo->filterFlag = 0;
+  timeEnd6 = omp_get_wtime();
+  diffTime6 = timeEnd6-timeStart6;
+
+  printf("Gen-stowf time myid %i spec-range %.8lg gen-poly-length %.8lg gen-chempot %.8lg gen-poly-coeff %.8lg gen-rand %.8lg filter %.8lg\n",myidState,diffTime1,diffTime2,diffTime3,diffTime4,diffTime5,diffTime6);
+
 //debug print wave function
   //Barrier(commStates);
   /*

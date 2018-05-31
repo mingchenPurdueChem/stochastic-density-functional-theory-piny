@@ -313,6 +313,7 @@ void calcChebyMoments(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int numCoeffUpTotal = numStateUpProc*numCoeff;
   int numCoeffDnTotal = numStateDnProc*numCoeff;
   int myidState       = communicate->myid_state;
+  int numThreads      = communicate->numThreads;
   int iState,iCoeff,iPoly,indexStart;
   int iOff1,iOff2;
   MPI_Comm comm_states   =    communicate->comm_states;
@@ -392,15 +393,28 @@ void calcChebyMoments(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   //double testsum = 0.0;
   //double testsum1;
   chebyMomentsUp[0] = 0.0;
-  memcpy(&wfUpRe0[1],&cre_up[1],numCoeffUpTotal*sizeof(double));
-  memcpy(&wfUpIm0[1],&cim_up[1],numCoeffUpTotal*sizeof(double));
-  memcpy(&wfUpRe1[1],&cre_up[1],numCoeffUpTotal*sizeof(double));
-  memcpy(&wfUpIm1[1],&cim_up[1],numCoeffUpTotal*sizeof(double));
+  if(numThreads==1){
+    memcpy(&wfUpRe0[1],&cre_up[1],numCoeffUpTotal*sizeof(double));
+    memcpy(&wfUpIm0[1],&cim_up[1],numCoeffUpTotal*sizeof(double));
+    memcpy(&wfUpRe1[1],&cre_up[1],numCoeffUpTotal*sizeof(double));
+    memcpy(&wfUpIm1[1],&cim_up[1],numCoeffUpTotal*sizeof(double));
+  }
+  else{
+    #pragma omp parallel for private(iCoeff)
+    for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
+      wfUpRe0[iCoeff] = cre_up[iCoeff];
+      wfUpIm0[iCoeff] = cim_up[iCoeff];
+      wfUpRe1[iCoeff] = cre_up[iCoeff];
+      wfUpIm1[iCoeff] = cim_up[iCoeff];
+    }
+  }
   for(iState=0;iState<numStateUpProc;iState++){
     //iOff1 = iState*polynormLength;
     iOff2 = iState*numCoeff;
-    dot = 2.0*ddotBlasWrapper(numCoeff,&wfUpRe0[iOff2+1],1,&wfUpRe0[iOff2+1],1)+
-	    2.0*ddotBlasWrapper(numCoeff,&wfUpIm0[iOff2+1],1,&wfUpIm0[iOff2+1],1)-
+    dot = 2.0*ddotBlasWrapperThreads(numCoeff,&wfUpRe0[iOff2+1],1,
+	    &wfUpRe0[iOff2+1],1,numThreads)+
+	    2.0*ddotBlasWrapperThreads(numCoeff,&wfUpIm0[iOff2+1],1,
+	    &wfUpIm0[iOff2+1],1,numThreads)-
 	    wfUpRe0[iOff2+numCoeff]*wfUpRe0[iOff2+numCoeff];   
     //numElecStoWf[iState] = dot;
     chebyMomentsUp[0] += dot;
@@ -437,8 +451,10 @@ void calcChebyMoments(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   for(iState=0;iState<numStateUpProc;iState++){
     //iOff1 = iState*polynormLength;
     iOff2 = iState*numCoeff;
-    dot = 2.0*ddotBlasWrapper(numCoeff,&wfUpRe0[iOff2+1],1,&fcre_up[iOff2+1],1)+
-            2.0*ddotBlasWrapper(numCoeff,&wfUpIm0[iOff2+1],1,&fcim_up[iOff2+1],1)-
+    dot = 2.0*ddotBlasWrapperThreads(numCoeff,&wfUpRe0[iOff2+1],1,
+	    &fcre_up[iOff2+1],1,numThreads)+
+            2.0*ddotBlasWrapperThreads(numCoeff,&wfUpIm0[iOff2+1],1,
+	    &fcim_up[iOff2+1],1,numThreads)-
             wfUpRe0[iOff2+numCoeff]*fcre_up[iOff2+numCoeff];
     //numElecStoWf[numStateUpProc+iState] = dot;
     chebyMomentsUp[1] += dot;
@@ -450,8 +466,10 @@ void calcChebyMoments(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     for(iState=0;iState<numStateDnProc;iState++){
       //iOff1 = iState*polynormLength;
       iOff2 = iState*numCoeff;
-      dot = 2.0*ddotBlasWrapper(numCoeff,&wfDnRe0[iOff2+1],1,&fcre_dn[iOff2+1],1)+
-	      2.0*ddotBlasWrapper(numCoeff,&wfDnIm0[iOff2+1],1,&fcim_dn[iOff2+1],1)-
+      dot = 2.0*ddotBlasWrapperThreads(numCoeff,&wfDnRe0[iOff2+1],1,
+	      &fcre_dn[iOff2+1],1,numThreads)+
+	      2.0*ddotBlasWrapperThreads(numCoeff,&wfDnIm0[iOff2+1],1,
+	      &fcim_dn[iOff2+1],1,numThreads)-
 	      wfDnRe0[iOff2+numCoeff]*fcre_dn[iOff2+numCoeff];
       chebyMomentsUp[1] += dot;
     }
@@ -477,9 +495,11 @@ void calcChebyMoments(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     for(iState=0;iState<numStateUpProc;iState++){
       //iOff1 = iState*polynormLength;
       iOff2 = iState*numCoeff;
-      dot = 2.0*ddotBlasWrapper(numCoeff,&wfUpRe0[iOff2+1],1,&fcre_up[iOff2+1],1)+
-	      2.0*ddotBlasWrapper(numCoeff,&wfUpIm0[iOff2+1],1,&fcim_up[iOff2+1],1)-
-	      wfUpRe0[iOff2+numCoeff]*fcre_up[iOff2+numCoeff]; 
+      dot = 2.0*ddotBlasWrapperThreads(numCoeff,&wfUpRe0[iOff2+1],1,
+	    &fcre_up[iOff2+1],1,numThreads)+
+	    2.0*ddotBlasWrapperThreads(numCoeff,&wfUpIm0[iOff2+1],1,
+	    &fcim_up[iOff2+1],1,numThreads)-
+	    wfUpRe0[iOff2+numCoeff]*fcre_up[iOff2+numCoeff]; 
       //numElecStoWf[iPoly*numStateUpProc+iState] = dot;
       chebyMomentsUp[iPoly] += dot;
       /*
@@ -488,14 +508,18 @@ void calcChebyMoments(CP *cp,CLASS *class,GENERAL_DATA *general_data,
               2.0*ddotBlasWrapper(numCoeff,&cim_up[iOff2+1],1,&cim_up[iOff2+1],1)-
               cre_up[iOff2+numCoeff]*cre_up[iOff2+numCoeff];         
       */
-      dot = 2.0*ddotBlasWrapper(numCoeff,&fcre_up[iOff2+1],1,&cre_up[iOff2+1],1)+
-              2.0*ddotBlasWrapper(numCoeff,&fcim_up[iOff2+1],1,&cim_up[iOff2+1],1)-
-              fcre_up[iOff2+numCoeff]*cre_up[iOff2+numCoeff];
+      dot = 2.0*ddotBlasWrapperThreads(numCoeff,&fcre_up[iOff2+1],1,
+	    &cre_up[iOff2+1],1,numThreads)+
+            2.0*ddotBlasWrapperThreads(numCoeff,&fcim_up[iOff2+1],1,
+	    &cim_up[iOff2+1],1,numThreads)-
+            fcre_up[iOff2+numCoeff]*cre_up[iOff2+numCoeff];
       //numElecStoWf[(2*iPoly-1)*numStateUpProc+iState] = dot;
       chebyMomentsUp[iPoly*2-1] += dot;
-      dot = 2.0*ddotBlasWrapper(numCoeff,&fcre_up[iOff2+1],1,&fcre_up[iOff2+1],1)+
-              2.0*ddotBlasWrapper(numCoeff,&fcim_up[iOff2+1],1,&fcim_up[iOff2+1],1)-
-              fcre_up[iOff2+numCoeff]*fcre_up[iOff2+numCoeff];
+      dot = 2.0*ddotBlasWrapperThreads(numCoeff,&fcre_up[iOff2+1],1,
+	    &fcre_up[iOff2+1],1,numThreads)+
+            2.0*ddotBlasWrapperThreads(numCoeff,&fcim_up[iOff2+1],1,
+	    &fcim_up[iOff2+1],1,numThreads)-
+            fcre_up[iOff2+numCoeff]*fcre_up[iOff2+numCoeff];
       //numElecStoWf[(2*iPoly)*numStateUpProc+iState] = dot;
       chebyMomentsUp[iPoly*2] += dot;
       //numElecStoWf[(2*iPoly-1)*numStateUpProc+iState] = 
@@ -511,10 +535,21 @@ void calcChebyMoments(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   	    iPoly*2,chebyMomentsUp[iPoly*2]);
     }
     */
-    memcpy(&wfUpRe1[1],&cre_up[1],numCoeffUpTotal*sizeof(double));
-    memcpy(&wfUpIm1[1],&cim_up[1],numCoeffUpTotal*sizeof(double));
-    memcpy(&cre_up[1],&fcre_up[1],numCoeffUpTotal*sizeof(double));
-    memcpy(&cim_up[1],&fcim_up[1],numCoeffUpTotal*sizeof(double));    
+    if(numThreads==1){
+      memcpy(&wfUpRe1[1],&cre_up[1],numCoeffUpTotal*sizeof(double));
+      memcpy(&wfUpIm1[1],&cim_up[1],numCoeffUpTotal*sizeof(double));
+      memcpy(&cre_up[1],&fcre_up[1],numCoeffUpTotal*sizeof(double));
+      memcpy(&cim_up[1],&fcim_up[1],numCoeffUpTotal*sizeof(double));    
+    }
+    else{
+      #pragma omp parallel for private(iCoeff)
+      for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
+	wfUpRe1[iCoeff] = cre_up[iCoeff];
+	wfUpIm1[iCoeff] = cim_up[iCoeff];
+	cre_up[iCoeff] = fcre_up[iCoeff];
+	cim_up[iCoeff] = fcim_up[iCoeff];
+      }
+    }
     if(cpLsda==1&&numStateDnProc!=0){
       chebyMomentsDn[iPoly] = 0.0;
       chebyMomentsDn[iPoly*2] = 0.0;
@@ -586,6 +621,7 @@ double calcNumElecCheby(CP *cp,double chemPot,double *chebyCoeffs)
   int numStateUpProc = cpcoeffs_info->nstate_up_proc;
   int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
   int iPoly,iState;
+  int numThreads = cp->communicate.numThreads;
   
   double *chebyMomentsUp = stodftCoefPos->chebyMomentsUp;
   double *chebyMomentsDn = stodftCoefPos->chebyMomentsDn;
@@ -604,9 +640,9 @@ double calcNumElecCheby(CP *cp,double chemPot,double *chebyCoeffs)
     printf("iState %i numElec %.16lg\n",iState,numElecTest*occNumber);
   }
   */
-  numElec += ddotBlasWrapper(polynormLength,chebyCoeffs,1,chebyMomentsUp,1);
+  numElec += ddotBlasWrapperThreads(polynormLength,chebyCoeffs,1,chebyMomentsUp,1,numThreads);
   if(cpLsda==1&&numStateDnProc!=0){
-    numElec += ddotBlasWrapper(polynormLength,chebyCoeffs,1,chebyMomentsDn,1);
+    numElec += ddotBlasWrapperThreads(polynormLength,chebyCoeffs,1,chebyMomentsDn,1,numThreads);
   }
   
   //exit(0);

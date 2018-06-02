@@ -209,7 +209,7 @@ void nlppKBRealEnergyThreads(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 
 /*======================================================================*/
 /* II) Loop over iPart/irad/ipart/m                                 */
-
+  #pragma omp parallel for private(iGrid)
   for(iGrid=0;iGrid<numAtom*numGridMax;iGrid++){
     forceTemp[iGrid] = 0.0;
   }

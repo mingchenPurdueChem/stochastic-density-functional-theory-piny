@@ -484,9 +484,10 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int *pforceCoefOrthDn              = &(cpcoeffs_pos->icoef_orth_dn);
 
 
+  double numElecTrue = stodftInfo->numElecTrue;
   double tolEdgeDist		= cpopts->tol_edge_dist;
   double energyDiff		= -1.0;
-  double energyTol		= stodftInfo->energyTol;
+  double energyTol		= stodftInfo->energyTol*numElecTrue;
   double timeStart,timeEnd;
 
   double *coeffReUp        = cpcoeffs_pos->cre_up;

@@ -199,7 +199,7 @@ void nlppKBRealEnergyThreads(CP *cp,CLASS *class,GENERAL_DATA *generalData,
     if(numGridNlppMap[iPart]>numGridMax)numGridMax = numGridNlppMap[iPart];
   }
   //printf("numThreads %i iThread %i\n",numThreads,iThread);
-  forceTemp = (double*)calloc(numAtom*numGridMax,sizeof(double));
+  forceTemp = (double*)cmalloc(numAtom*numGridMax,sizeof(double));
   wfNbhd = (double*)cmalloc(numThreads*numGridMax*sizeof(double));
   energyThreads = (double*)cmalloc(numThreads*sizeof(double));
   

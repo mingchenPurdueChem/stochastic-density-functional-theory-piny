@@ -157,12 +157,330 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 }/*end Routine*/
 /*==========================================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void checkpointFragOutput(CP *cp,CLASS *class)
+/*========================================================================*/
+{/*begin routine*/
+/*========================================================================*/
+/*             Local variable declarations                                */
+
+  STODFTINFO *stodftInfo = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  FRAGINFO *fragInfo = stodftInfo->fragInfo;
+  CLATOMS_INFO *clatoms_info = &(class->clatoms_info);
+  CPOPTS *cpOpts	     = &(cp->cpopts);
+  COMMUNICATE *commCP	     = &(cp->communicate);
+
+  int iGrid,iAtom;
+  int cpLsda                = cpOpts->cp_lsda;
+  int myidState             = commCP->myid_state;
+  int numProcStates         = commCP->np_states;
+  int rhoRealGridNum        = stodftInfo->rhoRealGridNum;
+  int rhoRealGridTot        = stodftInfo->rhoRealGridTot;
+  int numAtomTot            = clatoms_info->natm_tot;
+  MPI_Comm commStates	    = commCP->comm_states;
+    
+  int *rhoRealSendCounts = stodftInfo->rhoRealSendCounts;
+  int *rhoRealDispls = stodftInfo->rhoRealDispls;
+
+  double *rhoUpFragSum = fragInfo->rhoUpFragSum;
+  double *rhoDnFragSum = fragInfo->rhoDnFragSum;
+  double *rhoUpFragSumCpy = fragInfo->rhoUpFragSumCpy;
+  double *rhoDnFragSumCpy = fragInfo->rhoDnFragSumCpy;
+
+  double *rhoTemp = (double*)cmalloc(rhoRealGridTot*sizeof(double));
+
+  FILE *fileCheckpoint;
+
+/*======================================================================*/
+/* II) Density part		                                        */
+
+  if(myidState==0){
+    // check the aviability of checkpoint file
+    fileCheckpoint = fopen("frag-checkpoint","r");
+    if(fileCheckpoint!=NULL){
+      printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
+      printf("Checkpoint file already exists. I will cover the\n");
+      printf("old checkpoint file and write new data into it.\n");
+      printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
+      fflush(stdout);
+      fclose(fileCheckpoint);
+    }
+    printf("Start writing new fragmentation checkpoint file...\n");
+    fileCheckpoint = fopen("frag-checkpoint","w");
+    fprintf(fileCheckpoint,"%.16lg\n",stodftInfo->numElecTrueFrag);
+  }    
+
+  if(numProcStates>1){
+    Gatherv(rhoUpFragSum,rhoRealGridNum,MPI_DOUBLE,rhoTemp,
+	    rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,0,commStates);    
+  }
+  else{
+    memcpy(rhoTemp,rhoUpFragSum,rhoRealGridTot*sizeof(double));
+  }
+  if(myidState==0){
+    for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+      fprintf(fileCheckpoint,"%.16lg\n",rhoTemp[iGrid]);
+    }
+  }
+  if(cpLsda==1){
+    if(numProcStates>1){
+      Gatherv(rhoDnFragSum,rhoRealGridNum,MPI_DOUBLE,rhoTemp,
+	      rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,0,commStates);
+    }
+    else{
+      memcpy(rhoTemp,rhoDnFragSum,rhoRealGridTot*sizeof(double));
+    }
+    if(myidState==0){
+      for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+	fprintf(fileCheckpoint,"%.16lg\n",rhoTemp[iGrid]);
+      }
+    }    
+  }
+
+/*======================================================================*/
+/* II) Initial density                                                  */
+
+  if(numProcStates>1){
+    Gatherv(rhoUpFragSumCpy,rhoRealGridNum,MPI_DOUBLE,rhoTemp,
+            rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,0,commStates);
+  }
+  else{
+    memcpy(rhoTemp,rhoUpFragSumCpy,rhoRealGridTot*sizeof(double));
+  }
+  if(myidState==0){
+    for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+      fprintf(fileCheckpoint,"%.16lg\n",rhoTemp[iGrid]);
+    }
+  }
+  if(cpLsda==1){
+    if(numProcStates>1){
+      Gatherv(rhoDnFragSumCpy,rhoRealGridNum,MPI_DOUBLE,rhoTemp,
+              rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,0,commStates);
+    }
+    else{
+      memcpy(rhoTemp,rhoDnFragSumCpy,rhoRealGridTot*sizeof(double));
+    }
+    if(myidState==0){
+      for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+        fprintf(fileCheckpoint,"%.16lg\n",rhoTemp[iGrid]);
+      }
+    }
+  }
+  
+/*======================================================================*/
+/* II) Energy and Force part                                            */
+
+  if(myidState==0){
+    fprintf(fileCheckpoint,"%.16lg %.16lg\n",fragInfo->keCor,fragInfo->vnlCor);
+    for(iAtom=0;iAtom<numAtomTot;iAtom++){
+      fprintf(fileCheckpoint,"%.16lg %.16lg %.16lg\n",fragInfo->vnlFxCor[iAtom],
+	      fragInfo->vnlFyCor[iAtom],fragInfo->vnlFzCor[iAtom]);
+    }
+  }
+
+  
+  if(myidState==0){
+    printf("Finish writing fragmentation checkpoint file...\n");
+    fclose(fileCheckpoint);
+  } 
+  free(rhoTemp);
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void checkpointFragInput(CP *cp,CLASS *class)
+/*========================================================================*/
+{/*begin routine*/
+/*========================================================================*/
+/*             Local variable declarations                                */
+
+  STODFTINFO *stodftInfo = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  FRAGINFO *fragInfo;
+  CLATOMS_INFO *clatoms_info = &(class->clatoms_info);
+  CPOPTS *cpOpts             = &(cp->cpopts);
+  COMMUNICATE *commCP        = &(cp->communicate);
+
+  int iGrid,iAtom;
+  int cpLsda                = cpOpts->cp_lsda;
+  int myidState             = commCP->myid_state;
+  int numProcStates         = commCP->np_states;
+  int rhoRealGridNum        = stodftInfo->rhoRealGridNum;
+  int rhoRealGridTot        = stodftInfo->rhoRealGridTot;
+  int numAtomTot            = clatoms_info->natm_tot;
+  int readCoeffFlag;
+  MPI_Comm commStates       = commCP->comm_states;
+
+  int *rhoRealSendCounts = stodftInfo->rhoRealSendCounts;
+  int *rhoRealDispls = stodftInfo->rhoRealDispls;
+
+  double junk;
+  double *rhoUpFragSum;
+  double *rhoDnFragSum;
+  double *rhoUpFragSumCpy;
+  double *rhoDnFragSumCpy;
+
+  double *rhoTemp = (double*)cmalloc(rhoRealGridTot*sizeof(double));
+
+  FILE *fileCheckpoint;
+  FILE *fileCheckpointSys = NULL; //checkpoint file for the whole system
+
+/*======================================================================*/
+/* I) Allocation may needed                                             */
+  if(myidState==0)fragInfo = stodftInfo->fragInfo;
+  else{
+    stodftInfo->fragInfo = (FRAGINFO*)cmalloc(sizeof(FRAGINFO));
+    fragInfo = stodftInfo->fragInfo;
+  }
+
+  fragInfo->rhoUpFragSum = (double*)cmalloc(rhoRealGridNum*sizeof(double));
+  fragInfo->rhoUpFragSumCpy = (double*)cmalloc(rhoRealGridNum*sizeof(double));
+  rhoUpFragSum = fragInfo->rhoUpFragSum;
+  rhoUpFragSumCpy = fragInfo->rhoUpFragSumCpy;
+  if(cpLsda==1){
+    fragInfo->rhoDnFragSum = (double*)cmalloc(rhoRealGridNum*sizeof(double));
+    fragInfo->rhoDnFragSumCpy = (double*)cmalloc(rhoRealGridNum*sizeof(double));
+    rhoDnFragSum = fragInfo->rhoDnFragSum;
+    rhoDnFragSumCpy = fragInfo->rhoDnFragSumCpy;
+  }
+  fragInfo->vnlFxCor = (double*)cmalloc(numAtomTot*sizeof(double));
+  fragInfo->vnlFyCor = (double*)cmalloc(numAtomTot*sizeof(double));
+  fragInfo->vnlFzCor = (double*)cmalloc(numAtomTot*sizeof(double));
+
+/*======================================================================*/
+/* II) Read density part                                                */
+
+  if(myidState==0){
+    // check the aviability of checkpoint file
+    printf("Start reading fragmentation checkpoint file...\n");
+    fileCheckpoint = fopen("frag-checkpoint","r");
+    if(fileCheckpoint==NULL){
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      printf("No checkpoint file. Please double check!\n");
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(0);
+    }
+    fscanf(fileCheckpoint,"%lg",&stodftInfo->numElecTrueFrag);
+    //stodftInfo->numElecTrue = stodftInfo->numElecTrueFrag;
+    for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+      fscanf(fileCheckpoint,"%lg",&rhoTemp[iGrid]);
+    }
+  }
+  Barrier(commStates);
+  printf("1111111111111111111\n");
+  Barrier(commStates);
+  if(numProcStates>1){
+    Bcast(&stodftInfo->numElecTrueFrag,1,MPI_DOUBLE,0,commStates);
+    printf("1111111111111111111\n");
+    Barrier(commStates);
+    Scatterv(rhoTemp,rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
+	     rhoUpFragSum,rhoRealGridNum,MPI_DOUBLE,0,commStates);
+  }
+  else{
+    memcpy(rhoUpFragSum,rhoTemp,rhoRealGridTot*sizeof(double));
+  }
+  if(cpLsda==1){
+    if(myidState==0){
+      for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+	fscanf(fileCheckpoint,"%lg",&rhoTemp[iGrid]);
+      }
+    }
+    if(numProcStates>1){
+      Scatterv(rhoTemp,rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
+	       rhoDnFragSum,rhoRealGridNum,MPI_DOUBLE,0,commStates);
+    }
+    else{
+      memcpy(rhoUpFragSum,rhoTemp,rhoRealGridTot*sizeof(double));
+    }
+  }
+  stodftInfo->numElecTrue = stodftInfo->numElecTrueFrag;
+
+/*======================================================================*/
+/* II) Read initial density if necessary                                */
+
+  if(myidState==0){
+    fileCheckpointSys = fopen("density-checkpoint","r");
+    // I only have fragment checkpoint file. I need to remove the checkpoint 
+    // file reading flag so that the system stochastic dft calculation 
+    // is normal.
+    if(fileCheckpointSys==NULL){
+      stodftInfo->readCoeffFlag = -1;
+    }
+  }
+  Bcast(&(stodftInfo->readCoeffFlag),1,MPI_INT,0,commStates);
+  if(readCoeffFlag==-1){
+    if(myidState==0){
+      for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+        fscanf(fileCheckpoint,"%lg",&rhoTemp[iGrid]);
+      }
+    }
+    if(numProcStates>1){
+      Scatterv(rhoTemp,rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
+  	       rhoUpFragSumCpy,rhoRealGridNum,MPI_DOUBLE,0,commStates);
+    }
+    else{
+      memcpy(rhoUpFragSumCpy,rhoTemp,rhoRealGridTot*sizeof(double));
+    }
+    if(cpLsda==1){
+      if(myidState==0){
+	for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+	  fscanf(fileCheckpoint,"%lg",&rhoTemp[iGrid]);
+	}
+      }
+      if(numProcStates>1){
+	Scatterv(rhoTemp,rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
+		 rhoDnFragSumCpy,rhoRealGridNum,MPI_DOUBLE,0,commStates);      
+      }
+      else{
+	memcpy(rhoDnFragSumCpy,rhoTemp,rhoRealGridTot*sizeof(double));
+      }
+    } 
+  }
+  else{
+    if(myidState==0){
+      for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+	fscanf(fileCheckpoint,"%lg",&junk);
+      }
+      if(cpLsda==1){
+	for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+	  fscanf(fileCheckpoint,"%lg",&junk);
+	}
+      }
+    }
+  }
+
+  
 
 
+  
+/*======================================================================*/
+/* II) Read energy and force part                                       */
 
+  if(myidState==0){
+    fscanf(fileCheckpoint,"%lg",&fragInfo->keCor);
+    fscanf(fileCheckpoint,"%lg",&fragInfo->vnlCor);
+    for(iAtom=0;iAtom<numAtomTot;iAtom++){
+      fscanf(fileCheckpoint,"%lg",&fragInfo->vnlFxCor[iAtom]);
+      fscanf(fileCheckpoint,"%lg",&fragInfo->vnlFyCor[iAtom]);
+      fscanf(fileCheckpoint,"%lg",&fragInfo->vnlFzCor[iAtom]);
+    }
+    
+    fclose(fileCheckpoint);
+  }
+    
+  free(rhoTemp);
 
-
-
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
 
 
 

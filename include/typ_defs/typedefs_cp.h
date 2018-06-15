@@ -555,6 +555,7 @@ typedef struct stodftInfo{
                                     /*      2 = deterministic                   */
 				    /*	    -2 = read density			*/
 				    /*	    -1 = combine fragment densities     */
+				    /*	    -3 = read checkpoint file		*/
   int reInitFlag;		    /* Opt: Flag to control realloc WF arraies  */
 				    /*	    0 = don't realloc (read sto)	*/
 				    /*	    1 = realloc (read det/gen wf)	*/
@@ -583,6 +584,8 @@ typedef struct stodftInfo{
 				    /*	    on thid proc =nfft2_proc		*/
   int numThreads;		    /* Num: number of threads when using multi- */
 				    /*	    threading			        */
+  int checkpointWriteFreq;	    /* Num: number of SCF steps for writing	*/
+				    /*	    check point file.			*/
   int *densityMap;		    /* Lst: Map the density to different proc	*/
 				    /*	    We store the density for different  */
 				    /*	    chemical potential on different	*/

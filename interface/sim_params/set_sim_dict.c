@@ -2243,7 +2243,7 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
  /*             Local variable declarations                                */
   
   unsigned int i;
-  *num_dict = 27;
+  *num_dict = 28;
   *dict = (DICT_WORD *)cmalloc(*num_dict*sizeof(DICT_WORD))-1;
 
   for (i=1;i<=*num_dict;i++) {
@@ -2359,6 +2359,10 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
   strcpy((*dict)[27].error_mes,"Please input a positive real number");
   strcpy((*dict)[27].keyword,"scf_energy_tol");
   strcpy((*dict)[27].keyarg,"1.0e-8");
+
+  strcpy((*dict)[28].error_mes,"Please input a positive frequency");
+  strcpy((*dict)[28].keyword,"checkpoint_write_freq");
+  strcpy((*dict)[28].keyarg,"10");
 
  /*========================================================================*/
  } /* end routine set_sim_dict_harmonic */

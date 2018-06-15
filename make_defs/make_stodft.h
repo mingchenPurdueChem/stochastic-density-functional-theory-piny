@@ -221,4 +221,15 @@ energy-wrapper-scf.o :  $(STANDARD) $(DEFINES) \
                          $(DCODE)/stodft/reduced-energy/energy-wrapper-scf.c
 	$(ECHO) $@
 	$(COBJ) $(DCODE)/stodft/reduced-energy/energy-wrapper-scf.c                     
+
+checkpointIO.o :        $(STANDARD) $(DEFINES) \
+                         $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
+                         $(TYP_STAT) $(TYP_PAR) \
+                         $(TYP_CP) $(TYP_PAR) $(ENR_CP_LOC) \
+                         $(FRND_ENT) $(MATH) $(COMM_WRAP)\
+                         $(STODFT_LOC) \
+                         $(DCODE)/stodft/checkpointIO.c
+	$(ECHO) $@
+	$(COBJ) $(DCODE)/stodft/checkpointIO.c
+
 #------------------------------------------------------------------

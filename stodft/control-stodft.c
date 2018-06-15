@@ -117,7 +117,8 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
   readCoeffFlag = stodftInfo->readCoeffFlag;
   //printf("readCoeffFlag %i\n",readCoeffFlag);
-  calcRhoInit(class,bonded,general_data,cp,ip_now);
+  //If I'm not reading checkpoint file, calculate initial density
+  if(readCoeffFlag!=-3)calcRhoInit(class,bonded,general_data,cp,ip_now);
   //exit(0);
   //debug only
   /*
@@ -199,14 +200,23 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       PRINT_LINE_STAR;
       printf("Initial fragment calculation\n");
       PRINT_LINE_DASH;
-    } 
-    initFrag(class,bonded,general_data,cp,analysis,classMiniPoint,bondedMiniPoint,
-		generalDataMiniPoint,analysisMiniPoint,cpMiniPoint,ip_now);
+    }
+    if(readCoeffFlag!=-3){// don't read checkpoint file 
+      initFrag(class,bonded,general_data,cp,analysis,classMiniPoint,bondedMiniPoint,
+		  generalDataMiniPoint,analysisMiniPoint,cpMiniPoint,ip_now);
 
-    // We need to generate noise wave function one time before we do the projection
-    //genNoiseOrbital(cp,&(cp->cpcoeffs_pos[ip_now]));
-    fragScf(class,bonded,general_data,cp,analysis,*generalDataMiniPoint,
-	    *cpMiniPoint,*classMiniPoint,*analysisMiniPoint,*bondedMiniPoint,ip_now);
+      // We need to generate noise wave function one time before we do the projection
+      //genNoiseOrbital(cp,&(cp->cpcoeffs_pos[ip_now]));
+      fragScf(class,bonded,general_data,cp,analysis,*generalDataMiniPoint,
+	      *cpMiniPoint,*classMiniPoint,*analysisMiniPoint,*bondedMiniPoint,ip_now);
+      // Output fragmentation checkpoint
+      checkpointFragOutput(cp,class);
+    }
+    else{
+      checkpointFragInput(cp,class);
+    }
+    // Reset readCoeffFlag
+    readCoeffFlag = stodftInfo->readCoeffFlag;
     if(readCoeffFlag==-1){
       calcRhoFragInit(class,bonded,general_data,cp,ip_now);
     }
@@ -224,6 +234,9 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     PRINT_LINE_DASH;
   }
   
+  if(readCoeffFlag==-3){
+    checkpointInput(cp,general_data,class); 
+  }
   if(filterDiagFlag==0){
     if(stodftInfo->chemPotOpt==1)scfStodftInterp(class,bonded,general_data,cp,ip_now);
     else if(stodftInfo->chemPotOpt==2)scfStodftCheby(class,bonded,general_data,cp,ip_now);

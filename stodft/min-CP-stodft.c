@@ -472,6 +472,8 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int numCoeffUpTotal = numStateUp*numCoeff;
   int numCoeffDnTotal = numStateDn*numCoeff;
   int scfStopFlag     = 0;
+  int checkpointWriteFreq = stodftInfo->checkpointWriteFreq;
+  int readCoeffFlag = stodftInfo->readCoeffFlag;
   MPI_Comm commStates   =    communicate->comm_states;
 
   int *pcoefFormUp		     = &(cpcoeffs_pos->icoef_form_up);
@@ -590,7 +592,13 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   //printf("numStateUp %i\n",numStateUp);
   
   //for(iScf=1;iScf<=numScf;iScf++){
-  iScf = 0;
+
+  if(readCoeffFlag==-3){
+    iScf = stodftInfo->iScf;
+  }
+  else{
+    iScf = 0;
+  }
   while(scfStopFlag==0){
     timeStart = omp_get_wtime();
     iScf += 1;
@@ -757,7 +765,13 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
 
     //exit(0);   
-    
+/*----------------------------------------------------------------------*/
+/* v) Write checkpoint file if necessary                                */
+
+    if(iScf%checkpointWriteFreq==0){
+      checkpointOutput(cp,general_data);
+    }
+
 /*----------------------------------------------------------------------*/
 /* v) Finish this SCF step			                        */
 

@@ -4,4 +4,6 @@ void fragScf(CLASS *,BONDED *,GENERAL_DATA *,CP *,ANALYSIS *,GENERAL_DATA *,CP *
 	     CLASS *,ANALYSIS *,BONDED *,int);
 void reInitFrag(CLASS *,BONDED *,GENERAL_DATA *,CP *,CLASS *,BONDED *,GENERAL_DATA *,CP *);
 
+void checkpointFragOutput(CP *,CLASS *);
+void checkpointFragInput(CP *,CLASS *);
 

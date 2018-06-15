@@ -1463,7 +1463,7 @@ void calcRhoStoHybridCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
       if(numProcStates>1)Barrier(commStates);
     }
     */
-    
+    //printf("rhoUpCorrect %lg %lg rhoUpFragSum %lg %lg\n",rhoUpCorrect[0],rhoUpCorrect[1],rhoUpFragSum[0],rhoUpFragSum[1]);   
     for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)rhoUpCorrect[iGrid] += rhoUpFragSum[iGrid];
     if(cpLsda==1&&numStateDnProc!=0){
       rhoDnFragSum =  fragInfo->rhoDnFragSum;

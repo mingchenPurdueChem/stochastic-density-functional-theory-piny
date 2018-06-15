@@ -1145,9 +1145,9 @@ void shiftSystem(int numMolTot,int numAtomTot,int numMolType,int *molType,
       // 6. Shift the whole molecule w.r.t. updated COM      
       for(iAtom=0;iAtom<numAtomJmolType[iType];iAtom++){
 	//printf("relativeCoord %lg %lg %lg %lg %lg %lg\n",relativeCoord[iAtom*3],relativeCoord[iAtom*3+1],relativeCoord[iAtom*3+2],x,y,z);
-	xTotTemp[atomIndStart[countMol+iMol]-1] = relativeCoord[iAtom*3]+x;
-        yTotTemp[atomIndStart[countMol+iMol]-1] = relativeCoord[iAtom*3+1]+y;
-        zTotTemp[atomIndStart[countMol+iMol]-1] = relativeCoord[iAtom*3+2]+z;
+	xTotTemp[atomIndStart[countMol+iMol]-1+iAtom] = relativeCoord[iAtom*3]+x;
+        yTotTemp[atomIndStart[countMol+iMol]-1+iAtom] = relativeCoord[iAtom*3+1]+y;
+        zTotTemp[atomIndStart[countMol+iMol]-1+iAtom] = relativeCoord[iAtom*3+2]+z;
       }      
     }//endfor iMol
     countMol += numMolJmolType[iType];
@@ -1181,12 +1181,14 @@ void shiftSystem(int numMolTot,int numAtomTot,int numMolType,int *molType,
   sysRoot[1] = ((double)sysRootInd[1])/numGridBox[1];
   sysRoot[2] = ((double)sysRootInd[2])/numGridBox[2];
   // 11. Shift all COMs so that they are in the middle of the box
-
+  // We may don't need to do that since we shift the root grid index
+  /*
   for(iMol=0;iMol<numMolTot;iMol++){
     comMolReduce[iMol*3] -= sysRoot[0];
     comMolReduce[iMol*3+1] -= sysRoot[1];
     comMolReduce[iMol*3+2] -= sysRoot[2];
   }
+  */
   free(comMol);
   free(xTotTemp);
   free(yTotTemp);
@@ -1723,21 +1725,30 @@ void mapFragMolHalf(FRAGINFO *fragInfo,COMMUNICATE *communicate,
     juc = fragStInd[fragIndNow*3+1];
     kuc = fragStInd[fragIndNow*3+2];
 
+    // Get the start grid index of fragment (small)
     iGridSmall = iuc*numGridUCDim[0]+sysRootInd[0];
     jGridSmall = juc*numGridUCDim[1]+sysRootInd[1];
     kGridSmall = kuc*numGridUCDim[2]+sysRootInd[2];
 
+    // Get the start grid index of fragment (large)
     iGridF = (iuc-0.5)*numGridUCDim[0]+sysRootInd[0];
     jGridF = (juc-0.5)*numGridUCDim[1]+sysRootInd[1];
     kGridF = (kuc-0.5)*numGridUCDim[2]+sysRootInd[2];
+    //printf("iGridF %lg jGridF %lg kGridF %lg\n",iGridF,jGridF,kGridF);
 
+    // Round the starting grid Index to integer
     iGrid = NINT(iGridF);
     jGrid = NINT(jGridF);
     kGrid = NINT(kGridF);
     //printf("iGrid %i jGrid %i kGrid %i\n",iGrid,jGrid,kGrid);
+    
+    // Store the difference between large/small start grid index
     gridShift[3*iFrag] = iGridSmall-iGrid;
     gridShift[3*iFrag+1] = jGridSmall-jGrid;
     gridShift[3*iFrag+2] = kGridSmall-kGrid;
+    
+    // For some fragments iGrid,jGrid,kGrid could be <0, 
+    // shift this to where it should be
     if(iGrid<0)iGrid += numGridBox[0];
     if(jGrid<0)jGrid += numGridBox[1];
     if(kGrid<0)kGrid += numGridBox[2];

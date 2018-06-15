@@ -164,11 +164,12 @@ void calcChemPotCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       chebyMomentsUp[iPoly] /= (double)numStateStoUp;
       //printf("chebyMomentsUp %i %lg\n",iPoly,chebyMomentsUp[iPoly]);
     }
+    //printf("chebyMomentsUp %lg %lg %lg\n",chebyMomentsUp[0],chebyMomentsUp[1],chebyMomentsUp[2]);
     if(cpLsda==1&&numStateDnProc!=0){
       for(iPoly=0;iPoly<=polynormLength;iPoly++){
 	chebyMomentsDn[iPoly] /= (double)numStateStoDn;
       }      
-    } 
+    }
     /*
     FILE *filecheby = fopen("cheby-moment-test","w");
     for(iPoly=0;iPoly<=polynormLength;iPoly++){
@@ -198,6 +199,8 @@ void calcChemPotCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     */
     
     //printf("2222 %.16lg\n",calcNumElecCheby(cp,0.4990160113690848,chebyCoeffs));
+    chemPotMin = chemPotInit-gapInit*0.5;
+    chemPotMax = chemPotInit+gapInit*0.5;
     numElecMin = calcNumElecCheby(cp,chemPotMin,chebyCoeffs);
     numElecMax = calcNumElecCheby(cp,chemPotMax,chebyCoeffs);
     printf("numEmin %.16lg numEmax %.16lg\n",numElecMin,numElecMax);
@@ -215,6 +218,7 @@ void calcChemPotCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       numElecMin = calcNumElecCheby(cp,chemPotMin,chebyCoeffs);
       numElecMax = calcNumElecCheby(cp,chemPotMax,chebyCoeffs);
     }
+    printf("numEmin %lg numEmax %lg\n",numElecMin,numElecMax);
     chemPotNew = (numElecTrue-numElecMin)*(chemPotMax-chemPotMin)/(numElecMax-numElecMin)+
 		  chemPotMin;  
     numElecNew = calcNumElecCheby(cp,chemPotNew,chebyCoeffs); 
@@ -238,8 +242,8 @@ void calcChemPotCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     printf("Finish Calculating Chemical Potential\n");
     printf("The correct chemical potential is %.16lg Ne %.16lg DNe %.16lg\n",chemPotNew,numElecNew,
 	    fabs(numElecNew-numElecTrue));
-    chemPotMin = chemPotInit-gapInit*0.5;
-    chemPotMax = chemPotInit+gapInit*0.5;
+    //chemPotMin = chemPotInit-gapInit*0.5;
+    //chemPotMax = chemPotInit+gapInit*0.5;
     //test DOS
     /*
     double chemPot1 = chemPotNew-0.0734;
@@ -640,6 +644,7 @@ double calcNumElecCheby(CP *cp,double chemPot,double *chebyCoeffs)
     printf("iState %i numElec %.16lg\n",iState,numElecTest*occNumber);
   }
   */
+  //printf("chebyCoeffs %lg %lg %lg\n",chebyCoeffs[0],chebyCoeffs[1],chebyCoeffs[2]);
   numElec += ddotBlasWrapperThreads(polynormLength,chebyCoeffs,1,chebyMomentsUp,1,numThreads);
   if(cpLsda==1&&numStateDnProc!=0){
     numElec += ddotBlasWrapperThreads(polynormLength,chebyCoeffs,1,chebyMomentsDn,1,numThreads);

@@ -849,7 +849,6 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 
   MPI_Comm commStates   =    commCP->comm_states;
 
-
   int *numGridFragProc	    = fragInfo->numGridFragProc;
   int *numGridFragProcSmall = fragInfo->numGridFragProcSmall;
   int *rhoRealSendCounts = stodftInfo->rhoRealSendCounts;

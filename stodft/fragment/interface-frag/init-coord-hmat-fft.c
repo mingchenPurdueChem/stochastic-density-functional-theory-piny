@@ -160,7 +160,7 @@ void passAtomCoord(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   // If it is, then a better way is to make it into even smaller pieces and remove pbc
   // for those small pieces. 
   if(fragOpt==1){
-    /*
+    
     for(iAtom=1;iAtom<=numAtomFrag;iAtom++){
       if(xTemp[iAtom]>0.5)xTemp[iAtom] -= 1.0;
       if(yTemp[iAtom]>0.5)yTemp[iAtom] -= 1.0;
@@ -169,7 +169,7 @@ void passAtomCoord(GENERAL_DATA *generalData,CLASS *class,CP *cp,
       if(yTemp[iAtom]<-0.5)yTemp[iAtom] += 1.0;
       if(zTemp[iAtom]<-0.5)zTemp[iAtom] += 1.0;
     }
-    */
+    
   }
 
   // Rescale to Big box
@@ -190,6 +190,7 @@ void passAtomCoord(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   */
 
   // Copy x/y/zDiff to x/y/zMini
+  // Now the molecule is a whole molecule (remove pbc) and 1st atom located at 0
   
   memcpy(&xMini[1],&xDiff[1],numAtomFrag*sizeof(double));
   memcpy(&yMini[1],&yDiff[1],numAtomFrag*sizeof(double));

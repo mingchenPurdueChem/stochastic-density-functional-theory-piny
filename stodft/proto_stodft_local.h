@@ -169,8 +169,9 @@ void calcCoefForceWrapReduce(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_
 /* calc-nuclei-force.c	                                           */
 void calcEnergyForce(CLASS *,GENERAL_DATA *,CP *,BONDED *,CPCOEFFS_POS *,CLATOMS_POS *);
 
-
-
-
+/*-----------------------------------------------------------------*/
+/* checkpointIO.c */
+void checkpointOutput(CP *,GENERAL_DATA *);
+void checkpointInput(CP *,GENERAL_DATA *,CLASS *);
 
 

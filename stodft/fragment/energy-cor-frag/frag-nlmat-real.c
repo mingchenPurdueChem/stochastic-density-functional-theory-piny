@@ -858,6 +858,14 @@ void calcMatrixFromDot(CP *cp, CP *cpMini,CLASS *classMini,
   }//endfor iState
   //printf("matrix stat_avg->cp_enl %lg\n",stat_avg->cp_enl);
 
+  /*
+  double test_sum = 0.0;
+  for(iState=0;iState<numStates;iState++){
+    test_sum += vnlMatrix[iState*numStates+iState];
+  }
+  printf("11111111 iFrag %i test_sum %lg\n",iFrag,test_sum);
+  */
+
   //fflush(stdout);
   //exit(0);
 

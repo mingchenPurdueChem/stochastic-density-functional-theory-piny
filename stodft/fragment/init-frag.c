@@ -1475,6 +1475,7 @@ void mapFragMol(FRAGINFO *fragInfo,COMMUNICATE *communicate,
 	if(ucIndB<0)ucIndB += numUnitCellDim[1];
 	if(ucIndB>=numUnitCellDim[1])ucIndB -= numUnitCellDim[1];
 	for(kuc=-skinUCNum;kuc<fragLengthInd[fragIndNow*3+2]+skinUCNum;kuc++){
+	  inFragFlag = 0;
           if(iuc>=0&&iuc<fragLengthInd[fragIndNow*3]&&juc>=0&&juc<fragLengthInd[fragIndNow*3+1]&&kuc>=0&&kuc<fragLengthInd[fragIndNow*3+2])inFragFlag = 3;
 	  //if(kuc>0&&kuc<fragLengthInd[fragIndNow*3+2])inFragFlag += 1;
 	  //if(inFragFlag==3)numMolFragCent[iFrag] += molNumUC[ucInd];

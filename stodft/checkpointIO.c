@@ -83,8 +83,10 @@ void checkpointOutput(CP *cp, GENERAL_DATA *general_data)
 
   
   if(numProcStates>1){
+    Barrier(commStates);
     Gatherv(&rhoUp[1],rhoRealGridNum,MPI_DOUBLE,rhoTemp,
 	    rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,0,commStates);
+    Barrier(commStates);
   } 
   else{
     memcpy(rhoTemp,&rhoUp[1],rhoRealGridTot*sizeof(double));
@@ -99,8 +101,10 @@ void checkpointOutput(CP *cp, GENERAL_DATA *general_data)
   }
   if(cpLsda==1){
     if(numProcStates>1){
+      Barrier(commStates);
       Gatherv(&rhoDn[1],rhoRealGridNum,MPI_DOUBLE,rhoTemp,
 	      rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,0,commStates);
+      Barrier(commStates);
     }
     else{
       memcpy(rhoTemp,&rhoDn[1],rhoRealGridTot*sizeof(double));
@@ -125,8 +129,10 @@ void checkpointOutput(CP *cp, GENERAL_DATA *general_data)
 
   for(iDiis=0;iDiis<numDiisOutput;iDiis++){
     if(numProcStates>1){
+      Barrier(commStates);
       Gatherv(rhoUpBank[iDiis],rhoRealGridNum,MPI_DOUBLE,rhoTemp,
 	      rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,0,commStates);
+      Barrier(commStates);
     }
     else{
       memcpy(rhoTemp,rhoUpBank[iDiis],rhoRealGridTot*sizeof(double));
@@ -139,8 +145,10 @@ void checkpointOutput(CP *cp, GENERAL_DATA *general_data)
   }
   for(iDiis=0;iDiis<numDiisNow;iDiis++){
     if(numProcStates>1){
+      Barrier(commStates);
       Gatherv(rhoUpErr[iDiis],rhoRealGridNum,MPI_DOUBLE,rhoTemp,
               rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,0,commStates);
+      Barrier(commStates);
     }
     else{
       memcpy(rhoTemp,rhoUpErr[iDiis],rhoRealGridTot*sizeof(double));
@@ -154,8 +162,10 @@ void checkpointOutput(CP *cp, GENERAL_DATA *general_data)
   if(cpLsda==1){
     for(iDiis=0;iDiis<numDiisOutput;iDiis++){
       if(numProcStates>1){
+        Barrier(commStates);
 	Gatherv(rhoDnBank[iDiis],rhoRealGridNum,MPI_DOUBLE,rhoTemp,
-		rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,0,commStates);
+		rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,0,commStates); 
+        Barrier(commStates);
       }
       else{
 	memcpy(rhoTemp,rhoDnBank[iDiis],rhoRealGridTot*sizeof(double));
@@ -168,8 +178,10 @@ void checkpointOutput(CP *cp, GENERAL_DATA *general_data)
     }//endfor iDiis
     for(iDiis=0;iDiis<numDiisNow;iDiis++){
       if(numProcStates>1){
+	Barrier(commStates);
 	Gatherv(rhoDnErr[iDiis],rhoRealGridNum,MPI_DOUBLE,rhoTemp,
 		rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,0,commStates);
+	Barrier(commStates);
       }
       else{
 	memcpy(rhoTemp,rhoDnErr[iDiis],rhoRealGridTot*sizeof(double));
@@ -298,8 +310,10 @@ void checkpointInput(CP *cp,GENERAL_DATA *general_data,CLASS *class)
     }
   }
   if(numProcStates>1){
+    Barrier(commStates);
     Scatterv(rhoTemp,rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
 	     &rhoUp[1],rhoRealGridNum,MPI_DOUBLE,0,commStates);
+    Barrier(commStates);
   }
   else{
     memcpy(&rhoUp[1],rhoTemp,rhoRealGridTot*sizeof(double));
@@ -319,8 +333,10 @@ void checkpointInput(CP *cp,GENERAL_DATA *general_data,CLASS *class)
       }
     }
     if(numProcStates>1){
+      Barrier(commStates);
       Scatterv(rhoTemp,rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
 	       &rhoDn[1],rhoRealGridNum,MPI_DOUBLE,0,commStates);
+      Barrier(commStates);
     }
     else{
       memcpy(&rhoDn[1],rhoTemp,rhoRealGridTot*sizeof(double));
@@ -385,8 +401,10 @@ void checkpointInput(CP *cp,GENERAL_DATA *general_data,CLASS *class)
       }//endfor iGrid
     }//endif myidState
     if(numProcStates>1){
+      Barrier(commStates);
       Scatterv(rhoTemp,rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
 	       rhoUpBank[iDiis],rhoRealGridNum,MPI_DOUBLE,0,commStates);
+      Barrier(commStates);
     }
     else{
       memcpy(rhoUpBank[iDiis],rhoTemp,rhoRealGridTot*sizeof(double));
@@ -399,8 +417,10 @@ void checkpointInput(CP *cp,GENERAL_DATA *general_data,CLASS *class)
       }//endfor iGrid
     }
     if(numProcStates>1){
+      Barrier(commStates);
       Scatterv(rhoTemp,rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
 	       rhoUpErr[iDiis],rhoRealGridNum,MPI_DOUBLE,0,commStates);
+      Barrier(commStates);
     }
     else{
       memcpy(rhoUpErr[iDiis],rhoTemp,rhoRealGridTot*sizeof(double));
@@ -414,8 +434,10 @@ void checkpointInput(CP *cp,GENERAL_DATA *general_data,CLASS *class)
 	}//endfor iGrid
       }//endif myidState
       if(numProcStates>1){
+        Barrier(commStates);
 	Scatterv(rhoTemp,rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
 		 rhoDnErr[iDiis],rhoRealGridNum,MPI_DOUBLE,0,commStates);
+	Barrier(commStates);
       }
       else{
         memcpy(rhoDnBank[iDiis],rhoTemp,rhoRealGridTot*sizeof(double));
@@ -428,8 +450,10 @@ void checkpointInput(CP *cp,GENERAL_DATA *general_data,CLASS *class)
 	}//endfor iGrid
       }
       if(numProcStates>1){
+	Barrier(commStates);
 	Scatterv(rhoTemp,rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
 		 rhoDnErr[iDiis],rhoRealGridNum,MPI_DOUBLE,0,commStates);
+	Barrier(commStates);
       }
       else{
 	memcpy(rhoUpErr[iDiis],rhoTemp,rhoRealGridTot*sizeof(double));

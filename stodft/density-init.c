@@ -286,6 +286,7 @@ void calcRhoDetInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
     
     if(numProcStates>1){
+      Barrier(comm_states);
       Gatherv(&coeffReUp[1],numStateUpProc*numCoeff,MPI_DOUBLE,
   	      wfUpReDet,numStatesAllDet,dsplStatesAllDet,MPI_DOUBLE,
 	      0,comm_states);
@@ -293,6 +294,7 @@ void calcRhoDetInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       Gatherv(&coeffImUp[1],numStateUpProc*numCoeff,MPI_DOUBLE,
 	      wfUpImDet,numStatesAllDet,dsplStatesAllDet,MPI_DOUBLE,
 	      0,comm_states);
+      Barrier(comm_states);
     }
   }
 
@@ -631,6 +633,7 @@ void readRho(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   if(cpLsda==1&&numStateDnProc!=0){
     memcpy(&rhoDn[1],rhoDnCorrect,rhoRealGridNum*sizeof(double));
   }
+  printf("rrrrrhoUp[1] %lg\n",rhoUp[1]);
 
 /*==========================================================================*/
 /* III) Calculate Reciprocal Density                */
@@ -642,6 +645,7 @@ void readRho(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
                      rhoCoeffReUp,rhoCoeffImUp,rhoUp,rhoCoeffReUpDensCpBox,rhoCoeffImUpDensCpBox,
                      divRhoxUp,divRhoyUp,divRhozUp,d2RhoUp,cpGGA,cpDualGridOptOn,numInterpPmeDual,
                      commCP,&(cp->cp_para_fft_pkg3d_lg),&(cp->cp_para_fft_pkg3d_dens_cp_box));
+  printf("rhoc %lg %lg\n",rhoCoeffReUp[10],rhoCoeffImUp[10]);
   if(cpLsda==1&&numStateDnProc!=0){
     calcRhoStoRecipFullg(cpewald,cpscr,cpcoeffs_info,ewald,cell,
                        rhoCoeffReDn,rhoCoeffImDn,rhoDn,rhoCoeffReDnDensCpBox,rhoCoeffImDnDensCpBox,

@@ -100,10 +100,12 @@ void calcLocalPseudoScf(CLASS *class,GENERAL_DATA *general_data,
                     cp_para_fft_pkg3d_lg);
   }
   else{
+    
     controlEwdLocPreScf(clatoms_info,clatoms_pos,cell,ptens,ewald,cpewald,
 			cpscr,pseudo,ewd_scr,cpopts,atommaps,
 			&vrecip,&(cpcoeffs_info->pseud_hess_loc),communicate,
 			for_scr,cp_dual_grid_opt,idual_switch);
+    
   }//endif
   if(cp_dual_grid_opt== 2){
     idual_switch = 1; /*get vext on small dense grid */
@@ -113,6 +115,22 @@ void calcLocalPseudoScf(CLASS *class,GENERAL_DATA *general_data,
 		        for_scr,cp_dual_grid_opt,idual_switch);
   }//endif cp_dual_grid_opt
   //printf("vrecip %lg\n",vrecip);
+  //debug
+  int i;
+  int ncoef_l = 2169200;
+  double *vextr_loc      =    cpscr->cpscr_loc.vextr_loc;
+  double *vexti_loc      =    cpscr->cpscr_loc.vexti_loc;
+
+  FILE *fvext = fopen("vextk","r");
+  for(i=1;i<=ncoef_l;i++){
+    fscanf(fvext,"%lg",&vextr_loc[i]);
+    fscanf(fvext,"%lg",&vexti_loc[i]);
+    //fprintf(fvext,"%.16lg %.16lg\n",vextr_loc[i],vexti_loc[i]);
+  }
+  fclose(fvext);
+  fflush(stdout);
+  //exit(0);
+
   *vrecip_ret += vrecip;
 
 /*======================================================================*/
@@ -121,6 +139,7 @@ void calcLocalPseudoScf(CLASS *class,GENERAL_DATA *general_data,
   // I move the get_ak2_sm here, so we don't have to calculate during filtering
   //printf("eecut %lg gcut %lg\n",cpewald->eCutoffKe,cpewald->gCutoffKe);
   get_ak2_sm(cpewald,cell);
+  printf("fffffffffffffffffffuck %lg\n",cpewald->ak2[1]);
 /*==========================================================================*/
 }/*end Routine*/
 /*=======================================================================*/
@@ -684,7 +703,17 @@ void calcKSPot(CLASS *class,GENERAL_DATA *general_data,
 
 /*==========================================================================*/
 /* I) copy vext back                                                        */
-
+  // debug
+  /*
+  FILE *fvext = fopen("vextk","w");
+  for(i=1;i<=ncoef_l;i++){
+    fprintf(fvext,"%.16lg %.16lg\n",vextr_loc[i],vexti_loc[i]);
+  }
+  fclose(fvext);
+  fflush(stdout);
+  exit(0);
+  */
+ 
   memcpy(&vextr[1],&(vextr_loc[1]),ncoef_l*sizeof(double));
   memcpy(&vexti[1],&(vexti_loc[1]),ncoef_l*sizeof(double));
   if(cp_dual_grid_opt==2){

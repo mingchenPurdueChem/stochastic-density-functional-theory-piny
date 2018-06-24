@@ -320,6 +320,24 @@ void controlEwdLocPreScf(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
   koff    = istart-1;
   if(np_states==myid_state+1){ngo--;}
 
+  //debug
+
+  for(icount=1;icount<=ngo;icount++){
+    aka = (double)(kastore[(icount+koff)]);
+    akb = (double)(kbstore[(icount+koff)]);
+    akc = (double)(kcstore[(icount+koff)]);
+    xk = (aka*hmati[1]+akb*hmati[2]+akc*hmati[3])*tpi;
+    yk = (aka*hmati[4]+akb*hmati[5]+akc*hmati[6])*tpi;
+    zk = (aka*hmati[7]+akb*hmati[8]+akc*hmati[9])*tpi;
+    g2 = xk*xk+yk*yk+zk*zk;
+    g4 = g2*g2;
+    g  = sqrt(g2);
+    ak2[icount] = g2;
+  }
+  printf("fffffffffffffffffffuck %lg\n",ak2[1]);
+  int ngo_temp = ngo;
+  ngo = 0;
+
   for(icount=1;icount<=ngo;icount++){
 
 /*======================================================================*/
@@ -421,6 +439,9 @@ void controlEwdLocPreScf(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
   }//endfor:icount loop over k vectors
 /*======================================================================*/
 /* VIII) g=0 term (local pseudopotential) including term for CBCs       */
+  
+  //debug
+  ngo = ngo_temp;
 
   if((myid_state+1)==np_states){
     if(ipseud_opt==1){

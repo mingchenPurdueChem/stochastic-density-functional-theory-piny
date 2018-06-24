@@ -494,8 +494,8 @@ void cpGetVksStodft(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
 /*--------------------------------------------------------------------*/
 /*  c) Get Hartree + external contributions to VKS -- test for CBCs   */
  
-  //printf("rhoc %lg %lg\n",rhocr[10],rhoci[10]);
-  //printf("ak2[1] %lg\n",ak2[1]);
+  printf("rhoc %lg %lg\n",rhocr[10],rhoci[10]);
+  printf("ak2[1] %lg\n",ak2[1]);
 
   if(iperd==3){
     for(i=1;i<=ncoef_l_use;i++){

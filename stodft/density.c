@@ -1627,11 +1627,11 @@ void outputDensity(CP *cp,CELL *cell)
     else{
       densityOutputFile = cfopen(densityFileName,"a");
       for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
-	fprintf(densityOutputFile,"%.10lg\n",rhoUpCorrect[iGrid]*volCPInv);
+	fprintf(densityOutputFile,"%.10lg\n",rhoUpCorrect[iGrid]);
       }//endfor iGrid
       if(cpLsda==1&&numStateDnProc!=0){
 	for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
-	  fprintf(densityOutputFile,"%.10lg\n",rhoDnCorrect[iGrid]*volCPInv);
+	  fprintf(densityOutputFile,"%.10lg\n",rhoDnCorrect[iGrid]);
 	}//endfor iGrid
       }//endif cpLsda
       fclose(densityOutputFile);

@@ -214,8 +214,10 @@ void checkpointFragOutput(CP *cp,CLASS *class)
   }    
 
   if(numProcStates>1){
+    Barrier(commStates);
     Gatherv(rhoUpFragSum,rhoRealGridNum,MPI_DOUBLE,rhoTemp,
 	    rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,0,commStates);    
+    Barrier(commStates);
   }
   else{
     memcpy(rhoTemp,rhoUpFragSum,rhoRealGridTot*sizeof(double));
@@ -227,8 +229,10 @@ void checkpointFragOutput(CP *cp,CLASS *class)
   }
   if(cpLsda==1){
     if(numProcStates>1){
+      Barrier(commStates);
       Gatherv(rhoDnFragSum,rhoRealGridNum,MPI_DOUBLE,rhoTemp,
 	      rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,0,commStates);
+      Barrier(commStates);
     }
     else{
       memcpy(rhoTemp,rhoDnFragSum,rhoRealGridTot*sizeof(double));
@@ -244,8 +248,10 @@ void checkpointFragOutput(CP *cp,CLASS *class)
 /* II) Initial density                                                  */
 
   if(numProcStates>1){
+    Barrier(commStates);
     Gatherv(rhoUpFragSumCpy,rhoRealGridNum,MPI_DOUBLE,rhoTemp,
             rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,0,commStates);
+    Barrier(commStates);
   }
   else{
     memcpy(rhoTemp,rhoUpFragSumCpy,rhoRealGridTot*sizeof(double));
@@ -257,8 +263,10 @@ void checkpointFragOutput(CP *cp,CLASS *class)
   }
   if(cpLsda==1){
     if(numProcStates>1){
+      Barrier(commStates);
       Gatherv(rhoDnFragSumCpy,rhoRealGridNum,MPI_DOUBLE,rhoTemp,
               rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,0,commStates);
+      Barrier(commStates);
     }
     else{
       memcpy(rhoTemp,rhoDnFragSumCpy,rhoRealGridTot*sizeof(double));
@@ -375,14 +383,12 @@ void checkpointFragInput(CP *cp,CLASS *class)
     }
   }
   Barrier(commStates);
-  printf("1111111111111111111\n");
-  Barrier(commStates);
   if(numProcStates>1){
-    Bcast(&stodftInfo->numElecTrueFrag,1,MPI_DOUBLE,0,commStates);
-    printf("1111111111111111111\n");
     Barrier(commStates);
+    Bcast(&stodftInfo->numElecTrueFrag,1,MPI_DOUBLE,0,commStates);
     Scatterv(rhoTemp,rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
 	     rhoUpFragSum,rhoRealGridNum,MPI_DOUBLE,0,commStates);
+    Barrier(commStates);
   }
   else{
     memcpy(rhoUpFragSum,rhoTemp,rhoRealGridTot*sizeof(double));
@@ -394,8 +400,10 @@ void checkpointFragInput(CP *cp,CLASS *class)
       }
     }
     if(numProcStates>1){
+      Barrier(commStates);
       Scatterv(rhoTemp,rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
 	       rhoDnFragSum,rhoRealGridNum,MPI_DOUBLE,0,commStates);
+      Barrier(commStates);
     }
     else{
       memcpy(rhoUpFragSum,rhoTemp,rhoRealGridTot*sizeof(double));
@@ -423,8 +431,10 @@ void checkpointFragInput(CP *cp,CLASS *class)
       }
     }
     if(numProcStates>1){
+      Barrier(commStates);
       Scatterv(rhoTemp,rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
   	       rhoUpFragSumCpy,rhoRealGridNum,MPI_DOUBLE,0,commStates);
+      Barrier(commStates);
     }
     else{
       memcpy(rhoUpFragSumCpy,rhoTemp,rhoRealGridTot*sizeof(double));
@@ -436,8 +446,10 @@ void checkpointFragInput(CP *cp,CLASS *class)
 	}
       }
       if(numProcStates>1){
+        Barrier(commStates);
 	Scatterv(rhoTemp,rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
 		 rhoDnFragSumCpy,rhoRealGridNum,MPI_DOUBLE,0,commStates);      
+        Barrier(commStates);
       }
       else{
 	memcpy(rhoDnFragSumCpy,rhoTemp,rhoRealGridTot*sizeof(double));
@@ -481,7 +493,4 @@ void checkpointFragInput(CP *cp,CLASS *class)
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/
-
-
-
 

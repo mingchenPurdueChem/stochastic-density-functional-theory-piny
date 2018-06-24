@@ -574,7 +574,6 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     pseudoReal->forceCalcFlag = 0;
   }
 
-
   if(myidState==0)printf("**Finish Calculating Initial Kohn-Sham Potential\n");
 
 

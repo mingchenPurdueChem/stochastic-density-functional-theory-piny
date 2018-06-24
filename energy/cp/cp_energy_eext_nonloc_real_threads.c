@@ -56,17 +56,26 @@ void controlEnergyNlppRealThreads(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   int forceCalcFlag = pseudoReal->forceCalcFlag;
   int threadFlag = cpopts->threadFlag;
   double *wfReal,*wfForceReal;
+  //timing
+  STODFTINFO *stodftInfo = cp->stodftInfo;
+  double time_st,time_end;
 
   wfReal = (double*)cmalloc(numGrid*sizeof(double));
   wfForceReal = (double*)cmalloc(numGrid*sizeof(double));
   //printf("forceCalcFlag %i\n",forceCalcFlag);
 
+  time_st = omp_get_wtime();
   #pragma omp parallel for private(iGrid)
   for(iGrid=0;iGrid<numGrid;iGrid++){
     wfReal[iGrid] = zfft_tmp[iGrid*2+1];
     wfForceReal[iGrid] = 0.0;
   }
+  time_end = omp_get_wtime();
+  stodftInfo->cputime_new[1] += time_end-time_st;  
+
   nlppKBRealEnergyThreads(cp,class,generalData,wfReal,wfForceReal,cpParaFftPkg3d);
+
+  time_st = omp_get_wtime();
   if(forceCalcFlag==1)nlppKBRealEnergyForceThreads(cp,class,generalData,wfReal,cpParaFftPkg3d);
   #pragma omp parallel for private(iGrid)
   for(iGrid=0;iGrid<numGrid;iGrid++){
@@ -77,13 +86,23 @@ void controlEnergyNlppRealThreads(CP *cp,CLASS *class,GENERAL_DATA *generalData,
     zfft[iGrid*2+1] += wfForceReal[iGrid];
 #endif
   }
+  time_end = omp_get_wtime();
+  stodftInfo->cputime_new[2] += time_end-time_st;
+
+
   if(flag==1){//double
+    time_st = omp_get_wtime();
     #pragma omp parallel for private(iGrid)
     for(iGrid=0;iGrid<numGrid;iGrid++){
       wfReal[iGrid] = zfft_tmp[iGrid*2+2];
       wfForceReal[iGrid] = 0.0;
     }
+    time_end = omp_get_wtime();
+    stodftInfo->cputime_new[3] += time_end-time_st;
+
     nlppKBRealEnergyThreads(cp,class,generalData,wfReal,wfForceReal,cpParaFftPkg3d);
+  
+    time_st = omp_get_wtime();
     if(forceCalcFlag==1)nlppKBRealEnergyForceThreads(cp,class,generalData,wfReal,cpParaFftPkg3d);
     #pragma omp parallel for private(iGrid)
     for(iGrid=0;iGrid<numGrid;iGrid++){
@@ -94,6 +113,8 @@ void controlEnergyNlppRealThreads(CP *cp,CLASS *class,GENERAL_DATA *generalData,
       zfft[iGrid*2+2] += wfForceReal[iGrid];
 #endif
     }
+    time_end = omp_get_wtime();
+    stodftInfo->cputime_new[4] += time_end-time_st;
   }//endif
   free(wfReal);
   free(wfForceReal);
@@ -194,11 +215,13 @@ void nlppKBRealEnergyThreads(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 /*======================================================================*/
 /* I) Allocate local memory                                             */
 
+  time_st = omp_get_wtime();
   numGridMax = numGridNlppMap[0];
   for(iPart=0;iPart<numAtom;iPart++){
     if(numGridNlppMap[iPart]>numGridMax)numGridMax = numGridNlppMap[iPart];
   }
   //printf("numThreads %i iThread %i\n",numThreads,iThread);
+
   forceTemp = (double*)cmalloc(numAtom*numGridMax*sizeof(double));
   wfNbhd = (double*)cmalloc(numThreads*numGridMax*sizeof(double));
   energyThreads = (double*)cmalloc(numThreads*sizeof(double));
@@ -206,14 +229,21 @@ void nlppKBRealEnergyThreads(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   vol = getdeth(hmat);
   volInv = 1.0/vol;
   volElem = vol/numGridTot;
+  time_end = omp_get_wtime();
+  stodftInfo->cputime_new[5] += time_end-time_st;
+  
 
 /*======================================================================*/
 /* II) Loop over iPart/irad/ipart/m                                 */
+
+  time_st = omp_get_wtime();
   #pragma omp parallel for private(iGrid)
   for(iGrid=0;iGrid<numAtom*numGridMax;iGrid++){
     forceTemp[iGrid] = 0.0;
   }
   for(iThread=0;iThread<numThreads;iThread++)energyThreads[iThread] = 0.0;
+  time_end = omp_get_wtime();
+  stodftInfo->cputime_new[6] += time_end-time_st;
 
   //cputime(&time_st);
   time_st = omp_get_wtime();

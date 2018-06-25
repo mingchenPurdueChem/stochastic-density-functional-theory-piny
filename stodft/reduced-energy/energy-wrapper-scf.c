@@ -116,6 +116,7 @@ void calcLocalPseudoScf(CLASS *class,GENERAL_DATA *general_data,
   }//endif cp_dual_grid_opt
   //printf("vrecip %lg\n",vrecip);
   //debug
+#ifdef TEST_FILTER
   int i;
   int ncoef_l = 2169200;
   double *vextr_loc      =    cpscr->cpscr_loc.vextr_loc;
@@ -129,6 +130,7 @@ void calcLocalPseudoScf(CLASS *class,GENERAL_DATA *general_data,
   }
   fclose(fvext);
   fflush(stdout);
+#endif
   //exit(0);
 
   *vrecip_ret += vrecip;
@@ -139,7 +141,6 @@ void calcLocalPseudoScf(CLASS *class,GENERAL_DATA *general_data,
   // I move the get_ak2_sm here, so we don't have to calculate during filtering
   //printf("eecut %lg gcut %lg\n",cpewald->eCutoffKe,cpewald->gCutoffKe);
   get_ak2_sm(cpewald,cell);
-  printf("fffffffffffffffffffuck %lg\n",cpewald->ak2[1]);
 /*==========================================================================*/
 }/*end Routine*/
 /*=======================================================================*/
@@ -740,7 +741,6 @@ void calcKSPot(CLASS *class,GENERAL_DATA *general_data,
 }/*end Routine*/
 /*=======================================================================*/
 
-
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
@@ -898,6 +898,165 @@ void calcCoefForceScf(CLASS *class,GENERAL_DATA *general_data,
 /*==========================================================================*/
 }/*end Routine*/
 /*=======================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void calcCoefForceEnergy(CLASS *class,GENERAL_DATA *general_data,
+                   CP *cp,CPCOEFFS_POS  *cpcoeffs_pos,CLATOMS_POS *clatoms_pos)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* This is the wrapper to calculate the H|phi> when we calculate non-    */
+/* local pseudopotential. We have the most compact routine for the filter*/
+/* so now we need put a new function here.				 */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+/*==========================================================================*/
+/* III) get the force on the states (up and down)                           */
+  CELL *cell                    = &(general_data->cell);
+  CLATOMS_INFO *clatoms_info    = &(class->clatoms_info);
+  EWALD *ewald                  = &(general_data->ewald);
+  EWD_SCR *ewd_scr              = &(class->ewd_scr);
+  ATOMMAPS *atommaps            = &(class->atommaps);
+  FOR_SCR *for_scr              = &(class->for_scr);
+  STAT_AVG *stat_avg            = &(general_data->stat_avg);
+  PTENS *ptens                  = &(general_data->ptens);
+  SIMOPTS *simopts              = &(general_data->simopts);
+
+
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  STODFTINFO *stodftInfo        = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  CPOPTS *cpopts                = &(cp->cpopts);
+  CPEWALD *cpewald              = &(cp->cpewald);
+  CPSCR *cpscr                  = &(cp->cpscr);
+  PSEUDO *pseudo                = &(cp->pseudo);
+  COMMUNICATE *communicate      = &(cp->communicate);
+
+  //PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm             = &(cp->cp_sclr_fft_pkg3d_sm);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_sm             = &(cp->cp_para_fft_pkg3d_sm);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_dens_cp_box    = &(cp->cp_sclr_fft_pkg3d_dens_cp_box);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_dens_cp_box    = &(cp->cp_para_fft_pkg3d_dens_cp_box);
+  //PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_lg             = &(cp->cp_sclr_fft_pkg3d_lg);
+  //PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg             = &(cp->cp_para_fft_pkg3d_lg);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm;
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_lg;
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg;
+  CP_COMM_STATE_PKG *cp_comm_state_pkg_up          = &(cp->cp_comm_state_pkg_up);
+  CP_COMM_STATE_PKG *cp_comm_state_pkg_dn          = &(cp->cp_comm_state_pkg_dn);
+
+  int i,iii;
+  int cp_lda            = cpopts->cp_lda;
+  int cp_lsda           = cpopts->cp_lsda;
+  int cp_sic            = cpopts->cp_sic;
+  int cp_nonint         = cpopts->cp_nonint;
+  int cp_ptens_calc     = cpopts->cp_ptens_calc;
+  int cp_gga            = cpopts->cp_gga;
+  int cp_para_opt       = cpopts->cp_para_opt;
+  int realSparseOpt     = cpopts->realSparseOpt;
+  int nstate_up         = cpcoeffs_info->nstate_up_proc;
+  int nstate_dn         = cpcoeffs_info->nstate_dn_proc;
+  int nstate_up_tot     = cpcoeffs_info->nstate_up;
+  int nstate_dn_tot     = cpcoeffs_info->nstate_dn;
+  int laplacian_on      = cpcoeffs_info->cp_laplacian_on;
+  int cp_tau_functional = cpcoeffs_info->cp_tau_functional;
+  int alpha_conv_dual   = pseudo->alpha_conv_dual;
+  int n_interp_pme_dual = pseudo->n_interp_pme_dual;
+  int cp_dual_grid_opt  = cpopts->cp_dual_grid_opt;
+  int cp_min_on = 0; //I don't want to calculate cp_hess
+  int myid_state           =  communicate->myid_state;
+  int np_states            =  communicate->np_states;
+  int nstate_ncoef_proc_max_up = cpcoeffs_info->nstate_ncoef_proc_max_up;
+  int nstate_ncoef_proc_max_dn = cpcoeffs_info->nstate_ncoef_proc_max_dn;
+  int nstate_ncoef_proc_up     = cpcoeffs_info->nstate_ncoef_proc_up;
+  int nstate_ncoef_proc_dn     = cpcoeffs_info->nstate_ncoef_proc_dn;
+  int icoef_orth_up          =  cpcoeffs_pos->icoef_orth_up;
+  int icoef_form_up          =  cpcoeffs_pos->icoef_form_up;
+  int ifcoef_form_up         =  cpcoeffs_pos->ifcoef_form_up;
+  int icoef_orth_dn          =  cpcoeffs_pos->icoef_orth_dn;
+  int icoef_form_dn          =  cpcoeffs_pos->icoef_form_dn;
+  int ifcoef_form_dn         =  cpcoeffs_pos->ifcoef_form_dn;
+  char *vxc_typ              =  pseudo->vxc_typ;
+
+  double gc_cut         = pseudo->gga_cut;
+  double cp_eke_dn,cp_eke;
+
+  double *creal_up         =  cpcoeffs_pos->cre_up;
+  double *cimag_up         =  cpcoeffs_pos->cim_up;
+  double *cimag_dn         =  cpcoeffs_pos->cim_dn;
+  double *creal_dn         =  cpcoeffs_pos->cre_dn;
+  double *fcreal_up        =  cpcoeffs_pos->fcre_up;
+  double *fcimag_up        =  cpcoeffs_pos->fcim_up;
+  double *fcimag_dn        =  cpcoeffs_pos->fcim_dn;
+  double *fcreal_dn        =  cpcoeffs_pos->fcre_dn;
+  double *kfcre_up         =  cpcoeffs_pos->kfcre_up;
+  double *kfcim_up         =  cpcoeffs_pos->kfcim_up;
+  double *cp_hess_re_up    =  cpcoeffs_pos->cp_hess_re_up;
+  double *cp_hess_im_up    =  cpcoeffs_pos->cp_hess_im_up;
+  double *cp_hess_re_dn    =  cpcoeffs_pos->cp_hess_re_dn;
+  double *cp_hess_im_dn    =  cpcoeffs_pos->cp_hess_im_dn;
+  double *ak2_sm           =  cpewald->ak2_sm;
+  double *v_ks_up          =  cpscr->cpscr_rho.v_ks_up;
+  double *v_ks_dn          =  cpscr->cpscr_rho.v_ks_dn;
+  double *v_ks_tau_up      =  cpscr->cpscr_rho.v_ks_tau_up;
+  double *v_ks_tau_dn      =  cpscr->cpscr_rho.v_ks_tau_dn;
+  double *zfft             =  cpscr->cpscr_wave.zfft;
+  double *zfft_tmp         =  cpscr->cpscr_wave.zfft_tmp;
+  //double *cre_scr          =  cpscr->cpscr_wave.cre_up;
+  //double *cim_scr          =  cpscr->cpscr_wave.cim_up;
+  double *hmati_cp         =  cell->hmati_cp;
+  double *pvten_cp         =  ptens->pvten_tmp;
+  double *cp_eke_ret       =  &(stat_avg->cp_eke);
+  double *ks_offset        =  &(cpcoeffs_pos->ks_offset);
+
+  MPI_Comm comm_states = communicate->comm_states;
+  MPI_Comm world       = communicate->world;
+
+  //if(realSparseOpt==0){
+  cp_sclr_fft_pkg3d_sm = &(cp->cp_sclr_fft_pkg3d_sm);
+  cp_sclr_fft_pkg3d_lg = &(cp->cp_sclr_fft_pkg3d_lg);
+  cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
+  //}
+  /*
+  else{
+    cp_sclr_fft_pkg3d_sm = &(cp->cp_sclr_fft_pkg3d_sparse);
+    cp_sclr_fft_pkg3d_lg = &(cp->cp_sclr_fft_pkg3d_sparse);
+    cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_sparse);
+  }
+  */
+
+/*-------------------------------------------------------------------------*/
+
+ /*-----------------------------------------*/
+ /* i)  Up states                           */
+  coefForceCalcHybridEnergy(cpewald,nstate_up,creal_up,cimag_up,
+                          fcreal_up,fcimag_up,
+                          zfft,zfft_tmp,v_ks_up,v_ks_tau_up,ak2_sm,&cp_eke,pvten_cp,
+                          cp_ptens_calc,hmati_cp,communicate,icoef_form_up,
+                          icoef_orth_up,ifcoef_form_up,cp_tau_functional,cp_min_on,
+                          cp_sclr_fft_pkg3d_sm,cp,class,general_data);
+  *cp_eke_ret += cp_eke;
+
+ /*--------------------------------------------*/
+ /* ii) down states (if necessary)             */
+
+  if(cp_lsda == 1 && nstate_dn != 0){
+    coefForceCalcHybridEnergy(cpewald,nstate_dn,creal_dn,cimag_dn,
+                          fcreal_dn,fcimag_dn,
+                          zfft,zfft_tmp,v_ks_dn,v_ks_tau_dn,ak2_sm,&cp_eke_dn,pvten_cp,
+                          cp_ptens_calc,hmati_cp,communicate,icoef_form_dn,
+                          icoef_orth_dn,ifcoef_form_dn,cp_tau_functional,cp_min_on,
+                          cp_sclr_fft_pkg3d_sm,cp,class,general_data);
+    *cp_eke_ret += cp_eke_dn;
+  }/*endif*/
+
+/*==========================================================================*/
+}/*end Routine*/
+/*=======================================================================*/
+
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/

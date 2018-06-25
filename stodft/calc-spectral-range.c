@@ -194,7 +194,9 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   cp_sclr_fft_pkg3d_sm->cputime4 = 0.0;
 
   //debug
+#ifdef TEST_FILTER
   energyOld = energy;
+#endif
 
   while(fabs(energyOld-energy)>energyConv){
   //for(iIter=0;iIter<numIteration;iIter++){
@@ -292,7 +294,9 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   //stodftInfo->energyMax = energy*1.1;
   stodftInfo->energyMax = energy+0.1;
   //debug
+#ifdef TEST_FILTER
   stodftInfo->energyMax = 10.2688;
+#endif
   cpcoeffs_info->nstate_up_proc = numStateUpProc;
   cpcoeffs_info->nstate_dn_proc = numStateDnProc;
  
@@ -444,7 +448,10 @@ void genEnergyMin(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   iIter = 0;
 
   //debug
+#ifdef TEST_FILTER
   energy = energyOld;
+#endif
+
   while(fabs(energyOld-energy)>energyConv){
   //for(iIter=0;iIter<numIteration;iIter++){
 
@@ -521,7 +528,10 @@ void genEnergyMin(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   //if(energy>0.0)stodftInfo->energyMin = energy*0.9;
   //else stodftInfo->energyMin = energy*1.1;
   stodftInfo->energyMin = energy-0.1;
+
+#ifdef TEST_FILTER
   stodftInfo->energyMin = -0.314882;
+#endif
 
   cpcoeffs_info->nstate_up_proc = numStateUpProc;
   cpcoeffs_info->nstate_dn_proc = numStateDnProc;

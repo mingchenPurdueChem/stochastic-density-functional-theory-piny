@@ -21,6 +21,7 @@ CP_ENERGY_FILES       = test_energy_cp.o test_energy_cp_dvr.o\
                         cp_energy_ee_grad_rho.o cp_energy_eext.o cp_energy_eext_dvr.o \
                         cp_energy_eext_nonloc.o cp_energy_eext_nonloc_gh.o \
 			cp_energy_eext_nonloc_real.o cp_energy_eext_nonloc_real_threads.o \
+			cp_energy_eext_nonloc_real_filter.o \
 			cp_energy_eext_nonloc_real_force.o \
 			cp_energy_eext_nonloc_real_force_threads.o \
                         cp_coef_force_tau_fun.o xc_functionals.o xc_functionals_dvr.o \

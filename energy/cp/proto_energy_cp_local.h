@@ -328,6 +328,15 @@ void non_loc_restore_ord(CLATOMS_POS *, CLATOMS_INFO *,
 				    PARA_FFT_PKG3D *);
   void nlppKBRealEnergyThreads(CP *,CLASS *,GENERAL_DATA *,double *,double *,
 			       PARA_FFT_PKG3D *);
+
+/*====================================================================*/
+/* cp_energy_eext_nonloc_real_filter.c */
+
+  void controlPotentialEnergyFilter(CP *,CLASS *,GENERAL_DATA *,
+                           double *,double *,int,PARA_FFT_PKG3D *);
+
+  void nlppKBRealEnergyFilter(CP *,CLASS *,GENERAL_DATA *,
+			     double *,PARA_FFT_PKG3D *,int);
   
 /*====================================================================*/
 /* cp_energy_eext_nonloc_real_force.c */

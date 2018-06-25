@@ -171,7 +171,7 @@ void calcEnergyChemPot(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 	  fcim_dn[iCoeff] = 0.0;
 	}//endfor iCoeff
       }//endif cpLsda     
-      calcCoefForceScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+      calcCoefForceEnergy(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     }
     //calcCoefForceExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     stat_avg->cp_eke = eke;

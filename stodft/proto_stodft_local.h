@@ -123,6 +123,11 @@ void coefForceCalcHybridSCF(CPEWALD *,int,double *,double *,
                             double *,double *,double *,double *,double *,
                             int ,double *,COMMUNICATE *,int ,int ,int ,int ,int ,
                             PARA_FFT_PKG3D *,CP *,CLASS *,GENERAL_DATA *);
+void coefForceCalcHybridEnergy(CPEWALD *,int,double *,double *,
+                            double *,double *,double *,double *,
+                            double *,double *,double *,double *,double *,
+                            int ,double *,COMMUNICATE *,int ,int ,int ,int ,int ,
+                            PARA_FFT_PKG3D *,CP *,CLASS *,GENERAL_DATA *);
 void cpGetVksStodft(CPOPTS *,CPSCR *,CPEWALD *,EWALD *,
                 COMMUNICATE *,CP_COMM_STATE_PKG *,CP_COMM_STATE_PKG *,
                 STAT_AVG *,double *,CELL *, char *,double *,double ,double,
@@ -149,12 +154,14 @@ void getNlmatFilter(int,int,int,int,int,int,int,int,int,
                double *,double *,double *,double *,double *,double *,
                double,double,double,double,double,double ,double *,double *);
 void getYlmOnly(double,double,double,double,double *,double *,YLM_CONS *);
+void allocRealNl(CP *,CLASS *);
 /*-----------------------------------------------------------------*/
 /* energy-wrapper-scf.c                                            */
 void calcLocalPseudoScf(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS  *,CLATOMS_POS *);
 void calcNonLocalPseudoScf(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);
 void calcKSPot(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);
 void calcCoefForceScf(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);
+void calcCoefForceEnergy(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);
 void calcCoefForceWrapSCF(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);
 /*-----------------------------------------------------------------*/
 /* energy-wrapper-post-scf.c                                       */

@@ -187,6 +187,16 @@ cp_energy_eext_nonloc_real_threads.o     : \
 	$(COBJ) $(CODE)/energy/cp/cp_energy_eext_nonloc_real_threads.c
 
 #------------------------------------------------------------------
+cp_energy_eext_nonloc_real_filter.o     : \
+                         $(STANDARD) $(DEFINES) \
+                         $(TYP_GEN) $(TYP_CLASS) $(TYP_BND) $(TYP_CP) \
+                         $(ENR_CP_ENT) $(ENR_CP_LOC) $(FRND_ENT) \
+                         $(ENR_CPCON_LOC) $(MATH) $(ENR_CTRL_ENT) \
+                         $(CODE)/energy/cp/cp_energy_eext_nonloc_real_filter.c
+	$(ECHO) $@
+	$(COBJ) $(CODE)/energy/cp/cp_energy_eext_nonloc_real_filter.c
+
+#------------------------------------------------------------------
 cp_energy_eext_nonloc_real_force.o     : \
                          $(STANDARD) $(DEFINES) \
                          $(TYP_GEN) $(TYP_CLASS) $(TYP_BND) $(TYP_CP) \

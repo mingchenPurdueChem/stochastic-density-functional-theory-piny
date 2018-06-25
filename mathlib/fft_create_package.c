@@ -136,8 +136,12 @@ void create_para_fft_pkg3d(PARA_FFT_PKG3D *para_fft_pkg3d,
   
   para_fft_pkg3d->mapFFTW = (int*)cmalloc(ncoef*sizeof(int))-1;
   para_fft_pkg3d->mapConFFTW = (int*)cmalloc(ncoef*sizeof(int))-1;
+  para_fft_pkg3d->mapFFTWFilter = (int*)cmalloc(ncoef*sizeof(int))-1;
+  para_fft_pkg3d->mapConFFTWFilter = (int*)cmalloc(ncoef*sizeof(int))-1;
   int *mapFFTW = para_fft_pkg3d->mapFFTW;
   int *mapConFFTW = para_fft_pkg3d->mapConFFTW;
+  int *mapFFTWFilter = para_fft_pkg3d->mapFFTWFilter;
+  int *mapConFFTWFilter = para_fft_pkg3d->mapConFFTWFilter;
 
 /*=======================================================================*/
 /* 0) Determine useful constants                                         */
@@ -237,6 +241,12 @@ void create_para_fft_pkg3d(PARA_FFT_PKG3D *para_fft_pkg3d,
 	       mapFFTW,mapConFFTW);
   mapFFTW[ncoef] = 1;
   mapConFFTW[ncoef] = 0;
+ for(i=1;i<=ncoef;i++){
+   mapFFTWFilter[i] = (mapFFTW[i]-1)/2;
+   mapConFFTWFilter[i] = (mapConFFTW[i]-1)/2;
+   printf("i %i mapFFTW %i %i mapConFFTWFilter %i %i\n",i,mapFFTW[i],mapFFTWFilter[i],mapConFFTW[i],mapConFFTWFilter[i]);
+ }
+  
 
 
   //test

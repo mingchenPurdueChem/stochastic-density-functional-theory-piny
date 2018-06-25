@@ -136,7 +136,7 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
                      zfft,cp_sclr_fft_pkg3d_sm);
     }
     else{
-      dble_pack_coef_fftw3d_threads(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],
+      dble_pack_coef_fftw3d_filter(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],
 		     &ccimag[ioff2],
                      zfft,cp_sclr_fft_pkg3d_sm);
     }
@@ -151,26 +151,21 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
       para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
     }
     else{
-      para_fft_gen3d_fwd_to_r_fftw3d_threads(zfft,cp_sclr_fft_pkg3d_sm);
+      para_fft_gen3d_fwd_to_r_fftw3d_filter(zfft,cp_sclr_fft_pkg3d_sm);
     }
 
 /*==========================================================================*/
 /* 2) get v|psi> in g space and store it in zfft                            */
 /*   I) get  v|psi> in real space                                           */
     if(pseudoRealFlag==1){
-      time_st = omp_get_wtime();
-      memcpy(&zfft_tmp[1],&zfft[1],nfft*sizeof(double));
-      cp_vpsi_threads(zfft,v_ks,nfft);
-      time_end = omp_get_wtime();
-      stodftInfo->cputime3 += time_end-time_st;
       cp->pseudo.pseudoReal.energyCalcFlag = 1;
       time_st = omp_get_wtime();
-      controlEnergyNlppRealThreads(cp,class,general_data,zfft_tmp,zfft,1,
+      controlPotentialEnergyFilter(cp,class,general_data,v_ks,zfft,1,
 				   cp_sclr_fft_pkg3d_sm);
       time_end = omp_get_wtime();
       stodftInfo->cputime_new[0] += time_end-time_st;
     }
-    else cp_vpsi(zfft,v_ks,nfft);
+    else cp_vpsi_threads(zfft,v_ks,nfft);
     //printf("v_ks %lg\n",v_ks);
 
 /*--------------------------------------------------------------------------*/
@@ -182,7 +177,7 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
       para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
     }
     else{
-      para_fft_gen3d_bck_to_g_fftw3d_threads(zfft,cp_sclr_fft_pkg3d_sm);
+      para_fft_gen3d_bck_to_g_fftw3d_filter(zfft,cp_sclr_fft_pkg3d_sm);
     }
 
 /*==========================================================================*/
@@ -196,10 +191,9 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
       //printf("fccreal %lg\n",fccreal[ioff+ncoef]);
     }
     else{
-      dble_upack_coef_sum_fftw3d_threads(&fccreal[ioff],&fccimag[ioff],
+      dble_upack_coef_sum_fftw3d_filter(&fccreal[ioff],&fccimag[ioff],
                           &fccreal[ioff2],&fccimag[ioff2],
                           zfft,cp_sclr_fft_pkg3d_sm);
-      //printf("fccreal fftw %lg\n",fccreal[ioff+ncoef]);
     }
     time_end = omp_get_wtime();
     stodftInfo->cputime4 += time_end-time_st;
@@ -207,7 +201,7 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
   }//endfor is
 
   /*
-  if(fftw3dFlag==0){
+  if(fftw3dFlag==1){
     for(i=1;i<=ncoef*nstate;i++){
       printf("forceeeee %lg %lg\n",fccreal[i],fccimag[i]);
     }
@@ -234,7 +228,7 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
       sngl_pack_coef(&ccreal[ioff],&ccimag[ioff],zfft,cp_sclr_fft_pkg3d_sm);
     }
     else{
-      sngl_pack_coef_fftw3d_threads(&ccreal[ioff],&ccimag[ioff],zfft,cp_sclr_fft_pkg3d_sm);
+      sngl_pack_coef_fftw3d_filter(&ccreal[ioff],&ccimag[ioff],zfft,cp_sclr_fft_pkg3d_sm);
     }
     //cputime(&time_end);
     time_end = omp_get_wtime();
@@ -248,7 +242,7 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
       para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
     }
     else{
-      para_fft_gen3d_fwd_to_r_fftw3d_threads(zfft,cp_sclr_fft_pkg3d_sm);
+      para_fft_gen3d_fwd_to_r_fftw3d_filter(zfft,cp_sclr_fft_pkg3d_sm);
     }
 
 /*==========================================================================*/
@@ -256,21 +250,14 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
 /*   I) get  v|psi> in real space                                           */
 
     if(pseudoRealFlag==1){
-      //cputime(&time_st);
-      time_st = omp_get_wtime();
-      memcpy(&zfft_tmp[1],&zfft[1],nfft*sizeof(double));
-      cp_vpsi_threads(zfft,v_ks,nfft);
-      time_end = omp_get_wtime();
-      //cputime(&time_end);
-      stodftInfo->cputime3 += time_end-time_st;
       cp->pseudo.pseudoReal.energyCalcFlag = 1;
       time_st = omp_get_wtime();
-      controlEnergyNlppRealThreads(cp,class,general_data,zfft_tmp,zfft,0,
-				   cp_sclr_fft_pkg3d_sm);
+      controlPotentialEnergyFilter(cp,class,general_data,v_ks,zfft,0,
+                                   cp_sclr_fft_pkg3d_sm);
       time_end = omp_get_wtime();
       stodftInfo->cputime_new[0] += time_end-time_st;
     }
-    else cp_vpsi(zfft,v_ks,nfft);
+    else cp_vpsi_threads(zfft,v_ks,nfft);
 
 /*--------------------------------------------------------------------------*/
 /*   II) fourier transform the result back to g-space */
@@ -364,6 +351,288 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
 /*==========================================================================*/
    }/*end routine*/
 /*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+/* calculate the force on the coeff's (up or down, both) */
+/* given an appropriate v_ks (up or down, both).         */
+/* This routine is for real space non-local pp energy calculation ONLY      */
+/*==========================================================================*/
+void coefForceCalcHybridEnergy(CPEWALD *cpewald,int nstate,
+                             double *ccreal,double *ccimag,
+                             double *fccreal,double  *fccimag,
+                             double *zfft,double *zfft_tmp,
+                             double *v_ks,double *v_ks_tau,double *ak2_sm,
+                             double *eke_ret,double *pvten_cp,
+                             int cp_ptens_calc,double *hmati,
+                             COMMUNICATE *communicate,
+                             int icoef_form,int icoef_orth,int ifcoef_form,
+                             int cp_tau_functional,int cp_min_on,
+                             PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm,
+			     CP *cp, CLASS *class,GENERAL_DATA *general_data)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+{/*Begin Routine*/
+/*=======================================================================*/
+/*            Local variable declarations                               */
+#include "../typ_defs/typ_mask.h"
+  STODFTINFO *stodftInfo = cp->stodftInfo;
+  int is,i,iupper;
+  int ioff,ncoef1,ioff2;
+  int iii,iis,nis;
+  int nfft       = cp_sclr_fft_pkg3d_sm->nfft;
+  int ncoef      = cp_sclr_fft_pkg3d_sm->ncoef;
+  int myid_state = communicate->myid_state;
+  int np_states  = communicate->np_states;
+  int fftw3dFlag = cpewald->fftw3dFlag;
+  //int fftw3dFlag = 1;
+  int numThreads = communicate->numThreads;
+  int onebodyMatrixFlag = cpewald->onebodyMatrixFlag;
+  int pseudoRealFlag = cp->pseudo.pseudoReal.pseudoRealFlag;
+
+  int  *kastore_sm    =  cpewald->kastr_sm;
+  int  *kbstore_sm    =  cpewald->kbstr_sm;
+  int  *kcstore_sm    =  cpewald->kcstr_sm;
+  MPI_Comm comm_states = communicate->comm_states;
+
+  double tpi;
+  double aka,akb,akc,xk,yk,zk,cfact;
+  double eke;
+  double sum_check,sum_check_tmp;
+  double time_st,time_end;
+  double *keMatrix = cpewald->keMatrix;
+  double *ak2Kinetic = cpewald->ak2Kinetic;
+#define DEBUG_OFF
+#ifdef DEBUG
+  int icount;
+  double c_g,g2,anorm,sum,vol,cre_now,cim_now;
+  double dx,x_pos,y_pos,z_pos,phase_r,phase_i,arg;
+  FILE *fp;
+#endif
+
+/* ================================================================= */
+/*0) Check the form of the coefficients                              */
+
+  cp_sclr_fft_pkg3d_sm->numThreads = communicate->numThreads;
+
+/*=================================================================*/
+/*  Find the upper state limit                                     */
+
+  ncoef1 = ncoef - 1;
+  iupper = nstate;
+  if(nstate%2==1)iupper = nstate-1;
+
+/*=================================================================*/
+/*  get the forces on the coefs of each state                      */
+
+  for(is=1;is<=iupper;is+=2 ){
+    ioff = (is-1)*ncoef;
+    ioff2 = (is)*ncoef;
+
+/*==========================================================================*/
+/* 1) get the wave functions in real space two at a time                    */
+/*   I) double pack the complex zfft array with two real wavefunctions      */
+ 
+    if(fftw3dFlag==0){
+      dble_pack_coef(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
+                     zfft,cp_sclr_fft_pkg3d_sm);
+    }
+    else{
+      dble_pack_coef_fftw3d_threads(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],
+		     &ccimag[ioff2],
+                     zfft,cp_sclr_fft_pkg3d_sm);
+    }
+
+/*--------------------------------------------------------------------------*/
+/* II) fourier transform the wavefunctions to real space                    */
+/*      convention exp(-igr)                                                */
+
+    if(fftw3dFlag==0){
+      para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+    }
+    else{
+      para_fft_gen3d_fwd_to_r_fftw3d_threads(zfft,cp_sclr_fft_pkg3d_sm);
+    }
+
+/*==========================================================================*/
+/* 2) get v|psi> in g space and store it in zfft                            */
+/*   I) get  v|psi> in real space                                           */
+
+    if(pseudoRealFlag==1){
+      memcpy(&zfft_tmp[1],&zfft[1],nfft*sizeof(double));
+      cp_vpsi_threads(zfft,v_ks,nfft);
+      cp->pseudo.pseudoReal.energyCalcFlag = 1;
+      controlEnergyNlppRealThreads(cp,class,general_data,zfft_tmp,zfft,1,
+                                   cp_sclr_fft_pkg3d_sm);
+    }
+    else cp_vpsi_threads(zfft,v_ks,nfft);
+    //printf("v_ks %lg\n",v_ks);
+
+/*--------------------------------------------------------------------------*/
+/*  II) fourier transform  to g-space                                       */
+/*     convention exp(igr)                                                  */
+
+
+    if(fftw3dFlag==0){
+      para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+    }
+    else{
+      para_fft_gen3d_bck_to_g_fftw3d_threads(zfft,cp_sclr_fft_pkg3d_sm);
+    }
+
+/*==========================================================================*/
+/* 3) get forces on coefficients by double unpacking the array zfft         */
+
+    time_st = omp_get_wtime();
+    if(fftw3dFlag==0){
+      dble_upack_coef_sum(&fccreal[ioff],&fccimag[ioff],
+                          &fccreal[ioff2],&fccimag[ioff2],
+                          zfft,cp_sclr_fft_pkg3d_sm);
+      //printf("fccreal %lg\n",fccreal[ioff+ncoef]);
+    }
+    else{
+      dble_upack_coef_sum_fftw3d_threads(&fccreal[ioff],&fccimag[ioff],
+                          &fccreal[ioff2],&fccimag[ioff2],
+                          zfft,cp_sclr_fft_pkg3d_sm);
+      //printf("fccreal fftw %lg\n",fccreal[ioff+ncoef]);
+    }
+    time_end = omp_get_wtime();
+    stodftInfo->cputime4 += time_end-time_st;
+
+  }//endfor is
+
+  /*
+  if(fftw3dFlag==0){
+    for(i=1;i<=ncoef*nstate;i++){
+      printf("forceeeee %lg %lg\n",fccreal[i],fccimag[i]);
+    }
+    exit(0);
+  }
+  */
+
+
+/*==========================================================================*/
+/*==========================================================================*/
+/* 4) if there is an odd number of states, go through                       */
+/*      the same procedure using sng_packs                                  */
+
+  if(nstate % 2 != 0){
+    is = nstate;
+    ioff = (is-1)*ncoef;
+
+/*--------------------------------------------------------------------------*/
+/*   I) sngl pack                                                           */
+
+
+    time_st = omp_get_wtime();
+    if(fftw3dFlag==0){
+      sngl_pack_coef(&ccreal[ioff],&ccimag[ioff],zfft,cp_sclr_fft_pkg3d_sm);
+    }
+    else{
+      sngl_pack_coef_fftw3d_threads(&ccreal[ioff],&ccimag[ioff],zfft,cp_sclr_fft_pkg3d_sm);
+    }
+    //cputime(&time_end);
+    time_end = omp_get_wtime();
+    stodftInfo->cputime2 += time_end-time_st;
+
+/*--------------------------------------------------------------------------*/
+/* II) fourier transform the wavefunctions to real space                    */
+/*      convention exp(-igr)                                                */
+
+    if(fftw3dFlag==0){
+      para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+    }
+    else{
+      para_fft_gen3d_fwd_to_r_fftw3d_threads(zfft,cp_sclr_fft_pkg3d_sm);
+    }
+
+/*==========================================================================*/
+/* 5) get v|psi> in g space and store it in zfft                            */
+/*   I) get  v|psi> in real space                                           */
+
+    if(pseudoRealFlag==1){
+      memcpy(&zfft_tmp[1],&zfft[1],nfft*sizeof(double));
+      cp_vpsi_threads(zfft,v_ks,nfft);
+      cp->pseudo.pseudoReal.energyCalcFlag = 1;
+      controlEnergyNlppRealThreads(cp,class,general_data,zfft_tmp,zfft,0,
+				   cp_sclr_fft_pkg3d_sm);
+    }
+    else cp_vpsi(zfft,v_ks,nfft);
+
+/*--------------------------------------------------------------------------*/
+/*   II) fourier transform the result back to g-space */
+/*     convention exp(igr)  */
+
+    if(fftw3dFlag==0){
+      para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+    }
+    else{
+      para_fft_gen3d_bck_to_g_fftw3d_threads(zfft,cp_sclr_fft_pkg3d_sm);
+    }
+
+/*==========================================================================*/
+/* 6) get forces on coefficients by single unpacking the array zfft         */
+
+    //cputime(&time_st);
+    time_st = omp_get_wtime();
+    if(fftw3dFlag==0){
+      sngl_upack_coef_sum(&fccreal[ioff],&fccimag[ioff],zfft,
+			  cp_sclr_fft_pkg3d_sm);
+    }
+    else{
+      sngl_upack_coef_sum_fftw3d_threads(&fccreal[ioff],&fccimag[ioff],zfft,
+			  cp_sclr_fft_pkg3d_sm);
+    }
+    //cputime(&time_end);
+    time_end = omp_get_wtime();
+    stodftInfo->cputime4 += time_end-time_st;
+
+  }// endif: odd number of states
+
+/*==========================================================================*/
+/* 7) If there is an electron KE density dependent functional, calculate    */
+/*    this contribution to the force                                        */
+
+/*==========================================================================*/
+/* 8) If doing minimization, Fourier transform the KS potential to g-space  */
+/*    and unpack it into the diagonal Hessian                               */
+
+/*==========================================================================*/
+/* 9) calculate the kinetic energy term and add its contribution to the force*/
+
+  //printf("I'm here kinetic energy!\n");
+  //cputime(&time_st);
+  time_st = omp_get_wtime();
+  tpi = 2.0*M_PI;
+  eke = 0.0;
+  for(is=1 ; is<= nstate ; is++){
+    ioff = (is-1)*ncoef;
+    #pragma omp parallel for private(i,iis)
+    for(i=1; i<= ncoef1 ; i++){
+      iis = ioff + i;
+      fccreal[iis] -= 2.0*ak2Kinetic[i]*ccreal[iis];
+      fccimag[iis] -= 2.0*ak2Kinetic[i]*ccimag[iis];
+      //eke += (2.0*ak2Kinetic[i]*(ccreal[iis]*ccreal[iis] + ccimag[iis]*ccimag[iis]));
+    }/*endfor i*/
+    nis = is*ncoef;
+    fccimag[nis] = 0.0;
+  }/*endfor*/
+  //cputime(&time_end);
+  time_end = omp_get_wtime();
+  stodftInfo->cputime5 += time_end-time_st;
+
+/*================================================================================*/
+/* 10) If doing minimization, calculat kinetic contribution to diagonal Hessian   */
+
+/*==========================================================================*/
+/* 9) calculate kinetic contribution to pressure tensor                     */
+
+/* fine fertig terminado finito */
+/*==========================================================================*/
+   }/*end routine*/
+/*==========================================================================*/
+
 
 
 /*==========================================================================*/
@@ -494,8 +763,8 @@ void cpGetVksStodft(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
 /*--------------------------------------------------------------------*/
 /*  c) Get Hartree + external contributions to VKS -- test for CBCs   */
  
-  printf("rhoc %lg %lg\n",rhocr[10],rhoci[10]);
-  printf("ak2[1] %lg\n",ak2[1]);
+  //printf("rhoc %lg %lg\n",rhocr[10],rhoci[10]);
+  //printf("ak2[1] %lg\n",ak2[1]);
 
   if(iperd==3){
     for(i=1;i<=ncoef_l_use;i++){

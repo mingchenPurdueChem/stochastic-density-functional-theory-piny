@@ -1210,6 +1210,12 @@ typedef struct pseudo_real{
   int *nlppAtomStartIndex;   /* Lst: starting index of dot product for each atom  */
 			     /* Lth: natm_tot					  */
   int overlapFlag;           /* Num: nlpp region overlap or not 0=no 1=yes        */
+  int numGridMax;
+  double *wfRealFilter;
+  double *wfForceRealFilter;
+  double *forceTemp;
+  double *wfNbhd;
+  double *forceRealNlpp;
 }PSEUDO_REAL;
 
 

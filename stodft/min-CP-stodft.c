@@ -571,6 +571,7 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     if(myidState==0)printf("**Calculating Real Space Non-local Pseudopotential...\n");
     pseudoReal->forceCalcFlag = 1;
     initRealNlppWf(cp,class,general_data);
+    allocRealNl(cp,class);
     pseudoReal->forceCalcFlag = 0;
   }
 

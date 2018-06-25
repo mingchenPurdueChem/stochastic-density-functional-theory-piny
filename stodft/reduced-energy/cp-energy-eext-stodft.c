@@ -321,7 +321,7 @@ void controlEwdLocPreScf(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
   if(np_states==myid_state+1){ngo--;}
 
   //debug
-
+#ifdef TEST_FILTER
   for(icount=1;icount<=ngo;icount++){
     aka = (double)(kastore[(icount+koff)]);
     akb = (double)(kbstore[(icount+koff)]);
@@ -334,9 +334,9 @@ void controlEwdLocPreScf(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
     g  = sqrt(g2);
     ak2[icount] = g2;
   }
-  printf("fffffffffffffffffffuck %lg\n",ak2[1]);
   int ngo_temp = ngo;
   ngo = 0;
+#endif
 
   for(icount=1;icount<=ngo;icount++){
 
@@ -441,7 +441,9 @@ void controlEwdLocPreScf(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 /* VIII) g=0 term (local pseudopotential) including term for CBCs       */
   
   //debug
+#ifdef TEST_FILTER
   ngo = ngo_temp;
+#endif
 
   if((myid_state+1)==np_states){
     if(ipseud_opt==1){
@@ -1277,6 +1279,47 @@ void getYlmOnly(double xk,double yk,double zk,double g,
   ylmi[15] = y33i;
   ylmr[16] = y33r;
   ylmi[16] = -y33i;
+
+/*--------------------------------------------------------------------------*/
+   }/* end routine */
+/*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void allocRealNl(CP *cp,CLASS *class)
+/*========================================================================*/
+  {/*begin routine*/
+/*************************************************************************/
+/* Prepare the real space nonlocal pp. Allocate necessary memory.        */
+/*************************************************************************/
+/*========================================================================*/
+/*             Local variable declarations                                */
+  PSEUDO *pseudo = &(cp->pseudo);
+  PSEUDO_REAL *pseudoReal = &(pseudo->pseudoReal);
+  PARA_FFT_PKG3D *cpParaFftPkg3d = &(cp->cp_para_fft_pkg3d_lg);
+  CLATOMS_INFO *clatoms_info = &(class->clatoms_info);
+  COMMUNICATE *communicate = &(cp->communicate);
+  
+  int nfft = cpParaFftPkg3d->nfft;
+  int numGrid = nfft/2;
+  int numAtom = clatoms_info->natm_tot;
+  int iPart;
+  int numGridMax;
+  int numThreads = communicate->numThreads;
+  int *numGridNlppMap = pseudoReal->numGridNlppMap;
+  
+  pseudoReal->forceRealNlpp = (double*)cmalloc(numGrid*sizeof(double));
+
+  numGridMax = numGridNlppMap[0];
+  for(iPart=0;iPart<numAtom;iPart++){
+    if(numGridNlppMap[iPart]>numGridMax)numGridMax = numGridNlppMap[iPart];
+  }
+  pseudoReal->numGridMax = numGridMax;
+  //printf("numThreads %i iThread %i\n",numThreads,iThread);
+
+  pseudoReal->forceTemp = (double*)cmalloc(numAtom*numGridMax*sizeof(double));
+  pseudoReal->wfNbhd = (double*)cmalloc(numThreads*numGridMax*sizeof(double));
 
 /*--------------------------------------------------------------------------*/
    }/* end routine */

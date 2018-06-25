@@ -312,6 +312,19 @@ void dble_upack_coef_sum_fftw3d_threads(double *,double *,double *,double *,
 void sum_rho(double *,double *,PARA_FFT_PKG3D *);
 
 void para_fft_gen3d_init(PARA_FFT_PKG3D *);
+/*---------------------------------*/
+/* filter */
+void dble_pack_coef_fftw3d_filter(double *, double *,double *, double *,
+                    double *,PARA_FFT_PKG3D *);
+void sngl_pack_coef_fftw3d_filter(double *,double *,double *,PARA_FFT_PKG3D *);
+
+void para_fft_gen3d_fwd_to_r_fftw3d_filter(double *,PARA_FFT_PKG3D *);
+
+void para_fft_gen3d_bck_to_g_fftw3d_filter(double *,PARA_FFT_PKG3D *);
+
+void dble_upack_coef_sum_fftw3d_filter(double *,double *,double *,double *,
+                         double *,PARA_FFT_PKG3D *);
+
 /*==============MA=================*/
 void para_fft_gen3d_init_dvr(PARA_FFT_PKG3D *);
 

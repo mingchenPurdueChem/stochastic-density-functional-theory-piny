@@ -3185,5 +3185,480 @@ void para_fft_gen3d_dvr_bck(double *zfft, double *zfft_tmp,
 }/*end routine*/
 /*==========================================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+/*   Dble pack the coefs for 3D FFT */
+/*==========================================================================*/
+
+void dble_pack_coef_fftw3d_filter(double *c1re, double *c1im,
+		    double *c2re, double *c2im,
+                    double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
+
+/*=======================================================================*/
+/*            Begin subprogram:                                          */
+   {/*begin routine*/
+/*=======================================================================*/
+/*          Local variable declarations                                  */
+   int i;
+   int nfft_proc = para_fft_pkg3d->nfft_proc;
+   int nfft2_proc = nfft_proc/2;
+   int num_proc    = para_fft_pkg3d->num_proc;
+   int ncoef_use   = para_fft_pkg3d->ncoef_use;
+   int ncoef_proc  = para_fft_pkg3d->ncoef_proc;
+   int igeneric_opt = para_fft_pkg3d->igeneric_opt;
+   int fftFlag = 0;
+   int *mapFFTWFilter = para_fft_pkg3d->mapFFTWFilter;
+   int *mapConFFTWFilter = para_fft_pkg3d->mapConFFTWFilter;
+   double x,y;
+   fftw_complex *fftw3DForwardIn = para_fft_pkg3d->fftw3DForwardIn[0];
+   fftw_complex *fftw3DBackwardIn = para_fft_pkg3d->fftw3DBackwardIn[0];
+
+#ifdef FFTW3
+  if(igeneric_opt==0)fftFlag = 1;
+#endif
+
+/*=========================================================================*/
+/* Pack the data up: top and bottom half of k-space : zero fill in scalar */
+
+  if(fftFlag==0){
+    if(num_proc==1){
+      #pragma omp parallel for private(i)
+      for(i=0;i<nfft2_proc;i++){
+	fftw3DForwardIn[i] = 0.0;
+      } 
+    }
+    #pragma omp parallel for private(i)
+    for(i=1;i<=ncoef_use;i++){
+      fftw3DForwardIn[mapFFTWFilter[i]] = c1re[i]-c2im[i]+(c1im[i]+c2re[i])*I;
+      fftw3DForwardIn[mapConFFTWFilter[i]] = (c1re[i]+c2im[i])+(-c1im[i]+c2re[i])*I;
+    }/*endfor*/
+    fftw3DForwardIn[0] = c1re[ncoef_proc]+c2re[ncoef_proc]*I;
+  }
+  else{
+    if(num_proc==1){
+      #pragma omp parallel for private(i)
+      for(i=0;i<nfft2_proc;i++){
+	fftw3DBackwardIn[i] = 0.0;
+      } 
+    }
+    #pragma omp parallel for private(i)
+    for(i=1;i<=ncoef_use;i++){
+      fftw3DBackwardIn[mapFFTWFilter[i]] = c1re[i]-c2im[i]+(c1im[i]+c2re[i])*I;
+      fftw3DBackwardIn[mapConFFTWFilter[i]] = (c1re[i]+c2im[i])+(-c1im[i]+c2re[i])*I;
+    }/*endfor*/
+    fftw3DBackwardIn[0] = c1re[ncoef_proc]+c2re[ncoef_proc]*I;
+  }
+/*-----------------------------------------------------------------------*/
+   }/*end routine*/
+/*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+/*   Sngl pack the coefs for 3D FFT */
+/*==========================================================================*/
+
+void sngl_pack_coef_fftw3d_filter(double *cre,double *cim,double *zfft,
+                    PARA_FFT_PKG3D *para_fft_pkg3d)
+
+/*=======================================================================*/
+/*            Begin subprogram:                                          */
+   {/*begin routine*/
+/*=======================================================================*/
+/*          Local variable declarations                                  */
+
+   int i;
+   int nfft_proc = para_fft_pkg3d->nfft_proc;
+   int nfft2_proc = nfft_proc/2;
+   int ndata       = para_fft_pkg3d->ndata_kc;
+   int num_proc    = para_fft_pkg3d->num_proc;
+   int ncoef_use   = para_fft_pkg3d->ncoef_use;
+   int ncoef_proc  = para_fft_pkg3d->ncoef_proc;
+   int igeneric_opt = para_fft_pkg3d->igeneric_opt;
+   int fftFlag = 0;
+   int *mapFFTWFilter = para_fft_pkg3d->mapFFTWFilter;
+   int *mapConFFTWFilter = para_fft_pkg3d->mapConFFTWFilter;
+   double x,y;
+   fftw_complex *fftw3DForwardIn = para_fft_pkg3d->fftw3DForwardIn[0];
+   fftw_complex *fftw3DBackwardIn = para_fft_pkg3d->fftw3DBackwardIn[0];
+
+#ifdef FFTW3
+  if(igeneric_opt==0)fftFlag = 1;
+#endif
+
+
+/*=========================================================================*/
+/* Pack the data up: top and bottom half of k-space : zero fill in scalar */
+
+  if(fftFlag==0){
+    if(num_proc==1){
+      #pragma omp parallel for private(i)
+      for(i=1;i<=nfft2_proc;i++){
+	fftw3DForwardIn[i] = 0.0;
+      } 
+    }
+
+    #pragma omp parallel for private(i)
+    for(i=1;i<=ncoef_use;i++){
+      fftw3DForwardIn[mapFFTWFilter[i]] = cre[i]+cim[i]*I;
+      fftw3DForwardIn[mapConFFTWFilter[i]] = cre[i]-cim[i]*I;
+    }/*endfor*/
+    fftw3DForwardIn[0] = cre[ncoef_proc]+cim[ncoef_proc]*I;
+  }
+  else{
+    if(num_proc==1){
+      #pragma omp parallel for private(i)
+      for(i=1;i<=nfft2_proc;i++){
+        fftw3DBackwardIn[i] = 0.0;
+      }
+    }
+
+    #pragma omp parallel for private(i)
+    for(i=1;i<=ncoef_use;i++){
+      fftw3DBackwardIn[mapFFTWFilter[i]] = cre[i]+cim[i]*I;
+      fftw3DBackwardIn[mapConFFTWFilter[i]] = cre[i]-cim[i]*I;
+    }/*endfor*/
+    fftw3DBackwardIn[0] = cre[ncoef_proc]+cim[ncoef_proc]*I;
+  }
+
+/*-----------------------------------------------------------------------*/
+   }/*end routine*/
+/*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void para_fft_gen3d_fwd_to_r_fftw3d_filter(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
+/*=======================================================================*/
+/*            Begin subprogram:                                          */
+{/*begin routine*/
+/*=======================================================================*/
+/*          Local variable declarations                                  */
+#include "../typ_defs/typ_mask.h"
+  int igeneric_opt = para_fft_pkg3d->igeneric_opt;
+  int nfft_proc = para_fft_pkg3d->nfft_proc;
+  int nfft2_proc = nfft_proc/2;
+  int igrid;
+  int i,j,k;
+  int nkf3 = para_fft_pkg3d->nkf3;
+  int nkf2 = para_fft_pkg3d->nkf2;
+  int nkf1 = para_fft_pkg3d->nkf1;
+  int fftInd,fftIndTrans;
+  int numThreads = para_fft_pkg3d->numThreads;
+  int fftFlag = 0; // We need to match fftw3d results to old fft in the package
+	           // depend on whether generic is used or not
+  double time_st,time_end;	           
+
+  fftw_complex *fftw3DForwardIn = para_fft_pkg3d->fftw3DForwardIn[0];
+  fftw_complex *fftw3DForwardOut = para_fft_pkg3d->fftw3DForwardOut[0];
+  fftw_complex *fftw3DBackwardIn = para_fft_pkg3d->fftw3DBackwardIn[0];
+  fftw_complex *fftw3DBackwardOut = para_fft_pkg3d->fftw3DBackwardOut[0];
+
+  fftw_plan fftwPlan3DForward = para_fft_pkg3d->fftwPlan3DForward[0];
+  fftw_plan fftwPlan3DBackward = para_fft_pkg3d->fftwPlan3DBackward[0];
+
+#ifdef FFTW3
+  if(igeneric_opt==0)fftFlag = 1;
+#endif
+
+  //printf("fftFlag %i\n",fftFlag);
+
+  if(fftFlag==0){
+    time_st = omp_get_wtime();
+    fftw_execute(fftwPlan3DForward);
+    time_end = omp_get_wtime();
+    para_fft_pkg3d->cputime += time_end-time_st;
+
+    time_st = omp_get_wtime();
+    #pragma omp parallel for private(igrid)
+    for(igrid=0;igrid<nfft2_proc;igrid++){
+      zfft[igrid*2+1] = creal(fftw3DForwardOut[igrid]);
+      zfft[igrid*2+2] = cimag(fftw3DForwardOut[igrid]);
+    }
+    time_end = omp_get_wtime();
+    para_fft_pkg3d->cputime2 += time_end-time_st;
+  }
+  else{
+    time_st = omp_get_wtime();
+    fftw_execute(fftwPlan3DBackward);
+    time_end = omp_get_wtime();    
+    para_fft_pkg3d->cputime += time_end-time_st;
+    
+    time_st = omp_get_wtime();
+    #pragma omp parallel for private(igrid)
+    for(igrid=0;igrid<nfft2_proc;igrid++){
+      zfft[igrid*2+1] = creal(fftw3DBackwardOut[igrid]);
+      zfft[igrid*2+2] = cimag(fftw3DBackwardOut[igrid]);
+    }
+    time_end = omp_get_wtime();
+    para_fft_pkg3d->cputime2 += time_end-time_st;
+  }
+
+
+/*-----------------------------------------------------------------------*/
+   }/*end routine*/
+/*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void para_fft_gen3d_bck_to_g_fftw3d_filter(double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
+/*=======================================================================*/
+/*            Begin subprogram:                                          */
+{/*begin routine*/
+/*=======================================================================*/
+/*          Local variable declarations                                  */
+#include "../typ_defs/typ_mask.h"
+  int igeneric_opt = para_fft_pkg3d->igeneric_opt;
+  int nfft_proc = para_fft_pkg3d->nfft_proc;
+  int nfft2_proc = nfft_proc/2;
+  int igrid;
+  int i,j,k;
+  int nkf3 = para_fft_pkg3d->nkf3;
+  int nkf2 = para_fft_pkg3d->nkf2;
+  int nkf1 = para_fft_pkg3d->nkf1;
+  int fftInd,fftIndTrans;
+  double nfft2Inv = 1.0/nfft2_proc;
+  int fftFlag = 0;
+  int numThreads = para_fft_pkg3d->numThreads;
+  double time_st,time_end;
+
+  fftw_complex *fftw3DBackwardIn = para_fft_pkg3d->fftw3DBackwardIn[0];
+  fftw_complex *fftw3DBackwardOut = para_fft_pkg3d->fftw3DBackwardOut[0];
+  fftw_complex *fftw3DForwardIn = para_fft_pkg3d->fftw3DForwardIn[0];
+  fftw_complex *fftw3DForwardOut = para_fft_pkg3d->fftw3DForwardOut[0];
+
+  fftw_plan fftwPlan3DBackward = para_fft_pkg3d->fftwPlan3DBackward[0];
+  fftw_plan fftwPlan3DForward = para_fft_pkg3d->fftwPlan3DForward[0];
+
+
+#ifdef FFTW3
+  if(igeneric_opt==0)fftFlag = 1;
+#endif
+  //printf("fftFlag %i\n",fftFlag);
+  
+  if(fftFlag==0){
+    time_st = omp_get_wtime();
+    #pragma omp parallel for private(igrid)
+    for(igrid=0;igrid<nfft2_proc;igrid++){
+      fftw3DBackwardIn[igrid] = zfft[2*igrid+1]+zfft[2*igrid+2]*I;
+    }
+    
+    //memcpy(fftw3DBackwardIn,&zfft[1],nfft_proc);
+    time_end = omp_get_wtime();
+    para_fft_pkg3d->cputime3 += time_end-time_st;
+
+    //cputime(&time_st);
+    time_st = omp_get_wtime();
+    fftw_execute(fftwPlan3DBackward);
+    //cputime(&time_end);
+    time_end = omp_get_wtime();
+    para_fft_pkg3d->cputime += time_end-time_st;
+
+    //cputime(&time_st);
+    /*
+    time_st = omp_get_wtime();
+    #pragma omp parallel for private(igrid)
+    for(igrid=0;igrid<nfft2_proc;igrid++){
+      zfft[igrid*2+1] = creal(fftw3DBackwardOut[igrid])*nfft2Inv;
+      zfft[igrid*2+2] = cimag(fftw3DBackwardOut[igrid])*nfft2Inv;
+    }
+    
+    time_end = omp_get_wtime();
+    para_fft_pkg3d->cputime4 += time_end-time_st;
+    */
+  }
+  else{
+    time_st = omp_get_wtime();
+    #pragma omp parallel for private(igrid)
+    for(igrid=0;igrid<nfft2_proc;igrid++){
+      fftw3DForwardIn[igrid] = zfft[2*igrid+1]+zfft[2*igrid+2]*I;
+    }
+    
+    //memcpy(fftw3DForwardIn,&zfft[1],nfft_proc*sizeof(double));
+    time_end = omp_get_wtime();
+    para_fft_pkg3d->cputime3 += time_end-time_st;
+
+   
+    time_st = omp_get_wtime();
+    fftw_execute(fftwPlan3DForward);
+    time_end = omp_get_wtime();
+    para_fft_pkg3d->cputime += time_end-time_st;
+
+    /*
+    time_st = omp_get_wtime();
+ 
+    #pragma omp parallel for private(igrid)   
+    for(igrid=0;igrid<nfft2_proc;igrid++){
+      zfft[igrid*2+1] = creal(fftw3DForwardOut[igrid])*nfft2Inv;
+      zfft[igrid*2+2] = cimag(fftw3DForwardOut[igrid])*nfft2Inv;
+    }
+    time_end = omp_get_wtime();
+    para_fft_pkg3d->cputime4 += time_end-time_st;
+    */
+  }
+
+/*-----------------------------------------------------------------------*/
+   }/*end routine*/
+/*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+/*  Dble upack the coefs */
+/*==========================================================================*/
+
+void dble_upack_coef_sum_fftw3d_filter(double *c1re,double *c1im,double *c2re,double *c2im,
+                         double *zfft,PARA_FFT_PKG3D *para_fft_pkg3d)
+
+/*=======================================================================*/
+/*            Begin subprogram:                                          */
+   {/*begin routine*/
+/*=======================================================================*/
+/*          Local variable declarations                                  */
+
+  int i,ncoef_min;
+  double tempr ,tempi;
+  double temprc,tempic;
+  int ncoef_proc   = para_fft_pkg3d->ncoef_proc;
+  int ncoef_use    = para_fft_pkg3d->ncoef_use;
+  int igeneric_opt = para_fft_pkg3d->igeneric_opt;
+  int fftFlag = 0;
+  int nfft_proc = para_fft_pkg3d->nfft_proc;
+  int nfft2_proc = nfft_proc/2;
+  int *mapFFTWFilter = para_fft_pkg3d->mapFFTWFilter;
+  int *mapConFFTWFilter = para_fft_pkg3d->mapConFFTWFilter;
+  double nfft2Inv = 1.0/nfft2_proc;
+  double pre = 2.0*nfft2Inv;
+  fftw_complex *fftw3DForwardOut = para_fft_pkg3d->fftw3DForwardOut[0];
+  fftw_complex *fftw3DBackwardOut = para_fft_pkg3d->fftw3DBackwardOut[0];
+
+#ifdef FFTW3
+  if(igeneric_opt==0)fftFlag = 1;
+#endif
+
+/*=======================================================================*/
+/*  Unpack the data :  */
+
+  ncoef_min = MIN(ncoef_proc,ncoef_use);
+
+  if(fftFlag==0){
+    #pragma omp parallel for private(i,tempr,tempi,temprc,tempic)
+    for(i=1;i<=ncoef_min;i++){
+      tempr = creal(fftw3DBackwardOut[mapFFTWFilter[i]]);
+      tempi = cimag(fftw3DBackwardOut[mapFFTWFilter[i]]);
+      temprc = creal(fftw3DBackwardOut[mapConFFTWFilter[i]]);
+      tempic = cimag(fftw3DBackwardOut[mapConFFTWFilter[i]]);
+      /*
+      tempr  = zfft[mapFFTW[i]];
+      tempi  = zfft[mapFFTW[i]+1];
+      temprc = zfft[mapConFFTW[i]];
+      tempic = zfft[mapConFFTW[i]+1];
+      */
+      c2im[i] -= (pre*(-tempr + temprc));
+      c1re[i] -= (pre*( tempr + temprc));
+
+      c1im[i] -= (pre*( tempi - tempic));
+      c2re[i] -= (pre*( tempi + tempic));
+    }/*endfor*/
+    if(ncoef_proc>ncoef_use){
+      i = ncoef_proc;
+      c1re[ncoef_proc] -= (pre*creal(fftw3DBackwardOut[0]));
+      c2re[ncoef_proc] -= (pre*cimag(fftw3DBackwardOut[0]));
+    }/*endif*/
+  }
+  else{
+    #pragma omp parallel for private(i,tempr,tempi,temprc,tempic)
+    for(i=1;i<=ncoef_min;i++){
+      tempr = creal(fftw3DForwardOut[mapFFTWFilter[i]])*nfft2Inv;
+      tempi = cimag(fftw3DForwardOut[mapFFTWFilter[i]])*nfft2Inv;
+      temprc = creal(fftw3DForwardOut[mapConFFTWFilter[i]])*nfft2Inv;
+      tempic = cimag(fftw3DForwardOut[mapConFFTWFilter[i]])*nfft2Inv;
+      /*
+      tempr  = zfft[mapFFTW[i]];
+      tempi  = zfft[mapFFTW[i]+1];
+      temprc = zfft[mapConFFTW[i]];
+      tempic = zfft[mapConFFTW[i]+1];
+      */
+      c2im[i] -= (2.0*(-tempr + temprc));
+      c1re[i] -= (2.0*( tempr + temprc));
+
+      c1im[i] -= (2.0*( tempi - tempic));
+      c2re[i] -= (2.0*( tempi + tempic));
+    }/*endfor*/
+    if(ncoef_proc>ncoef_use){
+      i = ncoef_proc;
+      c1re[ncoef_proc] -= (2.0*creal(fftw3DForwardOut[0])*nfft2Inv);
+      c2re[ncoef_proc] -= (2.0*cimag(fftw3DForwardOut[0])*nfft2Inv);
+    }/*endif*/
+  }
+
+/*-----------------------------------------------------------------------*/
+   }/*end routine*/
+/*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+/*  Sngl unpack the coefs */
+/*==========================================================================*/
+void sngl_upack_coef_sum_fftw3d_filter(double *cre,double *cim,double *zfft,
+                         PARA_FFT_PKG3D *para_fft_pkg3d)
+/*=======================================================================*/
+/*            Begin subprogram:                                          */
+   {/*begin routine*/
+/*=======================================================================*/
+/*          Local variable declarations                                  */
+
+ int i,ncoef_min;
+ int ncoef_proc = para_fft_pkg3d->ncoef_proc;
+ int ncoef_use  = para_fft_pkg3d->ncoef_use;
+  int igeneric_opt = para_fft_pkg3d->igeneric_opt;
+  int fftFlag = 0;
+  int nfft_proc = para_fft_pkg3d->nfft_proc;
+  int nfft2_proc = nfft_proc/2;
+  int *mapFFTWFilter = para_fft_pkg3d->mapFFTWFilter;
+  int *mapConFFTWFilter = para_fft_pkg3d->mapConFFTWFilter;
+  double nfft2Inv = 1.0/nfft2_proc;
+  double pre1 = 4.0*nfft2Inv;
+  fftw_complex *fftw3DForwardOut = para_fft_pkg3d->fftw3DForwardOut[0];
+  fftw_complex *fftw3DBackwardOut = para_fft_pkg3d->fftw3DBackwardOut[0];
+
+#ifdef FFTW3
+  if(igeneric_opt==0)fftFlag = 1;
+#endif
+
+/*=======================================================================*/
+/*  Unpack the data : Top half of k space only */
+
+  ncoef_min = MIN(ncoef_proc,ncoef_use);
+
+  if(fftFlag==0){
+    #pragma omp parallel for private(i)
+    for(i=1;i<=ncoef_min;i++){
+      cre[i] -= pre1*creal(fftw3DBackwardOut[mapFFTWFilter[i]]);
+      cim[i] -= pre1*cimag(fftw3DBackwardOut[mapFFTWFilter[i]]);
+    }/*endfor*/
+    if(ncoef_proc>ncoef_use){
+      i = ncoef_proc;
+      cre[i] -= 2.0*creal(fftw3DBackwardOut[0])*nfft2Inv;
+    }/*endif*/
+  }
+  else{
+    #pragma omp parallel for private(i)
+    for(i=1;i<=ncoef_min;i++){
+      cre[i] -= pre1*creal(fftw3DForwardOut[mapFFTWFilter[i]]);
+      cim[i] -= pre1*cimag(fftw3DForwardOut[mapFFTWFilter[i]]);
+    }/*endfor*/
+    if(ncoef_proc>ncoef_use){
+      i = ncoef_proc;
+      cre[i] -= 2.0*creal(fftw3DForwardOut[0])*nfft2Inv;
+    }/*endif*/
+  }
+
+/*-----------------------------------------------------------------------*/
+   }/*end routine*/
+/*==========================================================================*/
 
 

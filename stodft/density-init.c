@@ -772,6 +772,8 @@ void calcRhoFragInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*==========================================================================*/
 /* I) Copy fragment density	                    */
 
+
+  printf("rhoUpFragSumCpy %lg\n",rhoUpFragSumCpy[0]);
   memcpy(rhoUpCorrect,rhoUpFragSumCpy,rhoRealGridNum*sizeof(double));
   free(rhoUpFragSumCpy);
   if(cpLsda==1&&numStateDnProc!=0){

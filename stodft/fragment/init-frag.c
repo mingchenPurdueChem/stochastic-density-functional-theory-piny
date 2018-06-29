@@ -82,6 +82,7 @@ void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   
 
   numFragProc = fragInfo->numFragProc;
+
   *classMiniPoint = (CLASS*)cmalloc(numFragProc*sizeof(CLASS));
   *bondedMiniPoint = (BONDED*)cmalloc(numFragProc*sizeof(BONDED));
   *generalDataMiniPoint = (GENERAL_DATA*)cmalloc(numFragProc*sizeof(GENERAL_DATA));

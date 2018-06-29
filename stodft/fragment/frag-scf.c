@@ -381,7 +381,7 @@ void checkpointFragInput(CP *cp,CLASS *class)
     for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
       fscanf(fileCheckpoint,"%lg",&rhoTemp[iGrid]);
     }
-  }
+  }//endif myidState
   Barrier(commStates);
   if(numProcStates>1){
     Barrier(commStates);
@@ -419,11 +419,13 @@ void checkpointFragInput(CP *cp,CLASS *class)
     // I only have fragment checkpoint file. I need to remove the checkpoint 
     // file reading flag so that the system stochastic dft calculation 
     // is normal.
+    printf("Can not find density-checkpoint. I'll read the initial density.\n");
     if(fileCheckpointSys==NULL){
       stodftInfo->readCoeffFlag = -1;
     }
   }
   Bcast(&(stodftInfo->readCoeffFlag),1,MPI_INT,0,commStates);
+  readCoeffFlag = stodftInfo->readCoeffFlag;
   if(readCoeffFlag==-1){
     if(myidState==0){
       for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
@@ -455,6 +457,8 @@ void checkpointFragInput(CP *cp,CLASS *class)
 	memcpy(rhoDnFragSumCpy,rhoTemp,rhoRealGridTot*sizeof(double));
       }
     } 
+    if(cpLsda==1)stodftInfo->occNumber = 1;
+    else stodftInfo->occNumber = 2;
   }
   else{
     if(myidState==0){
@@ -469,10 +473,8 @@ void checkpointFragInput(CP *cp,CLASS *class)
     }
   }
 
-  
 
-
-  
+ 
 /*======================================================================*/
 /* II) Read energy and force part                                       */
 

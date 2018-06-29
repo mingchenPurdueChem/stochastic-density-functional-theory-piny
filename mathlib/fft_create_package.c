@@ -244,7 +244,7 @@ void create_para_fft_pkg3d(PARA_FFT_PKG3D *para_fft_pkg3d,
  for(i=1;i<=ncoef;i++){
    mapFFTWFilter[i] = (mapFFTW[i]-1)/2;
    mapConFFTWFilter[i] = (mapConFFTW[i]-1)/2;
-   printf("i %i mapFFTW %i %i mapConFFTWFilter %i %i\n",i,mapFFTW[i],mapFFTWFilter[i],mapConFFTW[i],mapConFFTWFilter[i]);
+   //printf("i %i mapFFTW %i %i mapConFFTWFilter %i %i\n",i,mapFFTW[i],mapFFTWFilter[i],mapConFFTW[i],mapConFFTWFilter[i]);
  }
   
 

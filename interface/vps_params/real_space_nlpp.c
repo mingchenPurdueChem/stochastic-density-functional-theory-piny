@@ -119,6 +119,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 /*==========================================================================*/
 /* I) Initialize radial function and angular channel                        */
 
+  Barrier(commStates);
   if(myidState==0){
     printf("Start smoothing real space non-local pseudopotential...\n");
   }
@@ -133,8 +134,6 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
     nkf2 = cp_sclr_fft_pkg3d_sparse->nkf2;
     nkf3 = cp_sclr_fft_pkg3d_sparse->nkf3;
   }
-
-  //printf("1111111111 nkf %i %i %i\n",nkf1,nkf2,nkf3);
 
   pseudoReal->numLMax = (int*)cmalloc(numAtomType*sizeof(int));  
   pseudoReal->numRadMax = (int*)cmalloc(numAtomType*sizeof(int));
@@ -422,7 +421,9 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 
   if(myidState==0){
     printf("Finish smoothing real space non-local pseudopotential...\n");
+    fflush(stdout);
   }
+  Barrier(commStates);
   
 /*--------------------------------------------------------------------------*/
   }/*end routine*/

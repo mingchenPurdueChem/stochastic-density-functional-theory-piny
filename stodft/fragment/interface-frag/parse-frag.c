@@ -403,6 +403,8 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   if(cp_on==1){
     if(myid_state<np_states){
       readCoefFrag(cpMini,generalDataMini,classMini,&fileNameParse,&cpParse,tot_memory);
+
+      printf("aaaaaaaaaa ccreal %lg\n",cpMini->cpcoeffs_pos[1].cre_up[448317]);
       cpMini->pseudo.pseudoReal.forceCalcFlag = 1;
       if(cpMini->pseudo.pseudoReal.pseudoRealFlag==1){
         initRealNlppWf(cpMini,classMini,generalDataMini);
@@ -412,6 +414,8 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     }//endif np_state
   }//endif cp_on
 
+  printf("bbbbbbbbbbbbbb ccreal %lg\n",cpMini->cpcoeffs_pos[1].cre_up[448317]);
+
 /*========================================================================*/
 /* XXI) Set up branch root neighbor list data                             */
 
@@ -419,10 +423,14 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     control_brnch_root_list(classMini,bondedMini);
   }//endif
 
+  printf("ccccccccccccc ccreal %lg\n",cpMini->cpcoeffs_pos[1].cre_up[448317]);
+
 /*========================================================================*/
 /* XXI) Control Molecular Decomposition       */
 
    control_molec_decomp(class,bonded,general_data);//do I need this?
+
+  printf("dddddddddddd ccreal %lg\n",cpMini->cpcoeffs_pos[1].cre_up[448317]);
 
 /*========================================================================*/
 /*   X) Initialize path integral transformations: after group communicators*/
@@ -452,6 +460,8 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
   mallMakeListsFrag(classMini,generalDataMini,bondedMini,icontrol_proc);
 
+  printf("eeeeeeeeee ccreal %lg\n",cpMini->cpcoeffs_pos[1].cre_up[448317]);
+
 /*========================================================================*/
 /* XXIII) Orthogonalize coefficients                                      */
   
@@ -460,6 +470,8 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     control_init_cp_orthog(generalDataMini,cpMini,&cpParse,cp_on,cp_md,myid);
   }//endif
   
+
+  printf("fffffffff ccreal %lg\n",cpMini->cpcoeffs_pos[1].cre_up[448317]);
 
 /*========================================================================*/
 /*  XXIV) Assign/resample the initial class velocities                    */

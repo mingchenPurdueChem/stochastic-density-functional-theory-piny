@@ -165,12 +165,23 @@ void cp_gram_schmidt_scalar(double *cre,double *cim,double *occ,
      joff = ioff[(is+js)];
      cmix  = -ovlap[js];
      anorm = 1.0 + 2.0*cmix*ovlap[js] + cmix*cmix;
+     if(anorm<=0.0){
+       printf("noooooooooooooo! anorm %i %i %lg %lg\n",is,js,anorm,ovlap[js]);
+       /*
+       for(ig=1;ig<=ncoef;ig++){
+	 printf("cre %lg %lg cim %lg %lg\n",cre[(ig+ioff[is])],cre[(ig+joff)],cim[(ig+ioff[is])],cim[(ig+joff)]);
+       }
+       */
+       fflush(stdout);
+       exit(0);
+     }
      scale = sqrt(1.0/anorm);
      for(ig=1;ig<=ncoef;ig++){
        cre[(ig+joff)] = (cre[(ig+ioff[is])]*cmix + cre[(ig+joff)])*scale;
        cim[(ig+joff)] = (cim[(ig+ioff[is])]*cmix + cim[(ig+joff)])*scale;
      }/*endfor:ig*/
    }/*endfor:js*/
+   printf("cre!!!!!!!!! %lg\n",cre[448317]);
 
   }/*endfor:is loop*/
 

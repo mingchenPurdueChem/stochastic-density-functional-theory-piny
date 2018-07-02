@@ -107,6 +107,10 @@ void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   //exit(0);
   if(myidState==0)printf("Finish parsing fragments...\n");
   if(numProcStates>1)Barrier(world);   
+  for(iFrag=0;iFrag<numFragProc;iFrag++){
+    printf("4444444444555 iFrag %i ccreal %lg\n",iFrag,(*cpMiniPoint)[iFrag].cpcoeffs_pos[1].cre_up[448317]);
+  }
+
 
   if(numFragProc>0){
     //if(fragOpt==1){
@@ -115,6 +119,10 @@ void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   }
   if(myidState==0)printf("Finish initializing fragments energy...\n");
   if(numProcStates>1)Barrier(world);
+
+  for(iFrag=0;iFrag<numFragProc;iFrag++){
+    printf("4444444444 iFrag %i ccreal %lg\n",iFrag,(*cpMiniPoint)[iFrag].cpcoeffs_pos[1].cre_up[448317]);
+  }
 
 /*==========================================================================*/
 }/*end Routine*/

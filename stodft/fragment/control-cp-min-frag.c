@@ -177,7 +177,9 @@ void controlCpMinFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
             general_data->stat_avg.cp_enl,general_data->stat_avg.cp_ehart,general_data->stat_avg.cp_exc,
             general_data->stat_avg.cp_eext);
       //exit(0);
-      
+ 
+      fflush(stdout);
+      exit(0);     
       if(iopt_cp_pw){	
         check_coef_grad_mag(cp,&(general_data->simopts),
                             &fc_mag_up,&fc_mag_dn,&ireset,&idone,

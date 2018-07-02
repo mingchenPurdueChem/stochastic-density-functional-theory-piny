@@ -774,6 +774,11 @@ void gen_wave_frag(CLASS *class,GENERAL_DATA *general_data,CP *cp,
 
   }/*endfor:ipart*/
 
+  //printf("----22222222222 creal_up %lg cimage_up %lg\n",creal_up[448317],cimag_up[448317]);
+  for(i=1;i<=ncoef;i++){
+    printf("tttttttttttest real %lg %lg image %lg %lg\n",creal_up[i],creal_up[330*ncoef+i],cimag_up[i],cimag_up[330*ncoef+i]);
+  }
+
 
 /*=========================================================================*/
 /* check overlap before  gram-schmidt                                      */
@@ -832,8 +837,6 @@ void gen_wave_frag(CLASS *class,GENERAL_DATA *general_data,CP *cp,
      }/*endif lsda*/
    }/*endif nproc*/
 
-
-
   if( nproc > 1 ){
     cp_gram_schmidt_par(creal_up,cimag_up,icoef_form_up,
                         occ_up,ioff_upt,
@@ -860,6 +863,8 @@ void gen_wave_frag(CLASS *class,GENERAL_DATA *general_data,CP *cp,
 /*=========================================================================*/
 /* transpose data back if necessary                                        */
 /* if nproc > 1 need to transpose data                                  */
+ 
+  printf("----11111111111111 creal_up %lg cimage_up %lg\n",creal_up[448317],cimag_up[448317]);
 
   if(nproc > 1){
      cp_transpose_bck(creal_up,cimag_up,&icoef_form_up,
@@ -981,6 +986,8 @@ void gen_wave_frag(CLASS *class,GENERAL_DATA *general_data,CP *cp,
    }/*endif myid*/
   }/*endif lsda*/
 #endif
+
+  printf("0000000000000 creal_up %lg cimage_up %lg\n",creal_up[448317],cimag_up[448317]);
 
 /*===========================================================================*/
 /* free locally assigned memory */

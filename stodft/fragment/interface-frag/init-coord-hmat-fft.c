@@ -722,7 +722,21 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
     xMini[iAtom+1] = xTemp[iAtom]*hmat[1]+yTemp[iAtom]*hmat[4]+zTemp[iAtom]*hmat[7];
     yMini[iAtom+1] = xTemp[iAtom]*hmat[2]+yTemp[iAtom]*hmat[5]+zTemp[iAtom]*hmat[8];
     zMini[iAtom+1] = xTemp[iAtom]*hmat[3]+yTemp[iAtom]*hmat[6]+zTemp[iAtom]*hmat[9];
+    //debug
+    /*
+    if(xMini[iAtom+1]<0.0||xMini[iAtom+1]>hmatMini[1]||yMini[iAtom+1]<0.0||yMini[iAtom+1]>hmatMini[5]||zMini[iAtom+1]<0.0||zMini[iAtom+1]>hmatMini[9]){
+      printf("bad coordinate %i %lg %lg %lg\n",iAtom+1,xMini[iAtom+1],yMini[iAtom+1],zMini[iAtom+1]);
+      printf("rootCoord %lg %lg %lg\n",rootCoord[0],rootCoord[1],rootCoord[2]);
+      printf("map ind %i\n",atomFragMap[iAtom]);
+      printf("iFrag %i Old coordinate %lg %lg %lg\n",iFrag,x[atomFragMap[iAtom]],y[atomFragMap[iAtom]],z[atomFragMap[iAtom]]);
+      fflush(stdout);
+      exit(0);
+    }
+    */
   }
+  //debug
+  //printf("3 %lg %lg %lg 18 %lg %lg %lg\n",xMini[3],yMini[3],zMini[3],xMini[18],yMini[18],zMini[18]);
+
   
 /*======================================================================*/
 /* IV) Map the grid points	                                        */

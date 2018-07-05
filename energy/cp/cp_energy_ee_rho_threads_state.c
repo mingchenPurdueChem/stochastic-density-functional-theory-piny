@@ -247,8 +247,6 @@ void cp_rho_calc_hybrid_threads_state(CPEWALD *cpewald,CPSCR *cpscr,
     iupper = nstate-1; 
   }/* endif */
 
-  printf("33333333333 %i ccreal %lg\n",44*ncoef+1,ccreal[44*ncoef+1]);
-
   time_st = omp_get_wtime();
   omp_set_num_threads(numThreads);
   #pragma omp parallel private(iThread,is,ioff,ioff2)
@@ -885,8 +883,6 @@ void coef_force_calc_hybrid_threads_state(CPEWALD *cpewald,int nstate,
     fzThreads[i] = 0.0;    
   }
 
-  printf("222222222 ccreal %lg\n",ccreal[44*ncoef+1]);
-
 /*=================================================================*/
 /*  get the forces on the coefs of each state                      */
 
@@ -1282,7 +1278,6 @@ void coef_force_calc_hybrid_threads_state(CPEWALD *cpewald,int nstate,
   tpi = 2.0*M_PI;
   eke = 0.0;
   //printf("ak2_sm[1] %lg\n",ak2_sm[1]);
-  printf("ccreal %lg fccreal ak2Kinetic %lg %lg\n",ccreal[44*ncoef+1],fccreal[44*ncoef+1],ak2Kinetic[44*ncoef+1]);
   /*
   for(is=1;is<=nstate;is++){
     ioff = (is-1)*ncoef;

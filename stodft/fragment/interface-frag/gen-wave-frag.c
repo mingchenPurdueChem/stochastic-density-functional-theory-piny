@@ -710,8 +710,6 @@ void gen_wave_frag(CLASS *class,GENERAL_DATA *general_data,CP *cp,
 	  ind = i + (istate_up - istate_up_st + is  )*ncoef;
 	  creal_up[ind]  =  helr*psi_r[is] - heli*psi_i[is];
 	  cimag_up[ind]  =  heli*psi_r[is] + helr*psi_i[is];
-	  if(i==1){
-	  }
 	}/*endif*/
       }/*endfor*/
 
@@ -774,10 +772,37 @@ void gen_wave_frag(CLASS *class,GENERAL_DATA *general_data,CP *cp,
 
   }/*endfor:ipart*/
 
-  //printf("----22222222222 creal_up %lg cimage_up %lg\n",creal_up[448317],cimag_up[448317]);
-  for(i=1;i<=ncoef;i++){
-    printf("tttttttttttest real %lg %lg image %lg %lg\n",creal_up[i],creal_up[330*ncoef+i],cimag_up[i],cimag_up[330*ncoef+i]);
+  /*
+  double sum = 0.0;
+  double norm1 = 0.0;
+  double norm2 = 0.0;
+  for(i=1;i<=ncoef-1;i++){
+    sum += creal_up[4*ncoef+i]*creal_up[34*ncoef+i]+cimag_up[4*ncoef+i]*cimag_up[34*ncoef+i];
+    norm1 += creal_up[4*ncoef+i]*creal_up[4*ncoef+i]+cimag_up[4*ncoef+i]*cimag_up[4*ncoef+i];
+    norm2 += creal_up[34*ncoef+i]*creal_up[34*ncoef+i]+cimag_up[34*ncoef+i]*cimag_up[34*ncoef+i];
   }
+  sum *= 2.0;
+  norm1 *= 2.0;
+  norm2 *= 2.0;
+  sum += creal_up[4*ncoef+ncoef]*creal_up[34*ncoef+ncoef];
+  norm1 += creal_up[4*ncoef+ncoef]*creal_up[4*ncoef+ncoef];
+  norm2 += creal_up[34*ncoef+ncoef]*creal_up[34*ncoef+ncoef];
+
+  norm1 = sqrt(norm1);
+  norm2 = sqrt(norm2);
+
+  printf("aaaaaaaaaaaa real %i %i %lg %lg\n",4*ncoef+1,34*ncoef+1,creal_up[4*ncoef+1],creal_up[34*ncoef+1]);
+
+  if(fabs(sum/(norm1*norm2)-1.0)<1.0e-10){
+    for(i=1;i<=ncoef;i++){
+      printf("tttttttttttest real %lg %lg %.8lg image %lg %lg %.8lg\n",
+	     creal_up[4*ncoef+i],creal_up[34*ncoef+i],
+	     fabs(creal_up[4*ncoef+i]-creal_up[34*ncoef+i]),
+	     cimag_up[4*ncoef+i],cimag_up[34*ncoef+i],
+	     fabs(cimag_up[4*ncoef+i]-cimag_up[34*ncoef+i]));
+    }
+  }
+  */
 
 
 /*=========================================================================*/
@@ -863,8 +888,6 @@ void gen_wave_frag(CLASS *class,GENERAL_DATA *general_data,CP *cp,
 /*=========================================================================*/
 /* transpose data back if necessary                                        */
 /* if nproc > 1 need to transpose data                                  */
- 
-  printf("----11111111111111 creal_up %lg cimage_up %lg\n",creal_up[448317],cimag_up[448317]);
 
   if(nproc > 1){
      cp_transpose_bck(creal_up,cimag_up,&icoef_form_up,
@@ -986,8 +1009,6 @@ void gen_wave_frag(CLASS *class,GENERAL_DATA *general_data,CP *cp,
    }/*endif myid*/
   }/*endif lsda*/
 #endif
-
-  printf("0000000000000 creal_up %lg cimage_up %lg\n",creal_up[448317],cimag_up[448317]);
 
 /*===========================================================================*/
 /* free locally assigned memory */

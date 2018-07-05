@@ -107,10 +107,6 @@ void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   //exit(0);
   if(myidState==0)printf("Finish parsing fragments...\n");
   if(numProcStates>1)Barrier(world);   
-  for(iFrag=0;iFrag<numFragProc;iFrag++){
-    printf("4444444444555 iFrag %i ccreal %lg\n",iFrag,(*cpMiniPoint)[iFrag].cpcoeffs_pos[1].cre_up[448317]);
-  }
-
 
   if(numFragProc>0){
     //if(fragOpt==1){
@@ -120,9 +116,6 @@ void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   if(myidState==0)printf("Finish initializing fragments energy...\n");
   if(numProcStates>1)Barrier(world);
 
-  for(iFrag=0;iFrag<numFragProc;iFrag++){
-    printf("4444444444 iFrag %i ccreal %lg\n",iFrag,(*cpMiniPoint)[iFrag].cpcoeffs_pos[1].cre_up[448317]);
-  }
 
 /*==========================================================================*/
 }/*end Routine*/
@@ -674,7 +667,7 @@ void initFragUnitCell(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP 
 /*======================================================================*/
 /* II) Read the fragment file and partition molecule to unit cells      */
 
-  partMolUC(&comMolReduce[0],numMolTot,&numGridBox[0],communicate,fragInfo);
+  partMolUC(&comMolReduce[0],numMolTot,&numGridBox[0],communicate,fragInfo,&sysRoot[0]);
   numFragTot = fragInfo->numFragTot;
   skinUCNum = fragInfo->skinUCNum;
 
@@ -1210,7 +1203,7 @@ void shiftSystem(int numMolTot,int numAtomTot,int numMolType,int *molType,
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 void partMolUC(double *comMolReduce,int numMolTot,int *numGridBox,
-		COMMUNICATE *communicate,FRAGINFO *fragInfo)
+		COMMUNICATE *communicate,FRAGINFO *fragInfo,double *sysRoot)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
@@ -1339,15 +1332,16 @@ void partMolUC(double *comMolReduce,int numMolTot,int *numGridBox,
     molIndexUC[iCell] = (int*)cmalloc(100*sizeof(int));
   }
   for(iMol=0;iMol<numMolTot;iMol++){
-    x = comMolReduce[iMol*3];
-    y = comMolReduce[iMol*3+1];
-    z = comMolReduce[iMol*3+2];
+    x = comMolReduce[iMol*3]-sysRoot[0];
+    y = comMolReduce[iMol*3+1]-sysRoot[1];
+    z = comMolReduce[iMol*3+2]-sysRoot[2];
     indx = (int)(x/xBin);
     indy = (int)(y/yBin);
     indz = (int)(z/zBin);
     //printf("indx %i indy %i indz %i\n",indx,indy,indz);
     indUC = indz*numUCB*numUCA+indy*numUCA+indx;
     //printf("indx %i indy %i indz %i indUC %i\n",indx,indy,indz,indUC);
+    //if(iMol==496)printf("496 ind x %lg y %lg z %lg xBin %lg yBin %lg zBin %lg indx %i indy %i indz %i\n",x,y,z,xBin,yBin,zBin,indx,indy,indz);
     molNumUC[indUC] += 1;
     if(molNumUC[indUC]%100==0){
       molIndexUC[indUC] = (int*)realloc(molIndexUC[indUC],

@@ -6,7 +6,7 @@ void initFragUnitCell(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 void shiftSystem(int ,int ,int ,int *,int *,int *,double *,int *,
 		 double *,int *,int *,int *,
                  int *,double *,double *,double *,CELL *);
-void partMolUC(double *,int,int *,COMMUNICATE *,FRAGINFO *);
+void partMolUC(double *,int,int *,COMMUNICATE *,FRAGINFO *,double *);
 void mapFragMol(FRAGINFO *,COMMUNICATE *,int,int *,int *);
 void mapFragMolHalf(FRAGINFO *,COMMUNICATE *,int,int *,int *,double *);
 void reorderMol(FRAGINFO *,int,int,int *,int *,int *,int*,int);

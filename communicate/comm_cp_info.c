@@ -56,6 +56,9 @@ void communicate_cp_info(GENERAL_DATA *general_data, CP *cp,CP_PARSE *cp_parse,
   Bcast(&(cp->cp_para_fft_pkg3d_lg.igeneric_opt),1,MPI_INT,0,world);
   Bcast(&(cp->cp_sclr_fft_pkg3d_sm.igeneric_opt),1,MPI_INT,0,world);
   Bcast(&(cp->cp_para_fft_pkg3d_sm.igeneric_opt),1,MPI_INT,0,world);
+  Bcast(&(cp->cp_sclr_fft_pkg3d_sparse.igeneric_opt),1,MPI_INT,0,world);
+  Bcast(&(cp->cp_para_fft_pkg3d_sparse.igeneric_opt),1,MPI_INT,0,world);
+  
   Bcast(&(cp->cp_sclr_fft_pkg3d_dens_cp_box.igeneric_opt),1,MPI_INT,0,world);
   Bcast(&(cp->cp_para_fft_pkg3d_dens_cp_box.igeneric_opt),1,MPI_INT,0,world);
 

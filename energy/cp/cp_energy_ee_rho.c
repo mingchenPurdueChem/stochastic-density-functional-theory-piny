@@ -292,7 +292,6 @@ void cp_rho_calc_hybrid_threads_force(CPEWALD *cpewald,CPSCR *cpscr,
 
 /*--------------------------------------------------------------------------*/
 /*  II) back transform to g-space  convention exp(igr)                      */
-  printf("111111 fftw3dFlag %i\n",fftw3dFlag);
 
   if(cp_dual_grid_opt >= 1){ 
     para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_dens_cp_box); 
@@ -433,7 +432,6 @@ void cp_rho_calc_hybrid_threads_force(CPEWALD *cpewald,CPSCR *cpscr,
     }
     memcpy(&rho_scr[1],&zfft[1],nfft2*sizeof(double));
   }
-  printf("11111111 rho %.16lg %.16lg\n",rho[2],rho[5185]);
   //printf("11111111 rho %.16lg %.16lg\n",rho[3],rho[10369]);
 
 /*===========================================================================*/
@@ -467,7 +465,6 @@ void cp_rho_calc_hybrid_threads_force(CPEWALD *cpewald,CPSCR *cpscr,
     }//endfor
     if((myid_state+1) == np_states){rhocr[ncoef_l_proc]*=bw_r[ncoef_l_proc];}
   }//endif pme grid
-  printf("1111111111111111 rhock %.16lg %.16lg\n",rhocr[1],rhoci[1]);
 
 /*===========================================================================*/
 /* IV) finish the density in real space by dividing by the volume            */
@@ -1118,6 +1115,8 @@ void coef_force_control(CPOPTS *cpopts,CPCOEFFS_INFO *cpcoeffs_info,
    }/*endif*/
 
  }/* end switch cp_para_opt */
+
+
    
 /*======================================================================*/
     }/*end routine*/
@@ -2221,6 +2220,7 @@ void coef_force_calc_hybrid_threads_force(CPEWALD *cpewald,int nstate,
 
 /*==========================================================================*/
 /* 9) calculate the kinetic energy term and add its contribution to the force*/
+
 
   //printf("I'm here kinetic energy!\n");
   tpi = 2.0*M_PI;

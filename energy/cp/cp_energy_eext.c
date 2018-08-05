@@ -641,7 +641,7 @@ void control_ewd_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 
   int idens_opt,ipseud_opt;
   int istart,ngo,irem,idiv;
-  int ipart,jpart,iii,itype,i;
+  int ipart,jpart,iii,itype,i,j,k;
   int icount,koff,natm_use;
   int hess_ind;
   int realSparseOpt = cpewald->realSparseOpt;
@@ -759,6 +759,7 @@ void control_ewd_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
   int myid_state    = communicate->myid_state;
   int np_states     = communicate->np_states;
   MPI_Comm comm     = communicate->comm_states;
+  //FILE *fvrecip = fopen("vrecip","w");
 
 /*======================================================================*/
 /* 0) Assign local pointers                                             */
@@ -858,6 +859,15 @@ void control_ewd_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
     fy_tmp[ipart] = 0.0;
     fz_tmp[ipart] = 0.0;
   }/*endfor*/
+
+  /*
+  for(ipart=1;ipart<=natm_use;ipart++){
+    printf("cccccccccccoord %.16lg %.16lg %.16lg\n",
+           x[ipart],y[ipart],z[ipart]);
+  }
+  fflush(stdout);
+  exit(0);
+  */
 
   if(idens_opt==0){
     for(ipart=1;ipart<=natm_use;ipart++){
@@ -1050,6 +1060,8 @@ void control_ewd_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
     }/*endif*/
 
     if( (iperd>0) &&(idens_opt==0) ){
+      //fprintf(fvrecip,"vrecip %.16lg smag %.16lg preg %.16lg %.16lg %.16lg %.16lg\n",
+      //      vrecip,smag,preg,g2,falp2,pivol);
       vrecip  = vrecip + smag*preg; 
     }
 
@@ -1088,12 +1100,23 @@ void control_ewd_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
       sumr = sumr*preg*2.0;
       sumi = sumi*preg*2.0;
       for(ipart=1;ipart<=natm_use;ipart++){
+        
 	srx = xk*(sumr*q[ipart]+2.0*rhocr[icount]*vtemp[ipart]*rvol);
 	sry = yk*(sumr*q[ipart]+2.0*rhocr[icount]*vtemp[ipart]*rvol);
 	srz = zk*(sumr*q[ipart]+2.0*rhocr[icount]*vtemp[ipart]*rvol);
 	six = xk*(sumi*q[ipart]-2.0*rhoci[icount]*vtemp[ipart]*rvol);
 	siy = yk*(sumi*q[ipart]-2.0*rhoci[icount]*vtemp[ipart]*rvol);
 	siz = zk*(sumi*q[ipart]-2.0*rhoci[icount]*vtemp[ipart]*rvol);
+        
+        //debug k space classical force only
+        /*
+        srx = xk*(sumr*q[ipart]);
+        sry = yk*(sumr*q[ipart]);
+        srz = zk*(sumr*q[ipart]);
+        six = xk*(sumi*q[ipart]);
+        siy = yk*(sumi*q[ipart]);
+        siz = zk*(sumi*q[ipart]);
+        */
 	fx_tmp[ipart] += (srx*heli[ipart]  - six*helr[ipart]);
 	fy_tmp[ipart] += (sry*heli[ipart]  - siy*helr[ipart]);
 	fz_tmp[ipart] += (srz*heli[ipart]  - siz*helr[ipart]); 

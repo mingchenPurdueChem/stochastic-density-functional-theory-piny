@@ -62,22 +62,90 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int *numElecUpFragProc = fragInfo->numElecUpFragProc;
 
   //debug
+  ncoef = cpMini[0].cpcoeffs_info.ncoef;
+  int nstates = numElecUpFragProc[0];
+  int iAtom;
+  double *cre_temp = (double*)calloc(nstates*ncoef,sizeof(double));
+  double *cim_temp = (double*)calloc(nstates*ncoef,sizeof(double));
+
+  /*
+  if(myidState==0){
+    for(iAtom=0;iAtom<classMini[0].clatoms_info.natm_tot;iAtom++){
+      printf("ccccccccccccoord %.16lg %.16lg %.16lg\n",
+	     classMini[0].clatoms_pos[1].x[iAtom+1],
+             classMini[0].clatoms_pos[1].y[iAtom+1],
+             classMini[0].clatoms_pos[1].z[iAtom+1]);
+    }
+  }
+  Barrier(commStates);
+  fflush(stdout);
+  exit(0);
+  */
+  /*
+  printf("11111111111\n");
   
-  /*  
-  sprintf(fileNameFragMO,"frag-MO-%i",myidState);
+  for(iFrag=0;iFrag<numFragProc;iFrag++){
+    printf("ncoef %i nstat %i\n",cpMini[iFrag].cpcoeffs_info.ncoef,cpMini[iFrag].cpcoeffs_info.nstate_up);
+  }
+  
+  if(myidState==0){
+    fileFragMO = fopen("frag-MO-2","r");
+    for(iState=0;iState<nstates;iState++){
+      printf("iState %i\n",iState);
+      for(icoef=0;icoef<ncoef;icoef++){
+        fscanf(fileFragMO,"%lg",&(cre_temp[iState*ncoef+icoef]));
+        fscanf(fileFragMO,"%lg",&(cim_temp[iState*ncoef+icoef]));
+      }
+    }
+    fclose(fileFragMO);
+    printf("00000000 cre_temp %.8lg cim_temp %.8lg\n",cre_temp[nstates*ncoef-1],cim_temp[nstates*ncoef-1]);
+  }
+  Barrier(commStates);
+  printf("222222222\n");
+  MPI_Bcast(cre_temp,nstates*ncoef,MPI_DOUBLE,0,commStates);
+  MPI_Bcast(cim_temp,nstates*ncoef,MPI_DOUBLE,0,commStates);
+  printf("333333333\n");
+  printf("cre_temp %.8lg cim_temp %.8lg\n",cre_temp[nstates*ncoef-1],cim_temp[nstates*ncoef-1]);
+  Barrier(commStates);
+  for(iFrag=0;iFrag<numFragProc;iFrag++){
+    printf("before cre %.8lg %.8lg cim %.8lg %.8lg\n",
+           cpMini[iFrag].cpcoeffs_pos[1].cre_up[1], 
+           cpMini[iFrag].cpcoeffs_pos[1].cre_up[nstates*ncoef],
+           cpMini[iFrag].cpcoeffs_pos[1].cim_up[1],
+           cpMini[iFrag].cpcoeffs_pos[1].cim_up[nstates*ncoef]);
+
+    memcpy(&(cpMini[iFrag].cpcoeffs_pos[1].cre_up[1]),&cre_temp[0],nstates*ncoef*sizeof(double));
+    memcpy(&(cpMini[iFrag].cpcoeffs_pos[1].cim_up[1]),&cim_temp[0],nstates*ncoef*sizeof(double));
+    printf("after cre %.8lg %.8lg cim %.8lg %.8lg\n",
+           cpMini[iFrag].cpcoeffs_pos[1].cre_up[1],
+           cpMini[iFrag].cpcoeffs_pos[1].cre_up[nstates*ncoef],
+           cpMini[iFrag].cpcoeffs_pos[1].cim_up[1],
+           cpMini[iFrag].cpcoeffs_pos[1].cim_up[nstates*ncoef]);
+  }
+  printf("444444444\n");
+  free(cre_temp);
+  free(cim_temp); 
+  */
+  /* 
+  sprintf(fileNameFragMO,"coef-si333-%i",myidState);
   if(numFragProc>0){
-    fileFragMO = fopen(fileNameFragMO,"r");
+    //fileFragMO = fopen(fileNameFragMO,"r");
     for(iFrag=0;iFrag<numFragProc;iFrag++){
+      fileFragMO = fopen(fileNameFragMO,"r"); 	
       //printf("%p\n",fileFragMO);
       ncoef = cpMini[iFrag].cpcoeffs_info.ncoef;
+      //printf("ncoef %i\n",ncoef);
+      printf("before re %.16lg im %.16lg\n",cpMini[iFrag].cpcoeffs_pos[1].cre_up[1],cpMini[iFrag].cpcoeffs_pos[1].cim_up[1]);
       for(iState=0;iState<numElecUpFragProc[iFrag];iState++){
         for(icoef=1;icoef<=ncoef;icoef++){
           fscanf(fileFragMO,"%lg",&(cpMini[iFrag].cpcoeffs_pos[1].cre_up[iState*ncoef+icoef]));
           fscanf(fileFragMO,"%lg",&(cpMini[iFrag].cpcoeffs_pos[1].cim_up[iState*ncoef+icoef]));
         }
       }
+      printf("after re %.16lg im %.16lg\n",cpMini[iFrag].cpcoeffs_pos[1].cre_up[1],cpMini[iFrag].cpcoeffs_pos[1].cim_up[1]);
+      fclose(fileFragMO);
     }
-    fclose(fileFragMO);
+    //fclose(fileFragMO);
   }
   */
   
@@ -99,6 +167,21 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     controlCpMinFrag(&classMini[iFrag],&bondedMini[iFrag],&generalDataMini[iFrag],
                      &cpMini[iFrag],&analysisMini[iFrag]);      
     
+    /*
+    if(myidState==0){
+      fileFragMO = fopen("frag-MO-2","w");
+      for(iState=0;iState<numElecUpFragProc[0];iState++){
+        for(icoef=1;icoef<=ncoef;icoef++){
+	  fprintf(fileFragMO,"%.16lg %.16lg\n",
+	  	cpMini[0].cpcoeffs_pos[1].cre_up[iState*ncoef+icoef],
+	  	cpMini[0].cpcoeffs_pos[1].cim_up[iState*ncoef+icoef]);
+        }
+      }
+    }
+    Barrier(commStates);
+    fflush(stdout);
+    exit(0);
+    */
   }//endfor iFrag
   
   

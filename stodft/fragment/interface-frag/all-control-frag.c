@@ -1783,7 +1783,6 @@ void controlSetCpEwaldFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
 
   countkvec3d(&(ewald->nktot),ecut_now,kmaxv,hmati_ewd_cp);
 
-
   nktot                   = ewald->nktot;
   cpcoeffs_info->ecut     = ecut_now;
   cpcoeffs_info->ncoef_l  = nktot+1;
@@ -1875,6 +1874,8 @@ void controlSetCpEwaldFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
     nktot_sm = cpewald->nktot_sm;
     cpcoeffs_info->ncoef   = nktot_sm+1;
     ncoef                  = nktot_sm+1;
+    printf("ecut_sm %lg ncoef %i cpcoeffs_info->ncoef_l %i\n",
+            ecut_sm,ncoef,cpcoeffs_info->ncoef_l);
     
     /*    
     ecut_sm = ecut_now;  
@@ -2052,6 +2053,11 @@ void controlSetCpEwaldFragSparse(GENERAL_DATA *generalDataMini,CLASS *classMini,
 /*==========================================================================*/
 /* III) Get inverse cell matrix and convert ewald_alpha                     */
 
+  /*
+  printf("hmat_ewd %lg %lg %lg hmat_ewd_cp %lg %lg %lg\n",
+         hmat_ewd[1],hmat_ewd[5],hmat_ewd[9],
+         hmat_ewd_cp[1],hmat_ewd_cp[5],hmat_ewd_cp[9]);
+  */
   gethinv(hmat_ewd,hmati_ewd,&deth,iperd);    
   gethinv(hmat_ewd_cp,hmati_ewd_cp,&deth_cp,iperd);    
 
@@ -2068,6 +2074,9 @@ void controlSetCpEwaldFragSparse(GENERAL_DATA *generalDataMini,CLASS *classMini,
    
   calc_cutoff(kmax_ewd,&ecut_now,&(cp_parse->cp_ecut),cp_on,
               kmax_cp,kmaxv,hmati_ewd_cp,deth_cp);  
+  /*
+  printf("ecut_now %lg kmax_cp %i %i %i kmaxv %i %i %i hmati_ewd_cp %lg %lg %lg\n",ecut_now,kmax_cp[1],kmax_cp[2],kmax_cp[3],kmaxv[1],kmaxv[2],kmaxv[3],hmati_ewd_cp[1],hmati_ewd_cp[5],hmati_ewd_cp[9]);
+  */
   
   //printf("ecut %lg\n",cp_parse->cp_ecut);
   if(kmax_cp[1]>numGridDim[0]/2-1||kmax_cp[2]>numGridDim[1]/2-1||
@@ -2081,10 +2090,8 @@ void controlSetCpEwaldFragSparse(GENERAL_DATA *generalDataMini,CLASS *classMini,
   kmaxv[2] = kmax_cp[2];
   kmaxv[3] = kmax_cp[3];
   //printf("kmaxv %i %i %i\n",kmaxv[1],kmaxv[2],kmaxv[3]);
-  //printf("kmax_cp %i %i %i\n",kmax_cp[1],kmax_cp[2],kmax_cp[3]);
 
   countkvec3d_sm(&(ewald->nktot),ecut_now,kmax_cp,hmati_ewd_cp);
-
 
   nktot                   = ewald->nktot;
   cpcoeffs_info->ecut     = ecut_now;
@@ -2142,6 +2149,15 @@ void controlSetCpEwaldFragSparse(GENERAL_DATA *generalDataMini,CLASS *classMini,
             ewald->ibrk1,ewald->ibrk2,
             gmin_spl,gmax_spl);
 
+  /*
+   for(i=1;i<=nktot;i++){
+     printf("nkabcccccccc %i %i %i %i\n",i,
+            ewald->kastr[i],ewald->kbstr[i],ewald->kcstr[i]);
+   }
+   fflush(stdout);
+   exit(0);
+  */
+
   ewald->kastr[nktot+1] = 0.0;
   ewald->kbstr[nktot+1] = 0.0;
   ewald->kcstr[nktot+1] = 0.0;
@@ -2181,6 +2197,10 @@ void controlSetCpEwaldFragSparse(GENERAL_DATA *generalDataMini,CLASS *classMini,
     nktot_sm = nktot;
     cpcoeffs_info->ncoef   = nktot_sm+1;
     ncoef                  = nktot_sm+1;
+    
+    
+    //printf("ecut_sm %lg ncoef %i cpcoeffs_info->ncoef_l %i\n",
+    //        ecut_sm,ncoef,cpcoeffs_info->ncoef_l);
     
     /*    
     ecut_sm = ecut_now;  

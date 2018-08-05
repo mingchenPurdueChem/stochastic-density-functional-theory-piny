@@ -62,7 +62,7 @@ void checkpointOutput(CP *cp, GENERAL_DATA *general_data)
 
   double vol;
   double *hmat_cp        = cell->hmat_cp;
-  double *rhoTemp    = (double*)cmalloc(rhoRealGridTot*sizeof(double));
+  double *rhoTemp;
   double *rhoUp	     = cpscr->cpscr_rho.rho_up;
   double *rhoDn          = cpscr->cpscr_rho.rho_dn;  
   double **rhoUpBank = stodftCoefPos->rhoUpBank;
@@ -81,12 +81,16 @@ void checkpointOutput(CP *cp, GENERAL_DATA *general_data)
 /*======================================================================*/
 /* II) Output current density in r space	                        */
 
+  if(myidState==0)rhoTemp = (double*)cmalloc(rhoRealGridTot*sizeof(double));
   
   if(numProcStates>1){
     Barrier(commStates);
     Gatherv(&rhoUp[1],rhoRealGridNum,MPI_DOUBLE,rhoTemp,
 	    rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,0,commStates);
     Barrier(commStates);
+    printf("myidState %i rhoRealGridNum %i rhoRealSendCounts %i rhoRealDispls %i rhoUp[1] %lg\n",
+	   myidState,rhoRealGridNum,rhoRealSendCounts[myidState],rhoRealDispls[myidState],rhoUp[1]);
+    if(myidState==0)printf("rhoTemp %lg %lg %lg\n",rhoTemp[0],rhoTemp[200000],rhoTemp[400000]);
   } 
   else{
     memcpy(rhoTemp,&rhoUp[1],rhoRealGridTot*sizeof(double));
@@ -199,7 +203,7 @@ void checkpointOutput(CP *cp, GENERAL_DATA *general_data)
     fclose(fileCheckpoint);
   }
 
-  free(rhoTemp);
+  if(myidState==0)free(rhoTemp);
 
 /*-----------------------------------------------------------------------*/
 }/*end routine*/

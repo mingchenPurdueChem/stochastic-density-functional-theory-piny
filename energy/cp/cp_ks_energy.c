@@ -574,6 +574,7 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
   if(np_states>1){Barrier(comm_states);}
   cputime(&cpu1);
 #endif
+
   control_cp_eext_recip(clatoms_info,clatoms_pos,&(cp->cpcoeffs_info),
                        &(cp->cpcoeffs_pos[ip_now]),
                        &(cp->cpewald),&(cp->cpscr),

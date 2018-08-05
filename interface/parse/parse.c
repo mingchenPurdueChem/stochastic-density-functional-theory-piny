@@ -216,12 +216,13 @@ void parse(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     read_hmat(class,general_data,&filename_parse,class_parse.istart,
               cp_dual_grid_opt_on,&(cp->cpewald.dbox_rat),
               &(cp->cpewald.box_rat));
+    //printf("Finish reading in hmat!\n");
   }/*endif*/
   if(num_proc>1){
     comm_cell_data(&(general_data->cell),
                    &(cp->cpewald.dbox_rat),
                    &(cp->cpewald.box_rat),world);
-
+    //printf("Finish communicating comm_cell_data\n");
   }/*endif*/
 
 /*========================================================================*/

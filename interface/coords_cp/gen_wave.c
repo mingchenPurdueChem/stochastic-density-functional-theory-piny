@@ -31,6 +31,7 @@
 
 #define DEBUG_GW_OFF
 //#define DEBUG_GW
+#define READ
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
@@ -611,6 +612,8 @@ void gen_wave(CLASS *class,GENERAL_DATA *general_data,CP *cp,
 
   omp_set_num_threads(numThreads);
 
+
+#ifndef READ
   for(i=1; i<=  ncoef-1; i++){
 
 /*-------------------------------------------------------------------------*/
@@ -775,6 +778,7 @@ void gen_wave(CLASS *class,GENERAL_DATA *general_data,CP *cp,
       }/*endif*/
     }/*endfor*/
   }/*endfor:ncoef*/
+#endif
 
 /*=======================================================================*/
 /*  g=0                                                                  */
@@ -860,7 +864,7 @@ void gen_wave(CLASS *class,GENERAL_DATA *general_data,CP *cp,
 /*=========================================================================*/
 /* create an orthonormal set with gram-schmidt                             */
 /* GRAM-SCHMIDT ORTHOGONALIZE                                              */
-
+#ifndef READ
   if(nproc>1){ Barrier(comm_states);}
 
   icoef_form_up = 0; /*(0) normal (1) transposed */
@@ -909,7 +913,27 @@ void gen_wave(CLASS *class,GENERAL_DATA *general_data,CP *cp,
       }
     }/*endif nproc*/
   }/*endif lsda*/
+  printf("icoef_form_up %i\n",icoef_form_up);
+#endif
 
+#ifdef READ
+  if(nproc>1){Barrier(comm_states);}
+  char fname[100];
+  FILE *finit;
+  int iState,iCoeff;
+  sprintf(fname,"init-wf-%i",myid);
+  finit = fopen(fname,"r");
+  for(iState=0;iState<nstate_up_proc;iState++){
+    for(iCoeff=1;iCoeff<=ncoef;iCoeff++){
+      //fprintf(finit,"%.16lg %.16lg\n",
+      //        creal_up[iState*ncoef+iCoeff],cimag_up[iState*ncoef+iCoeff]); 
+      fscanf(finit,"%lg %lg",
+              &creal_up[iState*ncoef+iCoeff],&cimag_up[iState*ncoef+iCoeff]); 
+    }
+  }
+  fclose(finit);
+  icoef_form_up = 1;
+#endif
   if(nproc>1){Barrier(comm_states);}
 
 /*=========================================================================*/

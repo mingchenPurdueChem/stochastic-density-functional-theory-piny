@@ -445,6 +445,7 @@ void initRealNlppWf(CP *cp,CLASS *class,GENERAL_DATA *generalData)
   PSEUDO_REAL *pseudoReal = &(pseudo->pseudoReal);
   CLATOMS_INFO *clatoms_info = &(class->clatoms_info);
   ATOMMAPS *atommaps = &(class->atommaps);
+  COMMUNICATE *commCP = &(cp->communicate);
 
   int numAtomTot = clatoms_info->natm_tot;
   int iAtom,iAng,m,iRad;
@@ -539,6 +540,8 @@ void initRealNlppWf(CP *cp,CLASS *class,GENERAL_DATA *generalData)
   }
   //fflush(stdout);
   //exit(0);
+  //printf("finish initializing nl pp wf\n");
+  //Barrier(commCP->comm_states);
   
 /*--------------------------------------------------------------------------*/
   }/*end routine*/
@@ -1506,6 +1509,7 @@ void testOverlap(CP *cp, CLASS *class, GENERAL_DATA *generalData)
   int **atomNbhdList;
   int **gridNlppMapInvTemp; //temperate list, include all grids
   int **gridNlppMapInv; //final list, include grids in gridNlppInd
+  MPI_Comm commStates   =    commCP->comm_states;
 
   double x1,y1,z1,x2,y2,z2;
   double dx,dy,dz,dx2,dy2,dz2;
@@ -1580,7 +1584,9 @@ void testOverlap(CP *cp, CLASS *class, GENERAL_DATA *generalData)
     printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
   }
   pseudoReal->overlapFlag;
+  
 
+  //Barrier(commStates);
   int gridIndex;
   int numUpdate;
   int count;

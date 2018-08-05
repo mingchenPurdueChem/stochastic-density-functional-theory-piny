@@ -251,6 +251,7 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
   calcLocExtPostScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
   //printf("fx[1] %lg fy[1] %lg fz[1] %lg\n",fx[1],fy[1],fz[1]);
   vrecipLocal = stat_avg->vrecip;
+  //printf("vrecipLocal %.16lg\n",vrecipLocal);
 
   if(numProcStates==1){
     memcpy(&fxLoc[0],&fx[1],numAtomTot*sizeof(double));
@@ -261,9 +262,11 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
     Reduce(&fx[1],&fxLoc[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
     Reduce(&fy[1],&fyLoc[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
     Reduce(&fz[1],&fzLoc[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
-    Reduce(&(stat_avg->vrecip),&vrecip,1,MPI_DOUBLE,MPI_SUM,0,commStates);
+    Reduce(&(stat_avg->vrecip),&vrecipLocal,1,MPI_DOUBLE,MPI_SUM,0,commStates);
   }
   //debug
+  printf("ffffff myidState %i fxLoc %.16lg fyLoc %.16lg fzLoc %.16lg\n",
+         myidState,fx[1],fy[1],fz[1]);
   /*
   if(myidState==0){
     for(iAtom=0;iAtom<numAtomTot;iAtom++){
@@ -570,7 +573,7 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
   if(myidState==0&&iperd>0){
     ewald3d_selfbgr_cp(clatoms_info,ewald,ptens,vol,
                       &vself,&vbgr,iperd);
-    //printf("vrecip %lg vself %lg vbgr %lg\n",stat_avg->vrecip,vself,vbgr);
+    printf("vrecip %.8lg vself %.16lg vbgr %.16lg\n",stat_avg->vrecip,vself,vbgr);
     stat_avg->vrecip += vself+vbgr;
     stat_avg->vintert = stat_avg->vrecip;
     stat_avg->vcoul = stat_avg->vrecip;
@@ -594,7 +597,24 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
   */
 
   if(myidState==0){
+    //debug
+    /*
+    for(iAtom=1;iAtom<=numAtomTot;iAtom++){
+      fx[iAtom] = 0.0;
+      fy[iAtom] = 0.0;
+      fz[iAtom] = 0.0;
+    }
+    printf("stat_avg->vintert %lg\n",stat_avg->vintert);
+    */
+    printf("stat_avg->vintert %lg\n",stat_avg->vintert);
     energy_control_inter_real(class,bonded,general_data);
+
+    //debug
+    /*
+    for(iAtom=1;iAtom<=numAtomTot;iAtom++){
+      printf("aaaall nuclei %.16lg %.16lg %.16lg\n",fx[iAtom],fy[iAtom],fz[iAtom]);
+    }
+    */
     memcpy(&fxNuclei[0],&fx[1],numAtomTot*sizeof(double));
     memcpy(&fyNuclei[0],&fy[1],numAtomTot*sizeof(double));
     memcpy(&fzNuclei[0],&fz[1],numAtomTot*sizeof(double));

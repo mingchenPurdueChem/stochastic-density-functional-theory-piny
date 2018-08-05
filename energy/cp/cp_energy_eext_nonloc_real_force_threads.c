@@ -119,7 +119,7 @@ void nlppKBRealEnergyForceThreads(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 
 /*======================================================================*/
 /* I) Allocate local memory                                             */
-
+  
   numGridMax = numGridNlppMap[0];
   for(iPart=0;iPart<numAtom;iPart++){
     if(numGridNlppMap[iPart]>numGridMax)numGridMax = numGridNlppMap[iPart];

@@ -1206,6 +1206,7 @@ void countkvec3d_sm(int *nktot, double ecut, int *kmax_cp, double *hmatik )
 	yk = (aka * hmatik[4] + akb * hmatik[5] + akc * hmatik[6]) * tpi;
 	zk = (aka * hmatik[7] + akb * hmatik[8] + akc * hmatik[9]) * tpi;
 	try = (xk * xk + yk * yk + zk * zk) * .5;
+	//printf("aka %lg akb %lg akc %lg try %.16lg ecut %.16lg\n",aka,akb,akc,try,ecut);
 	if (try > ecut) {
 	  break;
 	}
@@ -1218,6 +1219,20 @@ void countkvec3d_sm(int *nktot, double ecut, int *kmax_cp, double *hmatik )
       }
     }
   }
+  //debug
+  /*
+  aka = 0.0;
+  akb = 0.0;
+  akc = 37.0;
+  xk = (aka * hmatik[1] + akb * hmatik[2] + akc * hmatik[3]) * tpi;
+  yk = (aka * hmatik[4] + akb * hmatik[5] + akc * hmatik[6]) * tpi;
+  zk = (aka * hmatik[7] + akb * hmatik[8] + akc * hmatik[9]) * tpi;
+   try = (xk * xk + yk * yk + zk * zk) * .5;
+  printf("hmatik %.16lg %.16lg %.16lg %.16lg %.16lg %.16lg %.16lg %.16lg %.16lg xk %.16lg yk %.16lg zk %.16lg try %.16lg\n",
+          hmatik[1],hmatik[2],hmatik[3],hmatik[4],
+          hmatik[5],hmatik[6],hmatik[7],hmatik[8],
+          hmatik[9],xk,yk,zk,try);
+  */
   *nktot = icount;
 
 /*--------------------------------------------------------------------------*/

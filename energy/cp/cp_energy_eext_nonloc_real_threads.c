@@ -57,7 +57,7 @@ void controlEnergyNlppRealThreads(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   int threadFlag = cpopts->threadFlag;
   double *wfReal,*wfForceReal;
   //timing
-  STODFTINFO *stodftInfo = cp->stodftInfo;
+  //STODFTINFO *stodftInfo = cp->stodftInfo;
   double time_st,time_end;
 
   wfReal = (double*)cmalloc(numGrid*sizeof(double));
@@ -71,7 +71,7 @@ void controlEnergyNlppRealThreads(CP *cp,CLASS *class,GENERAL_DATA *generalData,
     wfForceReal[iGrid] = 0.0;
   }
   time_end = omp_get_wtime();
-  stodftInfo->cputime_new[1] += time_end-time_st;  
+  //stodftInfo->cputime_new[1] += time_end-time_st;  
 
   nlppKBRealEnergyThreads(cp,class,generalData,wfReal,wfForceReal,cpParaFftPkg3d);
 
@@ -87,7 +87,7 @@ void controlEnergyNlppRealThreads(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 #endif
   }
   time_end = omp_get_wtime();
-  stodftInfo->cputime_new[2] += time_end-time_st;
+  //stodftInfo->cputime_new[2] += time_end-time_st;
 
 
   if(flag==1){//double
@@ -98,7 +98,7 @@ void controlEnergyNlppRealThreads(CP *cp,CLASS *class,GENERAL_DATA *generalData,
       wfForceReal[iGrid] = 0.0;
     }
     time_end = omp_get_wtime();
-    stodftInfo->cputime_new[3] += time_end-time_st;
+    //stodftInfo->cputime_new[3] += time_end-time_st;
 
     nlppKBRealEnergyThreads(cp,class,generalData,wfReal,wfForceReal,cpParaFftPkg3d);
   
@@ -114,7 +114,7 @@ void controlEnergyNlppRealThreads(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 #endif
     }
     time_end = omp_get_wtime();
-    stodftInfo->cputime_new[4] += time_end-time_st;
+    //stodftInfo->cputime_new[4] += time_end-time_st;
   }//endif
   free(wfReal);
   free(wfForceReal);
@@ -209,7 +209,7 @@ void nlppKBRealEnergyThreads(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   double **dotImAll = pseudoReal->dotImAll;
 
   //Test multithread
-  STODFTINFO *stodftInfo = cp->stodftInfo;
+  //STODFTINFO *stodftInfo = cp->stodftInfo;
   double time_st,time_end;
 
 /*======================================================================*/
@@ -230,7 +230,7 @@ void nlppKBRealEnergyThreads(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   volInv = 1.0/vol;
   volElem = vol/numGridTot;
   time_end = omp_get_wtime();
-  stodftInfo->cputime_new[5] += time_end-time_st;
+  //stodftInfo->cputime_new[5] += time_end-time_st;
   
 
 /*======================================================================*/
@@ -243,7 +243,7 @@ void nlppKBRealEnergyThreads(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   }
   for(iThread=0;iThread<numThreads;iThread++)energyThreads[iThread] = 0.0;
   time_end = omp_get_wtime();
-  stodftInfo->cputime_new[6] += time_end-time_st;
+  //stodftInfo->cputime_new[6] += time_end-time_st;
 
   //cputime(&time_st);
   time_st = omp_get_wtime();
@@ -312,7 +312,7 @@ void nlppKBRealEnergyThreads(CP *cp,CLASS *class,GENERAL_DATA *generalData,
     }//endfor iAtom
   }//end omp
   time_end = omp_get_wtime();
-  stodftInfo->cputime0 += time_end-time_st;
+  //stodftInfo->cputime0 += time_end-time_st;
 
   int numUpdate,atomInd,gridInd2;
   int numGridNlppAll = pseudoReal->numGridNlppAll;
@@ -347,7 +347,7 @@ void nlppKBRealEnergyThreads(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   }
   //cputime(&time_end);
   time_end = omp_get_wtime();
-  stodftInfo->cputime1 += time_end-time_st;
+  //stodftInfo->cputime1 += time_end-time_st;
   
 
   if(energyCalcFlag==1){

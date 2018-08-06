@@ -698,6 +698,7 @@ void checkpointInputDist(CP *cp,GENERAL_DATA *general_data,CLASS *class)
 /*======================================================================*/
 /* I) Read SCF step and DIIS step                                       */
 
+  if(numProcStates>1)Barrier(commStates);
   sprintf(fileName,"density-checkpoint-%i",myidState);
 
   fileCheckpoint = fopen(fileName,"r");
@@ -823,6 +824,7 @@ void checkpointInputDist(CP *cp,GENERAL_DATA *general_data,CLASS *class)
     testWfMinRe[numCoeff-1] = 1.0;
     testWfMinIm[numCoeff-1] = 0.0;
   }
+  if(numProcStates>1)Barrier(commStates);
 
 
 /*-----------------------------------------------------------------------*/

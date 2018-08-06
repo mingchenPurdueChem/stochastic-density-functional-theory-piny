@@ -2243,7 +2243,7 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
  /*             Local variable declarations                                */
   
   unsigned int i;
-  *num_dict = 28;
+  *num_dict = 29;
   *dict = (DICT_WORD *)cmalloc(*num_dict*sizeof(DICT_WORD))-1;
 
   for (i=1;i<=*num_dict;i++) {
@@ -2363,6 +2363,10 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
   strcpy((*dict)[28].error_mes,"Please input a positive frequency");
   strcpy((*dict)[28].keyword,"checkpoint_write_freq");
   strcpy((*dict)[28].keyarg,"10");
+
+  strcpy((*dict)[29].error_mes,"Please select 'yes' or 'no' for parallel read/wirte checkpoint file");
+  strcpy((*dict)[29].keyword,"checkpoint_par");
+  strcpy((*dict)[29].keyarg,"no");
 
  /*========================================================================*/
  } /* end routine set_sim_dict_harmonic */

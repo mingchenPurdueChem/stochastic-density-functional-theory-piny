@@ -473,6 +473,7 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int numCoeffDnTotal = numStateDn*numCoeff;
   int scfStopFlag     = 0;
   int checkpointWriteFreq = stodftInfo->checkpointWriteFreq;
+  int checkpointParFlag = stodftInfo->checkpointParFlag;
   int readCoeffFlag = stodftInfo->readCoeffFlag;
   MPI_Comm commStates   =    communicate->comm_states;
 
@@ -769,7 +770,8 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /* v) Write checkpoint file if necessary                                */
 
     if(iScf%checkpointWriteFreq==0){
-      checkpointOutput(cp,general_data);
+      if(checkpointParFlag==0)checkpointOutput(cp,general_data);
+      else checkpointOutputDist(cp,general_data);
     }
 
 /*----------------------------------------------------------------------*/

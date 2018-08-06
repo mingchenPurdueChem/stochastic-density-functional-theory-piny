@@ -4710,6 +4710,10 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   sscanf(dict[28].keyarg,"%lg",&rka);
   stodftInfo->checkpointWriteFreq = (int)rka;
 
+  /*-----------------------------------------------------------------------*/
+  /*  29)\checkpoint_par{#} */
+  if(strcasecmp(dict[29].keyarg,"no")==0)stodftInfo->checkpointParFlag = 0;
+  if(strcasecmp(dict[29].keyarg,"yes")==0)stodftInfo->checkpointParFlag = 1;
 
 /*=======================================================================*/
 /* Check the conflicate options						 */

@@ -586,6 +586,9 @@ typedef struct stodftInfo{
 				    /*	    threading			        */
   int checkpointWriteFreq;	    /* Num: number of SCF steps for writing	*/
 				    /*	    check point file.			*/
+  int checkpointParFlag;            /* Opt: choose to read/write checkpoint file*/
+                                    /*      sequentially or parallel.           */
+                                    /*      0=seq, 1=par                        */
   int *densityMap;		    /* Lst: Map the density to different proc	*/
 				    /*	    We store the density for different  */
 				    /*	    chemical potential on different	*/

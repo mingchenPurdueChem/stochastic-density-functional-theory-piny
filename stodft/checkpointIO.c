@@ -495,3 +495,337 @@ void checkpointInput(CP *cp,GENERAL_DATA *general_data,CLASS *class)
 }/*end routine*/
 /*==========================================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void checkpointOutputDist(CP *cp, GENERAL_DATA *general_data)
+/*=======================================================================*/
+/*            Begin subprogram:                                          */
+{   /*begin routine*/
+/*************************************************************************/
+/* This function output the checkpoint file, including current SCF step, */
+/* number of steps in diis bank, diis and error bank. Distributed ver.   */
+/* Each process outputs its own data.                                    */
+/*************************************************************************/
+
+  STODFTINFO *stodftInfo        = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  COMMUNICATE *communicate      = &(cp->communicate);
+  CPSCR *cpscr			= &(cp->cpscr);
+  CELL *cell			= &(general_data->cell);
+  CPOPTS *cpopts		= &(cp->cpopts);
+ 
+  int myidState		= communicate->myid_state;
+  int numProcStates	= communicate->np_states;
+  int numDiis		= stodftInfo->numDiis;
+  int numDiisNow	= stodftInfo->numDiisNow;
+  int numDiisOutput;
+  int rhoRealGridNum	= stodftInfo->rhoRealGridNum;
+  int rhoRealGridTot	= stodftInfo->rhoRealGridTot;
+  int cpLsda            = cpopts->cp_lsda;
+  int iScf		= stodftInfo->iScf;
+  int iDiis,iGrid;
+  MPI_Comm commStates = communicate->comm_states;
+  char filename[100];
+ 
+  int *rhoRealSendCounts = stodftInfo->rhoRealSendCounts;
+  int *rhoRealDispls = stodftInfo->rhoRealDispls;
+    
+  FILE *fileCheckpoint;
+
+  double vol;
+  double *hmat_cp        = cell->hmat_cp;
+  double *rhoTemp;
+  double *rhoUp	     = cpscr->cpscr_rho.rho_up;
+  double *rhoDn          = cpscr->cpscr_rho.rho_dn;  
+  double **rhoUpBank = stodftCoefPos->rhoUpBank;
+  double **rhoDnBank = stodftCoefPos->rhoDnBank;
+  double **rhoUpErr  = stodftCoefPos->rhoUpErr;
+  double **rhoDnErr  = stodftCoefPos->rhoDnErr;
+
+/*======================================================================*/
+/* I) First output SCF step and DIIS step                               */
+ 
+  if(numProcStates>1)Barrier(commStates);
+
+  sprintf(filename,"density-checkpoint-%i",myidState);
+  fileCheckpoint = fopen(filename,"w");
+  fprintf(fileCheckpoint,"%i %i\n",iScf,numDiisNow);  
+
+/*======================================================================*/
+/* II) Output current density in r space	                        */
+
+  
+
+  rhoTemp = (double*)cmalloc(rhoRealGridNum*sizeof(double));
+  vol = getdeth(hmat_cp);
+  for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+    rhoTemp[iGrid] = rhoUp[iGrid+1]*vol;
+    fprintf(fileCheckpoint,"%.16lg\n",rhoTemp[iGrid]);
+  }
+  
+  if(cpLsda==1){
+    for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+      rhoTemp[iGrid] = rhoDn[iGrid+1]*vol;
+      fprintf(fileCheckpoint,"%.16lg\n",rhoTemp[iGrid]);
+    } 
+  }
+  
+
+/*======================================================================*/
+/* III) Output DIIS bank and error bank		                        */
+
+  
+  if(numDiisNow<numDiis)numDiisOutput = numDiisNow+1;
+  else numDiisOutput = numDiisNow;
+
+  for(iDiis=0;iDiis<numDiisOutput;iDiis++){
+    for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+      fprintf(fileCheckpoint,"%.16lg\n",rhoUpBank[iDiis][iGrid]);
+    }
+  }
+  for(iDiis=0;iDiis<numDiisNow;iDiis++){
+    for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+      fprintf(fileCheckpoint,"%.16lg\n",rhoUpErr[iDiis][iGrid]);
+    }
+  }
+  if(cpLsda==1){
+    for(iDiis=0;iDiis<numDiisOutput;iDiis++){
+      for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+	fprintf(fileCheckpoint,"%.16lg\n",rhoDnBank[iDiis][iGrid]);
+      }
+    }//endfor iDiis
+    for(iDiis=0;iDiis<numDiisNow;iDiis++){
+      for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+	fprintf(fileCheckpoint,"%.16lg\n",rhoDnErr[iDiis][iGrid]);
+      }
+    }//endfor iDiis
+  }//endif cpLsda
+  
+
+  fclose(fileCheckpoint);
+
+  free(rhoTemp);
+
+  if(numProcStates>1)Barrier(commStates);
+
+/*-----------------------------------------------------------------------*/
+}/*end routine*/
+/*==========================================================================*/
+
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void checkpointInputDist(CP *cp,GENERAL_DATA *general_data,CLASS *class)
+/*=======================================================================*/
+/*            Begin subprogram:                                          */
+{   /*begin routine*/
+/*************************************************************************/
+/* This function output the checkpoint file, including current SCF step, */
+/* number of steps in diis bank, diis and error bank.                    */
+/*************************************************************************/
+
+  STODFTINFO *stodftInfo        = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  COMMUNICATE *communicate      = &(cp->communicate);
+  CPEWALD *cpewald		= &(cp->cpewald);
+  CPSCR *cpscr			= &(cp->cpscr);
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  CPCOEFFS_POS  *cpcoeffs_pos   = &(cp->cpcoeffs_pos[1]);
+  CPOPTS *cpopts		= &(cp->cpopts);
+  EWALD *ewald			= &(general_data->ewald);
+  CELL *cell		        = &(general_data->cell);
+  PSEUDO *pseudo		= &(cp->pseudo);
+  CLATOMS_POS *clatoms_pos      = &(class->clatoms_pos[1]);
+  CLATOMS_INFO *clatoms_info    = &(class->clatoms_info);
+  ATOMMAPS *atommaps            = &(class->atommaps);
+  EWD_SCR      *ewd_scr         = &(class->ewd_scr);
+  FOR_SCR      *for_scr         = &(class->for_scr);  
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
+
+  int myidState         = communicate->myid_state;
+  int numProcStates     = communicate->np_states;
+  int numDiisNow,numDiisOutput;
+  int numDiis		= stodftInfo->numDiis;
+  int rhoRealGridNum    = stodftInfo->rhoRealGridNum;
+  int rhoRealGridTot    = stodftInfo->rhoRealGridTot;
+  int cpGGA		= cpopts->cp_gga;
+  int cpLsda            = cpopts->cp_lsda;  
+  int cpDualGridOptOn	= cpopts->cp_dual_grid_opt;
+  int numInterpPmeDual	= pseudo->n_interp_pme_dual;
+  int numCoeff		= cpcoeffs_info->ncoef;
+  int iScf,iDiis,iGrid,iCoeff;
+
+  MPI_Comm commStates = communicate->comm_states;
+
+  int *rhoRealSendCounts = stodftInfo->rhoRealSendCounts;
+  int *rhoRealDispls = stodftInfo->rhoRealDispls;
+
+  char fileName[100];
+  FILE *fileCheckpoint;
+
+  double *rhoCoeffReUp   = cpscr->cpscr_rho.rhocr_up;
+  double *rhoCoeffImUp   = cpscr->cpscr_rho.rhoci_up;
+  double *rhoCoeffReDn   = cpscr->cpscr_rho.rhocr_dn;
+  double *rhoCoeffImDn   = cpscr->cpscr_rho.rhoci_dn;
+  double *rhoUp		 = cpscr->cpscr_rho.rho_up;
+  double *rhoDn          = cpscr->cpscr_rho.rho_dn;
+  double *rhoCoeffReUpDensCpBox = cpscr->cpscr_rho.rhocr_up_dens_cp_box;
+  double *rhoCoeffImUpDensCpBox = cpscr->cpscr_rho.rhoci_up_dens_cp_box;
+  double *rhoCoeffReDnDensCpBox = cpscr->cpscr_rho.rhocr_dn_dens_cp_box;
+  double *rhoCoeffImDnDensCpBox = cpscr->cpscr_rho.rhoci_dn_dens_cp_box;
+  double *divRhoxUp       = cpscr->cpscr_grho.d_rhox_up;
+  double *divRhoyUp       = cpscr->cpscr_grho.d_rhoy_up;
+  double *divRhozUp       = cpscr->cpscr_grho.d_rhoz_up;
+  double *d2RhoUp         = cpscr->cpscr_grho.d2_rho_up;
+  double *divRhoxDn       = cpscr->cpscr_grho.d_rhox_dn;
+  double *divRhoyDn       = cpscr->cpscr_grho.d_rhoy_dn;
+  double *divRhozDn       = cpscr->cpscr_grho.d_rhoz_dn;
+  double *d2RhoDn         = cpscr->cpscr_grho.d2_rho_dn;
+  double *testWfMaxRe	  = stodftCoefPos->testWfMaxRe;
+  double *testWfMaxIm	  = stodftCoefPos->testWfMaxIm;
+  double *testWfMinRe     = stodftCoefPos->testWfMinRe;
+  double *testWfMinIm     = stodftCoefPos->testWfMinIm;
+  double *rhoUpOld = stodftCoefPos->rhoUpOld;
+  double *rhoDnOld = stodftCoefPos->rhoDnOld;
+
+  double **rhoUpBank = stodftCoefPos->rhoUpBank;
+  double **rhoDnBank = stodftCoefPos->rhoDnBank;
+  double **rhoUpErr  = stodftCoefPos->rhoUpErr;
+  double **rhoDnErr  = stodftCoefPos->rhoDnErr;
+
+/*======================================================================*/
+/* I) Read SCF step and DIIS step                                       */
+
+  sprintf(fileName,"density-checkpoint-%i",myidState);
+
+  fileCheckpoint = fopen(fileName,"r");
+  fscanf(fileCheckpoint,"%i",&stodftInfo->iScf);
+  fscanf(fileCheckpoint,"%i",&stodftInfo->numDiisNow);   
+
+  numDiisNow = stodftInfo->numDiisNow;
+  iScf = stodftInfo->iScf;
+
+/*======================================================================*/
+/* II) Read real space density                                          */
+
+  for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+    fscanf(fileCheckpoint,"%lg",&rhoUp[1+iGrid]);
+  }
+  memcpy(rhoUpOld,&rhoUp[1],rhoRealGridNum*sizeof(double));
+  calcRhoStoRecipFullg(cpewald,cpscr,cpcoeffs_info,ewald,cell,
+                     rhoCoeffReUp,rhoCoeffImUp,rhoUp,
+		     rhoCoeffReUpDensCpBox,rhoCoeffImUpDensCpBox,
+                     divRhoxUp,divRhoyUp,divRhozUp,d2RhoUp,cpGGA,
+		     cpDualGridOptOn,numInterpPmeDual,
+                     communicate,&(cp->cp_para_fft_pkg3d_lg),
+		     &(cp->cp_para_fft_pkg3d_dens_cp_box));
+  if(cpLsda==1){
+    for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+      fscanf(fileCheckpoint,"%lg",&rhoDn[1+iGrid]);
+    }
+    memcpy(rhoDnOld,&rhoDn[1],rhoRealGridNum*sizeof(double));
+    calcRhoStoRecipFullg(cpewald,cpscr,cpcoeffs_info,ewald,cell,
+			 rhoCoeffReDn,rhoCoeffImDn,rhoDn,
+			 rhoCoeffReDnDensCpBox,rhoCoeffImDnDensCpBox,
+			 divRhoxDn,divRhoyDn,divRhozDn,d2RhoDn,cpGGA,
+			 cpDualGridOptOn,numInterpPmeDual,
+			 communicate,&(cp->cp_para_fft_pkg3d_lg),
+			 &(cp->cp_para_fft_pkg3d_dens_cp_box));
+  }//endif cpLsda
+
+/*======================================================================*/
+/* II) Generating Pseudopotential List                                  */
+/*     (This should be done in calcRhoInit. However, we skip this	*/
+/*      function when we read checkpoint file. So we need do it here.)  */
+
+  
+  if(myidState==0){
+    PRINT_LINE_STAR;
+    printf("Start Generating Pseudopotential List\n");
+    PRINT_LINE_DASH;
+  }
+
+  if(stodftInfo->vpsAtomListFlag==0||cpDualGridOptOn>= 1){
+    control_vps_atm_list(pseudo,cell,clatoms_pos,clatoms_info,
+                         atommaps,ewd_scr,for_scr,cpDualGridOptOn,
+                         stodftInfo->vpsAtomListFlag);
+    stodftInfo->vpsAtomListFlag = 1;
+  }
+
+  if(myidState==0){
+    PRINT_LINE_DASH;
+    printf("Finish Generating Pseudopotential List\n");
+    PRINT_LINE_STAR;
+  }
+
+/*======================================================================*/
+/* II) Generating Occupatation number                                   */
+/*     (This should be done in calcRhoInit. However, we skip this       */
+/*      function when we read checkpoint file. So we need do it here.)  */
+
+  if(cpLsda==1)stodftInfo->occNumber = 1;
+  else stodftInfo->occNumber = 2;
+
+/*======================================================================*/
+/* III) Read Diis                                                       */
+
+  for(iDiis=0;iDiis<numDiis;iDiis++){
+    rhoUpBank[iDiis] = (double*)cmalloc(rhoRealGridNum*sizeof(double));
+    rhoUpErr[iDiis] = (double*)cmalloc(rhoRealGridNum*sizeof(double));
+  }
+  if(numDiisNow<numDiis)numDiisOutput = numDiisNow+1;
+  else numDiisOutput = numDiisNow;
+
+  for(iDiis=0;iDiis<numDiisOutput;iDiis++){
+    for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+      fscanf(fileCheckpoint,"%lg",&rhoUpBank[iDiis][iGrid]);
+    }
+  }
+  for(iDiis=0;iDiis<numDiisNow;iDiis++){
+    for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+      fscanf(fileCheckpoint,"%lg",&rhoUpErr[iDiis][iGrid]);
+    }
+  }
+  if(cpLsda==1){
+    for(iDiis=0;iDiis<numDiisOutput;iDiis++){
+      for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+	fscanf(fileCheckpoint,"%lg",&rhoDnBank[iDiis][iGrid]);
+      }
+    }
+    for(iDiis=0;iDiis<numDiisNow;iDiis++){
+      for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+	fscanf(fileCheckpoint,"%lg",&rhoDnErr[iDiis][iGrid]);
+      }
+    }
+  }
+  
+  fclose(fileCheckpoint);
+  if(myidState==0){
+    printf("Finish reading checkpoint file...\n");
+  }
+
+/*======================================================================*/
+/* IV) Generate a random guess for calculate H_KS spetral range         */
+
+  if(myidState==0){
+    for(iCoeff=0;iCoeff<numCoeff-1;iCoeff++){
+      testWfMaxRe[iCoeff] = 1.0;
+      testWfMaxIm[iCoeff] = -1.0;
+    }
+    testWfMaxRe[numCoeff-1] = 1.0;
+    testWfMaxIm[numCoeff-1] = 0.0;
+    for(iCoeff=0;iCoeff<numCoeff-1;iCoeff++){
+      testWfMinRe[iCoeff] = 1.0;
+      testWfMinIm[iCoeff] = -1.0;
+    }
+    testWfMinRe[numCoeff-1] = 1.0;
+    testWfMinIm[numCoeff-1] = 0.0;
+  }
+
+
+/*-----------------------------------------------------------------------*/
+}/*end routine*/
+/*==========================================================================*/
+

@@ -180,5 +180,7 @@ void calcEnergyForce(CLASS *,GENERAL_DATA *,CP *,BONDED *,CPCOEFFS_POS *,CLATOMS
 /* checkpointIO.c */
 void checkpointOutput(CP *,GENERAL_DATA *);
 void checkpointInput(CP *,GENERAL_DATA *,CLASS *);
+void checkpointOutputDist(CP *,GENERAL_DATA *);
+void checkpointInputDist(CP *,GENERAL_DATA *,CLASS *);
 
 

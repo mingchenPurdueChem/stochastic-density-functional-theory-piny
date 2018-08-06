@@ -78,6 +78,7 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int reInitFlag;
   int filterDiagFlag;
   int calcFragFlag;
+  int checkpointParFlag;
 
   double elecEnergy,elecEnergyOld,elecEnergyOldTemp,elecEnergyTemp;
   double deltaEnergy;
@@ -235,7 +236,9 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }
   
   if(readCoeffFlag==-3){
-    checkpointInput(cp,general_data,class); 
+    checkpointParFlag = stodftInfo->checkpointParFlag;
+    if(checkpointParFlag==0)checkpointInput(cp,general_data,class); 
+    else checkpointInputDist(cp,general_data,class);
   }
   if(filterDiagFlag==0){
     if(stodftInfo->chemPotOpt==1)scfStodftInterp(class,bonded,general_data,cp,ip_now);

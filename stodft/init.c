@@ -79,6 +79,7 @@ void commStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
   Bcast(&(stodftInfo->numDiis),1,MPI_INT,0,world);
   Bcast(&(stodftInfo->numStepMix),1,MPI_INT,0,world);
   Bcast(&(stodftInfo->checkpointWriteFreq),1,MPI_INT,0,world);
+  Bcast(&(stodftInfo->checkpointParFlag),1,MPI_INT,0,world);
 
   //frag
   Bcast(&(stodftInfo->calcFragFlag),1,MPI_INT,0,world);

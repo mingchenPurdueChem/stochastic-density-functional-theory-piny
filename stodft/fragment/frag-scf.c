@@ -81,51 +81,36 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   fflush(stdout);
   exit(0);
   */
-  /*
-  printf("11111111111\n");
-  
-  for(iFrag=0;iFrag<numFragProc;iFrag++){
-    printf("ncoef %i nstat %i\n",cpMini[iFrag].cpcoeffs_info.ncoef,cpMini[iFrag].cpcoeffs_info.nstate_up);
-  }
-  
+  printf("numFragProc %i nstates %i ncoef %i\n",numFragProc,nstates,ncoef);
+  printf("before read coef %lg %lg\n",
+         cpMini[0].cpcoeffs_pos[1].cre_up[1000],
+         cpMini[0].cpcoeffs_pos[1].cim_up[1000]);
   if(myidState==0){
     fileFragMO = fopen("frag-MO-2","r");
     for(iState=0;iState<nstates;iState++){
-      printf("iState %i\n",iState);
       for(icoef=0;icoef<ncoef;icoef++){
         fscanf(fileFragMO,"%lg",&(cre_temp[iState*ncoef+icoef]));
         fscanf(fileFragMO,"%lg",&(cim_temp[iState*ncoef+icoef]));
       }
     }
     fclose(fileFragMO);
-    printf("00000000 cre_temp %.8lg cim_temp %.8lg\n",cre_temp[nstates*ncoef-1],cim_temp[nstates*ncoef-1]);
   }
   Barrier(commStates);
-  printf("222222222\n");
   MPI_Bcast(cre_temp,nstates*ncoef,MPI_DOUBLE,0,commStates);
   MPI_Bcast(cim_temp,nstates*ncoef,MPI_DOUBLE,0,commStates);
-  printf("333333333\n");
-  printf("cre_temp %.8lg cim_temp %.8lg\n",cre_temp[nstates*ncoef-1],cim_temp[nstates*ncoef-1]);
   Barrier(commStates);
   for(iFrag=0;iFrag<numFragProc;iFrag++){
-    printf("before cre %.8lg %.8lg cim %.8lg %.8lg\n",
-           cpMini[iFrag].cpcoeffs_pos[1].cre_up[1], 
-           cpMini[iFrag].cpcoeffs_pos[1].cre_up[nstates*ncoef],
-           cpMini[iFrag].cpcoeffs_pos[1].cim_up[1],
-           cpMini[iFrag].cpcoeffs_pos[1].cim_up[nstates*ncoef]);
 
     memcpy(&(cpMini[iFrag].cpcoeffs_pos[1].cre_up[1]),&cre_temp[0],nstates*ncoef*sizeof(double));
     memcpy(&(cpMini[iFrag].cpcoeffs_pos[1].cim_up[1]),&cim_temp[0],nstates*ncoef*sizeof(double));
-    printf("after cre %.8lg %.8lg cim %.8lg %.8lg\n",
-           cpMini[iFrag].cpcoeffs_pos[1].cre_up[1],
-           cpMini[iFrag].cpcoeffs_pos[1].cre_up[nstates*ncoef],
-           cpMini[iFrag].cpcoeffs_pos[1].cim_up[1],
-           cpMini[iFrag].cpcoeffs_pos[1].cim_up[nstates*ncoef]);
   }
-  printf("444444444\n");
   free(cre_temp);
   free(cim_temp); 
-  */
+
+  printf("after read coef %lg %lg\n",
+         cpMini[0].cpcoeffs_pos[1].cre_up[1000],
+         cpMini[0].cpcoeffs_pos[1].cim_up[1000]);
+ 
   /* 
   sprintf(fileNameFragMO,"coef-si333-%i",myidState);
   if(numFragProc>0){
@@ -405,12 +390,16 @@ void checkpointFragInput(CP *cp,CLASS *class)
   int numProcStates         = commCP->np_states;
   int rhoRealGridNum        = stodftInfo->rhoRealGridNum;
   int rhoRealGridTot        = stodftInfo->rhoRealGridTot;
+  int checkpointParFlag     = stodftInfo->checkpointParFlag;
+  int checkpointFlag = 0;
+  int checkpointFlagAll = 0;
   int numAtomTot            = clatoms_info->natm_tot;
   int readCoeffFlag;
   MPI_Comm commStates       = commCP->comm_states;
 
   int *rhoRealSendCounts = stodftInfo->rhoRealSendCounts;
   int *rhoRealDispls = stodftInfo->rhoRealDispls;
+  char fileName[100];
 
   double junk;
   double *rhoUpFragSum;
@@ -497,14 +486,41 @@ void checkpointFragInput(CP *cp,CLASS *class)
 /*======================================================================*/
 /* II) Read initial density if necessary                                */
 
-  if(myidState==0){
-    fileCheckpointSys = fopen("density-checkpoint","r");
-    // I only have fragment checkpoint file. I need to remove the checkpoint 
-    // file reading flag so that the system stochastic dft calculation 
-    // is normal.
-    printf("Can not find density-checkpoint. I'll read the initial density.\n");
-    if(fileCheckpointSys==NULL){
-      stodftInfo->readCoeffFlag = -1;
+  if(checkpointParFlag==0){//sequential
+    if(myidState==0){
+      fileCheckpointSys = fopen("density-checkpoint","r");
+      // I only have fragment checkpoint file. I need to remove the checkpoint 
+      // file reading flag so that the system stochastic dft calculation 
+      // is normal.
+      if(fileCheckpointSys==NULL){
+        printf("Can not find density-checkpoint. I'll read the initial density.\n");
+        stodftInfo->readCoeffFlag = -1;
+      }//endif fileCheckpointSys
+      else{
+        printf("Find system density-checkpoint file. I'll read that checkpoint file.\n");
+      }
+    }//endif myidState
+  }//endif checkpointParFlag
+  else{//parallel, make sure all processes can open its own checkpoint file
+    sprintf(fileName,"density-checkpoint-%i",myidState);
+    fileCheckpointSys = fopen(fileName,"r");
+    if(fileCheckpointSys!=NULL){
+      checkpointFlag = 1;
+    }
+    if(numProcStates>1){
+      Barrier(commStates);
+      Reduce(&checkpointFlag,&checkpointFlagAll,1,MPI_INT,MPI_SUM,0,commStates);
+      Barrier(commStates);
+    }
+    else checkpointFlagAll = checkpointFlag;
+    if(myidState==0){
+      if(checkpointFlagAll==numProcStates){
+        printf("Find system density-checkpoint files. I'll read those checkpoint files.\n");
+      }
+      else{
+        printf("Can not file density-checkpoint files. There are total %i processes\n",numProcStates);
+        printf("and total %i checkpoint files. I'll read the initial density instead!\n",checkpointFlagAll);
+      }
     }
   }
   Bcast(&(stodftInfo->readCoeffFlag),1,MPI_INT,0,commStates);

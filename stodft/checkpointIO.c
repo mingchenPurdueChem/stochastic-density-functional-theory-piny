@@ -70,9 +70,12 @@ void checkpointOutput(CP *cp, GENERAL_DATA *general_data)
   double **rhoUpErr  = stodftCoefPos->rhoUpErr;
   double **rhoDnErr  = stodftCoefPos->rhoDnErr;
 
+  double timeStart,timeEnd;
+
 /*======================================================================*/
 /* I) First output SCF step and DIIS step                               */
 
+  timeStart = omp_get_wtime();
   if(myidState==0){
     fileCheckpoint = fopen("density-checkpoint","w");
     fprintf(fileCheckpoint,"%i %i\n",iScf,numDiisNow);  
@@ -205,6 +208,10 @@ void checkpointOutput(CP *cp, GENERAL_DATA *general_data)
 
   if(myidState==0)free(rhoTemp);
 
+  timeEnd = omp_get_wtime();
+
+  printf("myid %i IO_out time %.8lg\n",myidState,timeEnd-timeStart);
+
 /*-----------------------------------------------------------------------*/
 }/*end routine*/
 /*==========================================================================*/
@@ -291,8 +298,12 @@ void checkpointInput(CP *cp,GENERAL_DATA *general_data,CLASS *class)
   double **rhoUpErr  = stodftCoefPos->rhoUpErr;
   double **rhoDnErr  = stodftCoefPos->rhoDnErr;
 
+  double timeStart,timeEnd;
+
 /*======================================================================*/
 /* I) Read SCF step and DIIS step                                       */
+
+  timeStart = omp_get_wtime();
 
   if(myidState==0){
     fileCheckpoint = fopen("density-checkpoint","r");
@@ -490,6 +501,9 @@ void checkpointInput(CP *cp,GENERAL_DATA *general_data,CLASS *class)
     testWfMinIm[numCoeff-1] = 0.0;
   }
 
+  timeEnd = omp_get_wtime();
+
+  printf("myid %i IO_in time %.8lg\n",myidState,timeEnd-timeStart);  
 
 /*-----------------------------------------------------------------------*/
 }/*end routine*/
@@ -543,10 +557,13 @@ void checkpointOutputDist(CP *cp, GENERAL_DATA *general_data)
   double **rhoUpErr  = stodftCoefPos->rhoUpErr;
   double **rhoDnErr  = stodftCoefPos->rhoDnErr;
 
+  double timeStart,timeEnd;
+
 /*======================================================================*/
 /* I) First output SCF step and DIIS step                               */
  
   if(numProcStates>1)Barrier(commStates);
+  timeStart = omp_get_wtime();
 
   sprintf(filename,"density-checkpoint-%i",myidState);
   fileCheckpoint = fopen(filename,"w");
@@ -608,6 +625,9 @@ void checkpointOutputDist(CP *cp, GENERAL_DATA *general_data)
   free(rhoTemp);
 
   if(numProcStates>1)Barrier(commStates);
+  timeEnd = omp_get_wtime();
+
+  printf("myid %i IO_out time %.8lg\n",myidState,timeEnd-timeStart);
 
 /*-----------------------------------------------------------------------*/
 }/*end routine*/
@@ -695,10 +715,15 @@ void checkpointInputDist(CP *cp,GENERAL_DATA *general_data,CLASS *class)
   double **rhoUpErr  = stodftCoefPos->rhoUpErr;
   double **rhoDnErr  = stodftCoefPos->rhoDnErr;
 
+  double timeStart,timeEnd;
+
 /*======================================================================*/
 /* I) Read SCF step and DIIS step                                       */
 
   if(numProcStates>1)Barrier(commStates);
+
+  timeStart = omp_get_wtime();
+
   sprintf(fileName,"density-checkpoint-%i",myidState);
 
   fileCheckpoint = fopen(fileName,"r");
@@ -826,7 +851,10 @@ void checkpointInputDist(CP *cp,GENERAL_DATA *general_data,CLASS *class)
   }
   if(numProcStates>1)Barrier(commStates);
 
+  timeEnd = omp_get_wtime();
 
+  printf("myid %i IO_in time %.8lg\n",myidState,timeEnd-timeStart);
+ 
 /*-----------------------------------------------------------------------*/
 }/*end routine*/
 /*==========================================================================*/

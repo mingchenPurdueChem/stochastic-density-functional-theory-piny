@@ -58,6 +58,8 @@ void calcChemPotCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int polynormLength = stodftInfo->polynormLength;
   int numChebyMoments = (polynormLength%2==0)?(polynormLength/2+1):((polynormLength+1)/2);
   int numFFTGridMutpl = 32;
+  int maxIteration = 50;
+  int iIter = 0;
   int numChebyGrid = polynormLength*numFFTGridMutpl;
   int numStateUpProc = cpcoeffs_info->nstate_up_proc;
   int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
@@ -72,7 +74,6 @@ void calcChemPotCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   MPI_Comm comm_states   =    communicate->comm_states;
 
   double chemPotDiff = 1000.0;
-  double numElecTol = 1.0e-10;
   double chemPotMin,chemPotMax;
   double numElecTrue = stodftInfo->numElecTrue;
   double chemPotInit = stodftInfo->chemPotInit;
@@ -83,7 +84,8 @@ void calcChemPotCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   double Smin = chebyshevInfo->Smin;
   double Smax = chebyshevInfo->Smax;
   double energyDiff = stodftInfo->energyDiff;
-  
+  double numElecTol = 1.0e-12*numElecTrue;
+
   double *chebyCoeffs = (double*)cmalloc(polynormLength*sizeof(double));
   double *chebyMomentsTemp;
   double *chemPot = stodftCoefPos->chemPot;
@@ -222,7 +224,7 @@ void calcChemPotCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     chemPotNew = (numElecTrue-numElecMin)*(chemPotMax-chemPotMin)/(numElecMax-numElecMin)+
 		  chemPotMin;  
     numElecNew = calcNumElecCheby(cp,chemPotNew,chebyCoeffs); 
-    while(fabs(numElecNew-numElecTrue)>numElecTol){
+    while(fabs(numElecNew-numElecTrue)>numElecTol&&iIter<maxIteration){
       if(numElecNew>numElecTrue){
 	chemPotMax = chemPotNew;
 	numElecMax = numElecNew;
@@ -237,11 +239,14 @@ void calcChemPotCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       */
       chemPotNew = 0.5*(chemPotMin+chemPotMax);
       numElecNew = calcNumElecCheby(cp,chemPotNew,chebyCoeffs);
-      //printf("chemPotNew %lg numElecNew %lg\n",chemPotNew,numElecNew);
+      iIter += 1;
+      //printf("chemPotNew %.16lg numElecNew %.16lg\n",chemPotNew,numElecNew);
+      //fflush(stdout);
     }//endwhile
     printf("Finish Calculating Chemical Potential\n");
     printf("The correct chemical potential is %.16lg Ne %.16lg DNe %.16lg\n",chemPotNew,numElecNew,
 	    fabs(numElecNew-numElecTrue));
+    fflush(stdout);
     //chemPotMin = chemPotInit-gapInit*0.5;
     //chemPotMax = chemPotInit+gapInit*0.5;
     //test DOS

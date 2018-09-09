@@ -81,6 +81,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   fflush(stdout);
   exit(0);
   */
+  /*
   printf("numFragProc %i nstates %i ncoef %i\n",numFragProc,nstates,ncoef);
   printf("before read coef %lg %lg\n",
          cpMini[0].cpcoeffs_pos[1].cre_up[1000],
@@ -110,7 +111,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   printf("after read coef %lg %lg\n",
          cpMini[0].cpcoeffs_pos[1].cre_up[1000],
          cpMini[0].cpcoeffs_pos[1].cim_up[1000]);
- 
+  */
   /* 
   sprintf(fileNameFragMO,"coef-si333-%i",myidState);
   if(numFragProc>0){

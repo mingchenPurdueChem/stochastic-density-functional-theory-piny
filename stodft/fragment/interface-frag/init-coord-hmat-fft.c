@@ -722,7 +722,7 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
     xMini[iAtom+1] = xTemp[iAtom]*hmat[1]+yTemp[iAtom]*hmat[4]+zTemp[iAtom]*hmat[7];
     yMini[iAtom+1] = xTemp[iAtom]*hmat[2]+yTemp[iAtom]*hmat[5]+zTemp[iAtom]*hmat[8];
     zMini[iAtom+1] = xTemp[iAtom]*hmat[3]+yTemp[iAtom]*hmat[6]+zTemp[iAtom]*hmat[9];
-    printf("iiiiiFrag %i iAtom %i %lg %lg %lg\n",iFrag,iAtom,xMini[iAtom+1],yMini[iAtom+1],zMini[iAtom+1]);
+    //printf("iiiiiFrag %i iAtom %i %lg %lg %lg\n",iFrag,iAtom,xMini[iAtom+1],yMini[iAtom+1],zMini[iAtom+1]);
 
     //debug
     /*

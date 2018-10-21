@@ -2243,7 +2243,7 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
  /*             Local variable declarations                                */
   
   unsigned int i;
-  *num_dict = 29;
+  *num_dict = 30;
   *dict = (DICT_WORD *)cmalloc(*num_dict*sizeof(DICT_WORD))-1;
 
   for (i=1;i<=*num_dict;i++) {
@@ -2367,6 +2367,10 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
   strcpy((*dict)[29].error_mes,"Please select 'yes' or 'no' for parallel read/wirte checkpoint file");
   strcpy((*dict)[29].keyword,"checkpoint_par");
   strcpy((*dict)[29].keyarg,"no");
+
+  strcpy((*dict)[30].error_mes,"Please select 'gen_wave' or 'read' for fragment initial guess");
+  strcpy((*dict)[30].keyword,"frag_init_guess");
+  strcpy((*dict)[30].keyarg,"gen_wave");
 
  /*========================================================================*/
  } /* end routine set_sim_dict_harmonic */

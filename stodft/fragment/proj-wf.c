@@ -22,6 +22,8 @@
 #include "../proto_defs/proto_communicate_wrappers.h"
 #include "../proto_defs/proto_math.h"
 #include "../proto_defs/proto_frag_local.h"
+
+//#define DMAT
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
@@ -824,7 +826,7 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   COMMUNICATE *commCP = &(cp->communicate);
   CELL *cell	      = &(general_data->cell);
  
-  int iFrag,jFrag,iGrid,iState,jState,iStateFrag,iProc;
+  int iFrag,jFrag,iGrid,jGrid,iState,jState,iStateFrag,iProc;
   int iAtom;
   int gridIndex;
   int numGrid,numGridSmall;
@@ -978,8 +980,10 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 	}
       }
     }
+#ifndef DMAT
     free(fragInfo->rhoUpFragProc[iFrag]);
     free(fragInfo->coefUpFragProc[iFrag]);
+#endif
   }//endfor iFrag
   Barrier(commStates);
   //fflush(stdout);
@@ -1119,8 +1123,10 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     cp->cpcoeffs_pos[1].cre_up[iCoeff+1] = stodftCoefPos->wfDetBackupUpRe[iCoeff];
     cp->cpcoeffs_pos[1].cim_up[iCoeff+1] = stodftCoefPos->wfDetBackupUpIm[iCoeff];
   }
-
+  
   rhoRealCalcDriverNoise(general_data,cp,class,ip_now);
+  free(stodftCoefPos->wfDetBackupUpRe);
+  free(stodftCoefPos->wfDetBackupUpIm);
 #else
   noiseRealReGen(general_data,cp,class,ip_now);
 #endif
@@ -1157,6 +1163,8 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   */
   
 #ifdef DMAT
+  /*
+  // Test1, map the fragment density matrix on the system occupied orbitals
   double *projMatrixTest = (double*)calloc(numStateUpProc*numStateUpProc,sizeof(double));
   double *wfProjjTemp;
   double *coefUpFragExt;
@@ -1195,7 +1203,8 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 	  wfProjjTemp[iGrid] += proj*coefUpFragProc[iFrag][iStateFrag*numGrid+gridIndex];
 	}
       }//endfor iStateFrag
-      for(jState=iState;jState<numStateUpProc;jState++){
+      #pragma omp parallel for private(jState,iGrid,gridIndex)
+      for(jState=0;jState<numStateUpProc;jState++){
         for(iGrid=0;iGrid<numGridSmall;iGrid++){
 	  gridIndex = gridMapProc[iFrag][gridMapProcSmall[iFrag][iGrid]];
           projMatrixTest[iState*numStateUpProc+jState] += noiseWfUpReal[jState*rhoRealGridTot+gridIndex]*wfProjjTemp[iGrid]*volMini;
@@ -1206,9 +1215,9 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
       free(wfProjjTemp);
     }//endfor iFrag
     countWf += 1;
-    for(jState=iState;jState<numStateUpProc;jState++){
+    for(jState=0;jState<numStateUpProc;jState++){
       projMatrixTest[iState*numStateUpProc+jState] *= 0.5*volInv;
-      projMatrixTest[jState*numStateUpProc+iState] = projMatrixTest[iState*numStateUpProc+jState];
+      //projMatrixTest[jState*numStateUpProc+iState] = projMatrixTest[iState*numStateUpProc+jState];
     }
   }//endfor iState
   FILE *testMatrix = fopen("test-matrix","w");
@@ -1220,6 +1229,82 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     fprintf(testMatrix,"\n");
     printf("111111 matrix diag %.8lg\n",projMatrixTest[iState*numStateUpProc+iState]+1.0);
   }
+  */
+  // Test2, test the bound for y=z=0
+  int numGridTest = cp_para_fft_pkg3d_lg->nkf1;
+  int gridTest,fragInd;
+  int *fragIndTest = (int*)cmalloc(numGridTest*sizeof(int));
+  int *gridIndDress = (int*)cmalloc(numGridTest*sizeof(int));
+  // searching fragment containing testing grid point in core region
+  for(iFrag=0;iFrag<numFragProc;iFrag++){
+    numGridSmall = numGridFragProcSmall[iFrag];
+    for(iGrid=0;iGrid<numGridSmall;iGrid++){
+      gridTest = gridMapProc[iFrag][gridMapProcSmall[iFrag][iGrid]];
+      if(gridTest<numGridTest){
+        fragIndTest[gridTest] = iFrag;
+        gridIndDress[gridTest] = gridMapProcSmall[iFrag][iGrid];
+      }
+    }
+  }
+  double *dmDet = (double*)calloc(numGridTest*rhoRealGridTot,sizeof(double));
+  double *dmFrag = (double*)calloc(numGridTest*rhoRealGridTot,sizeof(double));
+  //deterministic part
+  for(iState=0;iState<numStateUpProc;iState++){
+    #pragma omp parallel for private(iGrid,jGrid)
+    for(iGrid=0;iGrid<numGridTest;iGrid++){
+      for(jGrid=0;jGrid<rhoRealGridTot;jGrid++){
+        dmDet[iGrid*rhoRealGridTot+jGrid] += noiseWfUpReal[iState*rhoRealGridTot+iGrid]*
+                                        noiseWfUpReal[iState*rhoRealGridTot+jGrid];
+      }
+    }
+  }
+  #pragma omp parallel for private(iGrid)
+  for(iGrid=0;iGrid<numGridTest*rhoRealGridTot;iGrid++){
+    dmDet[iGrid] *= 0.5*volInv;
+  }
+  //next stochastic part
+  for(iGrid=0;iGrid<numGridTest;iGrid++){
+    fragInd = fragIndTest[iGrid];
+    numStateUpMini = cpMini[fragInd].cpcoeffs_info.nstate_up_proc;
+    hmatCpMini = generalDataMini[fragInd].cell.hmat_cp;
+    volMini = getdeth(hmatCpMini);
+    volMini /= numGrid;
+    numGrid = numGridFragProc[fragInd];
+    for(iStateFrag=0;iStateFrag<numStateUpMini;iStateFrag++){
+      #pragma omp parallel for private(jGrid)
+      for(jGrid=0;jGrid<numGrid;jGrid++){
+        dmFrag[iGrid*rhoRealGridTot+gridMapProc[fragInd][jGrid]] += coefUpFragProc[fragInd][iStateFrag*numGrid+gridIndDress[iGrid]]*coefUpFragProc[fragInd][iStateFrag*numGrid+jGrid];
+      }
+    }
+     
+  }
+  //next lets worry about max(<r|rho|r'>^2)
+  double *dmDetMax = (double*)calloc(numGridTest,sizeof(double));
+  double dmMax,dmSq;
+  #pragma omp parallel for private(iGrid,jGrid,dmMax,dmSq)
+  for(iGrid=0;iGrid<numGridTest;iGrid++){
+    dmMax = -10000.0;
+    for(jGrid=0;jGrid<rhoRealGridTot;jGrid++){
+      dmSq = dmDet[iGrid*rhoRealGridTot+jGrid]*dmDet[iGrid*rhoRealGridTot+jGrid];
+      if(dmSq>dmMax)dmMax = dmSq;
+    }
+    dmDetMax[iGrid] = dmMax;
+  }
+  //next lets work on <r|delta rho|r'>
+  double *dmDiffSqInt = (double*)calloc(numGridTest,sizeof(double));
+  double diff;
+  #pragma omp parallel for private(iGrid,jGrid,diff)
+  for(iGrid=0;iGrid<numGridTest;iGrid++){
+    for(jGrid=0;jGrid<rhoRealGridTot;jGrid++){
+      diff = dmDet[iGrid*rhoRealGridTot+jGrid]-dmFrag[iGrid*rhoRealGridTot+jGrid];
+      dmDiffSqInt[iGrid] += diff*diff;
+    }
+    dmDiffSqInt[iGrid] *= volMini;
+  }  
+  for(iGrid=0;iGrid<numGridTest;iGrid++){
+    printf("1111111 dmxxxxxx %.16lg %.16lg\n",dmDetMax[iGrid],dmDiffSqInt[iGrid]);
+  }
+
   fflush(stdout);
   exit(0);   
 #endif  

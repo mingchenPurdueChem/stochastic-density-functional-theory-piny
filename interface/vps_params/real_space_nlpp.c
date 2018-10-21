@@ -216,9 +216,10 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   
   gmaxTrueLgLg = MIN(aiLength,biLength);
   gmaxTrueLgLg = MIN(gmaxTrueLgLg,ciLength)-gmaxTrueSm;
+  //gmaxTrueLgLg = MIN(gmaxTrueLgLg,ciLength);
 
-  //printf("ggggggg %lg %lg %lg\n",gmaxTrueSm,gmaxTrueLg,gmaxTrueLgLg);
-  pseudoReal->gMaxSm = gmaxTrueSm;
+  printf("ggggggg %lg %lg %lg\n",gmaxTrueSm,gmaxTrueLg,gmaxTrueLgLg);
+  pseudoReal->gMaxSm = gmaxTrueSm*0.75;
   pseudoReal->gMaxLg = gmaxTrueLg;
   //pseudoReal->gMaxLg = 3.0*gmaxTrueSm;
   //pseudoReal->gMaxLg = 12.56060614640884;
@@ -242,7 +243,6 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
     phiNl = NULL;
     if(ivpsLabel[iType+1]==1){// KB
       if(myidState==0){
-	//printf("1111 %s\n",vpsFile[iType+1].name);
 	fvps = fopen(vpsFile[iType+1].name,"r");
 	fscanf(fvps,"%i %lg %i\n",&numR,&rMax,&angNow);
 	fscanf(fvps,"%lg %lg %lg %lg\n",&z1,&alpha1,&z2,&alpha2);
@@ -250,6 +250,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 	//printf("%lg %lg %lg %lg %lg %lg\n",z1,alpha1,z2,alpha2,zPol,gamma);
       }
       if(numProcStates>1){
+        printf("ffffffffffffffffuck %i\n",numR);
         Bcast(&numR,1,MPI_INT,0,commStates);
         Bcast(&rMax,1,MPI_DOUBLE,0,commStates);
         Bcast(&angNow,1,MPI_INT,0,commStates);
@@ -300,7 +301,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 	for(rGrid=0;rGrid<numR;rGrid++){
 	  vNl[iAng*numR+rGrid] = (vNl[iAng*numR+rGrid]-vLoc[rGrid])*phiNl[iAng*numR+rGrid];
 	  vpsNormList[countR+iAng] += vNl[iAng*numR+rGrid]*phiNl[iAng*numR+rGrid];
-	  //printf("1111111 rGridddddd %lg %lg\n",rGrid*dr,vNl[iAng*numR+rGrid]);
+	  printf("1111111 rGridddddd %lg %lg\n",rGrid*dr,vNl[iAng*numR+rGrid]);
 	}//endfor rGrid
 	vpsNormList[countR+iAng] *= dr;
 	//printf("countR %i vpsNormList %lg\n",countR+iAng,vpsNormList[countR+iAng]);

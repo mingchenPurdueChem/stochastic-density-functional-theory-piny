@@ -25,6 +25,7 @@
 #include "../proto_defs/proto_communicate_wrappers.h"
 
 //#define REAL_PP_DEBUG
+//#define TEST_DM
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
@@ -140,6 +141,16 @@ void cp_rho_calc_hybrid_threads_state(CPEWALD *cpewald,CPSCR *cpscr,
   int *kcstr = ewald->kcstr;
   double sum;
   double time_st,time_end;
+#ifdef TEST_DM
+  int iigrid,jjgrid,kkgrid,llgrid;
+  //double *dm = (double*)cmalloc(numThreads*nkf1*nkf1*sizeof(double));
+  //double *dm_reduce = (double*)cmalloc(nkf1*nkf1*sizeof(double));
+  double **dm_complete = (double**)cmalloc(numThreads*sizeof(double*));
+  for(i=0;i<numThreads;i++){
+    dm_complete[i] = (double*)calloc(nkf1*nkf1*nkf2*nkf3);
+  }
+  double *dm_reduce = (double*)calloc(nkf1*nkf1*nkf2*nkf3);
+#endif
   
   /*
   if(realSparseOpt==0){
@@ -249,7 +260,11 @@ void cp_rho_calc_hybrid_threads_state(CPEWALD *cpewald,CPSCR *cpscr,
 
   time_st = omp_get_wtime();
   omp_set_num_threads(numThreads);
+#ifdef TEST_DM
+  #pragma omp parallel private(iThread,is,ioff,ioff2,iigrid,jjgrid)
+#else
   #pragma omp parallel private(iThread,is,ioff,ioff2)
+#endif
   {
     //iThread = 0;
     iThread = omp_get_thread_num();
@@ -346,6 +361,34 @@ void cp_rho_calc_hybrid_threads_state(CPEWALD *cpewald,CPSCR *cpscr,
 	  sum_rho(zfft_threads[iThread],&rho_scr_threads[iThread*nfft2],cp_sclr_fft_pkg3d_sparse);
         }
 	*/
+#ifdef TEST_DM
+        /*
+        if(fftw3dFlag==1){
+          for(iigrid=0;iigrid<nkf1;iigrid++){
+            for(jjgrid=0;jjgrid<nkf1;jjgrid++){
+              dm[iThread*nkf1*nkf1+iigrid*nkf1+jjgrid] += zfft_threads[iThread][2*iigrid*nkf2*nkf3+1]*zfft_threads[iThread][2*jjgrid*nkf2*nkf3+1];
+              dm[iThread*nkf1*nkf1+iigrid*nkf1+jjgrid] += zfft_threads[iThread][2*iigrid*nkf2*nkf3+2]*zfft_threads[iThread][2*jjgrid*nkf2*nkf3+2];
+            }
+          }
+        }
+        else{
+          for(iigrid=0;iigrid<nkf1;iigrid++){
+            for(jjgrid=0;jjgrid<nkf1;jjgrid++){
+              dm[iThread*nkf1*nkf1+iigrid*nkf1+jjgrid] += zfft_threads[iThread][2*iigrid+1]*zfft_threads[iThread][2*jjgrid+1];
+              dm[iThread*nkf1*nkf1+iigrid*nkf1+jjgrid] += zfft_threads[iThread][2*iigrid+2]*zfft_threads[iThread][2*jjgrid+2];
+            }
+          }
+        }
+        */
+        if(fftw3dFlag==1){
+          for(iigrid=0;iigrid<nkf1;iigrid++){
+            for(jjgrid=0;jjgrid<nfft2;jjgrid++){
+              dm_complete[iThread][iigrid*nkf1*nkf2*nkf3+jjgrid] += zfft_threads[iThread][2*iigrid*nkf2*nkf3+1]*zfft_threads[iThread][2*jjgrid+1];
+              dm_complete[iThread][iigrid*nkf1*nkf2*nkf3+jjgrid] += zfft_threads[iThread][2*iigrid*nkf2*nkf3+2]*zfft_threads[iThread][2*jjgrid+2];
+            }
+          }
+        }
+#endif
       }//endif cp_dual_grid_opt
     }//endfor is
   }//end omp
@@ -355,7 +398,26 @@ void cp_rho_calc_hybrid_threads_state(CPEWALD *cpewald,CPSCR *cpscr,
     for(i=1;i<=nfft2;i++){
       rho_scr[i] += rho_scr_threads[iThread*nfft2+i];
     }
+#ifdef TEST_DM
+    for(i=0;i<nkf1;i++){
+      for(j=0;j<nkf1;j++){
+        dm_reduce[i*nkf1+j] += dm[iThread*nkf1*nkf1+i*nkf1+j];
+      }
+    }
+#endif
   }
+
+#ifdef TEST_DM
+  vol_cp  = getdeth(hmat_cp);
+  rvol_cp = 1.0/vol_cp;
+  for(i=0;i<nkf1;i++){
+    for(j=0;j<nkf1;j++){
+      printf("11111111 dm %.8lg\n",dm_reduce[i*nkf1+j]*rvol_cp);
+    }
+  }
+  fflush(stdout); 
+  exit(0);  
+#endif
 
 /*--------------------------------------------------------------------------*/
 /*IV) if there is an odd number of states, use single pack
@@ -691,6 +753,8 @@ void cp_rho_calc_hybrid_threads_state(CPEWALD *cpewald,CPSCR *cpscr,
     }
     //printf("rho sum test %lg\n",sum);
     fclose(fp_rho);
+    //fflush(stdout);
+    //exit(0);
   }
 
 /*==============================================================*/

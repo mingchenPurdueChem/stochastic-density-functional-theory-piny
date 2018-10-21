@@ -469,7 +469,6 @@ void read_hmat(CLASS *class,GENERAL_DATA *general_data,
 /*========================================================================*/
 /*  VI) Assign Volumes */
 
-
   gethinv(hmat,hmati,&(vol),iperd);
   gethinv(hmat_cp,hmati_cp,&(vol_cp),iperd);
 

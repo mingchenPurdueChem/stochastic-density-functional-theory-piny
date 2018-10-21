@@ -31,7 +31,7 @@
 
 #define DEBUG_GW_OFF
 //#define DEBUG_GW
-#define READ
+//#define READ
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/

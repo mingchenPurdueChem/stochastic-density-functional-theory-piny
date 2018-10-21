@@ -81,6 +81,9 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   fflush(stdout);
   exit(0);
   */
+  // This is to be used to read in a deterministic fragment and broadcast to all
+  // fragments. Only use it for crystal/test
+  /*
   printf("numFragProc %i nstates %i ncoef %i\n",numFragProc,nstates,ncoef);
   printf("before read coef %lg %lg\n",
          cpMini[0].cpcoeffs_pos[1].cre_up[1000],
@@ -110,6 +113,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   printf("after read coef %lg %lg\n",
          cpMini[0].cpcoeffs_pos[1].cre_up[1000],
          cpMini[0].cpcoeffs_pos[1].cim_up[1000]);
+  */
  
   /* 
   sprintf(fileNameFragMO,"coef-si333-%i",myidState);
@@ -172,7 +176,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   
   if(numProcStates>1)Barrier(commStates);
   
-  /*  
+    
   sprintf(fileNameFragMO,"frag-MO-%i",myidState);
   fileFragMO = fopen(fileNameFragMO,"w");
   for(iFrag=0;iFrag<numFragProc;iFrag++){
@@ -185,7 +189,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     }
   }
   fclose(fileFragMO);    
-  */
+  
   
   if(numProcStates>1)Barrier(commStates);
   //exit(0);
@@ -218,7 +222,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     projRhoMiniUnitCell(cp,general_data,class,cpMini,generalDataMini,classMini,ip_now);
   }
   //fflush(stdout);
-  //exit(0);
+  exit(0);
   energyCorrect(cpMini,generalDataMini,classMini,cp,class,ip_now);
 
 /*==========================================================================*/

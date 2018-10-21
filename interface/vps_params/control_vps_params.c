@@ -114,7 +114,7 @@ void control_vps_params(PSEUDO *pseudo,CELL *cell,
        printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
        fflush(stdout);
      }/*endif*/
-     exit(1);
+     //exit(1);
   }/*endif*/
 
 /*==========================================================================*/

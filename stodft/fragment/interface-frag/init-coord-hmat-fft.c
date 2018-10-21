@@ -738,7 +738,6 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   }
   //debug
   //printf("3 %lg %lg %lg 18 %lg %lg %lg\n",xMini[3],yMini[3],zMini[3],xMini[18],yMini[18],zMini[18]);
-
   
 /*======================================================================*/
 /* IV) Map the grid points	                                        */

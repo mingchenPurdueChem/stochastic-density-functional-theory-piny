@@ -187,7 +187,10 @@ void control_ewd_non_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
   ylm_cons.hrt_ohffpi = 0.50*sqrt(105.0/fpi)/sqrt(2.0);
   ylm_cons.hrt_tfepi  = 0.50*sqrt(17.50/fpi)/sqrt(2.0);
 
-  
+
+  // I know it's redundent. Let's do it so that we have 
+  // proper ak2Kinetic initialized
+  get_ak2_sm(cpewald,cell);
 
 /*======================================================================*/
 /* II) Determine the maximum open non-local angular momentum channel     */
@@ -264,6 +267,7 @@ void control_ewd_non_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
    g2 = xk*xk+yk*yk+zk*zk;
    g  = sqrt(g2);
    ak2_sm[icount] = g2;
+   //printf("ak2_smmmmmmmm %lg\n",ak2_sm[icount]);
 
 /*----------------------------------------------------------------------*/
 /* ii) If break point number one calculate the helpful vectors          */

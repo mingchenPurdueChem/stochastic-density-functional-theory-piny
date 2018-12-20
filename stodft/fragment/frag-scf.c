@@ -62,11 +62,11 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int *numElecUpFragProc = fragInfo->numElecUpFragProc;
 
   //debug
-  ncoef = cpMini[0].cpcoeffs_info.ncoef;
-  int nstates = numElecUpFragProc[0];
-  int iAtom;
-  double *cre_temp = (double*)calloc(nstates*ncoef,sizeof(double));
-  double *cim_temp = (double*)calloc(nstates*ncoef,sizeof(double));
+  //ncoef = cpMini[0].cpcoeffs_info.ncoef;
+  //int nstates = numElecUpFragProc[0];
+  //int iAtom;
+  //double *cre_temp = (double*)calloc(nstates*ncoef,sizeof(double));
+  //double *cim_temp = (double*)calloc(nstates*ncoef,sizeof(double));
 
   /*
   if(myidState==0){
@@ -176,7 +176,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   
   if(numProcStates>1)Barrier(commStates);
   
-    
+  /*  
   sprintf(fileNameFragMO,"frag-MO-%i",myidState);
   fileFragMO = fopen(fileNameFragMO,"w");
   for(iFrag=0;iFrag<numFragProc;iFrag++){
@@ -189,7 +189,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     }
   }
   fclose(fileFragMO);    
-  
+  */
   
   if(numProcStates>1)Barrier(commStates);
   //exit(0);
@@ -222,7 +222,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     projRhoMiniUnitCell(cp,general_data,class,cpMini,generalDataMini,classMini,ip_now);
   }
   //fflush(stdout);
-  exit(0);
+  //exit(0);
   energyCorrect(cpMini,generalDataMini,classMini,cp,class,ip_now);
 
 /*==========================================================================*/

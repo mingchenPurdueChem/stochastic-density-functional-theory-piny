@@ -1111,8 +1111,8 @@ void coef_force_calc_hybrid_threads_state(CPEWALD *cpewald,int nstate,
     for(iThread=0;iThread<numThreads;iThread++){
       for(i=0;i<numAtomTot;i++){
 	fx[i+1] += fxThreads[iThread*numAtomTot+i];
-        fy[i+1] += fxThreads[iThread*numAtomTot+i];
-        fz[i+1] += fxThreads[iThread*numAtomTot+i];
+        fy[i+1] += fyThreads[iThread*numAtomTot+i];
+        fz[i+1] += fzThreads[iThread*numAtomTot+i];
       }
     }
   } 
@@ -1255,8 +1255,8 @@ void coef_force_calc_hybrid_threads_state(CPEWALD *cpewald,int nstate,
   if(pseudoRealFlag==1&&forceCalcFlag==1){
     for(i=0;i<numAtomTot;i++){
       fx[i+1] += fxThreads[i];
-      fy[i+1] += fxThreads[i];
-      fz[i+1] += fxThreads[i];
+      fy[i+1] += fyThreads[i];
+      fz[i+1] += fzThreads[i];
     }
   }
   stat_avg->cp_enl += energyNl[0];

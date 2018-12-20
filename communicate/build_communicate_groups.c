@@ -85,6 +85,7 @@
    ranks = (int *) cmalloc(MAXPROCS*sizeof(int));
 
    Comm_dup(communicate->world,&(world));
+
    Barrier(world);
 
 /*=======================================================================*/
@@ -151,7 +152,6 @@
       communicate->comm_states =
            build_grp_comm_inner(np,np_beads,np_states,myid,
                               &(communicate->myid_state),ranks,world);
-
      /*------------------------------------------------*/
      /* iii) The myid_bead_prime and myid_bead store   */
      /*      the id of this proc in the comm_bead, if  */
@@ -179,7 +179,6 @@
            build_grp_comm_inner(np,np_beads,np_states,myid,
                               &(communicate->myid_state),ranks,world);
 
-  
      /*------------------------------------------------------*/
      /* ii) The forc level communicator is an INNER = state  */
 

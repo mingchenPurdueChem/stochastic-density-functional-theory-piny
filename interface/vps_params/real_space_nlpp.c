@@ -218,9 +218,11 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   gmaxTrueLgLg = MIN(gmaxTrueLgLg,ciLength)-gmaxTrueSm;
   //gmaxTrueLgLg = MIN(gmaxTrueLgLg,ciLength);
 
-  printf("ggggggg %lg %lg %lg\n",gmaxTrueSm,gmaxTrueLg,gmaxTrueLgLg);
-  pseudoReal->gMaxSm = gmaxTrueSm*0.75;
+  pseudoReal->gMaxSm = gmaxTrueSm;
   pseudoReal->gMaxLg = gmaxTrueLg;
+  printf("..... The g space double cutoff is %lg %lg Bohr^-1\n",
+         pseudoReal->gMaxSm,pseudoReal->gMaxLg);
+
   //pseudoReal->gMaxLg = 3.0*gmaxTrueSm;
   //pseudoReal->gMaxLg = 12.56060614640884;
   //pseudoReal->gMaxLg = gmaxTrueLgLg;
@@ -250,7 +252,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 	//printf("%lg %lg %lg %lg %lg %lg\n",z1,alpha1,z2,alpha2,zPol,gamma);
       }
       if(numProcStates>1){
-        printf("ffffffffffffffffuck %i\n",numR);
+        //printf("ffffffffffffffffuck %i\n",numR);
         Bcast(&numR,1,MPI_INT,0,commStates);
         Bcast(&rMax,1,MPI_DOUBLE,0,commStates);
         Bcast(&angNow,1,MPI_INT,0,commStates);
@@ -260,6 +262,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
         Bcast(&alpha2,1,MPI_DOUBLE,0,commStates);
         Bcast(&zPol,1,MPI_DOUBLE,0,commStates);
         Bcast(&gamma,1,MPI_DOUBLE,0,commStates);
+        //printf("ffffffffffffffffuck2 %i\n",numR);
       }
       vLoc = (double*)cmalloc((numR)*sizeof(double));
       vNl = (double*)cmalloc((numR*numRadMax[iType])*sizeof(double));
@@ -276,6 +279,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
       }
       if(myidState==0){
 	// get the non-local part
+        printf("numRadMax %i numR %i angNow %i\n",numRadMax[iType],numR,angNow);
 	for(iAng=0;iAng<angNow;iAng++){
 	  for(rGrid=0;rGrid<numR;rGrid++){
 	    fscanf(fvps,"%lg",&vNl[iAng*numR+rGrid]);
@@ -290,10 +294,12 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 	fclose(fvps);
       }//endif myidState
       if(numProcStates>1){
+        //Bcast(&vNl[0],numR*numRadMax[iType],MPI_DOUBLE,0,commStates);
         Bcast(&vNl[0],numR*numRadMax[iType],MPI_DOUBLE,0,commStates);
         Bcast(&phiNl[0],numR*numRadMax[iType],MPI_DOUBLE,0,commStates);
         Bcast(&vLoc[0],numR,MPI_DOUBLE,0,commStates);
       }
+      //printf("finish these fucking bcast!\n");
       // Substract the nonlocal part from local part
       for(iAng=0;iAng<angNow;iAng++){
 	lMap[countR+iAng] = iAng;
@@ -301,7 +307,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 	for(rGrid=0;rGrid<numR;rGrid++){
 	  vNl[iAng*numR+rGrid] = (vNl[iAng*numR+rGrid]-vLoc[rGrid])*phiNl[iAng*numR+rGrid];
 	  vpsNormList[countR+iAng] += vNl[iAng*numR+rGrid]*phiNl[iAng*numR+rGrid];
-	  printf("1111111 rGridddddd %lg %lg\n",rGrid*dr,vNl[iAng*numR+rGrid]);
+	  //printf("1111111 rGridddddd %lg %lg\n",rGrid*dr,vNl[iAng*numR+rGrid]);
 	}//endfor rGrid
 	vpsNormList[countR+iAng] *= dr;
 	//printf("countR %i vpsNormList %lg\n",countR+iAng,vpsNormList[countR+iAng]);
@@ -335,6 +341,8 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
       }//endfor iAng
       ppRealCut[iType] = rCutoffMax;
       numGridRadSmooth[iType] = (int)(rCutoffMax/dr)+1;
+      printf(".....The distance cutoff for the %i'th non-local pseudopotential is %lg Bohr\n",
+             iType,rCutoffMax);
     }//endif ivpsLabel
     // 3. Smooth the radius function
     
@@ -591,8 +599,9 @@ void nlppSmoothKS(PSEUDO *pseudo,double *vNl,double *vNlG,
   for(ig=0;ig<numGLg;ig++){
     printf("111111111 igggggg %lg %lg\n",gGrid[ig],vNlG[ig]);
   }
-  for(ig=numGSm;ig<numGLg;ig++)vNlG[ig] = 0.0;
   */
+  for(ig=numGSm;ig<numGLg;ig++)vNlG[ig] = 0.0;
+  
 
   // Optimize g space coeffcient from gMaxSm to gMaxLg
 

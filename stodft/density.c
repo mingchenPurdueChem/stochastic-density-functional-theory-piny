@@ -1592,6 +1592,8 @@ void outputDensity(CP *cp,CELL *cell)
 
   volCP  = getdeth(hmatCP);
   volCPInv = 1.0/volCP;
+  // test, I'll write a better version later
+  FILE *densityFinal;
 
   //if(chemPotOpt==1){// interpolation way
     if(numProcStates>1){
@@ -1609,32 +1611,41 @@ void outputDensity(CP *cp,CELL *cell)
       }//endif cpLsda
       if(myidState==0){
 	densityOutputFile = cfopen(densityFileName,"a");
+        printf("I'm writing the output density\n");
+        densityFinal = fopen("density-out","w");
 	for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
 	  //fprintf(densityOutputFile,"%.10lg\n",rhoUpForOutput[iGrid]*volCPInv);
 	  //debug
 	  fprintf(densityOutputFile,"%.10lg\n",rhoUpForOutput[iGrid]*volCPInv);
+          fprintf(densityFinal,"%.16lg\n",rhoUpForOutput[iGrid]);
 	}//endfor iGrid
 	cfree(rhoUpForOutput);
 	if(cpLsda==1&&numStateDnProc!=0){
 	  for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
 	    fprintf(densityOutputFile,"%.10lg\n",rhoDnForOutput[iGrid]*volCPInv);
+            fprintf(densityFinal,"%.16lg\n",rhoDnForOutput[iGrid]);
 	  }//endfor iGrid
 	  cfree(rhoDnForOutput);
 	}//endif cpLsda
 	fclose(densityOutputFile);
+        fclose(densityFinal);
       }//endif myState
     }//endif parallel case
     else{
       densityOutputFile = cfopen(densityFileName,"a");
+      densityFinal = fopen("density-out","w");
       for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
 	fprintf(densityOutputFile,"%.10lg\n",rhoUpCorrect[iGrid]);
+        fprintf(densityFinal,"%.16lg\n",rhoUpCorrect[iGrid]);
       }//endfor iGrid
       if(cpLsda==1&&numStateDnProc!=0){
 	for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
 	  fprintf(densityOutputFile,"%.10lg\n",rhoDnCorrect[iGrid]);
+          fprintf(densityFinal,"%.16lg\n",rhoDnCorrect[iGrid]);
 	}//endfor iGrid
       }//endif cpLsda
       fclose(densityOutputFile);
+      fclose(densityFinal);
     }//endif sequential case
   //}
   /*

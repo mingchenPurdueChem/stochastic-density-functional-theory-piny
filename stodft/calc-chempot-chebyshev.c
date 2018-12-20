@@ -72,9 +72,9 @@ void calcChemPotCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   MPI_Comm comm_states   =    communicate->comm_states;
 
   double chemPotDiff = 1000.0;
-  double numElecTol = 1.0e-10;
-  double chemPotMin,chemPotMax;
   double numElecTrue = stodftInfo->numElecTrue;
+  double numElecTol = 1.0e-11*numElecTrue;
+  double chemPotMin,chemPotMax;
   double chemPotInit = stodftInfo->chemPotInit;
   double gapInit = stodftInfo->gapInit;
   double chemPotNew,chemPotOld;
@@ -94,7 +94,6 @@ void calcChemPotCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*==========================================================================*/
 /* I) Allocate memories */
    
-  
   chebyshevInfo->scale = (Smax-Smin)/energyDiff;
 
   stodftInfo->numChebyMoments = numChebyMoments;

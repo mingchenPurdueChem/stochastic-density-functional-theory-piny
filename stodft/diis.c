@@ -323,8 +323,8 @@ void calcDensityDiis(CP *cp,double **rhoBank,double **rhoErr)
   int iScf = stodftInfo->iScf;
   double mixRatioSM = stodftInfo->mixRatioSM; //alpha
   double pre = mixRatioSM-1.0;
-  //printf("mixRatioSM %lg pre %lg\n",mixRatioSM,pre);
-  //printf("numDiisNow %i\n",numDiisNow);
+  printf("mixRatioSM %lg pre %lg\n",mixRatioSM,pre);
+  printf("numDiisNow %i\n",numDiisNow);
 
   if(iScf<=400){
     for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){

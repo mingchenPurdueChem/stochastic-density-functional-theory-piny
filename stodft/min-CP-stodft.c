@@ -643,8 +643,8 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     sprintf(wfname,"sto-wf-save-new-%i",myidState);
     
     
-    //FILE *filePrintWF = fopen(wfname,"r");
-    FILE *filePrintWF = fopen("sto-wf-save-all-2","r");
+    FILE *filePrintWF = fopen(wfname,"r");
+    //FILE *filePrintWF = fopen("sto-wf-save-all-2","r");
     for(iChem=0;iChem<numChemPot;iChem++){
       for(iState=0;iState<numStateUp;iState++){
 	for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){

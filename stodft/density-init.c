@@ -473,7 +473,7 @@ void readRho(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
 /*************************************************************************/
-/* This is the routine to calculate the density from deterministic orbitals */
+/* This is the routine to read in initial density                        */
 /*************************************************************************/
 /*=======================================================================*/
 /*         Local Variable declarations                                   */

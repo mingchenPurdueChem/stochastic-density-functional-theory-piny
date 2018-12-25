@@ -324,7 +324,7 @@ void set_sim_dict_cp(int *num_dict,DICT_WORD *dict[])
 /*========================================================================*/
 /*  0) Malloc the dictionary                                              */ 
 
-  *num_dict = 69;
+  *num_dict = 70;
   *dict = (DICT_WORD *)cmalloc(*num_dict*sizeof(DICT_WORD))-1;
 
 /*========================================================================*/
@@ -712,6 +712,13 @@ void set_sim_dict_cp(int *num_dict,DICT_WORD *dict[])
        strcpy((*dict)[69].error_mes,"Positive number of energy cutoff(Ryd) in kinetic energy(force) calculation. Negative for nothing");
        strcpy((*dict)[69].keyword,"cp_ke_ecut");
        strcpy((*dict)[69].keyarg,"-1.0");
+
+  /*-----------------------------------------------------------------------*/
+  /* 70)\cp_rho_ecut{#} */
+
+       strcpy((*dict)[70].error_mes,"A real number, negative means 4*Ecut of wave function(default)");
+       strcpy((*dict)[70].keyword,"cp_rho_ecut");
+       strcpy((*dict)[70].keyarg,"-1.0");
   
 /*========================================================================*/
 /*------------------------------------------------------------------------*/

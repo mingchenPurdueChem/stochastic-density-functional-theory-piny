@@ -59,10 +59,12 @@ void control_set_cp_ewald_sparse(SIMOPTS *simopts,CELL *cell,
 
    int realSparseOpt = cpewald->realSparseOpt;
    double ecut_now;                    /* Num: Energy cutoff                 */
+   double ecut_rho;                    /* Num: Energy cutoff for density     */
    double ecut_dens_cp_box_now;        /* Num: Energy cutoff                 */
    double ecut_res,ecut_tmp;
    double ecut_lg;                     /* Num: Energy cutoff for dens        */
    double ecut_sm;                     /* Num: Energy cutoff for wf          */
+   //double eCutoffRho = cpewald->eCutoffRho;
    double *hmati_ewd;                  /* Num: Inverse ewald h matrix        */
    double *hmati_ewd_cp;               /* Num: Inverse cp ewald h matrix     */
    double deth,deth_cp,side;           /* Num: Volumes and sizes             */
@@ -87,9 +89,10 @@ void control_set_cp_ewald_sparse(SIMOPTS *simopts,CELL *cell,
 
    int *kmaxv;                         /* Lst: K-vector ranges               */
    int *kmax_cp_tmp,*kmaxv_res,cp_on_tmp;
-   int *kmax_cp;
+   int *kmax_cp,*kmax_rho;
    int *kmaxv_dens_cp_box;
    int *kmax_cp_dens_cp_box;
+   int *kmax_dummy;
 
    int pme_b_opt;
    double *bfact_r, *bfact_i;
@@ -117,9 +120,25 @@ void control_set_cp_ewald_sparse(SIMOPTS *simopts,CELL *cell,
 
    if(myid==0){
      printf("\n");PRINT_LINE_STAR;
-     printf("Setting up reciprocal space\n");
+     printf("Setting up reciprocal space (sparse real space version)\n");
      PRINT_LINE_DASH;printf("\n");
    }/*endif*/
+
+/*=======================================================================*/
+/*  Check parameter                                                      */
+  
+  if(myid==0){
+    if(cpewald->eCutoffRho<cp_parse->cp_ecut){
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      printf("The density cutoff is %lgRyd which is larger then",cpewald->eCutoffRho);
+      printf("the wave function cutoff %lgRyd. I'll stop you!\n",cp_parse->cp_ecut);
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(0);
+    }
+  }
+  
+
 
 /*=======================================================================*/
 /* I) Set cp switch and initialize respa kvectors                        */
@@ -143,10 +162,13 @@ void control_set_cp_ewald_sparse(SIMOPTS *simopts,CELL *cell,
    kmaxv          =    (int *) cmalloc((size_t)3*sizeof(int))-1;
    kmaxv_res      =    (int *) cmalloc((size_t)3*sizeof(int))-1;
    kmax_cp_tmp    =    (int *) cmalloc((size_t)3*sizeof(int))-1;
+   kmax_dummy     =    (int *) cmalloc((size_t)3*sizeof(int))-1;
 
    if(cp_on == 1){
      cpewald->kmax_cp = (int *) cmalloc((size_t)3*sizeof(int))-1;
+     cpewald->kmax_rho = (int *) cmalloc((size_t)3*sizeof(int))-1;
      kmax_cp          = cpewald->kmax_cp;
+     kmax_rho         = cpewald->kmax_rho;
      cpewald->kmax_cp_dens_cp_box = (int *) cmalloc((size_t)3*sizeof(int))-1;
      kmax_cp_dens_cp_box          = cpewald->kmax_cp_dens_cp_box;
      if(cp_dual_grid_opt_on >= 1){
@@ -172,26 +194,31 @@ void control_set_cp_ewald_sparse(SIMOPTS *simopts,CELL *cell,
 /*    Without the dual box this is standard grid for cp/ewald          */
 /*    With the dual box this is the small box calculation              */
 
-   //In the sparse case every cutoff is large cutoff. 
-   //cp_pase->cp_ecut: large
-   
+   //  In the sparse case every cutoff is large cutoff. 
+   //  cp_pase->cp_ecut: large
+   //  wf cutoff
    calc_cutoff(kmax_ewd,&ecut_now,&(cp_parse->cp_ecut),cp_on,
-                kmax_cp,kmaxv,hmati_ewd_cp,deth_cp);  
+                kmax_cp,kmax_dummy,hmati_ewd_cp,deth_cp);  
+   // rho cutoff
+   calc_cutoff(kmax_ewd,&ecut_rho,&(cpewald->eCutoffRho),cp_on,
+                kmax_rho,kmax_dummy,hmati_ewd_cp,deth_cp);
    // kmaxv=2*kmax_cp. I don't need this. Recall that this function is only 
    // used in cp_on==1 case, therefore I don't have to consider pure Ewald.
+   
    if(cp_on==1){
-     kmaxv[1] = kmax_cp[1];
-     kmaxv[2] = kmax_cp[2];
-     kmaxv[3] = kmax_cp[3];
+     kmaxv[1] = kmax_rho[1];
+     kmaxv[2] = kmax_rho[2];
+     kmaxv[3] = kmax_rho[3];
    }
+   
      
    //Now I need to count the total k point. However I have *4 in 
    //ecut_now in countkvec3d. Therefore I need to use countkvec3d_sm 
-   //k range: -kmax_cp->kmax_cp
+   //k range: -kmaxv->kmaxv
 
    //printf("!!!!!!!!!!!!!! ecut_now %.16lg\n",ecut_now);
 
-   countkvec3d_sm(&(ewald->nktot),ecut_now,kmax_cp,hmati_ewd_cp); 
+   countkvec3d_sm(&(ewald->nktot),ecut_rho,kmaxv,hmati_ewd_cp); 
 
    //Now I have everything for large cutoff, I don't need 4.0* anymore
 
@@ -199,8 +226,8 @@ void control_set_cp_ewald_sparse(SIMOPTS *simopts,CELL *cell,
    cpcoeffs_info->ecut     = ecut_now;
    cpcoeffs_info->ncoef_l  = nktot+1;
    ncoef_l                 = nktot+1;
-   ecor->ecut              = ecut_now;
-   ewald->ecut             = ecut_now;
+   ecor->ecut              = ecut_rho;
+   ewald->ecut             = ecut_rho;
    ewald->nkc_max          = kmaxv[3];
    //printf("kmaxv[1] %i %i %i kmax_cp[1] %i %i %i\n",kmaxv[1],kmaxv[2],kmaxv[3],
    //	  kmax_cp[1],kmax_cp[2],kmax_cp[3]);
@@ -208,121 +235,23 @@ void control_set_cp_ewald_sparse(SIMOPTS *simopts,CELL *cell,
 /*----------------------------------------------------------------------*/
 /* A.1) For dualing : Calculate cutoff and count kvectors for the large */
 /*      box and save the small box.                                     */
-if(cp_on == 1){
-   switch(cp_dual_grid_opt_on){
-    case 0:  
+  if(cp_on == 1){
+    if(cp_dual_grid_opt_on==0){
       ecut_dens_cp_box_now   = ecut_now;
       kmax_cp_dens_cp_box[1] = kmax_cp[1];
       kmax_cp_dens_cp_box[2] = kmax_cp[2];
       kmax_cp_dens_cp_box[3] = kmax_cp[3];
-    break;
-    case 1: //Careful, not debugged for sparse  
-      ecut_dens_cp_box_now               = ecut_now;
-      nktot_dens_cp_box                  = nktot;
-      cpewald->nktot_dens_cp_box         = nktot;
-      cpcoeffs_info->ncoef_l_dens_cp_box = nktot + 1;
-      ncoef_dens_cp_box                  = nktot + 1;
-      cpcoeffs_info->ecut_dens_cp_box    = ecut_now;
-
-      kmaxv_dens_cp_box[1]   = 2*kmaxv[1];
-      kmaxv_dens_cp_box[2]   = 2*kmaxv[2];
-      kmaxv_dens_cp_box[3]   = 2*kmaxv[3];
-
-      kmax_cp_dens_cp_box[1] = kmax_cp[1];
-      kmax_cp_dens_cp_box[2] = kmax_cp[2];
-      kmax_cp_dens_cp_box[3] = kmax_cp[3];
-
-      nk1 = 4*(kmax_cp[1]+1);
-      nk2 = 4*(kmax_cp[2]+1);
-      nk3 = 4*(kmax_cp[3]+1);
-/*!!!!  DERIVE THIS EXPRESSION !!!! */
-/* How mamy g-vectors do you need to get the density on the large grid */
-/* correctly if you fft to g-space with a spherical cut-off and fft back */
-/* Glenn's analysis indicates thou shalt not truncate g space  at all   */
-/*    for this option , great since this makes the pme a more important */
-/*    method  */
-
-      kmaxv[1] = 2*(box_rat*(kmax_cp[1]+1)-1);
-      kmaxv[2] = 2*(box_rat*(kmax_cp[2]+1)-1);
-      kmaxv[3] = 2*(box_rat*(kmax_cp[3]+1)-1);
-
-      countkvec3d(&(ewald->nktot),ecut_now,kmaxv,hmati_ewd);
-
-      nktot                   = ewald->nktot;
-      cpcoeffs_info->ecut     = ecut_now;
-      cpcoeffs_info->ncoef_l  = nktot+1;
-      ncoef_l                 = nktot+1;
-      ecor->ecut              = 4.0*ecut_now;
-      ewald->ecut             = 4.0*ecut_now;
-      ewald->nkc_max          = kmaxv[3];
-    break;
-#ifdef  ORIG
-    case 2://Careful, not debugged for sparse
-      ecut_dens_cp_box_now               = ecut_now;
-      nktot_dens_cp_box                  = nktot;
-      cpewald->nktot_dens_cp_box         = nktot;
-      cpcoeffs_info->ncoef_l_dens_cp_box = nktot + 1;
-      ncoef_dens_cp_box                  = nktot + 1;
-      cpcoeffs_info->ecut_dens_cp_box    = ecut_now;
-
-      kmaxv_dens_cp_box[1]   = 2*kmaxv[1];
-      kmaxv_dens_cp_box[2]   = 2*kmaxv[2];
-      kmaxv_dens_cp_box[3]   = 2*kmaxv[3];
-
-      kmax_cp_dens_cp_box[1] = kmax_cp[1];
-      kmax_cp_dens_cp_box[2] = kmax_cp[2];
-      kmax_cp_dens_cp_box[3] = kmax_cp[3];
-
-      nk1 = 4*(kmax_cp[1]+1);
-      nk2 = 4*(kmax_cp[2]+1);
-      nk3 = 4*(kmax_cp[3]+1);
-      kmaxv[1] = 2*(box_rat*(kmax_cp[1]+1)-1);
-      kmaxv[2] = 2*(box_rat*(kmax_cp[2]+1)-1);
-      kmaxv[3] = 2*(box_rat*(kmax_cp[3]+1)-1);
-
-      countkvec3d(&(ewald->nktot),ecut_now,kmaxv,hmati_ewd);
-
-      nktot                   = ewald->nktot;
-      cpcoeffs_info->ecut     = ecut_now;
-      cpcoeffs_info->ncoef_l  = nktot+1;
-      ncoef_l                 = nktot+1;
-      ecor->ecut              = 4.0*ecut_now;
-      ewald->ecut             = 4.0*ecut_now;
-      ewald->nkc_max          = kmaxv[3];
-    break;
-#endif
-#ifdef  PME
-    case 2://Careful, not debugged for sparse
-      ecut_dens_cp_box_now               = ecut_now;
-      nktot_dens_cp_box                  = nktot;
-      cpewald->nktot_dens_cp_box         = nktot;
-      cpcoeffs_info->ncoef_l_dens_cp_box = nktot + 1;
-      ncoef_dens_cp_box                  = nktot + 1;
-      cpcoeffs_info->ecut_dens_cp_box    = ecut_now;
-
-      kmaxv_dens_cp_box[1]   = 2*kmaxv[1];
-      kmaxv_dens_cp_box[2]   = 2*kmaxv[2];
-      kmaxv_dens_cp_box[3]   = 2*kmaxv[3];
-
-      kmax_cp_dens_cp_box[1] = kmax_cp[1];
-      kmax_cp_dens_cp_box[2] = kmax_cp[2];
-      kmax_cp_dens_cp_box[3] = kmax_cp[3];
-
-      calc_cutoff(kmax_ewd,&ecut_now,&(cp_parse->cp_ecut_dual_grid),cp_on,
-                  kmax_cp,kmaxv,hmati_ewd,deth);  
-      countkvec3d(&(ewald->nktot),ecut_now,kmaxv,hmati_ewd); 
-
-      nktot                   = ewald->nktot;
-      cpcoeffs_info->ecut     = ecut_now;
-      cpcoeffs_info->ncoef_l  = nktot+1;
-      ncoef_l                 = nktot+1;
-      ecor->ecut              = 4.0*ecut_now;
-      ewald->ecut             = 4.0*ecut_now;
-      ewald->nkc_max          = kmaxv[3];
-    break;
-#endif
-   }/*end switch*/
-}/*endif cp_on*/
+    }
+    else{
+      if(myid==0){
+        printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+        printf("real_sparse option doesn't support dual grid!\n");
+        printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+        fflush(stdout);
+        exit(0);
+      }
+    }
+  }//endif cp_on
  
 /*----------------------------------------------------------------------*/
 /* B) Malloc                                                            */
@@ -356,23 +285,7 @@ if(cp_on == 1){
    }/*endif*/
 
 /*------------------------------------------------------------------------*/
-
-   if( cp_dual_grid_opt_on >= 1 && cp_on == 1){
-     nmall      =  nktot_dens_cp_box+1;   if((nmall % 2)==0){nmall++;}
-     now_mem    = (nmall*(sizeof(double)*0 + sizeof(int)*5))*1.e-06;
-     (*tot_memory) += now_mem;
-
-     cpewald->kastr_dens_cp_box    = (int *) cmalloc(nmall*sizeof(int))-1;
-     cpewald->kbstr_dens_cp_box    = (int *) cmalloc(nmall*sizeof(int))-1;
-     cpewald->kcstr_dens_cp_box    = (int *) cmalloc(nmall*sizeof(int))-1;
-     cpewald->ibrk1_dens_cp_box    = (int *) cmalloc(nmall*sizeof(int))-1;
-     cpewald->ibrk2_dens_cp_box    = (int *) cmalloc(nmall*sizeof(int))-1;
-
-     if(myid==0){
-       printf("cp grid allocation: %g Mbytes; Total memory %g Mbytes\n",
-               now_mem,*tot_memory);
-     }/*endif*/
-   }/*endif cp_dual_grid_opt_on*/
+/* dual grid: I'll turn this off */
 
 /*------------------------------------------------------------------------*/
 /* C) Fill                                                                */
@@ -380,7 +293,7 @@ if(cp_on == 1){
    //gmin_spl, gmax_spl is scaled in setkvec3d, we need to get the same scaling 
    //here. For real space nonlocal pp, we need to have gmaxTrueLg double.
 
-   setkvec3d_sm(nktot,ecut_now,kmaxv,hmati_ewd,
+   setkvec3d_sm(nktot,ecut_rho,kmaxv,hmati_ewd,
              ewald->kastr,ewald->kbstr,ewald->kcstr,
              ewald->ibrk1,ewald->ibrk2,
              gmin_spl,gmax_spl);
@@ -400,21 +313,6 @@ if(cp_on == 1){
 
    //We have cp_dual_grid_opt_on=0 so we dont touch this
 
-   if( cp_dual_grid_opt_on >= 1 && cp_on == 1){
-     setkvec3d(nktot_dens_cp_box,ecut_dens_cp_box_now,
-               kmaxv_dens_cp_box,hmati_ewd_cp,
-               cpewald->kastr_dens_cp_box,
-               cpewald->kbstr_dens_cp_box,cpewald->kcstr_dens_cp_box,
-               cpewald->ibrk1_dens_cp_box,cpewald->ibrk2_dens_cp_box,cp_on,
-               &gmin_spl_tmp,&gmin_true_tmp,&gmax_spl_tmp);
-   }/*endif cp_dual_grid_opt_on*/
-
-   if( cp_dual_grid_opt_on == 2 && cp_on == 1){
-     *gmin_spl  = gmin_spl_tmp;
-     *gmin_true = gmin_true_tmp;
-     *gmax_spl  = gmax_spl_tmp;
-   }/*endif*/
-
 /*=======================================================================*/
 /* V) Setup PME                                                          */
 
@@ -427,11 +325,11 @@ if(cp_on == 1){
 /*  A) Get grid size */
 
       part_mesh->nktot_pme = nktot;
-      set_pme_grid_sm(ecut_now,deth,hmati_ewd,kmaxv,
+      set_pme_grid_sm(ecut_rho*0.25,deth,hmati_ewd,kmaxv,
                   &(part_mesh->ngrid_a),&(part_mesh->ngrid_b),
                   &(part_mesh->ngrid_c),n_interp,
                   part_mesh->kmax_pme);
-      part_mesh->ecut     = ecut_now;
+      part_mesh->ecut     = ecut_rho*0.25;
       ngrid_a = part_mesh->ngrid_a;
       ngrid_b = part_mesh->ngrid_b;
       ngrid_c = part_mesh->ngrid_c;
@@ -495,60 +393,20 @@ if(cp_on == 1){
 
    // We dont have RESPA so forget about this
 
-   if(int_res_ter != 0) {
+  if(int_res_ter != 0) {
+    if(myid==0){
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      printf("real_sparse option doesn't support RESPA!\n");
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(0);
+    }
 /*-----------------------------------------------------------------------*/
 /*  A) Repsa K vectors */
-      ecut_tmp = 0.0;cp_on_tmp=0;
-
-      calc_cutoff(kmax_res,&ecut_res,&ecut_tmp,cp_on_tmp,
-                  kmax_cp_tmp,kmaxv_res,hmati_ewd,deth);
-
-      ecor->ecut_res   = 4.0*ecut_res;
-      ewald->ecut_res  = 4.0*ecut_res;
-      countkvec3d(&(ewald->nktot_res),ecut_res,kmaxv_res,hmati_ewd);
-      nktot_res         = ewald->nktot_res;
-      ecor->nktot_res   = nktot_res;
-      setkvec3d(nktot_res,ecut_res,kmaxv_res,hmati_ewd,
-                ewald->kastr_res,ewald->kbstr_res,ewald->kcstr_res,
-                ewald->ibrk1_res,ewald->ibrk2_res,cp_on_tmp,
-                &gmin_spl_tmp,&gmin_true_tmp,&gmax_spl_tmp);
-      setkvec3d_res(kmax_res,hmati_ewd,
-                    ewald->kastr,ewald->kbstr,ewald->kcstr,ewald->ibrk3,
-                    nktot,nktot_res);
-      if(pme_res_on==1){
 /*-----------------------------------------------------------------------*/
 /*  B) Set the PME GRID */
-       part_mesh->nktot_pme_res = nktot_res;
-       set_pme_grid(ecut_res,deth,hmati_ewd,kmaxv_res,
-                  &(part_mesh->ngrid_a_res),&(part_mesh->ngrid_b_res),
-                  &(part_mesh->ngrid_c_res),n_interp_res,
-                  part_mesh->kmax_pme_res);
-       part_mesh->ecut_res     = 4.0*ecut_res;
-       ngrid_a_res = part_mesh->ngrid_a_res;
-       ngrid_b_res = part_mesh->ngrid_b_res;
-       ngrid_c_res = part_mesh->ngrid_c_res;
-       if((ngrid_a_res<n_interp_res) || (ngrid_b_res<n_interp_res) || 
-          (ngrid_c_res<n_interp_res)){
-        if(myid==0){
-         printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
-         printf("The RESPA PME n_interp parameter > number of grid points \n");
-         printf("This is not allowed\n");      
-         printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
-        }/*endif*/
-        fflush(stdout);
-        exit(1);      
-       }/*endif*/
 /*-----------------------------------------------------------------------*/
-/*  C) Create PME Bweight */
-       pme_b_opt = 1;
-       set_pme_wght(nktot_res,ewald->kastr_res,ewald->kbstr_res,
-                  ewald->kcstr_res,ngrid_a_res,ngrid_b_res,ngrid_c_res,
-                  idum1,idum2,idum3,
-                  pme_b_opt,bfact_r,bfact_i,
-                  part_mesh->bweight_tot_res,n_interp_res,
-                  part_mesh->aj,part_mesh->rn,part_mesh->rn1);
-      }/*endif*/
-    }/*endif*/
+  }//endif int_res_ter
 
 /*=======================================================================*/
 /* VII) Setup CP coefs and k vectors                                     */
@@ -560,14 +418,15 @@ if(cp_on == 1){
 
       //I don't need to redo the count thing since it would be the 
       //same as large cutoff
+      // Since now I have flexible choice on rho ecut. I still need to count
 
-      ecut_sm = ecut_dens_cp_box_now;
+      ecut_sm = ecut_now;
    
-      //countkvec3d_sm(&(cpewald->nktot_sm),ecut_sm,
-      //               kmax_cp_dens_cp_box,hmati_ewd_cp);
-      cpewald->nktot_sm = nktot;
-      nktot_sm = nktot;
-      //nktot_sm = cpewald->nktot_sm;
+      countkvec3d_sm(&(cpewald->nktot_sm),ecut_sm,
+                     kmax_cp_dens_cp_box,hmati_ewd_cp);
+      //cpewald->nktot_sm = nktot;
+      //nktot_sm = nktot;
+      nktot_sm = cpewald->nktot_sm;
       cpcoeffs_info->ncoef   = nktot_sm+1;
       ncoef                  = nktot_sm+1;
 /*--------------------------------------------------------------------*/
@@ -636,9 +495,9 @@ if(cp_on == 1){
      if(cp_on == 1) {
        switch(cp_dual_grid_opt_on){
          case 0:
-           nkf1 = 2*(kmax_cp[1]+1);
-           nkf2 = 2*(kmax_cp[2]+1);
-           nkf3 = 2*(kmax_cp[3]+1);
+           nkf1 = 2*(kmax_rho[1]+1);
+           nkf2 = 2*(kmax_rho[2]+1);
+           nkf3 = 2*(kmax_rho[3]+1);
          break;
          case 1:
            nkf1 = 2*box_rat*(kmax_cp_dens_cp_box[1] + 1);
@@ -673,13 +532,13 @@ if(cp_on == 1){
 #endif
        }/*end switch*/
 
-       nk1  = 2*(kmax_cp_dens_cp_box[1]+1);
-       nk2  = 2*(kmax_cp_dens_cp_box[2]+1);
-       nk3  = 2*(kmax_cp_dens_cp_box[3]+1);
+       nk1  = 2*(kmax_rho[1]+1);
+       nk2  = 2*(kmax_rho[2]+1);
+       nk3  = 2*(kmax_rho[3]+1);
 
-       ecut_lg = ecut_now;
-       printf("Your large cp-fft grid is  %d by %d by %d\n",nkf1,nkf2,nkf3);
-       printf("There are  %d total k-vectors ",ncoef_l); 
+       ecut_lg = ecut_rho;
+       printf("Your cp-fft grid is  %d by %d by %d\n",nkf1,nkf2,nkf3);
+       printf("There are %d total k-vectors ",ncoef_l); 
        printf("upon spherical truncation. \n");
        printf("The large energy cutoff is 4*Ecut= %f Ryd\n",2.0*ecut_lg);
        putchar('\n');
@@ -779,6 +638,7 @@ void control_fft_pkg_sparse(PARA_FFT_PKG3D *cp_sclr_fft_pkg_sm,
   int box_rat            = cpewald->box_rat;
   int nktot_res          = ewald->nktot_res;
   int *kmax_cp           = cpewald->kmax_cp;
+  int *kmax_rho          = cpewald->kmax_rho;
   int *kmax_cp_dens_cp_box = cpewald->kmax_cp_dens_cp_box;
   int myid               = communicate->myid;
   int np_states          = communicate->np_states;
@@ -829,17 +689,20 @@ void control_fft_pkg_sparse(PARA_FFT_PKG3D *cp_sclr_fft_pkg_sm,
 
 /*=========================================================================*/
 /* 0.1) Set CP FFT Size  */
-
+/*      This is for dual grid option.*/
+  /*
   if(cp_on==1){
     nkf1 = 2*(kmax_cp_dens_cp_box[1]+1);
     nkf2 = 2*(kmax_cp_dens_cp_box[2]+1);
     nkf3 = 2*(kmax_cp_dens_cp_box[3]+1);
-  }/*endif*/
+  }//endif
+  */
 
 /*=========================================================================*/
 /* I) DENS_CP_BOX CP scalar package                                        */
 
- if(cp_dual_grid_opt_on >= 1 && cp_para_opt == 0){/* hybrid option */
+ /*
+ if(cp_dual_grid_opt_on >= 1 && cp_para_opt == 0){// hybrid option
 
     cp_sclr_fft_pkg_dens_cp_box->nkf1       = nkf1;
     cp_sclr_fft_pkg_dens_cp_box->nkf2       = nkf2;
@@ -858,13 +721,15 @@ void control_fft_pkg_sparse(PARA_FFT_PKG3D *cp_sclr_fft_pkg_sm,
                           cpewald->kastr_dens_cp_box,
                           cpewald->kbstr_dens_cp_box,
                           cpewald->kcstr_dens_cp_box,cp_dual_grid_opt_on);
-  }/*endif*/
+  }//endif
+  */
 
 
 /*=========================================================================*/
 /* II) DENSITY_CP_BOX  parallel package                                    */
 /*       This package must be made for both hybrid and full_g options      */
 
+  /*
   if(cp_dual_grid_opt_on >= 1){
 
     cp_para_fft_pkg_dens_cp_box->nkf1       = nkf1;
@@ -883,7 +748,8 @@ void control_fft_pkg_sparse(PARA_FFT_PKG3D *cp_sclr_fft_pkg_sm,
                           cpewald->kastr_dens_cp_box,
                           cpewald->kbstr_dens_cp_box,
                           cpewald->kcstr_dens_cp_box,cp_dual_grid_opt_on);
-  }/*endif*/
+  }//endif
+  */
 
 /*=========================================================================*/
 /* I) Large CP scalar package                                              */
@@ -893,9 +759,9 @@ void control_fft_pkg_sparse(PARA_FFT_PKG3D *cp_sclr_fft_pkg_sm,
 
    switch(cp_dual_grid_opt_on){
     case 0:
-     nkf1 = 2*(kmax_cp[1]+1);
-     nkf2 = 2*(kmax_cp[2]+1);
-     nkf3 = 2*(kmax_cp[3]+1);
+     nkf1 = 2*(kmax_rho[1]+1);
+     nkf2 = 2*(kmax_rho[2]+1);
+     nkf3 = 2*(kmax_rho[3]+1);
     break;
     case 1:
      nkf1 = 2*box_rat*(kmax_cp_dens_cp_box[1]+1);
@@ -944,9 +810,9 @@ void control_fft_pkg_sparse(PARA_FFT_PKG3D *cp_sclr_fft_pkg_sm,
 
    switch(cp_dual_grid_opt_on){
     case 0:
-     nkf1 = 2*(kmax_cp[1]+1);
-     nkf2 = 2*(kmax_cp[2]+1);
-     nkf3 = 2*(kmax_cp[3]+1);
+     nkf1 = 2*(kmax_rho[1]+1);
+     nkf2 = 2*(kmax_rho[2]+1);
+     nkf3 = 2*(kmax_rho[3]+1);
     break;
     case 1:
      nkf1 = 2*box_rat*(kmax_cp_dens_cp_box[1]+1);
@@ -991,9 +857,9 @@ void control_fft_pkg_sparse(PARA_FFT_PKG3D *cp_sclr_fft_pkg_sm,
 
   if(cp_on == 1 && cp_para_opt == 0){/* hybrid option */
 
-    nkf1 = 2*(kmax_cp_dens_cp_box[1]+1);
-    nkf2 = 2*(kmax_cp_dens_cp_box[2]+1);
-    nkf3 = 2*(kmax_cp_dens_cp_box[3]+1);
+    nkf1 = 2*(kmax_rho[1]+1);
+    nkf2 = 2*(kmax_rho[2]+1);
+    nkf3 = 2*(kmax_rho[3]+1);
 
     cp_sclr_fft_pkg_sm->nkf1       = nkf1;
     cp_sclr_fft_pkg_sm->nkf2       = nkf2;
@@ -1017,9 +883,9 @@ void control_fft_pkg_sparse(PARA_FFT_PKG3D *cp_sclr_fft_pkg_sm,
 /* III) Small  CP sparse scalar package                                    */
 
   if(cp_on==1&&cp_para_opt==0&&realSparseOpt==1){
-    nkf1 = 2*(kmax_cp_dens_cp_box[1]+1);
-    nkf2 = 2*(kmax_cp_dens_cp_box[2]+1);
-    nkf3 = 2*(kmax_cp_dens_cp_box[3]+1);
+    nkf1 = 2*(kmax_rho[1]+1);
+    nkf2 = 2*(kmax_rho[2]+1);
+    nkf3 = 2*(kmax_rho[3]+1);
     //nkf1 = 4*(kmax_cp_dens_cp_box[1]+1);
     //nkf2 = 4*(kmax_cp_dens_cp_box[2]+1);
     //nkf3 = 4*(kmax_cp_dens_cp_box[3]+1);
@@ -1060,9 +926,9 @@ void control_fft_pkg_sparse(PARA_FFT_PKG3D *cp_sclr_fft_pkg_sm,
 
   if(cp_on == 1 && cp_para_opt == 1){/* full g option */
 
-    nkf1 = 2*(kmax_cp_dens_cp_box[1]+1);
-    nkf2 = 2*(kmax_cp_dens_cp_box[2]+1);
-    nkf3 = 2*(kmax_cp_dens_cp_box[3]+1);
+    nkf1 = 2*(kmax_rho[1]+1);
+    nkf2 = 2*(kmax_rho[2]+1);
+    nkf3 = 2*(kmax_rho[3]+1);
 
     cp_para_fft_pkg_sm->nkf1       = nkf1;
     cp_para_fft_pkg_sm->nkf2       = nkf2;

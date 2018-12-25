@@ -1089,6 +1089,12 @@ int iii;
   sscanf(dict[69].keyarg,"%lg",&real_key_arg);
   cp->cpewald.eCutoffKe = real_key_arg;
 
+  /*-----------------------------------------------------------------------*/
+  /* 70)\cp_rho_ecut{#}     */
+  sscanf(dict[70].keyarg,"%lg",&real_key_arg);
+  cp->cpewald.eCutoffRho = real_key_arg;
+
+
 /*========================================================================*/
     }/*end routine*/ 
 /*========================================================================*/

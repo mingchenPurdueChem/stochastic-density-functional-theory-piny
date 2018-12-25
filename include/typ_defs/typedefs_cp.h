@@ -1072,6 +1072,7 @@ typedef struct cpewald {
   double gmaxTrueSm,gmaxTrueLg;
 
   int *kmax_cp;                     /* Lst: Int cutoff in a,b,c directions */
+  int *kmax_rho;                    /* Lst: Int cutoff in a,b,c directions for density */
   int *kmax_cp_dens_cp_box;         /* Lst: cutoff for the small box       */
                                     /*  dual=0 kmax_cp_dens_cp_box=kmax_cp */
                                     /*  dual=1 kmax_cp_dens_cp_box=kmax_cp */
@@ -1104,6 +1105,7 @@ typedef struct cpewald {
   double eCutoffKe,gCutoffKe;		  /* Truncate g before gmax, used in calcuating */
 				  /* kinetic energy before */
 
+  double eCutoffRho;             
   // I'm sorry but cpewald is the only structure passing into force calculation routine
   int fftw3dFlag; /* Replica from cpopts*/
   int onebodyMatrixFlag; /*Replica from cpopts*/

@@ -219,7 +219,8 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   //gmaxTrueLgLg = MIN(gmaxTrueLgLg,ciLength);
 
   pseudoReal->gMaxSm = gmaxTrueSm;
-  pseudoReal->gMaxLg = gmaxTrueLg;
+  //pseudoReal->gMaxLg = gmaxTrueLg;
+  pseudoReal->gMaxLg = 2.0*gmaxTrueSm;
   printf("..... The g space double cutoff is %lg %lg Bohr^-1\n",
          pseudoReal->gMaxSm,pseudoReal->gMaxLg);
 

@@ -253,7 +253,6 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 	//printf("%lg %lg %lg %lg %lg %lg\n",z1,alpha1,z2,alpha2,zPol,gamma);
       }
       if(numProcStates>1){
-        //printf("ffffffffffffffffuck %i\n",numR);
         Bcast(&numR,1,MPI_INT,0,commStates);
         Bcast(&rMax,1,MPI_DOUBLE,0,commStates);
         Bcast(&angNow,1,MPI_INT,0,commStates);
@@ -263,7 +262,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
         Bcast(&alpha2,1,MPI_DOUBLE,0,commStates);
         Bcast(&zPol,1,MPI_DOUBLE,0,commStates);
         Bcast(&gamma,1,MPI_DOUBLE,0,commStates);
-        //printf("ffffffffffffffffuck2 %i\n",numR);
+        printf(">>>>>>>>>>\n");
       }
       vLoc = (double*)cmalloc((numR)*sizeof(double));
       vNl = (double*)cmalloc((numR*numRadMax[iType])*sizeof(double));
@@ -295,6 +294,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 	fclose(fvps);
       }//endif myidState
       if(numProcStates>1){
+        Barrier(commStates);
         //Bcast(&vNl[0],numR*numRadMax[iType],MPI_DOUBLE,0,commStates);
         Bcast(&vNl[0],numR*numRadMax[iType],MPI_DOUBLE,0,commStates);
         Bcast(&phiNl[0],numR*numRadMax[iType],MPI_DOUBLE,0,commStates);

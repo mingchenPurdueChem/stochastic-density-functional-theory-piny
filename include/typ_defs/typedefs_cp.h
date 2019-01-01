@@ -468,7 +468,6 @@ typedef struct fragInfo{
 				    /* Lth: numAtmFragVnlCalc[iFrag]*nstat_up*  */
 				    /*	    nstat_up				*/
   double **Fx,**Fy,**Fz;
-
 // This part is to debug. Store the real space wave function, plz
   double *projRealWF;    //nstat_up*rhoRealGridTot
 // Unit Cell Fragment

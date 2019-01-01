@@ -62,6 +62,7 @@ void cp_energy_control(CLASS *class, BONDED *bonded,
 
   energy_control_elec(class,bonded,general_data,cp);
 
+  //printf("ffffffffffforce 1 %.8lg\n",class->clatoms_pos[1].fx[1]);
 /*======================================================================*/
 /*======================================================================*/
 /*  ONLY GET CLASSICAL FORCES AND ENERGY IF NECESSARY                   */
@@ -71,8 +72,9 @@ void cp_energy_control(CLASS *class, BONDED *bonded,
 /*======================================================================*/
 /* III) calculate inter_real energy                                     */
  
-    energy_control_inter_real(class,bonded,general_data);
+   energy_control_inter_real(class,bonded,general_data);
 
+   //printf("ffffffffffforce 1 %.8lg\n",class->clatoms_pos[1].fx[1]);
 /*======================================================================*/
 /* IV) Get surface PE                                                   */
 

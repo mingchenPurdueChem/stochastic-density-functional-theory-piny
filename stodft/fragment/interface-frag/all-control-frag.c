@@ -1996,12 +1996,14 @@ void controlSetCpEwaldFragSparse(GENERAL_DATA *generalDataMini,CLASS *classMini,
 
   int *kmaxv;                         /* Lst: K-vector ranges               */
   int *kmax_cp_tmp,*kmaxv_res,cp_on_tmp;
-  int *kmax_cp;
+  int *kmax_cp,*kmax_rho;
   int *kmaxv_dens_cp_box;
   int *kmax_cp_dens_cp_box;
+  int *kmax_dummy;
   int *numGridDim = fragInfo->numGridFragDim[iFrag];
 
   double ecut_now;                    /* Num: Energy cutoff                 */
+  double ecut_rho;
   double ecut_dens_cp_box_now;        /* Num: Energy cutoff                 */
   double ecut_res,ecut_tmp;
   double ecut_lg;                     /* Num: Energy cutoff for dens        */
@@ -2040,9 +2042,12 @@ void controlSetCpEwaldFragSparse(GENERAL_DATA *generalDataMini,CLASS *classMini,
   kmaxv          =    (int *) cmalloc((size_t)3*sizeof(int))-1;
   kmaxv_res      =    (int *) cmalloc((size_t)3*sizeof(int))-1;
   kmax_cp_tmp    =    (int *) cmalloc((size_t)3*sizeof(int))-1;
+  kmax_dummy     =    (int *) cmalloc((size_t)3*sizeof(int))-1;
 
   cpewald->kmax_cp = (int *) cmalloc((size_t)3*sizeof(int))-1;
+  cpewald->kmax_rho = (int *) cmalloc((size_t)3*sizeof(int))-1;
   kmax_cp          = cpewald->kmax_cp;
+  kmax_rho         = cpewald->kmax_rho;
   cpewald->kmax_cp_dens_cp_box = (int *) cmalloc((size_t)3*sizeof(int))-1;
   kmax_cp_dens_cp_box          = cpewald->kmax_cp_dens_cp_box;
   if(cp_dual_grid_opt_on >= 1){ 
@@ -2073,32 +2078,41 @@ void controlSetCpEwaldFragSparse(GENERAL_DATA *generalDataMini,CLASS *classMini,
 /*    With the dual box this is the small box calculation              */
    
   calc_cutoff(kmax_ewd,&ecut_now,&(cp_parse->cp_ecut),cp_on,
-              kmax_cp,kmaxv,hmati_ewd_cp,deth_cp);  
+              kmax_cp,kmax_dummy,hmati_ewd_cp,deth_cp);  
+  // rho cutoff
+  printf("1111111 ecut_rho %lg\n",cpewald->eCutoffRho);
+  calc_cutoff(kmax_ewd,&ecut_rho,&(cpewald->eCutoffRho),cp_on,
+                kmax_rho,kmax_dummy,hmati_ewd_cp,deth_cp);
+  printf("ecut_now %lg ecut_rho %lg\n",ecut_now,ecut_rho);
   /*
   printf("ecut_now %lg kmax_cp %i %i %i kmaxv %i %i %i hmati_ewd_cp %lg %lg %lg\n",ecut_now,kmax_cp[1],kmax_cp[2],kmax_cp[3],kmaxv[1],kmaxv[2],kmaxv[3],hmati_ewd_cp[1],hmati_ewd_cp[5],hmati_ewd_cp[9]);
   */
   
   //printf("ecut %lg\n",cp_parse->cp_ecut);
-  if(kmax_cp[1]>numGridDim[0]/2-1||kmax_cp[2]>numGridDim[1]/2-1||
-     kmax_cp[3]>numGridDim[2]/2-1){
+  if(kmax_rho[1]>numGridDim[0]/2-1||kmax_rho[2]>numGridDim[1]/2-1||
+     kmax_rho[3]>numGridDim[2]/2-1){
 
-    kmax_cp[1] = numGridDim[0]/2-1;
-    kmax_cp[2] = numGridDim[1]/2-1;
-    kmax_cp[3] = numGridDim[2]/2-1;
+    kmax_rho[1] = numGridDim[0]/2-1;
+    kmax_rho[2] = numGridDim[1]/2-1;
+    kmax_rho[3] = numGridDim[2]/2-1;
   }
-  kmaxv[1] = kmax_cp[1];
-  kmaxv[2] = kmax_cp[2];
-  kmaxv[3] = kmax_cp[3];
+  kmaxv[1] = kmax_rho[1];
+  kmaxv[2] = kmax_rho[2];
+  kmaxv[3] = kmax_rho[3];
+  // Just in case we have larger kmax_cp due to rounding error
+  if(kmax_cp[1]>kmax_rho[1])kmax_cp[1] = kmax_rho[1];
+  if(kmax_cp[2]>kmax_rho[2])kmax_cp[2] = kmax_rho[2];
+  if(kmax_cp[3]>kmax_rho[3])kmax_cp[3] = kmax_rho[3];
   //printf("kmaxv %i %i %i\n",kmaxv[1],kmaxv[2],kmaxv[3]);
 
-  countkvec3d_sm(&(ewald->nktot),ecut_now,kmax_cp,hmati_ewd_cp);
+  countkvec3d_sm(&(ewald->nktot),ecut_rho,kmaxv,hmati_ewd_cp);
 
   nktot                   = ewald->nktot;
   cpcoeffs_info->ecut     = ecut_now;
   cpcoeffs_info->ncoef_l  = nktot+1;
   ncoef_l                 = nktot+1;
-  ecor->ecut              = ecut_now;
-  ewald->ecut             = ecut_now;
+  ecor->ecut              = ecut_rho;
+  ewald->ecut             = ecut_rho;
   ewald->nkc_max          = kmaxv[3];
 
   //ecor->ecut              = 4.0*ecut_now;
@@ -2144,10 +2158,11 @@ void controlSetCpEwaldFragSparse(GENERAL_DATA *generalDataMini,CLASS *classMini,
 
 /*------------------------------------------------------------------------*/
 /* C) Fill                                                                */
-  setkvec3d_sm(nktot,ecut_now,kmaxv,hmati_ewd,
+  setkvec3d_sm(nktot,ecut_rho,kmaxv,hmati_ewd,
             ewald->kastr,ewald->kbstr,ewald->kcstr,
             ewald->ibrk1,ewald->ibrk2,
             gmin_spl,gmax_spl);
+  printf("1111111111111111\n");
 
   /*
    for(i=1;i<=nktot;i++){
@@ -2174,7 +2189,6 @@ void controlSetCpEwaldFragSparse(GENERAL_DATA *generalDataMini,CLASS *classMini,
   exit(0);
   */
 
-
 /*------------------------------------------------------------------------*/
 /* C) Fill DENS_CP_BOX                                                    */
 
@@ -2193,8 +2207,14 @@ void controlSetCpEwaldFragSparse(GENERAL_DATA *generalDataMini,CLASS *classMini,
 /*  A)  Count the k-vectors                                           */
     
     ecut_sm = ecut_now;
-    cpewald->nktot_sm = nktot;
-    nktot_sm = nktot;
+
+    countkvec3d_sm(&(cpewald->nktot_sm),ecut_sm,
+                   kmax_cp_dens_cp_box,hmati_ewd_cp);
+
+
+    //cpewald->nktot_sm = nktot;
+    //nktot_sm = nktot;
+    nktot_sm = cpewald->nktot_sm;
     cpcoeffs_info->ncoef   = nktot_sm+1;
     ncoef                  = nktot_sm+1;
     

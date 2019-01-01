@@ -243,7 +243,7 @@ typedef struct ewald {
   int nkc_max;                 /* Num: Max value of kc, calculated by all */
   int nkb_max;                 /* Num: Max value of kb, calculated by all */
 
-  double alp_ewd;              /* Num: Convergence param of Ewald sum */ 
+  double alp_ewd;              /* Num: Convergence param of Ewald sum */
   double self_erf;            
   double ecut,ecut_res;
   double ecut_clus;            /* Num: Energy cutoff for cluster BCs  */

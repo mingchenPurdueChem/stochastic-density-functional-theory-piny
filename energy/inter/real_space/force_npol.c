@@ -368,7 +368,7 @@ void npol_vspl_fetch(int n,double del[], double spl_out[],
     del_tmp = del[i];
     spl_out[i]  =  swit[i]*(c0 + del_tmp*(c1 + del_tmp* 
                                      (c2 + del_tmp*c3)));
-
+    //printf("swit %lg spl_out %lg c0 %lg c1 %lg c2 %lg c3 %lg del_tmp %lg\n",swit[i],spl_out[i],c0,c1,c2,c3,del_tmp);
   }/*endfor*/
 
 /*--------------------------------------------------------------------------*/

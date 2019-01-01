@@ -433,6 +433,7 @@ void vcoul_bin(int n,double r[],double v[],double dv[],
                            +de4)*tt+de3)*tt+de2)*tt+de1)*tt*tt*eee*palp
                            +talp2*gerfc*r[i];
       vnow   = qij * gerfc/r[i];
+      //printf("r %lg gerfc %lg alp %lg ralp %lg eee %lg tt %lg vnow %lg\n",r[i],gerfc,alp,ralp,eee,tt,vnow);
       dvnow  = (gerfc/r2 + dgerfc/r[i])*qij/r[i];
       v[i]   = vnow*sw[i];
       dv[i]  = dvnow*sw[i] + vnow*dsw[i];

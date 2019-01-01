@@ -339,6 +339,8 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   cpMini->cpopts.realSparseOpt = cp->cpopts.realSparseOpt;
   /* 69)\cp_ke_ecut{#}     */
   cpMini->cpewald.eCutoffKe = cp->cpewald.eCutoffKe;
+  /* 70)\cp_rho_ecut{#}    */
+  cpMini->cpewald.eCutoffRho = cp->cpewald.eCutoffRho*2.0; // change back to Ryd
 /*=======================================================================*/
 /*  IV) set_sim_params_vpot                                              */
 
@@ -368,7 +370,8 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   classMini->part_mesh.nlen_pme = class->part_mesh.nlen_pme;
   cpMini->cpscr.cpscr_atom_pme.nlen_pme = cp->cpscr.cpscr_atom_pme.nlen_pme;
   /* 8)\ewald_alpha{#} I may need to change this */
-  generalDataMini->ewald.alp_ewd = 39.9;
+  //generalDataMini->ewald.alp_ewd = 39.9;
+  generalDataMini->ewald.alp_ewd = general_data->ewald.alp_ewd;
   /* 9)\ewald_kmax{#} class_parse ??? */
   classParse->kmax_ewd = 10;
   /* 10)\ewald_respa_kmax{#} class_parse ??? */

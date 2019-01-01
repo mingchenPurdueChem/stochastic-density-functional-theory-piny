@@ -430,7 +430,7 @@ void parse(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*========================================================================*/
 /*   XI) Setup intermolecular potential stuff: interspline mallocing      */
 /*                (interface/inter_params/control_inter_params.c)         */
-
+  
   control_inter_params(&(class->interact),&spline_parse,
                        &filename_parse,general_data->ewald.alp_ewd,
                        nchrg,class->clatoms_info.natm_tot,

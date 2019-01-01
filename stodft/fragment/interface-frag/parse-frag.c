@@ -90,7 +90,10 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
   int iopt_cp_pw,iopt_cp_dvr;
   double totMemFake;
+  double side;
+  double deth;
   double *tot_memory = &totMemFake;
+  double hmati_ewd_tmp[10];
   *tot_memory = 0.0;
 
 /*========================================================================*/
@@ -113,7 +116,14 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   icontrol_proc = generalDataMini->error_check_on;
   num_proc = classMini->communicate.np;
   
-   
+  // Roll back to the original ewald alpha
+  iperd       = generalDataMini->cell.iperd;
+
+  gethinv(general_data->cell.hmat_ewd,hmati_ewd_tmp,&deth,iperd);
+
+  side  = pow(deth,(1.0/3.0));
+  generalDataMini->ewald.alp_ewd *= side;
+
   /*
   controlSimParamsFrag(class,general_data,bonded,cp,analysis,classMini,generalDataMini,
 		       bondedMini,cpMini,analysisMini,
@@ -185,7 +195,6 @@ void parseFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
          +generalDataMini->simopts.cp_wave_pimd;
 
   nchrg       = classMini->clatoms_info.nchrg;
-  iperd       = generalDataMini->cell.iperd;
   myid        = classMini->communicate.myid;
   np_states   = classMini->communicate.np_states;
   np_forc     = classMini->communicate.np_forc;

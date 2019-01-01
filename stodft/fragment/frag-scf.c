@@ -137,7 +137,24 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     //fclose(fileFragMO);
   }
   */
-  
+
+    
+  sprintf(fileNameFragMO,"frag-MO-%i",myidState);
+  if(numFragProc>0){
+    fileFragMO = fopen(fileNameFragMO,"r");
+    for(iFrag=0;iFrag<numFragProc;iFrag++){
+      //printf("%p\n",fileFragMO);
+      ncoef = cpMini[iFrag].cpcoeffs_info.ncoef;
+      for(iState=0;iState<numElecUpFragProc[iFrag];iState++){
+        for(icoef=1;icoef<=ncoef;icoef++){
+          fscanf(fileFragMO,"%lg",&(cpMini[iFrag].cpcoeffs_pos[1].cre_up[iState*ncoef+icoef]));
+          fscanf(fileFragMO,"%lg",&(cpMini[iFrag].cpcoeffs_pos[1].cim_up[iState*ncoef+icoef]));
+        }
+      }
+    }
+    fclose(fileFragMO);
+  }
+    
   for(iFrag=0;iFrag<numFragProc;iFrag++){
 /*======================================================================*/
 /* I) Allocate Mini Structures                                          */

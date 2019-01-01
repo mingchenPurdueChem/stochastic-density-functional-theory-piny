@@ -772,6 +772,7 @@ void set_inter_splin(double sig[],double eps[],double a[],double b[],
        rmin = cutti[i];
        rmax = cutoff[i];
        iiperd = iperd;
+       //printf("rmin %lg rmax %lg alp_ewd %lg iiperd %i\n",rmin,rmax,alp_ewd,iiperd);
        spline_vdv(rmin,rmax,&(interact->cv0_c)[ioff],&(interact->cdv0_c)[ioff],
              interact->nsplin,&dr_tmp,&dri_tmp,sigt,epst,at,bt,ct,rmt,c6t,
              c8t,c9t,c10t,alp_ewd,qijp,iiperd,itype,ishift_now,

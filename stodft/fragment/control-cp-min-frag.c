@@ -254,6 +254,9 @@ void controlCpMinFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     (general_data->simopts.cp_min)      = 1;
     (general_data->simopts.cp_wave_min) = 0;
 
+    // Let's try to calculate nuclei forces from fragment
+    // Let's see if we can have all nuclei forces
+
     //printf("111111111 ke %lg\n",general_data->stat_avg.cp_eke);
 
     //int cpBack = general_data->simopts.cp;
@@ -264,6 +267,16 @@ void controlCpMinFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     }
     cp_energy_control(class,bonded,general_data,cp);
     //general_data->simopts.cp = cpBack;
+
+    int natom = class->clatoms_info.natm_tot;
+
+    for(i=1;i<natom;i++){
+      printf("fx %.8lg fy %.8lg fz %.8lg\n",
+              class->clatoms_pos[1].fx[i],
+              class->clatoms_pos[1].fy[i],
+              class->clatoms_pos[1].fz[i]);
+    }
+
 
     simpavg_cp(&(general_data->timeinfo),&(general_data->stat_avg),
                &(general_data->cell),&(bonded->constrnt),

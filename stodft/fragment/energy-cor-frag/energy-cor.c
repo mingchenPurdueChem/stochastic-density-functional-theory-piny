@@ -55,22 +55,28 @@ void energyCorrect(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,
   int iFrag,iAtom;
   int vnl_kb_flag;
   int vnl_gh_flag;
+  int numAtomCalc;
+  int *numAtomFragVnlCalc   = fragInfo->numAtomFragVnlCalc;
   double keCorProc = 0.0;
   double vnlCorProc = 0.0;
   double *vnlFxCorProc,*vnlFyCorProc,*vnlFzCorProc;
+
   MPI_Comm commStates = commCP->comm_states;
 
   vnlFxCorProc = (double*)cmalloc(numAtomTot*sizeof(double));
   vnlFyCorProc = (double*)cmalloc(numAtomTot*sizeof(double));
   vnlFzCorProc = (double*)cmalloc(numAtomTot*sizeof(double));
- 
+
+
+  outputFragForce(cp,class,classMini); 
+
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     fragInfo->iFrag = iFrag;
     pseudo = &(cpMini[iFrag].pseudo);
     pseudo->vnl_kb_flag = 1;
     vnl_kb_flag = pseudo->vnl_kb_flag;
     vnl_gh_flag = pseudo->vnl_gh_flag;
-
+      
 /*======================================================================*/
 /* I) Kinetic energy	                                                */
     
@@ -605,6 +611,110 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
   free(vnlFyCorFragLoc);
   free(vnlFzCorFragLoc);
   //exit(0);
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void  outputFragForce(CP *cp,CLASS *class,CLASS *classMini)
+/*========================================================================*/
+{/*begin routine*/
+/**************************************************************************/
+/* This function prints the nuclei forces of atoms in each core region.   */
+/* Nuclei forces are calculated by fragment DFT.                          */
+/**************************************************************************/
+/*========================================================================*/
+/*             Local variable declarations                                */
+
+  STODFTINFO *stodftInfo = cp->stodftInfo;
+  FRAGINFO *fragInfo = stodftInfo->fragInfo;
+  CPOPTS *cpOpts = &(cp->cpopts);
+  CPCOEFFS_INFO *cpcoeffs_info = &(cp->cpcoeffs_info);
+  CLATOMS_INFO *clatoms_info = &(class->clatoms_info);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
+  COMMUNICATE *commCP = &(cp->communicate);
+  PSEUDO *pseudo;
+
+  int iFrag,iAtom;
+  int numAtomTot            = clatoms_info->natm_tot;
+  int numFragProc           = fragInfo->numFragProc;
+  int numAtomCalc;
+  int atomInd1,atomInd2;
+  int myidState             = commCP->myid_state;
+  int *numAtomFragVnlCalc   = fragInfo->numAtomFragVnlCalc;
+  int *atomFragVnlCalcMapNow;
+  int *atomFragMapProcNow;
+  int **atomFragVnlCalcMap  = fragInfo->atomFragVnlCalcMap;
+  int **atomFragMapProc     = fragInfo->atomFragMapProc;
+
+  FILE *fileForceFrag;
+  MPI_Comm commStates   = commCP->comm_states;
+
+  double *fx,*fy,*fz;
+  double *fxReduce = (double*)cmalloc(numAtomTot*sizeof(double));
+  double *fyReduce = (double*)cmalloc(numAtomTot*sizeof(double));
+  double *fzReduce = (double*)cmalloc(numAtomTot*sizeof(double));
+  double *fxFrag = (double*)cmalloc(numAtomTot*sizeof(double));
+  double *fyFrag = (double*)cmalloc(numAtomTot*sizeof(double));
+  double *fzFrag = (double*)cmalloc(numAtomTot*sizeof(double));
+
+/*======================================================================*/
+/* I) zero the force vectors                                            */
+
+
+  for(iAtom=0;iAtom<numAtomTot;iAtom++){
+    fxFrag[iAtom] = 0.0;
+    fyFrag[iAtom] = 0.0;
+    fzFrag[iAtom] = 0.0;
+  }
+
+/*======================================================================*/
+/* II) Copy forces                                                      */
+
+
+  for(iFrag=0;iFrag<numFragProc;iFrag++){
+    numAtomCalc = numAtomFragVnlCalc[iFrag];
+    atomFragVnlCalcMapNow = atomFragVnlCalcMap[iFrag];
+    atomFragMapProcNow = atomFragMapProc[iFrag];
+    fx = classMini[iFrag].clatoms_pos[1].fx;
+    fy = classMini[iFrag].clatoms_pos[1].fy;
+    fz = classMini[iFrag].clatoms_pos[1].fz;
+
+    for(iAtom=0;iAtom<numAtomCalc;iAtom++){
+      atomInd1 = atomFragMapProcNow[atomFragVnlCalcMapNow[iAtom]]-1;
+      atomInd2 = atomFragVnlCalcMapNow[iAtom]+1;
+      fxFrag[atomInd1] += fx[atomInd2];
+      fyFrag[atomInd1] += fy[atomInd2];
+      fzFrag[atomInd1] += fz[atomInd2];
+    }
+  }
+
+/*======================================================================*/
+/* III) Reduce forces                                                   */
+
+  Reduce(fxFrag,fxReduce,numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+  Reduce(fyFrag,fyReduce,numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+  Reduce(fzFrag,fzReduce,numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+
+  if(myidState==0){
+    printf("Output nuclei forces from fragment calculations...\n");
+    fileForceFrag = fopen("atom-force-frag-only","w");
+    for(iAtom=0;iAtom<numAtomTot;iAtom++){
+      fprintf(fileForceFrag,"atom %i %.16lg %.16lg %.16lg\n",iAtom,fxReduce[iAtom],fyReduce[iAtom],fzReduce[iAtom]);
+    }
+    fclose(fileForceFrag);
+  }
+
+  free(fxReduce);
+  free(fyReduce);
+  free(fzReduce);
+  free(fxFrag);
+  free(fyFrag);
+  free(fzFrag);
 
 /*==========================================================================*/
 }/*end Routine*/

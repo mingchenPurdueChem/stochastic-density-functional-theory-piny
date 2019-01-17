@@ -1094,7 +1094,6 @@ int iii;
   sscanf(dict[70].keyarg,"%lg",&real_key_arg);
   cp->cpewald.eCutoffRho = real_key_arg;
 
-
 /*========================================================================*/
     }/*end routine*/ 
 /*========================================================================*/
@@ -4720,6 +4719,14 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   /*  29)\checkpoint_par{#} */
   if(strcasecmp(dict[29].keyarg,"no")==0)stodftInfo->checkpointParFlag = 0;
   if(strcasecmp(dict[29].keyarg,"yes")==0)stodftInfo->checkpointParFlag = 1;
+
+  /*-----------------------------------------------------------------------*/
+  /*  30)\checkpoint_par{#} */
+
+  /*-----------------------------------------------------------------------*/
+  /*  31)\energy_window_on{#} */
+  if(strcasecmp(dict[31].keyarg,"off")==0)stodftInfo->energyWindowOn = 0;
+  if(strcasecmp(dict[31].keyarg,"on")==0)stodftInfo->energyWindowOn = 1;
 
 /*=======================================================================*/
 /* Check the conflicate options						 */

@@ -70,6 +70,7 @@ void commStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
   Bcast(&(stodftInfo->filterFunType),1,MPI_INT,0,world);
   Bcast(&(stodftInfo->numOrbital),1,MPI_INT,0,world);
   Bcast(&(stodftInfo->numChemPot),1,MPI_INT,0,world);
+  Bcast(&(stodftInfo->energyWindowOn),1,MPI_INT,0,world);
   //Bcast(&(stodftInfo->readCoeffFlag),1,MPI_INT,0,world);
   Bcast(&(stodftInfo->numStateStoUp),1,MPI_INT,0,world);
   Bcast(&(stodftInfo->numStateStoDn),1,MPI_INT,0,world);
@@ -148,6 +149,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   int expanType      = stodftInfo->expanType;
   int numOrbital     = stodftInfo->numOrbital;
   int polynormLength = stodftInfo->polynormLength;
+  int energyWindowOn = stodftInfo->energyWindowOn;
   int numChemPot     = stodftInfo->numChemPot;
   int readCoeffFlag  = cpopts->readCoeffFlag;
   int densityMixFlag = stodftInfo->densityMixFlag;
@@ -253,8 +255,8 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   stodftInfo->vpsAtomListFlag = 0;
   stodftInfo->filterFlag = 0;
   stodftInfo->numThreads = communicate->numThreads;
-  // Chebyshev way to calculate chem pot
-  if(chemPotOpt==2)stodftInfo->numChemPot = 1;
+  // Chebyshev way to calculate chem pot (if we do not use energy window)
+  if(chemPotOpt==2&&energyWindowOn==0)stodftInfo->numChemPot = 1;
 
   stodftCoefPos->chemPot = (double*)cmalloc(numChemPot*sizeof(double));
   stodftInfo->energyKe = (double*)cmalloc(numChemPot*sizeof(double));
@@ -268,23 +270,34 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   if(expanType==2&&filterFunType==2)stodftInfo->fermiFunctionReal = &fermiErfcReal;
   if(expanType==2&&filterFunType==3)stodftInfo->fermiFunctionReal = &gaussianReal;
   if(expanType==3&&filterFunType==1)stodftInfo->fermiFunctionComplex = &fermiExpComplex;
-  if(expanType==3&&filterFunType==2){
-    printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
-    printf("We haven't implement erfc type of Fermi function \n");
-    printf("for non-Hermitian KS Hamiltonian. Please use the \n");
-    printf("exponential type in this case!\n");
-    printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
-    fflush(stdout);
-    exit(0);
-  }
-  if(expanType==3&&filterFunType==3){
-    printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
-    printf("We haven't implement gaussian type of Fermi function \n");
-    printf("for non-Hermitian KS Hamiltonian. Please use the \n");
-    printf("exponential type in this case!\n");
-    printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
-    fflush(stdout);
-    exit(0);
+  if(myidState==0){
+    if(expanType==3&&filterFunType==2){
+      printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+      printf("We haven't implement erfc type of Fermi function \n");
+      printf("for non-Hermitian KS Hamiltonian. Please use the \n");
+      printf("exponential type in this case!\n");
+      printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(0);
+    }
+    if(expanType==3&&filterFunType==3){
+      printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+      printf("We haven't implement gaussian type of Fermi function \n");
+      printf("for non-Hermitian KS Hamiltonian. Please use the \n");
+      printf("exponential type in this case!\n");
+      printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(0);
+    }
+    if(energyWindowOn==1&&filterFunType==3){
+      printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+      printf("sDFT with energy window does not support gaussian\n");
+      printf("type window. Please use the exponential type in this case\n");
+      printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(0);
+
+    }
   }
 
 /*==========================================================================*/
@@ -637,8 +650,8 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     stodftCoefPos->rhoUpCorrect = (double*)cmalloc(rhoRealGridNum*sizeof(double));
     if(cpLsda==1&&numStateDnProc>0){
       if(myidState==0){
-        stodftCoefPos->rhoDnChemPot = (double**)cmalloc(sizeof(double*));
-        stodftCoefPos->rhoDnChemPot[0] = (double*)cmalloc(rhoRealGridTot*sizeof(double));
+	stodftCoefPos->rhoDnChemPot = (double**)cmalloc(sizeof(double*));
+	stodftCoefPos->rhoDnChemPot[0] = (double*)cmalloc(rhoRealGridTot*sizeof(double));
       }
       stodftCoefPos->rhoDnCorrect = (double*)cmalloc(rhoRealGridNum*sizeof(double));
     }
@@ -648,22 +661,22 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     rhoRealDispls = stodftInfo->rhoRealDispls;
     if(numProcStates>1){
       if(myidState==0){
-        rhoRealSendCounts[0] = numFFT2Proc;
-        for(iProc=1;iProc<numProcStates;iProc++){
-          Recv(&rhoRealSendCounts[iProc],1,MPI_INT,iProc,iProc,comm_states);
-        }//endfor iProc
+	rhoRealSendCounts[0] = numFFT2Proc;
+	for(iProc=1;iProc<numProcStates;iProc++){
+	  Recv(&rhoRealSendCounts[iProc],1,MPI_INT,iProc,iProc,comm_states);
+	}//endfor iProc
       }//endif
       else{
-        Send(&numFFT2Proc,1,MPI_INT,0,myidState,comm_states);
+	Send(&numFFT2Proc,1,MPI_INT,0,myidState,comm_states);
       }
       Barrier(comm_states);
       Bcast(rhoRealSendCounts,numProcStates,MPI_INT,0,comm_states);
       Barrier(comm_states);
       rhoRealDispls[0] = 0;
       for(iProc=1;iProc<numProcStates;iProc++){
-        rhoRealDispls[iProc] = rhoRealDispls[iProc-1]+rhoRealSendCounts[iProc-1];
+	rhoRealDispls[iProc] = rhoRealDispls[iProc-1]+rhoRealSendCounts[iProc-1];
       }
-    }//endif    
+    }//endif numProcStates
   }
 
 /*==========================================================================*/

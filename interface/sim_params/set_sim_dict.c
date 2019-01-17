@@ -719,7 +719,7 @@ void set_sim_dict_cp(int *num_dict,DICT_WORD *dict[])
        strcpy((*dict)[70].error_mes,"A real number, negative means 4*Ecut of wave function(default)");
        strcpy((*dict)[70].keyword,"cp_rho_ecut");
        strcpy((*dict)[70].keyarg,"-1.0");
-  
+
 /*========================================================================*/
 /*------------------------------------------------------------------------*/
 /*========================================================================*/
@@ -2250,7 +2250,7 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
  /*             Local variable declarations                                */
   
   unsigned int i;
-  *num_dict = 30;
+  *num_dict = 31;
   *dict = (DICT_WORD *)cmalloc(*num_dict*sizeof(DICT_WORD))-1;
 
   for (i=1;i<=*num_dict;i++) {
@@ -2378,6 +2378,10 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
   strcpy((*dict)[30].error_mes,"Please select 'gen_wave' or 'read' for fragment initial guess");
   strcpy((*dict)[30].keyword,"frag_init_guess");
   strcpy((*dict)[30].keyarg,"gen_wave");
+
+  strcpy((*dict)[31].error_mes,"Turn on/off for energy window option");
+  strcpy((*dict)[31].keyword,"energy_window_on");
+  strcpy((*dict)[31].keyarg,"off");
 
  /*========================================================================*/
  } /* end routine set_sim_dict_harmonic */

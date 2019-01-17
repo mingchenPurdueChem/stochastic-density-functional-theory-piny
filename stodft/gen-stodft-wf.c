@@ -743,3 +743,296 @@ void genStoOrbitalFake(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 }/*end routine*/
 /*==========================================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void genStoOrbitalEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
+	    CP *cp,int ip_now)
+/*========================================================================*/
+{/*begin routine*/
+/*========================================================================*/
+/*             Local variable declarations                                */
+#include "../typ_defs/typ_mask.h"
+  CLATOMS_INFO *clatoms_info = &(class->clatoms_info);
+  CLATOMS_POS  *clatoms_pos  = &(class->clatoms_pos[ip_now]);
+  CPOPTS       *cpopts       = &(cp->cpopts);
+  CPSCR	       *cpscr	     = &(cp->cpscr);
+  STODFTINFO   *stodftInfo   = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  NEWTONINFO   *newtonInfo      = stodftInfo->newtonInfo;
+  COMMUNICATE   *commCP	        = &(cp->communicate);
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  CPCOEFFS_POS  *cpcoeffs_pos   = &(cp->cpcoeffs_pos[ip_now]);
+  MPI_Comm commStates = commCP->comm_states;
+  
+
+  int iPoly,iState,iState2,iCoeff,iChem;
+  int numChemPot = stodftInfo->numChemPot;
+  int numChemPotTemp;
+  int polynormLength = stodftInfo->polynormLength;
+  int expanType = stodftInfo->expanType;
+  int numProcStates = commCP->np_states;
+  int myidState = commCP->myid_state;
+  int cpLsda = cpopts->cp_lsda;
+  int cpGGA  = cpopts->cp_gga;
+  int cpDualGridOptOn = cpopts->cp_dual_grid_opt;
+  int numStateUpProc = cpcoeffs_info->nstate_up_proc;
+  int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
+  int numCoeff       = cpcoeffs_info->ncoef;
+  int totalPoly;
+  int numCoeffUpTotal   = numStateUpProc*numCoeff;
+  int numCoeffDnTotal   = numStateDnProc*numCoeff;
+
+  int *coefFormUp   = &(cpcoeffs_pos->icoef_form_up);
+  int *forceFormUp  = &(cpcoeffs_pos->ifcoef_form_up);
+  int *coefFormDn   = &(cpcoeffs_pos->icoef_form_dn);
+  int *forceFormDn  = &(cpcoeffs_pos->ifcoef_form_dn);
+  int *coefOrthUp   = &(cpcoeffs_pos->icoef_orth_up);
+  int *forceOrthUp  = &(cpcoeffs_pos->ifcoef_orth_up);
+  int *coefOrthDn   = &(cpcoeffs_pos->icoef_orth_dn);
+  int *forceOrthDn  = &(cpcoeffs_pos->ifcoef_orth_dn);
+  
+  double energyMin,energyMax;
+  double chemPotInit = stodftInfo->chemPotInit;
+  double gapInit = stodftInfo->gapInit;
+  double Smin,Smax; 
+  double energyDiff;
+  double scale;
+  double length;
+
+  double *chemPot = stodftCoefPos->chemPot;
+  double *sampPoint = newtonInfo->sampPoint;
+  double *sampPointUnscale = newtonInfo->sampPointUnscale;
+  double *coeffReUp = cpcoeffs_pos->cre_up;
+  double *coeffImUp = cpcoeffs_pos->cim_up;
+  double *coeffReDn = cpcoeffs_pos->cre_dn;
+  double *coeffImDn = cpcoeffs_pos->cim_dn;
+  double *scrCoeffReUp   = cpscr->cpscr_wave.cre_up;
+  double *scrCoeffImUp   = cpscr->cpscr_wave.cim_up;
+  double *rhoCoeffReUp   = cpscr->cpscr_rho.rhocr_up;
+  double *rhoCoeffImUp   = cpscr->cpscr_rho.rhoci_up;
+  double *rhoUp          = cpscr->cpscr_rho.rho_up;
+  double *rhoCoeffReUpDensCpBox = cpscr->cpscr_rho.rhocr_up_dens_cp_box;
+  double *rhoCoeffImUpDensCpBox = cpscr->cpscr_rho.rhoci_up_dens_cp_box;
+  double *divRhoxUp       = cpscr->cpscr_grho.d_rhox_up;
+  double *divRhoyUp       = cpscr->cpscr_grho.d_rhoy_up;
+  double *divRhozUp       = cpscr->cpscr_grho.d_rhoz_up;
+  double *d2RhoUp        = cpscr->cpscr_grho.d2_rho_up;
+  double *scrCoeffReDn   = cpscr->cpscr_wave.cre_dn;
+  double *scrCoeffImDn   = cpscr->cpscr_wave.cim_dn;
+  double *rhoCoeffReDn   = cpscr->cpscr_rho.rhocr_dn;
+  double *rhoCoeffImDn   = cpscr->cpscr_rho.rhoci_dn;
+  double *rhoDn          = cpscr->cpscr_rho.rho_dn;
+  double *rhoCoeffReDnDensCpBox = cpscr->cpscr_rho.rhocr_dn_dens_cp_box;
+  double *rhoCoeffImDnDensCpBox = cpscr->cpscr_rho.rhoci_dn_dens_cp_box;
+  double *divRhoxDn       = cpscr->cpscr_grho.d_rhox_dn;
+  double *divRhoyDn       = cpscr->cpscr_grho.d_rhoy_dn;
+  double *divRhozDn       = cpscr->cpscr_grho.d_rhoz_dn;
+  double *d2RhoDn         = cpscr->cpscr_grho.d2_rho_dn;
+
+  double **stoWfUpRe = stodftCoefPos->stoWfUpRe;
+  double **stoWfUpIm = stodftCoefPos->stoWfUpIm;
+  double **stoWfDnRe = stodftCoefPos->stoWfDnRe;
+  double **stoWfDnIm = stodftCoefPos->stoWfDnIm;
+
+  double *coeffReUpBackup = stodftCoefPos->coeffReUpBackup;
+  double *coeffImUpBackup = stodftCoefPos->coeffImUpBackup;
+
+  //timing
+  double timeStart1,timeEnd1;
+  double timeStart2,timeEnd2;
+  double timeStart3,timeEnd3;
+  double timeStart4,timeEnd4;
+  double timeStart5,timeEnd5;
+  double timeStart6,timeEnd6;
+  double diffTime1 = 0.0;
+  double diffTime2 = 0.0;
+  double diffTime3 = 0.0;
+  double diffTime4 = 0.0;
+  double diffTime5 = 0.0;
+  double diffTime6 = 0.0;
+
+/*======================================================================*/
+/* III) Set flags			    */
+
+  *forceFormUp = 0;
+  cpcoeffs_pos->ifcoef_orth_up = 1; // temp keep this flag for debug filter
+  if(cpLsda==1&&numStateDnProc!=0){
+    *forceFormDn = 0;
+    cpcoeffs_pos->ifcoef_orth_dn = 1;
+  }
+
+/*======================================================================*/
+/* IV) Calculate Emax and Emin                                          */
+
+  //if(myidState==0){
+  genEnergyMax(cp,class,general_data,cpcoeffs_pos,clatoms_pos);
+  genEnergyMin(cp,class,general_data,cpcoeffs_pos,clatoms_pos);
+  //}
+  if(numProcStates>1){
+    Barrier(commStates);
+    Bcast(&(stodftInfo->energyMin),1,MPI_DOUBLE,0,commStates);
+    Bcast(&(stodftInfo->energyMax),1,MPI_DOUBLE,0,commStates);
+  }
+  energyMin = stodftInfo->energyMin;
+  energyMax = stodftInfo->energyMax;
+  //printf("energyMax %lg energyMin %lg\n",energyMax,energyMin);
+  Barrier(commStates);
+  stodftInfo->energyDiff = energyMax-energyMin;
+  energyDiff = stodftInfo->energyDiff;
+  stodftInfo->energyMean = 0.5*(energyMin+energyMax);
+
+/*======================================================================*/
+/* III) Generate Length of Polynomial Chain                             */
+
+  timeStart2 = omp_get_wtime();
+  if(expanType==2){
+    Smin = newtonInfo->Smin;
+    Smax = newtonInfo->Smax;
+    scale = (Smax-Smin)/energyDiff;
+    newtonInfo->scale = scale;
+    //cheat my code
+    numChemPotTemp = stodftInfo->numChemPot;
+    stodftInfo->numChemPot = 2;
+    free(&(stodftCoefPos->chemPot[0]));
+    stodftCoefPos->chemPot = (double*)cmalloc(2*sizeof(double));
+    stodftCoefPos->chemPot[0] = chemPotInit-gapInit*0.5;
+    stodftCoefPos->chemPot[1] = chemPotInit+gapInit*0.5;
+    if(myidState==0)genNewtonHermit(stodftInfo,stodftCoefPos);
+    if(numProcStates>1){
+      Barrier(commStates);
+      Bcast(&(stodftInfo->polynormLength),1,MPI_INT,0,commStates);
+      Barrier(commStates);
+    }
+    printf("numChemPotTemp %i\n",numChemPotTemp);
+    stodftInfo->numChemPot = numChemPotTemp;
+    free(&(stodftCoefPos->chemPot[0]));
+    stodftCoefPos->chemPot = (double*)cmalloc(numChemPotTemp*sizeof(double));
+    //finish cheating my code
+  }
+  timeEnd2 = omp_get_wtime();
+  diffTime2 = timeEnd2-timeStart2;
+
+/*======================================================================*/
+/* IV) Calculate the True Chemical Potential                            */
+
+  timeStart3 = omp_get_wtime();
+  calcChemPotCheby(cp,class,general_data,ip_now);
+  timeEnd3 = omp_get_wtime();
+  diffTime3 = timeEnd3-timeStart3;
+
+/*======================================================================*/
+/* V) Generate list of chemical potential for energy windows.           */
+
+  genChemPotInterpPoints(stodftInfo,stodftCoefPos);
+  printf("111111111 chemPot %lg %lg \n",stodftCoefPos->chemPot[0],stodftCoefPos->chemPot[1]);
+
+/*======================================================================*/
+/* V) Generate Coeffcients for Polynormial interpolation                */
+  
+  if(expanType==2){
+    Smin = newtonInfo->Smin;
+    Smax = newtonInfo->Smax;
+    scale = (Smax-Smin)/energyDiff;
+    newtonInfo->scale = scale;
+    if(myidState==0)genNewtonHermitTrueChemPot(stodftInfo,stodftCoefPos);
+    if(numProcStates>1){
+      Barrier(commStates);
+      Bcast(&(stodftInfo->polynormLength),1,MPI_INT,0,commStates);
+      polynormLength = stodftInfo->polynormLength;
+      totalPoly = polynormLength*numChemPot;
+      if(myidState!=0){
+        stodftCoefPos->expanCoeff = (double*)crealloc(stodftCoefPos->expanCoeff,
+                            totalPoly*sizeof(double));
+        newtonInfo->sampPoint = (double*)crealloc(newtonInfo->sampPoint,
+                            polynormLength*sizeof(double));
+        newtonInfo->sampPointUnscale = (double*)crealloc(newtonInfo->sampPointUnscale,
+                            polynormLength*sizeof(double));
+      }
+      Barrier(commStates);
+      Bcast(stodftCoefPos->expanCoeff,totalPoly,MPI_DOUBLE,0,commStates);
+      Bcast(newtonInfo->sampPoint,polynormLength,MPI_DOUBLE,0,commStates);
+      Bcast(newtonInfo->sampPointUnscale,polynormLength,MPI_DOUBLE,0,commStates);
+    }
+  }
+
+/*======================================================================*/
+/* IV) Generate random orbital                                          */
+
+  genNoiseOrbitalReal(cp,cpcoeffs_pos);
+  //debug
+  /*
+  for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+    coeffReUp[iCoeff] = stodftCoefPos->creTest[iCoeff];
+    coeffImUp[iCoeff] = stodftCoefPos->cimTest[iCoeff];
+  }
+  */
+  
+  
+  
+/*======================================================================*/
+/* V) Filter the stochastic orbitals			*/
+
+  switch(expanType){
+    case 2:
+      filterNewtonPolyHerm(cp,class,general_data,ip_now);
+      break;
+  }
+
+//debug print wave function
+  
+  //Barrier(commStates);
+  /*
+  char wfname[100];
+  //sprintf(wfname,"/scratch/mingchen/tmp/sto-wf-save-%i",myidState);
+  FILE *filePrintWF = NULL;
+  //filePrintWF = fopen(wfname,"w");
+  filePrintWF = fopen("sto-wf-save","w");
+  if(filePrintWF!=NULL){
+    for(iChem=0;iChem<numChemPot;iChem++){
+      for(iState=0;iState<numStateUpProc;iState++){
+	for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+	  fprintf(filePrintWF,"%.16lg %.16lg\n",
+          stoWfUpRe[iChem][iState*numCoeff+iCoeff],stoWfUpIm[iChem][iState*numCoeff+iCoeff]);
+        }//endfor iCoeff
+      }//endfor iState
+    }//endfor iChem
+    fclose(filePrintWF);
+  }
+  else{
+    printf("myid %i I can't open files to write stochastic orbitals!\n",myidState);
+    fflush(stdout);
+  }
+  */
+  
+/*======================================================================*/
+/* VI) Calculate filtered states w.r.t. energy windows                  */
+    
+  //Barrier(commStates);
+  
+  /*  
+  if(myidState==0)printf("Filter by window...\n");
+  for(iChem=numChemPot-1;iChem>0;iChem--){
+    for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
+      stoWfUpRe[iChem][iCoeff] -= stoWfUpRe[iChem-1][iCoeff];
+      stoWfUpIm[iChem][iCoeff] -= stoWfUpIm[iChem-1][iCoeff];
+    }//endfor iCoeff
+  }//endfor iChem
+  if(cpLsda==1){
+    for(iChem=numChemPot-1;iChem>0;iChem--){
+      for(iCoeff=1;iCoeff<=numCoeffDnTotal;iCoeff++){
+	stoWfDnRe[iChem][iCoeff] -= stoWfDnRe[iChem-1][iCoeff];
+	stoWfDnIm[iChem][iCoeff] -= stoWfDnIm[iChem-1][iCoeff];
+      }//endfor iCoeff
+    }//endfor iChem
+  }
+  */
+
+/*======================================================================*/
+/* VI) Calculate Energy	                                            */
+
+/*--------------------------------------------------------------------------*/
+}/*end routine*/
+/*==========================================================================*/
+
+

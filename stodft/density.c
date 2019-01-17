@@ -1917,4 +1917,352 @@ void calcRhoFilterDiagHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_d
 /*==========================================================================*/
 
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void calcRhoStoHybridEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
+                   CP *cp,int ip_now)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* This is the routine to calculate the  density from stochastic WF.     */
+/* This version is used in scf loop for different chemical potential.    */
+/* We shall calculate the real space density for all chem pot and the    */
+/* number of electrons. This routine follow the hybrid parallel scheme.  */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+  #include "../typ_defs/typ_mask.h"
+
+  EWALD        *ewald        = &(general_data->ewald);
+  CELL         *cell         = &(general_data->cell);
+  CPOPTS       *cpopts       = &(cp->cpopts);
+  CPSCR        *cpscr        = &(cp->cpscr);
+  CPEWALD      *cpewald      = &(cp->cpewald);
+  STODFTINFO   *stodftInfo   = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  COMMUNICATE   *commCP         = &(cp->communicate);
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  CPCOEFFS_POS  *cpcoeffs_pos   = &(cp->cpcoeffs_pos[ip_now]);
+  PSEUDO        *pseudo         = &(cp->pseudo);
+  FRAGINFO *fragInfo            = stodftInfo->fragInfo;
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
+  //PARA_FFT_PKG3D *cp_para_fft_pkg3d;
+
+  int cpParaOpt = cpopts->cp_para_opt;
+  int cpLsda = cpopts->cp_lsda;
+  int cpGGA  = cpopts->cp_gga;
+  int realSparseOpt = cpopts->realSparseOpt;
+  int numCoeffLarge       = cpcoeffs_info->ncoef_l;
+  int numCoeffLargeProc   = cp->cp_para_fft_pkg3d_lg.ncoef_proc;
+  int numCoeffLargeProcDensCpBox = cp->cp_para_fft_pkg3d_dens_cp_box.ncoef_proc;
+  int cpDualGridOptOn = cpopts->cp_dual_grid_opt;
+  int numInterpPmeDual = pseudo->n_interp_pme_dual;
+  int numStateUpProc = cpcoeffs_info->nstate_up_proc;
+  int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
+  int numCoeff       = cpcoeffs_info->ncoef;
+  int numChemPot     = stodftInfo->numChemPot;
+  int numFFTProc        = cp_para_fft_pkg3d_lg->nfft_proc;
+  int numFFT            = cp_para_fft_pkg3d_lg->nfft;
+  int numFFT2           = numFFT/2;
+  int numFFT2Proc       = numFFTProc/2;
+  int calcFragFlag      = stodftInfo->calcFragFlag;
+  int rhoRealGridNum    = stodftInfo->rhoRealGridNum;
+  int rhoRealGridTot    = stodftInfo->rhoRealGridTot;
+  int numChemProc       = stodftInfo->numChemProc;
+  int numStateStoUp	= stodftInfo->numStateStoUp;
+  int numStateStoDn	= stodftInfo->numStateStoDn;
+  int occNumber		= stodftInfo->occNumber;
+  int densityMixFlag	= stodftInfo->densityMixFlag;
+  int iScf		= stodftInfo->iScf;
+  int myidState		= commCP->myid_state;
+  int numProcStates     = commCP->np_states;
+  int iCoeff,iChem,iGrid;
+  int index;
+  int i,j,k;
+
+  int *coefFormUp   = &(cpcoeffs_pos->icoef_form_up);
+  int *coefFormDn   = &(cpcoeffs_pos->icoef_form_dn);
+  int *coefOrthUp   = &(cpcoeffs_pos->icoef_orth_up);
+  int *coefOrthDn   = &(cpcoeffs_pos->icoef_orth_dn);
+  int *densityMap   = stodftInfo->densityMap;
+  int *rhoRealSendCounts = stodftInfo->rhoRealSendCounts;
+  int *rhoRealDispls = stodftInfo->rhoRealDispls;
+
+  double volCP,rvolCP;
+  double numGridTotInv = 1.0/rhoRealGridTot;
+  double aveFactUp = occNumber/(double)(numStateStoUp);
+  double numElecTrue = stodftInfo->numElecTrue;
+  double aveFactDn;
+  double numElecTest;
+
+  double *hmatCP    = cell->hmat_cp;
+  double *coeffReUp = cpcoeffs_pos->cre_up;
+  double *coeffImUp = cpcoeffs_pos->cim_up;
+  double *coeffReDn = cpcoeffs_pos->cre_dn;
+  double *coeffImDn = cpcoeffs_pos->cim_dn;
+  double *rhoCoeffReUp   = cpscr->cpscr_rho.rhocr_up;
+  double *rhoCoeffImUp   = cpscr->cpscr_rho.rhoci_up;
+  double *rhoUp          = cpscr->cpscr_rho.rho_up;
+  double *rhoCoeffReUpDensCpBox = cpscr->cpscr_rho.rhocr_up_dens_cp_box;
+  double *rhoCoeffImUpDensCpBox = cpscr->cpscr_rho.rhoci_up_dens_cp_box;
+  double *rhoUpCorrect    = stodftCoefPos->rhoUpCorrect;
+  double *divRhoxUp       = cpscr->cpscr_grho.d_rhox_up;
+  double *divRhoyUp       = cpscr->cpscr_grho.d_rhoy_up;
+  double *divRhozUp       = cpscr->cpscr_grho.d_rhoz_up;
+  double *d2RhoUp        = cpscr->cpscr_grho.d2_rho_up;
+  double *rhoCoeffReDn   = cpscr->cpscr_rho.rhocr_dn;
+  double *rhoCoeffImDn   = cpscr->cpscr_rho.rhoci_dn;
+  double *rhoDn          = cpscr->cpscr_rho.rho_dn;
+  double *rhoCoeffReDnDensCpBox = cpscr->cpscr_rho.rhocr_dn_dens_cp_box;
+  double *rhoCoeffImDnDensCpBox = cpscr->cpscr_rho.rhoci_dn_dens_cp_box;
+  double *rhoDnCorrect	  = stodftCoefPos->rhoDnCorrect;
+  double *divRhoxDn       = cpscr->cpscr_grho.d_rhox_dn;
+  double *divRhoyDn       = cpscr->cpscr_grho.d_rhoy_dn;
+  double *divRhozDn       = cpscr->cpscr_grho.d_rhoz_dn;
+  double *d2RhoDn        = cpscr->cpscr_grho.d2_rho_dn;
+  double *numElectron = stodftCoefPos->numElectron;
+  double *chemPot = stodftCoefPos->chemPot;
+  double *rhoUpFragSum;
+  double *rhoDnFragSum;
+
+  double **stoWfUpRe = stodftCoefPos->stoWfUpRe;
+  double **stoWfUpIm = stodftCoefPos->stoWfUpIm;
+  double **stoWfDnRe = stodftCoefPos->stoWfDnRe;
+  double **stoWfDnIm = stodftCoefPos->stoWfDnIm;
+
+  double **rhoUpChemPot = stodftCoefPos->rhoUpChemPot;
+  double **rhoDnChemPot = stodftCoefPos->rhoDnChemPot;
+
+  double *rhoTemp  = (double*)cmalloc(numFFT2*sizeof(double))-1;
+  double *rhoSum   = (double*)calloc(numFFT2,sizeof(double));
+
+  MPI_Comm commStates   =    commCP->comm_states;
+
+/*==========================================================================*/
+/* I) Generate density in real space for all chem potentials		    */
+
+  //vol_cp  = getdeth(hmat_cp);
+  //rvol_cp = 1.0/vol_cp;
+  /*
+  if(realSparseOpt==0){
+    cp_para_fft_pkg3d = &(cp->cp_para_fft_pkg3d_lg);
+  }
+  else{
+    cp_para_fft_pkg3d = &(cp->cp_para_fft_pkg3d_sparse);
+  }
+  */
+  
+  if(cpLsda==1&&numStateDnProc!=0)aveFactDn = occNumber/(double)(numStateStoDn);
+
+  //printf("111111111 Finish Initialize Densities\n");
+  //fflush(stdout);
+  if(numProcStates>1)Barrier(commStates);
+
+  //debug
+  //for(iChem=0;iChem<numChemPot;iChem++)printf("myid %i densityMap %i\n",myidState,densityMap[iChem],indexChemProc[iChem]);
+  //fflush(stdout);
+
+  //if(numProcStates>1)Barrier(commStates);
+
+  for(iGrid=0;iGrid<rhoRealGridTot;iGrid++)rhoSum[iGrid] = 0.0;
+
+  double test;
+  for(iChem=0;iChem<numChemPot;iChem++){
+    rhoCalcRealStoHybrid(cpscr,cpcoeffs_info,
+		   cell,stodftInfo,stoWfUpRe[iChem],
+		   stoWfUpIm[iChem],rhoTemp,*coefFormUp,*coefOrthUp,
+		   numStateUpProc,numCoeff,cpDualGridOptOn,commCP,
+		   &(cp->cp_para_fft_pkg3d_lg),
+		   &(cp->cp_sclr_fft_pkg3d_lg),
+		   &(cp->cp_para_fft_pkg3d_dens_cp_box),
+		   &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
+		   &(cp->cp_sclr_fft_pkg3d_sm));
+    test = 0.0;
+    printf("rhoTemp[1] %lg\n",rhoTemp[1]);
+    for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+      rhoSum[iGrid] += rhoTemp[iGrid+1];
+      test += rhoTemp[iGrid+1];
+    }
+    printf("tttttttest %lg\n",test);
+  }
+  if(numProcStates>1){
+    Barrier(commStates);
+    Reduce(&rhoSum[0],rhoUpChemPot[0],rhoRealGridTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+    Barrier(commStates);
+  }
+  else memcpy(rhoUpChemPot[0],&rhoSum[0],rhoRealGridTot*sizeof(double));
+  if(myidState==0)printf("rhoUp %lg\n",rhoUpChemPot[0][0]);
+  if(cpLsda==1&&numStateDnProc!=0){
+    for(iGrid=0;iGrid<rhoRealGridTot;iGrid++)rhoSum[iGrid] = 0.0;
+    for(iChem=0;iChem<numChemPot;iChem++){
+      rhoCalcRealStoHybrid(cpscr,cpcoeffs_info,
+		   cell,stodftInfo,stoWfDnRe[iChem],
+		   stoWfDnIm[iChem],rhoTemp,*coefFormDn,*coefOrthDn,
+		   numStateDnProc,numCoeff,cpDualGridOptOn,commCP,
+		   &(cp->cp_para_fft_pkg3d_lg),
+		   &(cp->cp_sclr_fft_pkg3d_lg),
+		   &(cp->cp_para_fft_pkg3d_dens_cp_box),
+		   &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
+		   &(cp->cp_sclr_fft_pkg3d_sm));
+      for(iGrid=0;iGrid<rhoRealGridTot;iGrid++)rhoSum[iGrid] += rhoTemp[iGrid+1];
+    }
+    if(numProcStates>1){
+      Barrier(commStates);
+      Reduce(&rhoSum[0],rhoDnChemPot[0],rhoRealGridTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+      Barrier(commStates);
+    }
+    else memcpy(rhoDnChemPot[0],&rhoSum[0],rhoRealGridTot*sizeof(double));
+  }
+  if(numProcStates>1)Barrier(commStates);
+
+  // Calculate the average density, haven't scale by 1/volume
+  
+  //for(i=0;i<10;i++)printf("i %i rhoUp %lg\n",i,rhoUpChemPot[0][i]);
+  //printf("aveFactUp %lg occNumber %i\n",aveFactUp,occNumber);
+  //printf("rhoRealGridNum %i rhoRealGridTot %i\n",rhoRealGridNum,rhoRealGridTot);
+
+  if(myidState==0){
+    //printf("2222222222222222 aveFactUp %lg rhoUpChemPot[0][0] %lg\n",aveFactUp,rhoUpChemPot[0][0]);
+    for(iGrid=0;iGrid<rhoRealGridTot;iGrid++)rhoUpChemPot[0][iGrid] *= aveFactUp;
+    if(cpLsda==1&&numStateDnProc!=0){
+      for(iGrid=0;iGrid<rhoRealGridTot;iGrid++)rhoDnChemPot[0][iGrid] *= aveFactDn;
+    }
+    //printf("33333333333333 rhoUpChemPot[0][0] %lg\n",rhoUpChemPot[0][0]);
+  }
+  
+  free(&rhoTemp[1]);
+  free(&rhoSum[0]);
+
+  if(numProcStates>1)Barrier(commStates);
+
+/*==========================================================================*/
+/* III) Double Check number of electrons.                                   */
+
+  if(myidState==0){
+    numElecTest = 0.0;
+    for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+       numElecTest += rhoUpChemPot[0][iGrid];
+       //printf("??????? numElecTest %lg %lg\n",rhoUpChemPot[0][iGrid],numElecTest);
+    }
+    if(cpLsda==1&&numStateDnProc!=0){
+      for(iGrid=0;iGrid<rhoRealGridTot;iGrid++)numElecTest += rhoDnChemPot[0][iGrid];
+    }
+    printf("numElecTest %lg %lg\n",numElecTest,numGridTotInv);
+    numElecTest *= numGridTotInv;
+    printf("Number of electron is %.16lg.\n",numElecTest);
+  }
+
+  if(numProcStates>1)Barrier(commStates);
+
+
+/*==========================================================================*/
+/* III) Scatter the density to all nodes                                    */
+
+  if(numProcStates>1){
+    Scatterv(rhoUpChemPot[0],rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
+             rhoUpCorrect,rhoRealGridNum,MPI_DOUBLE,0,commStates);
+  }
+  else{
+    memcpy(rhoUpCorrect,rhoUpChemPot[0],rhoRealGridNum*sizeof(double));
+  }
+  if(cpLsda==1&&numStateDnProc!=0){
+    if(numProcStates>1){
+      Scatterv(rhoDnChemPot[0],rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
+               rhoDnCorrect,rhoRealGridNum,MPI_DOUBLE,0,commStates);
+    }
+    else{
+      memcpy(rhoDnCorrect,rhoDnChemPot[0],rhoRealGridNum*sizeof(double));
+    }
+  }
+
+/*==========================================================================*/
+/* IV) Add the fragment contribution.                                       */
+
+  if(calcFragFlag==1){
+    rhoUpFragSum =  fragInfo->rhoUpFragSum;
+    //debug
+    /*
+    for(iProc=0;iProc<numProcStates;iProc++){
+      if(myidState==iProc){
+        for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)printf("rhostooooo %lg %lg %lg\n",rhoUpCorrect[iGrid],rhoUpFragSum[iGrid],rhoUpCorrect[iGrid]+rhoUpFragSum[iGrid]);
+      }
+      if(numProcStates>1)Barrier(commStates);
+    }
+    */
+    //printf("rhoUpCorrect %lg %lg rhoUpFragSum %lg %lg\n",rhoUpCorrect[0],rhoUpCorrect[1],rhoUpFragSum[0],rhoUpFragSum[1]);   
+    for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)rhoUpCorrect[iGrid] += rhoUpFragSum[iGrid];
+    if(cpLsda==1&&numStateDnProc!=0){
+      rhoDnFragSum =  fragInfo->rhoDnFragSum;
+      for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)rhoDnCorrect[iGrid] += rhoDnFragSum[iGrid];
+    }
+  }
+
+/*==========================================================================*/
+/* IV) Output the density                                                   */
+
+    outputDensity(cp,cell);
+
+/*==========================================================================*/
+/* V) Generate the diis density						    */
+
+    if(densityMixFlag>0){
+      if(myidState==0){
+	printf("Start Mixing Density\n");
+        fflush(stdout);
+      }
+      genDensityMix(cp,iScf);
+      if(myidState==0){
+	printf("Finish Mixing Density\n");
+        fflush(stdout);
+      }
+    }
+    
+/*==========================================================================*/
+/* VI) Generate the reciprocal part and all the other things                */
+  /*
+  FILE *fileRhoReal = fopen("density-init","r");
+  FILE *fileRhoRecip = fopen("density-recip-test","w");
+  for(iGrid=1;iGrid<=rhoRealGridNum;iGrid++)fscanf(fileRhoReal,"%lg",&rhoUp[iGrid]);
+  for(iGrid=1;iGrid<=rhoRealGridNum;iGrid++)rhoUp[iGrid] /= 0.0009250463018013585;
+  */
+  calcRhoStoRecipFullg(cpewald,cpscr,cpcoeffs_info,ewald,cell,
+		     rhoCoeffReUp,rhoCoeffImUp,rhoUp,rhoCoeffReUpDensCpBox,rhoCoeffImUpDensCpBox,
+		     divRhoxUp,divRhoyUp,divRhozUp,d2RhoUp,cpGGA,cpDualGridOptOn,numInterpPmeDual,
+		     commCP,&(cp->cp_para_fft_pkg3d_lg),&(cp->cp_para_fft_pkg3d_dens_cp_box));
+  if(cpLsda==1&&numStateDnProc!=0){
+    calcRhoStoRecipFullg(cpewald,cpscr,cpcoeffs_info,ewald,cell,
+		       rhoCoeffReDn,rhoCoeffImDn,rhoDn,rhoCoeffReDnDensCpBox,rhoCoeffImDnDensCpBox,
+		       divRhoxDn,divRhoyDn,divRhozDn,d2RhoDn,cpGGA,cpDualGridOptOn,numInterpPmeDual,
+		       commCP,&(cp->cp_para_fft_pkg3d_lg),&(cp->cp_para_fft_pkg3d_dens_cp_box));
+    for(iCoeff=1;iCoeff<=numCoeffLargeProc;iCoeff++) {
+      rhoCoeffReUp[iCoeff] += rhoCoeffReDn[iCoeff];
+      rhoCoeffImUp[iCoeff] += rhoCoeffImDn[iCoeff];
+    }/* endfor */
+    if(cpDualGridOptOn>=1){
+      for(iCoeff=1;iCoeff<=numCoeffLargeProcDensCpBox;iCoeff++){
+	rhoCoeffReUpDensCpBox[iCoeff] += rhoCoeffReDnDensCpBox[iCoeff];
+	rhoCoeffImUpDensCpBox[iCoeff] += rhoCoeffImDnDensCpBox[iCoeff];
+      }/* endfor */
+    } /* endif */
+  }/* endif */
+
+  if(myidState==0){
+    printf("Finish Calculating Reciprocal Space Density\n");
+  }
+
+
+  /*
+  for(iCoeff=1;iCoeff<=numCoeffLargeProc;iCoeff++){
+    fprintf(fileRhoRecip,"%.10lg %.10lg\n",rhoCoeffReUp[iCoeff],rhoCoeffImUp[iCoeff]);
+  }
+  fclose(fileRhoReal);
+  fclose(fileRhoRecip);  
+  */
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
 

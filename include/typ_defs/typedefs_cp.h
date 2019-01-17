@@ -531,6 +531,9 @@ typedef struct stodftInfo{
 				    /*	    1 = single point			*/
 				    /*	    2 = Geometric optimization          */
 				    /*	    3 = MD				*/
+  int energyWindowOn;               /* Opt: whether use energy window for stodft*/
+                                    /*      0 = no (default)                    */
+                                    /*      1 = yes                             */
   int numScf;			    /* Num: Maximum SCF loop			*/
   int iScf;			    /* Num: SCF loop index			*/
   int expanType;                    /* Opt: Method of Fermi function expension. */
@@ -1104,8 +1107,7 @@ typedef struct cpewald {
   int realSparseOpt;              /* Opt: Use sparse real space grid 0=off 1=on  */   
   double eCutoffKe,gCutoffKe;		  /* Truncate g before gmax, used in calcuating */
 				  /* kinetic energy before */
-
-  double eCutoffRho;             
+  double eCutoffRho;
   // I'm sorry but cpewald is the only structure passing into force calculation routine
   int fftw3dFlag; /* Replica from cpopts*/
   int onebodyMatrixFlag; /*Replica from cpopts*/

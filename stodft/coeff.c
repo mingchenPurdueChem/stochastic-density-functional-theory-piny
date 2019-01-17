@@ -202,11 +202,13 @@ void genCoeffNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
 
   int polynormLength     = stodftInfo->polynormLength;
   int numChemPot	 = stodftInfo->numChemPot;
+  int energyWindowOn     = stodftInfo->energyWindowOn;
   int iPoly,jPoly,imu;
 
   double Smin		   = newtonInfo->Smin;
   double Smax		   = newtonInfo->Smax;
   double scale		   = newtonInfo->scale;
+  double chemPotTemp;
   double *sampPoint        = (double*)newtonInfo->sampPoint;
   double *expanCoeff       = (double*)stodftCoefPos->expanCoeff;
   double *sampPointUnscale = (double*)newtonInfo->sampPointUnscale;
@@ -230,41 +232,92 @@ void genCoeffNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   */
   cputime(&timeStart);  
  
-  for(imu=0;imu<numChemPot;imu++){
-    printf("chemPot %.16lg\n",chemPot[imu]);
-    #ifdef SQRTFERMI
-    funValue = sqrt(fermiFunction(sampPointUnscale[0],chemPot[imu],beta));
-    #else
-    funValue = fermiFunction(sampPointUnscale[0],chemPot[imu],beta);
-    #endif
-
-    expanCoeff[imu] = funValue;
-
-    #ifdef SQRTFERMI
-    funValue = sqrt(fermiFunction(sampPointUnscale[1],chemPot[imu],beta));
-    #else
-    funValue = fermiFunction(sampPointUnscale[1],chemPot[imu],beta);
-    #endif
-
-    expanCoeff[numChemPot+imu] = (funValue-expanCoeff[imu])/(sampPoint[1]-sampPoint[0]);
-    for(iPoly=2;iPoly<polynormLength;iPoly++){
-
+  if(energyWindowOn==0){ //no energy window
+    for(imu=0;imu<numChemPot;imu++){
+      printf("chemPot %.16lg\n",chemPot[imu]);
       #ifdef SQRTFERMI
-      funValue = sqrt(fermiFunction(sampPointUnscale[iPoly],chemPot[imu],beta));
+      funValue = sqrt(fermiFunction(sampPointUnscale[0],chemPot[imu],beta));
       #else
-      funValue = fermiFunction(sampPointUnscale[iPoly],chemPot[imu],beta);
+      funValue = fermiFunction(sampPointUnscale[0],chemPot[imu],beta);
       #endif
 
-      sum = funValue-expanCoeff[imu];
+      expanCoeff[imu] = funValue;
+
+      #ifdef SQRTFERMI
+      funValue = sqrt(fermiFunction(sampPointUnscale[1],chemPot[imu],beta));
+      #else
+      funValue = fermiFunction(sampPointUnscale[1],chemPot[imu],beta);
+      #endif
+
+      expanCoeff[numChemPot+imu] = (funValue-expanCoeff[imu])/(sampPoint[1]-sampPoint[0]);
+      for(iPoly=2;iPoly<polynormLength;iPoly++){
+
+	#ifdef SQRTFERMI
+	funValue = sqrt(fermiFunction(sampPointUnscale[iPoly],chemPot[imu],beta));
+	#else
+	funValue = fermiFunction(sampPointUnscale[iPoly],chemPot[imu],beta);
+	#endif
+
+	sum = funValue-expanCoeff[imu];
+	prod = 1.0;
+	for(jPoly=1;jPoly<iPoly;jPoly++){
+	  prod *= (sampPoint[iPoly]-sampPoint[jPoly-1]);
+	  sum -= expanCoeff[jPoly*numChemPot+imu]*prod;
+	}//endfor jPoly
+	prod *= (sampPoint[iPoly]-sampPoint[iPoly-1]);
+	expanCoeff[iPoly*numChemPot+imu] = sum/prod;
+      }//endfor iPoly
+    }//endfor imu
+  }
+  else{
+    // imu=0
+    printf("chemPot %.16lg\n",chemPot[0]);
+    funValue = sqrt(fermiFunction(sampPointUnscale[0],chemPot[0],beta));
+    expanCoeff[0] = funValue;
+    funValue = sqrt(fermiFunction(sampPointUnscale[1],chemPot[0],beta));
+    for(iPoly=2;iPoly<polynormLength;iPoly++){
+
+      funValue = sqrt(fermiFunction(sampPointUnscale[iPoly],chemPot[0],beta));
+
+      sum = funValue-expanCoeff[0];
       prod = 1.0;
       for(jPoly=1;jPoly<iPoly;jPoly++){
 	prod *= (sampPoint[iPoly]-sampPoint[jPoly-1]);
-	sum -= expanCoeff[jPoly*numChemPot+imu]*prod;
+	sum -= expanCoeff[jPoly*numChemPot]*prod;
       }//endfor jPoly
       prod *= (sampPoint[iPoly]-sampPoint[iPoly-1]);
-      expanCoeff[iPoly*numChemPot+imu] = sum/prod;
+      expanCoeff[iPoly*numChemPot] = sum/prod;
     }//endfor iPoly
-  }//endfor imu
+
+
+    // imu>=1
+    for(imu=1;imu<numChemPot;imu++){
+      printf("chemPot %.16lg\n",chemPot[imu]);
+      funValue = sqrt(fermiFunction(sampPointUnscale[0],chemPot[imu],beta)-
+                      fermiFunction(sampPointUnscale[0],chemPot[imu-1],beta));
+
+      expanCoeff[imu] = funValue;
+
+      funValue = sqrt(fermiFunction(sampPointUnscale[1],chemPot[imu],beta)-
+                      fermiFunction(sampPointUnscale[1],chemPot[imu-1],beta));
+
+      expanCoeff[numChemPot+imu] = (funValue-expanCoeff[imu])/(sampPoint[1]-sampPoint[0]);
+      for(iPoly=2;iPoly<polynormLength;iPoly++){
+
+	funValue = sqrt(fermiFunction(sampPointUnscale[iPoly],chemPot[imu],beta)-
+                        fermiFunction(sampPointUnscale[iPoly],chemPot[imu-1],beta));
+
+	sum = funValue-expanCoeff[imu];
+	prod = 1.0;
+	for(jPoly=1;jPoly<iPoly;jPoly++){
+	  prod *= (sampPoint[iPoly]-sampPoint[jPoly-1]);
+	  sum -= expanCoeff[jPoly*numChemPot+imu]*prod;
+	}//endfor jPoly
+	prod *= (sampPoint[iPoly]-sampPoint[iPoly-1]);
+	expanCoeff[iPoly*numChemPot+imu] = sum/prod;
+      }//endfor iPoly
+    }//endfor imu    
+  }
 
   cputime(&timeEnd);
 
@@ -527,6 +580,7 @@ double calcFitErrorNewton(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   int numPointTest = 1000;
   int numChemPot = stodftInfo->numChemPot;
   int polynormLength = stodftInfo->polynormLength;
+  int energyWindowOn     = stodftInfo->energyWindowOn;
   int iPoint,iChem,iPoly;
   double pointTest;
   double beta       = stodftInfo->beta;
@@ -549,28 +603,68 @@ double calcFitErrorNewton(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
 
   FERMIFUNR fermiFunction = stodftInfo->fermiFunctionReal;
 
-
-  for(iChem=0;iChem<numChemPot;iChem++){
+  if(energyWindowOn==0){
+    for(iChem=0;iChem<numChemPot;iChem++){
+      for(iPoint=0;iPoint<numPointTest;iPoint++){
+	pointTest = energyMin+(iPoint+0.5)*deltPoint;
+	pointScale = (pointTest-energyMean)*scale;
+	funValue = expanCoeff[iChem];
+	prod = 1.0;
+	for(iPoly=1;iPoly<polynormLength;iPoly++){
+	  prod *= pointScale-sampPoint[iPoly-1];
+	  funValue += expanCoeff[iPoly*numChemPot+iChem]*prod;
+	}
+	#ifdef SQRTFERMI
+	funBM = sqrt(fermiFunction(pointTest,chemPot[iChem],beta));
+	#else
+	funBM = fermiFunction(pointTest,chemPot[iChem],beta);
+	#endif
+	//funBM = fermiFunction(pointTest,chemPot[iChem],beta);
+	//funBM = sqrt(fermiFunction(pointTest,chemPot[iChem],beta));
+	diff = fabs(funValue-funBM);
+	if(diff>fitErr)fitErr = diff;
+	//printf("TestFunExpan %lg %lg %lg %lg\n",pointTest,pointScale,funValue,funBM);
+	//fprintf(fileTestFun,"%lg %lg %lg\n",pointTest,funValue,funBM);
+      }
+    }
+  }
+  else{ //energy window
     for(iPoint=0;iPoint<numPointTest;iPoint++){
       pointTest = energyMin+(iPoint+0.5)*deltPoint;
       pointScale = (pointTest-energyMean)*scale;
-      funValue = expanCoeff[iChem];
+      funValue = expanCoeff[0];
       prod = 1.0;
       for(iPoly=1;iPoly<polynormLength;iPoly++){
 	prod *= pointScale-sampPoint[iPoly-1];
-	funValue += expanCoeff[iPoly*numChemPot+iChem]*prod;
+	funValue += expanCoeff[iPoly*numChemPot]*prod;
       }
-      #ifdef SQRTFERMI
-      funBM = sqrt(fermiFunction(pointTest,chemPot[iChem],beta));
-      #else
-      funBM = fermiFunction(pointTest,chemPot[iChem],beta);
-      #endif
+      funBM = sqrt(fermiFunction(pointTest,chemPot[0],beta));
       //funBM = fermiFunction(pointTest,chemPot[iChem],beta);
       //funBM = sqrt(fermiFunction(pointTest,chemPot[iChem],beta));
       diff = fabs(funValue-funBM);
       if(diff>fitErr)fitErr = diff;
       //printf("TestFunExpan %lg %lg %lg %lg\n",pointTest,pointScale,funValue,funBM);
       //fprintf(fileTestFun,"%lg %lg %lg\n",pointTest,funValue,funBM);
+    }
+    for(iChem=1;iChem<numChemPot;iChem++){
+      for(iPoint=0;iPoint<numPointTest;iPoint++){
+	pointTest = energyMin+(iPoint+0.5)*deltPoint;
+	pointScale = (pointTest-energyMean)*scale;
+	funValue = expanCoeff[iChem];
+	prod = 1.0;
+	for(iPoly=1;iPoly<polynormLength;iPoly++){
+	  prod *= pointScale-sampPoint[iPoly-1];
+	  funValue += expanCoeff[iPoly*numChemPot+iChem]*prod;
+	}
+	funBM = sqrt(fermiFunction(pointTest,chemPot[iChem],beta)-
+                     fermiFunction(pointTest,chemPot[iChem-1],beta));
+	//funBM = fermiFunction(pointTest,chemPot[iChem],beta);
+	//funBM = sqrt(fermiFunction(pointTest,chemPot[iChem],beta));
+	diff = fabs(funValue-funBM);
+	if(diff>fitErr)fitErr = diff;
+	//printf("TestFunExpan %lg %lg %lg %lg\n",pointTest,pointScale,funValue,funBM);
+	//fprintf(fileTestFun,"%lg %lg %lg\n",pointTest,funValue,funBM);
+      }
     }
   }
 

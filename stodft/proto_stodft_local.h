@@ -37,11 +37,13 @@ void initFilterDiag(CP *);
 void scfStodftInterp(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 void scfStodftCheby(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 void scfStodftFilterDiag(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
+void scfStodftEnergyWindow(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 /*-----------------------------------------------------------------*/
 /* gen-stodft-wf.c						   */
 void genStoOrbitalInterp(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 void genStoOrbitalCheby(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 void genStoOrbitalFake(CLASS *,BONDED *,GENERAL_DATA *,CP *,int );
+void genStoOrbitalEnergyWindow(CLASS *,BONDED *,GENERAL_DATA *,CP *,int );
 /*-----------------------------------------------------------------*/
 /* gen-noise.c							   */
 void genNoiseOrbital(CP *,CPCOEFFS_POS *);
@@ -83,6 +85,8 @@ void calcRhoStoHybridInterp(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 void calcRhoStoHybridCheby(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 void outputDensity(CP *,CELL *);
 void calcRhoFilterDiagHybrid(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
+void calcRhoStoHybridEnergyWindow(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
+
 /*-----------------------------------------------------------------*/
 /* calc-chempot.c                                                  */
 void calcChemPotInterp(CP *);

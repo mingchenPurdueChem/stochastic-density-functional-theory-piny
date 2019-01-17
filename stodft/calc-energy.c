@@ -232,6 +232,7 @@ void calcTotEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int myidState         = communicate->myid_state;
   int numProcStates = communicate->np_states;
   int calcFragFlag = stodftInfo->calcFragFlag;
+  int energyWindowOn = stodftInfo->energyWindowOn;
   int numAtomTot = clatoms_info->natm_tot;
   int iState,iCoeff,iChem,iAtom;
 
@@ -256,20 +257,30 @@ void calcTotEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /* II) Interpolate the correct energy		                */
     
   if(myidState==0){
-    if(chemPotOpt==1){
-      //debug
-      /*
-      printf("chemPotTrue %lg\n",chemPotTrue);
-      for(iChem=0;iChem<numChemPot;iChem++){
-	printf("%lg %lg\n",chemPot[iChem],energyKNL[iChem]);
+    if(energyWindowOn==0){
+      if(chemPotOpt==1){
+	//debug
+	/*
+	printf("chemPotTrue %lg\n",chemPotTrue);
+	for(iChem=0;iChem<numChemPot;iChem++){
+	  printf("%lg %lg\n",chemPot[iChem],energyKNL[iChem]);
+	}
+	*/
+	energyKeTrue = calcLagrangeInterpFun(numChemPot,chemPotTrue,chemPot,energyKe,lagFunValue);
+	energyPNLTrue = calcLagrangeInterpFun(numChemPot,chemPotTrue,chemPot,energyPNL,lagFunValue);
       }
-      */
-      energyKeTrue = calcLagrangeInterpFun(numChemPot,chemPotTrue,chemPot,energyKe,lagFunValue);
-      energyPNLTrue = calcLagrangeInterpFun(numChemPot,chemPotTrue,chemPot,energyPNL,lagFunValue);
+      if(chemPotOpt==2){
+	energyKeTrue = energyKe[0];
+	energyPNLTrue = energyPNL[0];
+      }
     }
-    if(chemPotOpt==2){
-      energyKeTrue = energyKe[0];
-      energyPNLTrue = energyPNL[0];
+    else{
+      energyKeTrue = 0.0;
+      energyPNLTrue = 0.0;
+      for(iChem=0;iChem<numChemPot;iChem++){
+        energyKeTrue += energyKe[iChem];
+        energyPNLTrue += energyPNL[iChem];
+      }
     }
   }
 

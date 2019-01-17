@@ -242,7 +242,14 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }
   if(filterDiagFlag==0){
     if(stodftInfo->chemPotOpt==1)scfStodftInterp(class,bonded,general_data,cp,ip_now);
-    else if(stodftInfo->chemPotOpt==2)scfStodftCheby(class,bonded,general_data,cp,ip_now);
+    else if(stodftInfo->chemPotOpt==2){
+      if(stodftInfo->energyWindowOn==0){
+        scfStodftCheby(class,bonded,general_data,cp,ip_now);
+      }
+      else{ //energy window
+        scfStodftEnergyWindow(class,bonded,general_data,cp,ip_now);
+      }
+    }  
   }
   else scfStodftFilterDiag(class,bonded,general_data,cp,ip_now);
   //scfStodft(class,bonded,general_data,cp,ip_now);

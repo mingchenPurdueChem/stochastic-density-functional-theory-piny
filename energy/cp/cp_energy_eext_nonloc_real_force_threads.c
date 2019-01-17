@@ -223,6 +223,7 @@ void nlppKBRealEnergyForceThreads(CP *cp,CLASS *class,GENERAL_DATA *generalData,
     fz[iAtom+1] -= forceNlZ;
   }//endfor iAtom
 
+
 /*======================================================================*/
 /* III) free local memory                                               */
 

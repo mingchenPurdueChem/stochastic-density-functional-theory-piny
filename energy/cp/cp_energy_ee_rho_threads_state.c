@@ -881,6 +881,10 @@ void coef_force_calc_hybrid_threads_state(CPEWALD *cpewald,int nstate,
   double *fx = clatoms_pos->fx;
   double *fy = clatoms_pos->fy;
   double *fz = clatoms_pos->fz;
+  double *fxnl = (double*)cmalloc(numAtomTot*sizeof(double));
+  double *fynl = (double*)cmalloc(numAtomTot*sizeof(double));
+  double *fznl = (double*)cmalloc(numAtomTot*sizeof(double));
+
   double *ak2Kinetic = cpewald->ak2Kinetic;
 
   double time_st,time_end;
@@ -945,6 +949,11 @@ void coef_force_calc_hybrid_threads_state(CPEWALD *cpewald,int nstate,
     fxThreads[i] = 0.0;
     fyThreads[i] = 0.0;
     fzThreads[i] = 0.0;    
+  }
+  for(i=0;i<numAtomTot;i++){
+    fxnl[i] = 0.0;
+    fynl[i] = 0.0;
+    fznl[i] = 0.0;
   }
 
 /*=================================================================*/
@@ -1113,6 +1122,9 @@ void coef_force_calc_hybrid_threads_state(CPEWALD *cpewald,int nstate,
 	fx[i+1] += fxThreads[iThread*numAtomTot+i];
         fy[i+1] += fyThreads[iThread*numAtomTot+i];
         fz[i+1] += fzThreads[iThread*numAtomTot+i];
+        fxnl[i] += fxThreads[iThread*numAtomTot+i];
+        fynl[i] += fyThreads[iThread*numAtomTot+i];
+        fznl[i] += fzThreads[iThread*numAtomTot+i];
       }
     }
   } 
@@ -1257,6 +1269,9 @@ void coef_force_calc_hybrid_threads_state(CPEWALD *cpewald,int nstate,
       fx[i+1] += fxThreads[i];
       fy[i+1] += fyThreads[i];
       fz[i+1] += fzThreads[i];
+      fxnl[i] += fxThreads[iThread*numAtomTot+i];
+      fynl[i] += fyThreads[iThread*numAtomTot+i];
+      fznl[i] += fzThreads[iThread*numAtomTot+i];
     }
   }
   stat_avg->cp_enl += energyNl[0];
@@ -1264,6 +1279,11 @@ void coef_force_calc_hybrid_threads_state(CPEWALD *cpewald,int nstate,
   time_end = omp_get_wtime();
 
   //cp_sclr_fft_pkg3d_sm->cputime3 += time_end-time_st;
+  /*
+  for(i=0;i<numAtomTot;i++){
+    printf("nnnnnllllll force %lg %lg %lg\n",fxnl[i],fynl[i],fznl[i]);
+  }
+  */
 
 /*==========================================================================*/
 /* 7) If there is an electron KE density dependent functional, calculate    */
@@ -1431,6 +1451,9 @@ void coef_force_calc_hybrid_threads_state(CPEWALD *cpewald,int nstate,
   cfree(fxThreads);
   cfree(fyThreads);
   cfree(fzThreads);
+  cfree(fxnl);
+  cfree(fynl);
+  cfree(fznl);
 
   time_end = omp_get_wtime();
 

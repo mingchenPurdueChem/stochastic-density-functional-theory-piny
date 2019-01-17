@@ -68,7 +68,7 @@ void energyCorrect(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,
   vnlFzCorProc = (double*)cmalloc(numAtomTot*sizeof(double));
 
 
-  outputFragForce(cp,class,classMini); 
+  //outputFragForce(cp,class,classMini); 
 
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     fragInfo->iFrag = iFrag;

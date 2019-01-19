@@ -75,6 +75,7 @@ void rhoCalcRealStoHybrid(CPSCR *cpscr,
   double *zfft_tmp       =    cpscr->cpscr_wave.zfft_tmp;
   double *hmati_cp       =    cell->hmati_cp;
   double *hmat_cp        =    cell->hmat_cp;
+  double sum_sq = 0.0;
   //debug
   //char name[100];
   //FILE *fstowf;
@@ -170,6 +171,8 @@ void rhoCalcRealStoHybrid(CPSCR *cpscr,
     for(i=1;i<=nfft2;i++)fprintf(fstowf,"%.16lg\n",-zfft[2*i]);
     fclose(fstowf);
     */
+    printf("1111111111 rho %lg\n",zfft[1985]*zfft[1985]);
+    printf("1111111111 rho %lg\n",zfft[1986]*zfft[1986]);
   }/*endfor is*/
 
 /*--------------------------------------------------------------------------*/
@@ -196,6 +199,7 @@ void rhoCalcRealStoHybrid(CPSCR *cpscr,
       sum_rho(zfft,rho_scr,cp_sclr_fft_pkg3d_lg);
     }/*endif cp_dual_grid_opt*/
   }/*endif*/
+  
 
 /*==============================================================*/
 }/*end routine*/
@@ -2070,6 +2074,7 @@ void calcRhoStoHybridEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *gene
 
   double test;
   for(iChem=0;iChem<numChemPot;iChem++){
+    printf("!!!!!!!!!!!!! iChem %i\n",iChem);
     rhoCalcRealStoHybrid(cpscr,cpcoeffs_info,
 		   cell,stodftInfo,stoWfUpRe[iChem],
 		   stoWfUpIm[iChem],rhoTemp,*coefFormUp,*coefOrthUp,
@@ -2085,8 +2090,9 @@ void calcRhoStoHybridEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *gene
       rhoSum[iGrid] += rhoTemp[iGrid+1];
       test += rhoTemp[iGrid+1];
     }
-    printf("tttttttest %lg\n",test);
+    //printf("tttttttest %lg\n",test);
   }
+  printf("rhoSum[0] %lg\n",rhoSum[0]);
   if(numProcStates>1){
     Barrier(commStates);
     Reduce(&rhoSum[0],rhoUpChemPot[0],rhoRealGridTot,MPI_DOUBLE,MPI_SUM,0,commStates);

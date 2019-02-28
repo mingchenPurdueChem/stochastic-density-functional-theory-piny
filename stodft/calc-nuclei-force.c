@@ -295,6 +295,7 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
 
 /*--------------------------------------------------------------------------*/
 /* i) Copy the stochastic wave function and reset the force		    */
+
   for(iChem=0;iChem<numChemPot;iChem++){
     stat_avg->vrecip = 0.0;
     stat_avg->cp_enl = 0.0;

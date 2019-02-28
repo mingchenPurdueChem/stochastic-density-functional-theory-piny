@@ -1035,4 +1035,229 @@ void genStoOrbitalEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *general
 }/*end routine*/
 /*==========================================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void genStoOrbitalEnergyWindowFake(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
+            CP *cp,int ip_now)
+/*========================================================================*/
+{/*begin routine*/
+/* When we do the filtering for test cases, we can construct the filter   */
+/* by deterministic orbitals. DEBUG ONLY NO PARALLEL			  */
+/*========================================================================*/
+/*             Local variable declarations                                */
+#include "../typ_defs/typ_mask.h"
+  CLATOMS_INFO *clatoms_info = &(class->clatoms_info);
+  CLATOMS_POS  *clatoms_pos  = &(class->clatoms_pos[ip_now]);
+  CPOPTS       *cpopts       = &(cp->cpopts);
+  CPSCR        *cpscr        = &(cp->cpscr);
+  STODFTINFO   *stodftInfo   = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  NEWTONINFO   *newtonInfo      = stodftInfo->newtonInfo;
+  COMMUNICATE   *commCP         = &(cp->communicate);
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  CPCOEFFS_POS  *cpcoeffs_pos   = &(cp->cpcoeffs_pos[ip_now]);
+  MPI_Comm commStates = commCP->comm_states;
+  CELL *cell = &(general_data->cell);
+  
+  int iPoly,iState,jState,iCoeff,iChem,iOff,iOff2,iGrid;
+  int iProc;
+  int numChemPot = stodftInfo->numChemPot;
+  int polynormLength = stodftInfo->polynormLength;
+  int expanType = stodftInfo->expanType;
+  int numProcStates = commCP->np_states;
+  int myidState = commCP->myid_state;
+  int cpLsda = cpopts->cp_lsda;
+  int cpGGA  = cpopts->cp_gga;
+  int cpDualGridOptOn = cpopts->cp_dual_grid_opt;
+  int numStateUpProc = cpcoeffs_info->nstate_up_proc;
+  int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
+  int numCoeff       = cpcoeffs_info->ncoef;
+  int totalPoly;
+  int numCoeffUpTot   = numStateUpProc*numCoeff;
+  int numCoeffDnTot   = numStateDnProc*numCoeff;
+  int numStatesDet = stodftInfo->numStatesDet;
+  int rhoRealGridTot = stodftInfo->rhoRealGridTot;
+
+  int *coefFormUp   = &(cpcoeffs_pos->icoef_form_up);
+  int *forceFormUp  = &(cpcoeffs_pos->ifcoef_form_up);
+  int *coefFormDn   = &(cpcoeffs_pos->icoef_form_dn);
+  int *forceFormDn  = &(cpcoeffs_pos->ifcoef_form_dn);
+  int *coefOrthUp   = &(cpcoeffs_pos->icoef_orth_up);
+  int *forceOrthUp  = &(cpcoeffs_pos->ifcoef_orth_up);
+  int *coefOrthDn   = &(cpcoeffs_pos->icoef_orth_dn);
+  int *forceOrthDn  = &(cpcoeffs_pos->ifcoef_orth_dn);
+
+  double dot;
+
+  double *coeffReUp = cpcoeffs_pos->cre_up;
+  double *coeffImUp = cpcoeffs_pos->cim_up;
+  double *coeffReDn = cpcoeffs_pos->cre_dn;
+  double *coeffImDn = cpcoeffs_pos->cim_dn;
+  double *wfDetBackupUpRe = stodftCoefPos->wfDetBackupUpRe;
+  double *wfDetBackupUpIm = stodftCoefPos->wfDetBackupUpIm;
+  double *wfReTemp,*wfImTemp;
+  double *wfReProjTemp,*wfImProjTemp;
+  double *ksEigv = (double*)cmalloc(numStatesDet*sizeof(double));
+  double *hmatCP = cell->hmat_cp;
+ 
+  double **stoWfUpRe = stodftCoefPos->stoWfUpRe;
+  double **stoWfUpIm = stodftCoefPos->stoWfUpIm;
+  double **stoWfDnRe = stodftCoefPos->stoWfDnRe;
+  double **stoWfDnIm = stodftCoefPos->stoWfDnIm;
+
+  FILE *feigv = fopen("orbital-e","r");
+  // TEST. Let's calculate the theoretical estimation
+  FILE *frealwf = fopen("wf-real","r");
+  double *wfDetReal = stodftCoefPos->wfDetReal;
+
+  double volCPRev  = 1.0/getdeth(hmatCP);
+  for(iState=0;iState<numStatesDet;iState++){
+    for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+      fscanf(frealwf,"%lg",&wfDetReal[iState*rhoRealGridTot+iGrid]);
+    }
+  }
+  fclose(frealwf);
+  
+/*======================================================================*/
+/* I) Set flags                     */
+
+  *forceFormUp = 0;
+  cpcoeffs_pos->ifcoef_orth_up = 1; // temp keep this flag for debug filter
+  if(cpLsda==1&&numStateDnProc!=0){
+    *forceFormDn = 0;
+    cpcoeffs_pos->ifcoef_orth_dn = 1;
+  }
+
+/*======================================================================*/
+/* IV) Generate random orbital                                          */
+
+  genNoiseOrbitalReal(cp,cpcoeffs_pos);
+
+/*======================================================================*/
+/* II) Filtering by deterministic orbitals                     */
+
+  wfReTemp = (double*)cmalloc(numCoeff*sizeof(double));
+  wfImTemp = (double*)cmalloc(numCoeff*sizeof(double));
+  wfReProjTemp = (double*)cmalloc(numCoeff*sizeof(double));
+  wfImProjTemp = (double*)cmalloc(numCoeff*sizeof(double));
+
+  for(iChem=0;iChem<numChemPot;iChem++){
+    for(iCoeff=1;iCoeff<=numCoeffUpTot;iCoeff++){
+      stoWfUpRe[iChem][iCoeff] = 0.0;
+      stoWfUpIm[iChem][iCoeff] = 0.0;
+    }
+  }
+
+   
+  //numChemPot = 1000; // TEST
+  int junk;
+  int windowIndex;
+  int index;
+  stodftCoefPos->ewStateNum = (int*)cmalloc(numChemPot*sizeof(int));
+  stodftCoefPos->ewStateMap = (int**)cmalloc(numChemPot*sizeof(int*));
+  int *ewStateNum = stodftCoefPos->ewStateNum;
+  int **ewStateMap = stodftCoefPos->ewStateMap;
+  for(iChem=0;iChem<numChemPot;iChem++){
+    ewStateMap[iChem] = (int*)cmalloc(numStatesDet*sizeof(int));
+  }
+  for(iState=0;iState<numStatesDet;iState++){
+    fscanf(feigv,"%i",&junk);
+    fscanf(feigv,"%lg",&ksEigv[iState]);
+  }
+  double energyOrbMin = ksEigv[0]-0.0001;
+  double energyOrbMax = ksEigv[numStatesDet-1]+0.0001;
+  double dE = (energyOrbMax-energyOrbMin)/numChemPot;
+  printf("11111111111111 dE %lg\n",dE);
+  for(iState=0;iState<numStatesDet;iState++){
+    windowIndex = (int)((ksEigv[iState]-energyOrbMin)/dE);
+    ewStateMap[windowIndex][ewStateNum[windowIndex]] = iState;
+    ewStateNum[windowIndex] += 1;
+    printf("windowIndex %i\n",windowIndex);
+  }
+
+  // TEST:
+  /*
+  double *rhoTemp = (double*)calloc(rhoRealGridTot,sizeof(double));
+  double *rhoStd = (double*)calloc(rhoRealGridTot,sizeof(double));
+  double pre = sqrt(2.0);
+  FILE *fileRhoStd = fopen("rho-std-theory","w");
+  for(iChem=0;iChem<numChemPot;iChem++){
+    for(iGrid=0;iGrid<rhoRealGridTot;iGrid++)rhoTemp[iGrid] = 0.0;
+    for(iState=0;iState<ewStateNum[iChem];iState++){
+      index = ewStateMap[iChem][iState];
+      for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+        rhoTemp[iGrid] += wfDetReal[index*rhoRealGridTot+iGrid]*wfDetReal[index*rhoRealGridTot+iGrid];
+      }
+    }
+    for(iGrid=0;iGrid<rhoRealGridTot;iGrid++)rhoStd[iGrid] += rhoTemp[iGrid]*rhoTemp[iGrid];
+  }
+  for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+    fprintf(fileRhoStd,"%.10lg\n",sqrt(rhoStd[iGrid])*pre);
+  }
+  fclose(fileRhoStd);
+  fflush(stdout);
+  exit(0);
+  */
+  
+  
+  printf("numStateUpProc %i\n",numStateUpProc);
+  for(iState=0;iState<numStateUpProc;iState++){
+    iOff = iState*numCoeff;
+    memcpy(wfReTemp,&coeffReUp[iOff+1],numCoeff*sizeof(double));
+    memcpy(wfImTemp,&coeffImUp[iOff+1],numCoeff*sizeof(double));
+    for(iChem=0;iChem<numChemPot;iChem++){
+      for(jState=0;jState<ewStateNum[iChem];jState++){
+        dot = 0.0;
+        index = ewStateMap[iChem][jState];
+        iOff2 = index*numCoeff;
+        #pragma omp parallel for reduction(+:dot) private(iCoeff)
+        for(iCoeff=0;iCoeff<numCoeff-1;iCoeff++){
+          dot += wfDetBackupUpRe[iOff2+iCoeff]*wfReTemp[iCoeff]+
+                 wfDetBackupUpIm[iOff2+iCoeff]*wfImTemp[iCoeff];
+        } 
+        dot = (dot*2.0+wfDetBackupUpRe[iOff2+numCoeff-1]*wfReTemp[numCoeff-1])*0.5;
+        #pragma omp parallel for private(iCoeff)
+        for(iCoeff=0;iCoeff<numCoeff;iCoeff++){
+          stoWfUpRe[iChem][iOff+iCoeff+1] += wfDetBackupUpRe[iOff2+iCoeff]*dot;
+          stoWfUpIm[iChem][iOff+iCoeff+1] += wfDetBackupUpIm[iOff2+iCoeff]*dot;
+        }
+      } 
+    }
+  }
+  
+  free(wfReTemp);
+  free(wfImTemp);
+  free(wfReProjTemp);
+  free(wfImProjTemp);
+  //for(iChem=0;iChem<numChemPot;iChem++){
+  //  free(ewStateMap[iChem]);
+  //}
+  //free(ewStateMap);
+  //free(ewStateNum);
+  free(ksEigv);
+  /*
+  FILE *ftest = fopen("wf-test","w");
+  for(iCoeff=1;iCoeff<=numStateUpProc*numCoeff;iCoeff++){
+    fprintf(ftest,"%.16lg %.16lg\n",stoWfUpRe[0][iCoeff],stoWfUpIm[0][iCoeff]);
+  }
+  fclose(ftest);
+  for(iState=0;iState<numStateUpProc;iState++){
+    for(jState=0;jState<numStatesDet;jState++){
+      dot = 0.0;
+      for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
+	dot += stoWfUpRe[0][iState*numCoeff+iCoeff]*wfDetBackupUpRe[jState*numCoeff+iCoeff-1]+
+	       stoWfUpIm[0][iState*numCoeff+iCoeff]*wfDetBackupUpIm[jState*numCoeff+iCoeff-1];
+      }
+      dot *= 2.0;
+      dot += stoWfUpRe[0][iState*numCoeff+numCoeff]*wfDetBackupUpRe[jState*numCoeff+numCoeff-1];
+      printf("11111111 iState %i jState %i dot %lg\n",iState,jState,dot*sqrt(0.5));
+    }
+  }
+  */
+
+/*--------------------------------------------------------------------------*/
+}/*end routine*/
+/*==========================================================================*/
+
 

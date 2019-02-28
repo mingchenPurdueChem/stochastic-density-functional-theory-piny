@@ -44,6 +44,7 @@ void genStoOrbitalInterp(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 void genStoOrbitalCheby(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 void genStoOrbitalFake(CLASS *,BONDED *,GENERAL_DATA *,CP *,int );
 void genStoOrbitalEnergyWindow(CLASS *,BONDED *,GENERAL_DATA *,CP *,int );
+void genStoOrbitalEnergyWindowFake(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 /*-----------------------------------------------------------------*/
 /* gen-noise.c							   */
 void genNoiseOrbital(CP *,CPCOEFFS_POS *);

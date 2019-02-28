@@ -735,7 +735,7 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int numStatesDet = stodftInfo->numStatesDet;
   int myidState = communicate->myid_state;
   int numProcStates         = communicate->np_states;
-  int numStatesPrint = numStatesDet+5;
+  int numStatesPrint = numStatesDet+20;
   MPI_Comm comm_states = communicate->comm_states;
   
   int *stowfRecvCounts = stodftInfo->stowfRecvCounts;

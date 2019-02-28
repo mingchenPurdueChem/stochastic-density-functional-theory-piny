@@ -760,7 +760,6 @@ typedef struct stodftInfo{
 				    /*	   massive H|phi> calculations		*/
   double cputime0,cputime1,cputime2,cputime3,cputime4,cputime5,cputime6,cputime7,cputime8;
   double cputime_new[100]; // I need more cputime LOL
-  
 }STODFTINFO;
 
 typedef struct stodftCoefPos{
@@ -868,6 +867,9 @@ typedef struct stodftCoefPos{
   //debug
   double *wfDetBackupUpRe;
   double *wfDetBackupUpIm;
+  double *wfDetReal;
+  int *ewStateNum;
+  int **ewStateMap;
 
 }STODFTCOEFPOS;
 

@@ -366,6 +366,8 @@ void calcKNEEnergyFilterDiag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   COMMUNICATE *communicate      = &(cp->communicate);
   STAT_AVG *stat_avg            = &(general_data->stat_avg);
   CPEWALD *cpewald              = &(cp->cpewald);
+  PSEUDO *pseudo                = &(cp->pseudo);
+  PSEUDO_REAL *pseudoReal       = &(pseudo->pseudoReal);
 
   int cpLsda         = cpopts->cp_lsda;
   int numStateStoUp  = stodftInfo->numStateStoUp;
@@ -379,6 +381,7 @@ void calcKNEEnergyFilterDiag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int occNumber = stodftInfo->occNumber;
   int myidState         = communicate->myid_state;
   int numProcStates = communicate->np_states;
+  int pseudoRealFlag = pseudoReal->pseudoRealFlag;
   int iState,iCoeff,iChem;
   int ioff,iis;
 
@@ -461,9 +464,30 @@ void calcKNEEnergyFilterDiag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     
     //printf("before cp_eke %lg\n",stat_avg->cp_eke);
     
-    calcCoefForceWrapSCF(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+    
+    //calcCoefForceWrapSCF(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     //calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     //calcCoefForceExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+    //pp
+    if(pseudoRealFlag==0){
+      calcNonLocalPseudoScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+    }
+    else{
+      /*
+      for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
+        fcre_up[iCoeff] = 0.0;
+        fcim_up[iCoeff] = 0.0;
+      }//endfor iCoeff
+      if(cpLsda==1&&numStateDnProc!=0){
+        for(iCoeff=1;iCoeff<=numCoeffDnTotal;iCoeff++){
+          fcre_dn[iCoeff] = 0.0;
+          fcim_dn[iCoeff] = 0.0;
+        }//endfor iCoeff
+      }//endif cpLsda     
+      */
+      calcCoefForceEnergy(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+    }
+
     
     if(numProcStates>1){
       Reduce(&(stat_avg->cp_enl),&energyNLTemp,1,MPI_DOUBLE,MPI_SUM,0,commStates);
@@ -552,6 +576,7 @@ void calcTotEnergyFilterDiag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   if(myidState==0){
     energyTotElec = energyKe[0]+energyPNL[0]+energyHartTemp
 	    +energyExtTemp+energyExcTemp;
+    stodftInfo->energyElecTot = energyTotElec;
     printf("==============================================\n");
     printf("Output Energy\n");
     printf("==============================================\n");
@@ -561,8 +586,11 @@ void calcTotEnergyFilterDiag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     printf("Ext Energy:          %.20lg\n",energyExtTemp);
     printf("Ex-Cor Energy:       %.20lg\n",energyExcTemp);
     printf("Total Elec Energy    %.20lg\n",energyTotElec);
+    printf("Elec Energy Diff     %.16lg\n",
+            stodftInfo->energyElecTot-stodftInfo->energyElecTotOld);
     printf("==============================================\n");
   }
+  if(numProcStates>1) Bcast(&stodftInfo->energyElecTot,1,MPI_DOUBLE,0,commStates);
 
 /*==========================================================================*/
 }/*end Routine*/

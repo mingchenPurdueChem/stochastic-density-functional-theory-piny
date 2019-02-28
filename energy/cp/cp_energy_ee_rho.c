@@ -128,6 +128,7 @@ void cp_rho_calc_hybrid_threads_force(CPEWALD *cpewald,CPSCR *cpscr,
   int *kbstr = ewald->kbstr;
   int *kcstr = ewald->kcstr;
   double sum;
+  //FILE *frealwf = fopen("wf-real","w");
 
 
   MPI_Comm comm_states   =    communicate->comm_states;
@@ -226,6 +227,17 @@ void cp_rho_calc_hybrid_threads_force(CPEWALD *cpewald,CPSCR *cpscr,
     else{
       para_fft_gen3d_fwd_to_r_fftw3d_threads(zfft,cp_sclr_fft_pkg3d_sm);
     }
+    
+    // TEST I want to have all real space wf
+    /*
+    for(i=0;i<nfft2;i++){
+      fprintf(frealwf,"%.16lg\n",zfft[i*2+1]);
+    }
+    for(i=0;i<nfft2;i++){
+      fprintf(frealwf,"%.16lg\n",zfft[i*2+2]);
+    }
+    */
+    // END TEST
 
 /*--------------------------------------------------------------------------*/
 /* III) add the square of the two wave functions to the density(real space) */
@@ -272,6 +284,9 @@ void cp_rho_calc_hybrid_threads_force(CPEWALD *cpewald,CPSCR *cpscr,
       sum_rho(zfft,rho_scr,cp_sclr_fft_pkg3d_lg);
     }//endif cp_dual_grid_opt
   }//endif
+
+  //fflush(stdout);
+  //exit(0);
 
 /*=========================================================================*/
 /*=========================================================================*/

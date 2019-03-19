@@ -1108,9 +1108,10 @@ void genStoOrbitalEnergyWindowFake(CLASS *class,BONDED *bonded,GENERAL_DATA *gen
 
   FILE *feigv = fopen("orbital-e","r");
   // TEST. Let's calculate the theoretical estimation
-  FILE *frealwf = fopen("wf-real","r");
+  //FILE *frealwf = fopen("wf-real","r");
   double *wfDetReal = stodftCoefPos->wfDetReal;
 
+  /*
   double volCPRev  = 1.0/getdeth(hmatCP);
   for(iState=0;iState<numStatesDet;iState++){
     for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
@@ -1118,6 +1119,7 @@ void genStoOrbitalEnergyWindowFake(CLASS *class,BONDED *bonded,GENERAL_DATA *gen
     }
   }
   fclose(frealwf);
+  */
   
 /*======================================================================*/
 /* I) Set flags                     */

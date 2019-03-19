@@ -2157,7 +2157,7 @@ void calcRhoStoHybridEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *gene
 
   // TEST
   // First substract the stochastic orbital from the last energy window
-  
+  /*
   int *ewStateNum = stodftCoefPos->ewStateNum;
   int **ewStateMap = stodftCoefPos->ewStateMap;
   for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
@@ -2171,7 +2171,8 @@ void calcRhoStoHybridEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *gene
     }
   }
   for(iGrid=0;iGrid<rhoRealGridTot;iGrid++)rhoUpChemPot[0][iGrid] += rhoLastWindowDet[iGrid];
-  
+  */
+
   if(numProcStates>1)Barrier(commStates);
 
 /*==========================================================================*/

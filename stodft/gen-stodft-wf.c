@@ -1094,6 +1094,9 @@ void genStoOrbitalEnergyWindowFake(CLASS *class,BONDED *bonded,GENERAL_DATA *gen
   double *coeffImUp = cpcoeffs_pos->cim_up;
   double *coeffReDn = cpcoeffs_pos->cre_dn;
   double *coeffImDn = cpcoeffs_pos->cim_dn;
+  double *coeffForceReUp = cpcoeffs_pos->fcre_up;
+  double *coeffForceImUp = cpcoeffs_pos->fcim_up;
+
   double *wfDetBackupUpRe = stodftCoefPos->wfDetBackupUpRe;
   double *wfDetBackupUpIm = stodftCoefPos->wfDetBackupUpIm;
   double *wfReTemp,*wfImTemp;
@@ -1150,7 +1153,6 @@ void genStoOrbitalEnergyWindowFake(CLASS *class,BONDED *bonded,GENERAL_DATA *gen
       stoWfUpIm[iChem][iCoeff] = 0.0;
     }
   }
-
    
   //numChemPot = 1000; // TEST
   int junk;
@@ -1201,6 +1203,49 @@ void genStoOrbitalEnergyWindowFake(CLASS *class,BONDED *bonded,GENERAL_DATA *gen
   fflush(stdout);
   exit(0);
   */
+
+  //TEST Kinetic energy matrix
+  for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+    coeffForceReUp[iCoeff] = 0.0;
+    coeffForceImUp[iCoeff] = 0.0;
+  }
+  double *keMatrix = (double*)calloc(numStatesDet*numStatesDet,sizeof(double));
+  double *ak2Kinetic = cp->cpewald.ak2Kinetic;
+  double temp;
+  FILE *fkeMat = fopen("ke-mat","w");
+  FILE *fwfDetTemp = fopen("wf-k","w");
+  for(iState=0;iState<numStatesDet;iState++){
+  //printf("ak2_sm[1] %lg\n",ak2_sm[1]);
+    iOff = iState*numCoeff;
+    for(iCoeff=0;iCoeff<numCoeff;iCoeff++){
+      fprintf(fwfDetTemp,"%.16lg %.16lg\n",wfDetBackupUpRe[iOff+iCoeff],wfDetBackupUpIm[iOff+iCoeff]);
+    }
+    for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
+      coeffForceReUp[iCoeff] = 0.5*ak2Kinetic[iCoeff]*wfDetBackupUpRe[iOff+iCoeff-1];
+      coeffForceImUp[iCoeff] = 0.5*ak2Kinetic[iCoeff]*wfDetBackupUpIm[iOff+iCoeff-1];
+      //eke += (2.0*ak2Kinetic[i]*(ccreal[iis]*ccreal[iis] + ccimag[iis]*ccimag[iis]));
+    }//endfor iCoeff
+    for(jState=iState;jState<numStatesDet;jState++){
+      temp = 0.0;
+      iOff2 = jState*numCoeff;
+      for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
+        temp += 2.0*(coeffForceReUp[iCoeff]*wfDetBackupUpRe[iOff2+iCoeff-1]+
+                coeffForceImUp[iCoeff]*wfDetBackupUpIm[iOff2+iCoeff-1]);
+      }//endfor iCoeff
+      keMatrix[iState*numStatesDet+jState] = temp;
+      keMatrix[jState*numStatesDet+iState] = temp;
+    }//endfor jState
+  }//endfor iState
+  for(iState=0;iState<numStatesDet;iState++){
+    for(jState=0;jState<numStatesDet;jState++){
+      fprintf(fkeMat,"%.8lg ",keMatrix[iState*numStatesDet+jState]);
+    }
+    fprintf(fkeMat,"\n");
+  }
+  fclose(fkeMat);
+  fclose(fwfDetTemp);
+  fflush(stdout);
+  exit(0);
   
   
   printf("numStateUpProc %i\n",numStateUpProc);

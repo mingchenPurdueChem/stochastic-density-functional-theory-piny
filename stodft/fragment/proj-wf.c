@@ -863,6 +863,10 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
  
   double proj;
   double numElecProj = 0.0;
+  double numElecFrag = 0.0;
+  double numElecProjTot = 0.0;
+  double numElecFragTot = 0.0;
+  double numElecSys = stodftInfo->numElecTrue;
   double numGridTotInv = 1.0/rhoRealGridTot;
   double vol,volInv;
   double volMini;
@@ -1389,22 +1393,7 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
       free(fragInfo->rhoUpFragProc[iFrag]);
       free(fragInfo->coefUpFragProc[iFrag]);
     }
-    /*
-    for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
-      printf("222222222 rhoTemp %lg\n",rhoTemp[iGrid]);
-    }
-    fflush(stdout);
-    exit(0);
-    */
   }//endfor iFrag
-
-  /*
-  for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
-    printf("22222222233 rhoTemp %lg\n",rhoTemp[iGrid]*pre);
-  }
-  fflush(stdout);
-  exit(0);
-  */
 
   /*
   char name[100];
@@ -1418,6 +1407,11 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     fclose(fstowf);
   }
   */
+  /*--------------------------------------------------*/
+  /* We are going to calculate number of electrons.   */
+  /* The Formula should be N_e^{frag}-N_e^{proj}+     */
+  /* N_e^{sto} = N_e.                                 */
+  /*--------------------------------------------------*/
   
   if(numProcStates>1){
     Barrier(commStates);
@@ -1425,7 +1419,10 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     Scatterv(rhoTempReduce,rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
 	     rhoTemp,rhoRealGridNum,MPI_DOUBLE,0,commStates);
   } 
-  for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)numElecProj += rhoTemp[iGrid];
+  for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+    numElecProj += rhoTemp[iGrid];
+    numElecFrag += rhoUpFragSum[iGrid];
+  }
   
   double sumElecFrag = 0.0;
   double sumElecProj = 0.0;
@@ -1509,21 +1506,36 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
       Scatterv(rhoTempReduce,rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
 	       rhoTemp,rhoRealGridNum,MPI_DOUBLE,0,commStates);
     }
-    for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)numElecProj += rhoTemp[iGrid];
+    for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+      numElecProj += rhoTemp[iGrid];
+      numElecFrag += rhoUpFragSum[iGrid];
+    }
     daxpyBlasWrapper(rhoRealGridNum,-pre,&rhoTemp[0],1,&rhoDnFragSum[0],1);
-  }
+  }//endif cpLsda
 
   
   if(numProcStates>1){
     //printf("numElecProj %lg\n",numElecProj*preNe);
-    Allreduce(&numElecProj,&(stodftInfo->numElecTrueFrag),1,MPI_DOUBLE,MPI_SUM,0,commStates);
-    stodftInfo->numElecTrueFrag *= preNe;
-    if(myidState==0)printf("Number of Electron for StoWf is %.16lg\n",stodftInfo->numElecTrueFrag);
+    //Allreduce(&numElecProj,&(stodftInfo->numElecTrueFrag),1,MPI_DOUBLE,MPI_SUM,0,commStates);
+    //stodftInfo->numElecTrueFrag *= preNe;
+   
+    Allreduce(&numElecProj,&numElecProjTot,1,MPI_DOUBLE,MPI_SUM,0,commStates);
+    Allreduce(&numElecFrag,&numElecFragTot,1,MPI_DOUBLE,MPI_SUM,0,commStates);
+    stodftInfo->numElecTrueFrag = numElecProjTot*preNe-numElecFragTot/rhoRealGridTot+
+                                  numElecSys;
+    if(myidState==0)printf("Number of Electron for StoWf is %.16lg %.16lg %.16lg %lg\n",
+                           numElecProjTot*preNe,numElecFragTot/rhoRealGridTot,
+                           stodftInfo->numElecTrueFrag,numElecSys);
   }
   else{
     //printf("numElecTrue %.16lg\n",stodftInfo->numElecTrueFrag);
-    stodftInfo->numElecTrueFrag = numElecProj*preNe;
-    printf("Number of Electron for StoWf is %.16lg\n",stodftInfo->numElecTrueFrag);
+    //stodftInfo->numElecTrueFrag = numElecProj*preNe;
+
+    stodftInfo->numElecTrueFrag = numElecProj*preNe-numElecFrag/rhoRealGridTot+
+                                  numElecSys;
+    printf("Number of Electron for StoWf is %.16lg %.16lg %.16lg\n",
+           numElecProj*preNe,numElecFrag/rhoRealGridTot,
+           stodftInfo->numElecTrueFrag);
   }
   
   // I would like to seperate them, but this will make life easier

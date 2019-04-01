@@ -138,21 +138,27 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }
   */
 
-    
   sprintf(fileNameFragMO,"frag-MO-%i",myidState);
   if(numFragProc>0){
+    fileFragMO = NULL;
     fileFragMO = fopen(fileNameFragMO,"r");
-    for(iFrag=0;iFrag<numFragProc;iFrag++){
-      //printf("%p\n",fileFragMO);
-      ncoef = cpMini[iFrag].cpcoeffs_info.ncoef;
-      for(iState=0;iState<numElecUpFragProc[iFrag];iState++){
-        for(icoef=1;icoef<=ncoef;icoef++){
-          fscanf(fileFragMO,"%lg",&(cpMini[iFrag].cpcoeffs_pos[1].cre_up[iState*ncoef+icoef]));
-          fscanf(fileFragMO,"%lg",&(cpMini[iFrag].cpcoeffs_pos[1].cim_up[iState*ncoef+icoef]));
+    if(fileFragMO!=NULL){
+      for(iFrag=0;iFrag<numFragProc;iFrag++){
+        //printf("%p\n",fileFragMO);
+        ncoef = cpMini[iFrag].cpcoeffs_info.ncoef;
+        for(iState=0;iState<numElecUpFragProc[iFrag];iState++){
+          for(icoef=1;icoef<=ncoef;icoef++){
+            fscanf(fileFragMO,"%lg",&(cpMini[iFrag].cpcoeffs_pos[1].cre_up[iState*ncoef+icoef]));
+            fscanf(fileFragMO,"%lg",&(cpMini[iFrag].cpcoeffs_pos[1].cim_up[iState*ncoef+icoef]));
+          }
         }
       }
+      fclose(fileFragMO);
     }
-    fclose(fileFragMO);
+    else{
+      printf("I can't find checkpoint file for process %i\n",myidState);
+      printf("Inseated I'll use gen_wave as initial guess.\n");
+    }
   }
     
   for(iFrag=0;iFrag<numFragProc;iFrag++){

@@ -29,7 +29,7 @@
 #include "../proto_defs/proto_math.h"
 #include "../proto_defs/proto_stodft_local.h"
 
-#define EW_FAKE
+//#define EW_FAKE
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/

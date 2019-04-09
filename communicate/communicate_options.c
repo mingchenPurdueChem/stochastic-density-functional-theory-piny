@@ -68,15 +68,19 @@ void comm_simopts(SIMOPTS *simopts,MPI_Comm world)
   MPI_Aint displs[1];
   int blockcounts[1];
 
+  
   Address(&(simopts->md),&displs[0]);
+  //displs[0] = 0;
   types[0] = MPI_INT;
   blockcounts[0] = 18;
   
   Barrier(world);
   Type_struct(1,blockcounts,displs,types,&simopts_comm);
+  //Type_create_struct(1,blockcounts,displs,types,&simopts_comm);
   Barrier(world);
   Type_commit(&simopts_comm);
   Barrier(world);
+  //Bcast(simopts,1,simopts_comm,0,world);
   Bcast(MPI_BOTTOM,1,simopts_comm,0,world);
   Barrier(world);
   Type_free(&simopts_comm);
@@ -84,7 +88,7 @@ void comm_simopts(SIMOPTS *simopts,MPI_Comm world)
   Bcast(&(simopts->ann_rate),1,MPI_DOUBLE,0,world);
   Bcast(&(simopts->ann_start_temp),1,MPI_DOUBLE,0,world);
   Bcast(&(simopts->ann_target_temp),1,MPI_DOUBLE,0,world);
-
+  printf("test simopts bcast 1111111111 %i %i\n",simopts->cp_wave_min,simopts->md);
 
 
 /*------------------------------------------------------------------------*/

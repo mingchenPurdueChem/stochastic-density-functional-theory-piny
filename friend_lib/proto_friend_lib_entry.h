@@ -54,3 +54,5 @@ void mal_verify(int );
 
 int strcasecmp(const char *,const char *);
 
+void deadLock(int );
+

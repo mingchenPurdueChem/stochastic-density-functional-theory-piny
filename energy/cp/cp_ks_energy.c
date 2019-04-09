@@ -627,7 +627,7 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
   
   // We will try to construct and diag ks_mat. Then try to rotate the MO to eigenfunctions
   //test ksmat
-  
+  /*
   double *kseig_vals = (double*)cmalloc(nstate_up*sizeof(double))-1;
   double *kseig_vecs = (double*)cmalloc(nstate_up*nstate_up*sizeof(double))-1;
   double *ksmat_test = (double*)cmalloc(nstate_up*nstate_up*sizeof(double))-1;
@@ -656,7 +656,7 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
   cp_rotate_vector(cre_up,cim_up,*icoef_form_up,
                       kseig_vecs,ioff_upt,cre_temp,cim_temp,
                       &(cp->cp_comm_state_pkg_up));
-  
+  */
   /*
   //cre_up and cim_up are now eigenstates
   double *cre_up_backup = (double*)cmalloc(ncoeftot*sizeof(double))-1; // Eigenfuncion |phi>

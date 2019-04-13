@@ -221,9 +221,10 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   pseudoReal->gMaxSm = gmaxTrueSm;
   //pseudoReal->gMaxLg = gmaxTrueLg;
   pseudoReal->gMaxLg = 2.0*gmaxTrueSm;
-  printf("..... The g space double cutoff is %lg %lg Bohr^-1\n",
-         pseudoReal->gMaxSm,pseudoReal->gMaxLg);
-
+  if(myidState==0){
+    printf("..... The g space double cutoff is %lg %lg Bohr^-1\n",
+           pseudoReal->gMaxSm,pseudoReal->gMaxLg);
+  }
   //pseudoReal->gMaxLg = 3.0*gmaxTrueSm;
   //pseudoReal->gMaxLg = 12.56060614640884;
   //pseudoReal->gMaxLg = gmaxTrueLgLg;
@@ -237,6 +238,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
  
   // 2. Read the radial functions and determine the cutoff 
   countRad = 0;
+  dr = 0.0;
   for(iType=0;iType<numAtomType;iType++){
     //printf("ivpsLabel %i\n",ivpsLabel[iType+1]==1);
     //fvps = fopen(vpsFile[iType+1].name,"r");
@@ -262,13 +264,14 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
         Bcast(&alpha2,1,MPI_DOUBLE,0,commStates);
         Bcast(&zPol,1,MPI_DOUBLE,0,commStates);
         Bcast(&gamma,1,MPI_DOUBLE,0,commStates);
-        printf(">>>>>>>>>>\n");
+        //printf(">>>>>>>>>>\n");
       }
       vLoc = (double*)cmalloc((numR)*sizeof(double));
       vNl = (double*)cmalloc((numR*numRadMax[iType])*sizeof(double));
       phiNl = (double*)cmalloc((numR*numRadMax[iType])*sizeof(double));
       drBf = dr;
       dr = rMax/(double)numR;
+      if(iType==0)drBf = dr; //prevent problem when iType==0
       if(iType>0&&fabs(dr-drBf)>1.0e-10){//dr doesn't match, need reset the pseudopoential file
 	printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
 	printf("Real space grid spacing doesn't match between pseudopotential files.\n");
@@ -342,13 +345,16 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
       }//endfor iAng
       ppRealCut[iType] = rCutoffMax;
       numGridRadSmooth[iType] = (int)(rCutoffMax/dr)+1;
-      printf(".....The distance cutoff for the %i'th non-local pseudopotential is %lg Bohr\n",
-             iType,rCutoffMax);
+      if(myidState==0){
+        printf(".....The distance cutoff for the %i'th non-local pseudopotential is %lg Bohr\n",
+               iType,rCutoffMax);
+      }
     }//endif ivpsLabel
     // 3. Smooth the radius function
     
     numGridRadSmooth[iType] = (int)(rCutoffMax/dr)+1;
 
+    if(myidState==0)printf("......Start smoothing the %i'th non-local pseudopotential\n",iType);
     for(iRad=0;iRad<numRadMax[iType];iRad++){
       switch(smoothOpt){
 	case 1:
@@ -361,6 +367,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 	  break;
       }//endswitch    
     }//endfor iRad
+    if(myidState==0)printf("......Finish smoothing the %i'th non-local pseudopotential\n",iType);
     free(vLoc);
     free(vNl);
     free(phiNl);
@@ -1108,7 +1115,7 @@ void interpReal(PSEUDO *pseudo,int numAtomType,int *lMap)
   rMax = dr*(numInterpGrid-1);
 
   for(iType=0;iType<numAtomType;iType++){
-    ppRealCut[iType] = rMax-4.0*dr; // actura cutoff is smaller then interpolation cutoff
+    ppRealCut[iType] = rMax-4.0*dr; // actural cutoff is smaller then interpolation cutoff
   }
   while(countBadSpline>0){
     // transform to real space
@@ -1207,6 +1214,8 @@ void interpReal(PSEUDO *pseudo,int numAtomType,int *lMap)
       for(rGrid=0;rGrid<numInterpGrid-1;rGrid++){
 	rTest = rListTest[rGrid];
 	gridIndTest = (int)((rTest-rMin)/dr)+1;
+        if(gridIndTest>numInterpGrid)printf("Error! grid overflow! %i %i\n",gridIndTest,numInterpGrid);
+        printf("");
 	r0 = (gridIndTest-1)*dr+rMin;
 	h = rTest-r0;
 	interpInd = interpGridSt+gridIndTest;
@@ -1408,6 +1417,9 @@ void mapRealSpaceGrid(CP *cp, CLASS *class, GENERAL_DATA *generalData)
       yInd = NINT(yScale);
       zInd = NINT(zScale);
       //printf("xInd %i yInd %i zInd %i\n",xInd,yInd,zInd);    
+      if(xInd<0)xInd += nka;
+      if(yInd<0)yInd += nkb;
+      if(zInd<0)zInd += nkc;
       if(xInd>=nka)xInd -= nka;
       if(yInd>=nkb)yInd -= nkb;
       if(zInd>=nkc)zInd -= nkc;

@@ -68,27 +68,33 @@ void comm_simopts(SIMOPTS *simopts,MPI_Comm world)
   MPI_Aint displs[1];
   int blockcounts[1];
 
-  
-  Address(&(simopts->md),&displs[0]);
-  //displs[0] = 0;
+    
+  //Address(&(simopts->md),&displs[0]);
+  displs[0] = 0;
   types[0] = MPI_INT;
   blockcounts[0] = 18;
-  
   Barrier(world);
-  Type_struct(1,blockcounts,displs,types,&simopts_comm);
-  //Type_create_struct(1,blockcounts,displs,types,&simopts_comm);
+  //Type_struct(1,blockcounts,displs,types,&simopts_comm);
+  Type_create_struct(1,blockcounts,displs,types,&simopts_comm);
+
   Barrier(world);
   Type_commit(&simopts_comm);
+
   Barrier(world);
-  //Bcast(simopts,1,simopts_comm,0,world);
-  Bcast(MPI_BOTTOM,1,simopts_comm,0,world);
+  Bcast(simopts,1,simopts_comm,0,world);
+
+  //Bcast(MPI_BOTTOM,1,simopts_comm,0,world);
   Barrier(world);
   Type_free(&simopts_comm);
+
   Barrier(world);
   Bcast(&(simopts->ann_rate),1,MPI_DOUBLE,0,world);
   Bcast(&(simopts->ann_start_temp),1,MPI_DOUBLE,0,world);
   Bcast(&(simopts->ann_target_temp),1,MPI_DOUBLE,0,world);
-  printf("test simopts bcast 1111111111 %i %i\n",simopts->cp_wave_min,simopts->md);
+  //printf("test simopts bcast 1111111111 %i %i\n",simopts->cp_wave_min,simopts->md);
+  //printf("Finish bcast simopts\n");
+  //fflush(stdout);
+
 
 
 /*------------------------------------------------------------------------*/
@@ -115,16 +121,19 @@ void comm_minopts(MINOPTS *minopts,MPI_Comm world)
   MPI_Aint displs[1];
   int blockcounts[1];
 
-  Address(&(minopts->min_std),&displs[0]);
+  //Address(&(minopts->min_std),&displs[0]);
+  displs[0] = 0;
   types[0] = MPI_INT;
   blockcounts[0] = nmin_int;
   
   Barrier(world);
-  Type_struct(1,blockcounts,displs,types,&minopts_comm);
+  //Type_struct(1,blockcounts,displs,types,&minopts_comm);
+  Type_create_struct(1,blockcounts,displs,types,&minopts_comm);
   Barrier(world);
   Type_commit(&minopts_comm);
   Barrier(world);
-  Bcast(MPI_BOTTOM,1,minopts_comm,0,world);
+  //Bcast(MPI_BOTTOM,1,minopts_comm,0,world);
+  Bcast(minopts,1,minopts_comm,0,world);
   Barrier(world);
   Type_free(&minopts_comm);
   Barrier(world);
@@ -133,6 +142,8 @@ void comm_minopts(MINOPTS *minopts,MPI_Comm world)
   Bcast(&(minopts->tol_atom),1,MPI_DOUBLE,0,world);
   Barrier(world);
   Bcast(&(minopts->tol_wan_coef),1,MPI_DOUBLE,0,world);
+  //printf("Finish bcast minopts %i\n",minopts->cp_min_cg);
+  //fflush(stdout);
 
 /*------------------------------------------------------------------------*/
 } /*end routine*/ 
@@ -157,18 +168,23 @@ void comm_ensopts(ENSOPTS *ensopts,MPI_Comm world)
   MPI_Aint displs[1];
   int blockcounts[1];
 
-  Address(&(ensopts->nve),&displs[0]);
+  //Address(&(ensopts->nve),&displs[0]);
+  displs[0] = 0;
   types[0] = MPI_INT;
   blockcounts[0] = nensopts;
   
   Barrier(world);
-  Type_struct(1,blockcounts,displs,types,&ensopts_comm);
+  //Type_struct(1,blockcounts,displs,types,&ensopts_comm);
+  Type_create_struct(1,blockcounts,displs,types,&ensopts_comm);
   Barrier(world);
   Type_commit(&ensopts_comm);
   Barrier(world);
-  Bcast(MPI_BOTTOM,1,ensopts_comm,0,world);
+  //Bcast(MPI_BOTTOM,1,ensopts_comm,0,world);
+  Bcast(ensopts,1,ensopts_comm,0,world);
   Barrier(world);
   Type_free(&ensopts_comm);
+  //printf("Finish bcast ensopts\n");
+  //fflush(stdout);
 
 
 
@@ -196,22 +212,27 @@ void comm_cpopts(CPOPTS *cpopts,MPI_Comm world)
   MPI_Aint displs[1];
   int blockcounts[1];
 
-  Address(&(cpopts->cp_lda),&displs[0]);
+  //Address(&(cpopts->cp_lda),&displs[0]);
+  displs[0] = 0;
   types[0] = MPI_INT;
   blockcounts[0] = cpopts_num;
   
   Barrier(world);
-  Type_struct(1,blockcounts,displs,types,&cpopts_comm);
+  //Type_struct(1,blockcounts,displs,types,&cpopts_comm);
+  Type_create_struct(1,blockcounts,displs,types,&cpopts_comm);
   Barrier(world);
   Type_commit(&cpopts_comm);
   Barrier(world);
-  Bcast(MPI_BOTTOM,1,cpopts_comm,0,world);
+  //Bcast(MPI_BOTTOM,1,cpopts_comm,0,world);
+  Bcast(cpopts,1,cpopts_comm,0,world);
   Barrier(world);
   Type_free(&cpopts_comm);
   Barrier(world);
   Bcast(&(cpopts->threadFlag),1,MPI_INT,0,world);
   Barrier(world);
   Bcast(&(cpopts->realSparseOpt),1,MPI_INT,0,world);
+  //printf("Finish bcast cpopts %i %i %i\n",cpopts->cp_lda,cpopts->stodftOn,cpopts->realSparseOpt);
+  //fflush(stdout);
 
 /*------------------------------------------------------------------------*/
 } /*end routine*/ 
@@ -237,18 +258,22 @@ void comm_filenames(FILENAMES *filenames,MPI_Comm world)
   MPI_Aint displs[1];
   int blockcounts[1];
 
-  Address(&(filenames->iwrite_screen),&displs[0]);
+  //Address(&(filenames->iwrite_screen),&displs[0]);
+  displs[0] = 0;
   types[0] = MPI_INT;
   blockcounts[0] = filenames_num;
   
   Barrier(world);
-  Type_struct(1,blockcounts,displs,types,&filenames_comm);
+  //Type_struct(1,blockcounts,displs,types,&filenames_comm);
+  Type_create_struct(1,blockcounts,displs,types,&filenames_comm);
   Barrier(world);
   Type_commit(&filenames_comm);
   Barrier(world);
-  Bcast(MPI_BOTTOM,1,filenames_comm,0,world);
+  Bcast(&(filenames->iwrite_screen),1,filenames_comm,0,world);
   Barrier(world);
   Type_free(&filenames_comm);
+  //printf("Finish bcast filenames %i %i\n",filenames->iwrite_screen,filenames->iwrite_dipole);
+  //fflush(stdout);
 
 /*------------------------------------------------------------------------*/
 } /*end routine*/ 

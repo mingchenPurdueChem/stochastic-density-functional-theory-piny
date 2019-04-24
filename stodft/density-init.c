@@ -196,7 +196,8 @@ void calcRhoDetInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   double *rhoUpCorrect   = stodftCoefPos->rhoUpCorrect;
   double *rhoDnCorrect   = stodftCoefPos->rhoDnCorrect;
   //debug
-  
+ 
+  /* 
   stodftCoefPos->wfDetBackupUpRe = (double*)cmalloc(numCoeff*numStateUpProc*sizeof(double));
   stodftCoefPos->wfDetBackupUpIm = (double*)cmalloc(numCoeff*numStateUpProc*sizeof(double));
   memcpy(&(stodftCoefPos->wfDetBackupUpRe[0]),&(coeffReUp[1]),
@@ -205,6 +206,7 @@ void calcRhoDetInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
         numCoeff*numStateUpProc*sizeof(double));
   stodftInfo->numStatesDet = numStateUpProc;
   stodftCoefPos->wfDetReal = (double*)cmalloc(rhoRealGridTot*numStateUpProc*sizeof(double));
+  */
   
 /*======================================================================*/
 /* I) Calculate the density			                        */

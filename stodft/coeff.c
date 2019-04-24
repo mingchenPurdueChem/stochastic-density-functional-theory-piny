@@ -323,12 +323,13 @@ void genCoeffNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
 
   printf("Coeff time %lg\n",timeEnd-timeStart);
   //debug
-  
+  /*
   FILE *filecoeff = fopen("coeff-out","w");
   for(iPoly=0;iPoly<polynormLength;iPoly++){
     fprintf(filecoeff,"%i %.16lg\n",iPoly,expanCoeff[iPoly*numChemPot]);
   }
   fclose(filecoeff);
+  */
   
   /*
   for(imu=0;imu<numChemPot;imu++){
@@ -604,6 +605,7 @@ double calcFitErrorNewton(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   FERMIFUNR fermiFunction = stodftInfo->fermiFunctionReal;
 
   if(energyWindowOn==0){
+    fitErr = -1.0e30;
     for(iChem=0;iChem<numChemPot;iChem++){
       for(iPoint=0;iPoint<numPointTest;iPoint++){
 	pointTest = energyMin+(iPoint+0.5)*deltPoint;
@@ -629,6 +631,7 @@ double calcFitErrorNewton(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
     }
   }
   else{ //energy window
+    fitErr = -1.0e30;
     for(iPoint=0;iPoint<numPointTest;iPoint++){
       pointTest = energyMin+(iPoint+0.5)*deltPoint;
       pointScale = (pointTest-energyMean)*scale;

@@ -645,17 +645,17 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
                     &(cp->cp_comm_state_pkg_up),&kseig_sum);
 
   printf("kseig_sum %lg\n",kseig_sum);
-  exit(0);
-  */
-  // Finish testing
-  /*
+  //exit(0);
+  
   int ncoeftot = ncoef*nstate_up;
   double *cre_temp = (double*)cmalloc(ncoeftot*sizeof(double))-1;
   double *cim_temp = (double*)cmalloc(ncoeftot*sizeof(double))-1;
   cp_rotate_vector(cre_up,cim_up,*icoef_form_up,
                       kseig_vecs,ioff_upt,cre_temp,cim_temp,
                       &(cp->cp_comm_state_pkg_up));
-
+  */
+  // Finish testing
+  /*
   //cre_up and cim_up are now eigenstates
   double *cre_up_backup = (double*)cmalloc(ncoeftot*sizeof(double))-1; // Eigenfuncion |phi>
   double *cim_up_backup = (double*)cmalloc(ncoeftot*sizeof(double))-1;

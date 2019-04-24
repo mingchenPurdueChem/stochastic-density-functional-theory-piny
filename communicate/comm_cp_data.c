@@ -72,16 +72,20 @@ void comm_cpconstrnt(CPCONSTRNT *cpconstrnt,MPI_Comm world)
   MPI_Aint displs[1];
   int blockcounts[1];
 
-  Address(&(cpconstrnt->c_tolshake),&displs[0]);
+  //Address(&(cpconstrnt->c_tolshake),&displs[0]);
+  
+  displs[0] = 0;
   types[0] = MPI_DOUBLE;
   blockcounts[0] = nscal_cpconstrnt;
   
   Barrier(world);
-  Type_struct(1,blockcounts,displs,types,&cpconstrnt_comm);
+  //Type_struct(1,blockcounts,displs,types,&cpconstrnt_comm);
+  Type_create_struct(1,blockcounts,displs,types,&cpconstrnt_comm);
   Barrier(world);
   Type_commit(&cpconstrnt_comm);
   Barrier(world);
-  Bcast(MPI_BOTTOM,1,cpconstrnt_comm,0,world);
+  //Bcast(MPI_BOTTOM,1,cpconstrnt_comm,0,world);
+  Bcast(&(cpconstrnt->c_tolshake),1,cpconstrnt_comm,0,world);
   Barrier(world);
   Type_free(&cpconstrnt_comm);
 
@@ -163,16 +167,19 @@ void comm_cpopts_data(CPOPTS *cpopts,MPI_Comm world)
   int blockcounts[1];
   int count;
 
-  Address(&(cpopts->te_ext),&displs[0]);
+  //Address(&(cpopts->te_ext),&displs[0]);
+  displs[0] = 0;
   types[0] = MPI_DOUBLE;
   blockcounts[0] = nscal_cpopts;
   
   Barrier(world);
-  Type_struct(1,blockcounts,displs,types,&cpopts_data_comm);
+  //Type_struct(1,blockcounts,displs,types,&cpopts_data_comm);
+  Type_create_struct(1,blockcounts,displs,types,&cpopts_data_comm);
   Barrier(world);
   Type_commit(&cpopts_data_comm);
   Barrier(world);
-  Bcast(MPI_BOTTOM,1,cpopts_data_comm,0,world);
+  //Bcast(MPI_BOTTOM,1,cpopts_data_comm,0,world);
+  Bcast(&(cpopts->te_ext),1,cpopts_data_comm,0,world);
   Barrier(world);
   Type_free(&cpopts_data_comm);
   

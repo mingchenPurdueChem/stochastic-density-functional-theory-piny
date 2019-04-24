@@ -766,8 +766,8 @@ void calcDotNlpp(double *wfNbhd,double *radFun,double *ylm,
 /*         Local Variable declarations                                   */
 
   int iGrid;
-  double dotReLocal;
-  double dotImLocal;
+  double dotReLocal = 0.0;
+  double dotImLocal = 0.0;
   
   for(iGrid=0;iGrid<numGrid;iGrid++){
     dotReLocal += wfNbhd[iGrid]*radFun[iGrid]*ylm[2*iGrid];

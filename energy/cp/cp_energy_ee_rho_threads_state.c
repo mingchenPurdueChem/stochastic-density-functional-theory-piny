@@ -26,6 +26,7 @@
 
 //#define REAL_PP_DEBUG
 //#define TEST_DM
+#define PRINT_RHO
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
@@ -489,6 +490,15 @@ void cp_rho_calc_hybrid_threads_state(CPEWALD *cpewald,CPSCR *cpscr,
 
   //if(fftw3dFlag==0)printf("rrrrho_scr %lg\n",rho_scr[2]);
   //else printf("rrrrho_scr %lg %lg\n",rho_scr[2],rho_scr[5185]);
+#ifdef PRINT_RHO
+  // This routine ONLY works for 1 process. So we need to run the 
+  // program with openMP ONLY to generate density
+  FILE *rho_out = fopen("density-out-cg","w");
+  for(i=1;i<=nfft2;i++){
+    fprintf(rho_out,"%.16lg\n",rho_scr[i]);
+  }
+  fclose(rho_out);
+#endif
 
   time_end = omp_get_wtime();
   //cp_sclr_fft_pkg3d_sm->cputime1 += time_end-time_st;

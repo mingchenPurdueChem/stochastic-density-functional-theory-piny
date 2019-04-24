@@ -1,0 +1,34 @@
+# user specific directories
+#--------------------------
+ROOT   = $(HOME)/code/piny-stoc-dft
+CODE   = $(ROOT)/src
+DCODE  = $(ROOT)/src
+ECODE  = $(DCODE)
+
+# general directories
+#--------------------------
+INCLUDES = $(DCODE)/include/pentium_threads
+EXE      = $(ROOT)/bin/piny_md_cray_par_frag_threads
+CMALLOC =
+MKLROOT = /opt/intel/compilers_and_libraries_2018.1.163/linux/mkl
+
+# HP compiler
+#--------------------------
+FC  = ftn
+CC  = cc
+#OPT = -O2 -xHost
+#OPT_CARE = -O2 -xHost
+#OPT_GRP = -O2 -xHost
+OPT = 
+OPT_CARE = 
+OPT_GRP = 
+#OPT = -O0 -g
+#OPT_CARE = -O0 -g
+#OPT_GRP = -O0 -g
+CFLAGS = -I${FFTW_INC} -I${MKLROOT}/include/
+#CFLAGS = -mkl
+#FFLAGS = -nofor_main
+FFLAGS = 
+LIBS =   $(LIB_PATH) $(MALLOC) -L$(FFTW_DIR) -lfftw3_threads -lfftw3 -lpthread -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_gnu_thread.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -L/opt/intel/compilers_and_libraries_2018.1.163/linux/compiler/lib/intel64/ -lpthread -lm -ldl
+#LIBS =   $(LIB_PATH) $(MALLOC) -lfftw3_threads -lfftw3 -lpthread
+

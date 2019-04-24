@@ -3294,7 +3294,7 @@ void sngl_pack_coef_fftw3d_filter(double *cre,double *cim,double *zfft,
   if(fftFlag==0){
     if(num_proc==1){
       #pragma omp parallel for private(i)
-      for(i=1;i<=nfft2_proc;i++){
+      for(i=0;i<nfft2_proc;i++){
 	fftw3DForwardIn[i] = 0.0;
       } 
     }
@@ -3309,7 +3309,7 @@ void sngl_pack_coef_fftw3d_filter(double *cre,double *cim,double *zfft,
   else{
     if(num_proc==1){
       #pragma omp parallel for private(i)
-      for(i=1;i<=nfft2_proc;i++){
+      for(i=0;i<nfft2_proc;i++){
         fftw3DBackwardIn[i] = 0.0;
       }
     }

@@ -481,9 +481,16 @@ void controlEwdLocPreScf(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 
 /*======================================================================*/
 /* IX) Copy and store vext */
- 
-  memcpy(&vextr_loc[1],&vextr[1],(ngo+1)*sizeof(double));
-  memcpy(&vexti_loc[1],&vexti[1],(ngo+1)*sizeof(double));
+
+  if(myid_state==np_states-1){ 
+    memcpy(&vextr_loc[1],&vextr[1],(ngo+1)*sizeof(double));
+    memcpy(&vexti_loc[1],&vexti[1],(ngo+1)*sizeof(double));
+  }
+  else{
+    memcpy(&vextr_loc[1],&vextr[1],ngo*sizeof(double));
+    memcpy(&vexti_loc[1],&vexti[1],ngo*sizeof(double));
+  }
+
   
   /*
   for(i=1;i<=ngo+1;i++){ 

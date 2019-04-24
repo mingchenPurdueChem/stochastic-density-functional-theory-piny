@@ -53,6 +53,7 @@ void communicate_interface(CLASS *class,BONDED *bonded,CP *cp,
       PRINT_LINE_STAR;
       printf("Communicating the interface\n");
       PRINT_LINE_DASH;printf("\n");
+      fflush(stdout);
   }/*endif*/
 
 /*=======================================================================*/
@@ -73,6 +74,8 @@ void communicate_interface(CLASS *class,BONDED *bonded,CP *cp,
           + general_data->simopts.cp_wave_min_pimd 
           + general_data->simopts.debug_pimd 
           + general_data->simopts.debug_cp_pimd;
+  //printf("finish bcasting general_data %i\n",cp_on);
+  //fflush(stdout);
 
 /*=======================================================================*/
 /*           Class                                                     */
@@ -87,6 +90,8 @@ void communicate_interface(CLASS *class,BONDED *bonded,CP *cp,
    communicate_class_data(class,general_data,class_parse,pimd_on);
    Barrier(world);
    communicate_class_list(class,general_data,class_parse,pimd_on);
+   //printf("222222222222\n");
+   //fflush(stdout);
 
 /*=======================================================================*/
 /*            Bonded                                                     */
@@ -100,6 +105,8 @@ void communicate_interface(CLASS *class,BONDED *bonded,CP *cp,
    Barrier(world);
    communicate_bond_data(bonded,null_inter_parse,world); 
    Barrier(world);
+   //printf("111111111111\n");
+   //fflush(stdout);
 
 /*=======================================================================*/
 /*            CP                                                         */
@@ -122,6 +129,7 @@ void communicate_interface(CLASS *class,BONDED *bonded,CP *cp,
       printf("Completed communicating the interface\n");
       PRINT_LINE_STAR;printf("\n");
    }/*endif*/
+   fflush(stdout);
 
 /*------------------------------------------------------------------------*/
 } /*end routine*/ 

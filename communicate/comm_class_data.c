@@ -77,16 +77,19 @@ void comm_statepoint(STATEPOINT *statepoint,MPI_Comm world)
   MPI_Aint displs[1];
   int blockcounts[1];
 
-  Address(&(statepoint->pext),&displs[0]);
+  //Address(&(statepoint->pext),&displs[0]);
+  displs[0] = 0;
   types[0] = MPI_DOUBLE;
   blockcounts[0] = 3;
   
   Barrier(world);
-  Type_struct(1,blockcounts,displs,types,&statepoint_comm);
+  //Type_struct(1,blockcounts,displs,types,&statepoint_comm);
+  Type_create_struct(1,blockcounts,displs,types,&statepoint_comm);
   Barrier(world);
   Type_commit(&statepoint_comm);
   Barrier(world);
-  Bcast(MPI_BOTTOM,1,statepoint_comm,0,world);
+  //Bcast(MPI_BOTTOM,1,statepoint_comm,0,world);
+  Bcast(&(statepoint->pext),1,statepoint_comm,0,world);
   Barrier(world);
   Type_free(&statepoint_comm);
 
@@ -167,15 +170,18 @@ void comm_clatoms_data(CLATOMS_INFO *clatoms_info,int nmol_typ,
   int natm_mall = clatoms_info->natm_mall;
   int pi_beads  = clatoms_info->pi_beads;
 
-  Address(&(clatoms_info->gamma_adb),&displs[0]);
+  //Address(&(clatoms_info->gamma_adb),&displs[0]);
+  displs[0] = 0;
   types[0] = MPI_DOUBLE;
   blockcounts[0] = ndata_scal;
   Barrier(world);
-  Type_struct(1,blockcounts,displs,types,&clatoms_info_comm);
+  //Type_struct(1,blockcounts,displs,types,&clatoms_info_comm);
+  Type_create_struct(1,blockcounts,displs,types,&clatoms_info_comm);
   Barrier(world);
   Type_commit(&clatoms_info_comm);
   Barrier(world);
-  Bcast(MPI_BOTTOM,1,clatoms_info_comm,0,world);
+  //Bcast(MPI_BOTTOM,1,clatoms_info_comm,0,world);
+  Bcast(&(clatoms_info->gamma_adb),1,clatoms_info_comm,0,world);
   Type_free(&clatoms_info_comm);
 
   Barrier(world);
@@ -215,15 +221,18 @@ void comm_nbr_list_data(NBR_LIST *nbr_list,MPI_Comm world)
   MPI_Aint displs[1];
   int blockcounts[1];
 
-  Address(&(nbr_list->verlist.mem_safe),&displs[0]);
+  //Address(&(nbr_list->verlist.mem_safe),&displs[0]);
+  displs[0] = 0;
   types[0] = MPI_DOUBLE;
   blockcounts[0] = nnbr_list_scal;
   Barrier(world);
-  Type_struct(1,blockcounts,displs,types,&nbr_list_comm);
+  //Type_struct(1,blockcounts,displs,types,&nbr_list_comm);
+  Type_create_struct(1,blockcounts,displs,types,&nbr_list_comm);
   Barrier(world);
   Type_commit(&nbr_list_comm);
   Barrier(world);
-  Bcast(MPI_BOTTOM,1,nbr_list_comm,0,world);
+  //Bcast(MPI_BOTTOM,1,nbr_list_comm,0,world);
+  Bcast(&(nbr_list->verlist.mem_safe),1,nbr_list_comm,0,world);
   Type_free(&nbr_list_comm);
   Barrier(world);
 
@@ -256,15 +265,18 @@ void comm_interact_data(INTERACT *interact,MPI_Comm world)
   MPI_Aint displs[1];
   int blockcounts[1];
 
-  Address(&(interact->dielectric_rheal),&displs[0]);
+  //Address(&(interact->dielectric_rheal),&displs[0]);
+  displs[0] = 0;
   types[0] = MPI_DOUBLE;
   blockcounts[0] = ninteract_scal;
   Barrier(world);
-  Type_struct(1,blockcounts,displs,types,&interact_comm);
+  //Type_struct(1,blockcounts,displs,types,&interact_comm);
+  Type_create_struct(1,blockcounts,displs,types,&interact_comm);
   Barrier(world);
   Type_commit(&interact_comm);
   Barrier(world);
-  Bcast(MPI_BOTTOM,1,interact_comm,0,world);
+  //Bcast(MPI_BOTTOM,1,interact_comm,0,world);
+  Bcast(&(interact->dielectric_rheal),1,interact_comm,0,world);
   Type_free(&interact_comm);
   Barrier(world);
 
@@ -358,16 +370,19 @@ void comm_surface_data(SURFACE *surface, MPI_Comm world)
   MPI_Aint     displs[1];
   int          blockcounts[1];
 
-  Address(&(surface->zheal),&displs[0]);
+  //Address(&(surface->zheal),&displs[0]);
+  displs[0] = 0;
   types[0]       = MPI_DOUBLE;
   blockcounts[0] = 2;
   
   Barrier(world);
-  Type_struct(1,blockcounts,displs,types,&surface_comm);
+  //Type_struct(1,blockcounts,displs,types,&surface_comm);
+  Type_create_struct(1,blockcounts,displs,types,&surface_comm);
   Barrier(world);
   Type_commit(&surface_comm);
   Barrier(world);
-  Bcast(MPI_BOTTOM,1,surface_comm,0,world);
+  //Bcast(MPI_BOTTOM,1,surface_comm,0,world);
+  Bcast(&(surface->zheal),1,surface_comm,0,world);
   Barrier(world);
   Type_free(&surface_comm);
 

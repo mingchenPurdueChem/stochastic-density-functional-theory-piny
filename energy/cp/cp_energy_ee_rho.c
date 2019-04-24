@@ -2678,11 +2678,17 @@ void cp_vpsi_threads(double *rifft,double *v_ks,int nfft)
    int i,m,iii;
 /*-----------------------------------------------------------------------*/
 
-   #pragma omp parallel for private(i,m)
-   for(i=1,m=1; i<=nfft; i+=2,m++ ){
-     rifft[i]   *= v_ks[m];
-     rifft[i+1] *= v_ks[m];
+   m = 1;
+   #pragma omp parallel private(i,m)
+  {
+    m = 1;
+    #pragma omp for
+    for(i=1; i<=nfft; i+=2){
+      rifft[i]   *= v_ks[m];
+      rifft[i+1] *= v_ks[m];
+      m += 1;
     }/*endfor*/
+  }
 
 /*==========================================================================*/
  }/*end routine*/

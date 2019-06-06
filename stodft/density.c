@@ -1135,7 +1135,7 @@ void calcRhoStoHybridInterp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_da
 /*==========================================================================*/
 /* IV) Output the density                                                   */
 
-    outputDensity(cp,cell);
+    outputDensity(cp,cell,0);
 
 /*==========================================================================*/
 /* V) Generate the diis density						    */
@@ -1492,7 +1492,7 @@ void calcRhoStoHybridCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
 /* V) Output the density                                                    */
   //printf("22222222 rho %.16lg %.16lg\n",rhoUpCorrect[1],rhoUpCorrect[2]);
 
-  outputDensity(cp,cell);
+  //outputDensity(cp,cell,0);
 
 /*==========================================================================*/
 /* VI) Generate the diis density					    */
@@ -1522,8 +1522,7 @@ void calcRhoStoHybridCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
     fclose(fp_rho);
     */
   
-
-  //outputDensity(cp,cell);
+  outputDensity(cp,cell,1);
  
 /*==========================================================================*/
 /* VII) Generate the reciprocal part and all the other things               */
@@ -1571,7 +1570,7 @@ void calcRhoStoHybridCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
 /*  outputDensity:                                                          */
 /*      Gather the density to the master processor and print it to file     */
 /*==========================================================================*/
-void outputDensity(CP *cp,CELL *cell)
+void outputDensity(CP *cp,CELL *cell,int outputFlag)
 /*==========================================================================*/
 {/*begin routine*/
 /*==========================================================================*/
@@ -1611,6 +1610,15 @@ void outputDensity(CP *cp,CELL *cell)
   volCPInv = 1.0/volCP;
   // test, I'll write a better version later
   FILE *densityFinal;
+
+  if(outputFlag==0){
+    rhoUpCorrect = stodftCoefPos->rhoUpCorrect;
+    rhoDnCorrect = stodftCoefPos->rhoDnCorrect;
+  }
+  else{
+    rhoUpCorrect = &cp->cpscr.cpscr_rho.rho_up[1];
+    rhoDnCorrect = &cp->cpscr.cpscr_rho.rho_dn[1];
+  }
 
   //if(chemPotOpt==1){// interpolation way
     if(numProcStates>1){
@@ -1875,7 +1883,7 @@ void calcRhoFilterDiagHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_d
 /*==========================================================================*/
 /* IV) Output the density                                                   */
 
-  outputDensity(cp,cell);
+  outputDensity(cp,cell,0);
 
 /*==========================================================================*/
 /* V) Generate the diis density                                             */

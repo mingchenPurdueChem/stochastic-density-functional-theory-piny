@@ -81,7 +81,7 @@ void calcRhoStoRecipFullg(CPEWALD *,CPSCR *,CPCOEFFS_INFO *,EWALD *,CELL *,
 
 void calcRhoStoHybridInterp(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 void calcRhoStoHybridCheby(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
-void outputDensity(CP *,CELL *);
+void outputDensity(CP *,CELL *,int);
 void calcRhoFilterDiagHybrid(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 /*-----------------------------------------------------------------*/
 /* calc-chempot.c                                                  */

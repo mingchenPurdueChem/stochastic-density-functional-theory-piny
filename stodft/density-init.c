@@ -72,6 +72,7 @@ void calcRhoInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     PRINT_LINE_DASH;
   }
 
+  if(readCoeffFlag==0) calcRhoOffInit(class,bonded,general_data,cp,cpcoeffs_pos);
   if(readCoeffFlag==1) calcRhoStoInit(class,bonded,general_data,cp,cpcoeffs_pos);
   if(readCoeffFlag==2) calcRhoDetInit(class,bonded,general_data,cp,cpcoeffs_pos);
   if(readCoeffFlag==-2) readRho(class,bonded,general_data,cp,cpcoeffs_pos);
@@ -126,9 +127,9 @@ void calcRhoDetInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
-/*************************************************************************/
+/****************************************************************************/
 /* This is the routine to calculate the density from deterministic orbitals */
-/*************************************************************************/
+/****************************************************************************/
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
   #include "../typ_defs/typ_mask.h"
@@ -225,8 +226,7 @@ void calcRhoDetInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
    for(iCoeff=1;iCoeff<=numCoeff*numStateUpProc;iCoeff++){
      printf("wfffffffff %.16lg %.16lg\n",coeffReUp[iCoeff],coeffImUp[iCoeff]);
    }
-   */
-    
+   */    
   }
   if(cpParaOpt==1){
     cp_rho_calc_full_g(cpewald,cpscr,cpcoeffs_info,
@@ -339,10 +339,10 @@ void calcRhoDetInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     fclose(fileTestRhoInit);
     fflush(stdout);
     exit(0);
-    */
-
-    
+    */    
   }
+  // Output initial density as "density.in"
+  outputInitDensity(cp,cell);
   //exit(0);
   /*
   //debug
@@ -358,6 +358,106 @@ void calcRhoDetInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*==========================================================================*/
 }/*end Routine*/
 /*=======================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+/*  outputDensity:                                                          */
+/*      Gather the density to the master processor and print it to file     */
+/*==========================================================================*/
+void outputInitDensity(CP *cp,CELL *cell)
+/*==========================================================================*/
+{/*begin routine*/
+/*==========================================================================*/
+#include "../typ_defs/typ_mask.h"
+  COMMUNICATE *commCP           = &(cp->communicate);
+  STODFTINFO *stodftInfo        = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  CPOPTS *cpopts                = &(cp->cpopts);
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+
+  int myidState             = commCP->myid_state;
+  int numProcStates         = commCP->np_states;
+  int cpLsda                = cpopts->cp_lsda;
+  int rhoRealGridNum        = stodftInfo->rhoRealGridNum;
+  int rhoRealGridTot        = stodftInfo->rhoRealGridTot;
+  int numStateUpProc = cpcoeffs_info->nstate_up_proc;
+  int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
+  int iGrid;
+  int chemPotOpt = stodftInfo->chemPotOpt;
+  int *rhoRealSendCounts    = stodftInfo->rhoRealSendCounts;
+  int *rhoRealDispls        = stodftInfo->rhoRealDispls;
+  char *densityFileName     = stodftInfo->densityFileName;
+
+  double volCP,volCPInv;
+  double *hmatCP            = cell->hmat_cp;
+  double *rhoUpCorrect      = stodftCoefPos->rhoUpCorrect;
+  double *rhoDnCorrect      = stodftCoefPos->rhoDnCorrect;
+  double *rhoUpForOutput,*rhoDnForOutput;
+
+  double **rhoUpChemPot = stodftCoefPos->rhoUpChemPot;
+  double **rhoDnChemPot = stodftCoefPos->rhoDnChemPot;
+
+  FILE *densityOutputFile;
+  MPI_Comm commStates       = commCP->comm_states;
+
+  volCP  = getdeth(hmatCP);
+  volCPInv = 1.0/volCP;
+  // test, I'll write a better version later
+  FILE *densityFinal;
+
+  rhoUpCorrect = stodftCoefPos->rhoUpCorrect;
+  rhoDnCorrect = stodftCoefPos->rhoDnCorrect;
+
+  //if(chemPotOpt==1){// interpolation way
+    if(numProcStates>1){
+      if(myidState==0)rhoUpForOutput = (double*)cmalloc(rhoRealGridTot*sizeof(double));
+      Barrier(commStates);
+      Gatherv(rhoUpCorrect,rhoRealGridNum,MPI_DOUBLE,rhoUpForOutput,
+              rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,0,commStates);
+      Barrier(commStates);
+      if(cpLsda==1&&numStateDnProc!=0){
+        if(myidState==0)rhoDnForOutput = (double*)cmalloc(rhoRealGridTot*sizeof(double));
+        Barrier(commStates);
+        Gatherv(rhoDnCorrect,rhoRealGridNum,MPI_DOUBLE,rhoDnForOutput,
+                rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,0,commStates);
+        Barrier(commStates);
+      }//endif cpLsda
+      if(myidState==0){
+        printf("I'm writing the output density\n");
+        densityFinal = fopen("density.in","w");
+        for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+          //fprintf(densityOutputFile,"%.10lg\n",rhoUpForOutput[iGrid]*volCPInv);
+          //debug
+          fprintf(densityFinal,"%.16lg\n",rhoUpForOutput[iGrid]);
+        }//endfor iGrid
+        cfree(rhoUpForOutput);
+        if(cpLsda==1&&numStateDnProc!=0){
+          for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+            fprintf(densityFinal,"%.16lg\n",rhoDnForOutput[iGrid]);
+          }//endfor iGrid
+          cfree(rhoDnForOutput);
+        }//endif cpLsda
+        fclose(densityFinal);
+      }//endif myState
+    }//endif parallel case
+    else{
+      densityFinal = fopen("density.in","w");
+      for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+        fprintf(densityFinal,"%.16lg\n",rhoUpCorrect[iGrid]);
+      }//endfor iGrid
+      if(cpLsda==1&&numStateDnProc!=0){
+        for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+          fprintf(densityFinal,"%.16lg\n",rhoDnCorrect[iGrid]);
+        }//endfor iGrid
+      }//endif cpLsda
+      fclose(densityFinal);
+    }//endif sequential case
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
+
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
@@ -822,3 +922,80 @@ void calcRhoFragInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 }/*end Routine*/
 /*=======================================================================*/
 
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void calcRhoOffInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
+           CP *cp,CPCOEFFS_POS  *cpcoeffs_pos)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* When you choose read_coeff_opt to be off, you will use gen_wave to    */
+/* build initial guess from atomic orbitals. When you turn on DIIS, here */
+/* is the place where you should store the initial density to DIIS bank. */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+  #include "../typ_defs/typ_mask.h"
+  EWALD        *ewald        = &(general_data->ewald);
+  CELL         *cell         = &(general_data->cell);
+  CPOPTS       *cpopts       = &(cp->cpopts);
+  CPSCR        *cpscr        = &(cp->cpscr);
+  CPEWALD      *cpewald      = &(cp->cpewald);
+  PSEUDO       *pseudo       = &(cp->pseudo);
+  STODFTINFO   *stodftInfo   = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  COMMUNICATE   *commCP         = &(cp->communicate);
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+
+  int densityMixFlag = stodftInfo->densityMixFlag;
+  int iGrid;
+  int rhoRealGridNum = stodftInfo->rhoRealGridNum;
+  int rhoRealGridTot = stodftInfo->rhoRealGridTot;
+  int cpLsda = cpopts->cp_lsda;
+  int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
+
+  double volCP;
+
+  double *hmatCP         = cell->hmat_cp;
+  double *rhoUp          = cpscr->cpscr_rho.rho_up;
+  double *rhoDn          = cpscr->cpscr_rho.rho_dn;
+  double *rhoUpCorrect   = stodftCoefPos->rhoUpCorrect;
+  double *rhoDnCorrect   = stodftCoefPos->rhoDnCorrect;
+  
+
+  if(densityMixFlag>0){
+    volCP  = getdeth(hmatCP);
+    for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+      rhoUpCorrect[iGrid] = rhoUp[iGrid+1]*volCP;
+    }
+    if(cpLsda==1&&numStateDnProc>0){
+      for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+        rhoDnCorrect[iGrid] = rhoDn[iGrid+1]*volCP;
+      }
+    }
+    //debug
+    genDensityMix(cp,0);
+    /*
+    int itest;
+    for(itest=0;itest<100;itest++){
+      genDensityMix(cp,itest);
+      rhoUpCorrect[0] += 0.1/(itest+1);
+    }
+    */
+    /*
+    FILE *fileTestRhoInit = fopen("rho-init-sto","w");
+    for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+      fprintf(fileTestRhoInit,"%.16lg\n",rhoUpCorrect[iGrid]);
+    }
+    fclose(fileTestRhoInit);
+    fflush(stdout);
+    exit(0);
+    */
+  }
+  // Output initial density as "density.in"
+  outputInitDensity(cp,cell);
+
+}

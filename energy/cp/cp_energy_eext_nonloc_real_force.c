@@ -213,7 +213,7 @@ void nlppKBRealEnergyForce(CP *cp,CLASS *class,GENERAL_DATA *generalData,
         countRad += atomLRadNum[atomType][l];
       }//endfor l
     }//endif numGrid
-    //if(iAtom==0)printf("forceNl %.16lg %.16lg %.16lg\n",forceNlX,forceNlY,forceNlZ);
+    //printf("forceNl %i %.16lg %.16lg %.16lg\n",iAtom,forceNlX,forceNlY,forceNlZ);
     fx[iAtom] -= forceNlX;
     fy[iAtom] -= forceNlY;
     fz[iAtom] -= forceNlZ;

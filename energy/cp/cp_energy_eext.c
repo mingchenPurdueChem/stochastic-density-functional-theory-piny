@@ -941,6 +941,7 @@ void control_ewd_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
   if(np_states==myid_state+1){ngo--;}
 
   for(icount=1;icount<=ngo;icount++){
+    //printf("rhocr %lg rhoci %lg\n",rhocr[icount],rhoci[icount]);
 
 /*======================================================================*/
 /* I) Get the k vectors                                                 */
@@ -1216,7 +1217,7 @@ void control_ewd_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
       fx[ipart] += fx_tmp[ipart];
       fy[ipart] += fy_tmp[ipart];
       fz[ipart] += fz_tmp[ipart];
-      //printf("11111111 floc %.8lg %.8lg %.8lg\n",fx_tmp[ipart],fy_tmp[ipart],fz_tmp[ipart]);
+      //printf("11111111 %i floc %.8lg %.8lg %.8lg\n",ipart,fx_tmp[ipart],fy_tmp[ipart],fz_tmp[ipart]);
     }/*endfor*/
   }else{
     for(ipart=1;ipart<=natm_use;ipart++){

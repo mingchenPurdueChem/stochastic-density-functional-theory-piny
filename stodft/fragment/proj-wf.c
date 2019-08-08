@@ -1028,7 +1028,9 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     Scatterv(rhoTempReduce,rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
              rhoUpFragSum,rhoRealGridNum,MPI_DOUBLE,0,commStates);
     // I need to multiply the density by volumn to match the |ksi(r)|^2
-    for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)rhoUpFragSum[iGrid] *= vol;
+    for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+      rhoUpFragSum[iGrid] *= vol;
+    }
     //if(myidState==0)free(&rhoTempReduce[0]);
   }
   // Sequential, just copy and scale the density
@@ -1441,6 +1443,13 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   if(numProcStates>1)Barrier(commStates);
   
   daxpyBlasWrapper(rhoRealGridNum,-pre,&rhoTemp[0],1,&rhoUpFragSum[0],1);
+#ifdef TUNE_NOISE
+  for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+    rhoUpFragSum[iGrid] *= NOISE_FACTOR;
+  }
+  sumElecFrag *= NOISE_FACTOR;
+  sumElecProj *= NOISE_FACTOR;
+#endif
   if(numProcStates>1)Barrier(commStates);
   
   /*

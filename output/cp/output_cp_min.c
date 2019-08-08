@@ -389,13 +389,13 @@ void screen_write_cp_min(CLASS *class,GENERAL_DATA *general_data,BONDED *bonded,
       printf("Atm force        = %g           %g\n",fatm_mag,fatm_max);
      }/*endif*/
      if(write_now==1){
+      general_data->stat_avg.vtot = vtot+general_data->stat_avg.cp_ehart+
+                                    general_data->stat_avg.cp_exc+
+                                    general_data->stat_avg.cp_eext+
+                                    general_data->stat_avg.cp_eke+
+                                    general_data->stat_avg.cp_enl; 
       printf("----------------- \n");
-      printf("Total Energy      = %.10g \n",(vtot) +
-                                (general_data->stat_avg.cp_ehart
-			       + general_data->stat_avg.cp_exc
-			       + general_data->stat_avg.cp_eext
-			       + general_data->stat_avg.cp_eke
-			       + general_data->stat_avg.cp_enl));
+      printf("Total Energy      = %.10g \n",general_data->stat_avg.vtot);
       printf("----------------- \n");
       printf("Atm Energy        = %.10g \n",(vtot));
       printf("Intermol Atm PE   = %.10g \n",(general_data->stat_avg.vintert));

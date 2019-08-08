@@ -905,7 +905,7 @@ void read_coef_fetch_coefs(CP *cp, FILE *fp_dnameci, char *dnameci,
         for(i=1;i<=ncoef;i++){
          if(ibinary == 0){
           fscanf(fp_dnameci,"%lf %lf",&(cre_up_tmp[i]),&(cim_up_tmp[i]));
-          readtoendofline(fp_dnameci);
+          //readtoendofline(fp_dnameci); Something is wrong with this function
          }else{
           n = 1;
           fread(&(cre_dum),sizeof(float),n,fp_dnameci);

@@ -265,8 +265,8 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
     Reduce(&(stat_avg->vrecip),&vrecipLocal,1,MPI_DOUBLE,MPI_SUM,0,commStates);
   }
   //debug
-  printf("ffffff myidState %i fxLoc %.16lg fyLoc %.16lg fzLoc %.16lg\n",
-         myidState,fx[1],fy[1],fz[1]);
+  //printf("ffffff myidState %i fxLoc %.16lg fyLoc %.16lg fzLoc %.16lg\n",
+  //       myidState,fx[1],fy[1],fz[1]);
   /*
   if(myidState==0){
     for(iAtom=0;iAtom<numAtomTot;iAtom++){
@@ -658,7 +658,8 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
     for(iAtom=0;iAtom<numAtomTot;iAtom++){
       fprintf(fileForce,"atom %i cor %.16lg %.16lg %.16lg Uncor %.8lg %.8lg %.8lg loc %.8lg %.8lg %.8lg\n",
 	     iAtom,fx[iAtom+1],fy[iAtom+1],fz[iAtom+1],
-	     fxUnCor[iAtom],fyUnCor[iAtom],fzUnCor[iAtom],fxLoc[iAtom],fyLoc[iAtom],fzLoc[iAtom]);
+	     fxUnCor[iAtom],fyUnCor[iAtom],fzUnCor[iAtom],
+             fxLoc[iAtom],fyLoc[iAtom],fzLoc[iAtom]);
     }
     fclose(fileForce);
   }

@@ -120,7 +120,17 @@ void energyCorrect(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,
     memcpy(&(fragInfo->vnlFyCor[0]),&(vnlFyCorProc[0]),numAtomTot*sizeof(double));
     memcpy(&(fragInfo->vnlFzCor[0]),&(vnlFzCorProc[0]),numAtomTot*sizeof(double));
   }
-  
+#ifdef TUNE_NOISE
+  if(myidState==0){
+    fragInfo->keCor *= NOISE_FACTOR;
+    fragInfo->vnlCor *= NOISE_FACTOR;
+    for(iAtom=0;iAtom<numAtomTot;iAtom++){
+      fragInfo->vnlFxCor[0] *= NOISE_FACTOR;
+      fragInfo->vnlFyCor[0] *= NOISE_FACTOR;
+      fragInfo->vnlFzCor[0] *= NOISE_FACTOR;
+    }
+  }
+#endif  
   if(numProcStates>1)Barrier(commStates);
   free(vnlFxCorProc);
   free(vnlFyCorProc);

@@ -441,10 +441,7 @@ void control_cp_min(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
     cp_energy_control(class,bonded,general_data,cp);
 
-    for(i=1;i<=natm_tot;i++){
-      printf("atom %i force %.16lg %.16lg %.16lg\n",i,class->clatoms_pos[1].fx[i],
-	     class->clatoms_pos[1].fy[i],class->clatoms_pos[1].fz[i]);
-    }
+    //reduce nuclei force, I'll do this later
     simpavg_cp(&(general_data->timeinfo),&(general_data->stat_avg),
                &(general_data->cell),&(bonded->constrnt),
                &(general_data->ensopts),&(general_data->simopts),
@@ -457,6 +454,41 @@ void control_cp_min(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     general_data->stat_avg.write_cp_atm_flag = 1;
 
     output_cp_min(class,general_data,bonded,cp,Delta_E,idum);
+
+    //reduce nuclei force, and output force/energy to the file 
+    //for structural minimization
+    FILE *fileForce;
+    FILE *fileEnergy;
+    double *fx,*fy,*fz;
+    if(myid==0){
+      fileForce = fopen("atom-force-cg","w");
+      fileEnergy = fopen("total-energy-cg","w");
+      fx = (double*)cmalloc(natm_tot*sizeof(double));
+      fy = (double*)cmalloc(natm_tot*sizeof(double));
+      fz = (double*)cmalloc(natm_tot*sizeof(double));
+    }
+    Barrier(comm_states);
+    if(np_state>1){
+      Reduce(&class->clatoms_pos[1].fx[1],fx,natm_tot,MPI_DOUBLE,MPI_SUM,0,comm_states);
+      Reduce(&class->clatoms_pos[1].fy[1],fy,natm_tot,MPI_DOUBLE,MPI_SUM,0,comm_states);
+      Reduce(&class->clatoms_pos[1].fz[1],fz,natm_tot,MPI_DOUBLE,MPI_SUM,0,comm_states);
+    }
+    else{
+      memcpy(fx,&class->clatoms_pos[1].fx[1],natm_tot*sizeof(double));
+      memcpy(fy,&class->clatoms_pos[1].fy[1],natm_tot*sizeof(double));
+      memcpy(fz,&class->clatoms_pos[1].fz[1],natm_tot*sizeof(double));
+    }
+    Barrier(comm_states);
+    if(myid==0){
+      for(i=0;i<natm_tot;i++){
+          printf("atom %i %.16lg %.16lg %.16lg\n",i,fx[i],fy[i],fz[i]);
+          fprintf(fileForce,"atom %i cor %.16lg %.16lg %.16lg Uncor 0 0 0 loc 0 0 0\n",i,fx[i],
+                  fy[i],fz[i]);
+      }
+      fprintf(fileEnergy,"%.16lg\n",general_data->stat_avg.vtot);
+      fclose(fileForce);
+      fclose(fileEnergy);
+    }
 
   /*======================================================================*/
   /*  III)Write to Screen                                                 */

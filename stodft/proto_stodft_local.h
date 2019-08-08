@@ -55,9 +55,11 @@ void normHCheby(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,CLATOMS_POS *,int);
 /* density-init.c                                                  */
 void calcRhoInit(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 void calcRhoDetInit(CLASS *,BONDED *,GENERAL_DATA *,CP *,CPCOEFFS_POS *);
+void outputInitDensity(CP *,CELL *);
 void calcRhoStoInit(CLASS *,BONDED *,GENERAL_DATA *,CP *,CPCOEFFS_POS *);
 void readRho(CLASS *,BONDED *,GENERAL_DATA *,CP *,CPCOEFFS_POS *);
 void calcRhoFragInit(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
+void calcRhoOffInit(CLASS *,BONDED *,GENERAL_DATA *,CP *,CPCOEFFS_POS  *);
 /*-----------------------------------------------------------------*/
 /* density.c                                                       */
 void rhoCalcRealStoHybrid(CPSCR *,CPCOEFFS_INFO *,CELL *,STODFTINFO *,

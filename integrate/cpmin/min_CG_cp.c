@@ -376,8 +376,8 @@ void min_CG_cp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   ioff_hyb = (cp_para_opt == 0 ? icoef_off_up : 0);
   if(cp_cg_line_min_len == 0){
     for(i=1;i<=ncoef_up;i++) {
-      zeta_up[i] = 1.0/cp_hess_re_up[ioff_hyb + i];
       //zeta_up[i] = 1.0/cp_hess_re_up[ioff_hyb + i];
+      zeta_up[i] = 0.5/cp_hess_re_up[ioff_hyb + i];
       //if(zeta_up[i]>stepMax)stepMax = zeta_up[i];
       //printf("zeta_up %i %lg\n",i,zeta_up[i]);
     }/* endfor */

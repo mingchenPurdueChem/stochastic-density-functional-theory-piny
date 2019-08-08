@@ -30,6 +30,9 @@
 #define MAXWORD 500
 #define MAXLINE 100
 
+#define NOISE_FACTOR 1.0
+//#define TUNE_NOISE
+
 #ifdef T3E_SCILIB
 #define list_int short
 #else

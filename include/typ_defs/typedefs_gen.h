@@ -223,7 +223,7 @@ typedef struct stat_avg {
   double count_diag_srot;            /* Num: Number of rotations to 
                                              diagonal ovlap basis      */
   double econv_now;                       /* Num: The conserved quantity    */
-  
+  double vtot;
 } STAT_AVG;
 
 /*==========================================================================*/

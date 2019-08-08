@@ -270,7 +270,7 @@ void controlCpMinFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
     int natom = class->clatoms_info.natm_tot;
 
-    for(i=1;i<natom;i++){
+    for(i=1;i<=natom;i++){
       printf("fx %.8lg fy %.8lg fz %.8lg\n",
               class->clatoms_pos[1].fx[i],
               class->clatoms_pos[1].fy[i],

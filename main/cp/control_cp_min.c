@@ -459,10 +459,16 @@ void control_cp_min(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     //for structural minimization
     FILE *fileForce;
     FILE *fileEnergy;
+    FILE *fileForceClass;
     double *fx,*fy,*fz;
+    double *fxCl = class->clatoms_pos[1].fxCl;
+    double *fyCl = class->clatoms_pos[1].fyCl;
+    double *fzCl = class->clatoms_pos[1].fzCl;
+
     if(myid==0){
       fileForce = fopen("atom-force-cg","w");
       fileEnergy = fopen("total-energy-cg","w");
+      fileForceClass = fopen("atom-force-classic","w");
       fx = (double*)cmalloc(natm_tot*sizeof(double));
       fy = (double*)cmalloc(natm_tot*sizeof(double));
       fz = (double*)cmalloc(natm_tot*sizeof(double));
@@ -488,6 +494,12 @@ void control_cp_min(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       fprintf(fileEnergy,"%.16lg\n",general_data->stat_avg.vtot);
       fclose(fileForce);
       fclose(fileEnergy);
+      for(i=0;i<natm_tot;i++){
+        fprintf(fileForceClass,"%i %.16lg %.16lg %.16lg\n",i,
+                fxCl[i+1],fyCl[i+1],fzCl[i+1]);
+      }
+      fclose(fileForceClass);
+
     }
 
   /*======================================================================*/

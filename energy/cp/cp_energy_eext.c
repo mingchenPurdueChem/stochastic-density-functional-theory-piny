@@ -658,6 +658,7 @@ void control_ewd_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
   double asx,asy,asz;
   double phase;
   double argp,fargp,argm,fargm,area;
+  double pre,pre2;
 
 /*--------------------------------------------*/
 /*         Local Pointer declarations         */
@@ -672,6 +673,9 @@ void control_ewd_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
   double *fx        = clatoms_pos->fx;     
   double *fy        = clatoms_pos->fy;
   double *fz        = clatoms_pos->fz;
+  double *fxCl      = clatoms_pos->fxCl;
+  double *fyCl      = clatoms_pos->fyCl;
+  double *fzCl      = clatoms_pos->fzCl;
   double *fx_tmp    = ewd_scr->fx2;     
   double *fy_tmp    = ewd_scr->fy2;     
   double *fz_tmp    = ewd_scr->fz2;     
@@ -1101,13 +1105,36 @@ void control_ewd_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
       sumr = sumr*preg*2.0;
       sumi = sumi*preg*2.0;
       for(ipart=1;ipart<=natm_use;ipart++){
-        
+        pre = sumr*q[ipart];
+        srx = xk*pre;
+        sry = yk*pre;
+        srz = zk*pre;
+        pre = sumi*q[ipart];
+        six = xk*pre;
+        siy = yk*pre;
+        siz = zk*pre;
+
+        fxCl[ipart] += (srx*heli[ipart]  - six*helr[ipart]);
+        fyCl[ipart] += (sry*heli[ipart]  - siy*helr[ipart]);
+        fzCl[ipart] += (srz*heli[ipart]  - siz*helr[ipart]);
+
+        pre = 2.0*rhocr[icount]*vtemp[ipart]*rvol;
+        srx += xk*pre;
+        sry += yk*pre;
+        srz += zk*pre;
+        pre = -2.0*rhoci[icount]*vtemp[ipart]*rvol;
+        six += xk*pre;
+        siy += yk*pre;
+        siz += zk*pre;
+
+        /*
 	srx = xk*(sumr*q[ipart]+2.0*rhocr[icount]*vtemp[ipart]*rvol);
 	sry = yk*(sumr*q[ipart]+2.0*rhocr[icount]*vtemp[ipart]*rvol);
 	srz = zk*(sumr*q[ipart]+2.0*rhocr[icount]*vtemp[ipart]*rvol);
 	six = xk*(sumi*q[ipart]-2.0*rhoci[icount]*vtemp[ipart]*rvol);
 	siy = yk*(sumi*q[ipart]-2.0*rhoci[icount]*vtemp[ipart]*rvol);
 	siz = zk*(sumi*q[ipart]-2.0*rhoci[icount]*vtemp[ipart]*rvol);
+        */
         
         //debug k space classical force only
         /*

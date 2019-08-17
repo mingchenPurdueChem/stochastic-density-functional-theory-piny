@@ -412,8 +412,8 @@ void screen_write_cp_min(CLASS *class,GENERAL_DATA *general_data,BONDED *bonded,
 			       + general_data->stat_avg.cp_eext
 			       + general_data->stat_avg.cp_eke
 			       + general_data->stat_avg.cp_enl));
-      printf("e-Hartree + XC    = %.10g \n",(general_data->stat_avg.cp_ehart
-				 	  + general_data->stat_avg.cp_exc));
+      printf("e-Hartree         = %.10g \n",(general_data->stat_avg.cp_ehart));
+      printf("XC                = %.10g \n",general_data->stat_avg.cp_exc);
       printf("e-External PE     = %.10g \n",(general_data->stat_avg.cp_eext));
       printf("e-Nonlocal PE     = %.10g \n",(general_data->stat_avg.cp_enl));
       printf("e-Kinetic         = %.10g \n",(general_data->stat_avg.cp_eke));

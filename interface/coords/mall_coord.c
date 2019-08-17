@@ -88,6 +88,9 @@ void mall_coord(CLASS *class,GENERAL_DATA *general_data)
   (class->clatoms_pos)[i].fx  = (double *)cmalloc(natm_mall*sizeof(double))-1;
   (class->clatoms_pos)[i].fy  = (double *)cmalloc(natm_mall*sizeof(double))-1;
   (class->clatoms_pos)[i].fz  = (double *)cmalloc(natm_mall*sizeof(double))-1;
+  (class->clatoms_pos)[i].fxCl  = (double *)cmalloc(natm_mall*sizeof(double))-1;
+  (class->clatoms_pos)[i].fyCl  = (double *)cmalloc(natm_mall*sizeof(double))-1;
+  (class->clatoms_pos)[i].fzCl  = (double *)cmalloc(natm_mall*sizeof(double))-1;
   }/*endfor*/
 
 /*========================================================================*/

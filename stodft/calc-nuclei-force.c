@@ -662,6 +662,13 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
              fxLoc[iAtom],fyLoc[iAtom],fzLoc[iAtom]);
     }
     fclose(fileForce);
+    /*
+    FILE *fileForceClass = fopen("atom-force-classic","w");
+    for(iAtom=0;iAtom<numAtomTot;iAtom++){
+      fprintf(fileForceClass,"%i %.16lg %.16lg %.16lg\n",
+              fxCl[iAtom+1],fyCl[iAtom+1],fzCl[iAtom+1]);
+    }
+    */
   }
 
 /*======================================================================*/

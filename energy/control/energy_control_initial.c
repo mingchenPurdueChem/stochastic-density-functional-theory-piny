@@ -68,6 +68,7 @@ void energy_control_initial(CLASS *class, BONDED *bonded,
   double *x,*y,*z;
   double *fx,*fy,*fz;
   double *fxt,*fyt,*fzt;
+  double *fxCl,*fyCl,*fzCl;
   double *hess_xx,*hess_xy,*hess_xz,*hess_yy,*hess_yz,*hess_zz;
 
   int iperd                       = general_data->cell.iperd;
@@ -167,10 +168,16 @@ void energy_control_initial(CLASS *class, BONDED *bonded,
     fx = class->clatoms_pos[ip].fx;
     fy = class->clatoms_pos[ip].fy;
     fz = class->clatoms_pos[ip].fz;
+    fxCl = class->clatoms_pos[ip].fxCl;
+    fyCl = class->clatoms_pos[ip].fyCl;
+    fzCl = class->clatoms_pos[ip].fzCl;
     for(i=1;i<= natm_tot;i++){
       fx[i] = 0.0;
       fy[i] = 0.0;
       fz[i] = 0.0;
+      fxCl[i] = 0.0;
+      fyCl[i] = 0.0;
+      fzCl[i] = 0.0;
     }/*endfor*/
     if( (iver_get==1) && (pi_beads>1)){
       fxt = class->clatoms_pos[ip].fxt;

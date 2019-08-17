@@ -86,6 +86,9 @@ void force_npol(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
   double *clatoms_fx              = clatoms_pos->fx;
   double *clatoms_fy              = clatoms_pos->fy;
   double *clatoms_fz              = clatoms_pos->fz;
+  double *fxCl                    = clatoms_pos->fxCl;
+  double *fyCl                    = clatoms_pos->fyCl;
+  double *fzCl                    = clatoms_pos->fzCl;
   double *clatoms_fxt             = clatoms_pos->fxt;
   double *clatoms_fyt             = clatoms_pos->fyt;
   double *clatoms_fzt             = clatoms_pos->fzt;
@@ -139,6 +142,12 @@ void force_npol(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
   double interact_rheal_res       = interact->rheal_res;
   double interact_rheal_resi;
   interact_rheal_resi             = 1.0/interact->rheal_res;
+
+  int natm_tot = clatoms_info->natm_tot;
+  int iatom;
+  double *fxTemp = (double*)calloc(natm_tot,sizeof(double));
+  double *fyTemp = (double*)calloc(natm_tot,sizeof(double));
+  double *fzTemp = (double*)calloc(natm_tot,sizeof(double));
 
 /*========================================================================*/
 /* Initialize variables */
@@ -284,11 +293,28 @@ void force_npol(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 /*========================================================================*/
 /* X) Sum the forces                                                     */
 
+  for(iatom=0;iatom<natm_tot;iatom++){
+    fxTemp[iatom] = clatoms_fx[iatom+1];
+    fyTemp[iatom] = clatoms_fy[iatom+1];
+    fzTemp[iatom] = clatoms_fz[iatom+1];
+    clatoms_fx[iatom+1] = 0.0;
+    clatoms_fy[iatom+1] = 0.0;
+    clatoms_fz[iatom+1] = 0.0;
+  }
+
    npol_force_reduc(num_brk,for_scr_num_brk_i,lst_typ,
                     clatoms_fx,intra_scr_fx2,
                     clatoms_fy,intra_scr_fy2,
                     clatoms_fz,intra_scr_fz2,
                     for_scr_i_index,for_scr_j_index);
+  for(iatom=0;iatom<natm_tot;iatom++){
+    fxCl[iatom+1] += clatoms_fx[iatom+1];
+    fyCl[iatom+1] += clatoms_fy[iatom+1];
+    fzCl[iatom+1] += clatoms_fz[iatom+1];
+    clatoms_fx[iatom+1] += fxTemp[iatom];
+    clatoms_fy[iatom+1] += fyTemp[iatom];
+    clatoms_fz[iatom+1] += fzTemp[iatom];
+  } 
        
 /*========================================================================*/
 /* XI) Construct and reduce the pressure tensors                           */

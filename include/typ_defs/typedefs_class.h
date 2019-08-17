@@ -308,6 +308,7 @@ typedef struct clatoms_pos{
 /* Path integrals only */
   double *fxt,*fyt,*fzt;       /* Lst: Atm virial force;   Lth: natm_tot */
   double *fxm,*fym,*fzm;       /* Lst: Mode force;         Lth: natm_tot */
+  double *fxCl,*fyCl,*fzCl;    /* Lst: classic force;      Lth: natm_tot */
 /*Minimization only */         /* Lst: Particle hessian    
                                                Lth:(natm_tot)*(natm_tot+1)/2*/
   double *hess_xx,*hess_xy,*hess_xz,*hess_yy,*hess_yz,*hess_zz;

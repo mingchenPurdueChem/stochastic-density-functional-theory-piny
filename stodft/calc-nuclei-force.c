@@ -656,10 +656,11 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
 
     FILE *fileForce = fopen("atom-force","w");
     for(iAtom=0;iAtom<numAtomTot;iAtom++){
-      fprintf(fileForce,"atom %i cor %.16lg %.16lg %.16lg Uncor %.8lg %.8lg %.8lg loc %.8lg %.8lg %.8lg\n",
+      fprintf(fileForce,"%.16lg %.16lg %.16lg %.16lg %.16lg %.16lg %.16lg %.16lg %.16lg\n",
 	     iAtom,fx[iAtom+1],fy[iAtom+1],fz[iAtom+1],
-	     fxUnCor[iAtom],fyUnCor[iAtom],fzUnCor[iAtom],
-             fxLoc[iAtom],fyLoc[iAtom],fzLoc[iAtom]);
+             fxLoc[iAtom],fyLoc[iAtom],fzLoc[iAtom],
+             fxNlTrue[iAtom],fyNlTrue[iAtom],fzNlTrue[iAtom]);
+             
     }
     fclose(fileForce);
     /*

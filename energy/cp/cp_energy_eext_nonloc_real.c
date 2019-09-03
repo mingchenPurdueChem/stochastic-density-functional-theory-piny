@@ -187,6 +187,7 @@ void nlppKBRealEnergy(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   int **atomLRadNum = pseudoReal->atomLRadNum; //num of radical functions for each atom and each L
   int **atomRadMap = pseudoReal->atomRadMap;  //map of radical functions for each atom, starting from l=0 to l=lmax
   int *numGridNlppMap = pseudoReal->numGridNlppMap;
+  int *locOpt = pseudo->loc_opt;
   int **gridNlppMap = pseudoReal->gridNlppMap;
 
   double vpsNorm;
@@ -245,70 +246,91 @@ void nlppKBRealEnergy(CP *cp,CLASS *class,GENERAL_DATA *generalData,
     gridShiftNowRe = gridStIndRe[iAtom];
     gridShiftNowIm = gridStIndIm[iAtom];
     /* cpy the wave function */
+    printf("numGrid %i locOpt[atomType+1] %i\n",numGrid,locOpt[atomType+1]);
     if(numGrid>0){ //if numGrid=0, only local pp will be calculated
       for(iGrid=0;iGrid<numGrid;iGrid++){
 	gridIndex = gridNlppMap[iAtom][iGrid];
 	wfNbhd[iGrid] = wfReal[gridIndex];
       }
-      for(l=0;l<atomLMax[atomType];l++){
-	for(iRad=0;iRad<atomLRadNum[atomType][l];iRad++){
-	  radIndex = atomRadMap[atomType][countRad+iRad];
-	  energyl = 0.0;
-	  for(m=0;m<=l;m++){
-	    if(m!=0){
-	      dotRe = ddotBlasWrapper(numGrid,&wfNbhd[0],1,
-		      &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
-	      dotIm = ddotBlasWrapper(numGrid,&wfNbhd[0],1,
-		      &vnlPhiAtomGridIm[gridShiftNowIm],1)*volElem;
-	      if(forceCalcFlag==1){
-		dotReAll[iAtom][countNlppRe+m] = dotRe;
-		dotImAll[iAtom][countNlppIm+m-1] = dotIm;
-	      }
-	      energyl += 2.0*(dotRe*dotRe+dotIm*dotIm)*vpsNormList[radIndex]*volInv;
-	      dotRe *= 2.0*vpsNormList[radIndex];
-	      dotIm *= 2.0*vpsNormList[radIndex];
-	      daxpyBlasWrapper(numGrid,dotRe,
-			    &vnlPhiAtomGridRe[gridShiftNowRe],1,
-			    &forceTemp[iAtom*numGridMax],1);
-	      daxpyBlasWrapper(numGrid,dotIm,
-			    &vnlPhiAtomGridIm[gridShiftNowIm],1,
-			    &forceTemp[iAtom*numGridMax],1);
-	      gridShiftNowRe += numGrid;
-	      gridShiftNowIm += numGrid;
-	    }
-	    else{
-	      //dotRe = ddot1(numGrid,&wfNbhd[0],1,
-	      //	    &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
-	      dotRe = ddotBlasWrapper(numGrid,&wfNbhd[0],1,
-	                    &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
-	      //printf("volElem %lg\n",volElem);
-	      //printf("11111111 dotRe %.8lg\n",dotRe);
-	      
-	      //if(l==1&&m==0){
-		//printf("%lg\n",wfNbhd[4138]);
-		//for(iGrid=0;iGrid<numGrid;iGrid++){
-		//  printf("333333333 %i %i %i %lg %lg\n",iAtom,iGrid,gridShiftNowRe+iGrid,wfNbhd[iGrid],vnlPhiAtomGridRe[gridShiftNowRe+iGrid]);
-		//}
-		//fflush(stdout);
-		//exit(0);
-	      //}
-	      
-	      if(forceCalcFlag==1){
-	        dotReAll[iAtom][countNlppRe] = dotRe;
-	      }
-	      energyl += dotRe*dotRe*vpsNormList[radIndex]*volInv;
-	      dotRe *= vpsNormList[radIndex];
-	      daxpyBlasWrapper(numGrid,dotRe,
-			&vnlPhiAtomGridRe[gridShiftNowRe],1,
-			&forceTemp[iAtom*numGridMax],1);
-	      gridShiftNowRe += numGrid;
-	    }//endif m
-	  }//endfor m
-	  energy += energyl;
-	  countNlppRe += l+1;
-	  countNlppIm += l;
-	}//endfor iRad
-	countRad += atomLRadNum[atomType][l];
+      for(l=0;l<=atomLMax[atomType];l++){
+        if(locOpt[atomType+1]!=l){
+          for(iRad=0;iRad<atomLRadNum[atomType][l];iRad++){
+            radIndex = atomRadMap[atomType][countRad+iRad];
+            energyl = 0.0;
+            for(m=0;m<=l;m++){
+              if(m!=0){
+                dotRe = ddotBlasWrapper(numGrid,&wfNbhd[0],1,
+                        &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
+                dotIm = ddotBlasWrapper(numGrid,&wfNbhd[0],1,
+                        &vnlPhiAtomGridIm[gridShiftNowIm],1)*volElem;
+                if(forceCalcFlag==1){
+                  dotReAll[iAtom][countNlppRe+m] = dotRe;
+                  dotImAll[iAtom][countNlppIm+m-1] = dotIm;
+                }
+                energyl += 2.0*(dotRe*dotRe+dotIm*dotIm)*vpsNormList[radIndex]*volInv;
+                dotRe *= 2.0*vpsNormList[radIndex];
+                dotIm *= 2.0*vpsNormList[radIndex];
+                daxpyBlasWrapper(numGrid,dotRe,
+                              &vnlPhiAtomGridRe[gridShiftNowRe],1,
+                              &forceTemp[iAtom*numGridMax],1);
+                daxpyBlasWrapper(numGrid,dotIm,
+                              &vnlPhiAtomGridIm[gridShiftNowIm],1,
+                              &forceTemp[iAtom*numGridMax],1);
+                gridShiftNowRe += numGrid;
+                gridShiftNowIm += numGrid;
+              }
+              else{
+                //dotRe = ddot1(numGrid,&wfNbhd[0],1,
+                //	    &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
+                dotRe = ddotBlasWrapper(numGrid,&wfNbhd[0],1,
+                              &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
+                //printf("volElem %lg\n",volElem);
+                //printf("11111111 dotRe %.8lg\n",dotRe);
+                
+                //if(l==1&&m==0){
+                  //printf("%lg\n",wfNbhd[4138]);
+                  //for(iGrid=0;iGrid<numGrid;iGrid++){
+                  //  printf("333333333 %i %i %i %lg %lg\n",iAtom,iGrid,gridShiftNowRe+iGrid,wfNbhd[iGrid],vnlPhiAtomGridRe[gridShiftNowRe+iGrid]);
+                  //}
+                  //fflush(stdout);
+                  //exit(0);
+                //}
+                
+                if(forceCalcFlag==1){
+                  dotReAll[iAtom][countNlppRe] = dotRe;
+                }
+                energyl += dotRe*dotRe*vpsNormList[radIndex]*volInv;
+                dotRe *= vpsNormList[radIndex];
+                daxpyBlasWrapper(numGrid,dotRe,
+                          &vnlPhiAtomGridRe[gridShiftNowRe],1,
+                          &forceTemp[iAtom*numGridMax],1);
+                gridShiftNowRe += numGrid;
+              }//endif m
+            }//endfor m
+            energy += energyl;
+            countNlppRe += l+1;
+            countNlppIm += l;
+          }//endfor iRad
+          countRad += atomLRadNum[atomType][l];
+        }
+        else{
+          /* We don't need to any calculation here, but we need to shift indecies. */
+          for(iRad=0;iRad<atomLRadNum[atomType][l];iRad++){
+            radIndex = atomRadMap[atomType][countRad+iRad];
+            for(m=0;m<=l;m++){
+              if(m!=0){
+                gridShiftNowRe += numGrid;
+                gridShiftNowIm += numGrid;
+              }
+              else{
+                gridShiftNowRe += numGrid;
+              }//endif m
+            }//endfor m
+            countNlppRe += l+1;
+            countNlppIm += l;
+          }//endfor iRad
+          countRad += atomLRadNum[atomType][l];
+        }//endif locOpt
       }//endfor l
     }//endif numGrid
   }//endfor iAtom
@@ -412,6 +434,7 @@ void calcPseudoWf(CP *cp,CLASS *class,GENERAL_DATA *generalData)
   int *gridStIndRe = pseudoReal->gridStIndRe;
   int *gridStIndIm = pseudoReal->gridStIndIm;
   int *atomLMax = pseudoReal->numLMax; //max L for each atom
+  int *locOpt = pseudo->loc_opt;
   int **atomLRadNum = pseudoReal->atomLRadNum; //num of radical functions for each atom and each L
   int **atomRadMap = pseudoReal->atomRadMap;  //map of radical functions for each atom, starting from l=0 to l=lmax
   int *numGridNlppMap = pseudoReal->numGridNlppMap;
@@ -522,46 +545,62 @@ void calcPseudoWf(CP *cp,CLASS *class,GENERAL_DATA *generalData)
       calcTrig(&gridAtomNbhd[iThread*numGridMax*3],numGrid,&trig[4*numGridMax*iThread]);
       //printf("theta %.16lg phi %.16lg\n",acos(trig[5]),atan2(trig[6],trig[7]));
       countRad = 0;
-      for(l=0;l<atomLMax[atomType];l++){
-	/* calculate sherical harmonic */
-	double *ylm = (double*)cmalloc((2*l+1)*numGridMax*numThreads*sizeof(double));
-	calcSpHarm(&ylm[iThread*(2*l+1)*numGridMax],l,
-		   &gridAtomNbhd[iThread*numGridMax*3],numGrid,
-		   &trig[4*numGridMax*iThread]);
-	for(iRad=0;iRad<atomLRadNum[atomType][l];iRad++){
-	  radIndex = atomRadMap[atomType][countRad+iRad];
-	  /* calculate radial fun u*phi */
-	  calcRadFun(&gridAtomNbhd[iThread*numGridMax*3],radIndex,pseudoReal,
-		      &radFun[iThread*numGridMax],numGrid);
-	  for(m=0;m<=l;m++){
-	    if(m!=0){
-	      ylmShift = (m*2-1)*numGrid;
-	      for(iGrid=0;iGrid<numGrid;iGrid++){
-		vnlPhiAtomGridRe[gridShiftRe+iGrid] = radFun[iThread*numGridMax+iGrid]*ylm[iThread*(2*l+1)*numGridMax+ylmShift+iGrid*2];
-		vnlPhiAtomGridIm[gridShiftIm+iGrid] = radFun[iThread*numGridMax+iGrid]*ylm[iThread*(2*l+1)*numGridMax+ylmShift+iGrid*2+1];
-	      }//endfor iGrid
-	      gridShiftRe += numGrid;
-	      gridShiftIm += numGrid;
-	    }else{
-	      for(iGrid=0;iGrid<numGrid;iGrid++){
-		vnlPhiAtomGridRe[gridShiftRe+iGrid] = radFun[iThread*numGridMax+iGrid]*ylm[iThread*(2*l+1)*numGridMax+iGrid];
-                //printf("radFun %lg ylm %lg vnl %lg\n",radFun[iThread*numGridMax+iGrid],ylm[iThread*(2*l+1)*numGridMax+iGrid],vnlPhiAtomGridRe[gridShiftRe+iGrid]);
+      for(l=0;l<=atomLMax[atomType];l++){
+        if(locOpt[atomType+1]!=l){
+          /* calculate sherical harmonic */
+          double *ylm = (double*)cmalloc((2*l+1)*numGridMax*numThreads*sizeof(double));
+          calcSpHarm(&ylm[iThread*(2*l+1)*numGridMax],l,
+                     &gridAtomNbhd[iThread*numGridMax*3],numGrid,
+                     &trig[4*numGridMax*iThread]);
+          for(iRad=0;iRad<atomLRadNum[atomType][l];iRad++){
+            radIndex = atomRadMap[atomType][countRad+iRad];
+            /* calculate radial fun u*phi */
+            calcRadFun(&gridAtomNbhd[iThread*numGridMax*3],radIndex,pseudoReal,
+                        &radFun[iThread*numGridMax],numGrid);
+            for(m=0;m<=l;m++){
+              if(m!=0){
+                ylmShift = (m*2-1)*numGrid;
+                for(iGrid=0;iGrid<numGrid;iGrid++){
+                  vnlPhiAtomGridRe[gridShiftRe+iGrid] = radFun[iThread*numGridMax+iGrid]*ylm[iThread*(2*l+1)*numGridMax+ylmShift+iGrid*2];
+                  vnlPhiAtomGridIm[gridShiftIm+iGrid] = radFun[iThread*numGridMax+iGrid]*ylm[iThread*(2*l+1)*numGridMax+ylmShift+iGrid*2+1];
+                }//endfor iGrid
+                gridShiftRe += numGrid;
+                gridShiftIm += numGrid;
+              }else{
+                for(iGrid=0;iGrid<numGrid;iGrid++){
+                  vnlPhiAtomGridRe[gridShiftRe+iGrid] = radFun[iThread*numGridMax+iGrid]*ylm[iThread*(2*l+1)*numGridMax+iGrid];
+                  //printf("radFun %lg ylm %lg vnl %lg\n",radFun[iThread*numGridMax+iGrid],ylm[iThread*(2*l+1)*numGridMax+iGrid],vnlPhiAtomGridRe[gridShiftRe+iGrid]);
 
-		//gridIndex = gridNlppMap[iAtom][iGrid];
-		//testwfReal[gridIndex] = vnlPhiAtomGridRe[gridShiftRe+iGrid];
-	      }
-	      gridShiftRe += numGrid;
-	    }//endif m
-	    /*
-	    if(l==1&&m==0){
-	      fflush(stdout);
-	      exit(0);
-	    }
-	    */
-	  }//endfor m
-	}//endfor iRad
-	countRad += atomLRadNum[atomType][l];
-	free(ylm);
+                  //gridIndex = gridNlppMap[iAtom][iGrid];
+                  //testwfReal[gridIndex] = vnlPhiAtomGridRe[gridShiftRe+iGrid];
+                }
+                gridShiftRe += numGrid;
+              }//endif m
+              /*
+              if(l==1&&m==0){
+                fflush(stdout);
+                exit(0);
+              }
+              */
+            }//endfor m
+          }//endfor iRad
+          countRad += atomLRadNum[atomType][l];
+          free(ylm);
+        }
+        else{
+          for(iRad=0;iRad<atomLRadNum[atomType][l];iRad++){
+            for(m=0;m<=l;m++){
+              if(m!=0){
+                gridShiftRe += numGrid;
+                gridShiftIm += numGrid;
+              }
+              else{
+                gridShiftRe += numGrid;
+              }//endif m
+            }//endfor m
+          }//endfor iRad
+          countRad += atomLRadNum[atomType][l];
+        }//endif locOpt
       }//endfor l
     }//endfor iAtom
   }//endfor omp

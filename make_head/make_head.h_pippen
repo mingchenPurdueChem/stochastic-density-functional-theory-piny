@@ -1,0 +1,30 @@
+# user specific directories
+#--------------------------
+ROOT   = /home/mingchen/code/piny-stoc-dft/
+CODE   = $(ROOT)/src
+DCODE  = $(ROOT)/src
+ECODE  = $(DCODE)
+
+# general directories
+#--------------------------
+INCLUDES = $(DCODE)/include/pentium_pippen_threads
+EXE      = $(ROOT)/bin/piny_md_pentium_par_pippen_threads
+CMALLOC =
+
+# HP compiler
+#--------------------------
+FC  = mpiifort
+CC  = mpiicc
+OPT = -O2 -xSSE4.1
+OPT_CARE = -O2 -xSSE4.1
+OPT_GRP = -O2 -xSSE4.1
+#OPT = -O0 -g
+#OPT_CARE = -O0 -g
+#OPT_GRP = -O0 -g
+CFLAGS = -Wall -qopenmp -std=c99 -I/home/mingchen/libPippen/include
+FFLAGS = -nofor_main
+MKL_ROOT = /opt/intel/composer_xe_2015.1.133/mkl/lib/intel64
+#LIBS =  $(LIB_PATH) $(MALLOC) -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -liomp5 -lpthread -I/home/mingchen/libPippen/include -L/home/mingchen/libPippen/lib/libfftw3.a -lm 
+#LIBS = $(LIB_PATH) $(MALLOC) -L/home/mingchen/libPippen/lib/ -liomp5 -lpthread -lfftw3_omp -lfftw3 -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lm
+
+LIBS = -lpthread -L/home/mingchen/libPippen/lib/ -lfftw3_threads -L/home/mingchen/libPippen/lib/ -lfftw3 -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -liomp5 -lm

@@ -155,6 +155,7 @@ void nlppKBRealEnergyFilter(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   int *gridStIndRe = pseudoReal->gridStIndRe;
   int *gridStIndIm = pseudoReal->gridStIndIm;
   int *atomLMax = pseudoReal->numLMax; //max L for each atom
+  int *locOpt = pseudo->loc_opt;
   int **atomLRadNum = pseudoReal->atomLRadNum; //num of radical functions for each atom and each L
   int **atomRadMap = pseudoReal->atomRadMap;  //map of radical functions for each atom, starting from l=0 to l=lmax
   int *numGridNlppMap = pseudoReal->numGridNlppMap;
@@ -255,42 +256,152 @@ void nlppKBRealEnergyFilter(CP *cp,CLASS *class,GENERAL_DATA *generalData,
             wfNbhd[iThread*numGridMax+iGrid] = zfft[2*gridIndex+2];
           }
 	}
-	for(l=0;l<atomLMax[atomType];l++){
-	  for(iRad=0;iRad<atomLRadNum[atomType][l];iRad++){
-	    radIndex = atomRadMap[atomType][countRad+iRad];
-	    energyl = 0.0;
-	    for(m=0;m<=l;m++){
-	      if(m!=0){
-		dotRe = ddotBlasWrapper(numGrid,&wfNbhd[iThread*numGridMax],1,
-					&vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
-		dotIm = ddotBlasWrapper(numGrid,&wfNbhd[iThread*numGridMax],1,
-					&vnlPhiAtomGridIm[gridShiftNowIm],1)*volElem;
-		dotRe *= 2.0*vpsNormList[radIndex];
-		dotIm *= 2.0*vpsNormList[radIndex];
-		daxpyBlasWrapper(numGrid,dotRe,
-				&vnlPhiAtomGridRe[gridShiftNowRe],1,
-				&forceTemp[iAtom*numGridMax],1);
-		daxpyBlasWrapper(numGrid,dotIm,
-				 &vnlPhiAtomGridIm[gridShiftNowIm],1,
-				 &forceTemp[iAtom*numGridMax],1);
-		gridShiftNowRe += numGrid;
-		gridShiftNowIm += numGrid;
-	      }
-	      else{
-		dotRe = ddotBlasWrapper(numGrid,&wfNbhd[iThread*numGridMax],1,
-					&vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
-		dotRe *= vpsNormList[radIndex];
-		daxpyBlasWrapper(numGrid,dotRe,
-				&vnlPhiAtomGridRe[gridShiftNowRe],1,
-				&forceTemp[iAtom*numGridMax],1);
-		gridShiftNowRe += numGrid;
-	      }//endif m
-	    }//endfor m
-	    countNlppRe += l+1;
-	    countNlppIm += l;
-	  }//endfor iRad
-	  countRad += atomLRadNum[atomType][l];
+        /* SLOW WAY */
+        /*
+	for(l=0;l<=atomLMax[atomType];l++){
+          if(locOpt[atomType+1]!=l){
+            for(iRad=0;iRad<atomLRadNum[atomType][l];iRad++){
+              radIndex = atomRadMap[atomType][countRad+iRad];
+              energyl = 0.0;
+              for(m=0;m<=l;m++){
+                if(m!=0){
+                  dotRe = ddotBlasWrapper(numGrid,&wfNbhd[iThread*numGridMax],1,
+                                          &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
+                  dotIm = ddotBlasWrapper(numGrid,&wfNbhd[iThread*numGridMax],1,
+                                          &vnlPhiAtomGridIm[gridShiftNowIm],1)*volElem;
+                  dotRe *= 2.0*vpsNormList[radIndex];
+                  dotIm *= 2.0*vpsNormList[radIndex];
+                  daxpyBlasWrapper(numGrid,dotRe,
+                                  &vnlPhiAtomGridRe[gridShiftNowRe],1,
+                                  &forceTemp[iAtom*numGridMax],1);
+                  daxpyBlasWrapper(numGrid,dotIm,
+                                   &vnlPhiAtomGridIm[gridShiftNowIm],1,
+                                   &forceTemp[iAtom*numGridMax],1);
+                  gridShiftNowRe += numGrid;
+                  gridShiftNowIm += numGrid;
+                }
+                else{
+                  dotRe = ddotBlasWrapper(numGrid,&wfNbhd[iThread*numGridMax],1,
+                                          &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
+                  dotRe *= vpsNormList[radIndex];
+                  daxpyBlasWrapper(numGrid,dotRe,
+                                  &vnlPhiAtomGridRe[gridShiftNowRe],1,
+                                  &forceTemp[iAtom*numGridMax],1);
+                  gridShiftNowRe += numGrid;
+                }//endif m
+              }//endfor m
+              countNlppRe += l+1;
+              countNlppIm += l;
+            }//endfor iRad
+            countRad += atomLRadNum[atomType][l];
+          }//endif locOpt
+          else{
+            for(iRad=0;iRad<atomLRadNum[atomType][l];iRad++){
+              for(m=0;m<=l;m++){
+                if(m!=0){
+                  gridShiftNowRe += numGrid;
+                  gridShiftNowIm += numGrid;
+                }
+                else{
+                  gridShiftNowRe += numGrid;
+                }//endif m
+              }//endfor m
+              countNlppRe += l+1;
+              countNlppIm += l;
+            }//endfor iRad
+            countRad += atomLRadNum[atomType][l];
+          }//endif locOpt
 	}//endfor l
+        */
+        /* FAST WAY */
+        /* Non-local chenel < local */
+        for(l=0;l<locOpt[atomType+1];l++){
+          for(iRad=0;iRad<atomLRadNum[atomType][l];iRad++){
+            radIndex = atomRadMap[atomType][countRad+iRad];
+            energyl = 0.0;
+            /* m=0 */
+            dotRe = ddotBlasWrapper(numGrid,&wfNbhd[iThread*numGridMax],1,
+                                    &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
+            dotRe *= vpsNormList[radIndex];
+            daxpyBlasWrapper(numGrid,dotRe,
+                            &vnlPhiAtomGridRe[gridShiftNowRe],1,
+                            &forceTemp[iAtom*numGridMax],1);
+            gridShiftNowRe += numGrid;
+
+            /* m>0 */ 
+            for(m=1;m<=l;m++){
+              dotRe = ddotBlasWrapper(numGrid,&wfNbhd[iThread*numGridMax],1,
+                                      &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
+              dotIm = ddotBlasWrapper(numGrid,&wfNbhd[iThread*numGridMax],1,
+                                      &vnlPhiAtomGridIm[gridShiftNowIm],1)*volElem;
+              dotRe *= 2.0*vpsNormList[radIndex];
+              dotIm *= 2.0*vpsNormList[radIndex];
+              daxpyBlasWrapper(numGrid,dotRe,
+                              &vnlPhiAtomGridRe[gridShiftNowRe],1,
+                              &forceTemp[iAtom*numGridMax],1);
+              daxpyBlasWrapper(numGrid,dotIm,
+                               &vnlPhiAtomGridIm[gridShiftNowIm],1,
+                               &forceTemp[iAtom*numGridMax],1);
+              gridShiftNowRe += numGrid;
+              gridShiftNowIm += numGrid;
+            }//endfor m
+            countNlppRe += l+1;
+            countNlppIm += l;
+          }//endfor iRad
+          countRad += atomLRadNum[atomType][l];          
+        }//endfor l
+        /* Local chanel */
+        l = locOpt[atomType+1]; 
+        for(iRad=0;iRad<atomLRadNum[atomType][l];iRad++){
+          for(m=0;m<=l;m++){
+            if(m!=0){
+              gridShiftNowRe += numGrid;
+              gridShiftNowIm += numGrid;
+            }
+            else{
+              gridShiftNowRe += numGrid;
+            }//endif m
+          }//endfor m
+          countNlppRe += l+1;
+          countNlppIm += l;
+        }//endfor iRad
+        countRad += atomLRadNum[atomType][l];
+        /* Non-local chenel > local */
+        for(l=locOpt[atomType+1]+1;l<=atomLMax[atomType];l++){
+          for(iRad=0;iRad<atomLRadNum[atomType][l];iRad++){
+            radIndex = atomRadMap[atomType][countRad+iRad];
+            energyl = 0.0;
+            /* m=0 */
+            dotRe = ddotBlasWrapper(numGrid,&wfNbhd[iThread*numGridMax],1,
+                                    &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
+            dotRe *= vpsNormList[radIndex];
+            daxpyBlasWrapper(numGrid,dotRe,
+                            &vnlPhiAtomGridRe[gridShiftNowRe],1,
+                            &forceTemp[iAtom*numGridMax],1);
+            gridShiftNowRe += numGrid;
+
+            /* m>0 */
+            for(m=1;m<=l;m++){
+              dotRe = ddotBlasWrapper(numGrid,&wfNbhd[iThread*numGridMax],1,
+                                      &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
+              dotIm = ddotBlasWrapper(numGrid,&wfNbhd[iThread*numGridMax],1,
+                                      &vnlPhiAtomGridIm[gridShiftNowIm],1)*volElem;
+              dotRe *= 2.0*vpsNormList[radIndex];
+              dotIm *= 2.0*vpsNormList[radIndex];
+              daxpyBlasWrapper(numGrid,dotRe,
+                              &vnlPhiAtomGridRe[gridShiftNowRe],1,
+                              &forceTemp[iAtom*numGridMax],1);
+              daxpyBlasWrapper(numGrid,dotIm,
+                               &vnlPhiAtomGridIm[gridShiftNowIm],1,
+                               &forceTemp[iAtom*numGridMax],1);
+              gridShiftNowRe += numGrid;
+              gridShiftNowIm += numGrid;
+            }//endfor m
+            countNlppRe += l+1;
+            countNlppIm += l;
+          }//endfor iRad
+          countRad += atomLRadNum[atomType][l];          
+        }//endfor l        
       }//endif numGrid
     }//endfor iAtom
   }//end omp

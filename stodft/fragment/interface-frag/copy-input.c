@@ -664,8 +664,8 @@ void copyNlppReal(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
     numRadMax[iType] = pseudoReal->numRadMax[indTypeLg];
     numGridRadSmooth[iType] = pseudoReal->numGridRadSmooth[indTypeLg];
     ppRealCut[iType] = pseudoReal->ppRealCut[indTypeLg];
-    atomLRadNum[iType] = (int*)cmalloc(numLMax[iType]*sizeof(int));
-    for(l=0;l<numLMax[iType];l++){
+    atomLRadNum[iType] = (int*)cmalloc((numLMax[iType]+1)*sizeof(int));
+    for(l=0;l<=numLMax[iType];l++){
       atomLRadNum[iType][l] = pseudoReal->atomLRadNum[indTypeLg][l];
     }
   }
@@ -685,7 +685,21 @@ void copyNlppReal(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   numRadTot = countRad;
   pseudoReal->numRadTot = numRadTot;
   pseudoRealMini->vpsNormList = (double*)cmalloc(numRadTot*sizeof(double));
-
+  pseudoRealMini->isLocal = (double*)cmalloc(numRadTot*sizeof(double));
+  for(iType=0;iType<numAtomType;iType++){
+    indTypeLg = atomTypeReorder[iType]-1;
+    countRad = 0;
+    for(l=0;l<=numLMax[iType];l++){
+      for(iRad=0;iRad<atomLRadNum[iType][l];iRad++){
+        radIndexLg = atomRadMapLg[indTypeLg][countRad+iRad];
+        radIndexFrag = atomRadMap[iType][countRad+iRad];
+        pseudoRealMini->isLocal[radIndexFrag] = pseudoReal->isLocal[radIndexLg];
+      }
+    }
+    countRad += atomLRadNum[iType][l];      
+  }
+  
+  
   // copy interpolated real space quantuties
   numInterpGrid = pseudoReal->numInterpGrid;
   pseudoRealMini->numInterpGrid = numInterpGrid;

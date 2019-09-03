@@ -431,6 +431,7 @@ void control_cp_eext_recip(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
     }//endif
 
 
+    printf("nl_max_kb %i np_nonloc_cp_box_kb %i\n",nl_max_kb,pseudo->np_nonloc_cp_box_kb);
     if((nl_max_kb >= 0)&&((ntot_up+ntot_dn)>0)&&(pseudo->np_nonloc_cp_box_kb>0) ){
 #ifdef TIME_CP
       if(np_states>1){Barrier(comm_states);}

@@ -124,7 +124,7 @@ void calcRealNonLocalMatrix(CP *cp, CP *cpMini, CLASS *classMini,
     atomType = iAtomAtomType[iAtom+1]-1;   
     numNlppAtom = 0;
     nlppAtomStartIndex[iAtom] = numNlppAll;
-    for(l=0;l<atomLMax[atomType];l++){
+    for(l=0;l<=atomLMax[atomType];l++){
       numNlppAtom += atomLRadNum[atomType][l]*(l+1);
     }
     numNlppAll += numNlppAtom;
@@ -502,6 +502,7 @@ void calcVnlRealDotState(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   int *gridMap;
   int *iAtomAtomType = atommaps->iatm_atm_typ;
   int *atomLMax = pseudoReal->numLMax; //max L for each atom
+  int *locOpt = pseudo->loc_opt;
   int **atomLRadNum = pseudoReal->atomLRadNum; //num of radical functions for each atom and each L
   int **atomRadMap = pseudoReal->atomRadMap;  //map of radical functions for each atom, starting from l=0 to l=lmax
   int *numGridNlppMap = pseudoReal->numGridNlppMap;
@@ -568,64 +569,82 @@ void calcVnlRealDotState(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 	gridIndex = gridNlppMap[iAtom][iGrid];
 	wfNbhd[iGrid] = wfReal[gridIndex];
       }
-      for(l=0;l<atomLMax[atomType];l++){
-	for(iRad=0;iRad<atomLRadNum[atomType][l];iRad++){
-	  radIndex = atomRadMap[atomType][countRad+iRad];
-	  for(m=0;m<=l;m++){
-	    if(m!=0){
-	      //printf("111111111111111111111 index %i %i\n",atomIndSt+countNlppRe+m,atomIndSt+countNlppIm+m-1);
-	      dotRe[atomIndSt+countNlppRe+m] 
-				= ddotBlasWrapper(numGrid,wfNbhd,1,
-				  &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
-	      dotIm[atomIndSt+countNlppIm+m-1] 
-				= ddotBlasWrapper(numGrid,wfNbhd,1,
-				  &vnlPhiAtomGridIm[gridShiftNowIm],1)*volElem;
-	      //printf("1234444444 iAtom %i l %i m %i ind %i im %lg\n",iAtom,l,m,atomIndSt+countNlppIm+m-1,dotIm[atomIndSt+countNlppIm+m-1]);
-	      //printf("dxxxxxxxxxx %lg %lg dy %lg %lg dz %lg %lg\n",vnlPhiDxAtomGridRe[gridShiftNowRe],vnlPhiDxAtomGridIm[gridShiftNowIm],vnlPhiDyAtomGridRe[gridShiftNowRe],vnlPhiDyAtomGridIm[gridShiftNowIm],vnlPhiDzAtomGridRe[gridShiftNowRe],vnlPhiDzAtomGridIm[gridShiftNowIm]);
-              dotReDx[atomIndSt+countNlppRe+m] 
-				= ddotBlasWrapper(numGrid,wfNbhd,1,
-                                  &vnlPhiDxAtomGridRe[gridShiftNowRe],1)*volElem;
-              dotImDx[atomIndSt+countNlppIm+m-1] 
-				= ddotBlasWrapper(numGrid,wfNbhd,1,
-                                  &vnlPhiDxAtomGridIm[gridShiftNowIm],1)*volElem;
-              dotReDy[atomIndSt+countNlppRe+m] 
-				= ddotBlasWrapper(numGrid,wfNbhd,1,
-                                  &vnlPhiDyAtomGridRe[gridShiftNowRe],1)*volElem;
-              dotImDy[atomIndSt+countNlppIm+m-1] 
-				= ddotBlasWrapper(numGrid,wfNbhd,1,
-                                  &vnlPhiDyAtomGridIm[gridShiftNowIm],1)*volElem;
-              dotReDz[atomIndSt+countNlppRe+m] 
-				= ddotBlasWrapper(numGrid,wfNbhd,1,
-                                  &vnlPhiDzAtomGridRe[gridShiftNowRe],1)*volElem;
-              dotImDz[atomIndSt+countNlppIm+m-1] 
-				= ddotBlasWrapper(numGrid,wfNbhd,1,
-                                  &vnlPhiDzAtomGridIm[gridShiftNowIm],1)*volElem;
-	      gridShiftNowRe += numGrid;
-	      gridShiftNowIm += numGrid;
-	    }
-	    else{
-	      //printf("111111111111111111111 index %i\n",atomIndSt+countNlppRe);
-  	      dotRe[atomIndSt+countNlppRe] 
-				= ddotBlasWrapper(numGrid,wfNbhd,1,
-			          &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
-	      //if(iAtom==0)printf("dotRe %lg\n",dotRe);
+      for(l=0;l<=atomLMax[atomType];l++){
+        if(locOpt[atomType+1]!=0){
+          for(iRad=0;iRad<atomLRadNum[atomType][l];iRad++){
+            radIndex = atomRadMap[atomType][countRad+iRad];
+            for(m=0;m<=l;m++){
+              if(m!=0){
+                //printf("111111111111111111111 index %i %i\n",atomIndSt+countNlppRe+m,atomIndSt+countNlppIm+m-1);
+                dotRe[atomIndSt+countNlppRe+m] 
+                                  = ddotBlasWrapper(numGrid,wfNbhd,1,
+                                    &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
+                dotIm[atomIndSt+countNlppIm+m-1] 
+                                  = ddotBlasWrapper(numGrid,wfNbhd,1,
+                                    &vnlPhiAtomGridIm[gridShiftNowIm],1)*volElem;
+                //printf("1234444444 iAtom %i l %i m %i ind %i im %lg\n",iAtom,l,m,atomIndSt+countNlppIm+m-1,dotIm[atomIndSt+countNlppIm+m-1]);
+                //printf("dxxxxxxxxxx %lg %lg dy %lg %lg dz %lg %lg\n",vnlPhiDxAtomGridRe[gridShiftNowRe],vnlPhiDxAtomGridIm[gridShiftNowIm],vnlPhiDyAtomGridRe[gridShiftNowRe],vnlPhiDyAtomGridIm[gridShiftNowIm],vnlPhiDzAtomGridRe[gridShiftNowRe],vnlPhiDzAtomGridIm[gridShiftNowIm]);
+                dotReDx[atomIndSt+countNlppRe+m] 
+                                  = ddotBlasWrapper(numGrid,wfNbhd,1,
+                                    &vnlPhiDxAtomGridRe[gridShiftNowRe],1)*volElem;
+                dotImDx[atomIndSt+countNlppIm+m-1] 
+                                  = ddotBlasWrapper(numGrid,wfNbhd,1,
+                                    &vnlPhiDxAtomGridIm[gridShiftNowIm],1)*volElem;
+                dotReDy[atomIndSt+countNlppRe+m] 
+                                  = ddotBlasWrapper(numGrid,wfNbhd,1,
+                                    &vnlPhiDyAtomGridRe[gridShiftNowRe],1)*volElem;
+                dotImDy[atomIndSt+countNlppIm+m-1] 
+                                  = ddotBlasWrapper(numGrid,wfNbhd,1,
+                                    &vnlPhiDyAtomGridIm[gridShiftNowIm],1)*volElem;
+                dotReDz[atomIndSt+countNlppRe+m] 
+                                  = ddotBlasWrapper(numGrid,wfNbhd,1,
+                                    &vnlPhiDzAtomGridRe[gridShiftNowRe],1)*volElem;
+                dotImDz[atomIndSt+countNlppIm+m-1] 
+                                  = ddotBlasWrapper(numGrid,wfNbhd,1,
+                                    &vnlPhiDzAtomGridIm[gridShiftNowIm],1)*volElem;
+                gridShiftNowRe += numGrid;
+                gridShiftNowIm += numGrid;
+              }
+              else{
+                //printf("111111111111111111111 index %i\n",atomIndSt+countNlppRe);
+                dotRe[atomIndSt+countNlppRe] 
+                                  = ddotBlasWrapper(numGrid,wfNbhd,1,
+                                    &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
+                //if(iAtom==0)printf("dotRe %lg\n",dotRe);
 
-              dotReDx[atomIndSt+countNlppRe] 
-				= ddotBlasWrapper(numGrid,wfNbhd,1,
-                                  &vnlPhiDxAtomGridRe[gridShiftNowRe],1)*volElem;
-              dotReDy[atomIndSt+countNlppRe] 
-				= ddotBlasWrapper(numGrid,wfNbhd,1,
-                                  &vnlPhiDyAtomGridRe[gridShiftNowRe],1)*volElem;
-              dotReDz[atomIndSt+countNlppRe] 
-				= ddotBlasWrapper(numGrid,wfNbhd,1,
-                                  &vnlPhiDzAtomGridRe[gridShiftNowRe],1)*volElem;
-	      gridShiftNowRe += numGrid;
-	    }//endif m
-	  }//endfor m
-	  countNlppRe += l+1;
-	  countNlppIm += l;
-        }//endfor iRad
-        countRad += atomLRadNum[atomType][l];
+                dotReDx[atomIndSt+countNlppRe] 
+                                  = ddotBlasWrapper(numGrid,wfNbhd,1,
+                                    &vnlPhiDxAtomGridRe[gridShiftNowRe],1)*volElem;
+                dotReDy[atomIndSt+countNlppRe] 
+                                  = ddotBlasWrapper(numGrid,wfNbhd,1,
+                                    &vnlPhiDyAtomGridRe[gridShiftNowRe],1)*volElem;
+                dotReDz[atomIndSt+countNlppRe] 
+                                  = ddotBlasWrapper(numGrid,wfNbhd,1,
+                                    &vnlPhiDzAtomGridRe[gridShiftNowRe],1)*volElem;
+                gridShiftNowRe += numGrid;
+              }//endif m
+            }//endfor m
+            countNlppRe += l+1;
+            countNlppIm += l;
+          }//endfor iRad
+          countRad += atomLRadNum[atomType][l];
+        }
+        else{
+          for(iRad=0;iRad<atomLRadNum[atomType][l];iRad++){
+            for(m=0;m<=l;m++){
+              if(m!=0){
+                gridShiftNowRe += numGrid;
+                gridShiftNowIm += numGrid;
+              }
+              else{
+                gridShiftNowRe += numGrid;
+              }//endif m
+            }//endfor m
+            countNlppRe += l+1;
+            countNlppIm += l;
+          }//endfor iRad
+          countRad += atomLRadNum[atomType][l];
+        }
       }//endfor l
     }//endif numGrid
   }//endfor iAtom
@@ -682,6 +701,7 @@ void calcMatrixFromDot(CP *cp, CP *cpMini,CLASS *classMini,
   int numNlppAll = pseudoReal->numNlppAll;
   int countAtom;
 
+  int *locOpt = pseudo->loc_opt;
   int *atomFragVnlCalcMap = fragInfo->atomFragVnlCalcMap[iFrag];
   int *numGridNlppMap = pseudoReal->numGridNlppMap;
   int *nlppAtomStartIndex = pseudoReal->nlppAtomStartIndex;
@@ -738,78 +758,87 @@ void calcMatrixFromDot(CP *cp, CP *cpMini,CLASS *classMini,
 	countNlppIm = 0;
 	if(numGrid>0){
 	  for(l=0;l<atomLMax[atomType];l++){
-	    for(iRad=0;iRad<atomLRadNum[atomType][l];iRad++){
-	      radIndex = atomRadMap[atomType][countRad+iRad];
-	      if(atomFragVnlCalcMapInv[iAtom]!=-1){ //I can only put if here since I dont wanna skip iRad/l loop
-		atomIndex = atomFragVnlCalcMapInv[iAtom];
-		for(m=0;m<=l;m++){
-		  if(m!=0){
-		    iTempRe = dotRe[iState*numNlppAll+atomIndSt+countNlppRe+m];
-		    iTempIm = dotIm[iState*numNlppAll+atomIndSt+countNlppIm+m-1];
-		    jTempRe = dotRe[jState*numNlppAll+atomIndSt+countNlppRe+m];
-		    jTempIm = dotIm[jState*numNlppAll+atomIndSt+countNlppIm+m-1];
-		    /*
-                    if(jState==iState){
-                      printf("mmmmmmatrix iAtom %i l %i m %i re %lg im %lg\n",iAtom,l,m,iTempRe,iTempIm);
+            if(locOpt[atomType+1]!=l){
+              for(iRad=0;iRad<atomLRadNum[atomType][l];iRad++){
+                radIndex = atomRadMap[atomType][countRad+iRad];
+                if(atomFragVnlCalcMapInv[iAtom]!=-1){ //I can only put if here since I dont wanna skip iRad/l loop
+                  atomIndex = atomFragVnlCalcMapInv[iAtom];
+                  for(m=0;m<=l;m++){
+                    if(m!=0){
+                      iTempRe = dotRe[iState*numNlppAll+atomIndSt+countNlppRe+m];
+                      iTempIm = dotIm[iState*numNlppAll+atomIndSt+countNlppIm+m-1];
+                      jTempRe = dotRe[jState*numNlppAll+atomIndSt+countNlppRe+m];
+                      jTempIm = dotIm[jState*numNlppAll+atomIndSt+countNlppIm+m-1];
+                      /*
+                      if(jState==iState){
+                        printf("mmmmmmatrix iAtom %i l %i m %i re %lg im %lg\n",iAtom,l,m,iTempRe,iTempIm);
+                      }
+                      */
+                      vnlMatrix[iState*numStates+jState] += 2.0*(iTempRe*jTempRe+iTempIm*jTempIm)*vpsNormList[radIndex]*volInv;
+                      iTempDRe = dotReDx[iState*numNlppAll+atomIndSt+countNlppRe+m];
+                      iTempDIm = dotImDx[iState*numNlppAll+atomIndSt+countNlppIm+m-1];
+                      jTempDRe = dotReDx[jState*numNlppAll+atomIndSt+countNlppRe+m];
+                      jTempDIm = dotImDx[jState*numNlppAll+atomIndSt+countNlppIm+m-1];
+                      vnlFxMatrix[countAtom*numStates*numStates+iState*numStates+jState] 
+                               -= 2.0*(iTempDRe*jTempRe+iTempDIm*jTempIm+
+                                  iTempRe*jTempDRe+iTempIm*jTempDIm)*
+                                  vpsNormList[radIndex]*volInv;
+                      iTempDRe = dotReDy[iState*numNlppAll+atomIndSt+countNlppRe+m];
+                      iTempDIm = dotImDy[iState*numNlppAll+atomIndSt+countNlppIm+m-1];
+                      jTempDRe = dotReDy[jState*numNlppAll+atomIndSt+countNlppRe+m];
+                      jTempDIm = dotImDy[jState*numNlppAll+atomIndSt+countNlppIm+m-1];
+                      vnlFyMatrix[countAtom*numStates*numStates+iState*numStates+jState]
+                               -= 2.0*(iTempDRe*jTempRe+iTempDIm*jTempIm+
+                                  iTempRe*jTempDRe+iTempIm*jTempDIm)*
+                                  vpsNormList[radIndex]*volInv;
+                      iTempDRe = dotReDz[iState*numNlppAll+atomIndSt+countNlppRe+m];
+                      iTempDIm = dotImDz[iState*numNlppAll+atomIndSt+countNlppIm+m-1];
+                      jTempDRe = dotReDz[jState*numNlppAll+atomIndSt+countNlppRe+m];
+                      jTempDIm = dotImDz[jState*numNlppAll+atomIndSt+countNlppIm+m-1];
+                      vnlFzMatrix[countAtom*numStates*numStates+iState*numStates+jState]
+                               -= 2.0*(iTempDRe*jTempRe+iTempDIm*jTempIm+
+                                  iTempRe*jTempDRe+iTempIm*jTempDIm)*
+                                  vpsNormList[radIndex]*volInv;
                     }
-		    */
-		    vnlMatrix[iState*numStates+jState] += 2.0*(iTempRe*jTempRe+iTempIm*jTempIm)*vpsNormList[radIndex]*volInv;
-		    iTempDRe = dotReDx[iState*numNlppAll+atomIndSt+countNlppRe+m];
-		    iTempDIm = dotImDx[iState*numNlppAll+atomIndSt+countNlppIm+m-1];
-		    jTempDRe = dotReDx[jState*numNlppAll+atomIndSt+countNlppRe+m];
-                    jTempDIm = dotImDx[jState*numNlppAll+atomIndSt+countNlppIm+m-1];
-		    vnlFxMatrix[countAtom*numStates*numStates+iState*numStates+jState] 
-			     -= 2.0*(iTempDRe*jTempRe+iTempDIm*jTempIm+
-			        iTempRe*jTempDRe+iTempIm*jTempDIm)*
-				vpsNormList[radIndex]*volInv;
-                    iTempDRe = dotReDy[iState*numNlppAll+atomIndSt+countNlppRe+m];
-                    iTempDIm = dotImDy[iState*numNlppAll+atomIndSt+countNlppIm+m-1];
-                    jTempDRe = dotReDy[jState*numNlppAll+atomIndSt+countNlppRe+m];
-                    jTempDIm = dotImDy[jState*numNlppAll+atomIndSt+countNlppIm+m-1];
-                    vnlFyMatrix[countAtom*numStates*numStates+iState*numStates+jState]
-                             -= 2.0*(iTempDRe*jTempRe+iTempDIm*jTempIm+
-                                iTempRe*jTempDRe+iTempIm*jTempDIm)*
-                                vpsNormList[radIndex]*volInv;
-                    iTempDRe = dotReDz[iState*numNlppAll+atomIndSt+countNlppRe+m];
-                    iTempDIm = dotImDz[iState*numNlppAll+atomIndSt+countNlppIm+m-1];
-                    jTempDRe = dotReDz[jState*numNlppAll+atomIndSt+countNlppRe+m];
-                    jTempDIm = dotImDz[jState*numNlppAll+atomIndSt+countNlppIm+m-1];
-                    vnlFzMatrix[countAtom*numStates*numStates+iState*numStates+jState]
-                             -= 2.0*(iTempDRe*jTempRe+iTempDIm*jTempIm+
-                                iTempRe*jTempDRe+iTempIm*jTempDIm)*
-                                vpsNormList[radIndex]*volInv;
-		  }
-		  else{
-		    iTempRe = dotRe[iState*numNlppAll+atomIndSt+countNlppRe];
-		    jTempRe = dotRe[jState*numNlppAll+atomIndSt+countNlppRe];
-		    /*
-                    if(jState==iState){
-                      printf("mmmmmmatrix iAtom %i l %i m %i re %lg\n",iAtom,l,m,iTempRe);
-                    }
-		    */
-		    vnlMatrix[iState*numStates+jState] += iTempRe*jTempRe*vpsNormList[radIndex]*volInv; 
-		    iTempDRe = dotReDx[iState*numNlppAll+atomIndSt+countNlppRe];
-		    jTempDRe = dotReDx[jState*numNlppAll+atomIndSt+countNlppRe];
-		    vnlFxMatrix[countAtom*numStates*numStates+iState*numStates+jState]
-			     -= (iTempDRe*jTempRe+iTempRe*jTempDRe)*
-				vpsNormList[radIndex]*volInv;
-                    iTempDRe = dotReDy[iState*numNlppAll+atomIndSt+countNlppRe];
-                    jTempDRe = dotReDy[jState*numNlppAll+atomIndSt+countNlppRe];
-                    vnlFyMatrix[countAtom*numStates*numStates+iState*numStates+jState]
-                             -= (iTempDRe*jTempRe+iTempRe*jTempDRe)*
-                                vpsNormList[radIndex]*volInv;
-                    iTempDRe = dotReDz[iState*numNlppAll+atomIndSt+countNlppRe];
-                    jTempDRe = dotReDz[jState*numNlppAll+atomIndSt+countNlppRe];
-                    vnlFzMatrix[countAtom*numStates*numStates+iState*numStates+jState]
-                             -= (iTempDRe*jTempRe+iTempRe*jTempDRe)*
-                                vpsNormList[radIndex]*volInv;
-		  }//endif m
-		}//endfor m
-	      }//endif atomFragVnlCalcMapInv
-	      countNlppRe += l+1;
-	      countNlppIm += l;
-	    }//endfor iRad
-	    countRad += atomLRadNum[atomType][l];
+                    else{
+                      iTempRe = dotRe[iState*numNlppAll+atomIndSt+countNlppRe];
+                      jTempRe = dotRe[jState*numNlppAll+atomIndSt+countNlppRe];
+                      /*
+                      if(jState==iState){
+                        printf("mmmmmmatrix iAtom %i l %i m %i re %lg\n",iAtom,l,m,iTempRe);
+                      }
+                      */
+                      vnlMatrix[iState*numStates+jState] += iTempRe*jTempRe*vpsNormList[radIndex]*volInv; 
+                      iTempDRe = dotReDx[iState*numNlppAll+atomIndSt+countNlppRe];
+                      jTempDRe = dotReDx[jState*numNlppAll+atomIndSt+countNlppRe];
+                      vnlFxMatrix[countAtom*numStates*numStates+iState*numStates+jState]
+                               -= (iTempDRe*jTempRe+iTempRe*jTempDRe)*
+                                  vpsNormList[radIndex]*volInv;
+                      iTempDRe = dotReDy[iState*numNlppAll+atomIndSt+countNlppRe];
+                      jTempDRe = dotReDy[jState*numNlppAll+atomIndSt+countNlppRe];
+                      vnlFyMatrix[countAtom*numStates*numStates+iState*numStates+jState]
+                               -= (iTempDRe*jTempRe+iTempRe*jTempDRe)*
+                                  vpsNormList[radIndex]*volInv;
+                      iTempDRe = dotReDz[iState*numNlppAll+atomIndSt+countNlppRe];
+                      jTempDRe = dotReDz[jState*numNlppAll+atomIndSt+countNlppRe];
+                      vnlFzMatrix[countAtom*numStates*numStates+iState*numStates+jState]
+                               -= (iTempDRe*jTempRe+iTempRe*jTempDRe)*
+                                  vpsNormList[radIndex]*volInv;
+                    }//endif m
+                  }//endfor m
+                }//endif atomFragVnlCalcMapInv
+                countNlppRe += l+1;
+                countNlppIm += l;
+              }//endfor iRad
+              countRad += atomLRadNum[atomType][l];
+            }
+            else{
+              for(iRad=0;iRad<atomLRadNum[atomType][l];iRad++){
+                countNlppRe += l+1;
+                countNlppIm += l;
+              }//endfor iRad
+              countRad += atomLRadNum[atomType][l];
+            }//endfor locOpt
 	  }//endfor l
 	}//endif numGrid
 	if(atomFragVnlCalcMapInv[iAtom]!=-1)countAtom += 1;

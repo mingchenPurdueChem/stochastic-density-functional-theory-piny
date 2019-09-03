@@ -1130,6 +1130,10 @@ typedef struct pseudo_real{
   int numGSm,numGLg;	    /* Num: number of g point for small/large cutoff	*/
   int *numLMax;		    /* Lst: number of angular channel			*/
 			    /* Lth: natm_typ					*/
+  int *lMap;                /* Lst: Angular momentum map, radius index->l       */
+                            /* Lth: numRadTot                                   */
+  int *isLocal;             /* Lst: Is this chanel local pp? yes=1, no=0        */
+                            /* Lth: numRadTot                                   */
   int *numRadMax;	    /* Lst: number of radial function for each atom type*/
 			    /* Lth: natm_typ					*/
   //int *numInterpGrid;	    /* Lst: number of interpolation Grid		*/

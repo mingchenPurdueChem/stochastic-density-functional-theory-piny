@@ -102,4 +102,5 @@ void Comm_compare(MPI_Comm ,MPI_Comm ,int *,int );
 
 void Sendrecv_replace(void *, int , MPI_Datatype , int ,
                       int , int , int , MPI_Comm );
+void Type_create_struct(int , int *, MPI_Aint *, MPI_Datatype *, MPI_Datatype *);
 

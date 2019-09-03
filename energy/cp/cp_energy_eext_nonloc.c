@@ -135,7 +135,6 @@ void control_ewd_non_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 
 /*======================================================================*/
 /* 0) Check the forms                                                   */
-
   if(icoef_orth_up!=1){
     printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
     printf("The UP coefficients must be in orthogonal form    \n");
@@ -195,9 +194,7 @@ void control_ewd_non_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 /*======================================================================*/
 /* II) Determine the maximum open non-local angular momentum channel     */
 
-
   nl_max = -1;
-
 
   for(i=1;i<=(n_ang_max_kb +1);i++){
     if(np_nl[i]>0){nl_max=i-1;}
@@ -363,7 +360,7 @@ void control_nlmat(CLATOMS_INFO *clatoms_info,
 
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
-
+  int i,j,k;
   int ind_lm,ipart,lp1,irad,jrad,ipart_nl;
   double sgn_l;
   double ylmr[21], ylmi[21];
@@ -480,9 +477,11 @@ void control_nlmat(CLATOMS_INFO *clatoms_info,
 /* II) Calculate the nl-pseudoponential matrix elements by looping over  */
 /* the channels, l, and then the 2l+1 components of the channel         */
 
+  //printf("nl_maxxxxxxxxxxxxx %i\n",nl_max);
   for(l=0;l<=nl_max;l++){
 
     lp1 = l+1;
+    //printf("l %i nl_nl[lp1] %i %i\n",l,np_nl[lp1], nrad_max_l[lp1]);
     if(np_nl[lp1]>0){
 
      for(irad=1;irad<=nrad_max_l[lp1];irad++){
@@ -500,9 +499,9 @@ void control_nlmat(CLATOMS_INFO *clatoms_info,
                  vps0,vps1,vps2,vps3,vtemp,iatm_typ_nl_rev,
                  natm_typ_nl,np_nonloc_cp_box_kb,
                  np_nl_rad_str[lp1][irad]);
+      //printf("vtemp %lg\n",vtemp);
 
       i_shift  = l*npart;
-
       if(cp_ptens==0) {
 
         for(ipart=np_nl_rad_str[lp1][irad];ipart<=np_nl[lp1];ipart++){
@@ -510,6 +509,10 @@ void control_nlmat(CLATOMS_INFO *clatoms_info,
           ltemp             =  ip_nl_rev[ktemp];
           helr_now[ipart]   =  helr[ltemp]*vtemp[ltemp];
           heli_now[ipart]   =  heli[ltemp]*vtemp[ltemp];
+          //printf("%i %i helr %lg heli %lg vtemp %lg\n",ktemp,ltemp,helr[ltemp],heli[ltemp],vtemp[ltemp]);
+          //if(helr_now[ipart]>1.0e-30||heli_now[ipart]>1.0e-30){
+          //  printf("helr_now %lg heli_now %lg\n",helr_now[ipart],heli_now[ipart]);
+          //}
         }/*endfor*/
       }else{
 	/*PRESSURE TENSOR CALC*/
@@ -631,7 +634,7 @@ void control_nlmat(CLATOMS_INFO *clatoms_info,
      }/*endfor: irad quantum number loop */
     }/*endif: this channel has atoms in it*/
   }/*endfor:l quantum number loop*/   
-
+  //exit(0);
 /*==========================================================================*/
    }/*end routine*/
 /*==========================================================================*/
@@ -684,10 +687,12 @@ void get_nlmat(int ncoef,int ismcount,int nstate,int ind_lm,int irad,
     switch(isgn_l){
        case 1: 
          for(ipart=np_nl_rad_str;ipart<=np_nl;ipart++){
+           //printf("cre_ind %lg helr %lg cim_ind %lg heli %lg\n",cre_ind,helr[ipart],cim_ind,heli[ipart]);
            cbyhelr[ipart]     =  cre_ind*helr[ipart] - cim_ind*heli[ipart];
            cbyheli[ipart]     =  cre_ind*heli[ipart] + cim_ind*helr[ipart];
-         }/* endfor : loop over particles */ 
+         }/* endfor : loop over particles */
          for(i=np_nl_rad_str;i<=np_nl;i++){
+           //printf("cbyheli[i] %lg tylmi %lg tylmr %lg\n",cbyheli[i],tylmi,tylmr);
            tmp1        = -cbyheli[i]*tylmi;
            tmp2        =  cbyheli[i]*tylmr;
            vnlreal[(i+ioff_v)]    += tmp1;
@@ -2815,7 +2820,10 @@ void vps_atm_list(PSEUDO *pseudo, CELL *cell, CLATOMS_POS *clatoms_pos,
       ivps_label[iatm_typ[iatm]]==3 || 
       ivps_label[iatm_typ[iatm]]==5 ){
         loc_now = loc_opt[iatm_typ[iatm]];
-        if(loc_now > 0){  
+        // BUG! Some KB nlpp may have local s chanel
+        // If you are a local only pp, then choose local         
+        //if(loc_now > 0){  
+        if(loc_now > 0){ 
          np_nonloc_cp_box++;
         }/*endif*/
    }/*endif*/
@@ -2830,7 +2838,10 @@ void vps_atm_list(PSEUDO *pseudo, CELL *cell, CLATOMS_POS *clatoms_pos,
       ivps_label[iatm_typ[iatm]]==3 ||  /* vanderbilt */
       ivps_label[iatm_typ[iatm]]==5 ){  /* goedecker */
         loc_now = loc_opt[iatm_typ[iatm]];
-        if(loc_now > 0){  
+        // BUG! Some KB nlpp may have local s chanel
+        // If you are a local only pp, then choose local 
+        //if(loc_now > 0){  
+        if(loc_now > 0){
          icount++;
          np_nonloc_cp_box_kb++;
          inonloc_index[icount] = iatm;         
@@ -2860,7 +2871,7 @@ void vps_atm_list(PSEUDO *pseudo, CELL *cell, CLATOMS_POS *clatoms_pos,
 
  /*i) Zero the arrays */
 
- for(iang=1;iang<=(n_ang_max+1);iang++){np_nl[iang] = 0; np_nl_gh[iang]= 0;}
+  for(iang=1;iang<=(n_ang_max+1);iang++){np_nl[iang] = 0; np_nl_gh[iang]= 0;}
 
   count_np_nonloc_cp_box_kb = 0; 
   count_np_nonloc_cp_box_gh = 0; 
@@ -2895,6 +2906,7 @@ void vps_atm_list(PSEUDO *pseudo, CELL *cell, CLATOMS_POS *clatoms_pos,
 
         loc_now = loc_opt[iatm_typ[iatm]];
 
+        //BUG
         if(loc_now > 0 ){count_np_nonloc_cp_box_kb++;}
 
         for(iang=1;iang<=loc_now;iang++){

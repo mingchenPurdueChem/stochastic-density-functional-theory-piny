@@ -246,7 +246,7 @@ void nlppKBRealEnergy(CP *cp,CLASS *class,GENERAL_DATA *generalData,
     gridShiftNowRe = gridStIndRe[iAtom];
     gridShiftNowIm = gridStIndIm[iAtom];
     /* cpy the wave function */
-    printf("numGrid %i locOpt[atomType+1] %i\n",numGrid,locOpt[atomType+1]);
+    //printf("numGrid %i locOpt[atomType+1] %i\n",numGrid,locOpt[atomType+1]);
     if(numGrid>0){ //if numGrid=0, only local pp will be calculated
       for(iGrid=0;iGrid<numGrid;iGrid++){
 	gridIndex = gridNlppMap[iAtom][iGrid];

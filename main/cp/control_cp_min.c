@@ -488,8 +488,10 @@ void control_cp_min(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     if(myid==0){
       for(i=0;i<natm_tot;i++){
           printf("atom %i %.16lg %.16lg %.16lg\n",i,fx[i],fy[i],fz[i]);
-          fprintf(fileForce,"atom %i cor %.16lg %.16lg %.16lg Uncor 0 0 0 loc 0 0 0\n",i,fx[i],
-                  fy[i],fz[i]);
+          //fprintf(fileForce,"atom %i cor %.16lg %.16lg %.16lg Uncor 0 0 0 loc 0 0 0\n",i,fx[i],
+          //        fy[i],fz[i]);
+          fprintf(fileForce,"%.16lg %.16lg %.16lg %.16lg %.16lg %.16lg %.16lg %.16lg %.16lg\n",fx[i],fy[i],fz[i],0.0,0.0,0.0,0.0,0.0,0.0);
+          
       }
       fprintf(fileEnergy,"%.16lg\n",general_data->stat_avg.vtot);
       fclose(fileForce);

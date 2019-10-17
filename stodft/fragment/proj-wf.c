@@ -1560,6 +1560,11 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   if(cpLsda==1&&numStateDn!=0){
     free(numStateDnAllProc);
   }
+  if(myidState==0){
+    printf("Finish Calculating Density Correction.\n");
+    fflush(stdout);
+  }
+  if(numProcStates>1)Barrier(commStates);
   //fflush(stdout);
   //exit(0);
 

@@ -918,12 +918,14 @@ void read_coef_fetch_coefs(CP *cp, FILE *fp_dnameci, char *dnameci,
         if(igo==0){
           Ssend(&(cre_up_tmp[1]),ncoef,MPI_DOUBLE,myid_recv,myid_recv,world);
           Ssend(&(cim_up_tmp[1]),ncoef,MPI_DOUBLE,myid_recv,myid_recv,world);
+          //printf("sssssssend myid %i is %i %lg %lg\n",myid,is,cre_up_tmp[1],cim_up_tmp[1]);
         }/* endif igo*/
        } /* endif */
        if(igo==1){
          if(myid != 0){
           Recv(&(cre_up_tmp[1]),ncoef,MPI_DOUBLE,0,MPI_ANY_TAG,world);
           Recv(&(cim_up_tmp[1]),ncoef,MPI_DOUBLE,0,MPI_ANY_TAG,world);
+          //printf("rrrrrrrrrrecv myid %i is %i %lg %lg\n",myid,is,cre_up_tmp[1],cim_up_tmp[1]);
          }/* endif */
          isoff=(is-istate_up_st)*ncoef;
          ipoff=(ip-pi_beads_st+1);

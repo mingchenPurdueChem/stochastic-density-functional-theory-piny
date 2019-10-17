@@ -2239,6 +2239,48 @@ void coef_force_calc_hybrid_threads_force(CPEWALD *cpewald,int nstate,
   }/*endfor*/
 
   eke *= .50;
+  /*
+  double max_re,max_im,max_ak2;
+  double testabs;
+  int ind,ind2,inds,inds2;
+  max_ak2 = -1.0;
+  ind = -1;
+  for(i=1;i<=ncoef1;i++){
+    testabs = fabs(ak2Kinetic[i]);
+    if(testabs>max_ak2){
+      max_ak2 = testabs;
+      ind = i;
+    }
+  }
+  printf("mmmmmmmax ak2 %i %lg\n",ind,max_ak2);
+  max_re = -1.0;
+  max_im = -1.0;
+  ind = -1;
+  ind2 = -1;
+  inds = -1;
+  inds2 = -1;
+  for(is=1;is<= nstate ; is++){
+    ioff = (is-1)*ncoef;
+    for(i=1; i<= ncoef1 ; i++){
+      iis = ioff+i;
+      testabs = fabs(ccreal[iis]);
+      printf("testabs %lg\n",testabs);
+      if(testabs>max_re){
+        max_re = testabs;
+        ind = i;
+        inds = is;
+      }
+      testabs = fabs(ccimag[iis]);
+      if(testabs>max_im){
+        max_im = testabs;
+        ind2 = i;
+        inds2 = is;
+      }
+    }
+  }
+  printf("mmmmmmmmmmax re %i %i %lg im %i %i %lg\n",inds,ind,max_re,inds2,ind2,max_im);
+  printf("eeeeeeeeke %lg\n",eke);
+  */
   *eke_ret = eke;
 
 /*================================================================================*/

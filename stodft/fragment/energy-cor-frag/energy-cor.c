@@ -60,13 +60,26 @@ void energyCorrect(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,
   double keCorProc = 0.0;
   double vnlCorProc = 0.0;
   double *vnlFxCorProc,*vnlFyCorProc,*vnlFzCorProc;
+  double *FxNlAll;
+  double *FyNlAll;
+  double *FzNlAll;
+  double *FxNlAllReduce,*FyNlAllReduce,*FzNlAllReduce;
+  FILE *fileForceNl;
 
   MPI_Comm commStates = commCP->comm_states;
 
   vnlFxCorProc = (double*)cmalloc(numAtomTot*sizeof(double));
   vnlFyCorProc = (double*)cmalloc(numAtomTot*sizeof(double));
   vnlFzCorProc = (double*)cmalloc(numAtomTot*sizeof(double));
-
+  FxNlAllReduce = (double*)cmalloc(numAtomTot*sizeof(double));
+  FyNlAllReduce = (double*)cmalloc(numAtomTot*sizeof(double));
+  FzNlAllReduce = (double*)cmalloc(numAtomTot*sizeof(double));
+  fragInfo->FxNlAll = (double*)cmalloc(numAtomTot*sizeof(double));
+  fragInfo->FyNlAll = (double*)cmalloc(numAtomTot*sizeof(double));
+  fragInfo->FzNlAll = (double*)cmalloc(numAtomTot*sizeof(double));
+  FxNlAll = fragInfo->FxNlAll;
+  FyNlAll = fragInfo->FyNlAll;
+  FzNlAll = fragInfo->FzNlAll;
 
   //outputFragForce(cp,class,classMini); 
 
@@ -93,7 +106,12 @@ void energyCorrect(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,
 /*======================================================================*/
 /* II) Non-local pseudo potential energy and force                      */
 
-    
+    for(iAtom=0;iAtom<numAtomTot;iAtom++){
+      FxNlAll[iAtom] = 0.0;
+      FyNlAll[iAtom] = 0.0;
+      FzNlAll[iAtom] = 0.0;
+    }    
+
     if(vnl_kb_flag==1){
       calcVnlCor(&classMini[iFrag],&cpMini[iFrag],&generalDataMini[iFrag],
 		 cp,class,&vnlCorProc,vnlFxCorProc,
@@ -104,7 +122,7 @@ void energyCorrect(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,
   }//endfor
 
 /*======================================================================*/
-/* I) Reduce everything                                                 */
+/* III) Reduce everything                                               */
 
   if(numProcStates>1){
     Reduce(&keCorProc,&(fragInfo->keCor),1,MPI_DOUBLE,MPI_SUM,0,commStates);
@@ -112,6 +130,10 @@ void energyCorrect(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,
     Reduce(&vnlFxCorProc[0],&(fragInfo->vnlFxCor[0]),numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
     Reduce(&vnlFyCorProc[0],&(fragInfo->vnlFyCor[0]),numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
     Reduce(&vnlFzCorProc[0],&(fragInfo->vnlFzCor[0]),numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+    Reduce(&(FxNlAll[0]),&FxNlAllReduce[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+    Reduce(&(FyNlAll[0]),&FyNlAllReduce[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+    Reduce(&(FzNlAll[0]),&FzNlAllReduce[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+
   }
   else{
     fragInfo->keCor = keCorProc;
@@ -119,6 +141,9 @@ void energyCorrect(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,
     memcpy(&(fragInfo->vnlFxCor[0]),&(vnlFxCorProc[0]),numAtomTot*sizeof(double));
     memcpy(&(fragInfo->vnlFyCor[0]),&(vnlFyCorProc[0]),numAtomTot*sizeof(double));
     memcpy(&(fragInfo->vnlFzCor[0]),&(vnlFzCorProc[0]),numAtomTot*sizeof(double));
+    memcpy(&FxNlAllReduce[0],&(fragInfo->FxNlAll[0]),numAtomTot*sizeof(double));
+    memcpy(&FyNlAllReduce[0],&(fragInfo->FyNlAll[0]),numAtomTot*sizeof(double));
+    memcpy(&FzNlAllReduce[0],&(fragInfo->FzNlAll[0]),numAtomTot*sizeof(double));
   }
 #ifdef TUNE_NOISE
   if(myidState==0){
@@ -131,10 +156,28 @@ void energyCorrect(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,
     }
   }
 #endif  
+
+/*======================================================================*/
+/* IV) IO and free                                                      */
+  
+  if(myidState==0){
+    fileForceNl = fopen("atom-force-nl-init","w");
+    for(iAtom=0;iAtom<numAtomTot;iAtom++){
+      fprintf(fileForceNl,"%.16lg %.16lg %.16lg\n",
+              FxNlAllReduce[iAtom],FyNlAllReduce[iAtom],FzNlAllReduce[iAtom]);
+    }
+    fclose(fileForceNl);
+  }
+
+
   if(numProcStates>1)Barrier(commStates);
   free(vnlFxCorProc);
   free(vnlFyCorProc);
   free(vnlFzCorProc);
+  free(FxNlAllReduce);
+  free(FyNlAllReduce);
+  free(FzNlAllReduce);
+
   //fflush(stdout);
   //exit(0);
 
@@ -437,6 +480,9 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
   double *fx = clatomsPosMini->fx;
   double *fy = clatomsPosMini->fy;
   double *fz = clatomsPosMini->fz;
+  double *FxNlAll = fragInfo->FxNlAll;
+  double *FyNlAll = fragInfo->FyNlAll;
+  double *FzNlAll = fragInfo->FzNlAll;
 
   statAvg->cp_enl = 0.0; 
 
@@ -611,6 +657,9 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
     vnlFxCorProc[atomInd] += Fx[iAtom]-vnlFxCorFragLoc[iAtom];
     vnlFyCorProc[atomInd] += Fy[iAtom]-vnlFyCorFragLoc[iAtom];
     vnlFzCorProc[atomInd] += Fz[iAtom]-vnlFzCorFragLoc[iAtom];
+    FxNlAll[atomInd] = Fx[iAtom];
+    FyNlAll[atomInd] = Fy[iAtom];
+    FzNlAll[atomInd] = Fz[iAtom];
     
     //printf("111111111 fnlfrag %i %.8lg %.8lg %.8lg %.8lg %.8lg %.8lg\n",atomInd,
     //	    Fx[iAtom],Fy[iAtom],Fz[iAtom],

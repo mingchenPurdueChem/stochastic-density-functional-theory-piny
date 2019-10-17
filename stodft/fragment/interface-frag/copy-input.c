@@ -685,7 +685,7 @@ void copyNlppReal(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   numRadTot = countRad;
   pseudoReal->numRadTot = numRadTot;
   pseudoRealMini->vpsNormList = (double*)cmalloc(numRadTot*sizeof(double));
-  pseudoRealMini->isLocal = (double*)cmalloc(numRadTot*sizeof(double));
+  pseudoRealMini->isLocal = (int*)cmalloc(numRadTot*sizeof(int));
   for(iType=0;iType<numAtomType;iType++){
     indTypeLg = atomTypeReorder[iType]-1;
     countRad = 0;

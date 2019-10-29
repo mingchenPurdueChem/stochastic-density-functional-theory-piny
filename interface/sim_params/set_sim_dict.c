@@ -2250,7 +2250,7 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
  /*             Local variable declarations                                */
   
   unsigned int i;
-  *num_dict = 30;
+  *num_dict = 35;
   *dict = (DICT_WORD *)cmalloc(*num_dict*sizeof(DICT_WORD))-1;
 
   for (i=1;i<=*num_dict;i++) {
@@ -2300,8 +2300,12 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
   strcpy((*dict)[10].keyarg,"0");
 
   strcpy((*dict)[11].error_mes,"Nonnegative integer: number of electron in the sysem");
-  strcpy((*dict)[11].keyword,"num_electron");
+  strcpy((*dict)[11].keyword,"num_electron_up");
   strcpy((*dict)[11].keyarg,"0");
+
+  strcpy((*dict)[31].error_mes,"Nonnegative integer: number of electron in the sysem");
+  strcpy((*dict)[31].keyword,"num_electron_dn");
+  strcpy((*dict)[31].keyarg,"0");
 
   strcpy((*dict)[12].error_mes,"Real number for initial chemical potential");
   strcpy((*dict)[12].keyword,"chem_pot_init");
@@ -2378,6 +2382,23 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
   strcpy((*dict)[30].error_mes,"Please select 'gen_wave' or 'read' for fragment initial guess");
   strcpy((*dict)[30].keyword,"frag_init_guess");
   strcpy((*dict)[30].keyarg,"gen_wave");
+
+  strcpy((*dict)[32].error_mes,"Nonnegative integer: number of spin up orbitals you wanna calculate");
+  strcpy((*dict)[32].keyword,"num_orbital_up_fd");
+  strcpy((*dict)[32].keyarg,"0");
+
+  strcpy((*dict)[33].error_mes,"Nonnegative integer: number of spin up orbitals you wanna calculate");
+  strcpy((*dict)[33].keyword,"num_orbital_dn_fd");
+  strcpy((*dict)[33].keyarg,"0");
+
+  strcpy((*dict)[34].error_mes,"Smearing function for metallic system; choose from off,fermi,gauss");
+  strcpy((*dict)[34].keyword,"smear_opt_metal");
+  strcpy((*dict)[34].keyarg,"off");
+
+  strcpy((*dict)[35].error_mes,"Smearing temperature for metallic system in K");
+  strcpy((*dict)[35].keyword,"smear_temp_metal");
+  strcpy((*dict)[35].keyarg,"300.0");
+
 
  /*========================================================================*/
  } /* end routine set_sim_dict_harmonic */

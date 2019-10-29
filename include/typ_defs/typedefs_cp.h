@@ -634,6 +634,10 @@ typedef struct stodftInfo{
   double beta;			    /* Num: 1/kT				*/
   double numElecTrue;		    /* Num: True number of electron you want to */
 				    /*	    have in the system.			*/
+  double numElecTrueUp,numElecTrueDn;
+                                    /* Num: True number of spin up/down elec-   */
+                                    /*      -tron you want to have in the       */
+                                    /*      system.                             */
   double numElecTrueFrag;	    /* Num: True number of electron while doing */
 				    /*	    fragmentation calculation		*/
   double randSeed;		    /* Num: Random number seed for noise orbital*/
@@ -708,6 +712,8 @@ typedef struct stodftInfo{
                                     /* Lth: np_states                           */
   int numStateUpIdp;                /* Num: After SVD orthogonalization, we     */
                                     /*      shall leave the independent ones    */
+  int numStatePrintUp;              /* Num: How many state do you care about?   */
+  int numStatePrintDn;
   double *numOccDetAll;             /* Lst: Number of occupation in determ      */
                                     /*      wf. For dependent wf, set this #    */
                                     /*      to 0.                               */
@@ -757,6 +763,15 @@ typedef struct stodftInfo{
 				    /*	   massive H|phi> calculations		*/
   double cputime0,cputime1,cputime2,cputime3,cputime4,cputime5,cputime6,cputime7,cputime8;
   double cputime_new[100]; // I need more cputime LOL
+
+  /* For metallic system, I need smearing (filter diag only) */
+  int smearOpt;                     /* Opt: Do you wanna use smearing On=1,     */
+                                    /*      Off=0(default) 1= Fermi-Dirac,      */
+                                    /*      2 = Gauss (error function)          */
+  double smearTemperature;          /* Num: Smearing temperatur. I'm currently  */
+                                    /*      using Fermi Dirac smearing          */
+  double chemPotUpMetallic;         /* Num: Chemical potential in the smearing  */
+  double chemPotDnMetallic;         /*      Fermi function                      */
   
 }STODFTINFO;
 
@@ -828,6 +843,9 @@ typedef struct stodftCoefPos{
   double *KSMatrix;                 /* Lst: Kohn-Sham Matrix                    */
                                     /* Lth: numChemPot^2*numStateStoUp^2        */
   double *energyLevel;              /* Lst: eigenvalues matrix for diag HKS     */
+                                    /* Lth: numChemPot*numStateStoUp            */
+  double *badOrbitalFlag;           /* Lst: Flag of good/bad orbital in FD      */
+                                    /*      1=good, 0=bad                       */
                                     /* Lth: numChemPot*numStateStoUp            */
   double *moUpRe,*moUpIm;           /* Lst: Molecular orbitals/bands            */
                                     /* Lth: numChemPot*nstate_up_proc*ncoef     */

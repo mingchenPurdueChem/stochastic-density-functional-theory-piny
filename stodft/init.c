@@ -80,6 +80,9 @@ void commStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
   Bcast(&(stodftInfo->numStepMix),1,MPI_INT,0,world);
   Bcast(&(stodftInfo->checkpointWriteFreq),1,MPI_INT,0,world);
   Bcast(&(stodftInfo->checkpointParFlag),1,MPI_INT,0,world);
+  Bcast(&(stodftInfo->numStatePrintUp),1,MPI_INT,0,world);
+  Bcast(&(stodftInfo->numStatePrintDn),1,MPI_INT,0,world);
+  Bcast(&(stodftInfo->smearOpt),1,MPI_INT,0,world);
 
   //frag
   Bcast(&(stodftInfo->calcFragFlag),1,MPI_INT,0,world);
@@ -89,13 +92,16 @@ void commStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
   Bcast(&(stodftInfo->fitErrTol),1,MPI_DOUBLE,0,world);
   Bcast(&(stodftInfo->beta),1,MPI_DOUBLE,0,world);
   Bcast(&(stodftInfo->numElecTrue),1,MPI_DOUBLE,0,world);
+  Bcast(&(stodftInfo->numElecTrueUp),1,MPI_DOUBLE,0,world);
+  Bcast(&(stodftInfo->numElecTrueDn),1,MPI_DOUBLE,0,world);
+  Bcast(&(stodftInfo->numElecTrue),1,MPI_DOUBLE,0,world);
   Bcast(&(stodftInfo->chemPotInit),1,MPI_DOUBLE,0,world);
   Bcast(&(stodftInfo->gapInit),1,MPI_DOUBLE,0,world);
   Bcast(&(stodftInfo->mixRatioSM),1,MPI_DOUBLE,0,world);
   Bcast(&(stodftInfo->energyTol),1,MPI_DOUBLE,0,world);
+  Bcast(&(stodftInfo->smearTemperature),1,MPI_DOUBLE,0,world);
 
   Bcast(stodftInfo->densityFileName,MAXWORD,MPI_CHAR,0,world);
-  
 
 }/*end Routine*/
 /*==========================================================================*/

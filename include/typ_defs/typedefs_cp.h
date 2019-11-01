@@ -1549,7 +1549,14 @@ typedef struct cpscr_rho{
                                        cutoff g-space grid;  
                                      dense cp box grid
                                   Lth: ncoef_dens_cp_box                 */
-
+  int *rho_up_real_send_counts,*rho_dn_real_send_counts;   
+                               /* Lst: number of grid points I need to send if 
+                                       I want to use scatterv to directly distribute
+                                       the real space density            */
+                               /* Lth: np_states                         */
+  int *rho_up_real_displs,*rho_dn_real_displs;     
+                               /* Lst: scatterv initial index            */
+                               /* Lth: np_states                         */
 }CPSCR_RHO;
 
 typedef struct cpscr_grho{

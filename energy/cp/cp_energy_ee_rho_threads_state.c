@@ -27,6 +27,7 @@
 //#define REAL_PP_DEBUG
 //#define TEST_DM
 #define PRINT_RHO
+#define CORRECT_REAL
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
@@ -627,46 +628,99 @@ void cp_rho_calc_hybrid_threads_state(CPEWALD *cpewald,CPSCR *cpscr,
 /* VII) Reduce rho in g space and get all of it in real space               */
 /*      Now in g-level parallel and need parallel packages                  */
 
- if(np_states > 1){
-   if(cp_dual_grid_opt == 0){
-      Reduce_scatter(&zfft_tmp[1],&rhocr[1],&recv_counts_coef[1],
-                     MPI_DOUBLE,MPI_SUM,comm_states);
-      Reduce_scatter(&zfft_tmp[(ncoef_l+1)],&rhoci[1],&recv_counts_coef[1],
-                     MPI_DOUBLE,MPI_SUM,comm_states);  
+  if(np_states > 1){
+    if(realSparseOpt==0){
+      if(cp_dual_grid_opt == 0){
+        Reduce_scatter(&zfft_tmp[1],&rhocr[1],&recv_counts_coef[1],
+                       MPI_DOUBLE,MPI_SUM,comm_states);
+        Reduce_scatter(&zfft_tmp[(ncoef_l+1)],&rhoci[1],&recv_counts_coef[1],
+                       MPI_DOUBLE,MPI_SUM,comm_states);  
 
-      //if(realSparseOpt==0){
-      sngl_pack_coef(rhocr,rhoci,zfft,cp_para_fft_pkg3d_lg);
-      para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_para_fft_pkg3d_lg);
-      sngl_upack_rho(zfft,rho,cp_para_fft_pkg3d_lg); 
-      //}
-      /*
-      else{
-        sngl_pack_coef(rhocr,rhoci,zfft,cp_para_fft_pkg3d_sparse);
-        para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_para_fft_pkg3d_sparse);
-        sngl_upack_rho(zfft,rho,cp_para_fft_pkg3d_sparse);
+        //if(realSparseOpt==0){
+        sngl_pack_coef(rhocr,rhoci,zfft,cp_para_fft_pkg3d_lg);
+        para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_para_fft_pkg3d_lg);
+        sngl_upack_rho(zfft,rho,cp_para_fft_pkg3d_lg); 
+        //}
+        /*
+        else{
+          sngl_pack_coef(rhocr,rhoci,zfft,cp_para_fft_pkg3d_sparse);
+          para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_para_fft_pkg3d_sparse);
+          sngl_upack_rho(zfft,rho,cp_para_fft_pkg3d_sparse);
+        }
+        */
+        // now rho is z leading
+        Barrier(comm_states);
+      }else{ //we dont need this
+        Reduce_scatter(&zfft_tmp[1],&rhocr_dens_cp_box[1],
+                       &recv_counts_coef_dens_cp_box[1],
+                       MPI_DOUBLE,MPI_SUM,comm_states);
+        Reduce_scatter(&zfft_tmp[(ncoef_l_dens_cp_box+1)],
+                        &rhoci_dens_cp_box[1],&recv_counts_coef_dens_cp_box[1],
+                        MPI_DOUBLE,MPI_SUM,comm_states);  
+
+         sngl_pack_coef(rhocr_dens_cp_box,rhoci_dens_cp_box,zfft,
+                        cp_para_fft_pkg3d_dens_cp_box);
+
+         para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_para_fft_pkg3d_dens_cp_box);
+
+         sngl_upack_rho(zfft,rho,cp_para_fft_pkg3d_dens_cp_box); 
+         // now rho is z leading
+      }//endif cp_dual_grid_opt
+    }
+    else{
+      if(cp_dual_grid_opt == 0){
+        Reduce_scatter(&zfft_tmp[1],&rhocr[1],&recv_counts_coef[1],
+                       MPI_DOUBLE,MPI_SUM,comm_states);
+        Reduce_scatter(&zfft_tmp[(ncoef_l+1)],&rhoci[1],&recv_counts_coef[1],
+                       MPI_DOUBLE,MPI_SUM,comm_states);
+#ifdef CORRECT_REAL
+        Reduce(&rho_scr[1],&zfft[1],nfft2,MPI_DOUBLE,MPI_SUM,0,comm_states);
+        if(myid_state==0){
+          for(kc=0;kc<nkf3;kc++){
+            for(kb=0;kb<nkf2;kb++){
+              for(ka=0;ka<nkf1;ka++){
+                ind = kc*nkf2*nkf1+kb*nkf1+ka+1;
+                indt = ka*nkf2*nkf3+kb*nkf3+kc+1;
+                rho_scr[ind] = zfft[indt];
+              }
+            }
+          }
+          // now rho is z leading
+          memcpy(&zfft[1],&rho_scr[1],nfft2*sizeof(double));
+        }
+        Barrier(comm_states);
+        Scatterv(&zfft[1],cpscr->cpscr_rho.rho_up_real_send_counts,
+                 cpscr->cpscr_rho.rho_up_real_displs,MPI_DOUBLE,&rho[1],
+                 nfft2_proc,MPI_DOUBLE,0,comm_states);
+        Barrier(comm_states);
+#else
+        sngl_pack_coef(rhocr_dens_cp_box,rhoci_dens_cp_box,zfft,
+                       cp_para_fft_pkg3d_dens_cp_box);
+
+        para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_para_fft_pkg3d_dens_cp_box);
+
+        sngl_upack_rho(zfft,rho,cp_para_fft_pkg3d_dens_cp_box);
+#endif
       }
-      */
-      // now rho is z leading
-      Barrier(comm_states);
-   }else{ //we dont need this
-     Reduce_scatter(&zfft_tmp[1],&rhocr_dens_cp_box[1],
-                    &recv_counts_coef_dens_cp_box[1],
-                    MPI_DOUBLE,MPI_SUM,comm_states);
-     Reduce_scatter(&zfft_tmp[(ncoef_l_dens_cp_box+1)],
-                     &rhoci_dens_cp_box[1],&recv_counts_coef_dens_cp_box[1],
-                     MPI_DOUBLE,MPI_SUM,comm_states);  
+      else{// I don't want to touch this part right now
+        Reduce_scatter(&zfft_tmp[1],&rhocr_dens_cp_box[1],
+                       &recv_counts_coef_dens_cp_box[1],
+                       MPI_DOUBLE,MPI_SUM,comm_states);
+        Reduce_scatter(&zfft_tmp[(ncoef_l_dens_cp_box+1)],
+                       &rhoci_dens_cp_box[1],&recv_counts_coef_dens_cp_box[1],
+                       MPI_DOUBLE,MPI_SUM,comm_states);
 
-      sngl_pack_coef(rhocr_dens_cp_box,rhoci_dens_cp_box,zfft,
-                     cp_para_fft_pkg3d_dens_cp_box);
 
-      para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_para_fft_pkg3d_dens_cp_box);
+        sngl_pack_coef(rhocr_dens_cp_box,rhoci_dens_cp_box,zfft,
+                       cp_para_fft_pkg3d_dens_cp_box);
 
-      sngl_upack_rho(zfft,rho,cp_para_fft_pkg3d_dens_cp_box); 
-      // now rho is z leading
-      
-   }/*endif cp_dual_grid_opt*/
- }
- else{ //transpose for sequential case
+        para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_para_fft_pkg3d_dens_cp_box);
+
+        sngl_upack_rho(zfft,rho,cp_para_fft_pkg3d_dens_cp_box);
+      }//endif cp_dual_grid_opt
+    }//endif realSparseOpt  
+  }
+  else{ //transpose for sequential case
     if(fftw3dFlag==1){
       for(kc=0;kc<nkf3;kc++){
 	for(kb=0;kb<nkf2;kb++){
@@ -679,8 +733,8 @@ void cp_rho_calc_hybrid_threads_state(CPEWALD *cpewald,CPSCR *cpscr,
       }
       memcpy(&rho_scr[1],&zfft[1],nfft2*sizeof(double)); // now rho is z leading
     }
- }//endif np_states
- //printf("rrrrrho %lg %lg\n",rho[2],rho[3]);
+  }//endif np_states
+  //printf("rrrrrho %lg %lg\n",rho[2],rho[3]);
 
 /*===========================================================================*/
 /* IF DUALED put rho real space onto the large grid and fft it to g space    */

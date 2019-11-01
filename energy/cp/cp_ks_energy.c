@@ -473,7 +473,7 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
                          cp_para_fft_pkg3d_lg,cp_sclr_fft_pkg3d_lg,
                          &(cp->cp_para_fft_pkg3d_dens_cp_box),
                          &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
-                         cp_sclr_fft_pkg3d_sm);
+                         cp_sclr_fft_pkg3d_sm,cp,class,general_data);
 
       if((cp_lsda== 1) && (nstate_dn!= 0) ){
         cp_rho_calc_hybrid_threads_force(&(cp->cpewald),&(cp->cpscr),&(cp->cpcoeffs_info),
@@ -486,7 +486,7 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
                          cp_sclr_fft_pkg3d_lg,
                          &(cp->cp_para_fft_pkg3d_dens_cp_box),
                          &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
-                         cp_sclr_fft_pkg3d_sm);
+                         cp_sclr_fft_pkg3d_sm,cp,class,general_data);
         for(i=1;i <= ncoef_l_proc;i++) {
           rhocr_up[i] += rhocr_dn[i];
           rhoci_up[i] += rhoci_dn[i];

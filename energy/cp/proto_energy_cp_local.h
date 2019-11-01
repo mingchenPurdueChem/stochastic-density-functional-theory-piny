@@ -364,7 +364,8 @@ void cp_rho_calc_hybrid_threads_force(CPEWALD *,CPSCR *, CPCOEFFS_INFO *,EWALD *
                         double *, double *,double *, double *,double *,
                         double *,int ,int ,int ,int ,int ,COMMUNICATE *, 
                         PARA_FFT_PKG3D *, PARA_FFT_PKG3D *,
-                        PARA_FFT_PKG3D *, PARA_FFT_PKG3D *, PARA_FFT_PKG3D *);
+                        PARA_FFT_PKG3D *, PARA_FFT_PKG3D *, PARA_FFT_PKG3D *,
+                        CP *,CLASS *,GENERAL_DATA *);
 
 
 //void cp_rho_calc_sto_hybrid(CPEWALD *,CPSCR *, CPCOEFFS_INFO *,EWALD *,

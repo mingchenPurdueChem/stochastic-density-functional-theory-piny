@@ -673,6 +673,8 @@ void mall_cp_scr(CPTHERM_INFO *cptherm_info,CPOPTS *cpopts,CPEWALD *cpewald,
   int ndim_wannier;
   int mm=5;
 
+  MPI_Comm comm_states   =    cp->communicate.comm_states;
+
 /*=========================================================================*/
 /* I) Malloc size calculation */
 
@@ -1020,6 +1022,52 @@ void mall_cp_scr(CPTHERM_INFO *cptherm_info,CPOPTS *cpopts,CPEWALD *cpewald,
                               cmalloc(ncoef_l_proc_max_dn*sizeof(double))-1;
   cpscr->cpscr_rho.rhoci_dn = (double *)
                               cmalloc(ncoef_l_proc_max_dn*sizeof(double))-1;
+
+  //initialize density scatterv
+  cpscr->cpscr_rho.rho_up_real_send_counts = (int*)cmalloc(np_states*sizeof(int));
+  cpscr->cpscr_rho.rho_up_real_displs = (int*)cmalloc(np_states*sizeof(int));
+  cpscr->cpscr_rho.rho_dn_real_send_counts = (int*)cmalloc(np_states*sizeof(int));
+  cpscr->cpscr_rho.rho_dn_real_displs = (int*)cmalloc(np_states*sizeof(int));
+  if(np_states>1){
+    if(myid==0){
+      cpscr->cpscr_rho.rho_up_real_send_counts[0] = nfft2_up_proc;
+      for(i=1;i<np_states;i++){
+        Recv(&(cpscr->cpscr_rho.rho_up_real_send_counts[i]),1,MPI_INT,i,i,comm_states);
+      }
+
+    }
+    else{
+      Send(&nfft2_up_proc,1,MPI_INT,0,myid,comm_states);
+    }
+    Barrier(comm_states);
+    Bcast(cpscr->cpscr_rho.rho_up_real_send_counts,np_states,MPI_INT,0,comm_states);
+    Barrier(comm_states);
+    cpscr->cpscr_rho.rho_up_real_displs[0] = 0;
+    for(i=1;i<np_states;i++){
+      cpscr->cpscr_rho.rho_up_real_displs[i] = cpscr->cpscr_rho.rho_up_real_displs[i-1]+
+                                               cpscr->cpscr_rho.rho_up_real_send_counts[i-1];
+    }
+    if(cp_lsda==1){
+      if(myid==0){
+        cpscr->cpscr_rho.rho_dn_real_send_counts[0] = nfft2_dn_proc;
+        for(i=1;i<np_states;i++){
+          Recv(&(cpscr->cpscr_rho.rho_dn_real_send_counts[i]),1,MPI_INT,i,i,comm_states);
+        }
+      }
+      else{
+        Send(&nfft2_dn_proc,1,MPI_INT,0,myid,comm_states);
+      }
+      Barrier(comm_states);
+      Bcast(cpscr->cpscr_rho.rho_dn_real_send_counts,np_states,MPI_INT,0,comm_states);
+      Barrier(comm_states);
+      cpscr->cpscr_rho.rho_dn_real_displs[0] = 0;
+      for(i=1;i<np_states;i++){
+        cpscr->cpscr_rho.rho_dn_real_displs[i] = cpscr->cpscr_rho.rho_dn_real_displs[i-1]+
+                                                 cpscr->cpscr_rho.rho_dn_real_send_counts[i-1];
+      }
+    }
+  }
+  
 
   num += 2*ncoef_l_proc_max_mall;
   num += 2*ncoef_l_proc_max_mall_ke;

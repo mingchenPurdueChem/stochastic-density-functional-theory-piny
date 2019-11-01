@@ -221,7 +221,7 @@ void calcRhoDetInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 	       &(cp->cp_para_fft_pkg3d_lg),&(cp->cp_sclr_fft_pkg3d_lg),
 	       &(cp->cp_para_fft_pkg3d_dens_cp_box),
 	       &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
-	       &(cp->cp_sclr_fft_pkg3d_sm));
+	       &(cp->cp_sclr_fft_pkg3d_sm),cp,class,general_data);
    /* 
    for(iCoeff=1;iCoeff<=numCoeff*numStateUpProc;iCoeff++){
      printf("wfffffffff %.16lg %.16lg\n",coeffReUp[iCoeff],coeffImUp[iCoeff]);
@@ -251,7 +251,7 @@ void calcRhoDetInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
                      &(cp->cp_sclr_fft_pkg3d_lg),
                      &(cp->cp_para_fft_pkg3d_dens_cp_box),
                      &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
-                     &(cp->cp_sclr_fft_pkg3d_sm));
+                     &(cp->cp_sclr_fft_pkg3d_sm),cp,class,general_data);
     }
     if(cpParaOpt==1){
       cp_rho_calc_full_g(cpewald,cpscr,cpcoeffs_info,

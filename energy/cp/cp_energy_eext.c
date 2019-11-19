@@ -133,6 +133,9 @@ void control_cp_eext_recip(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
   double *fx               = clatoms_pos->fx;
   double *fy               = clatoms_pos->fy;
   double *fz               = clatoms_pos->fz;
+  double *fxLocal          = clatoms_pos->fxLocal;
+  double *fyLocal          = clatoms_pos->fyLocal;
+  double *fzLocal          = clatoms_pos->fzLocal;
   double *x                = clatoms_pos->x;
   double *y                = clatoms_pos->y;
   double *z                = clatoms_pos->z;
@@ -408,8 +411,12 @@ void control_cp_eext_recip(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
   double *fcre_up = cpcoeffs_pos->fcre_up;
   double *fcim_up = cpcoeffs_pos->fcim_up;
 
+  for(i=1;i<=ncoef;i++){
+    fcre_up[i] = 0.0;
+    fcim_up[i] = 0.0;
+  }
+
   //printf("cccccccc %lg %lg\n",fcre_up[2],fcim_up[2]);
-  
   
   if(pseudoRealFlag==0){ // k space method
     if( (nl_max_kb >= 0) && ((ntot_up+ntot_dn)>0) ){
@@ -467,7 +474,7 @@ void control_cp_eext_recip(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 
     // real space, need calculate real space wave function:
     // This happens after each nuclei coordinates updating. 
-    
+ 
 #ifdef REAL_PP_DEBUG    
     int icoef;
     for(icoef=1;icoef<=ncoef;icoef++){
@@ -600,8 +607,19 @@ void control_cp_eext_recip(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 /* IX) Reduce particle forces if necessary                              */
 
   if(np_states>1 && np_forc == 1){
+    /*
+    if(pseudoRealFlag==0){
+      reduce_cp_atm_forc(natm_tot,fx,fy,fz,fx_tmp,fy_tmp,fz_tmp,
+                         comm_states,myid_state);
+    }
+    else{
+      reduce_cp_atm_forc(natm_tot,fxLocal,fyLocal,fzLocal,fx_tmp,fy_tmp,fz_tmp,
+                         comm_states,myid_state);      
+    }
+    */
     reduce_cp_atm_forc(natm_tot,fx,fy,fz,fx_tmp,fy_tmp,fz_tmp,
                        comm_states,myid_state);
+
   }/* endif:npstates */
 
 /*======================================================================*/

@@ -2810,6 +2810,7 @@ void controlVpsParamsFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
   pseudo->n_ang      = (int *) cmalloc(natm_typ_mall*sizeof(int))-1;
   pseudo->loc_opt    = (int *) cmalloc(natm_typ_mall*sizeof(int))-1;
   pseudo->ivps_label = (int *) cmalloc(natm_typ_mall*sizeof(int))-1;
+  pseudo->iformat    = (int *) cmalloc(natm_typ_mall*sizeof(int))-1;
   pseudo->rcut_nl    = (double *) cmalloc(natm_typ_mall*sizeof(double))-1;
   pseudo->q_pseud    = (double *) cmalloc(natm_typ_mall*sizeof(double))-1;
 
@@ -2848,7 +2849,7 @@ void controlVpsParamsFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
 	if(ifound==1){
 	  set_vps_params(vps_dict,
 		   filename_parse->user_vps_name,fun_key,
-		   &(pseudo->ivps_label[i]),filename,
+		   &(pseudo->ivps_label[i]),&(pseudo->iformat[i]),filename,
 		   &(pseudo->loc_opt[i]),&(pseudo->n_ang[i]),
 		   &(pseudo->rcut_nl[i]),&ngh_now,
 		   &(pseudo->nrad_0[i]),
@@ -2870,7 +2871,7 @@ void controlVpsParamsFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
 	if(ifound==1){
 	  set_vps_params(vps_dict,
 		   filename_parse->def_vps_name,fun_key,
-		   &(pseudo->ivps_label[i]),filename,
+		   &(pseudo->ivps_label[i]),&(pseudo->iformat[i]),filename,
 		   &(pseudo->loc_opt[i]),&(pseudo->n_ang[i]),
 		   &(pseudo->rcut_nl[i]),&ngh_now,
 		   &(pseudo->nrad_0[i]),
@@ -3078,7 +3079,7 @@ void controlVpsParamsFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
        if(myid==0){strcpy(filename,vps_file[i].name);}
        if(cp_ptens_calc == 1){
          make_vps_splin(filename,pseudo->loc_opt[i],pseudo->n_ang[i],
-                         pseudo->ivps_label[i],
+                         pseudo->ivps_label[i],pseudo->iformat[i],
                          pseudo->nsplin_g,pseudo->dg_spl,
                          pseudo->gmin_spl,
                          pseudo->gmax_spl,pseudo->gmin_true,
@@ -3098,7 +3099,7 @@ void controlVpsParamsFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
                          &(pseudo->ngh),pseudo->rgh,pseudo->wgh);
        }else{
          make_vps_splin(filename,pseudo->loc_opt[i],pseudo->n_ang[i],
-                         pseudo->ivps_label[i],
+                         pseudo->ivps_label[i],pseudo->iformat[i],
                          pseudo->nsplin_g,pseudo->dg_spl,
                          pseudo->gmin_spl,
                          pseudo->gmax_spl,pseudo->gmin_true,

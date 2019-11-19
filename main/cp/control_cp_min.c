@@ -469,11 +469,32 @@ void control_cp_min(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       fileForce = fopen("atom-force-cg","w");
       fileEnergy = fopen("total-energy-cg","w");
       fileForceClass = fopen("atom-force-classic","w");
-      fx = (double*)cmalloc(natm_tot*sizeof(double));
-      fy = (double*)cmalloc(natm_tot*sizeof(double));
-      fz = (double*)cmalloc(natm_tot*sizeof(double));
+      //fx = (double*)cmalloc(natm_tot*sizeof(double));
+      //fy = (double*)cmalloc(natm_tot*sizeof(double));
+      //fz = (double*)cmalloc(natm_tot*sizeof(double));
+      fx = &(class->clatoms_pos[1].fx[1]);
+      fy = &(class->clatoms_pos[1].fy[1]);
+      fz = &(class->clatoms_pos[1].fz[1]);
+      for(i=0;i<natm_tot;i++){
+         printf("atom %i %.16lg %.16lg %.16lg\n",i,fx[i],fy[i],fz[i]);
+         //fprintf(fileForce,"atom %i cor %.16lg %.16lg %.16lg Uncor 0 0 0 loc 0 0 0\n",i,fx[i],
+         //        fy[i],fz[i]);
+         fprintf(fileForce,"%.16lg %.16lg %.16lg %.16lg %.16lg %.16lg %.16lg %.16lg %.16lg\n",fx[i],fy[i],fz[i],0.0,0.0,0.0,0.0,0.0,0.0);
+          
+      }
+      fprintf(fileEnergy,"%.16lg\n",general_data->stat_avg.vtot);
+      fclose(fileForce);
+      fclose(fileEnergy);
+      for(i=0;i<natm_tot;i++){
+        fprintf(fileForceClass,"%i %.16lg %.16lg %.16lg\n",i,
+                fxCl[i+1],fyCl[i+1],fzCl[i+1]);
+      }
+      fclose(fileForceClass);
+
+     
     }
     Barrier(comm_states);
+    /*
     if(np_state>1){
       Reduce(&class->clatoms_pos[1].fx[1],fx,natm_tot,MPI_DOUBLE,MPI_SUM,0,comm_states);
       Reduce(&class->clatoms_pos[1].fy[1],fy,natm_tot,MPI_DOUBLE,MPI_SUM,0,comm_states);
@@ -503,7 +524,7 @@ void control_cp_min(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       fclose(fileForceClass);
 
     }
-
+    */
   /*======================================================================*/
   /*  III)Write to Screen                                                 */
 

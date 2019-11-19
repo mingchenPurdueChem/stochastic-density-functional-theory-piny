@@ -69,6 +69,8 @@ void energy_control_initial(CLASS *class, BONDED *bonded,
   double *fx,*fy,*fz;
   double *fxt,*fyt,*fzt;
   double *fxCl,*fyCl,*fzCl;
+  double *fxLocal,*fyLocal,*fzLocal;
+  double *fxNl,*fyNl,*fzNl;
   double *hess_xx,*hess_xy,*hess_xz,*hess_yy,*hess_yz,*hess_zz;
 
   int iperd                       = general_data->cell.iperd;
@@ -171,6 +173,12 @@ void energy_control_initial(CLASS *class, BONDED *bonded,
     fxCl = class->clatoms_pos[ip].fxCl;
     fyCl = class->clatoms_pos[ip].fyCl;
     fzCl = class->clatoms_pos[ip].fzCl;
+    fxLocal = class->clatoms_pos[ip].fxLocal;
+    fyLocal = class->clatoms_pos[ip].fyLocal;
+    fzLocal = class->clatoms_pos[ip].fzLocal;
+    fxNl = class->clatoms_pos[ip].fxNl;
+    fyNl = class->clatoms_pos[ip].fyNl;
+    fzNl = class->clatoms_pos[ip].fzNl;
     for(i=1;i<= natm_tot;i++){
       fx[i] = 0.0;
       fy[i] = 0.0;
@@ -178,6 +186,12 @@ void energy_control_initial(CLASS *class, BONDED *bonded,
       fxCl[i] = 0.0;
       fyCl[i] = 0.0;
       fzCl[i] = 0.0;
+      fxLocal[i] = 0.0;
+      fyLocal[i] = 0.0;
+      fzLocal[i] = 0.0;
+      fxNl[i] = 0.0;
+      fyNl[i] = 0.0;
+      fzNl[i] = 0.0;
     }/*endfor*/
     if( (iver_get==1) && (pi_beads>1)){
       fxt = class->clatoms_pos[ip].fxt;

@@ -1816,7 +1816,7 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
 /*--------------------------------------------------------------------*/
 /*  c) add gradient corrections if necessary                          */
 
-  // printf("before gga v_ks_up[1] %lg\n",v_ks_up[1]);
+   printf("before gga v_ks_up[1] %lg %lg\n",v_ks_up[1],exc);
 
    if(cp_gga==1){
     if(cp_lsda == 0 ){
@@ -1846,6 +1846,8 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
      }/*endif cp_dual_grid_opt*/
     }/* endif cp_lsda */
    }/*endif cp_gga*/
+
+  printf("after gga v_ks_up[1] %lg %lg\n",v_ks_up[1],exc);
 
 /*--------------------------------------------------------------------*/
 /*  d Check for implementation of chosen xc functional (barf if not found)*/
@@ -2092,6 +2094,11 @@ void coef_force_calc_hybrid_threads_force(CPEWALD *cpewald,int nstate,
 /*==========================================================================*/
 /* 2) get v|psi> in g space and store it in zfft                            */
 /*   I) get  v|psi> in real space                                           */
+
+#ifdef REAL_PP_DEBUG  
+    for(i=1;i<=nfft2;i++)v_ks[i] = 0.0;
+#endif
+    
    
     if(pseudoRealFlag==1){
       memcpy(&zfft_tmp[1],&zfft[1],nfft*sizeof(double));
@@ -2105,8 +2112,14 @@ void coef_force_calc_hybrid_threads_force(CPEWALD *cpewald,int nstate,
       */
       if(nlppForceOnly==0)cp_vpsi(zfft,v_ks,nfft);  
       cp->pseudo.pseudoReal.energyCalcFlag = 1;
-      controlEnergyNlppRealThreads(cp,class,general_data,zfft_tmp,zfft,1,
+      if(np_states==1){
+        controlEnergyNlppRealThreads(cp,class,general_data,zfft_tmp,zfft,1,
 				   cp_sclr_fft_pkg3d_sm);
+      }
+      else{
+        controlEnergyNlppRealThreads(cp,class,general_data,zfft_tmp,zfft,1,
+				   cp_sclr_fft_pkg3d_sm);
+      }
       //Ming
       /*
       for(i=1;i<=nfft;i++)zfft_tmp[i] = 0.0;

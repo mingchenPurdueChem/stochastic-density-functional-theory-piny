@@ -1170,6 +1170,9 @@ typedef struct pseudo_real{
   int *gridStIndIm;	    /* Lth: natm_tot					*/
   double gMaxSm,gMaxLg;	    /* Num: small and large g cutoff			*/
   double radCutRatio;	    /* Num: (cutoff we use)/(cutoff of nlpp) usually	*/
+  double kStartSwitch;      /* Num: If you use Roi's way to swith non-local pp  */
+                            /*      k space. You can start at                   */ 
+                            /*      kStartSwitch*gmax_sm                        */
   double dg;		    /* Num: grid spacing in g space			*/
   double dr;		    /* Num: grid spacing in r space			*/
   double *vpsReal0,*vpsReal1,*vpsReal2,*vpsReal3; 
@@ -1294,6 +1297,7 @@ typedef struct pseudo{
                                        chosen as local; Lth: natm_typ */ 
   int *ivps_label;             /* Lst: Type label of e-atm pseudopots;
                                   Lth: natm_typ                       */ 
+  int *iformat;                /* Lst: Pseudopotential format Lth: atm_type */
   int *np_nl;                  /* Lst: # of atms in each  angular 
                                      momentum  channel except GAUSS-HERMITE
                                   Lth:  (n_ang_max+1)                  */

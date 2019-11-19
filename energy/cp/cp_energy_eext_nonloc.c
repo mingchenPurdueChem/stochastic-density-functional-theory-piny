@@ -25,7 +25,7 @@
 #include "../proto_defs/proto_energy_ctrl_entry.h"
 
 #define HESS_OFF
-#define DEBUG_GJM_OFF
+//#define DEBUG_GJM_OFF
 
 
 /*==========================================================================*/
@@ -1250,7 +1250,8 @@ void getnl_pot_pv_fatm(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 
       i_shift = l*npart;
       for(ipart=np_nl_rad_str[lp1][jrad];ipart<=np_nl[lp1];ipart++){
-        vnorm_now[ipart] = vnorm[ip_nl_rev[(ipart+i_shift)]]*rvol_cp; 
+        vnorm_now[ipart] = vnorm[ip_nl_rev[(ipart+i_shift)]]*rvol_cp;
+        //printf("vnorm_now %lg %lg %i %i\n",vnorm_now[ipart],rvol_cp,ipart,ip_nl_rev[(ipart+i_shift)]);
       }/*endfor*/
 
 /*-----------------------------------------------------------------------*/
@@ -2033,6 +2034,7 @@ void control_nlfcoef(CLATOMS_INFO *clatoms_info,
       lp1 = l+1;
       sgn_l = 1.0;
       if(l%2==1)sgn_l = -1.0;
+      //printf("l %i lp1 %i np_nl %i\n",l,lp1,np_nl[lp1]);
       if(np_nl[lp1]>0){
        for(irad=1;irad<=nrad_max_l[lp1];irad++){
 #ifdef DEBUG_GJM_INNER
@@ -2324,11 +2326,14 @@ void get_vpsnorm(double *vnorm_typ,double *vpsnorm,double *vnorm,int *iatm_typ,
   for(itype=1;itype<=natm_typ;itype++){
     ind_ityp = (itype-1)*(n_ang_max+1)*n_rad_max_sq
              + l*n_rad_max_sq + (irad-1)*n_rad_max + jrad;
+    //printf("itype %i ind_itype %i %lg %lg\n",itype,ind_ityp,vpsnorm[ind_ityp],vnorm_typ[itype]);
     vnorm_typ[itype] = vpsnorm[ind_ityp];
+    //printf("itype %i ind_itype %i %lg %lg\n",itype,ind_ityp,vpsnorm[ind_ityp],vnorm_typ[itype]);
   }/*endfor*/
 
   for(ipart=1;ipart<=npart;ipart++){
     vnorm[ipart] = vnorm_typ[iatm_typ[ipart]];
+    //printf("iiiiiipart %i vnorm %lg\n",ipart,vnorm[ipart]);
   }/*endfor*/
 
 /*------------------------------------------------------------------------*/
@@ -2819,12 +2824,14 @@ void vps_atm_list(PSEUDO *pseudo, CELL *cell, CLATOMS_POS *clatoms_pos,
       ivps_label[iatm_typ[iatm]]==2 || 
       ivps_label[iatm_typ[iatm]]==3 || 
       ivps_label[iatm_typ[iatm]]==5 ){
-        loc_now = loc_opt[iatm_typ[iatm]];
         // BUG! Some KB nlpp may have local s chanel
+        // I'll use n_ang to determine local/non-local
         // If you are a local only pp, then choose local         
+        //loc_now = loc_opt[iatm_typ[iatm]]; 
         //if(loc_now > 0){  
-        if(loc_now > 0){ 
+        if(n_ang[iatm_typ[iatm]] > 0){ 
          np_nonloc_cp_box++;
+         //printf("np_nonloc_cp_box %i\n",np_nonloc_cp_box);
         }/*endif*/
    }/*endif*/
   }/*endfor*/
@@ -2841,7 +2848,7 @@ void vps_atm_list(PSEUDO *pseudo, CELL *cell, CLATOMS_POS *clatoms_pos,
         // BUG! Some KB nlpp may have local s chanel
         // If you are a local only pp, then choose local 
         //if(loc_now > 0){  
-        if(loc_now > 0){
+        if(n_ang[iatm_typ[iatm]] > 0){
          icount++;
          np_nonloc_cp_box_kb++;
          inonloc_index[icount] = iatm;         
@@ -2907,7 +2914,8 @@ void vps_atm_list(PSEUDO *pseudo, CELL *cell, CLATOMS_POS *clatoms_pos,
         loc_now = loc_opt[iatm_typ[iatm]];
 
         //BUG
-        if(loc_now > 0 ){count_np_nonloc_cp_box_kb++;}
+        //if(loc_now > 0 ){count_np_nonloc_cp_box_kb++;}
+        if(n_ang[iatm_typ[iatm]] > 0 ){count_np_nonloc_cp_box_kb++;}
 
         for(iang=1;iang<=loc_now;iang++){
           np_nl[iang]  += 1;    

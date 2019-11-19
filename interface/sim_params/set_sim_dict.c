@@ -324,7 +324,7 @@ void set_sim_dict_cp(int *num_dict,DICT_WORD *dict[])
 /*========================================================================*/
 /*  0) Malloc the dictionary                                              */ 
 
-  *num_dict = 70;
+  *num_dict = 71;
   *dict = (DICT_WORD *)cmalloc(*num_dict*sizeof(DICT_WORD))-1;
 
 /*========================================================================*/
@@ -696,6 +696,7 @@ void set_sim_dict_cp(int *num_dict,DICT_WORD *dict[])
         strcpy((*dict)[66].error_mes,"(real space cutoff)/(radius that nlpp decay to 0)");
         strcpy((*dict)[66].keyword,"nlpp_real_cut_ratio");
         strcpy((*dict)[66].keyarg,"1.4");
+
   /*-----------------------------------------------------------------------*/
   /* 67)\cp_thread_option{#} */
        strcpy((*dict)[67].error_mes,"state or force");
@@ -719,6 +720,12 @@ void set_sim_dict_cp(int *num_dict,DICT_WORD *dict[])
        strcpy((*dict)[70].error_mes,"A real number, negative means 4*Ecut of wave function(default)");
        strcpy((*dict)[70].keyword,"cp_rho_ecut");
        strcpy((*dict)[70].keyarg,"-1.0");
+
+  /*-----------------------------------------------------------------------*/
+  /* 71)\nlpp_k_switch_start_ratio{#} */
+       strcpy((*dict)[71].error_mes,"(k space switch start)/(wave function kmax)");
+       strcpy((*dict)[71].keyword,"nlpp_k_switch_start_ratio");
+       strcpy((*dict)[71].keyarg,"0.75");
   
 /*========================================================================*/
 /*------------------------------------------------------------------------*/

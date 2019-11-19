@@ -148,6 +148,7 @@ void control_vps_params(PSEUDO *pseudo,CELL *cell,
    pseudo->n_ang      = (int *) cmalloc(natm_typ_mall*sizeof(int))-1;
    pseudo->loc_opt    = (int *) cmalloc(natm_typ_mall*sizeof(int))-1;
    pseudo->ivps_label = (int *) cmalloc(natm_typ_mall*sizeof(int))-1;
+   pseudo->iformat    = (int *) cmalloc(natm_typ_mall*sizeof(int))-1;
    pseudo->rcut_nl    = (double *) cmalloc(natm_typ_mall*sizeof(double))-1;
    pseudo->q_pseud    = (double *) cmalloc(natm_typ_mall*sizeof(double))-1;
 
@@ -191,7 +192,7 @@ void control_vps_params(PSEUDO *pseudo,CELL *cell,
          if(ifound==1){
             set_vps_params(vps_dict,
                            filename_parse->user_vps_name,fun_key,
-                           &(pseudo->ivps_label[i]),filename,
+                           &(pseudo->ivps_label[i]),&(pseudo->iformat[i]),filename,
                            &(pseudo->loc_opt[i]),&(pseudo->n_ang[i]),
                            &(pseudo->rcut_nl[i]),&ngh_now,
                            &(pseudo->nrad_0[i]),
@@ -201,6 +202,7 @@ void control_vps_params(PSEUDO *pseudo,CELL *cell,
                            &(pseudo->nl_filter[i]),
                            &(pseudo->phi0_0[i]),
                            &(pseudo->phi0_1[i]),&(pseudo->phi0_2[i]));
+           printf("11111111111111 %i\n",pseudo->iformat[i]);
          }/*endif*/
      }/*endif*/
 /*--------------------------------------------------------------------------*/
@@ -213,7 +215,7 @@ void control_vps_params(PSEUDO *pseudo,CELL *cell,
          if(ifound==1){
             set_vps_params(vps_dict,
                            filename_parse->def_vps_name,fun_key,
-                           &(pseudo->ivps_label[i]),filename,
+                           &(pseudo->ivps_label[i]),&(pseudo->iformat[i]),filename,
                            &(pseudo->loc_opt[i]),&(pseudo->n_ang[i]),
                            &(pseudo->rcut_nl[i]),&ngh_now,
                            &(pseudo->nrad_0[i]),
@@ -223,7 +225,7 @@ void control_vps_params(PSEUDO *pseudo,CELL *cell,
                            &(pseudo->nl_filter[i]),
                            &(pseudo->phi0_0[i]),
                            &(pseudo->phi0_1[i]),&(pseudo->phi0_2[i]));
-
+           printf("11111111111111 %i\n",pseudo->iformat[i]);
          }/*endif*/
       }/*endif*/
 /*--------------------------------------------------------------------------*/
@@ -279,6 +281,7 @@ void control_vps_params(PSEUDO *pseudo,CELL *cell,
 
  if(num_proc>1){
     Bcast(&(pseudo->ivps_label[1]),natm_typ,MPI_INT,0,comm);
+    Bcast(&(pseudo->iformat[1]),natm_typ,MPI_INT,0,comm);
     Bcast(&(pseudo->loc_opt[1]),natm_typ,MPI_INT,0,comm);
     Bcast(&(pseudo->n_ang[1]),natm_typ,MPI_INT,0,comm);
     Bcast(&(pseudo->rcut_nl[1]),natm_typ,MPI_DOUBLE,0,comm);
@@ -456,7 +459,7 @@ void control_vps_params(PSEUDO *pseudo,CELL *cell,
        if(myid==0){strcpy(filename,vps_file[i].name);}
        if(cp_ptens_calc == 1){
          make_vps_splin(filename,pseudo->loc_opt[i],pseudo->n_ang[i],
-                         pseudo->ivps_label[i],
+                         pseudo->ivps_label[i],pseudo->iformat[i],
                          pseudo->nsplin_g,pseudo->dg_spl,
                          pseudo->gmin_spl,
                          pseudo->gmax_spl,pseudo->gmin_true,
@@ -476,7 +479,7 @@ void control_vps_params(PSEUDO *pseudo,CELL *cell,
                          &(pseudo->ngh),pseudo->rgh,pseudo->wgh);
        }else{
          make_vps_splin(filename,pseudo->loc_opt[i],pseudo->n_ang[i],
-                         pseudo->ivps_label[i],
+                         pseudo->ivps_label[i],pseudo->iformat[i],
                          pseudo->nsplin_g,pseudo->dg_spl,
                          pseudo->gmin_spl,
                          pseudo->gmax_spl,pseudo->gmin_true,
@@ -594,7 +597,7 @@ void control_vps_params(PSEUDO *pseudo,CELL *cell,
 /*==========================================================================*/
 
 void set_vps_params(DICT_WORD vps_dict[],char *filename,char *fun_key,
-                    int *ivps_label,char *vps_file,
+                    int *ivps_label,int *iformat,char *vps_file,
                     int *loc_opt,int *n_ang,double *rcut_nl,int *pngh,
                     int *nrad_0, int *nrad_1, int *nrad_2, int *nrad_3,
                     double *nl_alp, double *nl_beta, int *nl_filter,
@@ -758,6 +761,12 @@ double tmp;
                  keyarg_barf(vps_dict,filename,fun_key,index);}
 
 /*--------------------------------------------------------------------------*/
+/*  7) pseudopotential format                                     */      
+
+       if(strcasecmp(vps_dict[18].keyarg,"pot_wf") == 0){(*iformat) = 0;}
+       if(strcasecmp(vps_dict[18].keyarg,"projector") == 0){(*iformat) = 1;}
+
+/*--------------------------------------------------------------------------*/
 /* Set Radial channels if not Goedecker */
 
     if(*ivps_label != 5){
@@ -782,7 +791,7 @@ double tmp;
 /*==========================================================================*/
 
 void make_vps_splin(char *vps_file,int loc_opt,int n_ang,
-                    int ivps_label,int nsplin_g,double dg_spl,
+                    int ivps_label,int iformat,int nsplin_g,double dg_spl,
                     double gmin_spl,double gmax_spl,double gmin_true,
                     double *vps0,double *vps1,double *vps2,double *vps3,
                     double *dvps0,double *dvps1,double *dvps2,double *dvps3,
@@ -865,19 +874,18 @@ void make_vps_splin(char *vps_file,int loc_opt,int n_ang,
 /*==========================================================================*/
 /*  IV) Set up a local pseudo potential                                     */
 
-   if(ivps_label <= 4) {
-
-     if(myid==0){
-       if(fscanf(fp_vps_file,"%d %lf %d\n",&nr,&rmax,&n_ang_now) != 3) 
+  if(ivps_label <= 4) {
+    if(myid==0){
+      if(fscanf(fp_vps_file,"%d %lf %d\n",&nr,&rmax,&n_ang_now) != 3) 
                       {vps_read_error(vps_file);}
-       if(fscanf(fp_vps_file,"%lf %lf %lf %lf\n",
+      if(fscanf(fp_vps_file,"%lf %lf %lf %lf\n",
                               &z_1,&alpha_1,&z_2,&alpha_2) != 4) 
                       {vps_read_error(vps_file);}
-       if(fscanf(fp_vps_file,"%lf %lf\n",&zpol,&gamma) != 2)      
+      if(fscanf(fp_vps_file,"%lf %lf\n",&zpol,&gamma) != 2)      
                  {vps_read_error(vps_file);}
-     }/*endif*/
+    }/*endif*/
 
-     if(num_proc>1){
+    if(num_proc>1){
       Bcast(&(nr),1,MPI_INT,0,comm);
       Bcast(&(rmax),1,MPI_DOUBLE,0,comm);
       Bcast(&(n_ang_now),1,MPI_INT,0,comm);
@@ -887,9 +895,19 @@ void make_vps_splin(char *vps_file,int loc_opt,int n_ang,
       Bcast(&(alpha_2),1,MPI_DOUBLE,0,comm);
       Bcast(&(zpol),1,MPI_DOUBLE,0,comm);
       Bcast(&(gamma),1,MPI_DOUBLE,0,comm);
-     }/*endif*/
+    }/*endif*/
 
-   }/*endif ivps_label */
+    if(iformat==1){
+      if(myid==0){
+        for(irad=1;irad<=(n_ang_now+1)*n_rad_max_sq;irad++){
+          fscanf(fp_vps_file,"%lg",&(vpsnorm[irad]));
+        }
+      }
+      if(num_proc>1){
+        Bcast(&(vpsnorm[1]),n_ang_now+1,MPI_DOUBLE,0,comm);
+      }
+    }
+  }/*endif ivps_label */
 /*--------------------------------------*/
 /* ivps_label == 5  GOEDECKER Potential */
 
@@ -1154,19 +1172,25 @@ void make_vps_splin(char *vps_file,int loc_opt,int n_ang,
                     {vps_read_error(vps_file);}
          if(fscanf(fp_vps_file,"%lf %lf\n",&zpol,&gamma) != 2) 
                     {vps_read_error(vps_file);}
+         if(iformat==1){
+           for(irad=1;irad<=n_ang_now+1;irad++){
+             fscanf(fp_vps_file,"%lg",&dummy);
+           }
+         }
        }/*endif*/
 /*--------------------------------------------------------------------------*/
 /*    B) Spline projection operator                                         */
  
-       vpsnorm[(loc_opt*n_rad_max_sq + 1)] = 0.0;
+       if(iformat==0) vpsnorm[(loc_opt*n_rad_max_sq + 1)] = 0.0;
        for(iang = 1; iang <= n_ang + 1; iang++) {
          amat = 0.0;
          if(myid==0){
           for(ir=1; ir <= nr; ir++) {
            if(fscanf(fp_vps_file,"%lf %lf\n",&v_now,&rphi_now) != 2) 
                        {vps_read_error(vps_file); }
-            v_rphi[ir] = (v_now-v_loc[ir])*rphi_now;
-	    //printf("111111111 diff %i %.16lg\n",ir,v_now-v_loc[ir]);
+            if(iformat==0)v_rphi[ir] = (v_now-v_loc[ir])*rphi_now;
+            else v_rphi[ir] = v_now;
+	    //printf("111111111 diff %i %.16lg\n",ir,v_rphi[ir]);
             amat += rphi_now*v_rphi[ir]*dr;
           } /* endfor */
          }/*endif*/
@@ -1175,11 +1199,12 @@ void make_vps_splin(char *vps_file,int loc_opt,int n_ang,
           Bcast(&(amat),1,MPI_DOUBLE,0,comm);
          }/*endif*/
          if(iang != loc_opt+1) {
-	   //printf("111111111 vpsnorm %lg\n",amat);
-           vpsnorm[((iang-1)*n_rad_max_sq+1)] = (1.0/amat);
+           if(iformat==0)vpsnorm[((iang-1)*n_rad_max_sq+1)] = (1.0/amat);
+           printf("111111111 vpsnorm %lg\n",vpsnorm[((iang-1)*n_rad_max_sq+1)]);
            ishift_now = (iang-1)*n_rad_max*nsplin_g;
            ilong = 0;
            iang_now = iang-1;
+           printf("nnnnnnnnnsplin_g %i %lg\n",nsplin_g,g[nsplin_g]);
            if(cp_ptens_calc == 1){
             slow_bess_vps(v_rphi,nr,dr,r,&(vps0[ishift_now]),
                           &(dvps0[ishift_now]),
@@ -1196,11 +1221,11 @@ void make_vps_splin(char *vps_file,int loc_opt,int n_ang,
                           alpha_conv_dual);
            }/* endif */
 	   //debug
-	   /*
-	   for(i=1;i <= nsplin_g;i++){
-	     printf("bbbbbenchmark %.8lg %.8lg\n",g[i],vps0[ishift_now+i]);
-	   }
-	   */
+	   
+	   //for(i=1;i <= nsplin_g;i++){
+	   //  printf("bbbbbenchmark %i %.8lg %.8lg\n",iang,g[i],vps0[ishift_now+i]);
+	   //}
+	   
            spline_fit(&(vps0[ishift_now]),&(vps1[ishift_now]),
                       &(vps2[ishift_now]),&(vps3[ishift_now]),g,nsplin_g);
 
@@ -1365,6 +1390,7 @@ void make_vps_splin(char *vps_file,int loc_opt,int n_ang,
         ishift_now = (iang-1)*n_rad_max*nsplin_g + (irad-1)*nsplin_g;
         ilong = 0;
         iang_now = iang-1;
+        printf("nnnnnnnnnsplin_g %i %lg\n",nsplin_g,g[nsplin_g]);
         if(cp_ptens_calc == 1){
           slow_bess_vps(v_rphi,nr,dr,r,&(vps0[ishift_now]),
                         &(dvps0[ishift_now]),

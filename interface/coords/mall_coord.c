@@ -91,6 +91,12 @@ void mall_coord(CLASS *class,GENERAL_DATA *general_data)
   (class->clatoms_pos)[i].fxCl  = (double *)cmalloc(natm_mall*sizeof(double))-1;
   (class->clatoms_pos)[i].fyCl  = (double *)cmalloc(natm_mall*sizeof(double))-1;
   (class->clatoms_pos)[i].fzCl  = (double *)cmalloc(natm_mall*sizeof(double))-1;
+  (class->clatoms_pos)[i].fxLocal  = (double *)cmalloc(natm_mall*sizeof(double))-1;
+  (class->clatoms_pos)[i].fyLocal  = (double *)cmalloc(natm_mall*sizeof(double))-1;
+  (class->clatoms_pos)[i].fzLocal  = (double *)cmalloc(natm_mall*sizeof(double))-1;
+  (class->clatoms_pos)[i].fxNl  = (double *)cmalloc(natm_mall*sizeof(double))-1;
+  (class->clatoms_pos)[i].fyNl  = (double *)cmalloc(natm_mall*sizeof(double))-1;
+  (class->clatoms_pos)[i].fzNl  = (double *)cmalloc(natm_mall*sizeof(double))-1;
   }/*endfor*/
 
 /*========================================================================*/

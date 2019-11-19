@@ -63,7 +63,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 
   int myidState = commCP->myid_state;
   int numProcStates = commCP->np_states;
-  int iType,iRad,iAng,rGrid,iAtom;
+  int iType,iRad,iAng,rGrid,iAtom,gGrid;
   int smoothOpt	    = pseudoReal->smoothOpt;
   int numAtomType   = atommaps->natm_typ;
   int numAtomTot    = clatoms_info->natm_tot;
@@ -86,6 +86,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   int *nrad_2 = pseudo->nrad_2;
   int *nrad_3 = pseudo->nrad_3;
   int *ivpsLabel = pseudo->ivps_label;
+  int *iformat   = pseudo->iformat;
   int *locOpt = pseudo->loc_opt;
   int *lMap;
   int *isLocal;
@@ -274,6 +275,13 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 	fscanf(fvps,"%lg %lg %lg %lg\n",&z1,&alpha1,&z2,&alpha2);
 	fscanf(fvps,"%lg %lg\n",&zPol,&gamma);
 	//printf("%lg %lg %lg %lg %lg %lg\n",z1,alpha1,z2,alpha2,zPol,gamma);
+        printf("iformat %i\n",iformat[iType+1]);
+        if(iformat[iType+1]==1){
+          for(iAng=0;iAng<=angNow;iAng++){
+            fscanf(fvps,"%lg",&(vpsNormList[countR+iAng]));
+            printf("vpsssssssssssss %lg\n",vpsNormList[countR+iAng]);
+          }
+        }
       }
       if(numProcStates>1){
         //printf("ffffffffffffffffuck %i\n",numR);
@@ -287,6 +295,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
         Bcast(&zPol,1,MPI_DOUBLE,0,commStates);
         Bcast(&gamma,1,MPI_DOUBLE,0,commStates);
         //printf("ffffffffffffffffuck2 %i\n",numR);
+        Bcast(&(vpsNormList[countR+iAng]),angNow+1,MPI_DOUBLE,0,commStates);
       }
       vLoc = (double*)cmalloc((numR)*sizeof(double));
       vNl = (double*)cmalloc((numR*numRadMax[iType])*sizeof(double));
@@ -339,16 +348,20 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
         lMap[countR+iAng] = iAng;
         if(iAng!=locOpt[iType+1]){
           isLocal[countR+iAng] = 0;
-          vpsNormList[countR+iAng] = 0.0;
-          for(rGrid=0;rGrid<numR;rGrid++){
-            vNl[iAng*numR+rGrid] = (vNl[iAng*numR+rGrid]-vLoc[rGrid])*phiNl[iAng*numR+rGrid];
-            vpsNormList[countR+iAng] += vNl[iAng*numR+rGrid]*phiNl[iAng*numR+rGrid];
-            //printf("aaaaaaaaaaaa %lg %lg %lg\n",rGrid*dr,vNl[iAng*numR+rGrid],phiNl[iAng*numR+rGrid]);
-            //printf("1111111 rGridddddd %lg %lg\n",rGrid*dr,vNl[iAng*numR+rGrid]);
-          }//endfor rGrid
-          vpsNormList[countR+iAng] *= dr;
-          //printf("countR %i vpsNormList %lg\n",countR+iAng,vpsNormList[countR+iAng]);
-          vpsNormList[countR+iAng] = 1.0/vpsNormList[countR+iAng];
+          if(iformat[iType+1]==0){
+            vpsNormList[countR+iAng] = 0.0;
+            for(rGrid=0;rGrid<numR;rGrid++){
+              vNl[iAng*numR+rGrid] = (vNl[iAng*numR+rGrid]-vLoc[rGrid])*phiNl[iAng*numR+rGrid];
+              //printf("iiiiAng %i rGrid %i vNl %lg\n",iAng,rGrid,vNl[iAng*numR+rGrid]);
+              vpsNormList[countR+iAng] += vNl[iAng*numR+rGrid]*phiNl[iAng*numR+rGrid];
+              //printf("aaaaaaaaaaaa %lg %lg %lg\n",rGrid*dr,vNl[iAng*numR+rGrid],phiNl[iAng*numR+rGrid]);
+              //printf("1111111 rGridddddd %lg %lg\n",rGrid*dr,vNl[iAng*numR+rGrid]);
+            }//endfor rGrid
+            vpsNormList[countR+iAng] *= dr;
+              //printf("countR %i vpsNormList %lg\n",countR+iAng,vpsNormList[countR+iAng]);
+            vpsNormList[countR+iAng] = 1.0/vpsNormList[countR+iAng];
+          }//endif iformat
+          printf("countR %i iAng %i vpsNormList %lg\n",countR,iAng,vpsNormList[countR+iAng]);
         }//endif iAng
         else{
           isLocal[countR+iAng] = 1;
@@ -403,6 +416,9 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
                           iType,rMax,numR,lMap[countR+iRad]);
             break;
         }//endswitch
+        //for(gGrid=0;gGrid<numGLg;gGrid++){
+        //  printf("sssssssssssssssmoth %i %lg %lg\n",iRad,gGrid*dg,vNlG[(countR+iRad)*numGLg+gGrid]);
+        //}
       }//endif lMap    
     }//endfor iRad
     free(vLoc);
@@ -682,6 +698,41 @@ void nlppSmoothRoi(PSEUDO *pseudo,double *vNl,double *vNlG,
 /*************************************************************************/
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
+
+  PSEUDO_REAL *pseudoReal = &(pseudo->pseudoReal);
+
+  int numGSm = pseudoReal->numGSm;
+  int numGLg = pseudoReal->numGLg;
+  int ig,ir;
+  int numGridRadSmooth = pseudoReal->numGridRadSmooth[iType];
+  
+  double kStartSwitch = pseudoReal->kStartSwitch;
+  double kStart,kEnd;
+  double dg = pseudoReal->dg;
+  double dr = rMax/((double)numR);
+  double k0,sigmak;
+  double *gGrid,*r;
+
+  gGrid = (double*)cmalloc((numGLg)*sizeof(double));
+
+  for(ig=0;ig<numGLg;ig++){
+    gGrid[ig] = ig*dg;
+    vNlG[ig] = 0.0;
+  }
+
+  bessTransform(vNl,numR,dr,l,vNlG,numGLg,gGrid);
+
+  kStart = kStartSwitch*numGSm*dg;
+  kEnd = numGLg*dg;
+  k0 = 0.5*(kStart+kEnd);
+  sigmak = 2.0/(kEnd-kStart);
+  //printf("aaaaaaaaaaaaaaaaaaaaaaaaaaaaa %lg %lg %lg %lg\n",(gGrid[numGSm]-k0)*sigmak,
+  //     (gGrid[numGLg-1]-k0)*sigmak,
+  //     0.5*erfc(2.5*(gGrid[numGSm]-k0)*sigmak),0.5*erfc(2.5*(gGrid[numGLg-1]-k0)*sigmak));
+  for(ig=0;ig<numGLg;ig++)vNlG[ig] *= 0.5*erfc(2.5*(gGrid[ig]-k0)*sigmak);
+
+  for(ig=0;ig<numGLg;ig++)vNlG[ig] *= gGrid[ig];
+
 /*--------------------------------------------------------------------------*/
   }/*end routine*/
 /*==========================================================================*/
@@ -1183,6 +1234,7 @@ void interpReal(PSEUDO *pseudo,int numAtomType,int *lMap)
                       &vNlSmoothTest[iRad*(numInterpGrid-1)],numInterpGrid-1,&rListTest[0]);
         bessTransformGrad(&vNlG[iRad*numGLg],numGLg,dg,lMap[iRad],
                       &dvNlSmoothTest[iRad*(numInterpGrid-1)],numInterpGrid-1,&rListTest[0]);
+        
         /*
         for(rGrid=0;rGrid<numInterpGrid;rGrid++){
           printf("222222222 iRad %i rGriddddddd %lg %lg %lg\n",iRad,rGrid*dr,rGrid*dr*vNlSmooth[iRad*numInterpGrid+rGrid],dvNlSmooth[iRad*numInterpGrid+rGrid]);
@@ -1190,6 +1242,8 @@ void interpReal(PSEUDO *pseudo,int numAtomType,int *lMap)
         */
       }//endif isLocal
     }
+    //fflush(stdout);
+    //exit(0);
     for(rGrid=0;rGrid<numRadTot*numInterpGrid;rGrid++){
       vNlSmooth[rGrid] *= pre;
       dvNlSmooth[rGrid] *= pre;
@@ -1202,8 +1256,10 @@ void interpReal(PSEUDO *pseudo,int numAtomType,int *lMap)
     // spline
     //pseudoReal->numInterpGrid = numInterpGrid;
     //rList = (double*)cmalloc((numInterpGrid+1)*sizeof(double));
+    printf("111111111111111 %i\n",numInterpGrid*numRadTot+1);
     de = (double*)realloc(de,(numInterpGrid*numRadTot+1)*sizeof(double));
     vpsReal0 = (double*)realloc(vpsReal0,(numInterpGrid*numRadTot+1)*sizeof(double));
+    printf("%p\n",vpsReal0);
     vpsReal1 = (double*)realloc(vpsReal1,(numInterpGrid*numRadTot+1)*sizeof(double));
     vpsReal2 = (double*)realloc(vpsReal2,(numInterpGrid*numRadTot+1)*sizeof(double));
     vpsReal3 = (double*)realloc(vpsReal3,(numInterpGrid*numRadTot+1)*sizeof(double));
@@ -1223,6 +1279,7 @@ void interpReal(PSEUDO *pseudo,int numAtomType,int *lMap)
       vpsDevReal2[rGrid] = 0.0;
       vpsDevReal3[rGrid] = 0.0;
     }
+    printf("%p\n",vpsReal0);
 
     //for(rGrid=0;rGrid<numInterpGrid;rGrid++)rList[rGrid+1] = rGrid*dr;
     memcpy(&vpsReal0[1],&vNlSmooth[0],numInterpGrid*numRadTot*sizeof(double));
@@ -1236,6 +1293,9 @@ void interpReal(PSEUDO *pseudo,int numAtomType,int *lMap)
                                 &(de[gridShift]),numInterpGrid);
       }//endif isLocal
     }//endfor iRad
+
+    printf("%p\n",vpsReal0);
+
     memcpy(&vpsDevReal0[1],&dvNlSmooth[0],numInterpGrid*numRadTot*sizeof(double));
     memcpy(&de[1],&ddvNlSmooth[0],numInterpGrid*numRadTot*sizeof(double));
     for(iRad=0;iRad<numRadTot;iRad++){
@@ -1248,8 +1308,11 @@ void interpReal(PSEUDO *pseudo,int numAtomType,int *lMap)
     }//endfor iRad
     // test middle point at each interval
 
+    printf("%p\n",vpsReal0);
+
     countBadSpline = 0;
     //double diffMax = 0.0;
+    /*
     for(iRad=0;iRad<numRadTot;iRad++){
       if(isLocal[iRad]==0){
         interpGridSt = iRad*numInterpGrid;
@@ -1264,26 +1327,40 @@ void interpReal(PSEUDO *pseudo,int numAtomType,int *lMap)
           pseudoDevTest = ((vpsDevReal3[interpInd]*h+vpsDevReal2[interpInd])*h+
                               vpsDevReal1[interpInd])*h+vpsDevReal0[interpInd];
           //printf("111111 %lg %lg %lg\n",rTest,pseudoTest,vNlSmoothTest[iRad*(numInterpGrid-1)+rGrid]);
-          diff = pseudoTest-vNlSmoothTest[iRad*(numInterpGrid-1)+rGrid];
-          if(diff*diff>1.0e-10&&rGrid*dr>1.0e-5){
-            countBadSpline += 1;
-            //printf("111111 %lg %.8lg %.8lg\n",rTest,pseudoTest,vNlSmoothTest[iRad*(numInterpGrid-1)+rGrid]);
+          diff = fabs(pseudoTest-vNlSmoothTest[iRad*(numInterpGrid-1)+rGrid]);
+          if(diff<=1.0){
+            if(diff*diff>1.0e-10&&rGrid*dr>1.0e-5){
+              countBadSpline += 1;
+              //printf("111111 %lg %.8lg %.8lg\n",rTest,pseudoTest,vNlSmoothTest[iRad*(numInterpGrid-1)+rGrid]);
+            }//endif diff^2
+          }//endif diff
+          else{
+            if(diff*diff>1.0e-10*pseudoTest*pseudoTest&&rGrid*dr>1.0e-5){
+              countBadSpline += 1;
+              //printf("111111 %lg %.8lg %.8lg\n",rTest,pseudoTest,vNlSmoothTest[iRad*(numInterpGrid-1)+rGrid]);             
+            }//endif diff^2
+          }//endif diff
+          diff = fabs(pseudoDevTest-dvNlSmoothTest[iRad*(numInterpGrid-1)+rGrid]);
+          if(diff<=1.0){
+            if(diff*diff>1.0e-8&&rGrid*dr>1.0e-5){
+              countBadSpline += 1;
+              //printf("222222 %lg %.8lg %.8lg\n",rTest,pseudoDevTest,dvNlSmoothTest[iRad*(numInterpGrid-1)+rGrid]);
+            }
           }
-          diff = pseudoDevTest-dvNlSmoothTest[iRad*(numInterpGrid-1)+rGrid];
-          if(diff*diff>1.0e-10&&rGrid*dr>1.0e-5){
-            countBadSpline += 1;
-            //printf("111111 %lg %.8lg %.8lg\n",rTest,pseudoDevTest,dvNlSmoothTest[iRad*(numInterpGrid-1)+rGrid]);
-          }
+          else{
+            if(diff*diff>1.0e-10*pseudoTest*pseudoTest&&rGrid*dr>1.0e-5){
+              countBadSpline += 1;
+              //printf("111111 %lg %.8lg %.8lg\n",rTest,pseudoTest,vNlSmoothTest[iRad*(numInterpGrid-1)+rGrid]);
+            }//endif diff^2
+          }//endif diff
           //if(fabs(diff)>diffMax)diffMax = fabs(diff);
         }//endfor rGrid
       }//endif isLocal
     }//endfor iRad
     printf("countBadSpline %i\n",countBadSpline);
-    /*
-    printf("countBadSpline %i numInterpGrid %i diffMax %lg\n",countBadSpline,numInterpGrid,diffMax);
-    fflush(stdout);
-    exit(0);
-    */
+    //printf("countBadSpline %i numInterpGrid %i diffMax %lg\n",countBadSpline,numInterpGrid,diffMax);
+    //fflush(stdout);
+    //exit(0);
 
     // calculate flag
     if(countBadSpline>0){
@@ -1291,7 +1368,10 @@ void interpReal(PSEUDO *pseudo,int numAtomType,int *lMap)
       //printf("New number of interpolation point for rational %i\n",numInterpGrid);
       dr = rMax/((double)(numInterpGrid-1));
     }
+    */
   }//endwhile
+
+    printf("%p\n",vpsReal0);
 
   pseudoReal->numInterpGrid = numInterpGrid;
   pseudoReal->dr = dr;
@@ -1303,6 +1383,9 @@ void interpReal(PSEUDO *pseudo,int numAtomType,int *lMap)
   pseudoReal->vpsDevReal1 = (double*)cmalloc((numInterpGrid*numRadTot+1)*sizeof(double));
   pseudoReal->vpsDevReal2 = (double*)cmalloc((numInterpGrid*numRadTot+1)*sizeof(double));
   pseudoReal->vpsDevReal3 = (double*)cmalloc((numInterpGrid*numRadTot+1)*sizeof(double));
+
+    printf("%p\n",vpsReal0);
+
 
   memcpy(&pseudoReal->vpsReal0[1],&vpsReal0[1],numInterpGrid*numRadTot*sizeof(double));
   memcpy(&pseudoReal->vpsReal1[1],&vpsReal1[1],numInterpGrid*numRadTot*sizeof(double));

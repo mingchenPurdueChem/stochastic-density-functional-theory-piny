@@ -7,7 +7,7 @@ void set_potvps_dict(DICT_WORD *[],int *, int );
 
 /* control_vps_params.c  */
 
-void set_vps_params(DICT_WORD [],char *,char *, int *,char *,
+void set_vps_params(DICT_WORD [],char *,char *, int *,int *,char *,
                     int *,int *,double *,int *, 
                     int *, int *, int *, int *,
                     double *, double *, int *,
@@ -15,7 +15,7 @@ void set_vps_params(DICT_WORD [],char *,char *, int *,char *,
 
 
 void make_vps_splin(char *,int ,int ,
-		    int ,int ,double ,
+		    int ,int ,int ,double ,
 		    double ,double ,double ,
                     double *,double *,double *,double *,
                     double *,double *,double *,double *,double *,

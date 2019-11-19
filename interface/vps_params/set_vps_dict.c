@@ -33,7 +33,7 @@ int i;
 /*==========================================================================*/
 /* 0) Malloc the dictionary */
  if(ifirst==1){
-  *num_vps_dict=17;
+  *num_vps_dict=18;
   *vps_dict    = (DICT_WORD *)cmalloc(*num_vps_dict*sizeof(DICT_WORD))-1;  
  /*endif*/}
 /*==========================================================================*/
@@ -135,15 +135,19 @@ int i;
   strcpy((*vps_dict)[17].keyarg,"1.0");
   strcpy((*vps_dict)[17].error_mes,"a number > 0");
 
+/*--------------------------------------------------------------------------*/
+/*  18) /vps_format{} */
+  // traditional PINY uses pot_wf type 
+  // For some cases you may want to directly use projectors in UPF
+  // ONLY WORK FOR KB NOW
+  strcpy((*vps_dict)[18].keyword,"vps_format");
+  strcpy((*vps_dict)[18].keyarg,"pot_wf");
+  strcpy((*vps_dict)[18].error_mes,"pot_wf or projector");
+
+
 /*--------------------------------------------------------------------------*/ 
 /*end routine*/}
 /*==========================================================================*/
-
-
-
-
-
-
 
 
 

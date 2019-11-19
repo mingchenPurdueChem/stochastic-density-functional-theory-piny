@@ -1094,6 +1094,10 @@ int iii;
   sscanf(dict[70].keyarg,"%lg",&real_key_arg);
   cp->cpewald.eCutoffRho = real_key_arg;
 
+  /*-----------------------------------------------------------------------*/
+  /* 71)\nlpp_k_switch_start_ratio{#} */
+  sscanf(dict[71].keyarg,"%lg",&real_key_arg);
+  cp->pseudo.pseudoReal.kStartSwitch = real_key_arg;
 
 /*========================================================================*/
     }/*end routine*/ 

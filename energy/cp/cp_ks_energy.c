@@ -233,6 +233,15 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
   double *x                 = clatoms_pos->x;
   double *y                 = clatoms_pos->y;
   double *z                 = clatoms_pos->z;
+  double *fx                = clatoms_pos->fx;
+  double *fy                = clatoms_pos->fy;
+  double *fz                = clatoms_pos->fz;
+  double *fxLocal           = clatoms_pos->fxLocal;
+  double *fyLocal           = clatoms_pos->fyLocal;
+  double *fzLocal           = clatoms_pos->fzLocal;
+  double *fxNl              = clatoms_pos->fxNl;
+  double *fyNl              = clatoms_pos->fyNl;
+  double *fzNl              = clatoms_pos->fzNl;
  
   double integral,int_tmp;
   int   nfft_proc        =    cp->cp_para_fft_pkg3d_lg.nfft_proc;
@@ -585,15 +594,27 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
                        &(cp->cp_para_fft_pkg3d_lg));
 
   //If needed, calculate the real space nlpp wave function
-  if(pseudoRealFlag==1&&pseudoWfCalcFlag==1){
-    initRealNlppWf(cp,class,general_data);
-    //printf("1111111 forceCalcFlag %i\n",forceCalcFlag);
-    /*
-    if(forceCalcFlag==1){
-      calcPseudoWfDev(cp,class,general_data);
+  if(pseudoRealFlag==1){
+    if(np_states>1){
+      memcpy(&fxLocal[1],&fx[1],natm_tot*sizeof(double));
+      memcpy(&fyLocal[1],&fy[1],natm_tot*sizeof(double));
+      memcpy(&fzLocal[1],&fz[1],natm_tot*sizeof(double));
+      for(i=1;i<=natm_tot;i++){
+        fx[i] = 0.0;
+        fy[i] = 0.0;
+        fz[i] = 0.0;
+      }
     }
-    */
-    cp->pseudo.pseudoReal.pseudoWfCalcFlag = 0;
+    if(pseudoWfCalcFlag==1){
+      initRealNlppWf(cp,class,general_data);
+      //printf("1111111 forceCalcFlag %i\n",forceCalcFlag);
+      /*
+      if(forceCalcFlag==1){
+        calcPseudoWfDev(cp,class,general_data);
+      }
+      */
+      cp->pseudo.pseudoReal.pseudoWfCalcFlag = 0;
+    }
   }
   
 #ifdef TIME_CP
@@ -628,6 +649,18 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
                             &(cp->cp_para_fft_pkg3d_sm),
                             cp_sclr_fft_pkg3d_sm,
                             cp_dual_grid_opt_on,cp,class,general_data);
+
+  if(pseudoRealFlag==1){
+    if(np_states>1){
+      reduce_cp_atm_forc(natm_tot,fx,fy,fz,fxNl,fyNl,fzNl,
+                       comm_states,myid_state);      
+      for(i=1;i<=natm_tot;i++){
+        fx[i] += fxLocal[i];
+        fy[i] += fyLocal[i];
+        fz[i] += fzLocal[i];
+      }
+    }
+  }
   
   // We will try to construct and diag ks_mat. Then try to rotate the MO to eigenfunctions
   //test ksmat

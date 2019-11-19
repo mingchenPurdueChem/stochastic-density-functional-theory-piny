@@ -134,7 +134,7 @@ void comm_pseudo(PSEUDO *pseudo,MPI_Comm world,int myid)
     Bcast(&(pseudo->pseudoReal.pseudoRealFlag),1,MPI_INT,0,world);
     Bcast(&(pseudo->pseudoReal.smoothOpt),1,MPI_INT,0,world);
     Bcast(&(pseudo->pseudoReal.radCutRatio),1,MPI_DOUBLE,0,world);
-
+    Bcast(&(pseudo->pseudoReal.kStartSwitch),1,MPI_DOUBLE,0,world);
     Barrier(world);
 
 /*------------------------------------------------------------------------*/

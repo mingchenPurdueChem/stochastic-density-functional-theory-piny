@@ -84,8 +84,8 @@ typedef char LINE[MAXLINE];    /* Chr: a line; Lth: MAXLINE           */
 #endif
 #define BOHR (.529177)
 /* #define BOHR (.529177724924) */
-#define BOLTZ 315777.0
-/* #define BOLTZ (315773.218) */
+//#define BOLTZ 315777.0
+#define BOLTZ 315775.0248 
 #define KCAL 627.50921
 #define EV 27.211396
 #define PROT_MASS 1822.8885

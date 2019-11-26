@@ -173,14 +173,15 @@ void genStoOrbitalInterp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       }
       int iScf = stodftInfo->iScf;
       if(iScf>1){ //Not the first SCF step
-	double eigValMin = stodftInfo->eigValMin;
-	double eigValLUMO = stodftInfo->eigValLUMO;
+        int numStatePrintUp = stodftInfo->numStatePrintUp;
+	double eigValMin = stodftCoefPos->energyLevel[0];
+	double eigValMax = stodftCoefPos->energyLevel[numStatePrintUp-1];
 	if(myidState==0){
 	  printf("eigValMin %lg\n",eigValMin);
-	  printf("eigValLUMO %lg\n",eigValLUMO);  
+	  printf("eigValMax %lg\n",eigValMax);  
 	}
-	stodftInfo->gapInit = eigValLUMO-eigValMin;
-	stodftInfo->chemPotInit = 0.5*(eigValLUMO+eigValMin);
+	stodftInfo->gapInit = eigValMax-eigValMin;
+	stodftInfo->chemPotInit = 0.5*(eigValMax+eigValMin);
 	genChemPotInterpPoints(stodftInfo,stodftCoefPos);
       }
     }

@@ -781,6 +781,7 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     if(myidState==0){
       printf("**The master process spend %lgs in this SCF step.\n",timeEnd-timeStart);
       printf("--------------------------------------------------------\n");
+      printf("Energy difference is %.16lg Hartree\n",energyDiff);
       printf("Finish SCF Step %i\n",iScf);
       printf("********************************************************\n");
       printf("\n");
@@ -854,6 +855,7 @@ void scfStodftFilterDiag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   CPEWALD *cpewald              = &(cp->cpewald);
   CPSCR *cpscr                  = &(cp->cpscr);
   PSEUDO *pseudo                = &(cp->pseudo);
+  PSEUDO_REAL *pseudoReal	= &(pseudo->pseudoReal);
   COMMUNICATE *communicate      = &(cp->communicate);
 
   FOR_SCR      *for_scr         = &(class->for_scr);
@@ -868,6 +870,7 @@ void scfStodftFilterDiag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int numChemPot	= stodftInfo->numChemPot;
   int cpLsda		= cpopts->cp_lsda;
   int cpParaOpt		= cpopts->cp_para_opt;
+  int pseudoRealFlag	= pseudoReal->pseudoRealFlag;
 
   int checkPerdSize	    = cpopts->icheck_perd_size;
   int checkDualSize	    = cpopts->icheck_dual_size;
@@ -887,6 +890,7 @@ void scfStodftFilterDiag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int numCoeff		= cpcoeffs_info->ncoef;
   int numCoeffUpTotal = numStateUp*numCoeff;
   int numCoeffDnTotal = numStateDn*numCoeff;
+  int scfStopFlag = 0;
   MPI_Comm commStates   =    communicate->comm_states;
 
   int *pcoefFormUp	     = &(cpcoeffs_pos->icoef_form_up);
@@ -898,10 +902,11 @@ void scfStodftFilterDiag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int *pforceCoefFormDn              = &(cpcoeffs_pos->icoef_form_dn);
   int *pforceCoefOrthDn              = &(cpcoeffs_pos->icoef_orth_dn);
 
+  double numElecTrue = stodftInfo->numElecTrue;
+  double tolEdgeDist   = cpopts->tol_edge_dist;
+  double energyDiff    = -1.0;
+  double energyTol     = stodftInfo->energyTol*numElecTrue;
 
-  double tolEdgeDist	    = cpopts->tol_edge_dist;
-  double energyDiff	= -1.0;
-  double energyTol	= 1.0;
 
   double *coeffReUp        = cpcoeffs_pos->cre_up;
   double *coeffImUp        = cpcoeffs_pos->cim_up;
@@ -969,6 +974,13 @@ void scfStodftFilterDiag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   if(myidState==0)printf("**Calculating Initial Kohn-Sham Potential...\n");
   calcLocalPseudoScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
   calcKSPot(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+  if(pseudoRealFlag==1){
+    if(myidState==0)printf("**Calculating Real Space Non-local Pseudopotential...\n");
+    pseudoReal->forceCalcFlag = 1;
+    initRealNlppWf(cp,class,general_data);
+    allocRealNl(cp,class);
+    pseudoReal->forceCalcFlag = 0;
+  }
 
   //calcKSPotExtRecipWrapPreScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
   //calcKSForceControlWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
@@ -985,13 +997,16 @@ void scfStodftFilterDiag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     printf("Runing SCF Calculation\n");
     printf("-------------------------------------------------------------------------------\n");
   }
-  for(iScf=1;iScf<=numScf;iScf++){
+  iScf = 0;
+  while(scfStopFlag==0){
+    iScf += 1;
+    stodftInfo->iScf = iScf;
+
     if(myidState==0){
       printf("********************************************************\n");
       printf("SCF Step %i\n",iScf);
       printf("--------------------------------------------------------\n");
     }
-    stodftInfo->iScf = iScf;
 
 /*----------------------------------------------------------------------*/
 /* ii) Generate stochastic WF for different chemical potentials         */
@@ -1041,7 +1056,6 @@ void scfStodftFilterDiag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     if(myidState==0)printf("**Finish Filter Diagonalization\n");
     //exit(0);   
     
-   
     if(myidState==0)printf("**Calculating KE and NLPPE...\n");
     //calcEnergyChemPot(cp,class,general_data,cpcoeffs_pos,clatoms_pos);   
     calcKNEEnergyFilterDiag(cp,class,general_data,cpcoeffs_pos,clatoms_pos);
@@ -1093,7 +1107,9 @@ void scfStodftFilterDiag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /* v) Calculate the total energy	                        */
 
     if(myidState==0)printf("**Calculating Total Energy...\n");
+    stodftInfo->energyElecTotOld = stodftInfo->energyElecTot;
     calcTotEnergyFilterDiag(cp,class,general_data,cpcoeffs_pos,clatoms_pos);
+    energyDiff = fabs(stodftInfo->energyElecTot-stodftInfo->energyElecTotOld);
     if(myidState==0)printf("**Finish Calculating Total Energy\n");
 
     //exit(0);   
@@ -1121,7 +1137,8 @@ void scfStodftFilterDiag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       printf("********************************************************\n");
       printf("\n");
     }
-    exit(0);
+    if(energyDiff<energyTol||iScf>=numScf)scfStopFlag = 1;
+    //exit(0);
   }//endfor iScf
 
 /*======================================================================*/

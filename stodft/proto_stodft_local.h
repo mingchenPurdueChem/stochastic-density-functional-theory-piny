@@ -94,6 +94,8 @@ double calcLagrangeInterpFun(int ,double ,double * ,double * ,double *);
 double calcLagrangeInterpDrv(int ,double ,double * ,double * ,double *);
 void updateChemPot(STODFTINFO *,STODFTCOEFPOS *);
 void adjChemPot(STODFTINFO *,STODFTCOEFPOS *);
+void calcChemPotMetal(CP *);
+double calcNumElecSmear(int, double, double,double *,int);
 /*-----------------------------------------------------------------*/
 /* calc-chempot-chebyshev.c                                        */
 void calcChemPotCheby(CP *,CLASS *,GENERAL_DATA *,int);

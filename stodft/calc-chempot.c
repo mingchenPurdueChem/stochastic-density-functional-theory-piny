@@ -578,3 +578,214 @@ void adjChemPot(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
 }/*end routine*/
 /*==========================================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void calcChemPotMetal(CP *cp)
+/*========================================================================*/
+{/*begin routine*/
+/**************************************************************************/
+/* For filter diag, we need to determine the chemical potential in the    */
+/* smeared occupation number                                              */
+/**************************************************************************/
+/*========================================================================*/
+/*             Local variable declarations                                */
+/*------------------------------------------------------------------------*/
+  printf("11111111111111\n");
+  STODFTINFO *stodftInfo = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos = cp->stodftCoefPos;
+  CPOPTS *cpopts = &(cp->cpopts);
+  CPSCR *cpscr = &(cp->cpscr);
+  COMMUNICATE *communicate = &(cp->communicate);
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+
+  int myidState = communicate->myid_state;
+  int numProcStates = communicate->np_states;
+  int smearOpt = stodftInfo->smearOpt;
+  int iState;
+  int maxIters = 1000;
+  int cpLsda = cpopts->cp_lsda;
+  int numChemPot = stodftInfo->numChemPot;
+  int numStateUpProc = cpcoeffs_info->nstate_up_proc;
+  int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
+  int numStateUpTotal = stodftInfo->numStateStoUp;
+  int numStateUpProcTotal = numStateUpProc*numChemPot;
+  int numStateUpAllProc = numStateUpTotal*numChemPot;
+  int numStateUpIdp = stodftInfo->numStateUpIdp;
+  int numStatePrintUp = stodftInfo->numStatePrintUp;
+  int numStatePrintDn = stodftInfo->numStatePrintDn;
+
+  int *numStates = stodftInfo->numStates;
+  int *dsplStates = stodftInfo->dsplStates;
+  MPI_Comm comm_states = communicate->comm_states;
+
+
+  double smearTemperature = stodftInfo->smearTemperature;
+  double invTemp = 1.0/smearTemperature;
+  double chemPotUp,chemPotDn;
+  double numElecTrueUp = stodftInfo->numElecTrueUp;
+  double numElecTrueDn = stodftInfo->numElecTrueDn;
+  double numElecTrue = stodftInfo->numElecTrue;
+  double numElecUpNow,numElecDnNow,numElecDiff;
+  double numElecTol = 1.0e-11*numElecTrue;
+  double chemPotMin,chemPotMax;
+  double numElecMin,numElecMax;
+  double chemPotNew,numElecNew;
+  double energyMin = stodftInfo->energyMin;
+  double pre = sqrt(2.0);
+
+  double *energyLevel = stodftCoefPos->energyLevel;
+  double *numOccDetProc = stodftInfo->numOccDetProc;
+  double *numOccDetAll;
+
+  
+  /*
+  // For closed shell system, we will use half the number of 
+  // electrons to determine the chemical potential so that 
+  // we don't need *2 factor in smearing function. 
+  if(cpLsda=0){
+    numElecTrueUp = numElecTrue;
+  }
+  else{
+    numElecTrueUp = numElecTrueUp;
+  }
+  */
+  printf("11111111111111\n");
+  if(myidState==0){
+    numOccDetAll = (double*)cmalloc(numStateUpAllProc*sizeof(double)); 
+    for(iState=0;iState<numStateUpAllProc;iState++){
+      numOccDetAll[iState] = 0.0;
+    }
+    // Now I only have spin-unpolarize filter diag
+    printf("11111111111111\n");
+    numElecDiff = 1000;
+    chemPotMin = energyLevel[0];
+    chemPotMax = energyLevel[numStatePrintUp-1];
+    numElecMin = calcNumElecSmear(smearOpt,smearTemperature,chemPotMin,
+                             energyLevel,numStatePrintUp);
+    numElecMax = calcNumElecSmear(smearOpt,smearTemperature,chemPotMax,
+                             energyLevel,numStatePrintUp);
+    printf("2222222222222\n");
+    if(numElecMin>numElecTrueUp||numElecMax<numElecTrueUp){
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      printf("The number of electron %lg is out of range %lg %lg\n",
+              numElecTrueUp,numElecMin,numElecMax);
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(0);
+    }
+    chemPotNew = (numElecTrueUp-numElecMin)*(chemPotMax-chemPotMin)/(numElecMax-numElecMin)+
+                 chemPotMin;
+    numElecNew = calcNumElecSmear(smearOpt,smearTemperature,chemPotNew,
+                             energyLevel,numStatePrintUp);
+    printf("3333333333333\n");
+    fflush(stdout);
+    //int icount = 0;
+    while(fabs(numElecNew-numElecTrueUp)>numElecTol){
+      //printf("chemPotMin %.8lg chemPotMax %.8lg chemPotNew %.8lg numElecMin %.8lg numElecMax %.8lg numElecNew %.8lg diff %.8lg\n",chemPotMin,chemPotMax,chemPotNew,numElecMin,numElecMax,numElecNew,fabs(numElecTrueUp-numElecNew));
+      if(numElecNew>numElecTrueUp){
+        chemPotMax = chemPotNew;
+        numElecMax = numElecNew;
+      }
+      if(numElecNew<numElecTrueUp){
+        chemPotMin = chemPotNew;
+        numElecMin = numElecNew;
+      }
+      chemPotNew = (numElecTrueUp-numElecMin)*(chemPotMax-chemPotMin)/(numElecMax-numElecMin)+
+                   chemPotMin;
+      numElecNew = calcNumElecSmear(smearOpt,smearTemperature,chemPotNew,
+                             energyLevel,numStatePrintUp);
+      //icount += 1;
+      //if(icount==5)exit(0);
+    }
+
+
+    // I'll do it later
+    //if(cpLsda=1){
+    //}
+    
+    printf("Finish Calculating Chemical Potential for Smearing\n");  
+    printf("The correct chemical potential is %.16lg Ne %.16lg DNe %.16lg\n",chemPotNew,numElecNew,
+              fabs(numElecNew-numElecTrueUp));
+    switch(smearOpt){
+      case 1:
+        for(iState=0;iState<numStatePrintUp;iState++){
+          numOccDetAll[iState] = 1.0/(1.0+exp(invTemp*(energyLevel[iState]-chemPotNew)));
+        }
+        break;
+      case 2:
+        for(iState=0;iState<numStatePrintUp;iState++){
+          numOccDetAll[iState] = 0.5*(1.0-erf(invTemp*(energyLevel[iState]-chemPotNew)));
+        }
+        break;
+    }//endswitch
+    printf("Orbital energies and occupation numbers\n");
+    for(iState=0;iState<numStatePrintUp;iState++){
+      printf("%.8lg %.8lg\n",energyLevel[iState],numOccDetAll[iState]);
+    }
+  }//endif myidState
+
+  if(numProcStates>1){
+    Barrier(comm_states);
+    Scatterv(numOccDetAll,numStates,dsplStates,MPI_DOUBLE,numOccDetProc,
+             numStateUpProcTotal,MPI_DOUBLE,0,comm_states);
+  }
+  else{
+    memcpy(numOccDetProc,numOccDetAll,numStateUpAllProc*sizeof(double));
+  }
+  for(iState=0;iState<numStateUpProcTotal;iState++){
+    numOccDetProc[iState] = sqrt(numOccDetProc[iState])*pre;
+  }
+/*--------------------------------------------------------------------------*/
+}/*end routine*/
+/*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+double calcNumElecSmear(int smearOpt,double smearTemperature,double chemPot,
+                 double *orbital,int numStates)
+/*========================================================================*/
+{/*begin routine*/
+/**************************************************************************/
+/* For filter diag, we need to determine the chemical potential in the    */
+/* smeared occupation number                                              */
+/**************************************************************************/
+/*========================================================================*/
+/*             Local variable declarations                                */
+/*------------------------------------------------------------------------*/
+  int iState;
+  double numElec = 0.0;
+  double x;
+  double invTemp = 1.0/smearTemperature;
+
+  switch(smearOpt){
+    case 0:
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      printf("Have to choose a smearing scheme when you work with metallic\n");
+      printf("system. \n");
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(0);
+      break;
+    case 1:
+      for(iState=0;iState<numStates;iState++){
+        x = 1.0/(1.0+exp(invTemp*(orbital[iState]-chemPot)));
+        //printf("%i %lg %lg %lg\n",iState,chemPot,orbital[iState],x);
+        numElec += x;
+      }//endfor
+      break;
+    case 2:
+      for(iState=0;iState<numStates;iState++){
+        x = 0.5*(1.0-erf(invTemp*(orbital[iState]-chemPot)));
+        numElec += x;
+      }//endfor
+      break;
+  }//endswitch
+
+  return numElec;
+  
+/*--------------------------------------------------------------------------*/
+}/*end routine*/
+/*==========================================================================*/
+

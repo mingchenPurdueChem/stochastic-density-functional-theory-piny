@@ -4635,9 +4635,15 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   sscanf(dict[10].keyarg,"%lg",&rka);
   stodftInfo->numStateStoDn = (int)(rka);
   /*-----------------------------------------------------------------------*/
-  /*  11)\num_electron{#} */
+  /*  11)\num_electron_up{#} */
   sscanf(dict[11].keyarg,"%lg",&rka);
-  stodftInfo->numElecTrue = rka;
+  stodftInfo->numElecTrueUp = rka;
+
+  /*-----------------------------------------------------------------------*/
+  /*  31)\num_electron_dn{#} */
+  sscanf(dict[31].keyarg,"%lg",&rka);
+  stodftInfo->numElecTrueDn = rka;
+
   /*-----------------------------------------------------------------------*/
   /*  12)\chem_pot_init{#} */
   sscanf(dict[12].keyarg,"%lg",&rka);
@@ -4725,6 +4731,27 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   if(strcasecmp(dict[29].keyarg,"no")==0)stodftInfo->checkpointParFlag = 0;
   if(strcasecmp(dict[29].keyarg,"yes")==0)stodftInfo->checkpointParFlag = 1;
 
+  /*-----------------------------------------------------------------------*/
+  /*  32)\num_orbital_up_fd{#} */
+  sscanf(dict[32].keyarg,"%lg",&rka);
+  stodftInfo->numStatePrintUp = (int)rka;
+
+  /*-----------------------------------------------------------------------*/
+  /*  33)\num_orbital_dn_fd{#} */
+  sscanf(dict[33].keyarg,"%lg",&rka);
+  stodftInfo->numStatePrintDn = (int)rka;
+
+  /*-----------------------------------------------------------------------*/
+  /*  34)\smear_opt_metal{#} */
+  if(strcasecmp(dict[34].keyarg,"off")==0)stodftInfo->smearOpt = 0;
+  if(strcasecmp(dict[34].keyarg,"fermi")==0)stodftInfo->smearOpt = 1;
+  if(strcasecmp(dict[34].keyarg,"gauss")==0)stodftInfo->smearOpt = 2;
+  
+  /*-----------------------------------------------------------------------*/
+  /*  34)\smear_temp_metal{#} */
+  sscanf(dict[35].keyarg,"%lg",&rka);
+  stodftInfo->smearTemperature = rka/BOLTZ;;
+
 /*=======================================================================*/
 /* Check the conflicate options						 */
   
@@ -4733,6 +4760,8 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   stodftInfo->stodftOn = stodftOn;
   //I need a copy of this before initialize stochastic dft
   cpopts->stodftOn = stodftOn;
+  stodftInfo->numElecTrue = stodftInfo->numElecTrueUp
+                              +stodftInfo->numElecTrueDn;
 
   //printf("stodftOn %i\n",stodftOn);
  
@@ -4758,7 +4787,6 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
     minopts->cp_min_cg = 0;
     minopts->cp_min_diis = 0;
     
-   
     if(missionType==1&&simopts->cp_wave_min==0){
       printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
       printf("You turn on the stochastic dft single point claculation\n");

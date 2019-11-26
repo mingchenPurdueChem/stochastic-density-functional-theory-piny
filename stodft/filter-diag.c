@@ -308,6 +308,16 @@ void orthNormStoWf(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     indexCut = orthogSVD(numStateUpAllProc,2*numCoeff,wfBfOrthUp);
     //indexCut = orthogSVD(numCoeff,numStateUpAllProc,wfBfOrthUp);
     printf("indexCut %i\n",indexCut);
+    if(indexCut<stodftInfo->numStatePrintUp){
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      printf("You require %i of orbitals. However, I can only find %i\n",
+              stodftInfo->numStatePrintUp,indexCut);
+      printf("independent orbitals. Please increase the number of windows.\n");
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(0);
+    }
+
     // I'll keep 
     for(iState=0;iState<numStateUpAllProc;iState++){
       sum = 0.0;
@@ -355,6 +365,7 @@ void orthNormStoWf(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     }//endfor iState
     */
   }
+  if(numProcStates>1)Barrier(comm_states);
   if(numProcStates>1)Bcast(&indexCut,1,MPI_INT,0,comm_states);
   // I need do something for indexCut
   // Save wave functios on master proc
@@ -735,7 +746,10 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int numStatesDet = stodftInfo->numStatesDet;
   int myidState = communicate->myid_state;
   int numProcStates         = communicate->np_states;
-  int numStatesPrint = numStatesDet+5;
+  int numStatePrintUp = stodftInfo->numStatePrintUp;
+  int numStatePrintDn = stodftInfo->numStatePrintDn;
+  int smearOpt = stodftInfo->smearOpt;
+
   MPI_Comm comm_states = communicate->comm_states;
   
   int *stowfRecvCounts = stodftInfo->stowfRecvCounts;
@@ -865,7 +879,7 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     printf("Double Check: Calculate and Compare energy level\n");
     energyTest = (double*)cmalloc(numStateUpIdp*sizeof(double));
     missMatchFlag = 0;
-    for(iState=0;iState<numStatesPrint;iState++){
+    for(iState=0;iState<numStatePrintUp;iState++){
       //printf("iState %i numStateUpIdp %i\n",iState,numStateUpIdp);
       energyTest[iState] = 0.0;
       for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
@@ -884,7 +898,7 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     }//endfor iState
     if(missMatchFlag>0){
       printf("Energy missmatch! I'll print them all.\n");
-      for(iState=0;iState<numStateUpIdp;iState++){
+      for(iState=0;iState<numStatePrintUp;iState++){
 	energyMOSq = energyLevel[iState]*energyLevel[iState];
 	printf("eigvvv %i %.8lg %.8lg %.8lg\n",iState,energyLevel[iState],
 		energyMOSq,energyTest[iState]);
@@ -893,10 +907,10 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       exit(0);
     }//endif missMatch
     //print something
-    for(iState=0;iState<numStatesPrint;iState++){
+    for(iState=0;iState<numStatePrintUp;iState++){
       energyMOSq = energyLevel[iState]*energyLevel[iState];
       printf("eigvvv %i %.8lg %.8lg %.8lg\n",iState,energyLevel[iState],
-              energyMOSq,energyTest[iState]);
+              energyMOSq,fabs(energyTest[iState]-energyMOSq));
     }//endfor iState
     free(&allForceRe[1]);
     free(&allForceIm[1]);
@@ -913,8 +927,18 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     
   if(numProcStates>1)Barrier(comm_states);
 
+
 /*--------------------------------------------------------------------------*/
-/* iv) Scale by occupied number */
+/* iv) Determine occupatation number for metallic systems */
+
+  if(smearOpt>0){
+    if(myidState==0)printf("**Determine Chemical Potential...\n");
+    calcChemPotMetal(cp);
+    if(myidState==0)printf("**Finish Determining Chemical Potential...\n");
+  }
+  if(numProcStates>1)Barrier(comm_states);
+/*--------------------------------------------------------------------------*/
+/* v) Scale by occupied number */
   
   double *numOccDetProc = stodftInfo->numOccDetProc;
   for(iChem=0;iChem<numChemPot;iChem++){
@@ -1096,13 +1120,6 @@ void calcForceWrapper(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/
-
-
-
-
-
-
-
 
 
 

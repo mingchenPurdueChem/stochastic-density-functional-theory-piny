@@ -295,7 +295,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
         Bcast(&zPol,1,MPI_DOUBLE,0,commStates);
         Bcast(&gamma,1,MPI_DOUBLE,0,commStates);
         //printf("ffffffffffffffffuck2 %i\n",numR);
-        Bcast(&(vpsNormList[countR+iAng]),angNow+1,MPI_DOUBLE,0,commStates);
+        Bcast(&(vpsNormList[countR]),angNow+1,MPI_DOUBLE,0,commStates);
       }
       vLoc = (double*)cmalloc((numR)*sizeof(double));
       vNl = (double*)cmalloc((numR*numRadMax[iType])*sizeof(double));

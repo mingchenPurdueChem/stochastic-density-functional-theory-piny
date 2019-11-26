@@ -53,7 +53,7 @@
 #include "../proto_defs/proto_dafed_entry.h"
 
 
-
+//#define DEAD_LOCK
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
@@ -152,6 +152,7 @@ void parse(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*========================================================================*/
 /*   VI) Assign Flags                                                     */
 
+
   cp_dual_grid_opt_on = cp->cpopts.cp_dual_grid_opt;
 
   pimd_on = general_data->simopts.pimd + general_data->simopts.cp_pimd 
@@ -184,6 +185,14 @@ void parse(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   pme_on      = class->part_mesh.pme_on;
   iopt_cp_pw  = cp->cpcoeffs_info.iopt_cp_pw;
   iopt_cp_dvr = cp->cpcoeffs_info.iopt_cp_dvr;
+
+  //debug
+#ifdef DEAD_LOCK
+  if(myid==1){
+    printf("Debug, deadlock here!\n");
+    deadLock(1);
+  }
+#endif
   
   int testflag = 1;
   //cp->cpopts.fftw3dFlag = 0;

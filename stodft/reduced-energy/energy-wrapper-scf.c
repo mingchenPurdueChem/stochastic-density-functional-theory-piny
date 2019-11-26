@@ -934,6 +934,7 @@ void calcCoefForceEnergy(CLASS *class,GENERAL_DATA *general_data,
   CPEWALD *cpewald              = &(cp->cpewald);
   CPSCR *cpscr                  = &(cp->cpscr);
   PSEUDO *pseudo                = &(cp->pseudo);
+  PSEUDO_REAL *pseudoReal       = &(pseudo->pseudoReal);
   COMMUNICATE *communicate      = &(cp->communicate);
 
   //PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm             = &(cp->cp_sclr_fft_pkg3d_sm);

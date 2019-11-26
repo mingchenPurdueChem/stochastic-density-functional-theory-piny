@@ -100,10 +100,6 @@ void cp_ks_energy_ctrl(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
 }/*end Routine*/
 /*=======================================================================*/
 
-
-
-
-
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
@@ -672,6 +668,7 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
   double *rs_scr1 = (double*)cmalloc(nstate_up*nstate_up*sizeof(double))-1;
   double *rs_scr2 = (double*)cmalloc(nstate_up*nstate_up*sizeof(double))-1;
   double kseig_sum;
+  int istate; 
   cp_condiag_ksmat(cre_up,cim_up,*icoef_form_up,*icoef_orth_up,fcre_up,fcim_up,
                    *ifcoef_form_up,*ifcoef_orth_up,kseig_vals,kseig_vecs,
                     ksmat_test,ks_scr,rs_scr1,rs_scr2,ioff_upt,
@@ -679,13 +676,12 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
 
   printf("kseig_sum %lg\n",kseig_sum);
   //exit(0);
-  
-  int ncoeftot = ncoef*nstate_up;
-  double *cre_temp = (double*)cmalloc(ncoeftot*sizeof(double))-1;
-  double *cim_temp = (double*)cmalloc(ncoeftot*sizeof(double))-1;
-  cp_rotate_vector(cre_up,cim_up,*icoef_form_up,
-                      kseig_vecs,ioff_upt,cre_temp,cim_temp,
-                      &(cp->cp_comm_state_pkg_up));
+  FILE *feige = fopen("orbital-e","w");
+  for(istate=1;istate<=nstate_up;istate++){
+    fprintf(feige,"%i %.16lg\n",istate,kseig_vals[istate]);
+  }
+  fclose(feige);
+  // Finish testing
   */
   // Finish testing
   /*

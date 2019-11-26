@@ -2257,7 +2257,7 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
  /*             Local variable declarations                                */
   
   unsigned int i;
-  *num_dict = 35;
+  *num_dict = 36;
   *dict = (DICT_WORD *)cmalloc(*num_dict*sizeof(DICT_WORD))-1;
 
   for (i=1;i<=*num_dict;i++) {
@@ -2406,6 +2406,9 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
   strcpy((*dict)[35].keyword,"smear_temp_metal");
   strcpy((*dict)[35].keyarg,"300.0");
 
+  strcpy((*dict)[36].error_mes,"Turn on/off for energy window option");
+  strcpy((*dict)[36].keyword,"energy_window_on");
+  strcpy((*dict)[36].keyarg,"off");
 
  /*========================================================================*/
  } /* end routine set_sim_dict_harmonic */

@@ -763,7 +763,7 @@ void cpGetVksStodft(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
 /*--------------------------------------------------------------------*/
 /*  c) Get Hartree + external contributions to VKS -- test for CBCs   */
  
-  //printf("rhoc %lg %lg\n",rhocr[10],rhoci[10]);
+  //printf("1111111111111111 rhoc %lg %lg\n",rhocr[1],rhoci[1]);
   //printf("ak2[1] %lg\n",ak2[1]);
 
   if(iperd==3){
@@ -772,6 +772,7 @@ void cpGetVksStodft(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
       ghfact = fpi*exp(-ak2[i]*pre)/(ak2[i]*vol);
       eh +=  0.50*ghfact*(rhocr[i]*rhocr[i] + rhoci[i]*rhoci[i]);
       eext +=  vextr[i]*rhocr[i] + vexti[i]*rhoci[i];
+      //printf("eeeeeeeeeeeext %.10lg %.10lg %.10lg %.10lg %.10lg %.10lg\n",ak2[i],vextr[i],vexti[i],rhocr[i],rhoci[i],eext);
       vextr[i] +=  ghfact*rhocr[i];
       vexti[i] +=  ghfact*rhoci[i];
     }//endfor
@@ -788,6 +789,7 @@ void cpGetVksStodft(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
 
 
   eext *= 2.0;
+  //printf("111111111111111111111 eext %lg\n",eext);
   if((myid_state+1)==np_states)eext +=  vextr[ncoef_l]*rhocr[ncoef_l];
   eh0 = 2.0*(eh);
   eh  *= 2.0;

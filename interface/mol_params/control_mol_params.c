@@ -194,6 +194,7 @@ void control_mol_params(CLASS *class,GENERAL_DATA *general_data,
 
   class->surface.isurf_on = nsurf;
 
+
 /*========================================================================*/
 /* III) Malloc molecular data storage and initialize                      */
   
@@ -202,6 +203,7 @@ void control_mol_params(CLASS *class,GENERAL_DATA *general_data,
   
   printf("Allocating molecular memory: %g Mbytes; Total memory: %g Mbytes\n",
           now_memory,(*tot_memory));
+  fflush(stdout);
   
   class->atommaps.nmol_jmol_typ  = (int *)cmalloc(nmol_typ*sizeof(int))-1;
   class->atommaps.mol_typ        = (NAME *)cmalloc(nmol_typ*sizeof(NAME))-1;
@@ -400,6 +402,7 @@ void control_mol_params(CLASS *class,GENERAL_DATA *general_data,
   printf("Completed reading molecular set up file %s\n",molsetname);
   PRINT_LINE_STAR;
   printf("\n");
+  fflush(stdout);
 
 /*------------------------------------------------------------------------*/
    }/*end routine*/

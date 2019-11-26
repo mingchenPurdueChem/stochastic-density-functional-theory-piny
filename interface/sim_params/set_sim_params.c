@@ -4748,9 +4748,14 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   if(strcasecmp(dict[34].keyarg,"gauss")==0)stodftInfo->smearOpt = 2;
   
   /*-----------------------------------------------------------------------*/
-  /*  34)\smear_temp_metal{#} */
+  /*  35)\smear_temp_metal{#} */
   sscanf(dict[35].keyarg,"%lg",&rka);
-  stodftInfo->smearTemperature = rka/BOLTZ;;
+  stodftInfo->smearTemperature = rka/BOLTZ;
+
+  /*-----------------------------------------------------------------------*/
+  /*  36)\energy_window_on{#} */
+  if(strcasecmp(dict[36].keyarg,"off")==0)stodftInfo->energyWindowOn = 0;
+  if(strcasecmp(dict[36].keyarg,"on")==0)stodftInfo->energyWindowOn = 1;
 
 /*=======================================================================*/
 /* Check the conflicate options						 */
@@ -4897,6 +4902,7 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
       exit(0);
     }
   }//endif stodftOn
+
   
 /*========================================================================*/
     }/*end routine*/

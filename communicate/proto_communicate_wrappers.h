@@ -62,7 +62,11 @@ double Wtime(void);
 
 void Address(void *, MPI_Aint *);
 
+void Get_address(void *,MPI_Aint *);
+
 void Type_struct(int, int *, MPI_Aint *, MPI_Datatype *, MPI_Datatype *);
+
+void Type_create_struct(int, int *, MPI_Aint *, MPI_Datatype *, MPI_Datatype *);
 
 void Type_contiguous(int, MPI_Datatype , MPI_Datatype *);
 

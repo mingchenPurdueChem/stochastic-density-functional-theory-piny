@@ -271,6 +271,7 @@ void calcChemPotCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   }
   
   chemPot[0] = chemPotNew;
+  stodftInfo->chemPotTrue = chemPotNew; // another backup
 
   free(chebyCoeffs);
   free(stodftCoefPos->chebyMomentsUp);

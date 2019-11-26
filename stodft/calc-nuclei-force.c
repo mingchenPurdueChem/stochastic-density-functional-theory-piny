@@ -67,6 +67,7 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
   int atomForceFlag  = stodftInfo->atomForceFlag;
   int chemPotOpt     = stodftInfo->chemPotOpt;
   int calcFragFlag   = stodftInfo->calcFragFlag;
+  int energyWindowOn = stodftInfo->energyWindowOn;
   int numStateUpProc = cpcoeffs_info->nstate_up_proc;
   int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
   int numCoeff       = cpcoeffs_info->ncoef;
@@ -295,6 +296,7 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
 
 /*--------------------------------------------------------------------------*/
 /* i) Copy the stochastic wave function and reset the force		    */
+
   for(iChem=0;iChem<numChemPot;iChem++){
     stat_avg->vrecip = 0.0;
     stat_avg->cp_enl = 0.0;
@@ -489,42 +491,58 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
 
 
   if(myidState==0){
-    if(chemPotOpt==1){
-      //debug
-      /*
-      printf("chemPotTrue %lg\n",chemPotTrue);
-      for(iChem=0;iChem<numChemPot;iChem++){
-        printf("%lg %lg\n",chemPot[iChem],energyKNL[iChem]);
+    if(energyWindowOn==0){
+      if(chemPotOpt==1){
+        //debug
+        /*
+        printf("chemPotTrue %lg\n",chemPotTrue);
+        for(iChem=0;iChem<numChemPot;iChem++){
+          printf("%lg %lg\n",chemPot[iChem],energyKNL[iChem]);
+        }
+        */
+        // Force from non-local pp
+        // Transpose first
+        fxTemp = (double *)cmalloc(numChemPot*sizeof(double));
+        fyTemp = (double *)cmalloc(numChemPot*sizeof(double));
+        fzTemp = (double *)cmalloc(numChemPot*sizeof(double));
+        for(iAtom=0;iAtom<numAtomTot;iAtom++){
+          for(iChem=0;iChem<numChemPot;iChem++){
+            fxTemp[iChem] = fxNl[iChem][iAtom];
+            fyTemp[iChem] = fyNl[iChem][iAtom];
+            fzTemp[iChem] = fzNl[iChem][iAtom];
+          }
+          fxNlTrue[iAtom] = calcLagrangeInterpFun(numChemPot,chemPotTrue,chemPot,fxTemp,lagFunValue);
+          fyNlTrue[iAtom] = calcLagrangeInterpFun(numChemPot,chemPotTrue,chemPot,fyTemp,lagFunValue);
+          fzNlTrue[iAtom] = calcLagrangeInterpFun(numChemPot,chemPotTrue,chemPot,fzTemp,lagFunValue);
+        }
+        free(fxTemp);
+        free(fyTemp);
+        free(fzTemp);
       }
-      */
-      // Force from non-local pp
-      // Transpose first
-      fxTemp = (double *)cmalloc(numChemPot*sizeof(double));
-      fyTemp = (double *)cmalloc(numChemPot*sizeof(double));
-      fzTemp = (double *)cmalloc(numChemPot*sizeof(double));
-      for(iAtom=0;iAtom<numAtomTot;iAtom++){
-	for(iChem=0;iChem<numChemPot;iChem++){
-	  fxTemp[iChem] = fxNl[iChem][iAtom];
-	  fyTemp[iChem] = fyNl[iChem][iAtom];
-	  fzTemp[iChem] = fzNl[iChem][iAtom];
-	}
-	fxNlTrue[iAtom] = calcLagrangeInterpFun(numChemPot,chemPotTrue,chemPot,fxTemp,lagFunValue);
-	fyNlTrue[iAtom] = calcLagrangeInterpFun(numChemPot,chemPotTrue,chemPot,fyTemp,lagFunValue);
-	fzNlTrue[iAtom] = calcLagrangeInterpFun(numChemPot,chemPotTrue,chemPot,fzTemp,lagFunValue);
-      }
-      free(fxTemp);
-      free(fyTemp);
-      free(fzTemp);
+      if(chemPotOpt==2){
+        for(iAtom=0;iAtom<numAtomTot;iAtom++){
+          fxNlTrue[iAtom] = fxNl[0][iAtom];
+          fyNlTrue[iAtom] = fyNl[0][iAtom];
+          fzNlTrue[iAtom] = fzNl[0][iAtom];
+          //printf("fxNlTrue %.16lg fyNlTrue %.16lg fzNlTrue %.16lg vnlFxCor %.16lg vnlFyCor %.16lg vnlFzCor %.16lg\n",
+          //	fxNlTrue[iAtom],fyNlTrue[iAtom],fzNlTrue[iAtom],vnlFxCor[iAtom],vnlFyCor[iAtom],vnlFzCor[iAtom]);
+        }//endfor iAtom
+      }//endif chemPotOpt
     }
-    if(chemPotOpt==2){
+    else{//energy window
       for(iAtom=0;iAtom<numAtomTot;iAtom++){
-	fxNlTrue[iAtom] = fxNl[0][iAtom];
-	fyNlTrue[iAtom] = fyNl[0][iAtom];
-	fzNlTrue[iAtom] = fzNl[0][iAtom];
-	//printf("fxNlTrue %.16lg fyNlTrue %.16lg fzNlTrue %.16lg vnlFxCor %.16lg vnlFyCor %.16lg vnlFzCor %.16lg\n",
-	//	fxNlTrue[iAtom],fyNlTrue[iAtom],fzNlTrue[iAtom],vnlFxCor[iAtom],vnlFyCor[iAtom],vnlFzCor[iAtom]);
-      }//endfor iAtom
-    }//endif chemPotOpt
+        fxNlTrue[iAtom] = 0.0;
+        fyNlTrue[iAtom] = 0.0;
+        fzNlTrue[iAtom] = 0.0;
+      }
+      for(iChem=0;iChem<numChemPot;iChem++){
+        for(iAtom=0;iAtom<numAtomTot;iAtom++){
+          fxNlTrue[iAtom] += fxNl[iChem][iAtom];
+          fyNlTrue[iAtom] += fyNl[iChem][iAtom];
+          fzNlTrue[iAtom] += fzNl[iChem][iAtom];
+        }
+      }
+    }//endif energyWindowOn
     //Correct the non local force by fragment       
   }//endif myidState
  
@@ -652,7 +670,6 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
     printf("Atom Energy:		  %.20lg\n",vInter);
     printf("Total Energy:		  %.20lg\n",energyTot);
     printf("==============================================\n");
-
 
     FILE *fileForce = fopen("atom-force","w");
     for(iAtom=0;iAtom<numAtomTot;iAtom++){

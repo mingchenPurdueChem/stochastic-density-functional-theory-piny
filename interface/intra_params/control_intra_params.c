@@ -73,6 +73,7 @@ void control_intra_params(double *tot_memory,CLATOMS_INFO *clatoms_info,
   PRINT_LINE_STAR;
   printf("Reading molecular parameter files\n");
   PRINT_LINE_DASH;printf("\n");
+  fflush(stdout);
   cputime(&cpu1);
 
 
@@ -155,6 +156,7 @@ void control_intra_params(double *tot_memory,CLATOMS_INFO *clatoms_info,
           filename_parse->mol_param_name[jmol_typ]);
     printf("--------------------------------------------------------------\n");
     printf("\n");
+    fflush(stdout);
 
 /*-----------------------------------------------------------------------*/
 /* 1) Store the present list counter values                              */
@@ -347,6 +349,7 @@ void control_intra_params(double *tot_memory,CLATOMS_INFO *clatoms_info,
   PRINT_LINE_DASH;
   printf("Completed reading molecular parameter files %g\n",cpu2-cpu1);
   PRINT_LINE_STAR;printf("\n");
+  fflush(stdout);
 
 /*========================================================================*/
 /* Check for physical masses */
@@ -472,6 +475,7 @@ void control_intra_params(double *tot_memory,CLATOMS_INFO *clatoms_info,
   if((simopts->debug+simopts->debug_cp+simopts->debug_pimd)==1){
     printf("Enter an integer ");scanf("%d",&iii);
   }/*endif*/
+  fflush(stdout);
 
 /*=======================================================================*/
 /*   V) If np_forc > 1 and there are non-group constraints, die.         */

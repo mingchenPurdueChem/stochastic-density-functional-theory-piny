@@ -204,6 +204,7 @@ void genChemPotInterpPoints(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   int numChemPot = stodftInfo->numChemPot;
   int iNode;
   int filterDiagFlag = stodftInfo->filterDiagFlag;
+  int energyWindowOn = stodftInfo->energyWindowOn;
   double chemPotInit = stodftInfo->chemPotInit;
   double gapInit = stodftInfo->gapInit;
   double factor = M_PI*0.5/numChemPot;
@@ -211,20 +212,34 @@ void genChemPotInterpPoints(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   double *chebyNode = (double*)cmalloc(numChemPot*sizeof(double));
   double energyMin = chemPotInit-gapInit*0.5;
   double dE = gapInit/numChemPot;
+  double chemPotTrue;
   
   // Generate Chebyshev nodes
   if(filterDiagFlag==0){
-    for(iNode=0;iNode<numChemPot;iNode++){
-      chebyNode[numChemPot-iNode-1] = cos((2.0*iNode+1.0)*factor);
+    if(energyWindowOn==0){
+      for(iNode=0;iNode<numChemPot;iNode++){
+	chebyNode[numChemPot-iNode-1] = cos((2.0*iNode+1.0)*factor);
+      }
+      // Scale the nodes to correct chem pot and gap
+      for(iNode=0;iNode<numChemPot;iNode++){
+	chemPot[iNode] = chebyNode[iNode]*0.5*gapInit+chemPotInit;
+	//printf("iNode %i chemPot %lg\n",iNode,chemPot[iNode]);
+      }
+      chemPot[0] = chemPotInit-gapInit*0.5;
+      chemPot[1] = chemPotInit+gapInit*0.5;
     }
-    // Scale the nodes to correct chem pot and gap
-    for(iNode=0;iNode<numChemPot;iNode++){
-      chemPot[iNode] = chebyNode[iNode]*0.5*gapInit+chemPotInit;
-      //printf("iNode %i chemPot %lg\n",iNode,chemPot[iNode]);
-    }
-    chemPot[0] = chemPotInit-gapInit*0.5;
-    chemPot[1] = chemPotInit+gapInit*0.5;
-
+    else{
+      energyMin = stodftInfo->energyMin;
+      chemPotTrue = stodftInfo->chemPotTrue;
+      dE = (chemPotTrue-energyMin)/numChemPot; 
+      for(iNode=0;iNode<numChemPot;iNode++){
+        chemPot[iNode] = energyMin+(iNode+1)*dE;
+        //printf("0000000 iNode %i energyMin %lg chemPotTrue %lg dE %lg chemPot %lg\n",
+        //        iNode,energyMin,chemPotTrue,dE,chemPot[iNode]);
+      }
+      // double check the last chemical potential is correct...
+      chemPot[numChemPot-1] = chemPotTrue;
+    }    
   }else{
     for(iNode=0;iNode<numChemPot;iNode++){
       chemPot[iNode] = energyMin+(iNode+1)*dE;
@@ -232,6 +247,7 @@ void genChemPotInterpPoints(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   }
 
   //debug
+  /*
   double deltChemPot = gapInit/numChemPot;
   double chemPotMin = chemPotInit-0.5*gapInit;
   for(iNode=0;iNode<numChemPot;iNode++){
@@ -239,6 +255,7 @@ void genChemPotInterpPoints(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   }
   
   free(chebyNode);
+  */
   //exit(0);
 
 /*==========================================================================*/
@@ -736,6 +753,27 @@ void calcChemPotMetal(CP *cp)
   for(iState=0;iState<numStateUpProcTotal;iState++){
     numOccDetProc[iState] = sqrt(numOccDetProc[iState])*pre;
   }
+
+/*--------------------------------------------------------------------------*/
+}/*end routine*/
+/*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void genChemPotEnergyWindows(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* This function generate chemical potentials for each energy window.    */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+
+  
+
+
 /*--------------------------------------------------------------------------*/
 }/*end routine*/
 /*==========================================================================*/

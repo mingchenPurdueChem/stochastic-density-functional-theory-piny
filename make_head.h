@@ -1,0 +1,31 @@
+# user specific directories
+#--------------------------
+ROOT   = /home/mingchen/code/piny-stoc-dft
+CODE   = $(ROOT)/src
+DCODE  = $(ROOT)/src
+ECODE  = $(DCODE)
+
+# general directories
+#--------------------------
+INCLUDES = $(DCODE)/include/pentium_threads
+EXE      = $(ROOT)/bin/piny_ew
+CMALLOC =
+
+# HP compiler
+#--------------------------
+FC  = mpiifort
+CC  = mpiicc
+#OPT = -O2 -xSSE4.1 
+#OPT_CARE = -O2 -xSSE4.1 
+#OPT_GRP = -O2 -xSSE4.1
+OPT = -O0 -g
+OPT_CARE = -O0 -g
+OPT_GRP = -O0 -g
+CFLAGS = -qopenmp -std=c99
+FFLAGS = -nofor_main
+#FFLAGS = 
+LIBS = $(LIB_PATH) $(MALLOC) -liomp5 -lpthread -lfftw3_threads -lfftw3 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -lm
+
+#LIBS = $(LIB_PATH) $(MALLOC) -lpthread -lfftw3_threads -lfftw3 -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -lm
+
+

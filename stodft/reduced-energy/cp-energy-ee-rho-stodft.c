@@ -310,6 +310,7 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
     #pragma omp parallel for private(i,iis)
     for(i=1; i<= ncoef1 ; i++){
       iis = ioff + i;
+      //printf("ak2Kinetic %i %lg\n",i,ak2Kinetic[i]);
       fccreal[iis] -= 2.0*ak2Kinetic[i]*ccreal[iis];
       fccimag[iis] -= 2.0*ak2Kinetic[i]*ccimag[iis];
       //eke += (2.0*ak2Kinetic[i]*(ccreal[iis]*ccreal[iis] + ccimag[iis]*ccimag[iis]));
@@ -320,7 +321,8 @@ void coefForceCalcHybridSCF(CPEWALD *cpewald,int nstate,
   //cputime(&time_end);
   time_end = omp_get_wtime();
   stodftInfo->cputime5 += time_end-time_st;
-
+  //fflush(stdout);
+  //exit(0);
 
   //debug
   /*

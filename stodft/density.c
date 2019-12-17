@@ -2265,7 +2265,7 @@ void calcRhoStoHybridEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *gene
 /*==========================================================================*/
 /* IV) Output the density                                                   */
 
-    outputDensity(cp,cell);
+    outputDensity(cp,cell,0);
 
 /*==========================================================================*/
 /* V) Generate the diis density						    */

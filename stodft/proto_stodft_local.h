@@ -100,6 +100,7 @@ double calcLagrangeInterpDrv(int ,double ,double * ,double * ,double *);
 void updateChemPot(STODFTINFO *,STODFTCOEFPOS *);
 void adjChemPot(STODFTINFO *,STODFTCOEFPOS *);
 void calcChemPotMetal(CP *);
+void genChemPotEnergyWindows(STODFTINFO *,STODFTCOEFPOS *);
 double calcNumElecSmear(int, double, double,double *,int);
 /*-----------------------------------------------------------------*/
 /* calc-chempot-chebyshev.c                                        */

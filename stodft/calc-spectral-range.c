@@ -231,7 +231,7 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     // We already normalize wf to 1.0, so we don't have scaling 0.5 here
     if(myidState==0){
       //if(iIter%100==0){
-      if(iIter%100==0){
+      if(iIter%10==0){
 	printf("iStep %i Energy %lg\n",iIter,energy);
 	fflush(stdout);
       }

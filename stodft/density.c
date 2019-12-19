@@ -2104,7 +2104,7 @@ void calcRhoStoHybridEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *gene
 
   double test;
   for(iChem=0;iChem<numChemPot;iChem++){
-    printf("!!!!!!!!!!!!! iChem %i\n",iChem);
+    //printf("!!!!!!!!!!!!! iChem %i\n",iChem);
     rhoCalcRealStoHybrid(cpscr,cpcoeffs_info,
 		   cell,stodftInfo,stoWfUpRe[iChem],
 		   stoWfUpIm[iChem],rhoTemp,*coefFormUp,*coefOrthUp,
@@ -2115,7 +2115,7 @@ void calcRhoStoHybridEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *gene
 		   &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
 		   &(cp->cp_sclr_fft_pkg3d_sm));
     test = 0.0;
-    printf("rhoTemp[1] %lg\n",rhoTemp[1]);
+    //printf("rhoTemp[1] %lg\n",rhoTemp[1]);
     for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
       rhoSum[iGrid] += rhoTemp[iGrid+1];
       test += rhoTemp[iGrid+1];
@@ -2128,14 +2128,14 @@ void calcRhoStoHybridEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *gene
       }
     }
   }
-  printf("rhoSum[0] %lg\n",rhoSum[0]);
+  //printf("rhoSum[0] %lg\n",rhoSum[0]);
   if(numProcStates>1){
     Barrier(commStates);
     Reduce(&rhoSum[0],rhoUpChemPot[0],rhoRealGridTot,MPI_DOUBLE,MPI_SUM,0,commStates);
     Barrier(commStates);
   }
   else memcpy(rhoUpChemPot[0],&rhoSum[0],rhoRealGridTot*sizeof(double));
-  if(myidState==0)printf("rhoUp %lg\n",rhoUpChemPot[0][0]);
+  //if(myidState==0)printf("rhoUp %lg\n",rhoUpChemPot[0][0]);
   if(cpLsda==1&&numStateDnProc!=0){
     for(iGrid=0;iGrid<rhoRealGridTot;iGrid++)rhoSum[iGrid] = 0.0;
     for(iChem=0;iChem<numChemPot;iChem++){
@@ -2315,7 +2315,7 @@ void calcRhoStoHybridEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *gene
     printf("Finish Calculating Reciprocal Space Density\n");
   }
 
-
+  /*
   FILE *fileRhoRecip = fopen("rho-k","w");
   double *ak2 = cpewald->ak2;
   for(iCoeff=1;iCoeff<=numCoeffLargeProc;iCoeff++){
@@ -2323,7 +2323,7 @@ void calcRhoStoHybridEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *gene
   }
   //fclose(fileRhoReal);
   fclose(fileRhoRecip);  
-  
+  */
 
 /*==========================================================================*/
 }/*end Routine*/

@@ -905,7 +905,7 @@ void genStoOrbitalEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *general
       Bcast(&(stodftInfo->polynormLength),1,MPI_INT,0,commStates);
       Barrier(commStates);
     }
-    printf("numChemPotTemp %i\n",numChemPotTemp);
+    //printf("numChemPotTemp %i\n",numChemPotTemp);
     stodftInfo->numChemPot = numChemPotTemp;
     free(&(stodftCoefPos->chemPot[0]));
     stodftCoefPos->chemPot = (double*)cmalloc(numChemPotTemp*sizeof(double));
@@ -926,7 +926,6 @@ void genStoOrbitalEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *general
 /* V) Generate list of chemical potential for energy windows.           */
 
   genChemPotInterpPoints(stodftInfo,stodftCoefPos);
-  printf("111111111 chemPot %lg %lg \n",stodftCoefPos->chemPot[0],stodftCoefPos->chemPot[1]);
 
 /*======================================================================*/
 /* V) Generate Coeffcients for Polynormial interpolation                */

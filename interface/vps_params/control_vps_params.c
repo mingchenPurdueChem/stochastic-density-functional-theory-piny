@@ -1200,11 +1200,11 @@ void make_vps_splin(char *vps_file,int loc_opt,int n_ang,
          }/*endif*/
          if(iang != loc_opt+1) {
            if(iformat==0)vpsnorm[((iang-1)*n_rad_max_sq+1)] = (1.0/amat);
-           printf("111111111 vpsnorm %lg\n",vpsnorm[((iang-1)*n_rad_max_sq+1)]);
+           //printf("111111111 vpsnorm %lg\n",vpsnorm[((iang-1)*n_rad_max_sq+1)]);
            ishift_now = (iang-1)*n_rad_max*nsplin_g;
            ilong = 0;
            iang_now = iang-1;
-           printf("nnnnnnnnnsplin_g %i %lg\n",nsplin_g,g[nsplin_g]);
+           //printf("nnnnnnnnnsplin_g %i %lg\n",nsplin_g,g[nsplin_g]);
            if(cp_ptens_calc == 1){
             slow_bess_vps(v_rphi,nr,dr,r,&(vps0[ishift_now]),
                           &(dvps0[ishift_now]),

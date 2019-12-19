@@ -476,7 +476,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   // I use similiar functions. I don't need this if I read in density or generate 
   // density from fragmentation.
 
-  printf("coefFormUp %i forceCoefFormUp %i\n",coefFormUp,forceCoefFormUp);
+  //printf("coefFormUp %i forceCoefFormUp %i\n",coefFormUp,forceCoefFormUp);
   if(readCoeffFlag>=0){
     if(numProcStates>1){
       if((coefFormUp+forceCoefFormUp)!=2){
@@ -730,7 +730,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
   // master proc only check existance
   if(myidState==0){
-    printf("%s\n",stodftInfo->densityFileName);
+    //printf("%s\n",stodftInfo->densityFileName);
     densityFile = NULL;
     densityFile = cfopen(stodftInfo->densityFileName,"w");
     if(densityFile!=NULL)fclose(densityFile);

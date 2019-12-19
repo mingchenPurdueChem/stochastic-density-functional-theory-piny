@@ -608,7 +608,6 @@ void calcChemPotMetal(CP *cp)
 /*========================================================================*/
 /*             Local variable declarations                                */
 /*------------------------------------------------------------------------*/
-  printf("11111111111111\n");
   STODFTINFO *stodftInfo = cp->stodftInfo;
   STODFTCOEFPOS *stodftCoefPos = cp->stodftCoefPos;
   CPOPTS *cpopts = &(cp->cpopts);
@@ -667,14 +666,12 @@ void calcChemPotMetal(CP *cp)
     numElecTrueUp = numElecTrueUp;
   }
   */
-  printf("11111111111111\n");
   if(myidState==0){
     numOccDetAll = (double*)cmalloc(numStateUpAllProc*sizeof(double)); 
     for(iState=0;iState<numStateUpAllProc;iState++){
       numOccDetAll[iState] = 0.0;
     }
     // Now I only have spin-unpolarize filter diag
-    printf("11111111111111\n");
     numElecDiff = 1000;
     chemPotMin = energyLevel[0];
     chemPotMax = energyLevel[numStatePrintUp-1];
@@ -682,7 +679,6 @@ void calcChemPotMetal(CP *cp)
                              energyLevel,numStatePrintUp);
     numElecMax = calcNumElecSmear(smearOpt,smearTemperature,chemPotMax,
                              energyLevel,numStatePrintUp);
-    printf("2222222222222\n");
     if(numElecMin>numElecTrueUp||numElecMax<numElecTrueUp){
       printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
       printf("The number of electron %lg is out of range %lg %lg\n",
@@ -695,8 +691,6 @@ void calcChemPotMetal(CP *cp)
                  chemPotMin;
     numElecNew = calcNumElecSmear(smearOpt,smearTemperature,chemPotNew,
                              energyLevel,numStatePrintUp);
-    printf("3333333333333\n");
-    fflush(stdout);
     //int icount = 0;
     while(fabs(numElecNew-numElecTrueUp)>numElecTol){
       //printf("chemPotMin %.8lg chemPotMax %.8lg chemPotNew %.8lg numElecMin %.8lg numElecMax %.8lg numElecNew %.8lg diff %.8lg\n",chemPotMin,chemPotMax,chemPotNew,numElecMin,numElecMax,numElecNew,fabs(numElecTrueUp-numElecNew));

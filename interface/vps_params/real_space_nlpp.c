@@ -277,11 +277,11 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 	fscanf(fvps,"%lg %lg %lg %lg\n",&z1,&alpha1,&z2,&alpha2);
 	fscanf(fvps,"%lg %lg\n",&zPol,&gamma);
 	//printf("%lg %lg %lg %lg %lg %lg\n",z1,alpha1,z2,alpha2,zPol,gamma);
-        printf("iformat %i\n",iformat[iType+1]);
+        //printf("iformat %i\n",iformat[iType+1]);
         if(iformat[iType+1]==1){
           for(iAng=0;iAng<=angNow;iAng++){
             fscanf(fvps,"%lg",&(vpsNormList[countR+iAng]));
-            printf("vpsssssssssssss %lg\n",vpsNormList[countR+iAng]);
+            //printf("vpsssssssssssss %lg\n",vpsNormList[countR+iAng]);
           }
         }
       }
@@ -364,7 +364,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
               //printf("countR %i vpsNormList %lg\n",countR+iAng,vpsNormList[countR+iAng]);
             vpsNormList[countR+iAng] = 1.0/vpsNormList[countR+iAng];
           }//endif iformat
-          printf("countR %i iAng %i vpsNormList %lg\n",countR,iAng,vpsNormList[countR+iAng]);
+          //printf("countR %i iAng %i vpsNormList %lg\n",countR,iAng,vpsNormList[countR+iAng]);
         }//endif iAng
         else{
           isLocal[countR+iAng] = 1;
@@ -440,7 +440,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 /*==========================================================================*/
 /* III) Real space spline						    */
 
-  printf(".....Real space interpolation\n");
+  if(myidState==0)printf(".....Real space interpolation\n");
   interpReal(pseudo,numAtomType,lMap);
 
 /*======================================================================*/
@@ -1263,10 +1263,10 @@ void interpReal(PSEUDO *pseudo,int numAtomType,int *lMap)
     // spline
     //pseudoReal->numInterpGrid = numInterpGrid;
     //rList = (double*)cmalloc((numInterpGrid+1)*sizeof(double));
-    printf("111111111111111 %i\n",numInterpGrid*numRadTot+1);
+    //printf("111111111111111 %i\n",numInterpGrid*numRadTot+1);
     de = (double*)realloc(de,(numInterpGrid*numRadTot+1)*sizeof(double));
     vpsReal0 = (double*)realloc(vpsReal0,(numInterpGrid*numRadTot+1)*sizeof(double));
-    printf("%p\n",vpsReal0);
+    //printf("%p\n",vpsReal0);
     vpsReal1 = (double*)realloc(vpsReal1,(numInterpGrid*numRadTot+1)*sizeof(double));
     vpsReal2 = (double*)realloc(vpsReal2,(numInterpGrid*numRadTot+1)*sizeof(double));
     vpsReal3 = (double*)realloc(vpsReal3,(numInterpGrid*numRadTot+1)*sizeof(double));

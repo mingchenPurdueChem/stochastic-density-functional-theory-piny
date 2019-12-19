@@ -195,7 +195,6 @@ void read_coef(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 /*=======================================================================*/
 /* XI) Transpose the coefs, coef vels and thermostats (massiv only)      */
 
-  printf("transposeFlag %i\n",transposeFlag);
   if(np_states>1&&transposeFlag==1){
     read_coef_transpose(cp,istart,cp_wave_min,cp_min);
   }/*endif np_states > 1*/

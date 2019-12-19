@@ -382,7 +382,7 @@ void para_fft_gen3d_fwd_to_r(double *zfft, double *zfft_tmp,
     /*-----------------------------*/
 
 #ifdef DALLTOALL
-    printf("TTTTTTTTTest sendcounts_fft_ka[1] %i senddspls_fft_ka[1] %i\n",sendcounts_fft_ka[1],senddspls_fft_ka[1]);
+    //printf("TTTTTTTTTest sendcounts_fft_ka[1] %i senddspls_fft_ka[1] %i\n",sendcounts_fft_ka[1],senddspls_fft_ka[1]);
     Alltoallv(&zfft[1],&(sendcounts_fft_ka[1]),&(senddspls_fft_ka[1]),
               MPI_DOUBLE,&zfft_tmp[1],&(recvcounts_fft_ka[1]),
               &(recvdspls_fft_ka[1]),MPI_DOUBLE,comm);

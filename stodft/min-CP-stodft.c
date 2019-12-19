@@ -792,7 +792,11 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     //exit(0);
   }//endfor iScf
 
-  printf("SCF time myid %i gen-stowf %.8lg energy %.8lg density %.8lg KS potential %.8lg total-energy %.8lg\n",myidState,diffTime1,diffTime2,diffTime3,diffTime4,diffTime5);
+  if(numProcStates>1)Barrier(commStates);
+
+  if(myidState==0){
+    printf("SCF time myid %i gen-stowf %.8lg energy %.8lg density %.8lg KS potential %.8lg total-energy %.8lg\n",myidState,diffTime1,diffTime2,diffTime3,diffTime4,diffTime5);
+  }
 
   /*  
   char wfname[100];

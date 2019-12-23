@@ -88,9 +88,9 @@ void checkpointOutput(CP *cp, GENERAL_DATA *general_data)
     Gatherv(&rhoUp[1],rhoRealGridNum,MPI_DOUBLE,rhoTemp,
 	    rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,0,commStates);
     Barrier(commStates);
-    printf("myidState %i rhoRealGridNum %i rhoRealSendCounts %i rhoRealDispls %i rhoUp[1] %lg\n",
-	   myidState,rhoRealGridNum,rhoRealSendCounts[myidState],rhoRealDispls[myidState],rhoUp[1]);
-    if(myidState==0)printf("rhoTemp %lg %lg %lg\n",rhoTemp[0],rhoTemp[200000],rhoTemp[400000]);
+    //printf("myidState %i rhoRealGridNum %i rhoRealSendCounts %i rhoRealDispls %i rhoUp[1] %lg\n",
+    //	   myidState,rhoRealGridNum,rhoRealSendCounts[myidState],rhoRealDispls[myidState],rhoUp[1]);
+    //if(myidState==0)printf("rhoTemp %lg %lg %lg\n",rhoTemp[0],rhoTemp[200000],rhoTemp[400000]);
   } 
   else{
     memcpy(rhoTemp,&rhoUp[1],rhoRealGridTot*sizeof(double));

@@ -272,7 +272,15 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   stodftCoefPos->testWfMinRe = (double*)cmalloc(numCoeff*sizeof(double));
   stodftCoefPos->testWfMinIm = (double*)cmalloc(numCoeff*sizeof(double));
 
-  if(expanType==2&&filterFunType==1)stodftInfo->fermiFunctionReal = &fermiExpReal;
+  if(expanType==2&&filterFunType==1){
+    if(energyWindowOn==0){
+      stodftInfo->fermiFunctionReal = &fermiExpReal;
+    }
+    else{
+      stodftInfo->fermiFunctionReal = &fermiExpReal;
+      stodftInfo->fermiFunctionLongDouble = &fermiExpLongDouble;
+    }
+  }
   if(expanType==2&&filterFunType==2)stodftInfo->fermiFunctionReal = &fermiErfcReal;
   if(expanType==2&&filterFunType==3)stodftInfo->fermiFunctionReal = &gaussianReal;
   if(expanType==3&&filterFunType==1)stodftInfo->fermiFunctionComplex = &fermiExpComplex;

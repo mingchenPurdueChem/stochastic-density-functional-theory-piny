@@ -370,6 +370,7 @@ void get_ind_rev(int*,int*,int,int);
 /*----------------------------------------------------------------------*/
 /* Fillter functions  */
 double fermiExpReal(double,double,double);
+long double fermiExpLongDouble(long double,long double,long double);
 double complex fermiExpComplex(double complex,double,double);
 double fermiErfcReal(double,double,double);
 double gaussianReal(double,double,double);

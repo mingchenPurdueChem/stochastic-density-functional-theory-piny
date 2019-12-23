@@ -306,6 +306,7 @@ typedef struct newtonInfo{
 }NEWTONINFO;
 
 typedef double (*FERMIFUNR)(double,double,double);//x,mu,beta
+typedef long double (*FERMIFUNLR)(long double,long double,long double);
 typedef double complex (*FERMIFUNC)(double complex,double,double);
 
 typedef struct fragInfo{
@@ -757,6 +758,7 @@ typedef struct stodftInfo{
  
 
   FERMIFUNR fermiFunctionReal;
+  FERMIFUNLR fermiFunctionLongDouble;
   FERMIFUNC fermiFunctionComplex;
   
   NEWTONINFO *newtonInfo;

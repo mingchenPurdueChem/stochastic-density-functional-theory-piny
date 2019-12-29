@@ -1831,8 +1831,6 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
 /*--------------------------------------------------------------------*/
 /*  c) add gradient corrections if necessary                          */
 
-   printf("before gga v_ks_up[1] %lg %lg\n",v_ks_up[1],exc);
-
    if(cp_gga==1){
     if(cp_lsda == 0 ){
      if(cp_dual_grid_opt >= 1){
@@ -1861,8 +1859,6 @@ void cp_get_vks(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
      }/*endif cp_dual_grid_opt*/
     }/* endif cp_lsda */
    }/*endif cp_gga*/
-
-  printf("after gga v_ks_up[1] %lg %lg\n",v_ks_up[1],exc);
 
 /*--------------------------------------------------------------------*/
 /*  d Check for implementation of chosen xc functional (barf if not found)*/

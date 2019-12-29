@@ -2080,10 +2080,10 @@ void controlSetCpEwaldFragSparse(GENERAL_DATA *generalDataMini,CLASS *classMini,
   calc_cutoff(kmax_ewd,&ecut_now,&(cp_parse->cp_ecut),cp_on,
               kmax_cp,kmax_dummy,hmati_ewd_cp,deth_cp);  
   // rho cutoff
-  printf("1111111 ecut_rho %lg\n",cpewald->eCutoffRho);
+  //printf("1111111 ecut_rho %lg\n",cpewald->eCutoffRho);
   calc_cutoff(kmax_ewd,&ecut_rho,&(cpewald->eCutoffRho),cp_on,
                 kmax_rho,kmax_dummy,hmati_ewd_cp,deth_cp);
-  printf("ecut_now %lg ecut_rho %lg\n",ecut_now,ecut_rho);
+  //printf("ecut_now %lg ecut_rho %lg\n",ecut_now,ecut_rho);
   /*
   printf("ecut_now %lg kmax_cp %i %i %i kmaxv %i %i %i hmati_ewd_cp %lg %lg %lg\n",ecut_now,kmax_cp[1],kmax_cp[2],kmax_cp[3],kmaxv[1],kmaxv[2],kmaxv[3],hmati_ewd_cp[1],hmati_ewd_cp[5],hmati_ewd_cp[9]);
   */
@@ -2162,7 +2162,7 @@ void controlSetCpEwaldFragSparse(GENERAL_DATA *generalDataMini,CLASS *classMini,
             ewald->kastr,ewald->kbstr,ewald->kcstr,
             ewald->ibrk1,ewald->ibrk2,
             gmin_spl,gmax_spl);
-  printf("1111111111111111\n");
+  //printf("1111111111111111\n");
 
   /*
    for(i=1;i<=nktot;i++){

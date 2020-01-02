@@ -4901,6 +4901,10 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
       fflush(stdout);
       exit(0);
     }
+    if(stodftInfo->calcFragFlag==1&&stodftInfo->energyWindowOn==1){
+      printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
+      printf("You are using both fragmentation");
+    }
   }//endif stodftOn
 
   

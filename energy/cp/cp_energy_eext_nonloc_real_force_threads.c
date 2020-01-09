@@ -135,7 +135,7 @@ void nlppKBRealEnergyForceThreads(CP *cp,CLASS *class,GENERAL_DATA *generalData,
   gridShiftNowRe = 0;
   gridShiftNowIm = 0;
 
-  printf("111111111111111\n");  
+  //printf("111111111111111\n");  
   for(iAtom=0;iAtom<numAtom;iAtom++){ //
     atomType = iAtomAtomType[iAtom+1]-1;
     numGrid = numGridNlppMap[iAtom];
@@ -241,7 +241,7 @@ void nlppKBRealEnergyForceThreads(CP *cp,CLASS *class,GENERAL_DATA *generalData,
     fx[iAtom+1] -= forceNlX;
     fy[iAtom+1] -= forceNlY;
     fz[iAtom+1] -= forceNlZ;
-    printf("iAtom %i %lg %lg %lg\n",iAtom,-forceNlX,-forceNlY,-forceNlZ);
+    //printf("iAtom %i %lg %lg %lg\n",iAtom,-forceNlX,-forceNlY,-forceNlZ);
   }//endfor iAtom
 
 

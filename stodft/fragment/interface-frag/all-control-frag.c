@@ -2162,7 +2162,6 @@ void controlSetCpEwaldFragSparse(GENERAL_DATA *generalDataMini,CLASS *classMini,
             ewald->kastr,ewald->kbstr,ewald->kcstr,
             ewald->ibrk1,ewald->ibrk2,
             gmin_spl,gmax_spl);
-  //printf("1111111111111111\n");
 
   /*
    for(i=1;i<=nktot;i++){
@@ -2629,7 +2628,6 @@ void controlFFTPkgFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,CP *cpMini
   }/*endif*/
 
   if(cp_on==1&&cp_para_opt==0&&realSparseOpt==1){
-    //printf("11111111111111111111111111111 initial fft");
     cp_sclr_fft_pkg_sparse->nkf1 = nkf1;
     cp_sclr_fft_pkg_sparse->nkf2 = nkf2;
     cp_sclr_fft_pkg_sparse->nkf3 = nkf3;

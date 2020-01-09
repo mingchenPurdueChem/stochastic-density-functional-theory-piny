@@ -1517,7 +1517,7 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     }
     for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
       numElecProj += rhoTemp[iGrid];
-      numElecFrag += rhoUpFragSum[iGrid];
+      numElecFrag += rhoDnFragSum[iGrid];
     }
     daxpyBlasWrapper(rhoRealGridNum,-pre,&rhoTemp[0],1,&rhoDnFragSum[0],1);
   }//endif cpLsda

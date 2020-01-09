@@ -1544,6 +1544,7 @@ void calcRhoStoHybridCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
 		     rhoCoeffReUp,rhoCoeffImUp,rhoUp,rhoCoeffReUpDensCpBox,rhoCoeffImUpDensCpBox,
 		     divRhoxUp,divRhoyUp,divRhozUp,d2RhoUp,cpGGA,cpDualGridOptOn,numInterpPmeDual,
 		     commCP,&(cp->cp_para_fft_pkg3d_lg),&(cp->cp_para_fft_pkg3d_dens_cp_box));
+  
   if(cpLsda==1&&numStateDnProc!=0){
     calcRhoStoRecipFullg(cpewald,cpscr,cpcoeffs_info,ewald,cell,
 		       rhoCoeffReDn,rhoCoeffImDn,rhoDn,rhoCoeffReDnDensCpBox,rhoCoeffImDnDensCpBox,

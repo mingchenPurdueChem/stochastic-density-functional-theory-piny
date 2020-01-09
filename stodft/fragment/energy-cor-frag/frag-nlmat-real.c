@@ -575,15 +575,12 @@ void calcVnlRealDotState(CP *cp,CLASS *class,GENERAL_DATA *generalData,
             radIndex = atomRadMap[atomType][countRad+iRad];
             for(m=0;m<=l;m++){
               if(m!=0){
-                //printf("111111111111111111111 index %i %i\n",atomIndSt+countNlppRe+m,atomIndSt+countNlppIm+m-1);
                 dotRe[atomIndSt+countNlppRe+m] 
                                   = ddotBlasWrapper(numGrid,wfNbhd,1,
                                     &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
                 dotIm[atomIndSt+countNlppIm+m-1] 
                                   = ddotBlasWrapper(numGrid,wfNbhd,1,
                                     &vnlPhiAtomGridIm[gridShiftNowIm],1)*volElem;
-                //printf("1234444444 iAtom %i l %i m %i ind %i im %lg\n",iAtom,l,m,atomIndSt+countNlppIm+m-1,dotIm[atomIndSt+countNlppIm+m-1]);
-                //printf("dxxxxxxxxxx %lg %lg dy %lg %lg dz %lg %lg\n",vnlPhiDxAtomGridRe[gridShiftNowRe],vnlPhiDxAtomGridIm[gridShiftNowIm],vnlPhiDyAtomGridRe[gridShiftNowRe],vnlPhiDyAtomGridIm[gridShiftNowIm],vnlPhiDzAtomGridRe[gridShiftNowRe],vnlPhiDzAtomGridIm[gridShiftNowIm]);
                 dotReDx[atomIndSt+countNlppRe+m] 
                                   = ddotBlasWrapper(numGrid,wfNbhd,1,
                                     &vnlPhiDxAtomGridRe[gridShiftNowRe],1)*volElem;
@@ -606,7 +603,6 @@ void calcVnlRealDotState(CP *cp,CLASS *class,GENERAL_DATA *generalData,
                 gridShiftNowIm += numGrid;
               }
               else{
-                //printf("111111111111111111111 index %i\n",atomIndSt+countNlppRe);
                 dotRe[atomIndSt+countNlppRe] 
                                   = ddotBlasWrapper(numGrid,wfNbhd,1,
                                     &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
@@ -892,7 +888,6 @@ void calcMatrixFromDot(CP *cp, CP *cpMini,CLASS *classMini,
   for(iState=0;iState<numStates;iState++){
     test_sum += vnlMatrix[iState*numStates+iState];
   }
-  printf("11111111 iFrag %i test_sum %lg\n",iFrag,test_sum);
   */
 
   //fflush(stdout);

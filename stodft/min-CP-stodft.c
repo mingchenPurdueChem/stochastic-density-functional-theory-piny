@@ -235,7 +235,7 @@ void scfStodftInterp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /* i) Generate stochastic WF for different chemical potentials          */
 
     if(myidState==0)printf("**Generating Stochastic Orbitals...\n");
-    genStoOrbitalInterp(class,bonded,general_data,cp,ip_now);
+    genStoOrbitalInterp(class,general_data,cp,ip_now);
  
     if(stodftInfo->filterDiagFlag==1){
       orthDiagDriver(cp,class,general_data,ip_now);
@@ -338,7 +338,7 @@ void scfStodftInterp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     while(stodftInfo->reRunFlag==1){
       if(myidState==0)printf("**Generating Stochastic Orbitals...\n");
       adjChemPot(stodftInfo,stodftCoefPos);
-      genStoOrbitalInterp(class,bonded,general_data,cp,ip_now);
+      genStoOrbitalInterp(class,general_data,cp,ip_now);
       if(myidState==0)printf("**Finish Generating Stochastic Orbitals\n");
       if(myidState==0)printf("**Calculating KE and NLPPE...\n");
       calcEnergyChemPot(cp,class,general_data,cpcoeffs_pos,clatoms_pos);
@@ -419,8 +419,16 @@ void scfStodftInterp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
+#ifdef FAST_FILTER
+void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
+                    CP *cp,
+                    CLASS *class2,BONDED *bonded2,GENERAL_DATA *general_data2,
+                    CP *cp2,
+                    int ip_now)   
+#else
 void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
                     CP *cp,int ip_now)
+#endif
 /*========================================================================*/
 {/*begin routine*/
 /*========================================================================*/
@@ -570,6 +578,7 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   if(myidState==0)printf("**Calculating Initial Kohn-Sham Potential...\n");
   calcLocalPseudoScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
   calcKSPot(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+
   if(pseudoRealFlag==1){
     if(myidState==0)printf("**Calculating Real Space Non-local Pseudopotential...\n");
     pseudoReal->forceCalcFlag = 1;
@@ -580,12 +589,34 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
   if(myidState==0)printf("**Finish Calculating Initial Kohn-Sham Potential\n");
 
-
-
   //exit(0);
 /*======================================================================*/
 /* IV) SCF loop						                */
+#ifdef FAST_FILTER  
+  cp2->cpcoeffs_pos[1].ifcoef_form_up = 0;
+  cp2->cpcoeffs_pos[1].ifcoef_orth_up = 1;
 
+  gethinv(general_data2->cell.hmat_cp,general_data2->cell.hmati_cp,
+          &(general_data2->cell.vol_cp),iperd);
+  gethinv(general_data2->cell.hmat,general_data2->cell.hmati,
+          &(general_data2->cell.vol),iperd);
+  calcLocalPseudoScf(class2,general_data2,cp2,
+                     &(cp2->cpcoeffs_pos[1]),&(class2->clatoms_pos[1]));
+
+  if(cp2->pseudo.pseudoReal.pseudoRealFlag==1){
+    cp2->pseudo.pseudoReal.forceCalcFlag = 1;
+    initRealNlppWf(cp2,class2,general_data2);
+    allocRealNl(cp2,class2);
+    cp2->pseudo.pseudoReal.forceCalcFlag = 0;
+  }
+
+  cp->stodftInfo->numStatePrintUp = cp2->stodftInfo->numStatePrintUp;
+  cp->stodftCoefPos->moUpRePrint = (double*)cmalloc(cp->stodftInfo->numStatePrintUp*numCoeff*sizeof(double))-1;
+  cp->stodftCoefPos->moUpImPrint = (double*)cmalloc(cp->stodftInfo->numStatePrintUp*numCoeff*sizeof(double))-1;
+  // attention: size of cp->stodftCoefPos.energyLevel is different from 
+  // the size of cp2->stodftCoefPos.energyLevel
+  cp->stodftCoefPos->energyLevel = (double*)cmalloc(cp->stodftInfo->numStatePrintUp*sizeof(double));
+#endif
 
   if(myidState==0){
     printf("===============================================================================\n");
@@ -617,7 +648,11 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
     timeStart1 = omp_get_wtime();
     if(myidState==0)printf("**Generating Stochastic Orbitals...\n");
-    genStoOrbitalCheby(class,bonded,general_data,cp,ip_now);
+#ifdef FAST_FILTER  
+    genStoOrbitalChebyFakeNew(class,general_data,cp,class2,general_data2,cp2,ip_now);
+#else
+    genStoOrbitalCheby(class,general_data,cp,ip_now);
+#endif
     //genStoOrbitalFake(class,bonded,general_data,cp,ip_now);
  
     //exit(0);
@@ -1042,7 +1077,7 @@ void scfStodftFilterDiag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
     timeStart1 = omp_get_wtime();
     if(myidState==0)printf("**Generating Stochastic Orbitals...\n");
-    genStoOrbitalInterp(class,bonded,general_data,cp,ip_now);
+    genStoOrbitalInterp(class,general_data,cp,ip_now);
  
     //exit(0);
     //debug
@@ -1221,8 +1256,15 @@ void scfStodftFilterDiag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
+#ifdef FAST_FILTER
+void scfStodftEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
+                    CP *cp,
+                    CLASS *class2,BONDED *bonded2,GENERAL_DATA *general_data2,CP *cp2,
+                    int ip_now)
+#else
 void scfStodftEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
                     CP *cp,int ip_now)
+#endif
 /*========================================================================*/
 {/*begin routine*/
 /*========================================================================*/
@@ -1278,6 +1320,7 @@ void scfStodftEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
   int checkpointWriteFreq = stodftInfo->checkpointWriteFreq;
   int checkpointParFlag = stodftInfo->checkpointParFlag;
   int readCoeffFlag = stodftInfo->readCoeffFlag;
+  int calcFragFlag              = stodftInfo->calcFragFlag;
 
   MPI_Comm commStates		= communicate->comm_states;
 
@@ -1321,7 +1364,6 @@ void scfStodftEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
   double *rhoCoeffReUp = cpscr->cpscr_rho.rhocr_up;
   double *rhoCoeffImUp = cpscr->cpscr_rho.rhoci_up;
 
-
   //timeing
   double timeStart,timeEnd;
   double timeStart1,timeEnd1;
@@ -1336,8 +1378,6 @@ void scfStodftEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
   double diffTime4 = 0.0;
   double diffTime5 = 0.0;
   double diffTime6 = 0.0;
-
-
 
 /*======================================================================*/
 /* 0.05) Check the approximations in the methods                        */
@@ -1382,16 +1422,49 @@ void scfStodftEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
   stat_avg->cp_eext = 0.0;
   stat_avg->cp_exc = 0.0;
   if(myidState==0)printf("**Calculating Initial Kohn-Sham Potential...\n");
-  calcLocalPseudoScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
-  calcKSPot(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
-  if(pseudoRealFlag==1){
-    if(myidState==0)printf("**Calculating Real Space Non-local Pseudopotential...\n");
-    pseudoReal->forceCalcFlag = 1;
-    initRealNlppWf(cp,class,general_data);
-    allocRealNl(cp,class);
-    pseudoReal->forceCalcFlag = 0;
+  if(calcFragFlag==0){
+    calcLocalPseudoScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
   }
 
+  calcKSPot(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+
+  if(calcFragFlag==0){
+    if(pseudoRealFlag==1){
+      if(myidState==0)printf("**Calculating Real Space Non-local Pseudopotential...\n");
+      pseudoReal->forceCalcFlag = 1;
+      initRealNlppWf(cp,class,general_data);
+      allocRealNl(cp,class);
+      pseudoReal->forceCalcFlag = 0;
+    }
+  }
+
+#ifdef FAST_FILTER
+  cp2->cpcoeffs_pos[1].ifcoef_form_up = 0;
+  cp2->cpcoeffs_pos[1].ifcoef_orth_up = 1;
+
+  gethinv(general_data2->cell.hmat_cp,general_data2->cell.hmati_cp,
+          &(general_data2->cell.vol_cp),iperd);
+  gethinv(general_data2->cell.hmat,general_data2->cell.hmati,
+          &(general_data2->cell.vol),iperd);
+  if(calcFragFlag==0){
+    calcLocalPseudoScf(class2,general_data2,cp2,
+                       &(cp2->cpcoeffs_pos[1]),&(class2->clatoms_pos[1]));  
+  }
+
+  if(cp2->pseudo.pseudoReal.pseudoRealFlag==1){
+    cp2->pseudo.pseudoReal.forceCalcFlag = 1;
+    initRealNlppWf(cp2,class2,general_data2);
+    allocRealNl(cp2,class2);
+    cp2->pseudo.pseudoReal.forceCalcFlag = 0;
+  }
+  cp->stodftInfo->numStatePrintUp = cp2->stodftInfo->numStatePrintUp;
+  cp->stodftCoefPos->moUpRePrint = (double*)cmalloc(cp->stodftInfo->numStatePrintUp*numCoeff*sizeof(double))-1;
+  cp->stodftCoefPos->moUpImPrint = (double*)cmalloc(cp->stodftInfo->numStatePrintUp*numCoeff*sizeof(double))-1;
+  // attention: size of cp->stodftCoefPos.energyLevel is different from 
+  // the size of cp2->stodftCoefPos.energyLevel
+  cp->stodftCoefPos->energyLevel = (double*)cmalloc(cp->stodftInfo->numStatePrintUp*sizeof(double));
+
+#endif
   //calcKSPotExtRecipWrapPreScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
   //calcKSForceControlWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
 
@@ -1432,10 +1505,18 @@ void scfStodftEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
 
     timeStart1 = omp_get_wtime();
     if(myidState==0)printf("**Generating Stochastic Orbitals...\n");
+/*
 #ifndef EW_FAKE
-    genStoOrbitalEnergyWindow(class,bonded,general_data,cp,ip_now);
+    genStoOrbitalEnergyWindow(class,general_data,cp,ip_now);
 #else
-    genStoOrbitalEnergyWindowFake(class,bonded,general_data,cp,ip_now);
+    genStoOrbitalEnergyWindowFake(class,general_data,cp,ip_now);
+#endif
+*/
+#ifdef FAST_FILTER
+    genStoOrbitalEnergyWindowFakeNew(class,general_data,cp,
+                             class2,general_data2,cp2,ip_now);
+#else
+    genStoOrbitalEnergyWindow(class,general_data,cp,ip_now);
 #endif
  
     //exit(0);

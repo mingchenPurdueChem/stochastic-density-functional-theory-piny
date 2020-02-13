@@ -535,6 +535,12 @@ typedef struct stodftInfo{
   int energyWindowOn;               /* Opt: whether use energy window for stodft*/
                                     /*      0 = no (default)                    */
                                     /*      1 = yes                             */
+  int fragWindowFlag;               /* Opt: We have two differet number of      */
+                                    /*      energy windows if we turn on the    */
+                                    /*      fragmentation. Therefore we use this*/
+                                    /*      flag to control it.                 */
+                                    /*      0 = numChemPot                      */
+                                    /*      1 = numChemPot+1                    */
   int numScf;			    /* Num: Maximum SCF loop			*/
   int iScf;			    /* Num: SCF loop index			*/
   int expanType;                    /* Opt: Method of Fermi function expension. */
@@ -750,7 +756,7 @@ typedef struct stodftInfo{
   int calcFragFlag;		    /* Opt: control fragmentation on=1,off=0	*/
   int fragOpt;			    /* Opt: Fragmentation type:			*/
 				    /*	    1=mol,2=group of atoms,3= unit cell	*/
-				    /*	    4=...*/
+				    /*	    4=...                               */
   int fragCellOpt;		    /* Opt: cell option for fragments		*/
 				    /*	    1=hg (homogenious)			*/
 				    /*	    2=nhg  (non-homogenious)		*/
@@ -799,7 +805,7 @@ typedef struct stodftCoefPos{
   double **stoWfDnRe;   	    /*	    processor.				*/
   double **stoWfDnIm;		    /* Lth: numChemPot*(nstate_up_proc*ncoef)	*/
   
-  double *chemPot;		    /* Lst: chemical potentials			*/
+  double *chemPot,*chemPotBackUp;   /* Lst: chemical potentials			*/
 				    /* Lth: numChemPot				*/
   double *testWfMaxRe,*testWfMaxIm; /* Lst: test wave function to get min/max   */
   double *testWfMinRe,*testWfMinIm; /*      energy. Generate at the first       */
@@ -857,6 +863,8 @@ typedef struct stodftCoefPos{
   //debug things
   double *wfUpReDet,*wfUpImDet;     /* Lst: Deterministic orthognormal wave fun */
                                     /* Lth: numStatesDet*numCoeff               */
+  double *moUpRePrint,*moUpImPrint;
+
 
   /* The following is to get the correct chemical potential */
   double *chebyMomentsUp;           /* Lst: Chebyshev momentums                 */

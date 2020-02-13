@@ -56,6 +56,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int myidState		= communicate->myid_state;
   int numProcStates     = communicate->np_states;
   int fragOpt		= stodftInfo->fragOpt;
+  int energyWindowOn    = stodftInfo->energyWindowOn;
   MPI_Comm commStates   = communicate->comm_states;
 
   int *numGridFragProc = fragInfo->numGridFragProc;
@@ -199,7 +200,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   
   if(numProcStates>1)Barrier(commStates);
   
-  /*  
+    
   sprintf(fileNameFragMO,"frag-MO-%i",myidState);
   fileFragMO = fopen(fileNameFragMO,"w");
   for(iFrag=0;iFrag<numFragProc;iFrag++){
@@ -212,7 +213,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     }
   }
   fclose(fileFragMO);    
-  */
+  
   
   if(numProcStates>1)Barrier(commStates);
   //exit(0);
@@ -244,9 +245,14 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   if(fragOpt==3){
     projRhoMiniUnitCell(cp,general_data,class,cpMini,generalDataMini,classMini,ip_now);
   }
-  //fflush(stdout);
-  //exit(0);
+
   energyCorrect(cpMini,generalDataMini,classMini,cp,class,ip_now);
+  printf("!!!!!!!!!!! energywindowon %i\n",energyWindowOn);
+  if(energyWindowOn==1){
+    stodftInfo->fragWindowFlag = 0;
+    stodftInfo->numChemPot -= 1;
+    printf("new numChemPot %i\n",stodftInfo->numChemPot);
+  }
 
 /*==========================================================================*/
 }/*end Routine*/

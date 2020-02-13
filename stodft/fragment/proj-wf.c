@@ -813,6 +813,49 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 		 int ip_now)
 /*========================================================================*/
 {/*begin routine*/
+/*************************************************************************/
+/* This is the driver for calculating the fragmentation correction to    */
+/* sDFT. This part used to be a whole function. Now it is been splited   */
+/* into two functions so that energy window */
+/*************************************************************************/
+/*========================================================================*/
+/*             Local variable declarations                                */
+#include "../typ_defs/typ_mask.h"
+  
+  STODFTINFO *stodftInfo = cp->stodftInfo;
+
+  int energyWindowOn = stodftInfo->energyWindowOn;
+  
+  combineRhoUC(cp,general_data,class,
+                     cpMini,generalDataMini,classMini,
+                     ip_now);
+  if(energyWindowOn==0){
+    combineStoUC(cp,general_data,class,
+                 cpMini,generalDataMini,classMini,
+                 ip_now);
+  }
+  else{
+    combineStoUCEnergyWindow(cp,general_data,class,cpMini,
+                 generalDataMini,classMini,ip_now);
+
+  }
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void combineRhoUC(CP *cp,GENERAL_DATA *general_data,CLASS *class,
+		 CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,
+		 int ip_now)
+/*========================================================================*/
+{/*begin routine*/
+/*************************************************************************/
+/* This first part calculate the density from deterministic calculation  */
+/*************************************************************************/
 /*========================================================================*/
 /*             Local variable declarations                                */
 #include "../typ_defs/typ_mask.h"
@@ -1058,7 +1101,6 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     }
 
     if(myidState==0&&numProcStates>1){
-      rhoTempReduce = (double*)cmalloc(rhoRealGridTot*sizeof(double));
       for(iGrid=0;iGrid<rhoRealGridTot;iGrid++)rhoTempReduce[iGrid] = 0.0;
     }
     if(numProcStates>1){
@@ -1092,6 +1134,151 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     free(fragInfo->rhoDnFragProc);   
   }
   */
+  free(rhoTemp);
+  if(myidState==0&&numProcStates>1)free(rhoTempReduce);
+  
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void combineStoUC(CP *cp,GENERAL_DATA *general_data,CLASS *class,
+                 CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,
+                 int ip_now)
+/*========================================================================*/
+{/*begin routine*/
+/*************************************************************************/
+/* The second part calculate the density from stochastic calculation     */
+/*************************************************************************/
+/*========================================================================*/
+/*             Local variable declarations                                */
+#include "../typ_defs/typ_mask.h"
+
+  STODFTINFO *stodftInfo = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  FRAGINFO *fragInfo = stodftInfo->fragInfo;
+  CPOPTS *cpOpts = &(cp->cpopts);
+  CPCOEFFS_INFO *cpcoeffs_info = &(cp->cpcoeffs_info);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
+  COMMUNICATE *commCP = &(cp->communicate);
+  CELL *cell	      = &(general_data->cell);
+ 
+  int iFrag,jFrag,iGrid,jGrid,iState,jState,iStateFrag,iProc;
+  int iAtom;
+  int gridIndex;
+  int numGrid,numGridSmall;
+  int numStateUpMini;
+  int numStateDn;
+  int numStateDnMini;
+  int cpLsda		    = cpOpts->cp_lsda;
+  int numFragProc	    = fragInfo->numFragProc;
+  int numFragTot	    = fragInfo->numFragTot;
+  int occNumber		    = stodftInfo->occNumber;
+  int myidState		    = commCP->myid_state;
+  int numProcStates	    = commCP->np_states;
+  int rhoRealGridNum	    = stodftInfo->rhoRealGridNum;
+  int rhoRealGridTot	    = stodftInfo->rhoRealGridTot;
+  int numStateUpProc	    = cpcoeffs_info->nstate_up_proc;
+  int numStateDnProc	    = cpcoeffs_info->nstate_dn_proc;
+  int numStateStoUp     = stodftInfo->numStateStoUp;
+  int numStateStoDn     = stodftInfo->numStateStoDn;
+  int numCoeff		= cpcoeffs_info->ncoef;
+  int countWf;
+  int fragOpt		    = stodftInfo->fragOpt;
+
+  MPI_Comm commStates   =    commCP->comm_states;
+
+  int *numGridFragProc	    = fragInfo->numGridFragProc;
+  int *numGridFragProcSmall = fragInfo->numGridFragProcSmall;
+  int *rhoRealSendCounts = stodftInfo->rhoRealSendCounts;
+  int *rhoRealDispls = stodftInfo->rhoRealDispls;
+  int *numStateUpAllProc;
+  int *numStateDnAllProc;
+
+  int **gridMapProc	    = fragInfo->gridMapProc;
+  int **gridMapProcSmall    = fragInfo->gridMapProcSmall;
+ 
+  double proj;
+  double numElecProj = 0.0;
+  double numElecFrag = 0.0;
+  double numElecProjTot = 0.0;
+  double numElecFragTot = 0.0;
+  double numElecSys = stodftInfo->numElecTrue;
+  double numGridTotInv = 1.0/rhoRealGridTot;
+  double vol,volInv;
+  double volMini;
+  double pre,preNe;
+  double preDot;
+  double *rhoTemp,*rhoTempReduce;
+  double *wfTemp,*wfFragTemp,*rhoFragTemp;
+  double *hmat_cp = cell->hmat_cp;
+  double *hmatCpMini;
+  double **rhoUpFragProc;
+  double **coefUpFragProc;
+  double **rhoDnFragProc;
+  double **coefDnFragProc;
+  double **coefUpFragCoreProc;
+  double **coefDnFragCoreProc;
+  double *rhoUpFragSum;
+  double *rhoDnFragSum;
+  double *noiseWfUpReal,*noiseWfDnReal;
+
+  
+/*======================================================================*/
+/* I) Asign local variables				                */
+
+  vol = getdeth(hmat_cp);
+  volInv = 1.0/vol;
+
+  // prefactor for prjection part
+  pre = (double)(occNumber)*vol*vol/
+        ((double)(rhoRealGridTot)*(double)(rhoRealGridTot)*(double)(numStateStoUp));
+  // prefactor for number of e in proj part
+  preNe = pre/(double)(rhoRealGridTot);
+  preDot = 1.0/sqrt(vol);
+
+  rhoUpFragProc = fragInfo->rhoUpFragProc;
+  coefUpFragProc = fragInfo->coefUpFragProc;
+  coefUpFragCoreProc = fragInfo->coefUpFragCoreProc;
+  rhoUpFragSum = fragInfo->rhoUpFragSum;
+
+  if(cpLsda==1&&numStateDn!=0){
+    rhoDnFragProc = fragInfo->rhoDnFragProc;
+    coefDnFragProc = fragInfo->coefDnFragProc;
+    coefDnFragCoreProc = fragInfo->coefDnFragCoreProc;    
+    rhoDnFragSum = fragInfo->rhoDnFragSum;
+  }
+
+  rhoTemp = (double*)cmalloc(rhoRealGridTot*sizeof(double));
+  for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+    rhoTemp[iGrid] = 0.0;
+  }//endfor iGrid
+
+  fragInfo->noiseWfUpReal = (double*)cmalloc(numStateUpProc*rhoRealGridTot*sizeof(double));
+  noiseWfUpReal = fragInfo->noiseWfUpReal;
+  if(cpLsda==1&&numStateDn!=0){
+    fragInfo->noiseWfDnReal = (double*)cmalloc(numStateDnProc*rhoRealGridTot*sizeof(double));
+    noiseWfDnReal = fragInfo->noiseWfDnReal;
+  }
+
+  fragInfo->wfProjUp = (double**)cmalloc(numFragProc*sizeof(double*));
+
+  for(iFrag=0;iFrag<numFragProc;iFrag++){
+    numStateUpMini = cpMini[iFrag].cpcoeffs_info.nstate_up_proc;
+    fragInfo->wfProjUp[iFrag] = (double*)cmalloc(numStateStoUp*numStateUpMini*sizeof(double));
+  }
+
+  if(cpLsda==1&&numStateDn!=0){
+    fragInfo->wfProjDn = (double**)cmalloc(numFragProc*sizeof(double*));
+    for(iFrag=0;iFrag<numFragProc;iFrag++){
+      numStateDnMini = cpMini[iFrag].cpcoeffs_info.nstate_dn_proc;
+      fragInfo->wfProjDn[iFrag] = (double*)cmalloc(numStateStoDn*numStateDnMini*sizeof(double));
+    }
+  }
+
   fragInfo->noiseWfUpReal = (double*)cmalloc(numStateUpProc*rhoRealGridTot*sizeof(double));
   noiseWfUpReal = fragInfo->noiseWfUpReal;
   if(cpLsda==1&&numStateDn!=0){
@@ -1114,7 +1301,6 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     }
   }
 
-  
 /*======================================================================*/
 /* IV) Calculate the real space noise wave function                     */
 
@@ -1360,6 +1546,7 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 	  //double testsum = 0.0;
 	  for(iStateFrag=0;iStateFrag<numStateUpMini;iStateFrag++){
 	    //proj = ddotBlasWrapper(numGrid,&wfFragTemp[0],1,&coefUpFragProc[iFrag][iStateFrag*numGrid],1);
+            
 	    proj = 0.0;
 	    for(iGrid=0;iGrid<numGrid;iGrid++){
 	      proj += wfFragTemp[iGrid]*coefUpFragProc[iFrag][iStateFrag*numGrid+iGrid];
@@ -1416,6 +1603,10 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   /*--------------------------------------------------*/
   
   if(numProcStates>1){
+    if(myidState==0){
+      rhoTempReduce = (double*)cmalloc(rhoRealGridTot*sizeof(double));
+      for(iGrid=0;iGrid<rhoRealGridTot;iGrid++)rhoTempReduce[iGrid] = 0.0;
+    }
     Barrier(commStates);
     Reduce(rhoTemp,rhoTempReduce,rhoRealGridTot,MPI_DOUBLE,MPI_SUM,0,commStates);
     Scatterv(rhoTempReduce,rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
@@ -1568,10 +1759,457 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   //fflush(stdout);
   //exit(0);
 
+
+
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void combineStoUCEnergyWindow(CP *cp,GENERAL_DATA *general_data,CLASS *class,
+                 CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,
+                 int ip_now)
+/*========================================================================*/
+{/*begin routine*/
+/*************************************************************************/
+/* The second part calculate the density from stochastic calculation     */
+/* with energy window.                                                   */
+/*************************************************************************/
+/*========================================================================*/
+/*             Local variable declarations                                */
+#include "../typ_defs/typ_mask.h"
+
+  STODFTINFO *stodftInfo = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  FRAGINFO *fragInfo = stodftInfo->fragInfo;
+  CPOPTS *cpOpts = &(cp->cpopts);
+  CPCOEFFS_INFO *cpcoeffs_info = &(cp->cpcoeffs_info);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
+  COMMUNICATE *commCP = &(cp->communicate);
+  CELL *cell	      = &(general_data->cell);
+ 
+  int iFrag,jFrag,iGrid,jGrid,iState,jState,iStateFrag,iProc;
+  int iChem;
+  int iAtom;
+  int gridIndex;
+  int numGrid,numGridSmall;
+  int numStateUpMini;
+  int numStateDn;
+  int numStateDnMini;
+  int cpLsda		    = cpOpts->cp_lsda;
+  int numFragProc	    = fragInfo->numFragProc;
+  int numFragTot	    = fragInfo->numFragTot;
+  int occNumber		    = stodftInfo->occNumber;
+  int myidState		    = commCP->myid_state;
+  int numProcStates	    = commCP->np_states;
+  int rhoRealGridNum	    = stodftInfo->rhoRealGridNum;
+  int rhoRealGridTot	    = stodftInfo->rhoRealGridTot;
+  int numStateUpProc	    = cpcoeffs_info->nstate_up_proc;
+  int numStateDnProc	    = cpcoeffs_info->nstate_dn_proc;
+  int numStateStoUp     = stodftInfo->numStateStoUp;
+  int numStateStoDn     = stodftInfo->numStateStoDn;
+  int numCoeff		= cpcoeffs_info->ncoef;
+  int countWf;
+  int fragOpt		    = stodftInfo->fragOpt;
+  int energyWindowOn        = stodftInfo->energyWindowOn;
+  int numChemPot                = stodftInfo->numChemPot; // I already +1
+
+  MPI_Comm commStates   =    commCP->comm_states;
+
+  int *numGridFragProc	    = fragInfo->numGridFragProc;
+  int *numGridFragProcSmall = fragInfo->numGridFragProcSmall;
+  int *rhoRealSendCounts = stodftInfo->rhoRealSendCounts;
+  int *rhoRealDispls = stodftInfo->rhoRealDispls;
+  int *numStateUpAllProc;
+  int *numStateDnAllProc;
+
+  int **gridMapProc	    = fragInfo->gridMapProc;
+  int **gridMapProcSmall    = fragInfo->gridMapProcSmall;
+ 
+  double proj;
+  double numElecProj = 0.0;
+  double numElecFrag = 0.0;
+  double numElecProjTot = 0.0;
+  double numElecFragTot = 0.0;
+  double numElecSys = stodftInfo->numElecTrue;
+  double numGridTotInv = 1.0/rhoRealGridTot;
+  double vol,volInv;
+  double volMini;
+  double pre,preNe;
+  double preDot;
+  double *rhoTemp,*rhoTempReduce;
+  double *wfTemp,*wfFragTemp,*rhoFragTemp;
+  double *hmat_cp = cell->hmat_cp;
+  double *hmatCpMini;
+  double **rhoUpFragProc;
+  double **coefUpFragProc;
+  double **rhoDnFragProc;
+  double **coefDnFragProc;
+  double **coefUpFragCoreProc;
+  double **coefDnFragCoreProc;
+  double *rhoUpFragSum;
+  double *rhoDnFragSum;
+  double *noiseWfUpReal,*noiseWfDnReal;
+  double **stoWfUpRe = stodftCoefPos->stoWfUpRe;
+  double **stoWfUpIm = stodftCoefPos->stoWfUpIm;
+  double **stoWfDnRe = stodftCoefPos->stoWfDnRe;
+  double **stoWfDnIm = stodftCoefPos->stoWfDnIm;
+  
+/*======================================================================*/
+/* I) Asign local variables				                */
+
+  vol = getdeth(hmat_cp);
+  volInv = 1.0/vol;
+
+  // prefactor for prjection part
+  pre = (double)(occNumber)*vol*vol/
+        ((double)(rhoRealGridTot)*(double)(rhoRealGridTot)*(double)(numStateStoUp));
+  // prefactor for number of e in proj part
+  preNe = pre/(double)(rhoRealGridTot);
+  preDot = 1.0/sqrt(vol);
+
+  rhoUpFragProc = fragInfo->rhoUpFragProc;
+  coefUpFragProc = fragInfo->coefUpFragProc;
+  coefUpFragCoreProc = fragInfo->coefUpFragCoreProc;
+  rhoUpFragSum = fragInfo->rhoUpFragSum;
+
+  if(cpLsda==1&&numStateDn!=0){
+    rhoDnFragProc = fragInfo->rhoDnFragProc;
+    coefDnFragProc = fragInfo->coefDnFragProc;
+    coefDnFragCoreProc = fragInfo->coefDnFragCoreProc;    
+    rhoDnFragSum = fragInfo->rhoDnFragSum;
+  }
+
+  rhoTemp = (double*)cmalloc(rhoRealGridTot*sizeof(double));
+  for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+    rhoTemp[iGrid] = 0.0;
+  }//endfor iGrid
+
+  fragInfo->noiseWfUpReal = (double*)cmalloc(numStateUpProc*rhoRealGridTot*sizeof(double));
+  noiseWfUpReal = fragInfo->noiseWfUpReal;
+  if(cpLsda==1&&numStateDn!=0){
+    fragInfo->noiseWfDnReal = (double*)cmalloc(numStateDnProc*rhoRealGridTot*sizeof(double));
+    noiseWfDnReal = fragInfo->noiseWfDnReal;
+  }
+
+  fragInfo->wfProjUp = (double**)cmalloc(numFragProc*sizeof(double*));
+
+  for(iFrag=0;iFrag<numFragProc;iFrag++){
+    numStateUpMini = cpMini[iFrag].cpcoeffs_info.nstate_up_proc;
+    fragInfo->wfProjUp[iFrag] = (double*)cmalloc(numChemPot*numStateStoUp*numStateUpMini*sizeof(double));
+  }
+
+  if(cpLsda==1&&numStateDn!=0){
+    fragInfo->wfProjDn = (double**)cmalloc(numFragProc*sizeof(double*));
+    for(iFrag=0;iFrag<numFragProc;iFrag++){
+      numStateDnMini = cpMini[iFrag].cpcoeffs_info.nstate_dn_proc;
+      fragInfo->wfProjDn[iFrag] = (double*)cmalloc(numChemPot*numStateStoDn*numStateDnMini*sizeof(double));
+    }
+  }
+
+
+/*======================================================================*/
+/* IV) Calculate the real space noise wave function                     */
+
+  // Copy the deterministic wf to the stochastic wf
+  //memcpy(&(cp->cpcoeffs_pos[1].cre_up[1]),&(stodftCoefPos->wfDetBackupUpRe[0]),numStateUpProc*numCoeff*sizeof(double));
+  //memcpy(&(cp->cpcoeffs_pos[1].cim_up[1]),&(stodftCoefPos->wfDetBackupUpIm[0]),numStateUpProc*numCoeff*sizeof(double));
+  
+  //noiseRealReGen(general_data,cp,class,ip_now);
+  stodftInfo->iScf = 1;
+  noiseFilterGen(general_data,cp,class,ip_now);
+
+/*======================================================================*/
+/* IV) Project the real space noise wave function                       */
+
+
+  numStateUpAllProc = (int*)cmalloc(numProcStates*sizeof(int));
+  if(numProcStates>1){
+    Allgather(&numStateUpProc,1,MPI_INT,numStateUpAllProc,1,MPI_INT,0,commStates);
+  }
+  else numStateUpAllProc[0] = numStateUpProc;
+  if(cpLsda==1&&numStateDn!=0){
+    numStateDnAllProc = (int*)cmalloc(numProcStates*sizeof(int));
+    if(numProcStates>1){
+      Allgather(&numStateDnProc,1,MPI_INT,numStateDnAllProc,1,MPI_INT,0,commStates);
+    }
+    else numStateDnAllProc[0] = numStateDnProc;
+  }
+  wfTemp = (double*)cmalloc(rhoRealGridTot*sizeof(double));
+  for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+    rhoTemp[iGrid] = 0.0;
+  }
+
+  int res = numFragTot%numProcStates;
+  int div = numFragTot/numProcStates;
+  int numFragProcMax;
+  if(res==0)numFragProcMax = div;
+  else numFragProcMax = div+1;
+
+  //debug, output all wf filtered by frag wf
+  //double *stowffrag = (double*)cmalloc(numStateUpAllProc[0]*rhoRealGridTot*sizeof(double));
+  for(iFrag=0;iFrag<numFragProcMax;iFrag++){
+    if(iFrag<numFragProc){
+      fragInfo->iFrag = iFrag;
+      numGrid = numGridFragProc[iFrag];
+      numStateUpMini = cpMini[iFrag].cpcoeffs_info.nstate_up_proc;
+      fragInfo->rhoUpFragProc[iFrag] = (double*)cmalloc(numGrid*sizeof(double));
+      fragInfo->coefUpFragProc[iFrag] = (double*)cmalloc(numStateUpMini*numGrid*sizeof(double));
+      rhoRealCalcDriverFragMol(&generalDataMini[iFrag],&cpMini[iFrag],&classMini[iFrag],cp);
+    }//endif iFrag
+    //for(iChem=1;iChem<2;iChem++){
+    for(iChem=0;iChem<numChemPot;iChem++){
+      noiseFilterRealReGen(class,general_data,cp,stoWfUpRe[iChem],stoWfUpIm[iChem],
+                           noiseWfUpReal,numStateUpProc);
+      countWf = 0;
+      for(iProc=0;iProc<numProcStates;iProc++){
+        for(iState=0;iState<numStateUpAllProc[iProc];iState++){
+          if(myidState==iProc){
+            memcpy(wfTemp,&noiseWfUpReal[iState*rhoRealGridTot],rhoRealGridTot*sizeof(double));
+          }
+          if(numProcStates>1)Bcast(wfTemp,rhoRealGridTot,MPI_DOUBLE,iProc,commStates);
+          //double *rho_frag_ext = (double*)calloc(rhoRealGridTot,sizeof(double));
+          //for(iFrag=0;iFrag<numFragProc;iFrag++){
+          if(iFrag<numFragProc){
+            numGrid = numGridFragProc[iFrag];
+            numGridSmall = numGridFragProcSmall[iFrag];
+            numStateUpMini = cpMini[iFrag].cpcoeffs_info.nstate_up_proc;
+            hmatCpMini = generalDataMini[iFrag].cell.hmat_cp;
+            volMini = getdeth(hmatCpMini);
+            volMini /= numGrid;
+            wfFragTemp = (double*)calloc(numGrid,sizeof(double));
+            rhoFragTemp = (double*)calloc(numGridSmall,sizeof(double));
+            for(iGrid=0;iGrid<numGrid;iGrid++){
+              gridIndex = gridMapProc[iFrag][iGrid];
+              wfFragTemp[iGrid] = wfTemp[gridIndex];
+              //wfFragTemp[iGrid] = coefUpFragProc[iFrag][iGrid];
+            }
+            for(iGrid=0;iGrid<numGridSmall;iGrid++)rhoFragTemp[iGrid] = 0.0;
+            //double testsum = 0.0;
+            for(iStateFrag=0;iStateFrag<numStateUpMini;iStateFrag++){
+              //proj = ddotBlasWrapper(numGrid,&wfFragTemp[0],1,&coefUpFragProc[iFrag][iStateFrag*numGrid],1);
+              
+              proj = 0.0;
+              for(iGrid=0;iGrid<numGrid;iGrid++){
+                proj += wfFragTemp[iGrid]*coefUpFragProc[iFrag][iStateFrag*numGrid+iGrid];
+              }
+              fragInfo->wfProjUp[iFrag][iChem*numStateStoUp*numStateUpMini+countWf*numStateUpMini+iStateFrag] 
+                                      = proj*preDot*volMini;
+              //daxpyBlasWrapper(numGrid,proj,&coefUpFragProc[iFrag][iStateFrag*numGrid],1,&rhoFragTemp[0],1);
+              for(iGrid=0;iGrid<numGridSmall;iGrid++){
+                rhoFragTemp[iGrid] += proj*coefUpFragProc[iFrag][iStateFrag*numGrid+gridMapProcSmall[iFrag][iGrid]];
+              }
+              //testsum += proj*coefUpFragProc[iFrag][iStateFrag*numGrid+gridMapProcSmall[iFrag][0]];
+            }//endfor iStateFrag
+            //debug
+            /*
+            for(iGrid=0;iGrid<numGridSmall;iGrid++){
+              gridIndex = gridMapProc[iFrag][gridMapProcSmall[iFrag][iGrid]];
+              stowffrag[iState*rhoRealGridTot+gridIndex] = rhoFragTemp[iGrid];
+            }
+            */
+            //printf("iFrag %i testsum %lg\n",iFrag,testsum*testsum);
+            for(iGrid=0;iGrid<numGridSmall;iGrid++){
+              gridIndex = gridMapProc[iFrag][gridMapProcSmall[iFrag][iGrid]];
+              rhoTemp[gridIndex] += rhoFragTemp[iGrid]*rhoFragTemp[iGrid];
+              //fix_frag[iFrag][gridIndex] += rhoFragTemp[iGrid]*rhoFragTemp[iGrid]*pre;
+            }
+            free(wfFragTemp);
+            free(rhoFragTemp);
+          }//endif iFrag<numFragProc
+          //}//endfor iFrag
+          countWf += 1;
+        }//endfor iState   
+      }//endfor iProc
+    }//endfor iChem
+    if(iFrag<numFragProc){
+      free(fragInfo->rhoUpFragProc[iFrag]);
+      free(fragInfo->coefUpFragProc[iFrag]);
+    }
+  }//endfor iFrag
+
+  /*
+  for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+    printf("gridddddddddd %lg\n",rhoTemp[iGrid]);
+  }
+  */
+  
+
+  /*--------------------------------------------------*/
+  /* We are going to calculate number of electrons.   */
+  /* The Formula should be N_e^{frag}-N_e^{proj}+     */
+  /* N_e^{sto} = N_e.                                 */
+  /*--------------------------------------------------*/
+  
+  if(numProcStates>1){
+    if(myidState==0){
+      rhoTempReduce = (double*)cmalloc(rhoRealGridTot*sizeof(double));
+      for(iGrid=0;iGrid<rhoRealGridTot;iGrid++)rhoTempReduce[iGrid] = 0.0;
+    }
+    Barrier(commStates);
+    Reduce(rhoTemp,rhoTempReduce,rhoRealGridTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+    Scatterv(rhoTempReduce,rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
+	     rhoTemp,rhoRealGridNum,MPI_DOUBLE,0,commStates);
+  } 
+  for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+    numElecProj += rhoTemp[iGrid];
+    numElecFrag += rhoUpFragSum[iGrid];
+  }
+  
+  double sumElecFrag = 0.0;
+  double sumElecProj = 0.0;
+  for(iProc=0;iProc<numProcStates;iProc++){
+    if(myidState==iProc){
+      for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+	sumElecFrag += rhoUpFragSum[iGrid];
+	sumElecProj += pre*rhoTemp[iGrid];
+      }
+      sumElecFrag /= rhoRealGridTot;
+      sumElecProj /= rhoRealGridTot;
+    }
+    if(numProcStates>1)Barrier(commStates);
+  }
+  //printf("11111111111111 sumElecFrag %.16lg sumElecProj %.16lg\n",sumElecFrag,sumElecProj);
+  if(numProcStates>1)Barrier(commStates);
+  
+  daxpyBlasWrapper(rhoRealGridNum,-pre,&rhoTemp[0],1,&rhoUpFragSum[0],1);
+#ifdef TUNE_NOISE
+  for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+    rhoUpFragSum[iGrid] *= NOISE_FACTOR;
+  }
+  sumElecFrag *= NOISE_FACTOR;
+  sumElecProj *= NOISE_FACTOR;
+#endif
+  if(numProcStates>1)Barrier(commStates);
+  
+  /*
+  for(iProc=0;iProc<numProcStates;iProc++){
+    if(myidState==iProc){
+      for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+        printf("111111111111 rhofix %i %lg %lg\n",iGrid,rhoUpFragSum[iGrid],rhoTemp[iGrid]*pre);
+      }
+    }
+    if(numProcStates>1)Barrier(commStates);
+  }
+  */
+  
+  //fflush(stdout);
+  //exit(0);
+
+  if(cpLsda==1&&numStateDn!=0){
+    for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+      rhoTemp[iGrid] = 0.0;
+    }
+    countWf = 0;
+    for(iChem=0;iChem<numChemPot;iChem++){
+      noiseFilterRealReGen(class,general_data,cp,stoWfDnRe[iChem],stoWfDnIm[iChem],
+                           noiseWfDnReal,numStateDnProc);
+      for(iProc=0;iProc<numProcStates;iProc++){
+        for(iState=0;iState<numStateDnAllProc[iProc];iState++){
+          if(myidState==iProc){
+            memcpy(wfTemp,&noiseWfDnReal[iState*rhoRealGridTot],rhoRealGridTot*sizeof(double));
+          }
+          if(numProcStates>1)Bcast(wfTemp,rhoRealGridTot,MPI_DOUBLE,iProc,commStates);
+          for(iFrag=0;iFrag<numFragProc;iFrag++){
+            numGrid = numGridFragProc[iFrag];
+            numGridSmall = numGridFragProcSmall[iFrag];
+            numStateDnMini = cpMini[iFrag].cpcoeffs_info.nstate_dn_proc;
+            hmatCpMini = generalDataMini[iFrag].cell.hmat_cp;
+            volMini = getdeth(hmatCpMini);
+            volMini /= numGrid;
+            wfFragTemp = (double*)cmalloc(numGrid*sizeof(double));
+            rhoFragTemp = (double*)cmalloc(numGridSmall*sizeof(double));
+            for(iGrid=0;iGrid<numGrid;iGrid++){
+              gridIndex = gridMapProc[iFrag][iGrid];
+              wfFragTemp[iGrid] = wfTemp[gridIndex];
+            }
+            for(iGrid=0;iGrid<numGridSmall;iGrid++)rhoFragTemp[iGrid] = 0.0;
+            for(iStateFrag=0;iStateFrag<numStateDnMini;iStateFrag++){
+              proj = ddotBlasWrapper(numGrid,&wfFragTemp[0],1,&coefDnFragProc[iFrag][iStateFrag*numGrid],1);
+              fragInfo->wfProjDn[iFrag][iChem*numStateStoDn*numStateDnMini+countWf*numStateDnMini+iStateFrag] 
+                                            = proj*preDot*volMini;
+              //daxpyBlasWrapper(numGrid,proj,&coefDnFragProc[iStateFrag*numGrid],1,&rhoFragTemp[0],1);
+              for(iGrid=0;iGrid<numGridSmall;iGrid++){
+                rhoFragTemp[iGrid] += proj*coefDnFragProc[iFrag][iStateFrag*numGrid+gridMapProcSmall[iFrag][iGrid]];
+              } 
+            }//endfor iGrid
+            for(iGrid=0;iGrid<numGridSmall;iGrid++){
+              gridIndex = gridMapProc[iFrag][gridMapProcSmall[iFrag][iGrid]];
+              rhoTemp[gridIndex] += rhoFragTemp[iGrid]*rhoFragTemp[iGrid];
+            }
+            free(wfFragTemp);
+            free(rhoFragTemp);
+          }//endfor iFrag
+          countWf += 1;
+        }//endfor iState   
+      }//endfor iProc
+    }//endfor iChem
+    if(numProcStates>1){
+      Barrier(commStates);
+      Reduce(rhoTemp,rhoTempReduce,rhoRealGridTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+      Scatterv(rhoTempReduce,rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
+	       rhoTemp,rhoRealGridNum,MPI_DOUBLE,0,commStates);
+    }
+    for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
+      numElecProj += rhoTemp[iGrid];
+      numElecFrag += rhoDnFragSum[iGrid];
+    }
+    daxpyBlasWrapper(rhoRealGridNum,-pre,&rhoTemp[0],1,&rhoDnFragSum[0],1);
+  }//endif cpLsda
+
+  
+  if(numProcStates>1){
+    //printf("numElecProj %lg\n",numElecProj*preNe);
+    //Allreduce(&numElecProj,&(stodftInfo->numElecTrueFrag),1,MPI_DOUBLE,MPI_SUM,0,commStates);
+    //stodftInfo->numElecTrueFrag *= preNe;
+   
+    Allreduce(&numElecProj,&numElecProjTot,1,MPI_DOUBLE,MPI_SUM,0,commStates);
+    Allreduce(&numElecFrag,&numElecFragTot,1,MPI_DOUBLE,MPI_SUM,0,commStates);
+    stodftInfo->numElecTrueFrag = numElecProjTot*preNe-numElecFragTot/rhoRealGridTot+
+                                  numElecSys;
+    if(myidState==0)printf("Number of Electron for StoWf is %.16lg %.16lg %.16lg %lg\n",
+                           numElecProjTot*preNe,numElecFragTot/rhoRealGridTot,
+                           stodftInfo->numElecTrueFrag,numElecSys);
+  }
+  else{
+    //printf("numElecTrue %.16lg\n",stodftInfo->numElecTrueFrag);
+    //stodftInfo->numElecTrueFrag = numElecProj*preNe;
+
+    stodftInfo->numElecTrueFrag = numElecProj*preNe-numElecFrag/rhoRealGridTot+
+                                  numElecSys;
+    printf("Number of Electron for StoWf is %.16lg %.16lg %.16lg\n",
+           numElecProj*preNe,numElecFrag/rhoRealGridTot,
+           stodftInfo->numElecTrueFrag);
+  }
+  
+  // I would like to seperate them, but this will make life easier
+  stodftInfo->numElecTrue = stodftInfo->numElecTrueFrag;
+  //debug
+
+/*======================================================================*/
+/* VI) Free memories                                                    */
+
+  if(numProcStates>1&&myidState==0)free(rhoTempReduce);
+  free(rhoTemp);
+  free(numStateUpAllProc);
+  if(cpLsda==1&&numStateDn!=0){
+    free(numStateDnAllProc);
+  }
+  if(myidState==0){
+    printf("Finish Calculating Density Correction.\n");
+    fflush(stdout);
+  }
+  if(numProcStates>1)Barrier(commStates);
+  //fflush(stdout);
+  //exit(0);
+
+
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
 
 
 

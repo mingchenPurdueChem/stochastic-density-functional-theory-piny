@@ -8,7 +8,7 @@ ECODE  = $(DCODE)
 # general directories
 #--------------------------
 INCLUDES = $(DCODE)/include/pentium_threads
-EXE      = $(ROOT)/bin/piny_md_pentium_par_frag_threads
+EXE      = $(ROOT)/bin/piny_md_pentium_par_frag_threads_fw
 CMALLOC =
 
 # HP compiler

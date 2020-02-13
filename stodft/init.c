@@ -145,8 +145,6 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   //PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
   PARA_FFT_PKG3D *cp_para_fft_pkg3d; // use lg or sparse
   
-
-
   int iperd          = cell->iperd;
   int cpLsda         = cpopts->cp_lsda;
   int cpGga          = cpopts->cp_gga;
@@ -263,8 +261,17 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   stodftInfo->numThreads = communicate->numThreads;
   // Chebyshev way to calculate chem pot (if we do not use energy window)
   if(chemPotOpt==2&&energyWindowOn==0)stodftInfo->numChemPot = 1;
+  
+  // The following defines the fragment+energy window
+  // In this combination, we have to generate energy windows and 
+  // another window covering the unoccupied space w.r.t. fragment density. 
+  // After that, we will use the regular energy widows. Some functions will 
+  // be involved in both cases therefore we need to use this flag to control 
+  // it. 
+  if(calcFragFlag==1&&energyWindowOn==1)stodftInfo->fragWindowFlag = 1;
 
   stodftCoefPos->chemPot = (double*)cmalloc(numChemPot*sizeof(double));
+  stodftCoefPos->chemPotBackUp = (double*)cmalloc(numChemPot*sizeof(double));
   stodftInfo->energyKe = (double*)cmalloc(numChemPot*sizeof(double));
   stodftInfo->energyPNL = (double*)cmalloc(numChemPot*sizeof(double));
   stodftCoefPos->testWfMaxRe = (double*)cmalloc(numCoeff*sizeof(double));
@@ -1794,6 +1801,7 @@ void initFilterDiag(CP *cp)
   stodftCoefPos->energyLevel = (double*)cmalloc(numStateUpAllProc*sizeof(double));
   stodftCoefPos->moUpRe = (double*)cmalloc(numCoeffUpTotal*numChemPot*sizeof(double))-1;
   stodftCoefPos->moUpIm = (double*)cmalloc(numCoeffUpTotal*numChemPot*sizeof(double))-1;
+
 /*===========================================================================*/
 /* II) MPI things  */
 

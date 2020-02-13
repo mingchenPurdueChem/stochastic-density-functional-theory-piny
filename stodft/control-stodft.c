@@ -30,8 +30,15 @@
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
+#ifdef FAST_FILTER
+void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
+                                 CP *cp,ANALYSIS *analysis,
+                      CLASS *class2,BONDED *bonded2,GENERAL_DATA *general_data2,
+                                 CP *cp2,ANALYSIS *analysis2)
+#else
 void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
                                  CP *cp,ANALYSIS *analysis)
+#endif
 /*=======================================================================*/
 /*            Begin subprogram:                                          */
 {   /*begin routine*/
@@ -89,7 +96,6 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   CLATOMS_POS  *clatoms_pos  = &(class->clatoms_pos[ip_now]);
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
   //end debug
-  
 
 /*======================================================================*/
 /* I) Write to Screen                                                   */
@@ -166,6 +172,14 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   */
   //end debug
 
+#ifdef FAST_FILTER
+  if(numProc>1)commStodft(class2,bonded2,general_data2,cp2);
+
+  initStodft(class2,bonded2,general_data2,cp2,ip_now);
+  int reInitFlag2 = cp2->stodftInfo->reInitFlag;
+  STODFTINFO *stodftInfo2 = cp2->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos2 = cp2->stodftCoefPos;
+#endif
 
 /*======================================================================*/
 /* IV) Realloc wave function arrays if necessary		        */
@@ -182,6 +196,11 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }
   reInitWaveFunMin(class,bonded,general_data,cp,ip_now);
   //}
+
+#ifdef FAST_FILTER
+  reInitWaveFunMin(class2,bonded2,general_data2,cp2,ip_now);
+  initFilterDiag(cp2);
+#endif
 
   //filterDiagFlag = 0;
   filterDiagFlag = cp->stodftInfo->filterDiagFlag;
@@ -244,10 +263,20 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     if(stodftInfo->chemPotOpt==1)scfStodftInterp(class,bonded,general_data,cp,ip_now);
     else if(stodftInfo->chemPotOpt==2){
       if(stodftInfo->energyWindowOn==0){
+#ifdef FAST_FILTER   
+        scfStodftCheby(class,bonded,general_data,cp,
+                       class2,bonded2,general_data2,cp2,ip_now);
+#else
         scfStodftCheby(class,bonded,general_data,cp,ip_now);
+#endif
       }
       else{ //energy window
+#ifdef FAST_FILTER   
+        scfStodftEnergyWindow(class,bonded,general_data,cp,
+                              class2,bonded2,general_data2,cp2,ip_now);
+#else
         scfStodftEnergyWindow(class,bonded,general_data,cp,ip_now);
+#endif
       }
     }  
   }

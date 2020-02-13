@@ -107,7 +107,7 @@ void orthNormStoWf(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   double *fcim_up = cpcoeffs_pos->fcim_up;
   double *fcre_dn = cpcoeffs_pos->fcre_dn;
   double *fcim_dn = cpcoeffs_pos->fcim_dn;
-  double *dot1 = (double*)cmalloc(numChemPot*numStateUpProc*sizeof(double));
+  //double *dot1 = (double*)cmalloc(numChemPot*numStateUpProc*sizeof(double));
   double *dotAll;
 
   int numStatesDet = stodftInfo->numStatesDet;
@@ -1121,4 +1121,102 @@ void calcForceWrapper(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*==========================================================================*/
 
 
+#ifdef FAST_FILTER   
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void broadcastWfDet(CP *cp2,CLASS *class2,GENERAL_DATA *general_data2,CP *cp)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp2->cpcoeffs_info);
+  STODFTINFO *stodftInfo        = cp2->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp2->stodftCoefPos;
+  CPOPTS *cpopts                = &(cp2->cpopts);
+  COMMUNICATE *communicate      = &(cp2->communicate);
+
+  int numChemPot     = stodftInfo->numChemPot;
+  int numStateUpProc = cpcoeffs_info->nstate_up_proc;
+  int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
+  int numStateUpTotal = stodftInfo->numStateStoUp;
+  int numCoeff       = cpcoeffs_info->ncoef;
+  int numCoeffUpTotal = numStateUpProc*numCoeff;
+  int numCoeffDnTotal = numStateDnProc*numCoeff;
+  int numCoeffUpAllProc = numChemPot*numStateUpTotal*numCoeff;
+  int numStateUpAllProc = numChemPot*numStateUpTotal;
+  int numStateUpIdp = stodftInfo->numStateUpIdp;
+  int numStatesDet = stodftInfo->numStatesDet;
+  int myidState = communicate->myid_state;
+  int numProcStates         = communicate->np_states;
+  int numStatePrintUp = stodftInfo->numStatePrintUp;
+  int numStatePrintDn = stodftInfo->numStatePrintDn;
+
+  MPI_Comm comm_states = communicate->comm_states;
+
+  int *stowfRecvCounts = stodftInfo->stowfRecvCounts;
+  int *stowfDispls = stodftInfo->stowfDispls;
+
+  double *moUpRe = stodftCoefPos->moUpRe;
+  double *moUpIm = stodftCoefPos->moUpIm;
+  double *moUpRePrint = cp->stodftCoefPos->moUpRePrint;
+  double *moUpImPrint = cp->stodftCoefPos->moUpImPrint;
+  double *energyLevel2 = cp2->stodftCoefPos->energyLevel;
+  double *energyLevel = cp->stodftCoefPos->energyLevel;
+  double *moUpReAll,*moUpImAll;
+
+/*--------------------------------------------------------------------------*/
+/* i) Gather all wavefunctions to the master process */
+
+  
+  
+  if(myidState==0){
+    moUpReAll = (double*)cmalloc(numCoeffUpAllProc*sizeof(double))-1;
+    moUpImAll = (double*)cmalloc(numCoeffUpAllProc*sizeof(double))-1;
+  }
+  
+  if(numProcStates>1){
+    Gatherv(&moUpRe[1],numChemPot*numCoeffUpTotal,MPI_DOUBLE,
+            &moUpReAll[1],stowfRecvCounts,stowfDispls,MPI_DOUBLE,
+            0,comm_states);
+    Gatherv(&moUpIm[1],numChemPot*numCoeffUpTotal,MPI_DOUBLE,
+            &moUpImAll[1],stowfRecvCounts,stowfDispls,MPI_DOUBLE,
+            0,comm_states);
+  }
+  else{
+    memcpy(&moUpReAll[1],&moUpRe[1],numCoeffUpAllProc*sizeof(double));
+    memcpy(&moUpImAll[1],&moUpIm[1],numCoeffUpAllProc*sizeof(double));
+  }
+  if(numProcStates>1)Barrier(comm_states);
+  if(myidState==0){
+    memcpy(&moUpRePrint[1],&moUpReAll[1],numStatePrintUp*numCoeff*sizeof(double));
+    memcpy(&moUpImPrint[1],&moUpImAll[1],numStatePrintUp*numCoeff*sizeof(double));
+    memcpy(energyLevel,energyLevel2,numStatePrintUp*sizeof(double));
+  }
+
+/*--------------------------------------------------------------------------*/
+/* ii) Broadcast numStatePrint orbitals to all processors */
+
+  //cp->stodftInfo.numStatePrintUp = numStatePrintUp;
+
+  if(numProcStates>1){
+    Bcast(&moUpRePrint[1],numStatePrintUp*numCoeff,MPI_DOUBLE,0,comm_states);
+    Bcast(&moUpImPrint[1],numStatePrintUp*numCoeff,MPI_DOUBLE,0,comm_states);
+    Bcast(energyLevel,numStatePrintUp,MPI_DOUBLE,0,comm_states);
+  }
+
+/*--------------------------------------------------------------------------*/
+/* iii) Free local memory */
+
+  if(myidState==0){
+    free(&moUpReAll[1]);
+    free(&moUpImAll[1]);
+  }
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
+#endif

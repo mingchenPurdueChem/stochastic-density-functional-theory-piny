@@ -128,7 +128,11 @@ void calcChemPotCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /* II) Calculate Chebyshev Moments */
 
   if(myidState==0)printf("Start Calculating Chebyshev Moments\n");
+#ifdef FAST_FILTER   
+  calcChebyMomentsFake(cp,class,general_data,ip_now);
+#else
   calcChebyMoments(cp,class,general_data,ip_now);
+#endif
   if(numProcStates>1){
     if(myidState==0){
       chebyMomentsTemp = (double*)cmalloc((polynormLength+1)*sizeof(double));
@@ -646,6 +650,13 @@ double calcNumElecCheby(CP *cp,double chemPot,double *chebyCoeffs)
   */
   //printf("chebyCoeffs %lg %lg %lg\n",chebyCoeffs[0],chebyCoeffs[1],chebyCoeffs[2]);
   numElec += ddotBlasWrapperThreads(polynormLength,chebyCoeffs,1,chebyMomentsUp,1,numThreads);
+  //debug
+  /*
+  for(iPoly=0;iPoly<polynormLength;iPoly++){
+    numElec += chebyCoeffs[iPoly]*chebyMomentsUp[iPoly];
+    printf("iPoly %i coeff %lg moments %lg numElec %lg\n",iPoly,chebyCoeffs[iPoly],chebyMomentsUp[iPoly],numElec);
+  }
+  */
   if(cpLsda==1&&numStateDnProc!=0){
     numElec += ddotBlasWrapperThreads(polynormLength,chebyCoeffs,1,chebyMomentsDn,1,numThreads);
   }
@@ -656,4 +667,120 @@ double calcNumElecCheby(CP *cp,double chemPot,double *chebyCoeffs)
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/
+
+#ifdef FAST_FILTER   
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void calcChebyMomentsFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
+                          int ip_now)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* Generate Chebyshev moments                                            */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+  CPCOEFFS_POS *cpcoeffs_pos = &(cp->cpcoeffs_pos[1]);
+  STODFTINFO   *stodftInfo   = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  CHEBYSHEVINFO *chebyshevInfo = stodftInfo->chebyshevInfo;
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+
+
+  int iSto,iState,iCoeff,iPoly;
+  int index1,index2,index3;
+  int polynormLength = stodftInfo->polynormLength;
+  int numStateUpProc = cpcoeffs_info->nstate_up_proc;
+  int numCoeff       = cpcoeffs_info->ncoef;
+  int numStatePrintUp = stodftInfo->numStatePrintUp;
+
+  double Smin           = chebyshevInfo->Smin;
+  double Smax           = chebyshevInfo->Smax;
+  double scale          = chebyshevInfo->scale;
+  double energyMean     = stodftInfo->energyMean;
+  double energyDiff     = stodftInfo->energyDiff;
+  double prefact        = -scale*energyMean;
+  double scale1         = -scale*0.25;
+  double scale2         = -scale*0.5;
+  double x,y;
+  double sum;
+
+  double *stoDetDot;
+  double *chebyEnergy;
+  double *energyLevel = stodftCoefPos->energyLevel;
+  double *chebyMomentsUp = stodftCoefPos->chebyMomentsUp;
+  double *moUpRePrint = stodftCoefPos->moUpRePrint;
+  double *moUpImPrint = stodftCoefPos->moUpImPrint;
+  double *coeffReUp = cpcoeffs_pos->cre_up;
+  double *coeffImUp = cpcoeffs_pos->cim_up;
+
+/*--------------------------------------------------------------------------*/
+/* i) dot product between deterministic MO and noise orbital */  
+
+  stoDetDot = (double*)cmalloc(numStatePrintUp*sizeof(double));
+
+  genNoiseOrbitalReal(cp,cpcoeffs_pos);
+
+  for(iState=0;iState<numStatePrintUp;iState++){
+    index2 = iState*numCoeff;
+    stoDetDot[iState] = 0.0;
+    for(iSto=0;iSto<numStateUpProc;iSto++){
+      index1 = iSto*numCoeff;
+      sum = 0.0;
+      for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
+        sum += coeffReUp[index1+iCoeff]*moUpRePrint[index2+iCoeff]+
+               coeffImUp[index1+iCoeff]*moUpImPrint[index2+iCoeff];
+      }
+      sum *= 2.0;
+      sum += coeffReUp[index1+numCoeff]*moUpRePrint[index2+numCoeff];
+      stoDetDot[iState] += sum*sum;
+    }
+  }
+
+/*--------------------------------------------------------------------------*/
+/* ii) Chebyshev poly for all energy levels */
+
+  chebyEnergy = (double *)cmalloc(polynormLength*numStatePrintUp*sizeof(double));
+
+  // Scale energy
+  for(iState=0;iState<numStatePrintUp;iState++){
+    chebyEnergy[iState] = 1.0;
+    chebyEnergy[numStatePrintUp+iState] = (energyLevel[iState]-energyMean)*scale;   
+  }
+
+  for(iPoly=2;iPoly<polynormLength;iPoly++){
+    index1 = iPoly*numStatePrintUp;
+    index2 = (iPoly-1)*numStatePrintUp;
+    index3 = (iPoly-2)*numStatePrintUp;
+    for(iState=0;iState<numStatePrintUp;iState++){
+      x = chebyEnergy[numStatePrintUp+iState];
+      chebyEnergy[index1+iState] = 2*x*chebyEnergy[index2+iState]
+                                   -chebyEnergy[index3+iState];
+    }
+  }
+
+/*--------------------------------------------------------------------------*/
+/* iii) Calculate Chebyshev Momentum */
+
+  for(iPoly=0;iPoly<polynormLength;iPoly++){
+    chebyMomentsUp[iPoly] = 0.0;
+    for(iState=0;iState<numStatePrintUp;iState++){
+      chebyMomentsUp[iPoly] += chebyEnergy[iPoly*numStatePrintUp+iState]*
+                                 stoDetDot[iState];
+    }
+  }
+
+  printf("11111111 %lg\n",chebyMomentsUp[0]);
+
+  free(stoDetDot);
+  free(chebyEnergy);
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
+#endif
 

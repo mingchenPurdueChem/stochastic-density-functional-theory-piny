@@ -205,10 +205,13 @@ void genChemPotInterpPoints(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   int iNode;
   int filterDiagFlag = stodftInfo->filterDiagFlag;
   int energyWindowOn = stodftInfo->energyWindowOn;
+  int fragWindowFlag = stodftInfo->fragWindowFlag;
+  int iScf = stodftInfo->iScf;
   double chemPotInit = stodftInfo->chemPotInit;
   double gapInit = stodftInfo->gapInit;
   double factor = M_PI*0.5/numChemPot;
   double *chemPot = stodftCoefPos->chemPot;
+  double *chemPotBackUp = stodftCoefPos->chemPotBackUp;
   double *chebyNode = (double*)cmalloc(numChemPot*sizeof(double));
   double energyMin = chemPotInit-gapInit*0.5;
   double dE = gapInit/numChemPot;
@@ -229,16 +232,40 @@ void genChemPotInterpPoints(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
       chemPot[1] = chemPotInit+gapInit*0.5;
     }
     else{
-      energyMin = stodftInfo->energyMin;
-      chemPotTrue = stodftInfo->chemPotTrue;
-      dE = (chemPotTrue-energyMin)/numChemPot; 
-      for(iNode=0;iNode<numChemPot;iNode++){
-        chemPot[iNode] = energyMin+(iNode+1)*dE;
-        //printf("0000000 iNode %i energyMin %lg chemPotTrue %lg dE %lg chemPot %lg\n",
-        //        iNode,energyMin,chemPotTrue,dE,chemPot[iNode]);
+      if(fragWindowFlag==0){ //regular energy window
+        if(iScf<1000000){
+          energyMin = stodftInfo->energyMin;
+          chemPotTrue = stodftInfo->chemPotTrue;
+          dE = (chemPotTrue-energyMin)/numChemPot; 
+          for(iNode=0;iNode<numChemPot;iNode++){
+            chemPot[iNode] = energyMin+(iNode+1)*dE;
+            //printf("0000000 iNode %i energyMin %lg chemPotTrue %lg dE %lg chemPot %lg\n",
+            //        iNode,energyMin,chemPotTrue,dE,chemPot[iNode]);
+          }
+          // double check the last chemical potential is correct...
+          chemPot[numChemPot-1] = chemPotTrue;
+          for(iNode=0;iNode<numChemPot;iNode++)chemPotBackUp[iNode] = chemPot[iNode];
+        }
+        else{
+          // I have problems in scf convergence, let's test fixing other energy window locations
+          for(iNode=0;iNode<numChemPot;iNode++)chemPot[iNode] = chemPotBackUp[iNode];
+          chemPot[numChemPot-1] = chemPotTrue;
+        }
       }
-      // double check the last chemical potential is correct...
-      chemPot[numChemPot-1] = chemPotTrue;
+      else{ // with fragment density
+        energyMin = stodftInfo->energyMin;
+        chemPotTrue = stodftInfo->chemPotTrue;
+        dE = (chemPotTrue-energyMin)/numChemPot; 
+        for(iNode=0;iNode<numChemPot-1;iNode++){
+          chemPot[iNode] = energyMin+(iNode+1)*dE;
+          //printf("0000000 iNode %i energyMin %lg chemPotTrue %lg dE %lg chemPot %lg\n",
+          //        iNode,energyMin,chemPotTrue,dE,chemPot[iNode]);
+        }
+        // double check the last chemical potential is correct...
+        chemPot[numChemPot-2] = chemPotTrue;
+        // Just give it some random values. This value will not be used
+        chemPot[numChemPot-1] = 100000.0;
+      }
     }    
   }else{
     for(iNode=0;iNode<numChemPot;iNode++){
@@ -820,4 +847,6 @@ double calcNumElecSmear(int smearOpt,double smearTemperature,double chemPot,
 /*--------------------------------------------------------------------------*/
 }/*end routine*/
 /*==========================================================================*/
+
+
 

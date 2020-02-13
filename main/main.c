@@ -57,6 +57,14 @@
     //char processor_name[MPI_MAX_PROCESSOR_NAME];
     //int  namelen;
   //-----------------------------
+#ifdef FAST_FILTER
+  CLASS class2;
+  BONDED bonded2;
+  GENERAL_DATA general_data2;
+  CP cp2;
+  ANALYSIS analysis2;
+#endif
+
 /*=======================================================================*/
 /*  I)             Check for input file                                  */
 
@@ -82,11 +90,21 @@
     //               class.communicate.myid, class.communicate.np, processor_name);
     //fflush(stderr);
   //-------------------------
+#ifdef FAST_FILTER
+  MPI_Comm_dup(class.communicate.world,&class2.communicate.world);
+  class2.communicate.myid = class.communicate.myid;
+  class2.communicate.np = class.communicate.np;
+  general_data2.error_check_on = (class.communicate.myid==0?1:0);
+
+#endif
 /*=======================================================================*/
 /* III)            Invoke User Interface                                 */
 
   parse(&class,&bonded,&general_data,&cp,&analysis,argv[1]);
 
+#ifdef FAST_FILTER
+  parse(&class2,&bonded2,&general_data2,&cp2,&analysis2,argv[2]);
+#endif
 /*========================================================================*/
 /* IV)              Perform Simulation                                    */
 
@@ -132,7 +150,11 @@
     }
     else{
       //Stochastic DFT scheme
+#ifdef FAST_FILTER
+      controlStodftMin(&class,&bonded,&general_data,&cp,&analysis,&class2,&bonded2,&general_data2,&cp2,&analysis2);
+#else
       controlStodftMin(&class,&bonded,&general_data,&cp,&analysis);
+#endif
     }
   }
   if((general_data.simopts.cp_wave_min_pimd) ==1 ){

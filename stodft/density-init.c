@@ -836,6 +836,7 @@ void calcRhoFragInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int numFFT            = cp_para_fft_pkg3d_lg->nfft;
   int numFFT2           = numFFT/2;
   int numFFT2Proc       = numFFTProc/2;
+  int energyWindowOn    = stodftInfo->energyWindowOn;
 
   int rhoRealGridNum    = stodftInfo->rhoRealGridNum;
   int rhoRealGridTot    = stodftInfo->rhoRealGridTot;
@@ -896,12 +897,13 @@ void calcRhoFragInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /* I) Copy fragment density	                    */
 
 
-  printf("rhoUpFragSumCpy %lg\n",rhoUpFragSumCpy[0]);
   memcpy(rhoUpCorrect,rhoUpFragSumCpy,rhoRealGridNum*sizeof(double));
-  free(rhoUpFragSumCpy);
   if(cpLsda==1&&numStateDnProc!=0){
     memcpy(rhoDnCorrect,rhoDnFragSumCpy,rhoRealGridNum*sizeof(double));
-    free(rhoDnFragSumCpy);
+  }
+  if(energyWindowOn==0){
+    free(rhoUpFragSumCpy);
+    if(cpLsda==1&&numStateDnProc!=0) free(rhoDnFragSumCpy);
   }
 
 /*==========================================================================*/
@@ -917,7 +919,6 @@ void calcRhoFragInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /* III) Calculate Reciprocal Density                */
 
   if(numProcStates>1)Barrier(comm_states);
-
 
   calcRhoStoRecipFullg(cpewald,cpscr,cpcoeffs_info,ewald,cell,
                      rhoCoeffReUp,rhoCoeffImUp,rhoUp,rhoCoeffReUpDensCpBox,rhoCoeffImUpDensCpBox,
@@ -939,7 +940,6 @@ void calcRhoFragInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       }/* endfor */
     } /* endif */
   }/* endif */
-
 
 /*==========================================================================*/
 }/*end Routine*/

@@ -106,7 +106,7 @@ void controlInterParamsFrag(GENERAL_DATA *generalDataMini,CLASS *classMini,
   int *inter_label;
   int *ifound,*isearch,*igood;           /* Lst: found,search goodness flags*/
 
-  char typ[5];
+  char typ[10];
   char *fun_key;
 
 

@@ -2410,6 +2410,7 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
   strcpy((*dict)[36].keyword,"energy_window_on");
   strcpy((*dict)[36].keyarg,"off");
 
+
  /*========================================================================*/
  } /* end routine set_sim_dict_harmonic */
  /*========================================================================*/

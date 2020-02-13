@@ -35,16 +35,18 @@ void initFilterDiag(CP *);
 /*-----------------------------------------------------------------*/
 /* min-CP-stodft.c                                                 */
 void scfStodftInterp(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
+#ifndef FAST_FILTER   
 void scfStodftCheby(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
-void scfStodftFilterDiag(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 void scfStodftEnergyWindow(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
+#endif
+void scfStodftFilterDiag(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 /*-----------------------------------------------------------------*/
 /* gen-stodft-wf.c						   */
-void genStoOrbitalInterp(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
-void genStoOrbitalCheby(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
-void genStoOrbitalFake(CLASS *,BONDED *,GENERAL_DATA *,CP *,int );
-void genStoOrbitalEnergyWindow(CLASS *,BONDED *,GENERAL_DATA *,CP *,int );
-void genStoOrbitalEnergyWindowFake(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
+void genStoOrbitalInterp(CLASS *,GENERAL_DATA *,CP *,int);
+void genStoOrbitalCheby(CLASS *,GENERAL_DATA *,CP *,int);
+void genStoOrbitalFake(CLASS *,GENERAL_DATA *,CP *,int );
+void genStoOrbitalEnergyWindow(CLASS *,GENERAL_DATA *,CP *,int );
+void genStoOrbitalEnergyWindowFake(CLASS *,GENERAL_DATA *,CP *,int);
 /*-----------------------------------------------------------------*/
 /* gen-noise.c							   */
 void genNoiseOrbital(CP *,CPCOEFFS_POS *);
@@ -193,4 +195,16 @@ void checkpointInput(CP *,GENERAL_DATA *,CLASS *);
 void checkpointOutputDist(CP *,GENERAL_DATA *);
 void checkpointInputDist(CP *,GENERAL_DATA *,CLASS *);
 
-
+#ifdef FAST_FILTER   
+void scfStodftCheby(CLASS *,BONDED *,GENERAL_DATA *,
+                    CP *,CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
+void scfStodftEnergyWindow(CLASS *,BONDED *,GENERAL_DATA *,
+                    CP *,CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
+void genStoOrbitalChebyFakeNew(CLASS *,GENERAL_DATA *,
+                CP *,CLASS *,GENERAL_DATA *,CP *cp2,int);
+void genStoOrbitalEnergyWindowFakeNew(CLASS *,GENERAL_DATA *,
+                CP *,CLASS *,GENERAL_DATA *,CP *cp2,int);
+void filterNewtonPolyHermFake(CP *,CLASS *,GENERAL_DATA *,int);
+void broadcastWfDet(CP *,CLASS *,GENERAL_DATA *,CP *);
+void calcChebyMomentsFake(CP *,CLASS *,GENERAL_DATA *,int);
+#endif

@@ -122,6 +122,111 @@ void calcKECorUC(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini,
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
+void calcKECorUCEnergyWindow(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *classMini, 
+		 CP *cp,double *keCorProc)
+/*========================================================================*/
+{/*begin routine*/
+/**************************************************************************/
+/* This function calculates the kinetic energy correction. \sum_f ke_f    */
+/* -\sum_f a_f^T B_f a_f where ke_f = \sum_i \int_A dr<psi_i^f|K|psi_i^f>,*/
+/* a_f(i) = <kai|psi_f^i> , and B_f(i,j)=\int_A dr<psi_f^i|r><r|K|psi_f^j>*/
+/**************************************************************************/
+/*========================================================================*/
+/*             Local variable declarations                                */
+
+  STODFTINFO *stodftInfo = cp->stodftInfo;
+  FRAGINFO *fragInfo = stodftInfo->fragInfo;
+  CPOPTS *cpOpts = &(cpMini->cpopts);
+  CPCOEFFS_INFO *cpcoeffs_info = &(cpMini->cpcoeffs_info);
+  CPCOEFFS_POS *cpcoeffs_pos = &(cpMini->cpcoeffs_pos[1]);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cpMini->cp_para_fft_pkg3d_lg);
+  COMMUNICATE *commCP = &(cpMini->communicate);
+  STAT_AVG *statAvg = &(generalDataMini->stat_avg);
+
+
+  int iState,jState,iCoeff,iStoc;
+  int iChem;
+  int numChemPot            = stodftInfo->numChemPot; // I already +1
+  int iFrag = fragInfo->iFrag;
+  int cpLsda = cpOpts->cp_lsda;
+  int numFragProc           = fragInfo->numFragProc;
+  int numFragTot            = fragInfo->numFragTot;
+  int numStateUp = cpcoeffs_info->nstate_up_proc;
+  int numStateDn = cpcoeffs_info->nstate_dn_proc;
+  int numStateStoUp = stodftInfo->numStateStoUp;
+  int numStateStoDn = stodftInfo->numStateStoDn;
+  int occNumber = stodftInfo->occNumber;
+  double *keMatrixUp,*keMatrixDn;
+  double *wfProjUp,*wfProjDn;
+  double *temp;
+  double keCor,keCorUp,keCorDn;
+  double ke;
+
+/*======================================================================*/
+/* I) Calculate the matrix                                              */
+
+  calcKEMatrixUC(generalDataMini,cpMini,classMini,cp,&ke);
+
+/*======================================================================*/
+/* I) Allocate Local Memory                                             */
+
+  //printf("ke %lg\n",ke);
+  keMatrixUp = fragInfo->keMatrixUp[iFrag];
+  wfProjUp = fragInfo->wfProjUp[iFrag];
+  //debug
+  /*
+  for(iState=0;iState<numStateUp;iState++){
+    for(jState=iState;jState<numStateUp;jState++){
+      printf("iState %i jState %i Matrix %lg\n",iState,jState,keMatrixUp[iState*numStateUp+jState]);
+    }
+  }
+  for(iStoc=0;iStoc<numStateStoUp;iStoc++){
+    for(iState=0;iState<numStateUp;iState++){
+      printf("iStoch %i iState %i wfProj %lg\n",iStoc,iState,wfProjUp[iStoc*numStateUp+iState]);
+    }
+  }
+  */
+  //debug
+  //printf("wfProjUp %lg %lg %lg\n",wfProjUp[0],wfProjUp[1],wfProjUp[2]);
+  temp = (double*)cmalloc(numStateUp*sizeof(double));
+  keCorUp = 0.0;
+  for(iChem=0;iChem<numChemPot;iChem++){
+    for(iStoc=0;iStoc<numStateStoUp;iStoc++){
+      dgemvWrapper('T',numStateUp,numStateUp,1.0,keMatrixUp,numStateUp,
+                   &wfProjUp[iChem*numStateStoUp*numStateUp+iStoc*numStateUp],1,0.0,temp,1);
+      keCorUp += ddotBlasWrapper(numStateUp,temp,1,
+                   &wfProjUp[iChem*numStateStoUp*numStateUp+iStoc*numStateUp],1);
+    }
+  }
+  keCorUp /= numStateStoUp;
+  keCor = keCorUp;
+  free(temp);
+  if(cpLsda==1&&numStateDn!=0){
+    keMatrixDn = fragInfo->keMatrixDn[iFrag];
+    wfProjDn = fragInfo->wfProjDn[iFrag];
+    temp = (double*)cmalloc(numStateDn*sizeof(double));
+    for(iChem=0;iChem<numChemPot;iChem++){
+      for(iStoc=0;iStoc<numStateStoDn;iStoc++){
+        dgemvWrapper('T',numStateDn,numStateDn,1.0,keMatrixDn,numStateDn,
+                     &wfProjDn[iChem*numStateStoDn*numStateDn+iStoc*numStateDn],1,0.0,temp,1);
+        keCorDn += ddotBlasWrapper(numStateDn,temp,1,
+                     &wfProjDn[iChem*numStateStoDn*numStateDn+iStoc*numStateDn],1);
+      }
+    }
+    keCorDn /= numStateStoDn;
+    keCor += keCorDn;
+    free(temp);
+  }
+  //printf("ke %lg keCor %lg\n",ke,keCor);
+  *keCorProc += ke-occNumber*keCor;
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
 void calcKEMatrixUC(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini, 
 		    CP *cp, double *ke)
 /*========================================================================*/

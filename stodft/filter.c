@@ -229,7 +229,7 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     printf("Process ID %i Nlpp %.8lg Apply-KS-pot %.8lg Pack-fft %.8lg Unpack-fft %.8lg kinetic %.8lg scale-H|phi> %.8lg\n",myidState,stodftInfo->cputime_new[0],stodftInfo->cputime3,stodftInfo->cputime2,stodftInfo->cputime4,stodftInfo->cputime5,stodftInfo->cputime7);
     printf("Process ID Nlpp-part1 %.8lg Nlpp-part2 %.8lg\n",stodftInfo->cputime0,stodftInfo->cputime1);
     printf("Process ID %i FFTW3D time %.8lg FFTW3D-to-r-pre %.8lg FFTW3D-to-r-post %.8lg FFTW3D-to-g-pre %.8lg FFTW3D-to-g-post %.8lg\n",myidState,cp_sclr_fft_pkg3d_sm->cputime,cp_sclr_fft_pkg3d_sm->cputime1,cp_sclr_fft_pkg3d_sm->cputime2,cp_sclr_fft_pkg3d_sm->cputime3,cp_sclr_fft_pkg3d_sm->cputime4);
-    printf("Process ID %i cpy-wf %.8lg %.8lg add force %.8lg %.8lg prepare-loc %.8lg zero %.8lg",myidState,stodftInfo->cputime_new[1],stodftInfo->cputime_new[3],stodftInfo->cputime_new[2],stodftInfo->cputime_new[4],stodftInfo->cputime_new[5],stodftInfo->cputime_new[6]);
+    printf("Process ID %i cpy-wf %.8lg %.8lg add force %.8lg %.8lg prepare-loc %.8lg zero %.8lg\n",myidState,stodftInfo->cputime_new[1],stodftInfo->cputime_new[3],stodftInfo->cputime_new[2],stodftInfo->cputime_new[4],stodftInfo->cputime_new[5],stodftInfo->cputime_new[6]);
    fflush(stdout);
   }
 
@@ -245,4 +245,180 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*==========================================================================*/
 }/*end Routine*/
 /*=======================================================================*/
+
+
+#ifdef FAST_FILTER   
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void filterNewtonPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
+			  int ip_now)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+  #include "../typ_defs/typ_mask.h"
+
+  STODFTINFO *stodftInfo        = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  CPOPTS *cpopts                = &(cp->cpopts);
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  CPCOEFFS_POS *cpcoeffs_pos    = &(cp->cpcoeffs_pos[ip_now]);
+  CLATOMS_POS*  clatoms_pos     = &(class->clatoms_pos[ip_now]);
+  CLATOMS_INFO *clatoms_info    = &(class->clatoms_info);
+  COMMUNICATE *communicate      = &(cp->communicate);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm = &(cp->cp_sclr_fft_pkg3d_sm);
+
+  NEWTONINFO *newtonInfo = stodftInfo->newtonInfo;
+
+  int expanType	     = stodftInfo->expanType;
+  int polynormLength = stodftInfo->polynormLength;
+  int numChemPot     = stodftInfo->numChemPot;
+  int numStateUpProc = cpcoeffs_info->nstate_up_proc;
+  int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
+  int numCoeff       = cpcoeffs_info->ncoef;
+  int cpLsda	     = cpopts->cp_lsda;
+  int numCoeffUpTotal = numStateUpProc*numCoeff;
+  int numCoeffDnTotal = numStateDnProc*numCoeff;
+  int myidState       = communicate->myid_state;
+  int numProcStates = communicate->np_states;
+  int numThreads = cp_sclr_fft_pkg3d_sm->numThreads;
+  int pseudoRealFlag = cp->pseudo.pseudoReal.pseudoRealFlag;
+  int imu,iCoeff,iPoly,indexStart,iState,jState;
+  int index1,index2,index3;
+  int startIndex;
+
+  int numStatePrintUp = stodftInfo->numStatePrintUp;
+  int numStatePrintDn = stodftInfo->numStatePrintDn;
+
+  MPI_Comm comm_states   =    communicate->comm_states;
+
+
+  double energyDiff  = stodftInfo->energyDiff;
+  double energyMin   = stodftInfo->energyMin;
+  double energyMax   = stodftInfo->energyMax;
+  double energyMean  = stodftInfo->energyMean;
+  double scale       = newtonInfo->scale;
+  double prefact;
+  double polyCoeff;
+  double prod,sum;
+  double x,y,z;
+  double timeProc,timeTot;
+  double *sampPoint = (double*)newtonInfo->sampPoint;
+  double *cre_up = cpcoeffs_pos->cre_up;
+  double *cim_up = cpcoeffs_pos->cim_up;
+  double *cre_dn = cpcoeffs_pos->cre_dn;
+  double *cim_dn = cpcoeffs_pos->cim_dn;
+  double **stoWfUpRe = stodftCoefPos->stoWfUpRe;
+  double **stoWfUpIm = stodftCoefPos->stoWfUpIm;
+  double **stoWfDnRe = stodftCoefPos->stoWfDnRe;
+  double **stoWfDnIm = stodftCoefPos->stoWfDnIm;
+  double *moUpRePrint = stodftCoefPos->moUpRePrint;
+  double *moUpImPrint = stodftCoefPos->moUpImPrint;
+
+  double *expanCoeff = (double*)stodftCoefPos->expanCoeff;
+  double timeStart,timeEnd; 
+  double timeStart2,timeEnd2;
+  double timeStart3,timeEnd3;
+  double deltaTime = 0.0;
+  double deltaTime2 = 0.0;
+
+  double *energyLevel = stodftCoefPos->energyLevel;
+  double *occupNumber;
+  double *energyScale;
+  double *wfDot;
+
+
+/*==========================================================================*/
+/* i) Generate occupatation number */
+
+  occupNumber = (double *)cmalloc(numChemPot*numStatePrintUp*sizeof(double));
+  energyScale = (double *)cmalloc(numStatePrintUp*sizeof(double));
+  wfDot = (double *)cmalloc(numStateUpProc*numStatePrintUp*sizeof(double));
+
+  for(iState=0;iState<numStatePrintUp;iState++){
+    energyScale[iState] = (energyLevel[iState]-energyMean)*scale;
+    //printf("iState %i %lg\n",iState,energyScale[iState]);
+  }
+
+  for(iState=0;iState<numStatePrintUp;iState++){
+    prod = 1.0;
+    for(imu=0;imu<numChemPot;imu++){
+      occupNumber[imu*numStatePrintUp+iState] = expanCoeff[imu];
+    }
+    for(iPoly=1;iPoly<polynormLength;iPoly++){
+      prod *= energyScale[iState]-sampPoint[iPoly-1];
+      for(imu=0;imu<numChemPot;imu++){
+        polyCoeff = expanCoeff[iPoly*numChemPot+imu];
+        occupNumber[imu*numStatePrintUp+iState] += polyCoeff*prod;
+      }//endfor imu
+    }//endfor iPoly
+  }//endfor iState
+
+  /*
+  for(imu=0;imu<numChemPot;imu++){
+    for(iState=0;iState<numStatePrintUp;iState++){
+      printf("imu %i iState %i %lg\n",imu,iState,occupNumber[imu*numStatePrintUp+iState]);
+    }
+  }
+  */
+  /*
+  for(iPoly=1;iPoly<polynormLength;iPoly++){
+    printf("coeff iPoly %lg\n",expanCoeff[iPoly*numChemPot]);
+  }
+  */
+  printf("111111111111111111111111\n");
+
+/*==========================================================================*/
+/* ii) Filtering stochastic orbital */
+
+  #pragma omp parallel for private(iState,jState,iCoeff,index1,index2,sum)
+  for(iState=0;iState<numStateUpProc;iState++){
+    index1 = iState*numCoeff;
+    for(jState=0;jState<numStatePrintUp;jState++){
+      index2 = jState*numCoeff;
+      sum = 0.0;
+      for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
+        sum += cre_up[index1+iCoeff]*moUpRePrint[index2+iCoeff]+
+               cim_up[index1+iCoeff]*moUpImPrint[index2+iCoeff];
+      }
+      sum *= 2.0;
+      sum += cre_up[index1+numCoeff]*moUpRePrint[index2+numCoeff];
+      wfDot[iState*numStatePrintUp+jState] = sum;
+    }
+  }
+
+  #pragma omp parallel for private(imu,iState,jState,iCoeff,x,y)
+  for(imu=0;imu<numChemPot;imu++){
+    for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
+      stoWfUpRe[imu][iCoeff] = 0.0;
+      stoWfUpIm[imu][iCoeff] = 0.0;
+    }
+    for(iState=0;iState<numStateUpProc;iState++){
+      for(jState=0;jState<numStatePrintUp;jState++){
+        x = occupNumber[imu*numStatePrintUp+jState];
+        y = wfDot[iState*numStatePrintUp+jState]*x;
+        for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+          stoWfUpRe[imu][iState*numCoeff+iCoeff] += y*moUpRePrint[jState*numCoeff+iCoeff];
+          stoWfUpIm[imu][iState*numCoeff+iCoeff] += y*moUpImPrint[jState*numCoeff+iCoeff];
+        }
+      }
+    }
+  }
+
+
+  free(occupNumber);
+  free(energyScale);
+  free(wfDot);
+ 
+  Barrier(comm_states);
+
+/*==========================================================================*/
+}/*end Routine*/
+/*=======================================================================*/
+
+
+#endif
 

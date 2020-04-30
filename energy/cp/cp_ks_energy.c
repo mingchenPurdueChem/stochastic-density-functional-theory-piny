@@ -252,6 +252,10 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
   int icheck_dual_size = cp->cpopts.icheck_dual_size;
   double eCutoffKe = cp->cpewald.eCutoffKe;
 
+  double time_st1,time_st2,time_st3,time_st4;
+  double time_end1,time_end2,time_end3,time_end4;
+  double time_diff1,time_diff2,time_diff3,time_diff4;
+
   cp_wave_min = simopts->cp_wave_min;
   cp_min      = simopts->cp_min;
   cp_min_on = cp_wave_min + cp_min + cp_wave_min_pimd;
@@ -271,6 +275,8 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
 
 /*======================================================================*/
 /* 0) Check the forms                                                   */
+
+   time_st1 = omp_get_wtime();
 
    if(cp_norb>0){
     if((*icoef_orth_up)!=0){
@@ -511,6 +517,9 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
                       "cp_rho_calc");
 #endif
 
+  time_end1 = omp_get_wtime();
+  time_diff1 = time_end1-time_st1;
+
   //for(i=1;i<=10;i++)printf("i %i rhocr_up %lg rhoci_up %lg\n",i,rhocr_up[i],rhoci_up[i]);
 
 /*======================================================================*/
@@ -569,6 +578,8 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
 /*      Calculate the particle forces                                   */
 /*      Calculate the coef forces from the non-local pseudopotential    */
 
+  time_st2 = omp_get_wtime();
+
   if(itime == 0 || cp_dual_grid_opt_on >= 1){
     control_vps_atm_list(&(cp->pseudo),cell,clatoms_pos,clatoms_info,
                           atommaps,ewd_scr,for_scr,cp_dual_grid_opt_on,itime);
@@ -613,18 +624,21 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
     }
   }
   
+  time_end2 = omp_get_wtime();
+  time_diff2 = time_end2-time_st2;
 #ifdef TIME_CP
   cputime(&cpu2);
   par_cpu_vomit((cpu2-cpu1),comm_states,np_states,myid_state,
                       "control_cp_eext_recip");
 #endif
-
 /*======================================================================*/
 /* VIII) Calculate the Hartree and exchange correlation energy          */
 /*     Calculate the local external potential energy                    */
 /*     Calculate the electronic kinetic energy                          */
 /*     Calculate the rest of the coef forces                            */
 
+
+  time_st3 = omp_get_wtime();
 #ifdef TIME_CP
   if(np_states>1){Barrier(comm_states);}
   cputime(&cpu1);
@@ -683,6 +697,7 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
   fclose(feige);
   // Finish testing
   */
+  
   // Finish testing
   /*
   //cre_up and cim_up are now eigenstates
@@ -980,6 +995,11 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
     ptens_pvten[i]     += ptens_pvten_tmp[i];
   }/*endfor*/
 
+
+  time_end3 = omp_get_wtime();
+  time_diff3 = time_end3-time_st3;
+
+  //printf("!!!time rho %lg vext %lg coef force %lg\n",time_diff1,time_diff2,time_diff3);
 
 /*==========================================================================*/
    }/*end routine*/

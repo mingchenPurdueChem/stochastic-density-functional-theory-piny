@@ -374,6 +374,7 @@ long double fermiExpLongDouble(long double,long double,long double);
 double complex fermiExpComplex(double complex,double,double);
 double fermiErfcReal(double,double,double);
 double gaussianReal(double,double,double);
+double entropyReal(double, double, double);
 
 /*----------------------------------------------------------------------*/
 /* Real Space nlpp  */

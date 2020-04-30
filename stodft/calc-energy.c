@@ -235,6 +235,7 @@ void calcTotEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int energyWindowOn = stodftInfo->energyWindowOn;
   int numAtomTot = clatoms_info->natm_tot;
   int iState,iCoeff,iChem,iAtom;
+  int smearOpt       = stodftInfo->smearOpt;
 
   double chemPotTrue = stodftInfo->chemPotTrue;
   double energyKineticTemp,energyNLTemp;
@@ -317,11 +318,20 @@ void calcTotEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   }
 
 /*--------------------------------------------------------------------------*/
-/* V) Output the energy Term						    */
+/* V) Calculate entropy                                                     */
+
+  if(smearOpt>0)calcStoEntropy(cp);
+
+/*--------------------------------------------------------------------------*/
+/* VI) Output the energy Term						    */
 
   if(myidState==0){
     energyTotElec = energyKeTrue+energyPNLTrue+energyHartTemp+energyExtTemp+energyExcTemp;
     stodftInfo->energyElecTot = energyTotElec;
+    if(smearOpt>0){
+      energyTotElec += stodftInfo->entropy;
+      stodftInfo->energyElecTot += stodftInfo->entropy;
+    }
     printf("==============================================\n");
     printf("Output Energy\n");
     printf("==============================================\n");
@@ -330,6 +340,9 @@ void calcTotEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     printf("Hartree Energy:      %.16lg\n",energyHartTemp);
     printf("Ext Energy:          %.16lg\n",energyExtTemp); 
     printf("Ex-Cor Energy:       %.16lg\n",energyExcTemp); 
+    if(smearOpt>0){
+      printf("TS:                  %.16lg\n",stodftInfo->entropy);
+    }
     printf("Total Elec Energy    %.16lg\n",energyTotElec);
     printf("Elec Energy Diff	 %.16lg\n",
 	    stodftInfo->energyElecTot-stodftInfo->energyElecTotOld);
@@ -384,11 +397,14 @@ void calcKNEEnergyFilterDiag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int pseudoRealFlag = pseudoReal->pseudoRealFlag;
   int iState,iCoeff,iChem;
   int ioff,iis;
+  int smearOpt = stodftInfo->smearOpt;
 
   double tpi = 2.0*M_PI;
   double eke,ekeDn;
   double chemPotTrue = stodftInfo->chemPotTrue;
   double energyKineticTemp,energyNLTemp;
+  double occNow;
+  double entropy,entropyTotal;
 
   double *energyKe  = stodftInfo->energyKe;
   double *energyPNL = stodftInfo->energyPNL;
@@ -403,6 +419,7 @@ void calcKNEEnergyFilterDiag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   double *ak2_sm  =  cpewald->ak2_sm;
   double *ak2Kinetic = cpewald->ak2Kinetic;
   double *chemPot = stodftCoefPos->chemPot;
+  double *numOccDetProc = stodftInfo->numOccDetProc;
 
   double **stoWfUpRe = stodftCoefPos->stoWfUpRe;
   double **stoWfUpIm = stodftCoefPos->stoWfUpIm;
@@ -459,27 +476,10 @@ void calcKNEEnergyFilterDiag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       }//endfor iState
       eke += ekeDn*0.5;
     }//endif cpLsda
-    printf("eke %lg\n",eke);
+    //printf("eke %lg\n",eke);
     stat_avg->cp_eke = eke;
     
     //printf("before cp_eke %lg\n",stat_avg->cp_eke);
-
-    if(pseudoRealFlag==0){
-      calcCoefForceWrapSCF(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
-    }
-    else{
-      for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
-        fcre_up[iCoeff] = 0.0;
-        fcim_up[iCoeff] = 0.0;
-      }//endfor iCoeff
-      if(cpLsda==1&&numStateDnProc!=0){
-        for(iCoeff=1;iCoeff<=numCoeffDnTotal;iCoeff++){
-          fcre_dn[iCoeff] = 0.0;
-          fcim_dn[iCoeff] = 0.0;
-        }//endfor iCoeff
-      }//endif cpLsda     
-      calcCoefForceEnergy(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
-    }
     
     //calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     //calcCoefForceExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
@@ -528,6 +528,32 @@ void calcKNEEnergyFilterDiag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   printf("Exchange-Correlation Energy: %.6lg\n",stat_avg->cp_exc);
   */
 
+/*--------------------------------------------------------------------------*/
+/* II) Entropy term for metallic system                                     */
+
+  if(smearOpt>0){
+    entropy = 0.0;
+    for(iChem=0;iChem<numChemPot;iChem++){
+      for(iState=0;iState<numStateUpProc;iState++){
+        occNow = numOccDetProc[iChem*numStateUpProc+iState];
+        if(cpLsda==0) occNow = occNow*occNow*0.5;
+        else occNow = occNow*occNow;
+        //printf("occNow %lg\n",occNow);
+        if(occNow>1.0e-13&&occNow<1.0-1.0e-13){
+          entropy += occNow*log(occNow)+(1.0-occNow)*log(1.0-occNow);
+          printf("occNow %lg entropy %lg\n",occNow,entropy);
+        }//endif occNow
+      }//endfor iState
+    }//endfor iChem
+    printf("entropy %lg\n",entropy);
+    if(numProcStates>1){
+      Reduce(&entropy,&entropyTotal,1,MPI_DOUBLE,MPI_SUM,0,commStates);
+    }
+    else entropyTotal = entropy;
+    printf("entropyTotal %lg\n",entropyTotal);
+    if(cpLsda==0)stodftInfo->entropy = entropyTotal*2.0;
+    else stodftInfo->entropy = entropyTotal;
+  }
 
 /*==========================================================================*/
 }/*end Routine*/
@@ -558,11 +584,14 @@ void calcTotEnergyFilterDiag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int myidState         = communicate->myid_state;
   int numProcStates = communicate->np_states;
   int iState,iCoeff,iChem;
+  int smearOpt = stodftInfo->smearOpt;
 
   double chemPotTrue = stodftInfo->chemPotTrue;
   double energyKineticTemp,energyNLTemp;
   double energyHartTemp,energyExtTemp,energyExcTemp;
   double energyTrue,energyTotElec;
+  double entropy = stodftInfo->entropy;
+  double smearTemperature = stodftInfo->smearTemperature;
 
   double *chemPot = stodftCoefPos->chemPot;
   double *energyKe = stodftInfo->energyKe;
@@ -592,6 +621,11 @@ void calcTotEnergyFilterDiag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     energyTotElec = energyKe[0]+energyPNL[0]+energyHartTemp
 	    +energyExtTemp+energyExcTemp;
     stodftInfo->energyElecTot = energyTotElec;
+    stat_avg->cp_eke = energyKe[0];
+    stat_avg->cp_enl = energyPNL[0];
+    stat_avg->cp_ehart = energyHartTemp;
+    stat_avg->cp_eext = energyExtTemp;
+    stat_avg->cp_exc = energyExcTemp;
     printf("==============================================\n");
     printf("Output Energy\n");
     printf("==============================================\n");
@@ -600,6 +634,11 @@ void calcTotEnergyFilterDiag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     printf("Hartree Energy:      %.20lg\n",energyHartTemp);
     printf("Ext Energy:          %.20lg\n",energyExtTemp);
     printf("Ex-Cor Energy:       %.20lg\n",energyExcTemp);
+    if(smearOpt>0){
+      printf("TS:                  %.20lg\n",entropy*smearTemperature);
+      energyTotElec += entropy*smearTemperature;
+      stodftInfo->energyElecTot = energyTotElec;
+    }
     printf("Total Elec Energy    %.20lg\n",energyTotElec);
     printf("Elec Energy Diff     %.16lg\n",
             stodftInfo->energyElecTot-stodftInfo->energyElecTotOld);
@@ -613,4 +652,85 @@ void calcTotEnergyFilterDiag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*==========================================================================*/
 
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void calcStoEntropy(CP *cp)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* Calculate average energy for each chemical potential, then            */
+/* Interpolate the energy for the correct chemical potential             */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+#include "../typ_defs/typ_mask.h"
+
+  STODFTINFO *stodftInfo        = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  CPOPTS *cpopts                = &(cp->cpopts);
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  COMMUNICATE *communicate      = &(cp->communicate);
+
+  int cpLsda         = cpopts->cp_lsda;
+  int numCoeff       = cpcoeffs_info->ncoef;
+  int numStateUpProc = cpcoeffs_info->nstate_up_proc;
+  int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
+  int numStateStoUp  = stodftInfo->numStateStoUp;
+  int iState,iCoeff;
+  int myidState       = communicate->myid_state;
+  int numProcStates   = communicate->np_states;
+  MPI_Comm comm_states   =    communicate->comm_states;
+  
+  double beta = stodftInfo->beta;
+  double T = 1.0/beta;
+  double dot;
+  double entropy,entropyTotal;
+  double pre;
+  double *entropyUpRe = stodftCoefPos->entropyUpRe;
+  double *entropyUpIm = stodftCoefPos->entropyUpIm;
+  double *entropyDnRe = stodftCoefPos->entropyDnRe;
+  double *entropyDnIm = stodftCoefPos->entropyDnIm;
+
+  double *entropyExpanCoeff = stodftCoefPos->entropyExpanCoeff;
+
+  if(cpLsda==0) pre = -2.0*T;
+  else pre = -T;
+
+  entropy = 0.0;
+  for(iState=0;iState<numStateUpProc;iState++){
+    dot = 0.0;
+    for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
+      dot += entropyUpRe[iState*numCoeff+iCoeff]*entropyUpRe[iState*numCoeff+iCoeff]
+            +entropyUpIm[iState*numCoeff+iCoeff]*entropyUpIm[iState*numCoeff+iCoeff];
+    }
+    dot *= 2.0;
+    dot += entropyUpRe[iState*numCoeff+numCoeff]*entropyUpRe[iState*numCoeff+numCoeff];
+    entropy += dot;
+  }
+  if(cpLsda==1&&numStateDnProc>0){
+    for(iState=0;iState<numStateDnProc;iState++){
+      dot = 0.0;
+      for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
+        dot += entropyDnRe[iState*numCoeff+iCoeff]*entropyDnRe[iState*numCoeff+iCoeff]
+              +entropyDnIm[iState*numCoeff+iCoeff]*entropyDnIm[iState*numCoeff+iCoeff];
+      }
+      dot *= 2.0;
+      dot += entropyDnRe[iState*numCoeff+numCoeff]*entropyDnRe[iState*numCoeff+numCoeff];
+      entropy += dot;
+    }
+  }
+  if(numProcStates>1){
+    Reduce(&entropy,&entropyTotal,1,MPI_DOUBLE,MPI_SUM,0,comm_states);
+  }
+  else entropyTotal = entropy;
+  
+  if(myidState==0){
+    stodftInfo->entropy = pre*entropyTotal/numStateStoUp;
+  }
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
 

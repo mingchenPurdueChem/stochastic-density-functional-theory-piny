@@ -1598,6 +1598,7 @@ void outputDensity(CP *cp,CELL *cell,int outputFlag)
   int *rhoRealSendCounts    = stodftInfo->rhoRealSendCounts;
   int *rhoRealDispls	    = stodftInfo->rhoRealDispls;
   char *densityFileName	    = stodftInfo->densityFileName;
+  char *densityFinalFileName = stodftInfo->densityFinalFileName;
 
   double volCP,volCPInv;
   double *hmatCP	    = cell->hmat_cp;
@@ -1642,7 +1643,7 @@ void outputDensity(CP *cp,CELL *cell,int outputFlag)
       if(myidState==0){
 	densityOutputFile = cfopen(densityFileName,"a");
         printf("I'm writing the output density\n");
-        densityFinal = fopen("density-out","w");
+        densityFinal = fopen(densityFinalFileName,"w");
 	for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
 	  //fprintf(densityOutputFile,"%.10lg\n",rhoUpForOutput[iGrid]*volCPInv);
 	  //debug
@@ -1663,7 +1664,7 @@ void outputDensity(CP *cp,CELL *cell,int outputFlag)
     }//endif parallel case
     else{
       densityOutputFile = cfopen(densityFileName,"a");
-      densityFinal = fopen("density-out","w");
+      densityFinal = fopen(densityFinalFileName,"w");
       for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
 	fprintf(densityOutputFile,"%.10lg\n",rhoUpCorrect[iGrid]);
         fprintf(densityFinal,"%.16lg\n",rhoUpCorrect[iGrid]);
@@ -1870,7 +1871,7 @@ void calcRhoFilterDiagHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_d
   }//endfor iChem
 
   free(&rhoTemp[1]);
-  free(rhoReduce);
+  if(myidState==0)free(rhoReduce);
   
   if(numProcStates>1)Barrier(commStates);
 
@@ -1884,6 +1885,20 @@ void calcRhoFilterDiagHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_d
     }
     else memcpy(rhoUpCorrect,rhoUpChemPot[0],rhoRealGridTot*sizeof(double));
   }
+
+  // Test the total number of electron again
+  double numElecTest = 0.0;
+  for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)numElecTest += rhoUpCorrect[iGrid];
+  numElecTest *= numGridTotInv;
+  double numElecTestTot = 0.0;
+  if(numProcStates>1){
+    Barrier(commStates);
+    Reduce(&numElecTest,&numElecTestTot,1,MPI_DOUBLE,MPI_SUM,0,commStates);
+    Barrier(commStates);
+  }
+  else numElecTestTot = numElecTest;
+  if(myidState==0)printf("After fragment correction, #electron is %.16lg\n",numElecTestTot);
+
 
 /*==========================================================================*/
 /* IV) Output the density                                                   */
@@ -2325,6 +2340,7 @@ void calcRhoStoHybridEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *gene
   //fclose(fileRhoReal);
   fclose(fileRhoRecip);  
   */
+  
 
 /*==========================================================================*/
 }/*end Routine*/

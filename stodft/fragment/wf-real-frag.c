@@ -1449,6 +1449,248 @@ void noiseFilterGen(GENERAL_DATA *general_data,CP *cp,CLASS *class,
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
+void noiseFilterGenFake(GENERAL_DATA *general_data,CP *cp,CLASS *class,
+                    int ip_now)
+/*========================================================================*/
+{/*begin routine*/
+/*************************************************************************/
+/* Fake version of noiseFilterGen. The filter is constructed with        */
+/* deterministic orbitals.                                               */
+/*************************************************************************/
+/*========================================================================*/
+/*             Local variable declarations                                */
+#include "../typ_defs/typ_mask.h"
+  CLATOMS_INFO *clatoms_info = &(class->clatoms_info);
+  CLATOMS_POS  *clatoms_pos  = &(class->clatoms_pos[ip_now]);
+  CPOPTS       *cpopts       = &(cp->cpopts);
+  CPSCR        *cpscr        = &(cp->cpscr);
+  STODFTINFO   *stodftInfo   = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  NEWTONINFO   *newtonInfo      = stodftInfo->newtonInfo;
+  COMMUNICATE   *commCP         = &(cp->communicate);
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  CPCOEFFS_POS  *cpcoeffs_pos   = &(cp->cpcoeffs_pos[ip_now]);
+  MPI_Comm commStates = commCP->comm_states;
+  CELL *cell = &(general_data->cell);
+
+  int iPoly,iState,jState,iCoeff,iChem,iOff,iOff2,iGrid;
+  int iProc;
+  int numChemPot = stodftInfo->numChemPot;
+  int polynormLength = stodftInfo->polynormLength;
+  int expanType = stodftInfo->expanType;
+  int numProcStates = commCP->np_states;
+  int myidState = commCP->myid_state;
+  int cpLsda = cpopts->cp_lsda;
+  int cpGGA  = cpopts->cp_gga;
+  int cpDualGridOptOn = cpopts->cp_dual_grid_opt;
+  int numStateUpProc = cpcoeffs_info->nstate_up_proc;
+  int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
+  int numCoeff       = cpcoeffs_info->ncoef;
+  int totalPoly;
+  int numCoeffUpTot   = numStateUpProc*numCoeff;
+  int numCoeffDnTot   = numStateDnProc*numCoeff;
+  int numStatesDet = stodftInfo->numStatesDet;
+  int rhoRealGridTot = stodftInfo->rhoRealGridTot;
+
+  int *coefFormUp   = &(cpcoeffs_pos->icoef_form_up);
+  int *forceFormUp  = &(cpcoeffs_pos->ifcoef_form_up);
+  int *coefFormDn   = &(cpcoeffs_pos->icoef_form_dn);
+  int *forceFormDn  = &(cpcoeffs_pos->ifcoef_form_dn);
+  int *coefOrthUp   = &(cpcoeffs_pos->icoef_orth_up);
+  int *forceOrthUp  = &(cpcoeffs_pos->ifcoef_orth_up);
+  int *coefOrthDn   = &(cpcoeffs_pos->icoef_orth_dn);
+  int *forceOrthDn  = &(cpcoeffs_pos->ifcoef_orth_dn);
+
+  double dot;
+
+  double *coeffReUp = cpcoeffs_pos->cre_up;
+  double *coeffImUp = cpcoeffs_pos->cim_up;
+  double *coeffReDn = cpcoeffs_pos->cre_dn;
+  double *coeffImDn = cpcoeffs_pos->cim_dn;
+  double *coeffForceReUp = cpcoeffs_pos->fcre_up;
+  double *coeffForceImUp = cpcoeffs_pos->fcim_up;
+
+  double *wfDetBackupUpRe = stodftCoefPos->wfDetBackupUpRe;
+  double *wfDetBackupUpIm = stodftCoefPos->wfDetBackupUpIm;
+  double *wfReTemp,*wfImTemp;
+  double *wfReProjTemp,*wfImProjTemp;
+  double *ksEigv = (double*)cmalloc(numStatesDet*sizeof(double));
+  double *hmatCP = cell->hmat_cp;
+  double *chemPot = stodftCoefPos->chemPot;
+
+
+  FILE *feigv = fopen("orbital-e","r");
+
+  double **stoWfUpRe = stodftCoefPos->stoWfUpRe;
+  double **stoWfUpIm = stodftCoefPos->stoWfUpIm;
+  double **stoWfDnRe = stodftCoefPos->stoWfDnRe;
+  double **stoWfDnIm = stodftCoefPos->stoWfDnIm;
+
+ 
+/*======================================================================*/
+/* I) Set flags                     */
+
+  *forceFormUp = 0;
+  cpcoeffs_pos->ifcoef_orth_up = 1; // temp keep this flag for debug filter
+  if(cpLsda==1&&numStateDnProc!=0){
+    *forceFormDn = 0;
+    cpcoeffs_pos->ifcoef_orth_dn = 1;
+  }
+
+
+/*======================================================================*/
+/* IV) Generate random orbital                                          */
+
+  genNoiseOrbitalReal(cp,cpcoeffs_pos);
+
+/*======================================================================*/
+/* II) Filtering by deterministic orbitals                     */
+
+  wfReTemp = (double*)cmalloc(numCoeff*sizeof(double));
+  wfImTemp = (double*)cmalloc(numCoeff*sizeof(double));
+  wfReProjTemp = (double*)cmalloc(numCoeff*sizeof(double));
+  wfImProjTemp = (double*)cmalloc(numCoeff*sizeof(double));
+
+  for(iChem=0;iChem<numChemPot;iChem++){
+    for(iCoeff=1;iCoeff<=numCoeffUpTot;iCoeff++){
+      stoWfUpRe[iChem][iCoeff] = 0.0;
+      stoWfUpIm[iChem][iCoeff] = 0.0;
+    }
+  }
+
+  //numChemPot = 1000; // TEST
+  int junk;
+  int windowIndex;
+  int index;
+  stodftCoefPos->ewStateNum = (int*)cmalloc(numChemPot*sizeof(int));
+  stodftCoefPos->ewStateMap = (int**)cmalloc(numChemPot*sizeof(int*));
+  int *ewStateNum = stodftCoefPos->ewStateNum;
+  int **ewStateMap = stodftCoefPos->ewStateMap;
+  for(iChem=0;iChem<numChemPot;iChem++){
+    ewStateMap[iChem] = (int*)cmalloc(numStatesDet*sizeof(int));
+  }
+  for(iState=0;iState<numStatesDet;iState++){
+    fscanf(feigv,"%i",&junk);
+    fscanf(feigv,"%lg",&ksEigv[iState]);
+  }
+
+  double energyMin = stodftInfo->energyMin;
+  // test only
+  energyMin = ksEigv[0]-0.1;
+  double dE = (chemPot[numChemPot-2]-energyMin)/(numChemPot-1.0);
+  /*
+  for(iState=0;iState<numStatesDet;iState++){
+    if(ksEigv[iState]<chemPot[numChemPot-2]){
+      printf("iState %i ksEigv %lg chemPot %lg energyMin %lg\n",iState,ksEigv[iState],chemPot[numChemPot-2],energyMin);
+      windowIndex = (int)((ksEigv[iState]-energyMin)/dE);
+      ewStateMap[windowIndex][ewStateNum[windowIndex]] = iState;
+      ewStateNum[windowIndex] += 1;
+    }
+    else{
+      ewStateMap[numChemPot-1][ewStateNum[numChemPot-1]] = iState;
+      ewStateNum[numChemPot-1] += 1;
+    }
+  }
+  */
+  for(iChem=0;iChem<numChemPot;iChem++){
+    ewStateNum[iChem] = 0;
+  }
+  for(iState=0;iState<numStatesDet;iState++){
+    if(ksEigv[iState]<chemPot[0]){
+      ewStateMap[0][ewStateNum[0]] = iState;
+      ewStateNum[0] += 1;
+      if(iState==numStatesDet-1)stodftInfo->homoIndex = 0;
+    }
+  }
+  for(iChem=1;iChem<numChemPot-1;iChem++){
+    for(iState=0;iState<numStatesDet;iState++){
+      if(ksEigv[iState]>=chemPot[iChem-1]&&ksEigv[iState]<chemPot[iChem]){
+        ewStateMap[iChem][ewStateNum[iChem]] = iState;
+        ewStateNum[iChem] += 1;
+        if(iState==numStatesDet-1)stodftInfo->homoIndex = iChem;
+      }
+    }
+  }
+  for(iState=0;iState<numStatesDet;iState++){
+    if(ksEigv[iState]>chemPot[numChemPot-2]){
+      ewStateMap[numChemPot-1][ewStateNum[numChemPot-1]] = iState;
+      ewStateNum[numChemPot-1] += 1;
+      if(iState==numStatesDet-1)stodftInfo->homoIndex = numStatesDet-1;
+    }
+  }
+
+  for(iChem=0;iChem<numChemPot;iChem++){
+    printf("iChem %i ewStateNum %i\n",iChem,ewStateNum[iChem]);
+  }
+ 
+
+  for(iState=0;iState<numStateUpProc;iState++){
+    iOff = iState*numCoeff;
+    memcpy(wfReTemp,&coeffReUp[iOff+1],numCoeff*sizeof(double));
+    memcpy(wfImTemp,&coeffImUp[iOff+1],numCoeff*sizeof(double));
+    for(iChem=0;iChem<numChemPot-1;iChem++){
+      for(jState=0;jState<ewStateNum[iChem];jState++){
+        dot = 0.0;
+        index = ewStateMap[iChem][jState];
+        iOff2 = index*numCoeff;
+        #pragma omp parallel for reduction(+:dot) private(iCoeff)
+        for(iCoeff=0;iCoeff<numCoeff-1;iCoeff++){
+          dot += wfDetBackupUpRe[iOff2+iCoeff]*wfReTemp[iCoeff]+
+                 wfDetBackupUpIm[iOff2+iCoeff]*wfImTemp[iCoeff];
+        }
+        dot = (dot*2.0+wfDetBackupUpRe[iOff2+numCoeff-1]*wfReTemp[numCoeff-1])*0.5;
+        #pragma omp parallel for private(iCoeff)
+        for(iCoeff=0;iCoeff<numCoeff;iCoeff++){
+          stoWfUpRe[iChem][iOff+iCoeff+1] += wfDetBackupUpRe[iOff2+iCoeff]*dot;
+          stoWfUpIm[iChem][iOff+iCoeff+1] += wfDetBackupUpIm[iOff2+iCoeff]*dot;
+        }
+      }
+    }
+    memcpy(&stoWfUpRe[numChemPot-1][iOff+1],&coeffReUp[iOff+1],numCoeff*sizeof(double));
+    memcpy(&stoWfUpIm[numChemPot-1][iOff+1],&coeffImUp[iOff+1],numCoeff*sizeof(double));
+    for(iChem=0;iChem<numChemPot-1;iChem++){
+      #pragma omp parallel for private(iCoeff)
+      for(iCoeff=0;iCoeff<numCoeff;iCoeff++){
+        stoWfUpRe[numChemPot-1][iOff+iCoeff+1] -= stoWfUpRe[iChem][iOff+iCoeff+1];
+        stoWfUpIm[numChemPot-1][iOff+iCoeff+1] -= stoWfUpIm[iChem][iOff+iCoeff+1];
+      }
+    }
+  }
+
+  //debug
+  /*
+  double testNumElec;
+  testNumElec = 0.0;
+  for(iChem=0;iChem<numChemPot-1;iChem++){
+    for(iState=0;iState<numStateUpProc;iState++){
+      iOff = iState*numCoeff;
+      dot = 0.0;
+      for(iCoeff=0;iCoeff<numCoeff-1;iCoeff++){
+        dot += stoWfUpRe[iChem][iOff+iCoeff+1]*stoWfUpRe[iChem][iOff+iCoeff+1]+
+               stoWfUpIm[iChem][iOff+iCoeff+1]*stoWfUpIm[iChem][iOff+iCoeff+1];
+      }
+      dot = dot*2.0+stoWfUpRe[iChem][iOff+numCoeff]*stoWfUpRe[iChem][iOff+numCoeff];
+      testNumElec += dot;
+    }
+  }
+  testNumElec /= numStateUpProc;
+  printf("testNumElec %lg\n",testNumElec*2.0);
+  */
+
+  free(wfReTemp);
+  free(wfImTemp);
+  free(wfReProjTemp);
+  free(wfImProjTemp);
+  free(ksEigv);
+
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
 void noiseFilterRealReGen(CLASS *class,GENERAL_DATA *general_data,
                           CP *cp,double *creal, double *cimag,double *noiseWfReal,
                           int nstate)

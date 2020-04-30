@@ -26,7 +26,7 @@
 
 //#define REAL_PP_DEBUG
 //#define TEST_DM
-#define PRINT_RHO
+//#define PRINT_RHO
 #define CORRECT_REAL
 
 /*==========================================================================*/

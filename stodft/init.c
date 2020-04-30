@@ -71,6 +71,7 @@ void commStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
   Bcast(&(stodftInfo->numOrbital),1,MPI_INT,0,world);
   Bcast(&(stodftInfo->numChemPot),1,MPI_INT,0,world);
   Bcast(&(stodftInfo->energyWindowOn),1,MPI_INT,0,world);
+  Bcast(&(stodftInfo->printChebyMoment),1,MPI_INT,0,world);
   //Bcast(&(stodftInfo->readCoeffFlag),1,MPI_INT,0,world);
   Bcast(&(stodftInfo->numStateStoUp),1,MPI_INT,0,world);
   Bcast(&(stodftInfo->numStateStoDn),1,MPI_INT,0,world);
@@ -268,7 +269,12 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   // After that, we will use the regular energy widows. Some functions will 
   // be involved in both cases therefore we need to use this flag to control 
   // it. 
-  if(calcFragFlag==1&&energyWindowOn==1)stodftInfo->fragWindowFlag = 1;
+  if(calcFragFlag==1&&energyWindowOn==1){
+    stodftInfo->fragWindowFlag = 1;
+    // numChemPot+1 at reading paramter file step
+    //stodftInfo->numChemPot += 1;
+    //numChemPot += 1;
+  }  
 
   stodftCoefPos->chemPot = (double*)cmalloc(numChemPot*sizeof(double));
   stodftCoefPos->chemPotBackUp = (double*)cmalloc(numChemPot*sizeof(double));
@@ -826,19 +832,20 @@ void reInitWaveFunMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int numStateStoUp = stodftInfo->numStateStoUp;
   int numStateStoDn = stodftInfo->numStateStoDn;
   int realSparseOpt = cpopts->realSparseOpt;
-  int numCoeff       = cpcoeffs_info->ncoef;
+  int numCoeff      = cpcoeffs_info->ncoef;
   int numStateUpProc,numStateDnProc;
   int numStateUpTot,numStateDnTot;
   int numProcStates = communicate->np_states;
   int myidState	    = communicate->myid;
-  int cpLsda = cpopts->cp_lsda;
-  int piBeadsProc  = cpcoeffs_info->pi_beads_proc;
-  int hessCalc = class->clatoms_info.hess_calc;
-  int numChemPot = stodftInfo->numChemPot;
+  int cpLsda        = cpopts->cp_lsda;
+  int piBeadsProc   = cpcoeffs_info->pi_beads_proc;
+  int hessCalc      = class->clatoms_info.hess_calc;
+  int numChemPot    = stodftInfo->numChemPot;
   int numSendNoise;
   int iState,iChem,iProc;
   int nfft,nfft2;
-  int reInitFlag = stodftInfo->reInitFlag;
+  int reInitFlag    = stodftInfo->reInitFlag;
+  int smearOpt      = stodftInfo->smearOpt;
 
   //int nfft             = cp_para_fft_pkg3d_lg->nfft;
   //int nfft2	       = nfft/2; 
@@ -928,6 +935,15 @@ void reInitWaveFunMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       stodftCoefPos->stoWfDnIm[iChem] = (double*)cmalloc(numStateDnTot*sizeof(double))-1;
     }//endfor iChem
   }//endif
+
+  if(smearOpt>0){
+    stodftCoefPos->entropyUpRe = (double*)cmalloc(numStateUpTot*sizeof(double))-1;
+    stodftCoefPos->entropyUpIm = (double*)cmalloc(numStateUpTot*sizeof(double))-1;
+    if(cpLsda==1&&numStateDnProc!=0){
+      stodftCoefPos->entropyDnRe = (double*)cmalloc(numStateDnTot*sizeof(double))-1;
+      stodftCoefPos->entropyDnIm = (double*)cmalloc(numStateDnTot*sizeof(double))-1;
+    }
+  }
 
 /*==========================================================================*/
 /* VI) Initialize noise orbital scattering                                  */

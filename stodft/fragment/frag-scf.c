@@ -246,14 +246,18 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     projRhoMiniUnitCell(cp,general_data,class,cpMini,generalDataMini,classMini,ip_now);
   }
 
-  energyCorrect(cpMini,generalDataMini,classMini,cp,class,ip_now);
+  if(energyWindowOn==0){
+    energyCorrect(cpMini,generalDataMini,classMini,cp,class,ip_now);
+  }
   printf("!!!!!!!!!!! energywindowon %i\n",energyWindowOn);
+  
+  /*
   if(energyWindowOn==1){
     stodftInfo->fragWindowFlag = 0;
     stodftInfo->numChemPot -= 1;
     printf("new numChemPot %i\n",stodftInfo->numChemPot);
   }
-
+  */
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/

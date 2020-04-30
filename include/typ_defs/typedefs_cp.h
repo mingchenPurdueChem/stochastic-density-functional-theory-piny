@@ -666,7 +666,9 @@ typedef struct stodftInfo{
   double *energyKe;		    /* Lst: Sum of kinetic and nonlocal pseudo- */
   double *energyPNL;		    /*	    potential energy for different      */
 				    /*	    chem pot.				*/
-  char densityFileName[MAXWORD];    /* Char: Name of the output density file    */
+  char densityFileName[MAXWORD];    /* Char: Name of the density log file       */
+  char densityFinalFileName[MAXWORD];
+                                    /* Char: Name of the Final output density   */
   char densityReadFileName[MAXWORD];/* Char: Name of the input density file     */
   /* DIIS parameters */
   int densityMixFlag;		    /* Opt: Flag to control mixing density      */
@@ -675,6 +677,9 @@ typedef struct stodftInfo{
 				    /*	    2 = diis				*/
                                     /*      3 = mix+diis                        */
 
+  int printChebyMoment;             /* Opt: Flag to print Chebyshev momentum    */
+                                    /*      in case if you want to fit other    */
+                                    /*      functions.                          */
 
   int numDiis;                      /* Num: number of diis linear combination   */
                                     /*      terms                               */
@@ -783,7 +788,9 @@ typedef struct stodftInfo{
                                     /*      using Fermi Dirac smearing          */
   double chemPotUpMetallic;         /* Num: Chemical potential in the smearing  */
   double chemPotDnMetallic;         /*      Fermi function                      */
-  
+  double entropy;                   /* Num: Enertropy for metallic system       */
+
+  int homoIndex;  //debug
 }STODFTINFO;
 
 typedef struct stodftCoefPos{
@@ -893,6 +900,11 @@ typedef struct stodftCoefPos{
 				    /* Lst: nuclei force corresponding to true  */
 				    /*	    chemical potential			*/
 				    /* Lth: natm_tot				*/
+  double *entropyUpRe,*entropyUpIm; /* Lst: entropy operator acting on sto      */
+  double *entropyDnRe,*entropyDnIm; /*      orbital                             */
+                                    /* Lth: nstate_up(dn)_proc*ncoef            */
+  double *entropyExpanCoeff;        /* Lst: entropy term poly fiting            */
+                                    /* Lth: polynormLength                      */
   //debug
   double *wfDetBackupUpRe;
   double *wfDetBackupUpIm;

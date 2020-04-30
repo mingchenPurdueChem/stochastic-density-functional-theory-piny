@@ -80,6 +80,8 @@ void controlCpMinFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   
   int iopt_cp_pw       = cp->cpcoeffs_info.iopt_cp_pw;
   int iopt_cp_dvr      = cp->cpcoeffs_info.iopt_cp_dvr;
+
+  double time_st,time_end;
   
 
 /*======================================================================*/
@@ -131,6 +133,9 @@ void controlCpMinFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /* II) Loop over the specified number of time steps */
 
   for(itime = 1;itime<=(general_data->timeinfo.ntime);itime++){
+
+    time_st = omp_get_wtime();
+
     general_data->timeinfo.itime = itime;
     class->energy_ctrl.itime     = itime;
     cp->vel_samp_cp.qseed = (double)itime;
@@ -172,11 +177,6 @@ void controlCpMinFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
                      + general_data->stat_avg.cp_eext;
       Delta_E = fabs(elec_e - elec_e_old);
       
-      printf("iStep %i elec_e %.16lg Delta_E %.16lg cp_eke %.16lg cp_enl %.16lg cp_ehart %.16lg cp_exc %.16lg cp_eext %.16lg\n",itime,
-            elec_e,Delta_E,general_data->stat_avg.cp_eke,
-            general_data->stat_avg.cp_enl,general_data->stat_avg.cp_ehart,general_data->stat_avg.cp_exc,
-            general_data->stat_avg.cp_eext);
-      //exit(0);
  
       fflush(stdout);
       //exit(0);     
@@ -186,6 +186,17 @@ void controlCpMinFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
                             general_data->minopts.tol_coef,1,1,
                             &(general_data->stat_avg));	
       }
+
+      time_end = omp_get_wtime();
+      /*
+      printf("iStep %i time %lg elec_e %.16lg Delta_E %.16lg cp_eke %.16lg cp_enl %.16lg cp_ehart %.16lg cp_exc %.16lg cp_eext %.16lg\n",
+            itime,time_end-time_st,
+            elec_e,Delta_E,general_data->stat_avg.cp_eke,
+            general_data->stat_avg.cp_enl,general_data->stat_avg.cp_ehart,general_data->stat_avg.cp_exc,
+            general_data->stat_avg.cp_eext);
+      //exit(0);
+      */
+
       if(idone==1){
         printf("elec_e %.16lg Delta_E %.16lg cp_eke %.16lg cp_enl %.16lg cp_ehart %.16lg cp_exc %.16lg cp_eext %.16lg\n",
             elec_e,Delta_E,general_data->stat_avg.cp_eke,

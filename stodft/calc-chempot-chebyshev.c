@@ -69,6 +69,7 @@ void calcChemPotCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int myidState	      = communicate->myid_state;
   int numStateStoUp = stodftInfo->numStateStoUp;
   int numStateStoDn = stodftInfo->numStateStoDn;
+  int printChebyMoment = stodftInfo->printChebyMoment;
   MPI_Comm comm_states   =    communicate->comm_states;
 
   double chemPotDiff = 1000.0;
@@ -173,14 +174,16 @@ void calcChemPotCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 	chebyMomentsDn[iPoly] /= (double)numStateStoDn;
       }      
     }
-    /*
-    FILE *filecheby = fopen("cheby-moment-test","w");
-    for(iPoly=0;iPoly<=polynormLength;iPoly++){
-      fprintf(filecheby,"%.16lg\n",chebyMomentsUp[iPoly]);
+    
+    if(stodftInfo->printChebyMoment==1){
+      FILE *filecheby = fopen("cheby-moment-output","w");
+      for(iPoly=0;iPoly<=polynormLength;iPoly++){
+        fprintf(filecheby,"%.16lg\n",chebyMomentsUp[iPoly]);
+      }
+      fclose(filecheby);
     }
-    fclose(filecheby);
-    exit(0);
-    */
+    //exit(0);
+    
     /*
     FILE *filecheby = fopen("cheby-moment","r");
     for(iPoly=0;iPoly<=polynormLength;iPoly++){
@@ -188,6 +191,7 @@ void calcChemPotCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     }
     fclose(filecheby);
     */
+    
     //debug
     /*
     double numChemTest = 1000;

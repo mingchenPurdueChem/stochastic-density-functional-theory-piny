@@ -54,6 +54,8 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int expanType	     = stodftInfo->expanType;
   int polynormLength = stodftInfo->polynormLength;
   int numChemPot     = stodftInfo->numChemPot;
+  int smearOpt       = stodftInfo->smearOpt;
+  int filterDiagFlag = stodftInfo->filterDiagFlag;
   int numStateUpProc = cpcoeffs_info->nstate_up_proc;
   int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
   int numCoeff       = cpcoeffs_info->ncoef;
@@ -85,6 +87,11 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   double **stoWfUpIm = stodftCoefPos->stoWfUpIm;
   double **stoWfDnRe = stodftCoefPos->stoWfDnRe;
   double **stoWfDnIm = stodftCoefPos->stoWfDnIm;
+  double *entropyUpRe = stodftCoefPos->entropyUpRe;
+  double *entropyUpIm = stodftCoefPos->entropyUpIm;
+  double *entropyDnRe = stodftCoefPos->entropyDnRe;
+  double *entropyDnIm = stodftCoefPos->entropyDnIm;
+  double *entropyExpanCoeff = stodftCoefPos->entropyExpanCoeff;
 
 
   double *expanCoeff = (double*)stodftCoefPos->expanCoeff;
@@ -150,6 +157,21 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     }//endif 
   }//endfor imu
 
+  if(smearOpt>0&&filterDiagFlag==0){
+    #pragma omp parallel for private(iCoeff)
+    for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
+      entropyUpRe[iCoeff] = entropyExpanCoeff[imu]*cre_up[iCoeff];
+      entropyUpIm[iCoeff] = entropyExpanCoeff[imu]*cim_up[iCoeff];
+    }//endfor iCoeff
+    if(cpLsda==1&&numStateDnProc!=0){
+      #pragma omp parallel for private(iCoeff)
+      for(iCoeff=1;iCoeff<=numCoeffDnTotal;iCoeff++){
+        entropyDnRe[iCoeff] = entropyExpanCoeff[imu]*cre_dn[iCoeff];
+        entropyDnIm[iCoeff] = entropyExpanCoeff[imu]*cim_dn[iCoeff];
+      }//endfor iCoeff
+    }//endif cpLsda
+  }//endif smearOpt
+
 /*==========================================================================*/
 /* 1) Loop over all polynomial terms (iPoly=0<=>polynomial order 1) */
 
@@ -183,6 +205,21 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
         }//endfor iCoeff        
       }//endif 
     }//endfor imu
+    if(smearOpt>0&&filterDiagFlag==0){ 
+      polyCoeff = entropyExpanCoeff[iPoly];
+      #pragma omp parallel for private(iCoeff)
+      for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
+        entropyUpRe[iCoeff] += polyCoeff*cre_up[iCoeff];
+        entropyUpIm[iCoeff] += polyCoeff*cim_up[iCoeff];
+      }
+      if(cpLsda==1&&numStateDnProc!=0){
+        #pragma omp parallel for private(iCoeff)
+        for(iCoeff=1;iCoeff<=numCoeffDnTotal;iCoeff++){
+          entropyDnRe[iCoeff] += polyCoeff*cre_dn[iCoeff];
+          entropyDnIm[iCoeff] += polyCoeff*cim_dn[iCoeff];         
+        }
+      }
+    }
     timeEnd2 = omp_get_wtime();
     deltaTime += timeEnd2-timeStart2;
   }//endfor iPoly
@@ -276,6 +313,8 @@ void filterNewtonPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int expanType	     = stodftInfo->expanType;
   int polynormLength = stodftInfo->polynormLength;
   int numChemPot     = stodftInfo->numChemPot;
+  int smearOpt       = stodftInfo->smearOpt;
+  int filterDiagFlag = stodftInfo->filterDiagFlag;
   int numStateUpProc = cpcoeffs_info->nstate_up_proc;
   int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
   int numCoeff       = cpcoeffs_info->ncoef;
@@ -317,6 +356,12 @@ void filterNewtonPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   double **stoWfDnIm = stodftCoefPos->stoWfDnIm;
   double *moUpRePrint = stodftCoefPos->moUpRePrint;
   double *moUpImPrint = stodftCoefPos->moUpImPrint;
+  double *entropyUpRe = stodftCoefPos->entropyUpRe;
+  double *entropyUpIm = stodftCoefPos->entropyUpIm;
+  double *entropyDnRe = stodftCoefPos->entropyDnRe;
+  double *entropyDnIm = stodftCoefPos->entropyDnIm;
+  double *entropyExpanCoeff = stodftCoefPos->entropyExpanCoeff;
+
 
   double *expanCoeff = (double*)stodftCoefPos->expanCoeff;
   double timeStart,timeEnd; 
@@ -328,6 +373,7 @@ void filterNewtonPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   double *energyLevel = stodftCoefPos->energyLevel;
   double *occupNumber;
   double *energyScale;
+  double *entropyState;
   double *wfDot;
 
 
@@ -335,6 +381,7 @@ void filterNewtonPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /* i) Generate occupatation number */
 
   occupNumber = (double *)cmalloc(numChemPot*numStatePrintUp*sizeof(double));
+  entropyState = (double *)cmalloc(numStatePrintUp*sizeof(double));
   energyScale = (double *)cmalloc(numStatePrintUp*sizeof(double));
   wfDot = (double *)cmalloc(numStateUpProc*numStatePrintUp*sizeof(double));
 
@@ -355,6 +402,15 @@ void filterNewtonPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
         occupNumber[imu*numStatePrintUp+iState] += polyCoeff*prod;
       }//endfor imu
     }//endfor iPoly
+    if(smearOpt>0&&filterDiagFlag==0){
+      prod = 1.0;
+      entropyState[iState] = entropyExpanCoeff[0];
+      for(iPoly=1;iPoly<polynormLength;iPoly++){
+        prod *= energyScale[iState]-sampPoint[iPoly-1];
+        polyCoeff = entropyExpanCoeff[iPoly];
+        entropyState[iState] += polyCoeff*prod;
+      }//endfor iPoly
+    }//endif smearOpt
   }//endfor iState
 
   /*
@@ -408,10 +464,31 @@ void filterNewtonPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     }
   }
 
+  if(smearOpt>0&&filterDiagFlag==0){
+    #pragma omp parallel for private(iCoeff)
+    for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
+      entropyUpRe[iCoeff] = 0.0;
+      entropyUpIm[iCoeff] = 0.0;
+    }
+    #pragma omp parallel for private(iState,jState,iCoeff,x,y)
+    for(iState=0;iState<numStateUpProc;iState++){
+      for(jState=0;jState<numStatePrintUp;jState++){
+        x = entropyState[jState];
+        y = wfDot[iState*numStatePrintUp+jState]*x;
+        for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+          entropyUpRe[iState*numCoeff+iCoeff] += y*moUpRePrint[jState*numCoeff+iCoeff];
+          entropyUpIm[iState*numCoeff+iCoeff] += y*moUpImPrint[jState*numCoeff+iCoeff];
+        }//endfor iCoeff
+      }//endfor jState
+    }//endfor iState
+    //printf("entropyUpRe %lg\n",entropyUpRe[1]);
+  }//endif smearOpt
+
 
   free(occupNumber);
   free(energyScale);
   free(wfDot);
+  free(entropyState);
  
   Barrier(comm_states);
 

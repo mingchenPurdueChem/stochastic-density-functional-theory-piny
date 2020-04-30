@@ -834,11 +834,14 @@ void projRhoMiniUnitCell(CP *cp,GENERAL_DATA *general_data,CLASS *class,
                  cpMini,generalDataMini,classMini,
                  ip_now);
   }
+  // The combineStoUCEnergyWindow is moved to genStoOrbitalEnergyWindow
+  /*
   else{
     combineStoUCEnergyWindow(cp,general_data,class,cpMini,
                  generalDataMini,classMini,ip_now);
 
   }
+  */
 
 /*==========================================================================*/
 }/*end Routine*/
@@ -1919,7 +1922,9 @@ void combineStoUCEnergyWindow(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   
   //noiseRealReGen(general_data,cp,class,ip_now);
   stodftInfo->iScf = 1;
-  noiseFilterGen(general_data,cp,class,ip_now);
+  
+  //noiseFilterGen(general_data,cp,class,ip_now);
+  noiseFilterGenFake(general_data,cp,class,ip_now);
 
 /*======================================================================*/
 /* IV) Project the real space noise wave function                       */
@@ -1959,7 +1964,7 @@ void combineStoUCEnergyWindow(CP *cp,GENERAL_DATA *general_data,CLASS *class,
       fragInfo->coefUpFragProc[iFrag] = (double*)cmalloc(numStateUpMini*numGrid*sizeof(double));
       rhoRealCalcDriverFragMol(&generalDataMini[iFrag],&cpMini[iFrag],&classMini[iFrag],cp);
     }//endif iFrag
-    //for(iChem=1;iChem<2;iChem++){
+    //for(iChem=1;iChem<numChemPot;iChem++){ // debug
     for(iChem=0;iChem<numChemPot;iChem++){
       noiseFilterRealReGen(class,general_data,cp,stoWfUpRe[iChem],stoWfUpIm[iChem],
                            noiseWfUpReal,numStateUpProc);
@@ -2014,6 +2019,7 @@ void combineStoUCEnergyWindow(CP *cp,GENERAL_DATA *general_data,CLASS *class,
             for(iGrid=0;iGrid<numGridSmall;iGrid++){
               gridIndex = gridMapProc[iFrag][gridMapProcSmall[iFrag][iGrid]];
               rhoTemp[gridIndex] += rhoFragTemp[iGrid]*rhoFragTemp[iGrid];
+              //rhoTemp[gridIndex] = rhoFragTemp[iGrid]*rhoFragTemp[iGrid]; //debug     
               //fix_frag[iFrag][gridIndex] += rhoFragTemp[iGrid]*rhoFragTemp[iGrid]*pre;
             }
             free(wfFragTemp);
@@ -2030,10 +2036,14 @@ void combineStoUCEnergyWindow(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     }
   }//endfor iFrag
 
+  
   /*
   for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
     printf("gridddddddddd %lg\n",rhoTemp[iGrid]);
   }
+  
+  fflush(stdout);
+  exit(0);
   */
   
 

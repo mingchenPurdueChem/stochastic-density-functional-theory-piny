@@ -1,3 +1,4 @@
+//#include "../typ_defs/typedefs_stat.h"
 /*-----------------------------------------------------------------*/
 /* control-cp-min-frag.c */
 
@@ -42,7 +43,7 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *,CP *,CLASS *,
                         CP *,double *,double *,int*,int*,double *,double *,int);
 void noiseFilterGen(GENERAL_DATA *,CP *,CLASS *,int);
 void noiseFilterRealReGen(CLASS *,GENERAL_DATA *,CP *,double *, double *,double *,int);
-
+void noiseFilterGenFake(GENERAL_DATA *,CP *,CLASS *,int);
 /*-----------------------------------------------------------------*/
 /* energy-cor.c */
 void energyCorrect(CP *,GENERAL_DATA *,CLASS *,CP *,CLASS *,int);

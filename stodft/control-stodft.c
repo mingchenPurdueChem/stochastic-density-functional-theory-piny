@@ -260,7 +260,14 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     else checkpointInputDist(cp,general_data,class);
   }
   if(filterDiagFlag==0){
-    if(stodftInfo->chemPotOpt==1)scfStodftInterp(class,bonded,general_data,cp,ip_now);
+    if(stodftInfo->chemPotOpt==1){
+#ifdef FAST_FILTER   
+      scfStodftInterp(class,bonded,general_data,cp,
+                      class2,bonded2,general_data2,cp2,ip_now);
+#else
+      scfStodftInterp(class,bonded,general_data,cp,ip_now);
+#endif
+    }
     else if(stodftInfo->chemPotOpt==2){
       if(stodftInfo->energyWindowOn==0){
 #ifdef FAST_FILTER   
@@ -271,15 +278,31 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 #endif
       }
       else{ //energy window
+        printf("fragWindowFlag %i\n",stodftInfo->fragWindowFlag);
+        if(stodftInfo->fragWindowFlag==0){
 #ifdef FAST_FILTER   
-        scfStodftEnergyWindow(class,bonded,general_data,cp,
-                              class2,bonded2,general_data2,cp2,ip_now);
+          scfStodftEnergyWindow(class,bonded,general_data,cp,
+                                class2,bonded2,general_data2,cp2,ip_now);
 #else
-        scfStodftEnergyWindow(class,bonded,general_data,cp,ip_now);
+          scfStodftEnergyWindow(class,bonded,general_data,cp,
+                                ip_now);
+#endif  
+        }
+        else{
+#ifdef FAST_FILTER   
+          scfStodftEnergyWindowFrag(class,bonded,general_data,
+                    cp,class2,bonded2,general_data2,cp2,
+                    *cpMiniPoint,*generalDataMiniPoint,*classMiniPoint,
+                    ip_now);
+#else     
+          scfStodftEnergyWindowFrag(class,bonded,general_data,
+                    cp,*cpMiniPoint,*generalDataMiniPoint,*classMiniPoint,
+                    ip_now);
 #endif
-      }
-    }  
-  }
+        }//endif fragWindowFlag
+      }//endif energyWindowOn
+    }//endif chemPotOpt  
+  }//endif filterDiagFlag
   else scfStodftFilterDiag(class,bonded,general_data,cp,ip_now);
   //scfStodft(class,bonded,general_data,cp,ip_now);
    
@@ -311,7 +334,7 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }/*endif*/
 
   //Minimize with stochastic dft
-  scfStodftInterp(class,bonded,general_data,cp,ip_now);
+  //scfStodftInterp(class,bonded,general_data,cp,ip_now);
   elecEnergy     = stat_avg->cp_eke
 		 + stat_avg->cp_enl
 		 + stat_avg->cp_ehart

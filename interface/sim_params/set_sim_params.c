@@ -4684,7 +4684,7 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   if(strcasecmp(dict[19].keyarg,"nhg")==0)stodftInfo->fragCellOpt = 2;
 
   /*-----------------------------------------------------------------------*/
-  /*  20)\out_rho_file_name{#} */
+  /*  20)\log_rho_file_name{#} */
   strcpy(stodftInfo->densityFileName,dict[20].keyarg);
 
   /*-----------------------------------------------------------------------*/
@@ -4756,6 +4756,15 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   /*  36)\energy_window_on{#} */
   if(strcasecmp(dict[36].keyarg,"off")==0)stodftInfo->energyWindowOn = 0;
   if(strcasecmp(dict[36].keyarg,"on")==0)stodftInfo->energyWindowOn = 1;
+
+  /*-----------------------------------------------------------------------*/
+  /*  37)\cheby_moment_out{#} */
+  if(strcasecmp(dict[37].keyarg,"off")==0)stodftInfo->printChebyMoment = 0;
+  if(strcasecmp(dict[37].keyarg,"on")==0)stodftInfo->printChebyMoment = 1;
+
+  /*-----------------------------------------------------------------------*/
+  /*  38)\out_rho_file_name{#} */
+  strcpy(stodftInfo->densityFinalFileName,dict[38].keyarg);
 
 /*=======================================================================*/
 /* Check the conflicate options						 */
@@ -4906,6 +4915,17 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
       printf("You are using both fragmentation and energy window.");
       printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
       stodftInfo->numChemPot += 1;
+    }
+    if(stodftInfo->smearOpt>0&&stodftInfo->filterDiagFlag==0){
+      // Stochastic DFT (not Filter Diag) uses smearOpt to control whether 
+      // we calculate entropy or not
+      if(stodftInfo->smearOpt!=stodftInfo->filterFunType){
+        printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+        printf("The smearing type needs to be consistent!\n");
+        printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+        fflush(stdout);
+        exit(0);
+      }
     }
   }//endif stodftOn
 

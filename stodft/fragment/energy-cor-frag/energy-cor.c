@@ -872,13 +872,19 @@ void calcVnlCorEnergyWindow(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDa
       for(iStoc=0;iStoc<numStateStoUp;iStoc++){
         dsymvWrapper('U',numStateUp,1.0,vnlFxMatrixUp,numStateUp,
                      &wfProjUp[iChem*numStateStoUp*numStateUp+iStoc*numStateUp],1,0.0,temp,1);
-        vnlFxCorTemp += ddotBlasWrapper(numStateUp,temp,1,&wfProjUp[iStoc*numStateUp],1);
+
+        vnlFxCorTemp += ddotBlasWrapper(numStateUp,temp,1,
+                     &wfProjUp[iChem*numStateStoUp*numStateUp+iStoc*numStateUp],1);
+
         dsymvWrapper('U',numStateUp,1.0,vnlFyMatrixUp,numStateUp,
                      &wfProjUp[iChem*numStateStoUp*numStateUp+iStoc*numStateUp],1,0.0,temp,1);
+
         //testfycor = ddotBlasWrapper(numStateUp,temp,1,&wfProjUp[iStoc*numStateUp],1);
         //vnlFyCorTemp += testfycor;
+
         vnlFyCorTemp += ddotBlasWrapper(numStateUp,temp,1,
                      &wfProjUp[iChem*numStateStoUp*numStateUp+iStoc*numStateUp],1);
+
         //printf("iStoc %i testyforce %lg\n",iStoc,testfycor);
         dsymvWrapper('U',numStateUp,1.0,vnlFzMatrixUp,numStateUp,
                      &wfProjUp[iChem*numStateStoUp*numStateUp+iStoc*numStateUp],1,0.0,temp,1);

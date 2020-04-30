@@ -207,6 +207,7 @@ typedef struct stat_avg {
   double cp_muxc;                    /* Num:Integral of xc pot times rho */
   double cp_eke,aicp_eke,acp_eke;    /* Num:Inst and avg CP KE         */
   double cp_enl,aicp_enl,acp_enl;    /* Num:Inst and avg CP V_nonlocal */
+  double cp_eke_dn,cp_enl_dn;        /* Num:Inst CP KE V_nl for dn states */
   double aiter_shake_cp,aiter_ratl_cp;/* Num: Inst and avg # Shake/Ratl 
                                               iterations for CP        */ 
   double maxfc,maxf;                 /* Num: MAX component of the force

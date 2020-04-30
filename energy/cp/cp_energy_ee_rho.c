@@ -24,6 +24,7 @@
 
 //#define REAL_PP_DEBUG
 #define CORRECT_REAL
+#define WRITE_RHO
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
@@ -291,6 +292,42 @@ void cp_rho_calc_hybrid_threads_force(CPEWALD *cpewald,CPSCR *cpscr,
   //fflush(stdout);
   //exit(0);
 
+  // density output is postponed
+  /*
+  if(fftw3dFlag==100){
+    double sum = 0.0;
+    FILE *fp_rho;
+    double *rho_reduce;
+    if(myid==0){
+      fp_rho = fopen("rho_bm","w");
+      rho_reduce = (double*)cmalloc(nfft2*sizeof(double));
+    }
+
+    if(np_states == 1){
+      for(kc=1;kc<=nkf3;kc++){
+        for(kb=1;kb<=nkf2;kb++){
+          for(ka=1;ka<=nkf1;ka++){
+            i = (ka-1) + (kb-1)*nkf1 + (kc-1)*nkf1*nkf2 + 1;
+            fprintf(fp_rho,"%i %i %i %.5e\n",kc,kb,ka,rho_scr[i]);
+            sum += rho[i];
+          }//endfor
+        }//endfor
+      }//endfor
+    }
+    else{
+      Reduce(&rho[1],rho_reduce,nfft2,);
+    }
+    //printf("rho sum test %lg\n",sum);
+    if(myid==0){
+      fclose(fp_rho);
+      free(rho_reduce);
+    }
+    //exit(0);
+  }
+  //exit(0);
+  */
+
+
 /*=========================================================================*/
 /*=========================================================================*/
 /*  3) get density in g space                                              */
@@ -380,27 +417,6 @@ void cp_rho_calc_hybrid_threads_force(CPEWALD *cpewald,CPSCR *cpscr,
   exit(0);
   */
   
-  
-  if(fftw3dFlag==100){
-    double sum = 0.0;
-    FILE *fp_rho = fopen("rho_bm","w");
-    if(np_states == 1){
-      for(kc=1;kc<=nkf3;kc++){
-	for(kb=1;kb<=nkf2;kb++){
-	  for(ka=1;ka<=nkf1;ka++){
-	    i = (ka-1) + (kb-1)*nkf1 + (kc-1)*nkf1*nkf2 + 1;
-	    fprintf(fp_rho,"%i %i %i %.5e\n",kc,kb,ka,rho[i]);
-	    sum += rho[i];
-	  }//endfor
-	}//endfor
-      }//endfor
-    }
-    //printf("rho sum test %lg\n",sum);
-    fclose(fp_rho);    
-    //exit(0);
-  }
-  //exit(0);
-
 /*==========================================================================*/
 /* VII) Reduce rho in g space and get all of it in real space               */
 /*      Now in g-level parallel and need parallel packages                  */
@@ -457,6 +473,13 @@ void cp_rho_calc_hybrid_threads_force(CPEWALD *cpewald,CPSCR *cpscr,
             }
           }
           // now rho is z leading
+#ifdef WRITE_RHO
+          FILE *frho = fopen("rho-cg","w");
+          for(i=1;i<=nfft2;i++){
+            fprintf(frho,"%.16lg\n",rho_scr[i]);
+          }
+          fclose(frho);
+#endif
           memcpy(&zfft[1],&rho_scr[1],nfft2*sizeof(double));
         }
         Barrier(comm_states);

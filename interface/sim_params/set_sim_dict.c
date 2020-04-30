@@ -2257,7 +2257,7 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
  /*             Local variable declarations                                */
   
   unsigned int i;
-  *num_dict = 36;
+  *num_dict = 38;
   *dict = (DICT_WORD *)cmalloc(*num_dict*sizeof(DICT_WORD))-1;
 
   for (i=1;i<=*num_dict;i++) {
@@ -2347,7 +2347,7 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
   strcpy((*dict)[19].keyarg,"hg");
 
   strcpy((*dict)[20].error_mes,"You need to input a legal name for density output file");
-  strcpy((*dict)[20].keyword,"out_rho_file_name");
+  strcpy((*dict)[20].keyword,"log_rho_file_name");
   strcpy((*dict)[20].keyarg,"density.log");
 
   strcpy((*dict)[21].error_mes,"Valid chem pot option:interp/cheby");
@@ -2410,6 +2410,13 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
   strcpy((*dict)[36].keyword,"energy_window_on");
   strcpy((*dict)[36].keyarg,"off");
 
+  strcpy((*dict)[37].error_mes,"Turn on if you need chebyshev momentum to fit other functions like DOS");
+  strcpy((*dict)[37].keyword,"cheby_moment_out");
+  strcpy((*dict)[37].keyarg,"off");
+
+  strcpy((*dict)[38].error_mes,"File name of the final density output");
+  strcpy((*dict)[38].keyword,"out_rho_file_name");
+  strcpy((*dict)[38].keyarg,"density-out");
 
  /*========================================================================*/
  } /* end routine set_sim_dict_harmonic */

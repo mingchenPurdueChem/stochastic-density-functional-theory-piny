@@ -809,6 +809,23 @@ double fermiErfcReal(double x,double mu,double beta){
 }
 /*===============================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+double entropyReal(double x, double mu, double beta){
+  double f = fermiExpReal(x,mu,beta);
+  double entropy;
+  if(f>1.0e-13&&f<1.0-1.0e-13){
+    entropy = f*log(f)+(1.0-f)*log(1.0-f);
+  }
+  else{
+    entropy = 0.0;
+  }
+  return entropy;
+}
+/*===============================================================*/
+
+
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/

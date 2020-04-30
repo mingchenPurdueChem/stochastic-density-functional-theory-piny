@@ -60,6 +60,7 @@ void genNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
 
   int polynormLength = (int)(2.0*beta*energyDiff); //initial chain length, try drop the mutiplier 4.0 2.0->1.0
   int numChemPot     = stodftInfo->numChemPot;
+  int smearOpt       = stodftInfo->smearOpt;
   int totalPoly      = polynormLength*numChemPot;  //iniital total polynormial
 
   FERMIFUNR fermiFunction = stodftInfo->fermiFunctionReal;
@@ -153,6 +154,7 @@ void genNewtonHermitTrueChemPot(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoef
   int numChemPot = stodftInfo->numChemPot;
   int polynormLength = stodftInfo->polynormLength; //initial chain length, try drop the mutiplier 4.0
   int totalPoly      = polynormLength*numChemPot;  //iniital total polynormial
+  int smearOpt       = stodftInfo->smearOpt;
 
   FERMIFUNR fermiFunction = stodftInfo->fermiFunctionReal;
 /*==========================================================================*/
@@ -178,6 +180,12 @@ void genNewtonHermitTrueChemPot(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoef
   
   fitErr = calcFitErrorNewton(stodftInfo,stodftCoefPos);
   printf("fit error %.16lg\n",fitErr);
+
+  if(smearOpt>0){
+    stodftCoefPos->entropyExpanCoeff = (double*)cmalloc(polynormLength*sizeof(double));
+    genCoeffNewtonHermitEntropy(stodftInfo,stodftCoefPos);
+  }
+
   //exit(0);
 
 /*==========================================================================*/
@@ -919,4 +927,94 @@ void testChebyCoeff(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
 }/*end Routine*/
 /*==========================================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void genCoeffNewtonHermitEntropy(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* Calculate expensions for entropy calculation. ONLY WORKS WITH CHEBY	 */
+/* chemical potential option                                             */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+  NEWTONINFO *newtonInfo  = stodftInfo->newtonInfo;
+
+  int polynormLength     = stodftInfo->polynormLength;
+  int iPoly,jPoly,imu;
+
+  double Smin		   = newtonInfo->Smin;
+  double Smax		   = newtonInfo->Smax;
+  double scale		   = newtonInfo->scale;
+  double *sampPoint        = (double*)newtonInfo->sampPoint;
+  double *sampPointUnscale = (double*)newtonInfo->sampPointUnscale;
+  double *entropyExpanCoeff = stodftCoefPos->entropyExpanCoeff;
+
+  double beta = stodftInfo->beta;
+  double chemPotTrue = stodftInfo->chemPotTrue;
+  double funValue,sum,prod;
+
+  double timeStart,timeEnd;
+  //FILE *fileCoeff = fopen("coeff","w");
+ 
+  /*
+  for(iPoly=0;iPoly<polynormLength;iPoly++){
+    funValue = fermiFunction(sampPointUnscale[iPoly],chemPot[0],beta);
+    printf("funValue %lg %lg\n",sampPointUnscale[iPoly],funValue);
+  }
+
+  fflush(stdout);
+  exit(0);
+  */
+  funValue = sqrt(-entropyReal(sampPointUnscale[0],chemPotTrue,beta));
+
+  entropyExpanCoeff[0] = funValue;
+
+  funValue = sqrt(-entropyReal(sampPointUnscale[1],chemPotTrue,beta));
+
+  entropyExpanCoeff[1] = (funValue-entropyExpanCoeff[0])/(sampPoint[1]-sampPoint[0]);
+  for(iPoly=2;iPoly<polynormLength;iPoly++){
+
+    funValue = sqrt(-entropyReal(sampPointUnscale[iPoly],chemPotTrue,beta));
+
+    sum = funValue-entropyExpanCoeff[0];
+    prod = 1.0;
+    for(jPoly=1;jPoly<iPoly;jPoly++){
+      prod *= (sampPoint[iPoly]-sampPoint[jPoly-1]);
+      sum -= entropyExpanCoeff[jPoly]*prod;
+    }//endfor jPoly
+    prod *= (sampPoint[iPoly]-sampPoint[iPoly-1]);
+    entropyExpanCoeff[iPoly] = sum/prod;
+  }//endfor iPoly
+
+  /*
+  for(iPoly=1;iPoly<polynormLength;iPoly++){
+    printf("coeff iPoly %lg\n",expanCoeff[iPoly*numChemPot]);
+  }
+  */
+
+  //debug
+  /*
+  FILE *filecoeff = fopen("coeff-out","w");
+  for(iPoly=0;iPoly<polynormLength;iPoly++){
+    fprintf(filecoeff,"%i %.16lg\n",iPoly,expanCoeff[iPoly*numChemPot]);
+  }
+  fclose(filecoeff);
+  */
+  
+  /*
+  for(imu=0;imu<numChemPot;imu++){
+    for(iPoly=0;iPoly<polynormLength;iPoly++){
+      fprintf(fileCoeff,"%.13lg\n",expanCoeff[iPoly*numChemPot+imu]);
+    }
+  }
+  fclose(fileCoeff); 
+  */
+  //exit(0);
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
 

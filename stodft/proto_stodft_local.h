@@ -10,6 +10,7 @@ void genEigenOrb(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,CLATOMS_POS *);
 double calcFitErrorNewton(STODFTINFO *,STODFTCOEFPOS *);
 void calcChebyCoeff(STODFTINFO *,STODFTCOEFPOS *,double,double *);
 void testChebyCoeff(STODFTINFO *,STODFTCOEFPOS *,double,double *);
+void genCoeffNewtonHermitEntropy(STODFTINFO *,STODFTCOEFPOS *);
 /*-----------------------------------------------------------------*/
 /* filter.c                                                        */
 void filterNewtonPolyHerm(CP *,CLASS *,GENERAL_DATA *,int);
@@ -23,6 +24,7 @@ void calcEnergyChemPot(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,CLATOMS_POS *)
 void calcTotEnergy(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,CLATOMS_POS *);
 void calcKNEEnergyFilterDiag(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,CLATOMS_POS *);
 void calcTotEnergyFilterDiag(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,CLATOMS_POS *);
+void calcStoEntropy(CP *);
 /*-----------------------------------------------------------------*/
 /* init.c                                                          */
 void commStodft(CLASS *,BONDED *,GENERAL_DATA *,CP *);
@@ -34,10 +36,13 @@ void reallocScratch(CP *,int);
 void initFilterDiag(CP *);
 /*-----------------------------------------------------------------*/
 /* min-CP-stodft.c                                                 */
-void scfStodftInterp(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 #ifndef FAST_FILTER   
+void scfStodftInterp(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 void scfStodftCheby(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 void scfStodftEnergyWindow(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
+void scfStodftEnergyWindowFrag(CLASS *,BONDED *,GENERAL_DATA *,
+                    CP *, CP *, GENERAL_DATA *, CLASS *,
+                    int);
 #endif
 void scfStodftFilterDiag(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 /*-----------------------------------------------------------------*/
@@ -47,6 +52,8 @@ void genStoOrbitalCheby(CLASS *,GENERAL_DATA *,CP *,int);
 void genStoOrbitalFake(CLASS *,GENERAL_DATA *,CP *,int );
 void genStoOrbitalEnergyWindow(CLASS *,GENERAL_DATA *,CP *,int );
 void genStoOrbitalEnergyWindowFake(CLASS *,GENERAL_DATA *,CP *,int);
+void genStoOrbitalEnergyWindowFragFake(CLASS *,GENERAL_DATA *,
+            CP *,GENERAL_DATA *,CP *,CLASS *,int);
 /*-----------------------------------------------------------------*/
 /* gen-noise.c							   */
 void genNoiseOrbital(CP *,CPCOEFFS_POS *);
@@ -187,6 +194,7 @@ void calcCoefForceWrapReduce(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_
 /*-----------------------------------------------------------------*/
 /* calc-nuclei-force.c	                                           */
 void calcEnergyForce(CLASS *,GENERAL_DATA *,CP *,BONDED *,CPCOEFFS_POS *,CLATOMS_POS *);
+void calcEnergyForceFilterDiag(CLASS *,GENERAL_DATA *,CP *,BONDED *,CPCOEFFS_POS *,CLATOMS_POS *);
 
 /*-----------------------------------------------------------------*/
 /* checkpointIO.c */
@@ -200,10 +208,20 @@ void scfStodftCheby(CLASS *,BONDED *,GENERAL_DATA *,
                     CP *,CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 void scfStodftEnergyWindow(CLASS *,BONDED *,GENERAL_DATA *,
                     CP *,CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
+void scfStodftInterp(CLASS *,BONDED *,GENERAL_DATA *,
+                    CP *,CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
+void scfStodftEnergyWindowFrag(CLASS *,BONDED *,GENERAL_DATA *,CP *,
+                    CLASS *,BONDED *,GENERAL_DATA *,CP *,
+                    CP *, GENERAL_DATA *, CLASS *,int);
+void genStoOrbitalInterpFake(CLASS *,GENERAL_DATA *,CP *,
+            CLASS *,GENERAL_DATA *,CP *,int);
 void genStoOrbitalChebyFakeNew(CLASS *,GENERAL_DATA *,
-                CP *,CLASS *,GENERAL_DATA *,CP *cp2,int);
+                CP *,CLASS *,GENERAL_DATA *,CP *,int);
 void genStoOrbitalEnergyWindowFakeNew(CLASS *,GENERAL_DATA *,
-                CP *,CLASS *,GENERAL_DATA *,CP *cp2,int);
+                CP *,CLASS *,GENERAL_DATA *,CP *,int);
+void scfStodftEnergyWindowFragFakeNew(CLASS *,BONDED *,GENERAL_DATA *,
+                    CP *,CLASS *,BONDED *,GENERAL_DATA *,CP *,
+                    CP *, GENERAL_DATA *, CLASS *,int);
 void filterNewtonPolyHermFake(CP *,CLASS *,GENERAL_DATA *,int);
 void broadcastWfDet(CP *,CLASS *,GENERAL_DATA *,CP *);
 void calcChebyMomentsFake(CP *,CLASS *,GENERAL_DATA *,int);

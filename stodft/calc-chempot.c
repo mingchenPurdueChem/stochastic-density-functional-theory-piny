@@ -253,21 +253,36 @@ void genChemPotInterpPoints(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
         }
       }
       else{ // with fragment density
-        energyMin = stodftInfo->energyMin;
-        chemPotTrue = stodftInfo->chemPotTrue;
-        dE = (chemPotTrue-energyMin)/numChemPot; 
-        for(iNode=0;iNode<numChemPot-1;iNode++){
-          chemPot[iNode] = energyMin+(iNode+1)*dE;
-          //printf("0000000 iNode %i energyMin %lg chemPotTrue %lg dE %lg chemPot %lg\n",
-          //        iNode,energyMin,chemPotTrue,dE,chemPot[iNode]);
+        if(iScf<10){
+          energyMin = stodftInfo->energyMin;
+          // The first SCF step: use chemPotInit
+          // Otherwise: Use the chemical potential from the 
+          // previous SCF step
+          if(iScf==1)chemPotTrue = chemPotInit+0.5*gapInit;
+          else chemPotTrue = stodftInfo->chemPotTrue;
+          dE = (chemPotTrue-energyMin)/(numChemPot-1.0); 
+          for(iNode=0;iNode<numChemPot-1;iNode++){
+            chemPot[iNode] = energyMin+(iNode+1)*dE;
+            printf("0000000 iNode %i energyMin %lg chemPotTrue %lg dE %lg chemPot %lg\n",
+                    iNode,energyMin,chemPotTrue,dE,chemPot[iNode]);
+          }
+          // Debug
+          //double lambda = 0.01;
+          //chemPot[0] = energyMin+dE*lambda*2.0;
+          for(iNode=0;iNode<numChemPot-1;iNode++)printf("chemPot %lg\n",chemPot[iNode]);
+          // double check the last chemical potential is correct...
+          //chemPot[numChemPot-2] = chemPotInit;
+          // Just give it some random values. This value will not be used
+          chemPot[numChemPot-1] = 100000.0;
+          for(iNode=0;iNode<numChemPot;iNode++)chemPotBackUp[iNode] = chemPot[iNode];
         }
-        // double check the last chemical potential is correct...
-        chemPot[numChemPot-2] = chemPotTrue;
-        // Just give it some random values. This value will not be used
-        chemPot[numChemPot-1] = 100000.0;
-      }
-    }    
-  }else{
+        else{
+          for(iNode=0;iNode<numChemPot;iNode++)chemPot[iNode] = chemPotBackUp[iNode];
+        }
+      }//endif fragWindowFlag
+    }//endif energyWindowOn    
+  }//endif filterDiagFlag
+  else{
     for(iNode=0;iNode<numChemPot;iNode++){
       chemPot[iNode] = energyMin+(iNode+1)*dE;
     }
@@ -773,6 +788,10 @@ void calcChemPotMetal(CP *cp)
   }
   for(iState=0;iState<numStateUpProcTotal;iState++){
     numOccDetProc[iState] = sqrt(numOccDetProc[iState])*pre;
+  }
+
+  if(myidState==0){
+    free(numOccDetAll);
   }
 
 /*--------------------------------------------------------------------------*/

@@ -4,7 +4,7 @@
 #define SIMP_NINT
 #define FFTW3
 #define MKL_LAPACK
-#define FAST_FILTER
+//#define FAST_FILTER
 
 #include <string.h>
 #include <ctype.h>
@@ -13,9 +13,11 @@
 #include <math.h>
 #include <time.h>
 #include <complex.h>
-#include <fftw3.h>
-#include <mkl.h>
 #include <omp.h>
+#ifdef FFTW3
+#include "fftw3.h"
+#endif
+#include <mkl.h>
 #ifdef PARALLEL
 #include <mpi.h>
 #else

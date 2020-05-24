@@ -165,6 +165,7 @@ void calcChemPotCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   if(myidState==0){
     printf("Start Calculating Chemical Potential\n");
     for(iPoly=0;iPoly<=polynormLength;iPoly++){
+      //printf("chebyMomentsUp %i %lg\n",iPoly,chebyMomentsUp[iPoly]);
       chebyMomentsUp[iPoly] /= (double)numStateStoUp;
       //printf("chebyMomentsUp %i %lg\n",iPoly,chebyMomentsUp[iPoly]);
     }
@@ -286,10 +287,287 @@ void calcChemPotCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   if(cpLsda==1&&numStateDnProc!=0)free(stodftCoefPos->chebyMomentsDn);
   if(numProcStates>1&&myidState==0)free(chebyMomentsTemp);
   //exit(0);
+
+  if(myidState==0){
+    fftw_destroy_plan(stodftInfo->fftwPlanForward);
+    fftw_free(chebyCoeffsFFT);
+    fftw_free(funValGridFFT);
+  }
   
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void calcChemPotChebyEWFrag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
+                            int ip_now)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* This routine first generate all chebyshev momentum. Since we've       */
+/* applied projectors to stochastic orbitals, we should already have all */
+/* Chebyshev moments. Therefore we only need to determine the chemical   */
+/* potential in this function.                                           */
+/* We need to calculate \sum_i <X|\sqrt{P_i}F\sqrt{P_i}|X>. Since P_i and*/
+/* F are functions of h_KS, <X|\sqrt{P_i}F\sqrt{P_i}|X>=<X|P_i F|X> and  */
+/* \sum_i <X|\sqrt{P_i}F\sqrt{P_i}|X> = \sum_i<X|P_i F|X> = <X|F|X>.     */
+/* Remember that the last P_i is the window for all unoccupied states.   */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+#include "../typ_defs/typ_mask.h"
+
+  STODFTINFO *stodftInfo        = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  CPOPTS *cpopts                = &(cp->cpopts);
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  CPCOEFFS_POS *cpcoeffs_pos    = &(cp->cpcoeffs_pos[ip_now]);
+  CLATOMS_POS*  clatoms_pos     = &(class->clatoms_pos[ip_now]);
+  COMMUNICATE *communicate      = &(cp->communicate);
+
+  CHEBYSHEVINFO *chebyshevInfo = stodftInfo->chebyshevInfo;
+
+  int iPoly,iState,iChem;
+  int iScf = stodftInfo->iScf;
+  int polynormLength = stodftInfo->polynormLength;
+  int numChebyMoments = (polynormLength%2==0)?(polynormLength/2+1):((polynormLength+1)/2);
+  int numFFTGridMutpl = 32;
+  int numChebyGrid = polynormLength*numFFTGridMutpl;
+  int numStateUpProc = cpcoeffs_info->nstate_up_proc;
+  int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
+  int numCoeff       = cpcoeffs_info->ncoef;
+  int cpLsda         = cpopts->cp_lsda;
+  int numCoeffUpTotal = numStateUpProc*numCoeff;
+  int numCoeffDnTotal = numStateDnProc*numCoeff;
+  int numProcStates   = communicate->np_states;
+  int myidState	      = communicate->myid_state;
+  int numStateStoUp = stodftInfo->numStateStoUp;
+  int numStateStoDn = stodftInfo->numStateStoDn;
+  int printChebyMoment = stodftInfo->printChebyMoment;
+  MPI_Comm comm_states   =    communicate->comm_states;
+
+  double chemPotDiff = 1000.0;
+  double numElecTrue = stodftInfo->numElecTrue;
+  double numElecTol = 1.0e-11*numElecTrue;
+  double chemPotMin,chemPotMax;
+  double chemPotInit = stodftInfo->chemPotInit;
+  double gapInit = stodftInfo->gapInit;
+  double chemPotNew,chemPotOld;
+  double numElecMin,numElecMax;
+  double numElecNew,numElecOld;
+  double Smin = chebyshevInfo->Smin;
+  double Smax = chebyshevInfo->Smax;
+  double energyDiff = stodftInfo->energyDiff;
+  
+  double *chebyCoeffs = (double*)cmalloc(polynormLength*sizeof(double));
+  double *chebyMomentsTemp;
+  double *chemPot = stodftCoefPos->chemPot;
+  double *chebyMomentsUp = stodftCoefPos->chebyMomentsUp;
+  double *chebyMomentsDn = stodftCoefPos->chebyMomentsDn;
+
+  fftw_complex *chebyCoeffsFFT,*funValGridFFT;
+ 
+/*==========================================================================*/
+/* I) Allocate memories */
+   
+  if(myidState==0){
+    stodftInfo->numChebyGrid = numChebyGrid;
+    stodftCoefPos->chebyCoeffsFFT = fftw_malloc(numChebyGrid*sizeof(fftw_complex));
+    stodftCoefPos->funValGridFFT = fftw_malloc(numChebyGrid*sizeof(fftw_complex));
+    chebyCoeffsFFT = stodftCoefPos->chebyCoeffsFFT;
+    funValGridFFT = stodftCoefPos->funValGridFFT;
+    stodftInfo->fftwPlanForward = fftw_plan_dft_1d(numChebyGrid,funValGridFFT,chebyCoeffsFFT,
+                                    FFTW_FORWARD,FFTW_MEASURE);
+  }
+
+  //debug
+  /*
+  stodftInfo->numElecStoWf = (double*)cmalloc((polynormLength+1)*numStateUpProc*sizeof(double));
+  double *numElecStoWf = stodftInfo->numElecStoWf;
+  for(iPoly=0;iPoly<=polynormLength;iPoly++){
+    for(iState=0;iState<numStateUpProc;iState++){
+      numElecStoWf[iPoly*numStateUpProc+iState] = 0.0;
+    }
+  }
+  */
+
+/*==========================================================================*/
+/* II) Calculate Chebyshev Moments */
+
+  if(myidState==0)printf("Start Calculating Chebyshev Moments\n");
+  if(numProcStates>1){
+    if(myidState==0){
+      chebyMomentsTemp = (double*)cmalloc(polynormLength*sizeof(double));
+      for(iPoly=0;iPoly<polynormLength;iPoly++)chebyMomentsTemp[iPoly] = 0.0;
+    }
+    Reduce(chebyMomentsUp,chebyMomentsTemp,polynormLength,
+	    MPI_DOUBLE,MPI_SUM,0,comm_states);
+    if(myidState==0){
+      memcpy(chebyMomentsUp,chebyMomentsTemp,polynormLength*sizeof(double));
+    }
+    if(cpLsda==1&&numStateDnProc!=0){
+      if(myidState==0){
+	for(iPoly=0;iPoly<polynormLength;iPoly++)chebyMomentsTemp[iPoly] = 0.0;
+      }
+      Reduce(chebyMomentsDn,chebyMomentsTemp,polynormLength,
+             MPI_DOUBLE,MPI_SUM,0,comm_states);
+      if(myidState==0){
+	memcpy(chebyMomentsDn,chebyMomentsTemp,polynormLength*sizeof(double));
+      }//endif
+    }//endif
+  }//endif
+  if(myidState==0)printf("Finish Calculating Chebyshev Moments\n");
+  Barrier(comm_states);
+
+
+/*==========================================================================*/
+/* II) Solve N(mu)=Ne */
+
+  if(myidState==0){
+    printf("Start Calculating Chemical Potential\n");
+    for(iPoly=0;iPoly<=polynormLength;iPoly++){
+      //printf("chebyMomentsUp %i %lg\n",iPoly,chebyMomentsUp[iPoly]);
+      chebyMomentsUp[iPoly] /= (double)numStateStoUp;
+      //printf("chebyMomentsUp %i %lg\n",iPoly,chebyMomentsUp[iPoly]);
+    }
+    //printf("chebyMomentsUp %lg %lg %lg\n",chebyMomentsUp[0],chebyMomentsUp[1],chebyMomentsUp[2]);
+    if(cpLsda==1&&numStateDnProc!=0){
+      for(iPoly=0;iPoly<=polynormLength;iPoly++){
+	chebyMomentsDn[iPoly] /= (double)numStateStoDn;
+      }      
+    }
+    
+    if(stodftInfo->printChebyMoment==1){
+      FILE *filecheby = fopen("cheby-moment-output","w");
+      for(iPoly=0;iPoly<=polynormLength;iPoly++){
+        fprintf(filecheby,"%.16lg\n",chebyMomentsUp[iPoly]);
+      }
+      fclose(filecheby);
+    }
+    //exit(0);
+    
+    /*
+    FILE *filecheby = fopen("cheby-moment","r");
+    for(iPoly=0;iPoly<=polynormLength;iPoly++){
+      fscanf(filecheby,"%lg",&chebyMomentsUp[iPoly]);
+    }
+    fclose(filecheby);
+    */
+    
+    //debug
+    /*
+    double numChemTest = 1000;
+    double deltChemPot = gapInit/numChemTest;
+    int iChem;
+    for(iChem=0;iChem<numChemTest;iChem++){
+      chemPotNew = chemPotMin+(iChem+0.5)*deltChemPot;
+      numElecNew = calcNumElecCheby(cp,chemPotNew,chebyCoeffs);
+      printf("Scaleeee %.16lg %.16lg\n",chemPotNew,numElecNew);
+    }
+    //exit(0);
+    */
+    
+    //printf("2222 %.16lg\n",calcNumElecCheby(cp,0.4990160113690848,chebyCoeffs));
+    chemPotMin = chemPotInit-gapInit*0.5;
+    chemPotMax = chemPotInit+gapInit*0.5;
+    numElecMin = calcNumElecCheby(cp,chemPotMin,chebyCoeffs);
+    numElecMax = calcNumElecCheby(cp,chemPotMax,chebyCoeffs);
+    printf("numEmin %.16lg numEmax %.16lg\n",numElecMin,numElecMax);
+    while(numElecMax<numElecTrue){
+      printf("numEmin %lg numEmax %lg chemPotMin %lg chemPotMax %lg\n",
+              numElecMin,numElecMax,chemPotMin,chemPotMax);
+      chemPotMin = chemPotMax;
+      chemPotMax += gapInit;
+      numElecMin = calcNumElecCheby(cp,chemPotMin,chebyCoeffs);
+      numElecMax = calcNumElecCheby(cp,chemPotMax,chebyCoeffs);
+    }
+    while(numElecMin>numElecTrue){
+      printf("numEmin %lg numEmax %lg chemPotMin %lg chemPotMax %lg\n",
+              numElecMin,numElecMax,chemPotMin,chemPotMax);
+      chemPotMax = chemPotMin;
+      chemPotMin -= gapInit;
+      numElecMin = calcNumElecCheby(cp,chemPotMin,chebyCoeffs);
+      numElecMax = calcNumElecCheby(cp,chemPotMax,chebyCoeffs);
+    }
+    printf("numEmin %lg numEmax %lg chemPotMin %lg chemPotMax %lg\n",
+            numElecMin,numElecMax,chemPotMin,chemPotMax);
+    chemPotNew = (numElecTrue-numElecMin)*(chemPotMax-chemPotMin)/(numElecMax-numElecMin)+
+		  chemPotMin;  
+    numElecNew = calcNumElecCheby(cp,chemPotNew,chebyCoeffs); 
+    while(fabs(numElecNew-numElecTrue)>numElecTol){
+      if(numElecNew>numElecTrue){
+	chemPotMax = chemPotNew;
+	numElecMax = numElecNew;
+      }
+      if(numElecNew<numElecTrue){
+	chemPotMin = chemPotNew;
+	numElecMin = numElecNew;
+      }
+      /*
+      chemPotNew = (numElecTrue-numElecMin)*(chemPotMax-chemPotMin)/(numElecMax-numElecMin)+
+		    chemPotMin;
+      */
+      chemPotNew = 0.5*(chemPotMin+chemPotMax);
+      numElecNew = calcNumElecCheby(cp,chemPotNew,chebyCoeffs);
+      //printf("chemPotNew %lg numElecNew %lg\n",chemPotNew,numElecNew);
+    }//endwhile
+    printf("Finish Calculating Chemical Potential\n");
+    printf("The correct chemical potential is %.16lg Ne %.16lg DNe %.16lg\n",chemPotNew,numElecNew,
+	    fabs(numElecNew-numElecTrue));
+    //chemPotMin = chemPotInit-gapInit*0.5;
+    //chemPotMax = chemPotInit+gapInit*0.5;
+    //test DOS
+    /*
+    double chemPot1 = chemPotNew-0.0734;
+    double chemPot2 = chemPotNew+0.0734;
+    int numChemPotTest = 100;
+    double dmu = (chemPot2-chemPot1)/numChemPotTest;
+    double *numElecMu = (double*)cmalloc(numChemPotTest*sizeof(double));
+    double x,dos;
+    double dmuInv = 0.5/dmu;
+    for(iChem=0;iChem<numChemPotTest;iChem++){
+      x = chemPot1+iChem*dmu;
+      numElecMu[iChem] = calcNumElecCheby(cp,x,chebyCoeffs);
+      printf("%i Nemuuuu %.10lg %.10lg\n",iScf,x,numElecMu[iChem]);
+    }
+    for(iChem=1;iChem<numChemPotTest-1;iChem++){
+      x = chemPot1+iChem*dmu;
+      dos = (numElecMu[iChem+1]-numElecMu[iChem-1])*dmuInv;
+      printf("%i dossssss %.10lg %.10lg\n",iScf,x,dos);
+    }
+    free(&numElecMu[0]);
+    */
+  }
+  if(numProcStates>1){
+    Barrier(comm_states);
+    Bcast(&chemPotNew,1,MPI_DOUBLE,0,comm_states);
+  }
+  
+  stodftInfo->chemPotTrue = chemPotNew; // another backup
+
+  free(chebyCoeffs);
+  free(stodftCoefPos->chebyMomentsUp);
+  stodftCoefPos->chebyMomentsUp = NULL;
+  if(cpLsda==1&&numStateDnProc!=0){
+    free(stodftCoefPos->chebyMomentsDn);
+    stodftCoefPos->chebyMomentsDn = NULL;
+  }
+  if(numProcStates>1&&myidState==0)free(chebyMomentsTemp);
+  //exit(0);
+
+  if(myidState==0){
+    fftw_destroy_plan(stodftInfo->fftwPlanForward);
+    fftw_free(chebyCoeffsFFT);
+    fftw_free(funValGridFFT);
+  }
+  
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
@@ -458,7 +736,7 @@ void calcChebyMoments(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*==========================================================================*/
 /* 2) Calculate the 1st Order */
   
-  normHCheby(cp,class,general_data,cpcoeffs_pos,clatoms_pos,1);
+  normHCheby(cp,class,general_data,cpcoeffs_pos,clatoms_pos,1,0);
   chebyMomentsUp[1] = 0.0;
   for(iState=0;iState<numStateUpProc;iState++){
     //iOff1 = iState*polynormLength;
@@ -503,7 +781,7 @@ void calcChebyMoments(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     chebyMomentsUp[iPoly] = 0.0;
     chebyMomentsUp[iPoly*2] = 0.0;
     chebyMomentsUp[iPoly*2-1] = 0.0;
-    normHCheby(cp,class,general_data,cpcoeffs_pos,clatoms_pos,iPoly);
+    normHCheby(cp,class,general_data,cpcoeffs_pos,clatoms_pos,iPoly,0);
     for(iState=0;iState<numStateUpProc;iState++){
       //iOff1 = iState*polynormLength;
       iOff2 = iState*numCoeff;
@@ -639,7 +917,7 @@ double calcNumElecCheby(CP *cp,double chemPot,double *chebyCoeffs)
   double *chebyMomentsDn = stodftCoefPos->chebyMomentsDn;
   double numElec = 0.0;
   
-  calcChebyCoeff(stodftInfo,stodftCoefPos,chemPot,chebyCoeffs);
+  calcChebyCoeff(stodftInfo,stodftCoefPos,&chemPot,chebyCoeffs,1,0.0);
   // debug
   /*
   double numElecTest;
@@ -693,13 +971,18 @@ void calcChebyMomentsFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   CHEBYSHEVINFO *chebyshevInfo = stodftInfo->chebyshevInfo;
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
 
+  COMMUNICATE *communicate      = &(cp->communicate);
+
 
   int iSto,iState,iCoeff,iPoly;
   int index1,index2,index3;
   int polynormLength = stodftInfo->polynormLength;
   int numStateUpProc = cpcoeffs_info->nstate_up_proc;
   int numCoeff       = cpcoeffs_info->ncoef;
+  int numCoeffUpTot  = numStateUpProc*numCoeff;
   int numStatePrintUp = stodftInfo->numStatePrintUp;
+  int myidState       = communicate->myid_state;
+  int numProcStates = communicate->np_states;
 
   double Smin           = chebyshevInfo->Smin;
   double Smax           = chebyshevInfo->Smax;
@@ -727,6 +1010,16 @@ void calcChebyMomentsFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   stoDetDot = (double*)cmalloc(numStatePrintUp*sizeof(double));
 
   genNoiseOrbitalReal(cp,cpcoeffs_pos);
+  /*
+  char fileName[100];
+  sprintf(fileName,"noise-%i",myidState);
+  FILE *fnoise = fopen(fileName,"r");
+  for(iCoeff=1;iCoeff<=numCoeffUpTot;iCoeff++){
+    fscanf(fnoise,"%lg",&coeffReUp[iCoeff]);
+    fscanf(fnoise,"%lg",&coeffImUp[iCoeff]);
+  }
+  fclose(fnoise);
+  */
 
   for(iState=0;iState<numStatePrintUp;iState++){
     index2 = iState*numCoeff;

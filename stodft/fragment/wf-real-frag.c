@@ -1382,7 +1382,7 @@ void noiseFilterGen(GENERAL_DATA *general_data,CP *cp,CLASS *class,
   }
   //printf("vnlPhiAtomGridRe[1] %lg\n",pseudoReal->vnlPhiAtomGridRe[1]);  
 
-  genStoOrbitalEnergyWindow(class,general_data,cp,ip_now);
+  //genStoOrbitalEnergyWindow(class,general_data,cp,ip_now);
 
   /*
   for(iChem=0;iChem<numChemPot;iChem++){

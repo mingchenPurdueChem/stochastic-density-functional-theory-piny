@@ -156,6 +156,7 @@ void calcKECorUCEnergyWindow(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *cla
   int numStateStoUp = stodftInfo->numStateStoUp;
   int numStateStoDn = stodftInfo->numStateStoDn;
   int occNumber = stodftInfo->occNumber;
+  int isFirstStepFlag = stodftInfo->isFirstStepFlag;
   double *keMatrixUp,*keMatrixDn;
   double *wfProjUp,*wfProjDn;
   double *temp;
@@ -165,7 +166,10 @@ void calcKECorUCEnergyWindow(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *cla
 /*======================================================================*/
 /* I) Calculate the matrix                                              */
 
-  calcKEMatrixUC(generalDataMini,cpMini,classMini,cp,&ke);
+  printf("isFirstStepFlag %i\n",isFirstStepFlag);
+  if(isFirstStepFlag==1){
+    calcKEMatrixUC(generalDataMini,cpMini,classMini,cp,&ke);
+  }
 
 /*======================================================================*/
 /* I) Allocate Local Memory                                             */
@@ -218,7 +222,14 @@ void calcKECorUCEnergyWindow(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *cla
     free(temp);
   }
   //printf("ke %lg keCor %lg\n",ke,keCor);
-  *keCorProc += ke-occNumber*keCor;
+  if(isFirstStepFlag==1){
+    *keCorProc += ke-occNumber*keCor;
+    fragInfo->keStore[iFrag] = ke;
+  }
+  else{
+    ke = fragInfo->keStore[iFrag];
+    *keCorProc += ke-occNumber*keCor;
+  }
 
 /*==========================================================================*/
 }/*end Routine*/
@@ -287,6 +298,8 @@ void calcKEMatrixUC(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,
 /*======================================================================*/
 /* I) Allocate Local Memory                                             */
 
+  // We stop freeing rhoUpFragProc and coefUpFragProc in proj-wf.c
+  // Therefore we need to remove the allocation of these two arrays.
   fragInfo->rhoUpFragProc[iFrag] = (double*)cmalloc(numGrid*sizeof(double));
   fragInfo->coefUpFragProc[iFrag] = (double*)cmalloc(numStateUp*numGrid*sizeof(double));
   coefUpFragProc = fragInfo->coefUpFragProc[iFrag];
@@ -567,6 +580,9 @@ void calcKEMatrixUC(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,
   //free(coefForceIm);
   free(fragInfo->rhoUpFragProc[iFrag]);
   free(fragInfo->coefUpFragProc[iFrag]);
+  free(coefTemp);
+  free(wfTemp);
+  free(coefUpTemp);
 
 /*==========================================================================*/
 }/*end Routine*/

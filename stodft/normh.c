@@ -180,7 +180,8 @@ void normHNewtonHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 void normHCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
-                 CPCOEFFS_POS *cpcoeffs_pos,CLATOMS_POS *clatoms_pos,int iPoly)
+                 CPCOEFFS_POS *cpcoeffs_pos,CLATOMS_POS *clatoms_pos,int iPoly,
+                 int cpyFlag)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
@@ -216,6 +217,7 @@ void normHCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int numCoeffDnTotal = numStateDnProc*numCoeff;
   int cpDualGridOptOn  = cpopts->cp_dual_grid_opt;
   int numCoeffM1     = numCoeff-1;
+  int numThreads      = communicate->numThreads;
   int incx = 1;
   int incy = 1;
   int iState,iCoeff,iCoeffStart,index1,index2;
@@ -255,8 +257,10 @@ void normHCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   timeStart = omp_get_wtime();
 
   if(iPoly==1){//iPoly=1
+    //printf("1111111 scale1 %.16lg scale2 %.16lg prefact %.16lg\n",scale1,scale2,prefact);
     for(iState=0;iState<numStateUpProc;iState++){
       iCoeffStart = iState*numCoeff;
+      #pragma omp parallel for private(iCoeff,index1)
       for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
 	index1 = iCoeffStart+iCoeff;
 	fcre_up[index1] = scale1*fcre_up[index1]+prefact*cre_up[index1];
@@ -268,6 +272,7 @@ void normHCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     if(cpLsda==1&&numStateDnProc!=0){
       for(iState=0;iState<numStateDnProc;iState++){
 	iCoeffStart = iState*numCoeff;
+        #pragma omp parallel for private(iCoeff,index1)
 	for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
 	  index1 = iCoeffStart+iCoeff;
 	  fcre_dn[index1] = scale1*fcre_dn[index1]+prefact*cre_dn[index1];
@@ -277,6 +282,16 @@ void normHCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 	fcim_dn[index1] = scale2*fcre_dn[index1]+prefact*cre_dn[index1];
       }//endfor iState
     }
+
+    // Copy and store the updated array
+    if(cpyFlag==1){
+      memcpy(&cre_up[1],&fcre_up[1],numCoeffUpTotal*sizeof(double));
+      memcpy(&cim_up[1],&fcim_up[1],numCoeffUpTotal*sizeof(double));
+      if(cpLsda==1&&numStateDnProc!=0){
+        memcpy(&cre_dn[1],&fcre_dn[1],numCoeffDnTotal*sizeof(double));
+        memcpy(&cim_dn[1],&fcim_dn[1],numCoeffDnTotal*sizeof(double));
+      }//endif cpLsda
+    }//endif cpyFlag
   }
   else{//iPoly>1
     scale1 *= 2.0;
@@ -284,6 +299,7 @@ void normHCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     prefact *= 2.0;
     for(iState=0;iState<numStateUpProc;iState++){
       iCoeffStart = iState*numCoeff;
+      #pragma omp parallel for private(iCoeff,index1) 
       for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
         index1 = iCoeffStart+iCoeff;
         fcre_up[index1] = scale1*fcre_up[index1]+prefact*cre_up[index1]-wfUpRe1[index1];
@@ -291,10 +307,11 @@ void normHCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       }//endfor iCoeff
       index1 = iCoeffStart+numCoeff;
       fcre_up[index1] = scale2*fcre_up[index1]+prefact*cre_up[index1]-wfUpRe1[index1];
-    }//endfor iState
+    }//endfor iState    
     if(cpLsda==1&&numStateDnProc!=0){
       for(iState=0;iState<numStateDnProc;iState++){
         iCoeffStart = iState*numCoeff;
+        #pragma omp parallel for private(iCoeff,index1)
         for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
           index1 = iCoeffStart+iCoeff;
           fcre_dn[index1] = scale1*fcre_dn[index1]+prefact*cre_dn[index1]-wfDnRe1[index1];
@@ -303,6 +320,20 @@ void normHCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
         index1 = iCoeffStart+numCoeff;
         fcim_dn[index1] = scale2*fcre_dn[index1]+prefact*cre_dn[index1]-wfDnRe1[index1];
       }//endfor iState
+    }
+
+    // Copy and store the updated array
+    if(cpyFlag==1){
+      memcpy(&wfUpRe1[1],&cre_up[1],numCoeffUpTotal*sizeof(double));
+      memcpy(&wfUpIm1[1],&cim_up[1],numCoeffUpTotal*sizeof(double));
+      memcpy(&cre_up[1],&fcre_up[1],numCoeffUpTotal*sizeof(double));
+      memcpy(&cim_up[1],&fcim_up[1],numCoeffUpTotal*sizeof(double));
+      if(cpLsda==1&&numStateDnProc!=0){
+        memcpy(&wfDnRe1[1],&cre_dn[1],numCoeffDnTotal*sizeof(double));
+        memcpy(&wfDnIm1[1],&cim_dn[1],numCoeffDnTotal*sizeof(double));
+        memcpy(&cre_dn[1],&fcre_dn[1],numCoeffDnTotal*sizeof(double));
+        memcpy(&cim_dn[1],&fcim_dn[1],numCoeffDnTotal*sizeof(double));
+      }
     }
   }
    

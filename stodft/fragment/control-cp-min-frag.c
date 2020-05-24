@@ -280,14 +280,14 @@ void controlCpMinFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     //general_data->simopts.cp = cpBack;
 
     int natom = class->clatoms_info.natm_tot;
-
+    /*
     for(i=1;i<=natom;i++){
       printf("fx %.8lg fy %.8lg fz %.8lg\n",
               class->clatoms_pos[1].fx[i],
               class->clatoms_pos[1].fy[i],
               class->clatoms_pos[1].fz[i]);
     }
-
+    */
 
     simpavg_cp(&(general_data->timeinfo),&(general_data->stat_avg),
                &(general_data->cell),&(bonded->constrnt),

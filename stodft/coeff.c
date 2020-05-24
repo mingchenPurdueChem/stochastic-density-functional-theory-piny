@@ -809,38 +809,386 @@ double calcFitErrorNewton(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void calcChebyCoeff(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
-		    double chemPot,double *chebyCoeffs)
+void genChebyHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,int filterFlag)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
+/*************************************************************************/
+/* This routine is the Chebyshev polynormial version of genNewtonHermit. */
+/* The flag filterFlag determine the filter type. It could be Fermi      */
+/* function or */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+
+  CHEBYSHEVINFO *chebyshevInfo = stodftInfo->chebyshevInfo;
+
+  double fitErrTol = stodftInfo->fitErrTol;
+  double fitErr;
+  double beta = stodftInfo->beta;
+  double energyDiff = stodftInfo->energyDiff;
+  double *sampPoint;
+  double *expanCoeff,*expanCoeffLocal;
+  double *sampPointUnscale;
+  double *chemPot = stodftCoefPos->chemPot;
+
+  int iChem,iPoly;
+  int polynormLength = (int)(2.0*beta*energyDiff); //initial chain length, try drop the mutiplier 4.0 2.0->1.0
+  int numChemPot     = stodftInfo->numChemPot;
+  int smearOpt       = stodftInfo->smearOpt;
+  int totalPoly      = polynormLength*numChemPot;  //iniital total polynormial
+
+/*==========================================================================*/
+/* I) Generate coeffcients for initial chain length  */
+  
+  printf("==============================================\n");
+  printf("Start Calculating Polynormial Chain Length:\n");
+  printf("totalPoly %i polynormLength %i numChemPot %i\n",totalPoly,polynormLength,numChemPot);
+  printf("beta %lg energyDiff %lg\n",beta,energyDiff);
+
+  stodftInfo->polynormLength = polynormLength;
+  stodftCoefPos->expanCoeff = (double *)crealloc(stodftCoefPos->expanCoeff,
+                                                totalPoly*sizeof(double));
+
+  printf("ssssssssssssssssssssss\n");
+  calcChebyCoeffWrapper(stodftInfo,stodftCoefPos,filterFlag);
+  
+  fitErr = calcFitErrorCheby(stodftInfo,stodftCoefPos,filterFlag);
+
+  printf("-----------------------------------------------\n");
+  printf("Polynormial Length %i\n",polynormLength);
+  printf("Fitting Error %lg Tolerance %lg\n",fitErr,fitErrTol);
+  fflush(stdout);
+
+  while(fitErr>fitErrTol){
+    polynormLength += 1000;
+    stodftInfo->polynormLength = polynormLength;
+    totalPoly = polynormLength*numChemPot;
+    stodftCoefPos->expanCoeff = (double *)crealloc(stodftCoefPos->expanCoeff,
+                                                totalPoly*sizeof(double));
+    calcChebyCoeffWrapper(stodftInfo,stodftCoefPos,filterFlag);
+    fitErr = calcFitErrorCheby(stodftInfo,stodftCoefPos,filterFlag);
+    printf("-----------------------------------------------\n");
+    printf("Polynormial Length %i\n",polynormLength);
+    printf("Fitting Error %lg Tolerance %lg\n",fitErr,fitErrTol);
+    fflush(stdout);
+  }
+
+  expanCoeffLocal = (double*)cmalloc(totalPoly*sizeof(double));
+  expanCoeff = (double*)stodftCoefPos->expanCoeff;
+  memcpy(expanCoeffLocal,expanCoeff,totalPoly*sizeof(double));
+  for(iChem=0;iChem<numChemPot;iChem++){
+    for(iPoly=0;iPoly<polynormLength;iPoly++){
+      expanCoeff[iPoly*numChemPot+iChem] = 
+                      expanCoeffLocal[iChem*polynormLength+iPoly];
+    }
+  }
+  free(expanCoeffLocal);
+
+  printf("Finish Calculating Polynormial Chain Length.\n");
+  printf("The final Polynormial Chain Length is %i.\n",polynormLength);
+  printf("==============================================\n");
+  fflush(stdout);
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void genChebyHermitTrueChemPot(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
+                               int filterFlag)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* This routine is the Chebyshev polynormial version of genNewtonHermit  */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+
+  CHEBYSHEVINFO *chebyshevInfo = stodftInfo->chebyshevInfo;
+
+  double fitErrTol = stodftInfo->fitErrTol;
+  double fitErr;
+  double *expanCoeff,*expanCoeffLocal;
+  double *chemPot = stodftCoefPos->chemPot;
+
+  int iChem,iPoly;
+  int polynormLength = stodftInfo->polynormLength; 
+  int numChemPot     = stodftInfo->numChemPot;
+  int smearOpt       = stodftInfo->smearOpt;
+  int totalPoly      = polynormLength*numChemPot;  //iniital total polynormial
+
+/*==========================================================================*/
+/* I) Generate coeffcients for initial chain length  */
+
+  printf("==============================================\n");
+  printf("Start Calculating Polynormial Coeffcients w.r.t true Chem Pot:\n");
+
+  stodftCoefPos->expanCoeff = (double *)crealloc(stodftCoefPos->expanCoeff,
+                                                totalPoly*sizeof(double));
+  expanCoeffLocal = (double *)cmalloc(totalPoly*sizeof(double));
+
+  calcChebyCoeffWrapper(stodftInfo,stodftCoefPos,filterFlag);
+  
+  fitErr = calcFitErrorCheby(stodftInfo,stodftCoefPos,filterFlag);
+
+  // Transpose
+  expanCoeff = (double*)stodftCoefPos->expanCoeff;
+  memcpy(expanCoeffLocal,expanCoeff,totalPoly*sizeof(double));
+  for(iChem=0;iChem<numChemPot;iChem++){
+    for(iPoly=0;iPoly<polynormLength;iPoly++){
+      expanCoeff[iPoly*numChemPot+iChem] = 
+                                 expanCoeffLocal[iChem*polynormLength+iPoly];
+      //printf("iPoly %i iChem %i coeff %lg\n",iPoly,iChem,expanCoeff[iPoly*numChemPot+iChem]);
+    }
+  }
+
+  if(smearOpt>0){
+    stodftCoefPos->entropyExpanCoeff = (double*)cmalloc(polynormLength*sizeof(double));
+    calcChebyCoeff(stodftInfo,stodftCoefPos,&chemPot[0],
+                   &(stodftCoefPos->entropyExpanCoeff[0]),13,stodftInfo->chemPotTrue);
+    //memcpy(expanCoeffLocal,stodftCoefPos->entropyExpanCoeff,totalPoly*sizeof(double));    
+  }
+
+
+  free(expanCoeffLocal);
+  printf("-----------------------------------------------\n");
+  printf("Fitting Error %lg Tolerance %lg\n",fitErr,fitErrTol);
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void calcChebyCoeffWrapper(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
+                           int filterFlag)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* Wrapper routine for calculating Cheby coeff with different filterFlag.*/
+/* filterFlag = 0: Fermi functions for all chemical potentials           */
+/* filterFlag = 1: Energy window without fragmentation, no window for    */
+/*                 unoccupied orbitals.                                  */
+/* filterFlag = 2: Energy window with fragmentation, the first time      */
+/*                 filtering without multiplying F                       */
+/* filterFlag = 3: Energy window with fragmentation, the second time     */
+/*                 filtering with multiplying F                          */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+  int polynormLength     = stodftInfo->polynormLength;
+  int numChemPot         = stodftInfo->numChemPot;
+  int energyWindowOn     = stodftInfo->energyWindowOn;
+  int iPoly,jPoly,iChem;
+  int fragWindowFlag     = stodftInfo->fragWindowFlag;
+  int numChemPotTemp;
+  int numFFTGridMutpl = 32;
+  int numChebyGrid = polynormLength*numFFTGridMutpl;
+
+  double *expanCoeff       = (double*)stodftCoefPos->expanCoeff;
+  double *chemPot          = stodftCoefPos->chemPot;
+  
+  double chemPotTrue       = stodftInfo->chemPotTrue;
+  double funValue,sum,prod;
+
+  fftw_complex *chebyCoeffsFFT,*funValGridFFT;
+
+  printf("ttttttttttttttttttttttttt\n");
+
+
+  stodftInfo->numChebyGrid = numChebyGrid;
+  printf("ttt111\n");
+  stodftCoefPos->chebyCoeffsFFT = fftw_malloc(numChebyGrid*sizeof(fftw_complex));
+  printf("ttt222\n");
+  stodftCoefPos->funValGridFFT = fftw_malloc(numChebyGrid*sizeof(fftw_complex));
+  printf("ttt333\n");
+  chebyCoeffsFFT = stodftCoefPos->chebyCoeffsFFT;
+  printf("ttt444\n");
+  funValGridFFT = stodftCoefPos->funValGridFFT;
+  printf("ttt555\n");
+  stodftInfo->fftwPlanForward = fftw_plan_dft_1d(numChebyGrid,funValGridFFT,chebyCoeffsFFT,
+                                  FFTW_FORWARD,FFTW_MEASURE);
+  printf("ttt666\n");
+
+  for(iPoly=0;iPoly<polynormLength*numChemPot;iPoly++)expanCoeff[iPoly] = 0.0;
+
+  //for(iChem=0;iChem<numChemPot;iChem++)printf("11111111 chemPot %lg\n",chemPot[iChem]);
+  printf("aaaaaaaaaaaaaaaaaaa\n");
+
+  switch(filterFlag){
+    case 0:
+      for(iChem=0;iChem<numChemPot;iChem++){
+        calcChebyCoeff(stodftInfo,stodftCoefPos,&chemPot[iChem],
+                       &expanCoeff[iChem*polynormLength],2,0.0);
+      }
+      break;
+    case 1:
+      calcChebyCoeff(stodftInfo,stodftCoefPos,&chemPot[0],&expanCoeff[0],2,0.0);
+      for(iChem=1;iChem<numChemPot;iChem++){
+        calcChebyCoeff(stodftInfo,stodftCoefPos,&chemPot[iChem-1],
+                                   &expanCoeff[iChem*polynormLength],10,0.0);
+      }
+      break;
+    case 2: // 1st time filter
+      calcChebyCoeff(stodftInfo,stodftCoefPos,&chemPot[0],&expanCoeff[0],2,0.0);
+      for(iChem=1;iChem<numChemPot-1;iChem++){
+        calcChebyCoeff(stodftInfo,stodftCoefPos,&chemPot[iChem-1],
+                                   &expanCoeff[iChem*polynormLength],10,0.0);
+      }
+      calcChebyCoeff(stodftInfo,stodftCoefPos,&chemPot[numChemPot-2],
+                     &expanCoeff[(numChemPot-1)*polynormLength],12,0.0);
+      break;
+    case 3: // 2nd time filter with true chemical potential
+      calcChebyCoeff(stodftInfo,stodftCoefPos,&chemPot[0],&expanCoeff[0],4,chemPotTrue);
+      for(iChem=1;iChem<numChemPot-1;iChem++){
+        calcChebyCoeff(stodftInfo,stodftCoefPos,&chemPot[iChem-1],
+                                   &expanCoeff[iChem*polynormLength],6,chemPotTrue);
+      }
+      calcChebyCoeff(stodftInfo,stodftCoefPos,&chemPot[numChemPot-2],
+                     &expanCoeff[(numChemPot-1)*polynormLength],8,chemPotTrue);
+      break;
+  }
+
+  /*
+  // Transpose 
+  for(iChem=0;iChem<numChemPot;iChem++){
+    for(iPoly=0;iPoly<polynormLength;iPoly++){
+      expanCoeff[iPoly*numChemPot+iChem] = coeffTemp[iChem*polynormLength+iPoly];
+    }
+  }
+  */
+  
+  fftw_destroy_plan(stodftInfo->fftwPlanForward);
+  fftw_free(stodftCoefPos->chebyCoeffsFFT);
+  fftw_free(stodftCoefPos->funValGridFFT);
+  
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void calcChebyCoeff(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
+		    double *chemPot,double *chebyCoeffs,int funFlag,
+                    double chemPotTest)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* T*/
+/*************************************************************************/
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
   CHEBYSHEVINFO *chebyshevInfo = stodftInfo->chebyshevInfo;
 
-  int iGrid,iCoeff;
-  int polynormLength = stodftInfo->polynormLength;
+  int iGrid,iCoeff,iChem;
+  int polynormLength  = stodftInfo->polynormLength;
   int numChebyMoments = stodftInfo->numChebyMoments;
-  int numChebyGrid = stodftInfo->numChebyGrid;
+  int numChebyGrid    = stodftInfo->numChebyGrid;
+  int energyWindowOn  = stodftInfo->energyWindowOn;
+  
   double energyDiff = stodftInfo->energyDiff*0.5;
   double energyMean = stodftInfo->energyMean;
   double beta = stodftInfo->beta;
   double x;
   double pre = 2.0*M_PI;
+  double temp;
+  long double y1,y2;
+  long double templd;
 
   fftw_plan fftwPlanForward = stodftInfo->fftwPlanForward;
   fftw_complex *chebyCoeffsFFT = stodftCoefPos->chebyCoeffsFFT;
   fftw_complex *funValGridFFT = stodftCoefPos->funValGridFFT;
 
-  FERMIFUNR fermiFunction = stodftInfo->fermiFunctionReal;
+  FERMIFUNR fermiFunction;
+  FERMIFUNLR fermiFunctionLongDouble;
+
+  fermiFunction = stodftInfo->fermiFunctionReal;
+  if(energyWindowOn==1)fermiFunctionLongDouble = stodftInfo->fermiFunctionLongDouble;
+
+  printf("bbbbbbbbbbbbbbbb\n");
 
   for(iGrid=0;iGrid<numChebyGrid;iGrid++){
     x = energyDiff*cos(pre*(double)iGrid/(double)numChebyGrid)+energyMean;
-    funValGridFFT[iGrid] = fermiFunction(x,chemPot,beta);
-    //printf("x %lg funVal %lg\n",x,funValGridFFT[iGrid]);
+    // P_N = I-\sum_i P_i
+    switch(funFlag){
+      case 1: // F
+        funValGridFFT[iGrid] = fermiFunction(x,chemPot[0],beta);
+        break;
+      case 2: // \sqrt{F}
+        funValGridFFT[iGrid] = sqrt(fermiFunction(x,chemPot[0],beta));
+        break;
+      case 3: // F*P_0
+        funValGridFFT[iGrid] = fermiFunction(x,chemPotTest,beta)*
+                               fermiFunction(x,chemPot[0],beta);
+        break;
+      case 4: // \sqrt{F*P_0}
+        temp = fermiFunction(x,chemPotTest,beta)*
+               fermiFunction(x,chemPot[0],beta);
+        funValGridFFT[iGrid] = sqrt(temp);
+        break;          
+      case 5: // F*P_i
+        temp = (double)(fermiFunctionLongDouble(x,chemPot[1],beta)-
+                        fermiFunctionLongDouble(x,chemPot[0],beta));
+        funValGridFFT[iGrid] = temp*fermiFunction(x,chemPotTest,beta);
+        break;
+      case 6: // \sqrt{F*P_i}
+        temp = (double)(fermiFunctionLongDouble(x,chemPot[1],beta)-
+                        fermiFunctionLongDouble(x,chemPot[0],beta));
+        //y1 = fermiFunctionLongDouble(x,chemPot[1],beta);
+        //y2 = fermiFunctionLongDouble(x,chemPot[0],beta);
+        //if(temp<0.0)printf("Negative filter function %lg x %lg beta %lg chemPot %lg %lg %lg %lg\n",temp,x,beta,chemPot[1],chemPot[0],(double)(y1),(double)(y2));
+        funValGridFFT[iGrid] = sqrt(temp*fermiFunction(x,chemPotTest,beta));  
+        break;
+      case 7: // F*P_N
+        temp = (double)(1.0-fermiFunctionLongDouble(x,chemPot[0],beta));
+        funValGridFFT[iGrid] = temp*fermiFunction(x,chemPotTest,beta);
+        break;
+      case 8: // \sqrt{F*P_N}
+        temp = (double)(1.0-fermiFunctionLongDouble(x,chemPot[0],beta));
+        funValGridFFT[iGrid] = sqrt(temp*fermiFunction(x,chemPotTest,beta));
+        break;
+      case 9: // P_i
+        funValGridFFT[iGrid] = (double)(fermiFunctionLongDouble(x,chemPot[1],beta)-
+                                        fermiFunctionLongDouble(x,chemPot[0],beta));
+        break;
+      case 10: // \sqrt{P_i}
+        temp = (double)(fermiFunctionLongDouble(x,chemPot[1],beta)-
+                                        fermiFunctionLongDouble(x,chemPot[0],beta)); 
+        funValGridFFT[iGrid] = sqrt(temp);
+        break;
+      case 11: // P_N
+        funValGridFFT[iGrid] = (double)(1.0-fermiFunctionLongDouble(x,chemPot[0],beta));
+        break;
+      case 12: // \sqrt{P_N}
+        temp = (double)(1.0-fermiFunctionLongDouble(x,chemPot[0],beta));
+        funValGridFFT[iGrid] = sqrt(temp);
+        break;
+      case 13: // Entropy
+        funValGridFFT[iGrid] = sqrt(-entropyReal(x,chemPotTest,beta));
+        break;
+      default:
+        printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+        printf("Unsupported filter function Flag %i!\n",funFlag);
+        printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+        fflush(stdout);
+        exit(0);
+    }
+    //if(iGrid%1000==0)printf("x %lg funVal %lg\n",x,funValGridFFT[iGrid]);
   }
-  
+
+  printf("ffttttttttttttttttttttt\n");
   fftw_execute(fftwPlanForward);
+  printf("ffttttttttttttttttttttt\n");
+
   
   for(iCoeff=1;iCoeff<polynormLength;iCoeff++){
     //printf("real %lg\n",creal(chebyCoeffsFFT[iCoeff]));
@@ -858,8 +1206,99 @@ void calcChebyCoeff(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void testChebyCoeff(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
-                    double chemPot,double *chebyCoeffs)
+double calcFitErrorCheby(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
+                       int filterFlag)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* This routine estimates the fitting error of the Chebyshev polynormial */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+  CHEBYSHEVINFO *chebyshevInfo = stodftInfo->chebyshevInfo;
+
+  int numPointTest = 1000;
+  int numChemPot = stodftInfo->numChemPot;
+  int polynormLength = stodftInfo->polynormLength;
+  int energyWindowOn     = stodftInfo->energyWindowOn;
+  int fragWindowFlag     = stodftInfo->fragWindowFlag;
+  int iChem,iPoly;
+  
+  double testTemp;
+  double testMax = -100000.0;
+  double chemPotTrue       = stodftInfo->chemPotTrue;
+  double *chemPot          = stodftCoefPos->chemPot;
+
+  double *expanCoeff       = (double*)stodftCoefPos->expanCoeff;
+
+
+  switch(filterFlag){
+    case 0:
+      for(iChem=0;iChem<numChemPot;iChem++){
+        testTemp = testChebyCoeff(stodftInfo,stodftCoefPos,&chemPot[iChem],
+                                &expanCoeff[iChem*polynormLength],2,0.0);
+        if(testTemp>testMax)testMax = testTemp;
+      }
+      break;
+    case 1:
+      testTemp = testChebyCoeff(stodftInfo,stodftCoefPos,&chemPot[0],
+                                &expanCoeff[0],2,0.0);
+      if(testTemp>testMax)testMax = testTemp;
+      for(iChem=1;iChem<numChemPot;iChem++){
+        testTemp = testChebyCoeff(stodftInfo,stodftCoefPos,&chemPot[iChem-1],
+                                  &expanCoeff[iChem*polynormLength],10,0.0);
+        if(testTemp>testMax)testMax = testTemp;
+      }
+      break;
+    case 2:
+      testTemp = testChebyCoeff(stodftInfo,stodftCoefPos,&chemPot[0],
+                                &expanCoeff[0],2,0.0);
+      if(testTemp>testMax)testMax = testTemp;
+      for(iChem=1;iChem<numChemPot-1;iChem++){
+        testTemp = testChebyCoeff(stodftInfo,stodftCoefPos,&chemPot[iChem-1],
+                                  &expanCoeff[iChem*polynormLength],10,0.0); 
+        if(testTemp>testMax)testMax = testTemp;
+      }
+      testTemp = testChebyCoeff(stodftInfo,stodftCoefPos,&chemPot[numChemPot-2],
+                                &expanCoeff[(numChemPot-1)*polynormLength],12,0.0);
+      if(testTemp>testMax)testMax = testTemp;
+      break;
+    case 3:
+      testTemp = testChebyCoeff(stodftInfo,stodftCoefPos,&chemPot[0],
+                                &expanCoeff[0],4,chemPotTrue);
+      if(testTemp>testMax)testMax = testTemp;
+      for(iChem=1;iChem<numChemPot-1;iChem++){
+        testTemp = testChebyCoeff(stodftInfo,stodftCoefPos,&chemPot[iChem-1],
+                                  &expanCoeff[iChem*polynormLength],6,chemPotTrue); 
+        if(testTemp>testMax)testMax = testTemp;
+      }
+      testTemp = testChebyCoeff(stodftInfo,stodftCoefPos,&chemPot[numChemPot-2],
+                                &expanCoeff[(numChemPot-1)*polynormLength],8,chemPotTrue);
+      if(testTemp>testMax)testMax = testTemp;
+      break;
+    default:
+      printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+      printf("Unsupported Filter Flag!\n");
+      printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(0);    
+  }
+   
+
+  return testMax;
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+double testChebyCoeff(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
+                     double *chemPot,double *chebyCoeffs,int funFlag,
+                     double chemPotTest)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
@@ -869,6 +1308,7 @@ void testChebyCoeff(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
   int numPointTest = 1000;
   int polynormLength = stodftInfo->polynormLength;
   int iGrid,iCoeff;
+  int energyWindowOn     = stodftInfo->energyWindowOn;
   
   double beta       = stodftInfo->beta;
   double energyMin  = stodftInfo->energyMin;
@@ -879,14 +1319,20 @@ void testChebyCoeff(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
   double point,pointScale;
   double diff,funTrue;
   double diffMax = -100000.0;
+  double temp;
 
   FERMIFUNR fermiFunction = stodftInfo->fermiFunctionReal;
+  FERMIFUNLR fermiFunctionLongDouble;
   double *x = (double*)cmalloc(numPointTest*sizeof(double));
   double *xScale = (double*)cmalloc(numPointTest*sizeof(double));
   double *T1 = (double*)cmalloc(numPointTest*sizeof(double));
   double *T2 = (double*)cmalloc(numPointTest*sizeof(double));
   double *T3 = (double*)cmalloc(numPointTest*sizeof(double));
   double *funVal = (double*)cmalloc(numPointTest*sizeof(double));
+
+  if(energyWindowOn==1){
+    fermiFunctionLongDouble = stodftInfo->fermiFunctionLongDouble;
+  }
 
   for(iGrid=0;iGrid<numPointTest;iGrid++){
     x[iGrid] = energyMin+(iGrid+0.5)*deltPoint;
@@ -905,16 +1351,75 @@ void testChebyCoeff(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
       T2[iGrid] = T3[iGrid];
     }
   }
+  /*
   for(iCoeff=0;iCoeff<polynormLength;iCoeff++){
     printf("iCoeff %i coeff %lg\n",iCoeff,chebyCoeffs[iCoeff]);
   }
+  */
   for(iGrid=0;iGrid<numPointTest;iGrid++){
-    funTrue = fermiFunction(x[iGrid],chemPot,beta);
+    switch(funFlag){
+      case 1: // F
+        funTrue = fermiFunction(x[iGrid],chemPot[0],beta);
+        break;
+      case 2: // \sqrt{F}
+        funTrue = sqrt(fermiFunction(x[iGrid],chemPot[0],beta));
+        break;
+      case 3: // F*P_0
+        funTrue = fermiFunction(x[iGrid],chemPotTest,beta)*
+                               fermiFunction(x[iGrid],chemPot[0],beta);
+        break;
+      case 4: // \sqrt{F*P_0}
+        temp = fermiFunction(x[iGrid],chemPotTest,beta)*
+               fermiFunction(x[iGrid],chemPot[0],beta);
+        funTrue = sqrt(temp);
+        break;          
+      case 5: // F*P_i
+        temp = (double)(fermiFunctionLongDouble(x[iGrid],chemPot[1],beta)-
+                        fermiFunctionLongDouble(x[iGrid],chemPot[0],beta));
+        funTrue = temp*fermiFunction(x[iGrid],chemPotTest,beta);
+        break;
+      case 6: // \sqrt{F*P_i}
+        temp = (double)(fermiFunctionLongDouble(x[iGrid],chemPot[1],beta)-
+                        fermiFunctionLongDouble(x[iGrid],chemPot[0],beta));
+        funTrue = sqrt(temp*fermiFunction(x[iGrid],chemPotTest,beta));  
+        break;
+      case 7: // F*P_N
+        temp = (double)(1.0-fermiFunctionLongDouble(x[iGrid],chemPot[0],beta));
+        funTrue = temp*fermiFunction(x[iGrid],chemPotTest,beta);
+        break;
+      case 8: // \sqrt{F*P_N}
+        temp = (double)(1.0-fermiFunctionLongDouble(x[iGrid],chemPot[0],beta));
+        funTrue = sqrt(temp*fermiFunction(x[iGrid],chemPotTest,beta));
+        break;
+      case 9: // P_i
+        funTrue = (double)(fermiFunctionLongDouble(x[iGrid],chemPot[1],beta)-
+                        fermiFunctionLongDouble(x[iGrid],chemPot[0],beta));
+        break;
+      case 10: // \sqrt{P_i}
+        temp = (double)(fermiFunctionLongDouble(x[iGrid],chemPot[1],beta)-
+                        fermiFunctionLongDouble(x[iGrid],chemPot[0],beta));
+        funTrue = sqrt(temp);
+        break;
+      case 11: // P_N
+        funTrue = (double)(1.0-fermiFunctionLongDouble(x[iGrid],chemPot[0],beta));
+        break;
+      case 12: // \sqrt{P_N}
+        temp = (double)(1.0-fermiFunctionLongDouble(x[iGrid],chemPot[0],beta));
+        funTrue = sqrt(temp);
+        break;      
+      default:
+        printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+        printf("Unsupported filter function Flag!\n");
+        printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+        fflush(stdout);
+        exit(0);
+    }
+
     diff = fabs(funTrue-funVal[iGrid]);
-    printf("x %lg xScale %lg funTrue %lg funVal %lg\n",x[iGrid],xScale[iGrid],funTrue,funVal[iGrid]);
+    //printf("x %lg xScale %lg funTrue %lg funVal %lg\n",x[iGrid],xScale[iGrid],funTrue,funVal[iGrid]);
     if(diff>diffMax)diffMax = diff;
   }
-  printf("diff %.10lg\n",diffMax);  
+  //printf("diff %.10lg\n",diffMax);  
 
   free(x);
   free(xScale);
@@ -922,6 +1427,8 @@ void testChebyCoeff(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
   free(T2);
   free(T3);
   free(funVal);
+
+  return diffMax;
 
 /*==========================================================================*/
 }/*end Routine*/

@@ -276,6 +276,8 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     //numChemPot += 1;
   }  
 
+  stodftInfo->numElecSys = stodftInfo->numElecTrue;
+
   stodftCoefPos->chemPot = (double*)cmalloc(numChemPot*sizeof(double));
   stodftCoefPos->chemPotBackUp = (double*)cmalloc(numChemPot*sizeof(double));
   stodftInfo->energyKe = (double*)cmalloc(numChemPot*sizeof(double));
@@ -285,6 +287,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   stodftCoefPos->testWfMinRe = (double*)cmalloc(numCoeff*sizeof(double));
   stodftCoefPos->testWfMinIm = (double*)cmalloc(numCoeff*sizeof(double));
 
+  /*
   if(expanType==2&&filterFunType==1){
     if(energyWindowOn==0){
       stodftInfo->fermiFunctionReal = &fermiExpReal;
@@ -297,6 +300,79 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   if(expanType==2&&filterFunType==2)stodftInfo->fermiFunctionReal = &fermiErfcReal;
   if(expanType==2&&filterFunType==3)stodftInfo->fermiFunctionReal = &gaussianReal;
   if(expanType==3&&filterFunType==1)stodftInfo->fermiFunctionComplex = &fermiExpComplex;
+  */
+  switch(expanType){
+    case 1:
+      switch(filterFunType){
+        case 1:
+          if(energyWindowOn==0){
+            stodftInfo->fermiFunctionReal = &fermiExpReal;
+          }
+          else{
+            stodftInfo->fermiFunctionReal = &fermiExpReal;
+            stodftInfo->fermiFunctionLongDouble = &fermiExpLongDouble;
+          }
+          break;
+        case 2:
+          stodftInfo->fermiFunctionReal = &fermiErfcReal;
+          break;
+        case 3:
+          stodftInfo->fermiFunctionReal = &gaussianReal;
+          break;
+        default:
+          printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+          printf("Internal Error! Bad filter type!\n");
+          printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+          fflush(stdout);
+          exit(1);
+      }  
+      break;
+    case 2:
+      switch(filterFunType){
+        case 1:
+          if(energyWindowOn==0){
+            stodftInfo->fermiFunctionReal = &fermiExpReal;
+          }
+          else{
+            stodftInfo->fermiFunctionReal = &fermiExpReal;
+            stodftInfo->fermiFunctionLongDouble = &fermiExpLongDouble;
+          }
+          break;
+        case 2:
+          stodftInfo->fermiFunctionReal = &fermiErfcReal;
+          break;
+        case 3:
+          stodftInfo->fermiFunctionReal = &gaussianReal;
+          break;
+        default:
+          printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+          printf("Internal Error! Bad filter type!\n");
+          printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+          fflush(stdout);
+          exit(1);
+      }
+      break;
+    case 3:
+      switch(filterFunType){
+        case 1:
+          stodftInfo->fermiFunctionComplex = &fermiExpComplex;
+          break;
+        default:
+          printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n"); 
+          printf("Only support Fermi function for Non-Hermitian Hamiltonian!\n");
+          printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+          fflush(stdout);
+          exit(1);
+      }
+      break;
+    default:
+      printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+      printf("Bad expansion type!\n");
+      printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(1);
+  }
+
   if(myidState==0){
     if(expanType==3&&filterFunType==2){
       printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
@@ -330,9 +406,11 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*==========================================================================*/
 /* II) Malloc by expension type						    */
 
+  stodftInfo->newtonInfo = (NEWTONINFO *)cmalloc(sizeof(NEWTONINFO));
+  stodftInfo->chebyshevInfo = (CHEBYSHEVINFO *)cmalloc(sizeof(CHEBYSHEVINFO));
+
   if(expanType==2){
     //stodftCoefPos->expanCoeff = (double *)cmalloc(totalPoly*sizeof(double));
-    stodftInfo->newtonInfo = (NEWTONINFO *)cmalloc(sizeof(NEWTONINFO));
     newtonInfo = stodftInfo->newtonInfo;
     //newtonInfo->sampPoint = (double *)cmalloc(polynormLength*sizeof(double));
     //newtonInfo->sampPointUnscale = (double *)cmalloc(polynormLength*sizeof(double));
@@ -344,7 +422,6 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     //newtonInfo->scale = (Smax-Smin)/energyDiff;      
   }
   if(expanType==1||chemPotOpt==2){
-    stodftInfo->chebyshevInfo = (CHEBYSHEVINFO *)cmalloc(sizeof(CHEBYSHEVINFO));
     chebyshevInfo = stodftInfo->chebyshevInfo;
     chebyshevInfo->Smin = -1.0;
     chebyshevInfo->Smax = 1.0;
@@ -785,7 +862,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   }
 
 /*==========================================================================*/
-/* X) Initialize Fragmentation                                           */
+/* X) Other allocations                                                     */
 
   /*
   if(calcFragFlag==1){// We don't initialize frag scf here

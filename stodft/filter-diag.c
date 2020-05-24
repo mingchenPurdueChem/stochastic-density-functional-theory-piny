@@ -613,8 +613,8 @@ void buildKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     allForceRe = (double*)malloc(numCoeffUpAllProc*sizeof(double))-1;
     allForceIm = (double*)malloc(numCoeffUpAllProc*sizeof(double))-1;
   }
-  allForceRe = (double*)malloc(numCoeffUpAllProc*sizeof(double))-1;
-  allForceIm = (double*)malloc(numCoeffUpAllProc*sizeof(double))-1;
+  //allForceRe = (double*)malloc(numCoeffUpAllProc*sizeof(double))-1;
+  //allForceIm = (double*)malloc(numCoeffUpAllProc*sizeof(double))-1;
   //Barrier(comm_states);
   forceUpRe = (double*)cmalloc(numChemPot*numCoeffUpTotal*sizeof(double))-1;
   forceUpIm = (double*)cmalloc(numChemPot*numCoeffUpTotal*sizeof(double))-1;

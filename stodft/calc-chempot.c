@@ -252,7 +252,12 @@ void genChemPotInterpPoints(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
           chemPot[numChemPot-1] = chemPotTrue;
         }
       }
-      else{ // with fragment density
+      else{ 
+        // With fragment density, the chemical potential does not dependent on 
+        // the CURRENT chemical potential. In the first step, chemPot[numChemPot-2] 
+        // is the chemPotInit+0.5*gapInit. In the first 2 to N steps, chemPot[numChemPot-2]
+        // is the chemical potential in the previous step. After N steps, chemPot[numChemPot-2] 
+        // is fixed. 
         if(iScf<10){
           energyMin = stodftInfo->energyMin;
           // The first SCF step: use chemPotInit
@@ -260,16 +265,16 @@ void genChemPotInterpPoints(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
           // previous SCF step
           if(iScf==1)chemPotTrue = chemPotInit+0.5*gapInit;
           else chemPotTrue = stodftInfo->chemPotTrue;
+          // DEBUG
+          //chemPotTrue = chemPotInit+0.5*gapInit;
           dE = (chemPotTrue-energyMin)/(numChemPot-1.0); 
           for(iNode=0;iNode<numChemPot-1;iNode++){
             chemPot[iNode] = energyMin+(iNode+1)*dE;
-            printf("0000000 iNode %i energyMin %lg chemPotTrue %lg dE %lg chemPot %lg\n",
-                    iNode,energyMin,chemPotTrue,dE,chemPot[iNode]);
           }
           // Debug
           //double lambda = 0.01;
           //chemPot[0] = energyMin+dE*lambda*2.0;
-          for(iNode=0;iNode<numChemPot-1;iNode++)printf("chemPot %lg\n",chemPot[iNode]);
+          //for(iNode=0;iNode<numChemPot-1;iNode++)printf("chemPot %lg\n",chemPot[iNode]);
           // double check the last chemical potential is correct...
           //chemPot[numChemPot-2] = chemPotInit;
           // Just give it some random values. This value will not be used

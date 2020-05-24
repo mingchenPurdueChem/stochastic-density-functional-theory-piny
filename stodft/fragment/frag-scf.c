@@ -57,6 +57,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int numProcStates     = communicate->np_states;
   int fragOpt		= stodftInfo->fragOpt;
   int energyWindowOn    = stodftInfo->energyWindowOn;
+  int readCoeffFlag     = stodftInfo->readCoeffFlag;
   MPI_Comm commStates   = communicate->comm_states;
 
   int *numGridFragProc = fragInfo->numGridFragProc;
@@ -139,80 +140,109 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }
   */
 
-  sprintf(fileNameFragMO,"frag-MO-%i",myidState);
-  if(numFragProc>0){
-    fileFragMO = NULL;
-    fileFragMO = fopen(fileNameFragMO,"r");
-    if(fileFragMO!=NULL){
-      for(iFrag=0;iFrag<numFragProc;iFrag++){
-        //printf("%p\n",fileFragMO);
-        ncoef = cpMini[iFrag].cpcoeffs_info.ncoef;
-        for(iState=0;iState<numElecUpFragProc[iFrag];iState++){
-          for(icoef=1;icoef<=ncoef;icoef++){
-            fscanf(fileFragMO,"%lg",&(cpMini[iFrag].cpcoeffs_pos[1].cre_up[iState*ncoef+icoef]));
-            fscanf(fileFragMO,"%lg",&(cpMini[iFrag].cpcoeffs_pos[1].cim_up[iState*ncoef+icoef]));
+  // If you can't finish fragmentation calculation before wall-time,
+  // you don't have to use 'read checkpoint' option. You just need to 
+  // redo the calculation and the program will read in the frag-MO-i file. 
+  // as updated fragmentation MO files.
+  if(readCoeffFlag!=3){
+    sprintf(fileNameFragMO,"frag-MO-%i",myidState);
+    if(numFragProc>0){
+      fileFragMO = NULL;
+      fileFragMO = fopen(fileNameFragMO,"r");
+      if(fileFragMO!=NULL){
+        for(iFrag=0;iFrag<numFragProc;iFrag++){
+          //printf("%p\n",fileFragMO);
+          ncoef = cpMini[iFrag].cpcoeffs_info.ncoef;
+          for(iState=0;iState<numElecUpFragProc[iFrag];iState++){
+            for(icoef=1;icoef<=ncoef;icoef++){
+              fscanf(fileFragMO,"%lg",&(cpMini[iFrag].cpcoeffs_pos[1].cre_up[iState*ncoef+icoef]));
+              fscanf(fileFragMO,"%lg",&(cpMini[iFrag].cpcoeffs_pos[1].cim_up[iState*ncoef+icoef]));
+            }
           }
         }
+        fclose(fileFragMO);
       }
-      fclose(fileFragMO);
+      else{
+        printf("I can't find checkpoint file for process %i\n",myidState);
+        printf("Inseated I'll use gen_wave as initial guess.\n");
+      }
     }
-    else{
-      printf("I can't find checkpoint file for process %i\n",myidState);
-      printf("Inseated I'll use gen_wave as initial guess.\n");
-    }
-  }
-    
-  for(iFrag=0;iFrag<numFragProc;iFrag++){
-/*======================================================================*/
-/* I) Allocate Mini Structures                                          */
-
+      
+    for(iFrag=0;iFrag<numFragProc;iFrag++){
 /*======================================================================*/
 /* I) Initialize Fragment SCF					        */
-    
-    /*
-    parseFrag(class,bonded,general_data,cp,analysis,&classMini[iFrag],&bondedMini[iFrag],
-           &generalDataMini[iFrag],&cpMini[iFrag],&analysisMini[iFrag]);
-    */
+      
+      /*
+      parseFrag(class,bonded,general_data,cp,analysis,&classMini[iFrag],&bondedMini[iFrag],
+             &generalDataMini[iFrag],&cpMini[iFrag],&analysisMini[iFrag]);
+      */
 
 /*======================================================================*/
 /* II) SCF LOOP					                        */
-  
-    controlCpMinFrag(&classMini[iFrag],&bondedMini[iFrag],&generalDataMini[iFrag],
-                     &cpMini[iFrag],&analysisMini[iFrag]);      
     
-    /*
-    if(myidState==0){
-      fileFragMO = fopen("frag-MO-2","w");
-      for(iState=0;iState<numElecUpFragProc[0];iState++){
+      controlCpMinFrag(&classMini[iFrag],&bondedMini[iFrag],&generalDataMini[iFrag],
+                       &cpMini[iFrag],&analysisMini[iFrag]);      
+      
+      /*
+      if(myidState==0){
+        fileFragMO = fopen("frag-MO-2","w");
+        for(iState=0;iState<numElecUpFragProc[0];iState++){
+          for(icoef=1;icoef<=ncoef;icoef++){
+            fprintf(fileFragMO,"%.16lg %.16lg\n",
+                  cpMini[0].cpcoeffs_pos[1].cre_up[iState*ncoef+icoef],
+                  cpMini[0].cpcoeffs_pos[1].cim_up[iState*ncoef+icoef]);
+          }
+        }
+      }
+      Barrier(commStates);
+      fflush(stdout);
+      exit(0);
+      */
+    }//endfor iFrag
+    
+    
+    if(numProcStates>1)Barrier(commStates);
+    
+       
+    sprintf(fileNameFragMO,"frag-MO-%i",myidState);
+    fileFragMO = fopen(fileNameFragMO,"w");
+    for(iFrag=0;iFrag<numFragProc;iFrag++){
+      ncoef = cpMini[iFrag].cpcoeffs_info.ncoef;
+      for(iState=0;iState<numElecUpFragProc[iFrag];iState++){
         for(icoef=1;icoef<=ncoef;icoef++){
-	  fprintf(fileFragMO,"%.16lg %.16lg\n",
-	  	cpMini[0].cpcoeffs_pos[1].cre_up[iState*ncoef+icoef],
-	  	cpMini[0].cpcoeffs_pos[1].cim_up[iState*ncoef+icoef]);
+          fprintf(fileFragMO,"%.16lg %.16lg\n",cpMini[iFrag].cpcoeffs_pos[1].cre_up[iState*ncoef+icoef],
+                 cpMini[iFrag].cpcoeffs_pos[1].cim_up[iState*ncoef+icoef]);
         }
       }
     }
-    Barrier(commStates);
-    fflush(stdout);
-    exit(0);
-    */
-  }//endfor iFrag
-  
-  
-  if(numProcStates>1)Barrier(commStates);
-  
-    
-  sprintf(fileNameFragMO,"frag-MO-%i",myidState);
-  fileFragMO = fopen(fileNameFragMO,"w");
-  for(iFrag=0;iFrag<numFragProc;iFrag++){
-    ncoef = cpMini[iFrag].cpcoeffs_info.ncoef;
-    for(iState=0;iState<numElecUpFragProc[iFrag];iState++){
-      for(icoef=1;icoef<=ncoef;icoef++){
-	fprintf(fileFragMO,"%.16lg %.16lg\n",cpMini[iFrag].cpcoeffs_pos[1].cre_up[iState*ncoef+icoef],
-	       cpMini[iFrag].cpcoeffs_pos[1].cim_up[iState*ncoef+icoef]);
+    fclose(fileFragMO);    
+  }//endif readCoeffFlag
+  else{
+    // Now I'd like to read in converged fragmentation MO file 
+    // without further fragment SCF calculation.
+    sprintf(fileNameFragMO,"frag-MO-%i",myidState);
+    if(numFragProc>0){
+      fileFragMO = NULL;
+      fileFragMO = fopen(fileNameFragMO,"r");
+      if(fileFragMO!=NULL){
+        for(iFrag=0;iFrag<numFragProc;iFrag++){
+          //printf("%p\n",fileFragMO);
+          ncoef = cpMini[iFrag].cpcoeffs_info.ncoef;
+          for(iState=0;iState<numElecUpFragProc[iFrag];iState++){
+            for(icoef=1;icoef<=ncoef;icoef++){
+              fscanf(fileFragMO,"%lg",&(cpMini[iFrag].cpcoeffs_pos[1].cre_up[iState*ncoef+icoef]));
+              fscanf(fileFragMO,"%lg",&(cpMini[iFrag].cpcoeffs_pos[1].cim_up[iState*ncoef+icoef]));
+            }
+          }
+        }
+        fclose(fileFragMO);
       }
-    }
-  }
-  fclose(fileFragMO);    
+      else{
+        printf("I can't find checkpoint file for process %i\n",myidState);
+        printf("Inseated I'll use gen_wave as initial guess.\n");
+      }//endif fileFragMO
+    }//endif numFragProc
+  }//endif readCoeffFlag
   
   
   if(numProcStates>1)Barrier(commStates);
@@ -285,6 +315,7 @@ void checkpointFragOutput(CP *cp,CLASS *class)
   int rhoRealGridNum        = stodftInfo->rhoRealGridNum;
   int rhoRealGridTot        = stodftInfo->rhoRealGridTot;
   int numAtomTot            = clatoms_info->natm_tot;
+  int energyWindowOn        = stodftInfo->energyWindowOn;
   MPI_Comm commStates	    = commCP->comm_states;
     
   int *rhoRealSendCounts = stodftInfo->rhoRealSendCounts;
@@ -387,10 +418,12 @@ void checkpointFragOutput(CP *cp,CLASS *class)
 /* II) Energy and Force part                                            */
 
   if(myidState==0){
-    fprintf(fileCheckpoint,"%.16lg %.16lg\n",fragInfo->keCor,fragInfo->vnlCor);
-    for(iAtom=0;iAtom<numAtomTot;iAtom++){
-      fprintf(fileCheckpoint,"%.16lg %.16lg %.16lg\n",fragInfo->vnlFxCor[iAtom],
-	      fragInfo->vnlFyCor[iAtom],fragInfo->vnlFzCor[iAtom]);
+    if(energyWindowOn==0){
+      fprintf(fileCheckpoint,"%.16lg %.16lg\n",fragInfo->keCor,fragInfo->vnlCor);
+      for(iAtom=0;iAtom<numAtomTot;iAtom++){
+        fprintf(fileCheckpoint,"%.16lg %.16lg %.16lg\n",fragInfo->vnlFxCor[iAtom],
+                fragInfo->vnlFyCor[iAtom],fragInfo->vnlFzCor[iAtom]);
+      }
     }
   }
 

@@ -273,7 +273,7 @@ void scfStodftInterp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
     if(myidState==0)printf("**Generating Stochastic Orbitals...\n");
 #ifdef FAST_FILTER
-    genStoOrbitalInterpFake(class,general_data,cp,class2,general_data2,cp2,ip_now);
+    genStoOrbitalInterpTest(class,general_data,cp,class2,general_data2,cp2,ip_now);
 #else
     genStoOrbitalInterp(class,general_data,cp,ip_now);
 #endif
@@ -690,11 +690,11 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     timeStart1 = omp_get_wtime();
     if(myidState==0)printf("**Generating Stochastic Orbitals...\n");
 #ifdef FAST_FILTER  
-    genStoOrbitalChebyFakeNew(class,general_data,cp,class2,general_data2,cp2,ip_now);
+    genStoOrbitalChebyTest(class,general_data,cp,class2,general_data2,cp2,ip_now);
 #else
-    //genStoOrbitalCheby(class,general_data,cp,ip_now);
+    genStoOrbitalCheby(class,general_data,cp,ip_now);
 #endif
-    genStoOrbitalFake(class,general_data,cp,ip_now);
+    //genStoOrbitalFake(class,general_data,cp,ip_now);
  
     //exit(0);
     //debug
@@ -1554,7 +1554,7 @@ void scfStodftEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
 #endif
 */
 #ifdef FAST_FILTER
-      genStoOrbitalEnergyWindowFakeNew(class,general_data,cp,
+      genStoOrbitalEnergyWindowTest(class,general_data,cp,
                              class2,general_data2,cp2,ip_now);
 #else
       genStoOrbitalEnergyWindow(class,general_data,cp,ip_now);
@@ -1860,7 +1860,6 @@ void scfStodftEnergyWindowFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general
 
   calcKSPot(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
 
-  printf("1111111111111 pseudoRealFlag %i\n",pseudoRealFlag);
   if(pseudoRealFlag==1){
     if(myidState==0)printf("**Calculating Real Space Non-local Pseudopotential...\n");
     pseudoReal->forceCalcFlag = 1;
@@ -1916,7 +1915,8 @@ void scfStodftEnergyWindowFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general
     iScf = 0;
   }
 
-
+  stodftInfo->isFirstStepFlag = 1;
+ 
   while(scfStopFlag==0){
     timeStart = omp_get_wtime();
     iScf += 1;
@@ -1943,7 +1943,7 @@ void scfStodftEnergyWindowFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general
 */
     if(fragWindowFlag==0){
 #ifdef FAST_FILTER
-      genStoOrbitalEnergyWindowFakeNew(class,general_data,cp,
+      genStoOrbitalEnergyWindowTest(class,general_data,cp,
                              class2,general_data2,cp2,ip_now);
 #else
       genStoOrbitalEnergyWindow(class,general_data,cp,ip_now);
@@ -1951,9 +1951,8 @@ void scfStodftEnergyWindowFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general
     }
     else{
 #ifdef FAST_FILTER
-      printf("I haven't prepared FAST_FILTER for energy_window fragment\n");
-      fflush(stdout);
-      exit(0);
+      genStoOrbitalEnergyWindowFragTest(class,general_data,
+                       cp,generalDataMini,cpMini,classMini,class2,general_data2,cp2,ip_now);
 #else
       genStoOrbitalEnergyWindowFragFake(class,general_data,
                        cp,generalDataMini,cpMini,classMini,ip_now);
@@ -2069,6 +2068,7 @@ void scfStodftEnergyWindowFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general
       printf("********************************************************\n");
       printf("\n");
     }
+    stodftInfo->isFirstStepFlag = 0;
     if(energyDiff<energyTol||iScf>=numScf)scfStopFlag = 1;
 
   }//endwhile iScf

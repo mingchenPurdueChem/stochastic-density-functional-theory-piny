@@ -53,12 +53,16 @@ void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   STODFTINFO    *stodftInfo       = cp->stodftInfo;
   FRAGINFO      *fragInfo;
   COMMUNICATE   *communicate      = &(cp->communicate);
+  CLATOMS_INFO *clatomsInfo     = &(class->clatoms_info);
 
   int fragOpt           = stodftInfo->fragOpt;
   int numFragProc;
   int myidState		= communicate->myid_state;
   int numProcStates	= communicate->np_states;
   int iFrag;
+  int fragWindowFlag    = stodftInfo->fragWindowFlag;
+  int numAtomTot = clatomsInfo->natm_tot;
+
   MPI_Comm world                = communicate->world;
 
   if(myidState==0)fragInfo = stodftInfo->fragInfo;
@@ -113,6 +117,12 @@ void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     initFragEnergy(*cpMiniPoint,*classMiniPoint,class,cp);
     //}
   }
+
+  fragInfo->FxNlAll = (double*)cmalloc(numAtomTot*sizeof(double));
+  fragInfo->FyNlAll = (double*)cmalloc(numAtomTot*sizeof(double));
+  fragInfo->FzNlAll = (double*)cmalloc(numAtomTot*sizeof(double));
+
+
   if(myidState==0)printf("Finish initializing fragments energy...\n");
   if(numProcStates>1)Barrier(world);
 
@@ -928,6 +938,8 @@ void initFragEnergy(CP *cpMini,CLASS *classMini,CLASS *class,CP *cp)
   CLATOMS_INFO *clatomsInfo	= &(class->clatoms_info);
   CLATOMS_INFO *clatomsInfoMini = &(classMini->clatoms_info);
   CPOPTS *cpOpts		= &(cp->cpopts);
+  CPCOEFFS_INFO *cpcoeffs_info = &(cp->cpcoeffs_info);
+
   
   int iFrag;
   int cpLsda = cpOpts->cp_lsda;
@@ -936,30 +948,35 @@ void initFragEnergy(CP *cpMini,CLASS *classMini,CLASS *class,CP *cp)
   int numFragProc = fragInfo->numFragProc;
   int numStateUpMini,numStateDnMini;
   int *numAtomFragVnlCalc = fragInfo->numAtomFragVnlCalc;
+  int numStateUpProc        = cpcoeffs_info->nstate_up_proc;
+  int numStateDnProc        = cpcoeffs_info->nstate_dn_proc;
+  int numStateStoUp     = stodftInfo->numStateStoUp;
+  int numStateStoDn     = stodftInfo->numStateStoDn;
+  int numChemPot                = stodftInfo->numChemPot; 
+
+  int rhoRealGridTot        = stodftInfo->rhoRealGridTot;
+  int energyWindowOn        = stodftInfo->energyWindowOn;
+  int numAtomCalc;
   
   fragInfo->vnlFxCor = (double*)cmalloc(numAtomTot*sizeof(double));
   fragInfo->vnlFyCor = (double*)cmalloc(numAtomTot*sizeof(double));
   fragInfo->vnlFzCor = (double*)cmalloc(numAtomTot*sizeof(double));
 
-  fragInfo->wfProjUp = (double**)cmalloc(numFragProc*sizeof(double*));
-  fragInfo->wfProjDn = (double**)cmalloc(numFragProc*sizeof(double*));
-  fragInfo->keMatrixUp = (double**)cmalloc(numFragProc*sizeof(double*));
-  fragInfo->keMatrixDn = (double**)cmalloc(numFragProc*sizeof(double*));
-  fragInfo->vnlMatrixUp = (double**)cmalloc(numFragProc*sizeof(double*));
-  fragInfo->vnlFxMatrixUp = (double**)cmalloc(numFragProc*sizeof(double*));
-  fragInfo->vnlFyMatrixUp = (double**)cmalloc(numFragProc*sizeof(double*));
-  fragInfo->vnlFzMatrixUp = (double**)cmalloc(numFragProc*sizeof(double*));
-  fragInfo->vnlMatrixDn = (double**)cmalloc(numFragProc*sizeof(double*));
-  fragInfo->vnlFxMatrixDn = (double**)cmalloc(numFragProc*sizeof(double*));
-  fragInfo->vnlFyMatrixDn = (double**)cmalloc(numFragProc*sizeof(double*));
-  fragInfo->vnlFzMatrixDn = (double**)cmalloc(numFragProc*sizeof(double*));
-  fragInfo->Fx = (double**)cmalloc(numFragProc*sizeof(double*));
-  fragInfo->Fy = (double**)cmalloc(numFragProc*sizeof(double*));
-  fragInfo->Fz = (double**)cmalloc(numFragProc*sizeof(double*));
+  if(numFragProc>0){
+    fragInfo->wfProjUp = (double**)cmalloc(numFragProc*sizeof(double*));
+    fragInfo->keMatrixUp = (double**)cmalloc(numFragProc*sizeof(double*));
+    fragInfo->vnlMatrixUp = (double**)cmalloc(numFragProc*sizeof(double*));
+    fragInfo->vnlFxMatrixUp = (double**)cmalloc(numFragProc*sizeof(double*));
+    fragInfo->vnlFyMatrixUp = (double**)cmalloc(numFragProc*sizeof(double*));
+    fragInfo->vnlFzMatrixUp = (double**)cmalloc(numFragProc*sizeof(double*));
+    fragInfo->Fx = (double**)cmalloc(numFragProc*sizeof(double*));
+    fragInfo->Fy = (double**)cmalloc(numFragProc*sizeof(double*));
+    fragInfo->Fz = (double**)cmalloc(numFragProc*sizeof(double*));
+  }
 
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     numStateUpMini = cpMini[iFrag].cpcoeffs_info.nstate_up_proc;
-    fragInfo->wfProjUp[iFrag] = (double*)cmalloc(numStateUpMini*sizeof(double));
+    fragInfo->wfProjUp[iFrag] = (double*)cmalloc(numStateUpMini*numStateStoUp*numChemPot*sizeof(double));
     fragInfo->keMatrixUp[iFrag] = (double*)cmalloc(numStateUpMini*numStateUpMini*sizeof(double));
     fragInfo->vnlMatrixUp[iFrag] = (double*)cmalloc(numStateUpMini*numStateUpMini*sizeof(double));
     fragInfo->vnlFxMatrixUp[iFrag] = (double*)cmalloc(numAtomFragVnlCalc[iFrag]*numStateUpMini*numStateUpMini*sizeof(double));
@@ -970,17 +987,43 @@ void initFragEnergy(CP *cpMini,CLASS *classMini,CLASS *class,CP *cp)
     fragInfo->Fz[iFrag] = (double*)cmalloc(numAtomFrag*sizeof(double));
   }
   if(cpLsda==1){
+    if(numFragProc>0){
+      fragInfo->wfProjDn = (double**)cmalloc(numFragProc*sizeof(double*));
+      fragInfo->keMatrixDn = (double**)cmalloc(numFragProc*sizeof(double*));
+      fragInfo->vnlMatrixDn = (double**)cmalloc(numFragProc*sizeof(double*));
+      fragInfo->vnlFxMatrixDn = (double**)cmalloc(numFragProc*sizeof(double*));
+      fragInfo->vnlFyMatrixDn = (double**)cmalloc(numFragProc*sizeof(double*));
+      fragInfo->vnlFzMatrixDn = (double**)cmalloc(numFragProc*sizeof(double*));
+    }
+
     for(iFrag=0;iFrag<numFragProc;iFrag++){
       numStateDnMini = cpMini[iFrag].cpcoeffs_info.nstate_dn_proc;
-      fragInfo->wfProjDn[iFrag] = (double*)cmalloc(numStateDnMini*sizeof(double));
+      fragInfo->wfProjDn[iFrag] = (double*)cmalloc(numStateDnMini*numStateStoDn*numChemPot*sizeof(double));
       fragInfo->keMatrixDn[iFrag] = (double*)cmalloc(numStateDnMini*numStateDnMini*sizeof(double));
       fragInfo->vnlMatrixDn[iFrag] = (double*)cmalloc(numStateDnMini*numStateDnMini*sizeof(double));
       fragInfo->vnlFxMatrixDn[iFrag] = (double*)cmalloc(numAtomFragVnlCalc[iFrag]*numStateDnMini*numStateDnMini*sizeof(double));
       fragInfo->vnlFyMatrixDn[iFrag] = (double*)cmalloc(numAtomFragVnlCalc[iFrag]*numStateDnMini*numStateDnMini*sizeof(double));
       fragInfo->vnlFzMatrixDn[iFrag] = (double*)cmalloc(numAtomFragVnlCalc[iFrag]*numStateDnMini*numStateDnMini*sizeof(double));
-
     }
   }
+
+  if(energyWindowOn==1){
+    if(numFragProc>0){
+      fragInfo->keStore = (double*)cmalloc(numFragProc*sizeof(double));
+      fragInfo->vnlStore = (double*)cmalloc(numFragProc*sizeof(double));
+
+      fragInfo->vnlFxStore = (double**)cmalloc(numFragProc*sizeof(double*));
+      fragInfo->vnlFyStore = (double**)cmalloc(numFragProc*sizeof(double*));
+      fragInfo->vnlFzStore = (double**)cmalloc(numFragProc*sizeof(double*));
+    }
+    for(iFrag=0;iFrag<numFragProc;iFrag++){
+      numAtomCalc = numAtomFragVnlCalc[iFrag];
+      fragInfo->vnlFxStore[iFrag] = (double*)cmalloc(numAtomCalc*sizeof(double));
+      fragInfo->vnlFyStore[iFrag] = (double*)cmalloc(numAtomCalc*sizeof(double));
+      fragInfo->vnlFzStore[iFrag] = (double*)cmalloc(numAtomCalc*sizeof(double));
+    }
+  }
+
 
 /*==========================================================================*/
 }/*end Routine*/
@@ -1887,4 +1930,5 @@ void mapFragMolHalf(FRAGINFO *fragInfo,COMMUNICATE *communicate,
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/
+
 

@@ -914,7 +914,6 @@ void calcRhoFragInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   if(cpLsda==1&&numStateDnProc!=0){
     memcpy(&rhoDn[1],rhoDnCorrect,rhoRealGridNum*sizeof(double));
   }
-
 /*==========================================================================*/
 /* III) Calculate Reciprocal Density                */
 

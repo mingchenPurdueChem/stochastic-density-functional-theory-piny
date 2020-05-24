@@ -949,6 +949,7 @@ void combineRhoUC(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   fragInfo->rhoUpFragProc = (double**)cmalloc(numFragProc*sizeof(double*));
   fragInfo->coefUpFragProc = (double**)cmalloc(numFragProc*sizeof(double*));
   fragInfo->coefUpFragCoreProc = (double**)cmalloc(numFragProc*sizeof(double*));
+  fragInfo->noiseWfUpReal = (double*)cmalloc(numStateUpProc*rhoRealGridTot*sizeof(double));
   /*
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     numGrid = numGridFragProc[iFrag];
@@ -964,6 +965,8 @@ void combineRhoUC(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     fragInfo->rhoDnFragProc = (double**)cmalloc(numFragProc*sizeof(double*));
     fragInfo->coefDnFragProc = (double**)cmalloc(numFragProc*sizeof(double*));
     fragInfo->coefDnFragCoreProc = (double**)cmalloc(numFragProc*sizeof(double*));
+    fragInfo->noiseWfDnReal = (double*)cmalloc(numStateDnProc*rhoRealGridTot*sizeof(double));
+    /*
     for(iFrag=0;iFrag<numFragProc;iFrag++){
       numGrid = numGridFragProc[iFrag];
       numStateDnMini = cpMini[iFrag].cpcoeffs_info.nstate_dn_proc;
@@ -972,6 +975,7 @@ void combineRhoUC(CP *cp,GENERAL_DATA *general_data,CLASS *class,
       fragInfo->coefDnFragCoreProc = (double**)cmalloc(numFragProc*sizeof(double*));
 
     }
+    */
     rhoDnFragProc = fragInfo->rhoDnFragProc;
     coefDnFragProc = fragInfo->coefDnFragProc;
     coefDnFragCoreProc = fragInfo->coefDnFragCoreProc;
@@ -1247,12 +1251,14 @@ void combineStoUC(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   coefUpFragProc = fragInfo->coefUpFragProc;
   coefUpFragCoreProc = fragInfo->coefUpFragCoreProc;
   rhoUpFragSum = fragInfo->rhoUpFragSum;
+  noiseWfUpReal = fragInfo->noiseWfUpReal;
 
   if(cpLsda==1&&numStateDn!=0){
     rhoDnFragProc = fragInfo->rhoDnFragProc;
     coefDnFragProc = fragInfo->coefDnFragProc;
     coefDnFragCoreProc = fragInfo->coefDnFragCoreProc;    
     rhoDnFragSum = fragInfo->rhoDnFragSum;
+    noiseWfDnReal = fragInfo->noiseWfDnReal;
   }
 
   rhoTemp = (double*)cmalloc(rhoRealGridTot*sizeof(double));
@@ -1260,13 +1266,8 @@ void combineStoUC(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     rhoTemp[iGrid] = 0.0;
   }//endfor iGrid
 
-  fragInfo->noiseWfUpReal = (double*)cmalloc(numStateUpProc*rhoRealGridTot*sizeof(double));
-  noiseWfUpReal = fragInfo->noiseWfUpReal;
-  if(cpLsda==1&&numStateDn!=0){
-    fragInfo->noiseWfDnReal = (double*)cmalloc(numStateDnProc*rhoRealGridTot*sizeof(double));
-    noiseWfDnReal = fragInfo->noiseWfDnReal;
-  }
 
+  /*
   fragInfo->wfProjUp = (double**)cmalloc(numFragProc*sizeof(double*));
 
   for(iFrag=0;iFrag<numFragProc;iFrag++){
@@ -1281,28 +1282,7 @@ void combineStoUC(CP *cp,GENERAL_DATA *general_data,CLASS *class,
       fragInfo->wfProjDn[iFrag] = (double*)cmalloc(numStateStoDn*numStateDnMini*sizeof(double));
     }
   }
-
-  fragInfo->noiseWfUpReal = (double*)cmalloc(numStateUpProc*rhoRealGridTot*sizeof(double));
-  noiseWfUpReal = fragInfo->noiseWfUpReal;
-  if(cpLsda==1&&numStateDn!=0){
-    fragInfo->noiseWfDnReal = (double*)cmalloc(numStateDnProc*rhoRealGridTot*sizeof(double));
-    noiseWfDnReal = fragInfo->noiseWfDnReal;
-  }
-  
-  fragInfo->wfProjUp = (double**)cmalloc(numFragProc*sizeof(double*));
-  
-  for(iFrag=0;iFrag<numFragProc;iFrag++){
-    numStateUpMini = cpMini[iFrag].cpcoeffs_info.nstate_up_proc;
-    fragInfo->wfProjUp[iFrag] = (double*)cmalloc(numStateStoUp*numStateUpMini*sizeof(double));
-  }
-  
-  if(cpLsda==1&&numStateDn!=0){
-    fragInfo->wfProjDn = (double**)cmalloc(numFragProc*sizeof(double*));
-    for(iFrag=0;iFrag<numFragProc;iFrag++){
-      numStateDnMini = cpMini[iFrag].cpcoeffs_info.nstate_dn_proc;
-      fragInfo->wfProjDn[iFrag] = (double*)cmalloc(numStateStoDn*numStateDnMini*sizeof(double));
-    }
-  }
+  */
 
 /*======================================================================*/
 /* IV) Calculate the real space noise wave function                     */
@@ -1836,7 +1816,7 @@ void combineStoUCEnergyWindow(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   double numElecFrag = 0.0;
   double numElecProjTot = 0.0;
   double numElecFragTot = 0.0;
-  double numElecSys = stodftInfo->numElecTrue;
+  double numElecSys = stodftInfo->numElecSys;
   double numGridTotInv = 1.0/rhoRealGridTot;
   double vol,volInv;
   double volMini;
@@ -1854,6 +1834,8 @@ void combineStoUCEnergyWindow(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   double **coefDnFragCoreProc;
   double *rhoUpFragSum;
   double *rhoDnFragSum;
+  double *rhoUpFragSumCpy;
+  double *rhoDnFragSumCpy;
   double *noiseWfUpReal,*noiseWfDnReal;
   double **stoWfUpRe = stodftCoefPos->stoWfUpRe;
   double **stoWfUpIm = stodftCoefPos->stoWfUpIm;
@@ -1877,12 +1859,15 @@ void combineStoUCEnergyWindow(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   coefUpFragProc = fragInfo->coefUpFragProc;
   coefUpFragCoreProc = fragInfo->coefUpFragCoreProc;
   rhoUpFragSum = fragInfo->rhoUpFragSum;
+  rhoUpFragSumCpy = fragInfo->rhoUpFragSumCpy;
+  memcpy(rhoUpFragSum,rhoUpFragSumCpy,rhoRealGridNum*sizeof(double));
 
   if(cpLsda==1&&numStateDn!=0){
     rhoDnFragProc = fragInfo->rhoDnFragProc;
     coefDnFragProc = fragInfo->coefDnFragProc;
     coefDnFragCoreProc = fragInfo->coefDnFragCoreProc;    
     rhoDnFragSum = fragInfo->rhoDnFragSum;
+    memcpy(rhoDnFragSum,rhoDnFragSumCpy,rhoRealGridNum*sizeof(double));
   }
 
   rhoTemp = (double*)cmalloc(rhoRealGridTot*sizeof(double));
@@ -1890,28 +1875,10 @@ void combineStoUCEnergyWindow(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     rhoTemp[iGrid] = 0.0;
   }//endfor iGrid
 
-  fragInfo->noiseWfUpReal = (double*)cmalloc(numStateUpProc*rhoRealGridTot*sizeof(double));
   noiseWfUpReal = fragInfo->noiseWfUpReal;
   if(cpLsda==1&&numStateDn!=0){
-    fragInfo->noiseWfDnReal = (double*)cmalloc(numStateDnProc*rhoRealGridTot*sizeof(double));
     noiseWfDnReal = fragInfo->noiseWfDnReal;
   }
-
-  fragInfo->wfProjUp = (double**)cmalloc(numFragProc*sizeof(double*));
-
-  for(iFrag=0;iFrag<numFragProc;iFrag++){
-    numStateUpMini = cpMini[iFrag].cpcoeffs_info.nstate_up_proc;
-    fragInfo->wfProjUp[iFrag] = (double*)cmalloc(numChemPot*numStateStoUp*numStateUpMini*sizeof(double));
-  }
-
-  if(cpLsda==1&&numStateDn!=0){
-    fragInfo->wfProjDn = (double**)cmalloc(numFragProc*sizeof(double*));
-    for(iFrag=0;iFrag<numFragProc;iFrag++){
-      numStateDnMini = cpMini[iFrag].cpcoeffs_info.nstate_dn_proc;
-      fragInfo->wfProjDn[iFrag] = (double*)cmalloc(numChemPot*numStateStoDn*numStateDnMini*sizeof(double));
-    }
-  }
-
 
 /*======================================================================*/
 /* IV) Calculate the real space noise wave function                     */
@@ -1921,10 +1888,10 @@ void combineStoUCEnergyWindow(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   //memcpy(&(cp->cpcoeffs_pos[1].cim_up[1]),&(stodftCoefPos->wfDetBackupUpIm[0]),numStateUpProc*numCoeff*sizeof(double));
   
   //noiseRealReGen(general_data,cp,class,ip_now);
-  stodftInfo->iScf = 1;
+  //stodftInfo->iScf = 1;
   
   //noiseFilterGen(general_data,cp,class,ip_now);
-  noiseFilterGenFake(general_data,cp,class,ip_now);
+  //noiseFilterGenFake(general_data,cp,class,ip_now);
 
 /*======================================================================*/
 /* IV) Project the real space noise wave function                       */
@@ -1955,6 +1922,7 @@ void combineStoUCEnergyWindow(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 
   //debug, output all wf filtered by frag wf
   //double *stowffrag = (double*)cmalloc(numStateUpAllProc[0]*rhoRealGridTot*sizeof(double));
+  //double testgrid;
   for(iFrag=0;iFrag<numFragProcMax;iFrag++){
     if(iFrag<numFragProc){
       fragInfo->iFrag = iFrag;
@@ -1969,6 +1937,7 @@ void combineStoUCEnergyWindow(CP *cp,GENERAL_DATA *general_data,CLASS *class,
       noiseFilterRealReGen(class,general_data,cp,stoWfUpRe[iChem],stoWfUpIm[iChem],
                            noiseWfUpReal,numStateUpProc);
       countWf = 0;
+      //testgrid = 0.0;
       for(iProc=0;iProc<numProcStates;iProc++){
         for(iState=0;iState<numStateUpAllProc[iProc];iState++){
           if(myidState==iProc){
@@ -2002,6 +1971,9 @@ void combineStoUCEnergyWindow(CP *cp,GENERAL_DATA *general_data,CLASS *class,
               }
               fragInfo->wfProjUp[iFrag][iChem*numStateStoUp*numStateUpMini+countWf*numStateUpMini+iStateFrag] 
                                       = proj*preDot*volMini;
+              //printf("ppppproj iChem %i countwf %i iStateFrag %i %lg\n",
+              //       iChem,countWf,iStateFrag,
+              //       fragInfo->wfProjUp[iFrag][iChem*numStateStoUp*numStateUpMini+countWf*numStateUpMini+iStateFrag]);
               //daxpyBlasWrapper(numGrid,proj,&coefUpFragProc[iFrag][iStateFrag*numGrid],1,&rhoFragTemp[0],1);
               for(iGrid=0;iGrid<numGridSmall;iGrid++){
                 rhoFragTemp[iGrid] += proj*coefUpFragProc[iFrag][iStateFrag*numGrid+gridMapProcSmall[iFrag][iGrid]];
@@ -2022,6 +1994,7 @@ void combineStoUCEnergyWindow(CP *cp,GENERAL_DATA *general_data,CLASS *class,
               //rhoTemp[gridIndex] = rhoFragTemp[iGrid]*rhoFragTemp[iGrid]; //debug     
               //fix_frag[iFrag][gridIndex] += rhoFragTemp[iGrid]*rhoFragTemp[iGrid]*pre;
             }
+            //testgrid += rhoFragTemp[0]*rhoFragTemp[0];
             free(wfFragTemp);
             free(rhoFragTemp);
           }//endif iFrag<numFragProc
@@ -2029,6 +2002,7 @@ void combineStoUCEnergyWindow(CP *cp,GENERAL_DATA *general_data,CLASS *class,
           countWf += 1;
         }//endfor iState   
       }//endfor iProc
+      //printf("1111111111 testgrid %lg\n",testgrid);
     }//endfor iChem
     if(iFrag<numFragProc){
       free(fragInfo->rhoUpFragProc[iFrag]);
@@ -2189,9 +2163,9 @@ void combineStoUCEnergyWindow(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 
     stodftInfo->numElecTrueFrag = numElecProj*preNe-numElecFrag/rhoRealGridTot+
                                   numElecSys;
-    printf("Number of Electron for StoWf is %.16lg %.16lg %.16lg\n",
+    printf("Number of Electron for StoWf is %.16lg %.16lg %.16lg %.16lg\n",
            numElecProj*preNe,numElecFrag/rhoRealGridTot,
-           stodftInfo->numElecTrueFrag);
+           stodftInfo->numElecTrueFrag,numElecSys);
   }
   
   // I would like to seperate them, but this will make life easier

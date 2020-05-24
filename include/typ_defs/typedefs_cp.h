@@ -445,6 +445,12 @@ typedef struct fragInfo{
   double *vnlFxCor;		    /* Lst: Nonlocal Pseudopotential correction */
   double *vnlFyCor;		    /*	    on nuclei force			*/
   double *vnlFzCor;		    /* Lth: natom_tot*3				*/
+  double *keStore,*vnlStore;        /* Lst: Store the fragment kenetic energy   */
+                                    /*      and non-local pseudopotential       */
+                                    /* Lth: numFragProc                         */
+  double **vnlFxStore;              /* Lst: Store the nonlocal pseudopential    */
+  double **vnlFyStore;              /*      force from fragment.                */
+  double **vnlFzStore;              /* Lth: numFragProc*numAtomCalc             */
   double **wfProjUp;		    /* Lst: Noise wave functions project on all */  
 				    /*	    fragment MOs			*/  
 				    /* Lth: numFragProc*nstat_up		*/
@@ -552,6 +558,9 @@ typedef struct stodftInfo{
 				    /*	    2 = Fermi erfc function		*/
 				    /*	    3 = Gaussian (debug only)		*/
   int numOrbital;	            /* Num: number of stochastic orbitals	*/
+  int storeChebyMomentsFlag;        /* Opt: store Chebyshev moments (=1) or not */
+                                    /*      (=0)                                */
+  int isFirstStepFlag;              /* Opt: First step? yes=1, no=0             */
   //We will use numOrbital to replace nstate
   int polynormLength;               /* Num: number of polynormials to expand    */
 				    /*	    the Fermi function.			*/
@@ -650,6 +659,11 @@ typedef struct stodftInfo{
                                     /*      system.                             */
   double numElecTrueFrag;	    /* Num: True number of electron while doing */
 				    /*	    fragmentation calculation		*/
+  double numElecSys;                /* Num: System number of electron. This is  */
+                                    /*      just a copy of numElecTrue in most  */
+                                    /*      cases. However, in ew+frag,         */
+                                    /*      fragment correction is SCF dependent*/
+                                    /*      and we need this copy of numElecSys.*/
   double randSeed;		    /* Num: Random number seed for noise orbital*/
   double *randSeedTot;		    /* Lst: Random number seed stored on each   */
 				    /*	    processor				*/

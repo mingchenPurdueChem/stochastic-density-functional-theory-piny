@@ -295,8 +295,9 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   stodftInfo->energyMax = energy+0.1;
   //debug
 #ifdef TEST_FILTER
-  stodftInfo->energyMax = 10.2688;
+  stodftInfo->energyMax = 10.20338948312444;
 #endif
+
   cpcoeffs_info->nstate_up_proc = numStateUpProc;
   cpcoeffs_info->nstate_dn_proc = numStateDnProc;
  
@@ -313,7 +314,7 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 
   if(myidState==0){
     printf("Finish estimating energy upperbound.\n");
-    printf("The energy upperbound is %lg.\n",stodftInfo->energyMax);
+    printf("The energy upperbound is %.16lg.\n",stodftInfo->energyMax);
     printf("==============================================\n");
     fflush(stdout);
   }
@@ -533,6 +534,9 @@ void genEnergyMin(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   stodftInfo->energyMin = -0.314882;
 #endif
 
+  stodftInfo->energyMin = -0.3082052344649276;
+
+
   cpcoeffs_info->nstate_up_proc = numStateUpProc;
   cpcoeffs_info->nstate_dn_proc = numStateDnProc;
 
@@ -547,7 +551,7 @@ void genEnergyMin(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 
   if(myidState==0){
     printf("Finish estimating energy lowerbound.\n");
-    printf("The energy lowerbound is %lg.\n",stodftInfo->energyMin);
+    printf("The energy lowerbound is %.16lg.\n",stodftInfo->energyMin);
     printf("==============================================\n");
     fflush(stdout);
   }

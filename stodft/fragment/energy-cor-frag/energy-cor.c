@@ -965,7 +965,6 @@ void calcVnlCorEnergyWindow(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDa
     }
     free(temp);
   }//endif cpLsda
-  printf("vnl %lg vnlCor %lg\n",vnl,vnlCor);
   if(isFirstStepFlag==1){
     fragInfo->vnlStore[iFrag] = vnl;
     *vnlCorProc += vnl-vnlCor;

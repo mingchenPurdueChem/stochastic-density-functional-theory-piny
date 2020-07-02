@@ -58,7 +58,8 @@ void calcChemPotCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int polynormLength = stodftInfo->polynormLength;
   int numChebyMoments = (polynormLength%2==0)?(polynormLength/2+1):((polynormLength+1)/2);
   int numFFTGridMutpl = 32;
-  int numChebyGrid = polynormLength*numFFTGridMutpl;
+  int numChebyGridInit = polynormLength*numFFTGridMutpl;
+  int numChebyGrid;
   int numStateUpProc = cpcoeffs_info->nstate_up_proc;
   int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
   int numCoeff       = cpcoeffs_info->ncoef;
@@ -105,6 +106,7 @@ void calcChemPotCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     chebyMomentsDn = stodftCoefPos->chebyMomentsDn;
   }
   if(myidState==0){
+    numChebyGrid = roundFFT(numChebyGridInit);
     stodftInfo->numChebyGrid = numChebyGrid;
     stodftCoefPos->chebyCoeffsFFT = fftw_malloc(numChebyGrid*sizeof(fftw_complex));
     stodftCoefPos->funValGridFFT = fftw_malloc(numChebyGrid*sizeof(fftw_complex));
@@ -335,7 +337,8 @@ void calcChemPotChebyEWFrag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int polynormLength = stodftInfo->polynormLength;
   int numChebyMoments = (polynormLength%2==0)?(polynormLength/2+1):((polynormLength+1)/2);
   int numFFTGridMutpl = 32;
-  int numChebyGrid = polynormLength*numFFTGridMutpl;
+  int numChebyGridInit = polynormLength*numFFTGridMutpl;
+  int numChebyGrid;
   int numStateUpProc = cpcoeffs_info->nstate_up_proc;
   int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
   int numCoeff       = cpcoeffs_info->ncoef;
@@ -374,6 +377,7 @@ void calcChemPotChebyEWFrag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /* I) Allocate memories */
    
   if(myidState==0){
+    numChebyGrid = roundFFT(numChebyGridInit);
     stodftInfo->numChebyGrid = numChebyGrid;
     stodftCoefPos->chebyCoeffsFFT = fftw_malloc(numChebyGrid*sizeof(fftw_complex));
     stodftCoefPos->funValGridFFT = fftw_malloc(numChebyGrid*sizeof(fftw_complex));

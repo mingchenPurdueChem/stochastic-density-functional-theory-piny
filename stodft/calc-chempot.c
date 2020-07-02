@@ -216,6 +216,7 @@ void genChemPotInterpPoints(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   double energyMin = chemPotInit-gapInit*0.5;
   double dE = gapInit/numChemPot;
   double chemPotTrue;
+  FILE *fileTest;
   
   // Generate Chebyshev nodes
   if(filterDiagFlag==0){
@@ -271,15 +272,13 @@ void genChemPotInterpPoints(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
           for(iNode=0;iNode<numChemPot-1;iNode++){
             chemPot[iNode] = energyMin+(iNode+1)*dE;
           }
-          // Debug
-          //double lambda = 0.01;
-          //chemPot[0] = energyMin+dE*lambda*2.0;
-          //for(iNode=0;iNode<numChemPot-1;iNode++)printf("chemPot %lg\n",chemPot[iNode]);
-          // double check the last chemical potential is correct...
-          //chemPot[numChemPot-2] = chemPotInit;
-          // Just give it some random values. This value will not be used
+          // DEBUG
+          fileTest = fopen("chempot","r");
+          for(iNode=0;iNode<numChemPot-1;iNode++)fscanf(fileTest,"%lg",&chemPot[iNode]);
+          fclose(fileTest);
           chemPot[numChemPot-1] = 100000.0;
           for(iNode=0;iNode<numChemPot;iNode++)chemPotBackUp[iNode] = chemPot[iNode];
+          for(iNode=0;iNode<numChemPot;iNode++)printf("ccccccccchempot %i %lg\n",iNode,chemPot[iNode]);
         }
         else{
           for(iNode=0;iNode<numChemPot;iNode++)chemPot[iNode] = chemPotBackUp[iNode];

@@ -894,7 +894,7 @@ void filterNewtonPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 void filterChebyPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
-			  int ip_now)
+			  int ip_now,int inverseFlag)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
@@ -1025,13 +1025,17 @@ void filterChebyPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     }//endfor iPoly
   }//endfor iState
 
+  //DEBUG
   /*
-  for(imu=0;imu<numChemPot;imu++){
-    for(iState=0;iState<numStatePrintUp;iState++){
-      printf("imu %i iState %i %lg\n",imu,iState,occupNumber[imu*numStatePrintUp+iState]);
+  if(myidState==0){
+    for(imu=0;imu<numChemPot;imu++){
+      for(iState=0;iState<numStatePrintUp;iState++){
+        printf("iiiiiiiimu %i iState %i %lg\n",imu,iState,occupNumber[imu*numStatePrintUp+iState]);
+      }
     }
   }
   */
+  
   
   /*
   for(iPoly=1;iPoly<polynormLength;iPoly++){
@@ -1072,6 +1076,18 @@ void filterChebyPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
           stoWfUpRe[imu][iState*numCoeff+iCoeff] += y*moUpRePrint[jState*numCoeff+iCoeff];
           stoWfUpIm[imu][iState*numCoeff+iCoeff] += y*moUpImPrint[jState*numCoeff+iCoeff];
         }
+      }
+    }
+  }
+
+  if(inverseFlag==1){
+    #pragma omp parallel for private(iState,iCoeff)
+    for(iState=0;iState<numStateUpProc;iState++){
+      for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+        stoWfUpRe[numChemPot-1][iState*numCoeff+iCoeff] = cre_up[iState*numCoeff+iCoeff]
+                                        -stoWfUpRe[numChemPot-1][iState*numCoeff+iCoeff];
+        stoWfUpIm[numChemPot-1][iState*numCoeff+iCoeff] = cim_up[iState*numCoeff+iCoeff]
+                                        -stoWfUpIm[numChemPot-1][iState*numCoeff+iCoeff];
       }
     }
   }

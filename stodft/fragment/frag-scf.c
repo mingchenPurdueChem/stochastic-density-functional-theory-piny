@@ -144,6 +144,8 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   // you don't have to use 'read checkpoint' option. You just need to 
   // redo the calculation and the program will read in the frag-MO-i file. 
   // as updated fragmentation MO files.
+  // DEBUG
+  //readCoeffFlag = 3;
   if(readCoeffFlag!=3){
     sprintf(fileNameFragMO,"frag-MO-%i",myidState);
     if(numFragProc>0){
@@ -182,7 +184,11 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     
       controlCpMinFrag(&classMini[iFrag],&bondedMini[iFrag],&generalDataMini[iFrag],
                        &cpMini[iFrag],&analysisMini[iFrag]);      
-      
+      if(iFrag==0){
+        printf("xxxxxxxyz %lg %lg %lg\n",classMini[0].clatoms_pos[1].x[1],
+                                         classMini[0].clatoms_pos[1].y[1],
+                                         classMini[0].clatoms_pos[1].z[1]);
+      }     
       /*
       if(myidState==0){
         fileFragMO = fopen("frag-MO-2","w");
@@ -288,6 +294,9 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     printf("new numChemPot %i\n",stodftInfo->numChemPot);
   }
   */
+
+  //fflush(stdout); 
+  //exit(0);
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/

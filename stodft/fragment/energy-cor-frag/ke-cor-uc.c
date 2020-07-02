@@ -166,7 +166,6 @@ void calcKECorUCEnergyWindow(CP *cpMini,GENERAL_DATA *generalDataMini,CLASS *cla
 /*======================================================================*/
 /* I) Calculate the matrix                                              */
 
-  printf("isFirstStepFlag %i\n",isFirstStepFlag);
   if(isFirstStepFlag==1){
     calcKEMatrixUC(generalDataMini,cpMini,classMini,cp,&ke);
   }

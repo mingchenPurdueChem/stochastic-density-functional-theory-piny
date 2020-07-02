@@ -15,6 +15,7 @@ void calcChebyCoeff(STODFTINFO *,STODFTCOEFPOS *,double *,double *, int, double)
 double calcFitErrorCheby(STODFTINFO *,STODFTCOEFPOS *,int);
 double testChebyCoeff(STODFTINFO *,STODFTCOEFPOS *,double *,double *, int, double);
 void genCoeffNewtonHermitEntropy(STODFTINFO *,STODFTCOEFPOS *);
+int roundFFT(int);
 /*-----------------------------------------------------------------*/
 /* filter.c                                                        */
 void filterNewtonPolyHerm(CP *,CLASS *,GENERAL_DATA *,int);
@@ -233,7 +234,7 @@ void scfStodftEnergyWindowFragTest(CLASS *,BONDED *,GENERAL_DATA *,
                     CP *,CLASS *,BONDED *,GENERAL_DATA *,CP *,
                     CP *, GENERAL_DATA *, CLASS *,int);
 void filterNewtonPolyHermFake(CP *,CLASS *,GENERAL_DATA *,int);
-void filterChebyPolyHermFake(CP *,CLASS *,GENERAL_DATA *,int);
+void filterChebyPolyHermFake(CP *,CLASS *,GENERAL_DATA *,int,int);
 void broadcastWfDet(CP *,CLASS *,GENERAL_DATA *,CP *);
 void calcChebyMomentsFake(CP *,CLASS *,GENERAL_DATA *,int);
 #endif

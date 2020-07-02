@@ -990,7 +990,8 @@ void calcChebyCoeffWrapper(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
   int fragWindowFlag     = stodftInfo->fragWindowFlag;
   int numChemPotTemp;
   int numFFTGridMutpl = 32;
-  int numChebyGrid = polynormLength*numFFTGridMutpl;
+  int numChebyGridInit = polynormLength*numFFTGridMutpl;
+  int numChebyGrid;
 
   double *expanCoeff       = (double*)stodftCoefPos->expanCoeff;
   double *chemPot          = stodftCoefPos->chemPot;
@@ -1000,8 +1001,9 @@ void calcChebyCoeffWrapper(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
 
   fftw_complex *chebyCoeffsFFT,*funValGridFFT;
 
-  printf("ttttttttttttttttttttttttt\n");
-
+  numChebyGrid = roundFFT(numChebyGridInit);
+  printf("numChebyGridInit %i numChebyGrid %i\n",numChebyGridInit,numChebyGrid);
+  
 
   stodftInfo->numChebyGrid = numChebyGrid;
   printf("ttt111\n");
@@ -1020,7 +1022,6 @@ void calcChebyCoeffWrapper(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
   for(iPoly=0;iPoly<polynormLength*numChemPot;iPoly++)expanCoeff[iPoly] = 0.0;
 
   //for(iChem=0;iChem<numChemPot;iChem++)printf("11111111 chemPot %lg\n",chemPot[iChem]);
-  printf("aaaaaaaaaaaaaaaaaaa\n");
 
   switch(filterFlag){
     case 0:
@@ -1114,8 +1115,6 @@ void calcChebyCoeff(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
   fermiFunction = stodftInfo->fermiFunctionReal;
   if(energyWindowOn==1)fermiFunctionLongDouble = stodftInfo->fermiFunctionLongDouble;
 
-  printf("bbbbbbbbbbbbbbbb\n");
-
   for(iGrid=0;iGrid<numChebyGrid;iGrid++){
     x = energyDiff*cos(pre*(double)iGrid/(double)numChebyGrid)+energyMean;
     // P_N = I-\sum_i P_i
@@ -1169,8 +1168,15 @@ void calcChebyCoeff(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
         funValGridFFT[iGrid] = (double)(1.0-fermiFunctionLongDouble(x,chemPot[0],beta));
         break;
       case 12: // \sqrt{P_N}
+#ifdef FAST_FILTER
+        // We can't use deterministic orbitals in the window for unoccupied orbitals.
+        // Therefre we use |chi>-(I-\sqrt{P_N})|chi> 
+        temp = (double)(1.0-fermiFunctionLongDouble(x,chemPot[0],beta));
+        funValGridFFT[iGrid] = 1.0-sqrt(temp);
+#else
         temp = (double)(1.0-fermiFunctionLongDouble(x,chemPot[0],beta));
         funValGridFFT[iGrid] = sqrt(temp);
+#endif
         break;
       case 13: // Entropy
         funValGridFFT[iGrid] = sqrt(-entropyReal(x,chemPotTest,beta));
@@ -1185,10 +1191,7 @@ void calcChebyCoeff(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
     //if(iGrid%1000==0)printf("x %lg funVal %lg\n",x,funValGridFFT[iGrid]);
   }
 
-  printf("ffttttttttttttttttttttt\n");
   fftw_execute(fftwPlanForward);
-  printf("ffttttttttttttttttttttt\n");
-
   
   for(iCoeff=1;iCoeff<polynormLength;iCoeff++){
     //printf("real %lg\n",creal(chebyCoeffsFFT[iCoeff]));
@@ -1404,8 +1407,13 @@ double testChebyCoeff(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
         funTrue = (double)(1.0-fermiFunctionLongDouble(x[iGrid],chemPot[0],beta));
         break;
       case 12: // \sqrt{P_N}
+#ifdef FAST_FILTER
+        temp = (double)(1.0-fermiFunctionLongDouble(x[iGrid],chemPot[0],beta));
+        funTrue = 1.0-sqrt(temp);
+#else
         temp = (double)(1.0-fermiFunctionLongDouble(x[iGrid],chemPot[0],beta));
         funTrue = sqrt(temp);
+#endif
         break;      
       default:
         printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
@@ -1522,6 +1530,57 @@ void genCoeffNewtonHermitEntropy(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoe
   //exit(0);
 
 /*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+int roundFFT(int numGridIn)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* With Chebyshev Polynormial we want the numChebyGrid to be 2^n*3^m     */
+/* m, n are choosen to be closest to 32*polynormLength (numGridIn).      */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+/*==========================================================================*/
+  int m,n;
+  int nmax,mnow;
+  int i,j,k;
+  int numGridOut = 1;
+  double ln2 = log(2.0);
+  double ln3 = log(3.0);
+  double lnn = log(numGridIn);
+  double min;
+  double x,y,z;
+  double diff;
+
+  nmax = (int)(lnn/ln2)+1;
+  min = fabs(pow(2.0,nmax)-numGridIn);
+  n = nmax;
+  m = 0;
+
+  for(i=0;i<nmax;i++){
+    x = fmax((lnn-i*ln2)/ln3,0.0);
+    mnow = (int)(x)+1;
+    diff = fabs(pow(2.0,i)*pow(3.0,mnow)-numGridIn);
+    //printf("difffffff %lg min %lg\n",diff,min);
+    if(diff<min){
+      m = mnow;
+      n = i;
+      min = diff;
+    }
+  }
+
+  //printf("mmmmmmm %i nnnnnnn %i\n",m,n);
+  for(i=0;i<n;i++)numGridOut *= 2;
+  for(i=0;i<m;i++)numGridOut *= 3;
+
+  return numGridOut;
+  
 }/*end Routine*/
 /*==========================================================================*/
 

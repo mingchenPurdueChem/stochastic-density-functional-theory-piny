@@ -1954,7 +1954,7 @@ void scfStodftEnergyWindowFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general
       genStoOrbitalEnergyWindowFragTest(class,general_data,
                        cp,generalDataMini,cpMini,classMini,class2,general_data2,cp2,ip_now);
 #else
-      genStoOrbitalEnergyWindowFragFake(class,general_data,
+      genStoOrbitalEnergyWindowFrag(class,general_data,
                        cp,generalDataMini,cpMini,classMini,ip_now);
 
 #endif

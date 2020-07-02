@@ -1491,10 +1491,6 @@ void combineStoUC(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   if(res==0)numFragProcMax = div;
   else numFragProcMax = div+1;
 
-  //DEBUG
-  FILE *frho;
-  FILE *frho_frag;
-
   //debug, output all wf filtered by frag wf
   //double *stowffrag = (double*)cmalloc(numStateUpAllProc[0]*rhoRealGridTot*sizeof(double));
   for(iFrag=0;iFrag<numFragProcMax;iFrag++){
@@ -1596,30 +1592,6 @@ void combineStoUC(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     }
     Barrier(commStates);
     Reduce(rhoTemp,rhoTempReduce,rhoRealGridTot,MPI_DOUBLE,MPI_SUM,0,commStates);
-    //DEBUG
-    /*
-    if(myidState==0){
-      frho = fopen("density-cor","w");
-      for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
-        fprintf(frho,"%.16lg\n",rhoTempReduce[iGrid]*pre);
-      }
-      fclose(frho);
-      for(iGrid=0;iGrid<rhoRealGridTot;iGrid++)rhoTempReduce[iGrid] = 0.0;
-    }
-    Barrier(commStates);
-    Gatherv(rhoUpFragSum,rhoRealGridNum,MPI_DOUBLE,rhoTempReduce,rhoRealSendCounts,
-            rhoRealDispls,MPI_DOUBLE,0,commStates);
-    if(myidState==0){
-      frho_frag = fopen("density-frag","w");
-      for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
-        fprintf(frho_frag,"%.16lg\n",rhoTempReduce[iGrid]);
-      }
-      fclose(frho_frag);
-    }
-    */
-    Barrier(commStates);
-    //fflush(stdout);
-    //exit(0);
     Scatterv(rhoTempReduce,rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
 	     rhoTemp,rhoRealGridNum,MPI_DOUBLE,0,commStates);
   } 

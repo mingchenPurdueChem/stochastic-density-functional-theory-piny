@@ -1286,7 +1286,6 @@ void interpReal(PSEUDO *pseudo,int numAtomType,int *lMap)
       vpsDevReal2[rGrid] = 0.0;
       vpsDevReal3[rGrid] = 0.0;
     }
-    printf("%p\n",vpsReal0);
 
     //for(rGrid=0;rGrid<numInterpGrid;rGrid++)rList[rGrid+1] = rGrid*dr;
     memcpy(&vpsReal0[1],&vNlSmooth[0],numInterpGrid*numRadTot*sizeof(double));
@@ -1301,7 +1300,6 @@ void interpReal(PSEUDO *pseudo,int numAtomType,int *lMap)
       }//endif isLocal
     }//endfor iRad
 
-    printf("%p\n",vpsReal0);
 
     memcpy(&vpsDevReal0[1],&dvNlSmooth[0],numInterpGrid*numRadTot*sizeof(double));
     memcpy(&de[1],&ddvNlSmooth[0],numInterpGrid*numRadTot*sizeof(double));
@@ -1314,8 +1312,6 @@ void interpReal(PSEUDO *pseudo,int numAtomType,int *lMap)
       }//endif isLocal
     }//endfor iRad
     // test middle point at each interval
-
-    printf("%p\n",vpsReal0);
 
     countBadSpline = 0;
     //double diffMax = 0.0;
@@ -1378,7 +1374,6 @@ void interpReal(PSEUDO *pseudo,int numAtomType,int *lMap)
     */
   }//endwhile
 
-    printf("%p\n",vpsReal0);
 
   pseudoReal->numInterpGrid = numInterpGrid;
   pseudoReal->dr = dr;
@@ -1390,8 +1385,6 @@ void interpReal(PSEUDO *pseudo,int numAtomType,int *lMap)
   pseudoReal->vpsDevReal1 = (double*)cmalloc((numInterpGrid*numRadTot+1)*sizeof(double));
   pseudoReal->vpsDevReal2 = (double*)cmalloc((numInterpGrid*numRadTot+1)*sizeof(double));
   pseudoReal->vpsDevReal3 = (double*)cmalloc((numInterpGrid*numRadTot+1)*sizeof(double));
-
-    printf("%p\n",vpsReal0);
 
 
   memcpy(&pseudoReal->vpsReal0[1],&vpsReal0[1],numInterpGrid*numRadTot*sizeof(double));

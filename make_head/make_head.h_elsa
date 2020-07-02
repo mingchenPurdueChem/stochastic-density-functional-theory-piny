@@ -15,12 +15,12 @@ CMALLOC =
 #--------------------------
 FC  = mpiifort
 CC  = mpiicc
-#OPT = -O2 -xSSE4.1 
-#OPT_CARE = -O2 -xSSE4.1 
-#OPT_GRP = -O2 -xSSE4.1
-OPT = -O0 -g
-OPT_CARE = -O0 -g
-OPT_GRP = -O0 -g
+OPT = -O2 -xSSE4.1 
+OPT_CARE = -O2 -xSSE4.1 
+OPT_GRP = -O2 -xSSE4.1
+#OPT = -O0 -g
+#OPT_CARE = -O0 -g
+#OPT_GRP = -O0 -g
 CFLAGS = -qopenmp -std=c99
 FFLAGS = -nofor_main
 #FFLAGS = 

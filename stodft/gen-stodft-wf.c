@@ -1633,7 +1633,14 @@ void genStoOrbitalEnergyWindowFrag(CLASS *class,GENERAL_DATA *general_data,
     if(numProcStates>1){
       Barrier(commStates);
       Bcast(&(stodftInfo->polynormLength),1,MPI_INT,0,commStates);
+      polynormLength = stodftInfo->polynormLength;
+      totalPoly = polynormLength*numChemPot;
+      if(myidState!=0){
+        stodftCoefPos->expanCoeff = (double*)crealloc(stodftCoefPos->expanCoeff,
+                                totalPoly*sizeof(double));
+      }
       Barrier(commStates);
+      Bcast(stodftCoefPos->expanCoeff,totalPoly,MPI_DOUBLE,0,commStates);
     }
     //printf("numChemPotTemp %i\n",numChemPotTemp);
   }
@@ -1705,7 +1712,7 @@ void genStoOrbitalEnergyWindowFrag(CLASS *class,GENERAL_DATA *general_data,
 /* X) Redo the Polynormial Fitting with Correct Chemical Potential      */
 
   if(expanType==1){
-    if(myidState==0)genChebyHermitTrueChemPot(stodftInfo,stodftCoefPos,4);
+    if(myidState==0)genChebyHermitTrueChemPot(stodftInfo,stodftCoefPos,3);
     if(numProcStates>1){
       Barrier(commStates);
       Bcast(&(stodftInfo->polynormLength),1,MPI_INT,0,commStates);
@@ -2319,7 +2326,7 @@ void genStoOrbitalChebyTest(CLASS *class,GENERAL_DATA *general_data,
   timeStart6 = omp_get_wtime();
   switch(expanType){
     case 1:
-      filterChebyPolyHermFake(cp,class,general_data,ip_now);
+      filterChebyPolyHermFake(cp,class,general_data,ip_now,0);
       break;
     case 2:
       filterNewtonPolyHermFake(cp,class,general_data,ip_now);
@@ -3207,7 +3214,7 @@ void genStoOrbitalEnergyWindowFragTest(CLASS *class,GENERAL_DATA *general_data,
   switch(expanType){
     case 1:
       stodftInfo->storeChebyMomentsFlag = 1;
-      filterChebyPolyHermFake(cp,class,general_data,ip_now);
+      filterChebyPolyHermFake(cp,class,general_data,ip_now,1);
       //filterChebyPolyHerm(cp,class,general_data,ip_now);
       stodftInfo->storeChebyMomentsFlag = 0;
       break;
@@ -3276,7 +3283,7 @@ void genStoOrbitalEnergyWindowFragTest(CLASS *class,GENERAL_DATA *general_data,
   // 2. Filtering
   switch(expanType){
     case 1:
-      filterChebyPolyHermFake(cp,class,general_data,ip_now);
+      filterChebyPolyHermFake(cp,class,general_data,ip_now,0);
       break;
   }
 

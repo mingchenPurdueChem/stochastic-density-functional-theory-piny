@@ -1344,6 +1344,7 @@ void calcRhoStoHybridCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
 
   if(numProcStates>1)Barrier(commStates);
 
+  FILE *frho;
   rhoCalcRealStoHybrid(cpscr,cpcoeffs_info,
 		 cell,stodftInfo,stoWfUpRe[0],
 		 stoWfUpIm[0],rhoTemp,*coefFormUp,*coefOrthUp,
@@ -1374,7 +1375,16 @@ void calcRhoStoHybridCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
     Reduce(&rhoTemp[1],rhoUpChemPot[0],rhoRealGridTot,MPI_DOUBLE,MPI_SUM,0,commStates);
     //Reduce(&rhoTemp[1],rhoReduce,rhoRealGridTot,MPI_DOUBLE,MPI_SUM,0,commStates);
     //if(myidState==0) memcpy(rhoUpChemPot[0],rhoReduce,rhoRealGridTot*sizeof(double));
+    //DEBUG
+    if(myidState==0){
+      frho = fopen("density-uncor","w");
+      for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+        fprintf(frho,"%.16lg\n",rhoUpChemPot[0][iGrid+1]*aveFactUp);
+      }
+      fclose(frho);
+    }
     Barrier(commStates);
+    
   }
   else memcpy(rhoUpChemPot[0],&rhoTemp[1],rhoRealGridTot*sizeof(double));
   if(cpLsda==1&&numStateDnProc!=0){
@@ -2087,8 +2097,8 @@ void calcRhoStoHybridEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *gene
   
   // TEST
   double *wfDetReal = stodftCoefPos->wfDetReal;
-  double *rhoLastWindow = (double*)calloc(numFFT2,sizeof(double));
-  double *rhoLastWindowDet = (double*)calloc(numFFT2,sizeof(double));
+  //double *rhoLastWindow = (double*)calloc(numFFT2,sizeof(double));
+  //double *rhoLastWindowDet = (double*)calloc(numFFT2,sizeof(double));
 
 /*==========================================================================*/
 /* I) Generate density in real space for all chem potentials		    */
@@ -2118,7 +2128,11 @@ void calcRhoStoHybridEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *gene
 
   for(iGrid=0;iGrid<rhoRealGridTot;iGrid++)rhoSum[iGrid] = 0.0;
 
+  //DEBUG
   double test;
+  FILE *frhowindow;
+  char fileName[100];
+  double *rhoWindowReduce;
   for(iChem=0;iChem<numChemPot;iChem++){
     //printf("!!!!!!!!!!!!! iChem %i\n",iChem);
     rhoCalcRealStoHybrid(cpscr,cpcoeffs_info,
@@ -2132,17 +2146,37 @@ void calcRhoStoHybridEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *gene
 		   &(cp->cp_sclr_fft_pkg3d_sm));
     test = 0.0;
     //printf("rhoTemp[1] %lg\n",rhoTemp[1]);
+    //DEBUG
+    if(numProcStates>1){
+      if(myidState==0)rhoWindowReduce = (double*)calloc(rhoRealGridTot,sizeof(double));
+      Barrier(commStates);
+      Reduce(&rhoTemp[1],&rhoWindowReduce[0],rhoRealGridTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+      Barrier(commStates);
+    }
+    else memcpy(&rhoWindowReduce[0],&rhoTemp[1],rhoRealGridTot*sizeof(double));
+    if(myidState==0){
+      sprintf(fileName,"density-window-%i",iChem);
+      frhowindow = fopen(fileName,"w");
+      for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+        fprintf(frhowindow,"%.16lg\n",rhoWindowReduce[iGrid]*aveFactUp);
+      }
+      fclose(frhowindow);
+      free(rhoWindowReduce);
+    }
+
     for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
       rhoSum[iGrid] += rhoTemp[iGrid+1];
-      test += rhoTemp[iGrid+1];
+      //test += rhoTemp[iGrid+1];
     }
     //printf("tttttttest %lg\n",test);
     // TEST
+    /*
     if(iChem==numChemPot-1){
       for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
         rhoLastWindow[iGrid] = rhoTemp[iGrid+1];
       }
     }
+    */
   }
   //printf("rhoSum[0] %lg\n",rhoSum[0]);
   if(numProcStates>1){
@@ -2185,7 +2219,7 @@ void calcRhoStoHybridEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *gene
     //printf("2222222222222222 aveFactUp %lg rhoUpChemPot[0][0] %lg\n",aveFactUp,rhoUpChemPot[0][0]);
     for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
       rhoUpChemPot[0][iGrid] *= aveFactUp;
-      rhoLastWindow[iGrid] *= aveFactUp;
+      //rhoLastWindow[iGrid] *= aveFactUp;
     }
     if(cpLsda==1&&numStateDnProc!=0){
       for(iGrid=0;iGrid<rhoRealGridTot;iGrid++)rhoDnChemPot[0][iGrid] *= aveFactDn;

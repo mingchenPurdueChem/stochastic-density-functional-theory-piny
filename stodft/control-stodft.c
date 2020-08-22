@@ -229,6 +229,9 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
       // We need to generate noise wave function one time before we do the projection
       //genNoiseOrbital(cp,&(cp->cpcoeffs_pos[ip_now]));
+      //Barrier(comm_states);
+      //fflush(stdout);
+      //exit(0);
       fragScf(class,bonded,general_data,cp,analysis,*generalDataMiniPoint,
 	      *cpMiniPoint,*classMiniPoint,*analysisMiniPoint,*bondedMiniPoint,ip_now);
       // Output fragmentation checkpoint

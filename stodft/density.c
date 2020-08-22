@@ -58,7 +58,7 @@ void rhoCalcRealStoHybrid(CPSCR *cpscr,
 /*==========================================================================*/
 #include "../typ_defs/typ_mask.h"
 
-  int i,ioff,ioff2,is,iupper;
+  int i,ioff,ioff2,is,iupper,j,k;
   int myid_state       =    communicate->myid_state;
   int np_states        =    communicate->np_states;
   int nfft_proc        =    cp_para_fft_pkg3d_lg->nfft_proc;
@@ -77,8 +77,11 @@ void rhoCalcRealStoHybrid(CPSCR *cpscr,
   double *hmat_cp        =    cell->hmat_cp;
   double sum_sq = 0.0;
   //debug
-  //char name[100];
-  //FILE *fstowf;
+  char name[100];
+  FILE *fstowf;
+
+  // test density matrix
+  double *realspace_wf = (double*)cmalloc(nstate*100*sizeof(double));
 
   MPI_Comm comm_states   =    communicate->comm_states;
 
@@ -138,6 +141,8 @@ void rhoCalcRealStoHybrid(CPSCR *cpscr,
     iupper = nstate-1; 
   }/* endif */
 
+  printf("1111111 nstate %i\n",nstate);
+
   for(is = 1; is <= iupper; is = is + 2){
     ioff   = (is-1)*ncoef;
     ioff2 = (is)*ncoef;
@@ -152,6 +157,11 @@ void rhoCalcRealStoHybrid(CPSCR *cpscr,
      convention exp(-igr)                                                   */
 
     para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+
+    for(i=0;i<100;i++){
+      realspace_wf[(is-1)*100+i] = zfft[i*2+1];
+      realspace_wf[is*100+i] = zfft[i*2+2];
+    }
   
 /*--------------------------------------------------------------------------*/
 /* III) add the square of the two wave functions to the density(real space) */
@@ -190,6 +200,10 @@ void rhoCalcRealStoHybrid(CPSCR *cpscr,
 
     para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
 
+    for(i=0;i<100;i++){
+      realspace_wf[(nstate-1)*100+i] = zfft[i*2+1];
+    }
+
 /*--------------------------------------------------------------------------*/
 /*VI) add the square of the last wave function to the density(real space)   */
 
@@ -200,6 +214,13 @@ void rhoCalcRealStoHybrid(CPSCR *cpscr,
     }/*endif cp_dual_grid_opt*/
   }/*endif*/
   
+  // output density matrix
+  sprintf(name,"wf-%i",myid_state);
+  fstowf = fopen(name,"a");
+  for(i=0;i<nstate*100;i++){
+    fprintf(fstowf,"%.16lg\n",realspace_wf[i]);
+  }
+  fclose(fstowf);
 
 /*==============================================================*/
 }/*end routine*/

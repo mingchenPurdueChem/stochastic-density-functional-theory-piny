@@ -534,9 +534,6 @@ void genEnergyMin(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   stodftInfo->energyMin = -0.314882;
 #endif
 
-  stodftInfo->energyMin = -0.3082052344649276;
-
-
   cpcoeffs_info->nstate_up_proc = numStateUpProc;
   cpcoeffs_info->nstate_dn_proc = numStateDnProc;
 

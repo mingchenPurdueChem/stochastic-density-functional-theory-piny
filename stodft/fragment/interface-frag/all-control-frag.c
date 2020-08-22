@@ -417,8 +417,9 @@ void controlMolParamsFrag(CLASS *class,GENERAL_DATA *general_data,
 /*========================================================================*/
 /*             Local variable declarations                                */
 
-  CLATOMS_INFO *clatoms_info = &(classMini->clatoms_info);
-  STODFTINFO *stodftInfo = cp->stodftInfo;
+  CLATOMS_INFO *clatoms_info   = &(classMini->clatoms_info);
+  STODFTINFO *stodftInfo       = cp->stodftInfo;
+  FRAGINFO *fragInfo           = stodftInfo->fragInfo;
   CPCOEFFS_INFO *cpcoeffs_info = &(cpMini->cpcoeffs_info);
   DICT_MOL dict_mol;                        /* Dictionaries and sizes */
   DICT_MOL *dictMolAll;
@@ -434,6 +435,8 @@ void controlMolParamsFrag(CLASS *class,GENERAL_DATA *general_data,
   int pi_beads       = classMini->clatoms_info.pi_beads;
   int np_forc        = classMini->communicate.np_forc;
   int numMolTyp	     = atommaps->nmol_typ;
+  int iFrag   = fragInfo->iFrag;
+  int numMolTypTrue  = fragInfo->numMolTypeFrag[iFrag];
   int iMolTyp;
   int iextend,ipress;
   int *mol_freeze_opt;
@@ -463,9 +466,9 @@ void controlMolParamsFrag(CLASS *class,GENERAL_DATA *general_data,
          +generalDataMini->simopts.cp
          +generalDataMini->simopts.cp_wave
          +generalDataMini->simopts.cp_pimd 
-     +generalDataMini->simopts.cp_wave_pimd
+         +generalDataMini->simopts.cp_wave_pimd
          +generalDataMini->simopts.debug_cp
-     +generalDataMini->simopts.debug_cp_pimd;
+         +generalDataMini->simopts.debug_cp_pimd;
 
 /*========================================================================*/
 /* 0) Output to screen */
@@ -527,7 +530,14 @@ void controlMolParamsFrag(CLASS *class,GENERAL_DATA *general_data,
   }/*endwhile*/
   fclose(fp);
 
+  // In some cases different fragments have different number of 
+  // molecular types. However, we are reading the SYSTEM set file
+  // which include all molecular types. Therefore, we need to 
+  // change the classMini->atommaps.nmol_typ to the TRUE molecular 
+  // type number, otherwise, we will have some "molecules" are not
+  // initialized in the following calculation.
   classMini->atommaps.nmol_typ    = nmol_typ;
+
   bondedMini->bond_free.num       = bond_free_num;
   bondedMini->bend_free.num       = bend_free_num;
   bondedMini->tors_free.num       = tors_free_num;
@@ -601,6 +611,8 @@ void controlMolParamsFrag(CLASS *class,GENERAL_DATA *general_data,
                 iextend,generalDataMini->statepoint.t_ext,ifirst,pi_beads,
                 dictMolAll);
 
+  
+  classMini->atommaps.nmol_typ = numMolTypTrue;
   /*
   controlSetMolParamsFrag(&(class->atommaps),&(cp->cpopts),
                          &(cp->cpcoeffs_info),cp_parse,class_parse,
@@ -989,6 +1001,7 @@ void controlSetMolParamsFrag(CP_PARSE *cp_parse,CLASS_PARSE *class_parse,
 /*=======================================================================*/
 /* IV) Check  indices                                                    */
 
+  /*
   for(i = 1;i<=nmol_typ;i++){
     if(mol_ind_chk[i]!=1){
       printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@  \n");
@@ -997,8 +1010,9 @@ void controlSetMolParamsFrag(CP_PARSE *cp_parse,CLASS_PARSE *class_parse,
       printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@  \n");
       fflush(stdout);
       exit(1);
-    }/*endif*/
-  } /*endfor*/
+    }//endif
+  } //endfor
+  */
 
 /*=======================================================================*/
 /* V) Check  free energy indices                                         */

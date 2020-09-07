@@ -188,14 +188,14 @@ void controlCpMinFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       }
 
       time_end = omp_get_wtime();
-      /*
+      
       printf("iStep %i time %lg elec_e %.16lg Delta_E %.16lg cp_eke %.16lg cp_enl %.16lg cp_ehart %.16lg cp_exc %.16lg cp_eext %.16lg\n",
             itime,time_end-time_st,
             elec_e,Delta_E,general_data->stat_avg.cp_eke,
             general_data->stat_avg.cp_enl,general_data->stat_avg.cp_ehart,general_data->stat_avg.cp_exc,
             general_data->stat_avg.cp_eext);
       //exit(0);
-      */
+      
 
       if(idone==1){
         printf("elec_e %.16lg Delta_E %.16lg cp_eke %.16lg cp_enl %.16lg cp_ehart %.16lg cp_exc %.16lg cp_eext %.16lg\n",

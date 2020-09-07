@@ -2120,6 +2120,8 @@ void genStoOrbitalChebyTest(CLASS *class,GENERAL_DATA *general_data,
   double diffTime4 = 0.0;
   double diffTime5 = 0.0;
   double diffTime6 = 0.0;
+  double timeStartAll,timeEndAll;
+  double diffTimeAll;
 
 
 /*======================================================================*/
@@ -2337,6 +2339,7 @@ void genStoOrbitalChebyTest(CLASS *class,GENERAL_DATA *general_data,
   diffTime6 = timeEnd6-timeStart6;
 
   printf("Gen-stowf time myid %i spec-range %.8lg gen-poly-length %.8lg gen-chempot %.8lg gen-poly-coeff %.8lg gen-rand %.8lg filter %.8lg\n",myidState,diffTime1,diffTime2,diffTime3,diffTime4,diffTime5,diffTime6);
+
 
 //debug print wave function
   //Barrier(commStates);

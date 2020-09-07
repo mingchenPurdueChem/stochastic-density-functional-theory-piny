@@ -898,6 +898,7 @@ void calcRhoFragInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
 
   memcpy(rhoUpCorrect,rhoUpFragSumCpy,rhoRealGridNum*sizeof(double));
+  //printf("rhoUpFragSumCpy %lg %lg %lg\n",rhoUpFragSumCpy[0],rhoUpFragSumCpy[100],rhoUpFragSumCpy[1000]);
   if(cpLsda==1&&numStateDnProc!=0){
     memcpy(rhoDnCorrect,rhoDnFragSumCpy,rhoRealGridNum*sizeof(double));
   }

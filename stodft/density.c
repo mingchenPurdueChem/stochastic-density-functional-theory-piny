@@ -81,7 +81,7 @@ void rhoCalcRealStoHybrid(CPSCR *cpscr,
   FILE *fstowf;
 
   // test density matrix
-  double *realspace_wf = (double*)cmalloc(nstate*100*sizeof(double));
+  //double *realspace_wf = (double*)cmalloc(nstate*100*sizeof(double));
 
   MPI_Comm comm_states   =    communicate->comm_states;
 
@@ -158,10 +158,12 @@ void rhoCalcRealStoHybrid(CPSCR *cpscr,
 
     para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
 
+    /*
     for(i=0;i<100;i++){
       realspace_wf[(is-1)*100+i] = zfft[i*2+1];
       realspace_wf[is*100+i] = zfft[i*2+2];
     }
+    */
   
 /*--------------------------------------------------------------------------*/
 /* III) add the square of the two wave functions to the density(real space) */
@@ -200,9 +202,11 @@ void rhoCalcRealStoHybrid(CPSCR *cpscr,
 
     para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
 
+    /*
     for(i=0;i<100;i++){
       realspace_wf[(nstate-1)*100+i] = zfft[i*2+1];
     }
+    */
 
 /*--------------------------------------------------------------------------*/
 /*VI) add the square of the last wave function to the density(real space)   */
@@ -215,12 +219,14 @@ void rhoCalcRealStoHybrid(CPSCR *cpscr,
   }/*endif*/
   
   // output density matrix
+  /*
   sprintf(name,"wf-%i",myid_state);
   fstowf = fopen(name,"a");
   for(i=0;i<nstate*100;i++){
     fprintf(fstowf,"%.16lg\n",realspace_wf[i]);
   }
   fclose(fstowf);
+  */
 
 /*==============================================================*/
 }/*end routine*/

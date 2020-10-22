@@ -194,6 +194,9 @@ void controlCpMinFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
             elec_e,Delta_E,general_data->stat_avg.cp_eke,
             general_data->stat_avg.cp_enl,general_data->stat_avg.cp_ehart,general_data->stat_avg.cp_exc,
             general_data->stat_avg.cp_eext);
+      printf("Delta_E %.8lg fc_mag_up %.8lg fc_mag_dn %.8lg\n",
+             Delta_E,fc_mag_up,fc_mag_dn);
+
       //exit(0);
       
 

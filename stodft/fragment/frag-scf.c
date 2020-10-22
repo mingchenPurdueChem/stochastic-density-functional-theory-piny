@@ -147,6 +147,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   // DEBUG
   //readCoeffFlag = 3;
   if(readCoeffFlag!=3){
+    /*
     sprintf(fileNameFragMO,"frag-MO-%i",myidState);
     if(numFragProc>0){
       fileFragMO = NULL;
@@ -169,7 +170,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
         printf("Inseated I'll use gen_wave as initial guess.\n");
       }
     }
-      
+    */  
     for(iFrag=0;iFrag<numFragProc;iFrag++){
 /*======================================================================*/
 /* I) Initialize Fragment SCF					        */

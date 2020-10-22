@@ -76,6 +76,8 @@ void controlEnergyNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
 	dotImAll[iAtom] = (double*)cmalloc((numNlppAtom[atomType]-1)*sizeof(double));
       }
     }//endfor iAtom 
+    cfree(dotReAll[0]);
+    dotReAll[0] = (double*)cmalloc(numNlppAtom[1]*sizeof(double));
   }
   
   wfReal = (double*)cmalloc(numGrid*sizeof(double));

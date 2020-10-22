@@ -2066,6 +2066,7 @@ void combineStoUCEnergyWindow(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   }//endfor iFrag
 
   //DEBUG
+  /*
   if(myidState==0){
     for(iChem=0;iChem<numChemPot;iChem++){
       sprintf(fileName,"density-window-correction-%i",iChem);
@@ -2075,7 +2076,8 @@ void combineStoUCEnergyWindow(CP *cp,GENERAL_DATA *general_data,CLASS *class,
       }
       fclose(fileout);
     }
-  }
+  } 
+  */
   
   /*
   for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){

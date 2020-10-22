@@ -13,9 +13,11 @@
 #include <math.h>
 #include <time.h>
 #include <complex.h>
-#include <fftw3.h>
-#include <mkl.h>
 #include <omp.h>
+#ifdef FFTW3
+#include "fftw3.h"
+#endif
+#include <mkl.h>
 #ifdef PARALLEL
 #include <mpi.h>
 #else

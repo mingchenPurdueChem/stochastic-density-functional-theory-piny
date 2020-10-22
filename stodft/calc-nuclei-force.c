@@ -106,6 +106,7 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
   double vrecip;
   double vself,vbgr;
   double vrecipLocal;
+  double temperature = 1.0/stodftInfo->beta;
 
   //double *energyKe  = stodftInfo->energyKe;
   //double *energyPNL = stodftInfo->energyPNL;
@@ -670,7 +671,7 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
     printf("Electron Ext Energy:          %.20lg\n",energyExtTemp);
     printf("Electron Ex-Cor Energy:       %.20lg\n",energyExcTemp);
     if(smearOpt>0){
-      printf("TS:                           %.16lg\n",stodftInfo->entropy);
+      printf("TS:                           %.16lg\n",temperature*stodftInfo->entropy);
     }
     printf("Electron Total Elec Energy:   %.20lg\n",energyTotElec);
     printf("Atom Energy:		  %.20lg\n",vInter);

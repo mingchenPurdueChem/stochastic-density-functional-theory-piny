@@ -626,9 +626,10 @@ void copyNlppReal(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   countType = 0;
   for(iAtom=0;iAtom<numAtomTot;iAtom++){
     atomTypeMini = iAtomAtomType[iAtom+1];
-    if(checkInList(atomTypeMini,atomTypeReorder,countType)==0){
+    if(checkInList(atomTypeMini,atomTypeGroup,countType)==0){
       atomTypeGroup[countType] = atomTypeMini;
       atomTypeRepresent[countType] = iAtom;
+      countType += 1;
     }
   }
 /*-----------------------------------------------------------------------*/
@@ -664,7 +665,6 @@ void copyNlppReal(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
     numRadMax[iType] = pseudoReal->numRadMax[indTypeLg];
     numGridRadSmooth[iType] = pseudoReal->numGridRadSmooth[indTypeLg];
     ppRealCut[iType] = pseudoReal->ppRealCut[indTypeLg];
-    printf("iType %i numLMax %i\n",iType,numLMax[iType]);
     atomLRadNum[iType] = (int*)cmalloc((numLMax[iType]+1)*sizeof(int));
     for(l=0;l<=numLMax[iType];l++){
       atomLRadNum[iType][l] = pseudoReal->atomLRadNum[indTypeLg][l];
@@ -765,7 +765,7 @@ void copyNlppReal(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   dotImAll = pseudoRealMini->dotImAll;
   for(iType=0;iType<numAtomType;iType++){
     numNlppAtom[iType] = 0;
-    for(iAng=0;iAng<numLMax[iType];iAng++){
+    for(iAng=0;iAng<=numLMax[iType];iAng++){
       numNlppAtom[iType] += atomLRadNum[iType][iAng]*(iAng+1);
     }//endfor iAng
   }//endfor iType

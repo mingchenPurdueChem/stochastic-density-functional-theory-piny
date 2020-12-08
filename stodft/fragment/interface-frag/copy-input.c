@@ -684,7 +684,7 @@ void copyNlppReal(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   }
   
   numRadTot = countRad;
-  pseudoReal->numRadTot = numRadTot;
+  pseudoRealMini->numRadTot = numRadTot;
   pseudoRealMini->vpsNormList = (double*)cmalloc(numRadTot*sizeof(double));
   pseudoRealMini->isLocal = (int*)cmalloc(numRadTot*sizeof(int));
   for(iType=0;iType<numAtomType;iType++){
@@ -717,10 +717,11 @@ void copyNlppReal(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   for(iType=0;iType<numAtomType;iType++){
     indTypeLg = atomTypeReorder[iType]-1;
     countRad = 0;
-    for(l=0;l<numLMax[iType];l++){
+    for(l=0;l<=numLMax[iType];l++){
       for(iRad=0;iRad<atomLRadNum[iType][l];iRad++){
 	radIndexLg = atomRadMapLg[indTypeLg][countRad+iRad];
 	radIndexFrag = atomRadMap[iType][countRad+iRad];
+        printf("iType %i indTypeLg %i l %i iRad %i radIndexFrag %i radIndexLg %i\n",iType,indTypeLg,l,iRad,radIndexFrag,radIndexLg);
 	//printf("iType %i indTypeLg %i l %i iRad %i radIndexLg %i radIndexFrag %i\n",
 	//	iType,indTypeLg,l,iRad,radIndexLg,radIndexFrag);
 	memcpy(&(pseudoRealMini->vpsReal0[radIndexFrag*numInterpGrid+1]),

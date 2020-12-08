@@ -694,6 +694,9 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
               fxCl[iAtom+1],fyCl[iAtom+1],fzCl[iAtom+1]);
     }
     */
+    FILE *fileEnergy = fopen("total-energy","w");
+    fprintf(fileEnergy,"%.16lg\n",energyTot);
+    fclose(fileEnergy);
   }
 
 
@@ -1303,6 +1306,9 @@ void calcEnergyForceFilterDiag(CLASS *class,GENERAL_DATA *general_data,CP *cp,BO
               fxCl[iAtom+1],fyCl[iAtom+1],fzCl[iAtom+1]);
     }
     */
+    FILE *fileEnergy = fopen("total-energy","w");
+    fprintf(fileEnergy,"%.16lg\n",energyTot);
+    fclose(fileEnergy);
   }
 
 /*======================================================================*/

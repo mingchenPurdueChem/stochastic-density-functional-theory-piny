@@ -320,6 +320,7 @@ void calcTotEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*--------------------------------------------------------------------------*/
 /* V) Calculate entropy                                                     */
 
+  printf("smearOpt %i\n",smearOpt);
   if(smearOpt>0)calcStoEntropy(cp);
 
 /*--------------------------------------------------------------------------*/

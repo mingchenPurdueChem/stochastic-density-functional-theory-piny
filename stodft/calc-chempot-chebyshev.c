@@ -444,6 +444,7 @@ void calcChemPotChebyEWFrag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       }      
     }
     
+    stodftInfo->printChebyMoment = 1;
     if(stodftInfo->printChebyMoment==1){
       FILE *filecheby = fopen("cheby-moment-output","w");
       for(iPoly=0;iPoly<=polynormLength;iPoly++){
@@ -501,6 +502,7 @@ void calcChemPotChebyEWFrag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     chemPotNew = (numElecTrue-numElecMin)*(chemPotMax-chemPotMin)/(numElecMax-numElecMin)+
 		  chemPotMin;  
     numElecNew = calcNumElecCheby(cp,chemPotNew,chebyCoeffs); 
+    //printf("Why not run! %lg %lg\n",fabs(numElecNew-numElecTrue),numElecTol);
     while(fabs(numElecNew-numElecTrue)>numElecTol){
       if(numElecNew>numElecTrue){
 	chemPotMax = chemPotNew;
@@ -979,6 +981,7 @@ void calcChebyMomentsFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 
 
   int iSto,iState,iCoeff,iPoly;
+  int iProc;
   int index1,index2,index3;
   int polynormLength = stodftInfo->polynormLength;
   int numStateUpProc = cpcoeffs_info->nstate_up_proc;
@@ -987,6 +990,11 @@ void calcChebyMomentsFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int numStatePrintUp = stodftInfo->numStatePrintUp;
   int myidState       = communicate->myid_state;
   int numProcStates = communicate->np_states;
+  int *numStates22 = cp->stodftInfo->numStates2;
+  int *dsplStates22 = cp->stodftInfo->dsplStates2;
+  int *numStates;
+
+  MPI_Comm comm_states = communicate->comm_states;
 
   double Smin           = chebyshevInfo->Smin;
   double Smax           = chebyshevInfo->Smax;
@@ -1007,11 +1015,21 @@ void calcChebyMomentsFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   double *moUpImPrint = stodftCoefPos->moUpImPrint;
   double *coeffReUp = cpcoeffs_pos->cre_up;
   double *coeffImUp = cpcoeffs_pos->cim_up;
+  double *coeffReUpStore = NULL;
+  double *coeffImUpStore = NULL;
+  double *stoDetDotProc = NULL;
 
 /*--------------------------------------------------------------------------*/
 /* i) dot product between deterministic MO and noise orbital */  
 
   stoDetDot = (double*)cmalloc(numStatePrintUp*sizeof(double));
+  numStates = (int*)cmalloc(numProcStates*sizeof(int));
+  if(numProcStates>1){
+    Allgather(&numStateUpProc,1,MPI_INT,numStates,1,MPI_INT,0,comm_states);
+  }
+  else{
+    numStates[0] = numStateUpProc;
+  }
 
   genNoiseOrbitalReal(cp,cpcoeffs_pos);
   /*
@@ -1025,6 +1043,7 @@ void calcChebyMomentsFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   fclose(fnoise);
   */
 
+  /*
   for(iState=0;iState<numStatePrintUp;iState++){
     index2 = iState*numCoeff;
     stoDetDot[iState] = 0.0;
@@ -1040,7 +1059,47 @@ void calcChebyMomentsFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       stoDetDot[iState] += sum*sum;
     }
   }
+  */
+  stoDetDotProc = (double*)calloc(numStates22[myidState],sizeof(double));
 
+  
+  for(iProc=0;iProc<numProcStates;iProc++){
+    coeffReUpStore = (double*)crealloc(coeffReUpStore,numStates[iProc]*numCoeff*sizeof(double));
+    coeffImUpStore = (double*)crealloc(coeffImUpStore,numStates[iProc]*numCoeff*sizeof(double));
+    
+    for(iState=0;iState<numStates22[myidState];iState++)stoDetDotProc[iState] = 0.0;
+    if(myidState==iProc){
+      memcpy(coeffReUpStore,&coeffReUp[1],numStates[iProc]*numCoeff*sizeof(double));
+      memcpy(coeffImUpStore,&coeffImUp[1],numStates[iProc]*numCoeff*sizeof(double));
+    }
+    if(numProcStates>1){
+      Bcast(coeffReUpStore,numStates[iProc]*numCoeff,MPI_DOUBLE,iProc,comm_states);
+      Bcast(coeffImUpStore,numStates[iProc]*numCoeff,MPI_DOUBLE,iProc,comm_states);
+    }
+    for(iSto=0;iSto<numStates[iProc];iSto++){
+      index1 = iSto*numCoeff;
+      for(iState=0;iState<numStates22[myidState];iState++){
+        index2 = iState*numCoeff;
+        sum = 0.0;
+        for(iCoeff=0;iCoeff<numCoeff-1;iCoeff++){
+          sum += coeffReUpStore[index1+iCoeff]*moUpRePrint[index2+iCoeff]+
+                 coeffImUpStore[index1+iCoeff]*moUpImPrint[index2+iCoeff];
+        }
+        sum *= 2.0;
+        sum += coeffReUpStore[index1+numCoeff-1]*moUpRePrint[index2+numCoeff-1];
+        stoDetDotProc[iState] += sum*sum;
+      }
+    }
+    if(numProcStates>1){
+      Barrier(comm_states);
+      Gatherv(stoDetDotProc,numStates22[myidState],MPI_DOUBLE,
+              stoDetDot,numStates22,dsplStates22,MPI_DOUBLE,
+              iProc,comm_states);
+      Barrier(comm_states);
+    }
+    if(numProcStates>1)Barrier(comm_states);
+  }//endfor iProc
+  
 /*--------------------------------------------------------------------------*/
 /* ii) Chebyshev poly for all energy levels */
 
@@ -1075,10 +1134,13 @@ void calcChebyMomentsFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   }
 
   printf("11111111 %lg\n",chebyMomentsUp[0]);
+  if(numProcStates>1)Barrier(comm_states);
 
   free(stoDetDot);
+  free(stoDetDotProc);
   free(chebyEnergy);
-
+  free(coeffReUpStore);
+  free(coeffImUpStore);
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/

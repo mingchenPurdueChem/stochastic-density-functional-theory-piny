@@ -274,6 +274,22 @@ void genNoiseOrbitalReal(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
   }
   fclose(fileRand);
   */
+  //debug
+  char fileNameRand[100];
+  FILE *fileRand;
+  printf("I'm reading noise orbital\n");
+  sprintf(fileNameRand,"rand-%i",myidState);
+  fileRand = fopen(fileNameRand,"r");
+  for(iStat=0;iStat<numStatUpProc;iStat++){
+    for(iGrid=0;iGrid<nfft2;iGrid++){
+      fscanf(fileRand,"%lg",&randNum[iStat*nfft2+iGrid]);
+      //if(randNum[iStat*nfft2+iGrid]<0.0)fprintf(fileRand,"-1.0\n");
+      //else fprintf(fileRand,"1.0\n");
+    }
+  }
+  fclose(fileRand);
+  
+  
   for(iStat=0;iStat<numStatUpProc;iStat++){
     for(iGrid=0;iGrid<nfft2;iGrid++){
       if(randNum[iStat*nfft2+iGrid]<0.0) zfft[iGrid*2+1] = -ranValue;
@@ -290,6 +306,7 @@ void genNoiseOrbitalReal(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
     }
     coeffReUp[iOff+numCoeff] *= 0.5;
     coeffImUp[iOff+numCoeff] = 0.0;
+    printf("myid %i iStat %i %.16lg\n",myidState,iStat,coeffReUp[iStat*numCoeff+1]);
   }
   if(cpLsda==1){
     for(iStat=1;iStat<=numStatDnTot;iStat++){

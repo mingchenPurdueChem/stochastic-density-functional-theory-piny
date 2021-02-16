@@ -65,9 +65,14 @@ typedef struct communicate{
   MPI_Comm comm_forc_source; /* Sourc Forc communciator : INNER */
   MPI_Comm comm_forc_target; /* Sourc Forc communciator : OUTER */
   MPI_Comm comm_faux;        /* NOTHING */
+#ifdef FAST_FILTER
+  //int myid_ext,np_ext;
+  //MPI_Comm world_ext;
 
+#endif
   int numThreads;
   int numThreadsFFTW3;
+  int numThreadsMKL;
 
 } COMMUNICATE;
 

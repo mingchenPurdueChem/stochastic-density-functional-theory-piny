@@ -51,7 +51,7 @@
  }/*endif*/
 
 /*==========================================================================*/
-/* I) Build different communicators                                        */
+/* I) Build different communicators                                         */
 
  if(num_proc>1){
 
@@ -137,6 +137,7 @@
   cp->communicate.np_forc_trg    =  class->communicate.np_forc_trg;
   cp->communicate.numThreads     = class->communicate.numThreads;
   cp->communicate.numThreadsFFTW3     = class->communicate.numThreadsFFTW3;
+  cp->communicate.numThreadsMKL       = class->communicate.numThreadsMKL;
 
   cp->communicate.myid             = class->communicate.myid;
   cp->communicate.myid_bead        = class->communicate.myid_bead;
@@ -145,10 +146,16 @@
   cp->communicate.myid_forc        = class->communicate.myid_forc;
   cp->communicate.myid_forc_source = class->communicate.myid_forc_source;
   cp->communicate.myid_forc_target = class->communicate.myid_forc_target;
-
-
+#ifdef FAST_FILTER
+  /*
+  cp->communicate.np_ext = class->communicate.np_ext;
+  cp->communicate.myid_ext = class->communicate.myid_ext;
+  if(cp->communicate.np_ext>1){
+    cp->communicate.world_ext = class->communicate.world_ext;
+  }
+  */
+#endif
   if(cp->communicate.np>1){
-
 #ifdef DUPLICATE_NOT_CORRECT
     Comm_dup(class->communicate.world,&(cp->communicate.world));
     Comm_dup(class->communicate.comm_beads,&(cp->communicate.comm_beads));

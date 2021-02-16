@@ -1405,7 +1405,7 @@ void calcRhoStoHybridCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
     if(myidState==0){
       frho = fopen("density-uncor","w");
       for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
-        fprintf(frho,"%.16lg\n",rhoUpChemPot[0][iGrid+1]*aveFactUp);
+        fprintf(frho,"%.16lg\n",rhoUpChemPot[0][iGrid]*aveFactUp);
       }
       fclose(frho);
     }
@@ -1849,65 +1849,53 @@ void calcRhoFilterDiagHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_d
   double **rhoDnChemPot = stodftCoefPos->rhoDnChemPot;
 
   double *rhoTemp  = (double*)cmalloc(numFFT2*sizeof(double))-1;
-  double *rhoReduce;
 
   MPI_Comm commStates   =    commCP->comm_states;
   
   if(myidState==0){
     // Just use the first rhoRealGridTot grid points
-    rhoReduce = (double*)cmalloc(numFFT2*sizeof(double));
     for(iGrid=0;iGrid<rhoRealGridTot;iGrid++)rhoUpChemPot[0][iGrid] = 0.0;
   }//endif myidState
 
 /*==========================================================================*/
 /* I) Reduce the densities                                             */
 
-  for(iChem=0;iChem<numChemPot;iChem++){
-    //debug
-    /*
-    if(myidState==densityMap[iChem]){
-      for(iGrid=0;iGrid<rhoRealGridTot;iGrid++)rhoUpChemPot[indexChemProc[iChem]][iGrid] = 0.0;
-    }
-    */
-    //end debug
-    rhoCalcRealStoHybrid(cpscr,cpcoeffs_info,
-                   cell,stodftInfo,stoWfUpRe[iChem],
-                   stoWfUpIm[iChem],rhoTemp,*coefFormUp,*coefOrthUp,
-                   numStateUpProc,numCoeff,cpDualGridOptOn,commCP,
-                   &(cp->cp_para_fft_pkg3d_lg),
-                   &(cp->cp_sclr_fft_pkg3d_lg),
-                   &(cp->cp_para_fft_pkg3d_dens_cp_box),
-                   &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
-                   &(cp->cp_sclr_fft_pkg3d_sm));
-    //debug
-    //end debug
-    if(numProcStates>1){
-      Barrier(commStates);
-      Reduce(&rhoTemp[1],rhoReduce,rhoRealGridTot,MPI_DOUBLE,
-             MPI_SUM,0,commStates);
-      //MPI_Reduce(&rhoTemp[1],rhoUpChemPot[0],rhoRealGridTot,MPI_DOUBLE,MPI_SUM,densityMap[iChem],commStates);
-      Barrier(commStates);
-      if(myidState==0){
-	for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
-	  rhoUpChemPot[0][iGrid] += rhoReduce[iGrid];
-	}
-	//printf("iChem %i rho[0] %lg\n",iChem,rhoUpChemPot[0][0]);
-      }
-      Barrier(commStates);
-    }
-    else{
-      for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
-	rhoUpChemPot[0][iGrid] += rhoTemp[iGrid+1];
-      }//endfor iGrid
-    }
-    //else memcpy(rhoUpChemPot[iChem],&rhoTemp[1],rhoRealGridTot*sizeof(double));
-    //debug
-    //printf("iChem %i rhoTemp %lg rhoUp %lg\n",iChem,rhoTemp[4001],rhoUpChemPot[iChem][4000]);
-    // Calculate the average density, haven't scale by 1/volume
-  }//endfor iChem
+  //debug
+  /*
+  if(myidState==densityMap[iChem]){
+    for(iGrid=0;iGrid<rhoRealGridTot;iGrid++)rhoUpChemPot[indexChemProc[iChem]][iGrid] = 0.0;
+  }
+  */
+  //end debug
+  rhoCalcRealStoHybrid(cpscr,cpcoeffs_info,
+                 cell,stodftInfo,stoWfUpRe[iChem],
+                 stoWfUpIm[iChem],rhoTemp,*coefFormUp,*coefOrthUp,
+                 numStateUpProc,numCoeff,cpDualGridOptOn,commCP,
+                 &(cp->cp_para_fft_pkg3d_lg),
+                 &(cp->cp_sclr_fft_pkg3d_lg),
+                 &(cp->cp_para_fft_pkg3d_dens_cp_box),
+                 &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
+                 &(cp->cp_sclr_fft_pkg3d_sm));
+  //debug
+  //end debug
+  if(numProcStates>1){
+    Barrier(commStates);
+    Reduce(&rhoTemp[1],rhoUpChemPot[0],rhoRealGridTot,MPI_DOUBLE,
+           MPI_SUM,0,commStates);
+    //MPI_Reduce(&rhoTemp[1],rhoUpChemPot[0],rhoRealGridTot,MPI_DOUBLE,MPI_SUM,densityMap[iChem],commStates);
+    Barrier(commStates);
+  }
+  else{
+    for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+      rhoUpChemPot[0][iGrid] = rhoTemp[iGrid+1];
+    }//endfor iGrid
+  }
+  //else memcpy(rhoUpChemPot[iChem],&rhoTemp[1],rhoRealGridTot*sizeof(double));
+  //debug
+  //printf("iChem %i rhoTemp %lg rhoUp %lg\n",iChem,rhoTemp[4001],rhoUpChemPot[iChem][4000]);
+  // Calculate the average density, haven't scale by 1/volume
 
   free(&rhoTemp[1]);
-  if(myidState==0)free(rhoReduce);
   
   if(numProcStates>1)Barrier(commStates);
 
@@ -1921,7 +1909,7 @@ void calcRhoFilterDiagHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_d
     }
     else memcpy(rhoUpCorrect,rhoUpChemPot[0],rhoRealGridTot*sizeof(double));
   }
-
+  if(myidState==0)free(rhoUpChemPot[0]);
   // Test the total number of electron again
   double numElecTest = 0.0;
   for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)numElecTest += rhoUpCorrect[iGrid];

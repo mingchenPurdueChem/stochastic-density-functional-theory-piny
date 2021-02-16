@@ -2018,9 +2018,10 @@ void combineStoUCEnergyWindow(CP *cp,GENERAL_DATA *general_data,CLASS *class,
               }
               fragInfo->wfProjUp[iFrag][iChem*numStateStoUp*numStateUpMini+countWf*numStateUpMini+iStateFrag] 
                                       = proj*preDot*volMini;
-              //printf("ppppproj iChem %i countwf %i iStateFrag %i %lg\n",
+              //printf("ppppproj iChem %i countwf %i iStateFrag %i %lg %lg %lg\n",
               //       iChem,countWf,iStateFrag,
-              //       fragInfo->wfProjUp[iFrag][iChem*numStateStoUp*numStateUpMini+countWf*numStateUpMini+iStateFrag]);
+              //       fragInfo->wfProjUp[iFrag][iChem*numStateStoUp*numStateUpMini+countWf*numStateUpMini+iStateFrag],
+              //       preDot,volMini);
               //daxpyBlasWrapper(numGrid,proj,&coefUpFragProc[iFrag][iStateFrag*numGrid],1,&rhoFragTemp[0],1);
               for(iGrid=0;iGrid<numGridSmall;iGrid++){
                 rhoFragTemp[iGrid] += proj*coefUpFragProc[iFrag][iStateFrag*numGrid+gridMapProcSmall[iFrag][iGrid]];
@@ -2112,18 +2113,22 @@ void combineStoUCEnergyWindow(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   
   double sumElecFrag = 0.0;
   double sumElecProj = 0.0;
+  double sumElecFragTest;
+  double sumElecProjTest;
   for(iProc=0;iProc<numProcStates;iProc++){
     if(myidState==iProc){
       for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
 	sumElecFrag += rhoUpFragSum[iGrid];
 	sumElecProj += pre*rhoTemp[iGrid];
       }
+      sumElecFragTest = sumElecFrag;
+      sumElecProjTest = sumElecProj;
       sumElecFrag /= rhoRealGridTot;
       sumElecProj /= rhoRealGridTot;
     }
     if(numProcStates>1)Barrier(commStates);
   }
-  //printf("11111111111111 sumElecFrag %.16lg sumElecProj %.16lg\n",sumElecFrag,sumElecProj);
+  //printf("11111111111111 sumElecFrag %.16lg %.16lg sumElecProj %.16lg %.16lg %.16lg\n",sumElecFragTest,sumElecFrag,sumElecProjTest,sumElecProj,pre);
   if(numProcStates>1)Barrier(commStates);
   
   daxpyBlasWrapper(rhoRealGridNum,-pre,&rhoTemp[0],1,&rhoUpFragSum[0],1);

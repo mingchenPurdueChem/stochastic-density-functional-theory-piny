@@ -1006,18 +1006,12 @@ void calcChebyCoeffWrapper(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
   
 
   stodftInfo->numChebyGrid = numChebyGrid;
-  printf("ttt111\n");
   stodftCoefPos->chebyCoeffsFFT = fftw_malloc(numChebyGrid*sizeof(fftw_complex));
-  printf("ttt222\n");
   stodftCoefPos->funValGridFFT = fftw_malloc(numChebyGrid*sizeof(fftw_complex));
-  printf("ttt333\n");
   chebyCoeffsFFT = stodftCoefPos->chebyCoeffsFFT;
-  printf("ttt444\n");
   funValGridFFT = stodftCoefPos->funValGridFFT;
-  printf("ttt555\n");
   stodftInfo->fftwPlanForward = fftw_plan_dft_1d(numChebyGrid,funValGridFFT,chebyCoeffsFFT,
                                   FFTW_FORWARD,FFTW_MEASURE);
-  printf("ttt666\n");
 
   for(iPoly=0;iPoly<polynormLength*numChemPot;iPoly++)expanCoeff[iPoly] = 0.0;
 
@@ -1110,10 +1104,12 @@ void calcChebyCoeff(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
   fftw_complex *funValGridFFT = stodftCoefPos->funValGridFFT;
 
   FERMIFUNR fermiFunction;
+  //FERMIFUNR fermiFunctionLongDouble;
   FERMIFUNLR fermiFunctionLongDouble;
 
   fermiFunction = stodftInfo->fermiFunctionReal;
   if(energyWindowOn==1)fermiFunctionLongDouble = stodftInfo->fermiFunctionLongDouble;
+  //if(energyWindowOn==1)fermiFunctionLongDouble = stodftInfo->fermiFunctionReal;
 
   for(iGrid=0;iGrid<numChebyGrid;iGrid++){
     x = energyDiff*cos(pre*(double)iGrid/(double)numChebyGrid)+energyMean;

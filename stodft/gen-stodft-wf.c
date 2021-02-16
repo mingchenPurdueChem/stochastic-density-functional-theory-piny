@@ -2023,12 +2023,17 @@ void genStoOrbitalChebyTest(CLASS *class,GENERAL_DATA *general_data,
 
   COMMUNICATE   *commCP	        = &(cp->communicate);
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  CPCOEFFS_INFO *cpcoeffs_info2  = &(cp2->cpcoeffs_info);
+
   CPCOEFFS_POS  *cpcoeffs_pos   = &(cp->cpcoeffs_pos[ip_now]);
+  CPCOEFFS_POS  *cpcoeffs_pos2   = &(cp2->cpcoeffs_pos[ip_now]);
+
   MPI_Comm commStates = commCP->comm_states;
   
 
   int iPoly,iState,iState2,iCoeff,iChem;
   int numChemPot = stodftInfo->numChemPot;
+  int numChemPot2 = stodftInfo2->numChemPot;
   int polynormLength = stodftInfo->polynormLength;
   int expanType = stodftInfo->expanType;
   int numProcStates = commCP->np_states;
@@ -2038,6 +2043,8 @@ void genStoOrbitalChebyTest(CLASS *class,GENERAL_DATA *general_data,
   int cpDualGridOptOn = cpopts->cp_dual_grid_opt;
   int numStateUpProc = cpcoeffs_info->nstate_up_proc;
   int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
+  int numStateUpProc2 = cpcoeffs_info2->nstate_up_proc;
+  int numStateDnProc2 = cpcoeffs_info2->nstate_dn_proc;
   int numCoeff       = cpcoeffs_info->ncoef;
   int totalPoly;
   int numCoeffUpTot   = numStateUpProc*numCoeff;
@@ -2114,12 +2121,21 @@ void genStoOrbitalChebyTest(CLASS *class,GENERAL_DATA *general_data,
   double timeStart4,timeEnd4;
   double timeStart5,timeEnd5;
   double timeStart6,timeEnd6;
+  double timeStart01,timeEnd01;
+  double timeStart02,timeEnd02;
+  double timeStart03,timeEnd03;
+  double timeStart04,timeEnd04;
   double diffTime1 = 0.0;
   double diffTime2 = 0.0;
   double diffTime3 = 0.0;
   double diffTime4 = 0.0;
   double diffTime5 = 0.0;
   double diffTime6 = 0.0;
+  double diffTime01 = 0.0;
+  double diffTime02 = 0.0;
+  double diffTime03 = 0.0;
+  double diffTime04 = 0.0;
+
   double timeStartAll,timeEndAll;
   double diffTimeAll;
 
@@ -2135,12 +2151,58 @@ void genStoOrbitalChebyTest(CLASS *class,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* I) Filter Diag */
 
-  stodftInfo2->iScf = stodftInfo->iScf;
-  genStoOrbitalInterp(class2,general_data2,cp2,ip_now);
-  orthDiagDriver(cp2,class2,general_data2,ip_now);
-  
-  broadcastWfDet(cp2,class2,general_data2,cp); 
+  // free stodft part 
+  for(iChem=0;iChem<numChemPot;iChem++){
+    cfree(&(stoWfUpRe[iChem][1]));
+    cfree(&(stoWfUpIm[iChem][1]));
+  }
+  cfree(&coeffReUp[1]);
+  cfree(&coeffImUp[1]);
+  cfree(&(cpcoeffs_pos->fcre_up[1]));
+  cfree(&(cpcoeffs_pos->fcim_up[1]));
 
+  // allocate filter diag part
+  for(iChem=0;iChem<numChemPot2;iChem++){
+    stodftCoefPos2->stoWfUpRe[iChem] = (double*)cmalloc(numStateUpProc2*numCoeff*sizeof(double))-1;
+    stodftCoefPos2->stoWfUpIm[iChem] = (double*)cmalloc(numStateUpProc2*numCoeff*sizeof(double))-1;
+  }
+  cpcoeffs_pos2->cre_up = (double*)cmalloc(numStateUpProc2*numCoeff*sizeof(double))-1;
+  cpcoeffs_pos2->cim_up = (double*)cmalloc(numStateUpProc2*numCoeff*sizeof(double))-1;
+  cpcoeffs_pos2->fcre_up = (double*)cmalloc(numStateUpProc2*numCoeff*sizeof(double))-1;
+  cpcoeffs_pos2->fcim_up = (double*)cmalloc(numStateUpProc2*numCoeff*sizeof(double))-1;
+
+  stodftInfo2->iScf = stodftInfo->iScf;
+
+  timeStart01 = omp_get_wtime();
+  genStoOrbitalInterp(class2,general_data2,cp2,ip_now);
+  timeEnd01 = omp_get_wtime();
+  diffTime01 = timeEnd01-timeStart01;
+
+  timeStart02 = omp_get_wtime();
+  orthDiagDriver(cp2,class2,general_data2,ip_now);
+  timeEnd02 = omp_get_wtime();
+  diffTime02 = timeEnd02-timeStart02;
+
+  timeStart03 = omp_get_wtime();
+  broadcastWfDet(cp2,class2,general_data2,cp); 
+  timeEnd03 = omp_get_wtime();
+  diffTime03 = timeEnd03-timeStart03;
+
+  // free filter diag part
+  // Done in filter diag
+ 
+  // allocate stodft part
+  for(iChem=0;iChem<numChemPot;iChem++){
+    stoWfUpRe[iChem] = (double*)cmalloc(numCoeffUpTot*sizeof(double))-1;
+    stoWfUpIm[iChem] = (double*)cmalloc(numCoeffUpTot*sizeof(double))-1;
+  }
+  cpcoeffs_pos->cre_up = (double*)cmalloc(numCoeffUpTot*sizeof(double))-1;
+  cpcoeffs_pos->cim_up = (double*)cmalloc(numCoeffUpTot*sizeof(double))-1;
+  cpcoeffs_pos->fcre_up = (double*)cmalloc(numCoeffUpTot*sizeof(double))-1;
+  cpcoeffs_pos->fcim_up = (double*)cmalloc(numCoeffUpTot*sizeof(double))-1;
+  coeffReUp = cpcoeffs_pos->cre_up;
+  coeffImUp = cpcoeffs_pos->cim_up;
+  
 /*======================================================================*/
 /* I) Set flags			    */
 
@@ -2177,7 +2239,6 @@ void genStoOrbitalChebyTest(CLASS *class,GENERAL_DATA *general_data,
   stodftInfo->energyMean = 0.5*(energyMin+energyMax);
   timeEnd1 = omp_get_wtime();
   diffTime1 = timeEnd1-timeStart1;
-
 
 /*======================================================================*/
 /* III) Generate Length of Polynomial Chain		                */
@@ -2232,7 +2293,7 @@ void genStoOrbitalChebyTest(CLASS *class,GENERAL_DATA *general_data,
 
 /*======================================================================*/
 /* IV) Calculate the True Chemical Potential                            */
-
+  
   timeStart3 = omp_get_wtime();
   calcChemPotCheby(cp,class,general_data,ip_now);
   timeEnd3 = omp_get_wtime();
@@ -2338,7 +2399,7 @@ void genStoOrbitalChebyTest(CLASS *class,GENERAL_DATA *general_data,
   timeEnd6 = omp_get_wtime();
   diffTime6 = timeEnd6-timeStart6;
 
-  printf("Gen-stowf time myid %i spec-range %.8lg gen-poly-length %.8lg gen-chempot %.8lg gen-poly-coeff %.8lg gen-rand %.8lg filter %.8lg\n",myidState,diffTime1,diffTime2,diffTime3,diffTime4,diffTime5,diffTime6);
+  printf("Gen-stowf time myid %i spec-range %.8lg gen-poly-length %.8lg gen-chempot %.8lg gen-poly-coeff %.8lg gen-rand %.8lg filter %.8lg fd_filter %.8lg fd_diag %.8lg fd_bcast %.8lg\n",myidState,diffTime1,diffTime2,diffTime3,diffTime4,diffTime5,diffTime6,diffTime01,diffTime02,diffTime03);
 
 
 //debug print wave function
@@ -2390,11 +2451,18 @@ void genStoOrbitalEnergyWindowTest(CLASS *class,GENERAL_DATA *general_data,
   CPOPTS       *cpopts       = &(cp->cpopts);
   CPSCR	       *cpscr	     = &(cp->cpscr);
   STODFTINFO   *stodftInfo   = cp->stodftInfo;
+
   STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  STODFTCOEFPOS *stodftCoefPos2 = cp2->stodftCoefPos;
+
   NEWTONINFO   *newtonInfo      = stodftInfo->newtonInfo;
   COMMUNICATE   *commCP	        = &(cp->communicate);
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  CPCOEFFS_INFO *cpcoeffs_info2 = &(cp2->cpcoeffs_info);
+
   CPCOEFFS_POS  *cpcoeffs_pos   = &(cp->cpcoeffs_pos[ip_now]);
+  CPCOEFFS_POS  *cpcoeffs_pos2  = &(cp2->cpcoeffs_pos[ip_now]);
+
   MPI_Comm commStates = commCP->comm_states;
 
   CPSCR        *cpscr2       = &(cp2->cpscr);
@@ -2417,6 +2485,10 @@ void genStoOrbitalEnergyWindowTest(CLASS *class,GENERAL_DATA *general_data,
   int numCoeffUpTotal   = numStateUpProc*numCoeff;
   int numCoeffDnTotal   = numStateDnProc*numCoeff;
   int rhoRealGridTot    = stodftInfo->rhoRealGridTot;
+
+  int numChemPot2 = stodftInfo2->numChemPot;
+  int numStateUpProc2 = cpcoeffs_info2->nstate_up_proc;
+  int numStateDnProc2 = cpcoeffs_info2->nstate_dn_proc;
 
   int *coefFormUp   = &(cpcoeffs_pos->icoef_form_up);
   int *forceFormUp  = &(cpcoeffs_pos->ifcoef_form_up);
@@ -2503,12 +2575,46 @@ void genStoOrbitalEnergyWindowTest(CLASS *class,GENERAL_DATA *general_data,
 
 /*======================================================================*/
 /* I) Filter Diag */
+  // free stodft part 
+  for(iChem=0;iChem<numChemPot;iChem++){
+    cfree(&(stoWfUpRe[iChem][1]));
+    cfree(&(stoWfUpIm[iChem][1]));
+  }
+  cfree(&coeffReUp[1]);
+  cfree(&coeffImUp[1]);
+  cfree(&(cpcoeffs_pos->fcre_up[1]));
+  cfree(&(cpcoeffs_pos->fcim_up[1]));
+
+  // allocate filter diag part
+  for(iChem=0;iChem<numChemPot2;iChem++){
+    stodftCoefPos2->stoWfUpRe[iChem] = (double*)cmalloc(numStateUpProc2*numCoeff*sizeof(double))-1;
+    stodftCoefPos2->stoWfUpIm[iChem] = (double*)cmalloc(numStateUpProc2*numCoeff*sizeof(double))-1;
+  }
+  cpcoeffs_pos2->cre_up = (double*)cmalloc(numStateUpProc2*numCoeff*sizeof(double))-1;
+  cpcoeffs_pos2->cim_up = (double*)cmalloc(numStateUpProc2*numCoeff*sizeof(double))-1;
+  cpcoeffs_pos2->fcre_up = (double*)cmalloc(numStateUpProc2*numCoeff*sizeof(double))-1;
+  cpcoeffs_pos2->fcim_up = (double*)cmalloc(numStateUpProc2*numCoeff*sizeof(double))-1;
 
   stodftInfo2->iScf = stodftInfo->iScf;
   genStoOrbitalInterp(class2,general_data2,cp2,ip_now);
   orthDiagDriver(cp2,class2,general_data2,ip_now);
 
   broadcastWfDet(cp2,class2,general_data2,cp);
+
+  // free filter diag part
+  // Done in filter diag
+
+  // allocate stodft part
+  for(iChem=0;iChem<numChemPot;iChem++){
+    stoWfUpRe[iChem] = (double*)cmalloc(numCoeffUpTotal*sizeof(double))-1;
+    stoWfUpIm[iChem] = (double*)cmalloc(numCoeffUpTotal*sizeof(double))-1;
+  }
+  cpcoeffs_pos->cre_up = (double*)cmalloc(numCoeffUpTotal*sizeof(double))-1;
+  cpcoeffs_pos->cim_up = (double*)cmalloc(numCoeffUpTotal*sizeof(double))-1;
+  cpcoeffs_pos->fcre_up = (double*)cmalloc(numCoeffUpTotal*sizeof(double))-1;
+  cpcoeffs_pos->fcim_up = (double*)cmalloc(numCoeffUpTotal*sizeof(double))-1;
+  coeffReUp = cpcoeffs_pos->cre_up;
+  coeffImUp = cpcoeffs_pos->cim_up;
 
 /*======================================================================*/
 /* III) Set flags			    */
@@ -2709,11 +2815,18 @@ void genStoOrbitalInterpTest(CLASS *class,GENERAL_DATA *general_data,CP *cp,
   CPOPTS       *cpopts       = &(cp->cpopts);
   CPSCR	       *cpscr	     = &(cp->cpscr);
   STODFTINFO   *stodftInfo   = cp->stodftInfo;
+
   STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  STODFTCOEFPOS *stodftCoefPos2 = cp2->stodftCoefPos;
+
   NEWTONINFO   *newtonInfo      = stodftInfo->newtonInfo;
   COMMUNICATE   *commCP	        = &(cp->communicate);
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  CPCOEFFS_INFO *cpcoeffs_info2 = &(cp2->cpcoeffs_info);
+
   CPCOEFFS_POS  *cpcoeffs_pos   = &(cp->cpcoeffs_pos[ip_now]);
+  CPCOEFFS_POS  *cpcoeffs_pos2  = &(cp2->cpcoeffs_pos[ip_now]);
+
   MPI_Comm commStates = commCP->comm_states;
   
   CPSCR        *cpscr2       = &(cp2->cpscr);
@@ -2735,6 +2848,11 @@ void genStoOrbitalInterpTest(CLASS *class,GENERAL_DATA *general_data,CP *cp,
   int numCoeffUpTot   = numStateUpProc*numCoeff;
   int numCoeffDnTot   = numStateDnProc*numCoeff;
   int rhoRealGridTot    = stodftInfo->rhoRealGridTot;
+
+  int numChemPot2 = stodftInfo2->numChemPot;
+  int numStateUpProc2 = cpcoeffs_info2->nstate_up_proc;
+  int numStateDnProc2 = cpcoeffs_info2->nstate_dn_proc;
+
 
   int *coefFormUp   = &(cpcoeffs_pos->icoef_form_up);
   int *forceFormUp  = &(cpcoeffs_pos->ifcoef_form_up);
@@ -2813,6 +2931,25 @@ void genStoOrbitalInterpTest(CLASS *class,GENERAL_DATA *general_data,CP *cp,
 
 /*======================================================================*/
 /* I) Filter Diag */
+  // free stodft part 
+  for(iChem=0;iChem<numChemPot;iChem++){
+    cfree(&(stoWfUpRe[iChem][1]));
+    cfree(&(stoWfUpIm[iChem][1]));
+  }
+  cfree(&coeffReUp[1]);
+  cfree(&coeffImUp[1]);
+  cfree(&(cpcoeffs_pos->fcre_up[1]));
+  cfree(&(cpcoeffs_pos->fcim_up[1]));
+
+  // allocate filter diag part
+  for(iChem=0;iChem<numChemPot2;iChem++){
+    stodftCoefPos2->stoWfUpRe[iChem] = (double*)cmalloc(numStateUpProc2*numCoeff*sizeof(double))-1;
+    stodftCoefPos2->stoWfUpIm[iChem] = (double*)cmalloc(numStateUpProc2*numCoeff*sizeof(double))-1;
+  }
+  cpcoeffs_pos2->cre_up = (double*)cmalloc(numStateUpProc2*numCoeff*sizeof(double))-1;
+  cpcoeffs_pos2->cim_up = (double*)cmalloc(numStateUpProc2*numCoeff*sizeof(double))-1;
+  cpcoeffs_pos2->fcre_up = (double*)cmalloc(numStateUpProc2*numCoeff*sizeof(double))-1;
+  cpcoeffs_pos2->fcim_up = (double*)cmalloc(numStateUpProc2*numCoeff*sizeof(double))-1;
 
   stodftInfo2->iScf = stodftInfo->iScf;
   genStoOrbitalInterp(class2,general_data2,cp2,ip_now);
@@ -2820,6 +2957,20 @@ void genStoOrbitalInterpTest(CLASS *class,GENERAL_DATA *general_data,CP *cp,
 
   broadcastWfDet(cp2,class2,general_data2,cp);
 
+  // free filter diag part
+  // Done in filter diag
+
+  // allocate stodft part
+  for(iChem=0;iChem<numChemPot;iChem++){
+    stoWfUpRe[iChem] = (double*)cmalloc(numCoeffUpTot*sizeof(double))-1;
+    stoWfUpIm[iChem] = (double*)cmalloc(numCoeffUpTot*sizeof(double))-1;
+  }
+  cpcoeffs_pos->cre_up = (double*)cmalloc(numCoeffUpTot*sizeof(double))-1;
+  cpcoeffs_pos->cim_up = (double*)cmalloc(numCoeffUpTot*sizeof(double))-1;
+  cpcoeffs_pos->fcre_up = (double*)cmalloc(numCoeffUpTot*sizeof(double))-1;
+  cpcoeffs_pos->fcim_up = (double*)cmalloc(numCoeffUpTot*sizeof(double))-1;
+  coeffReUp = cpcoeffs_pos->cre_up;
+  coeffImUp = cpcoeffs_pos->cim_up;
 
 /*======================================================================*/
 /* III) Set flags			    */
@@ -2998,11 +3149,16 @@ void genStoOrbitalEnergyWindowFragTest(CLASS *class,GENERAL_DATA *general_data,
   CPSCR        *cpscr        = &(cp->cpscr);
   STODFTINFO   *stodftInfo   = cp->stodftInfo;
   STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+
   NEWTONINFO   *newtonInfo      = stodftInfo->newtonInfo;
   CHEBYSHEVINFO *chebyshevInfo = stodftInfo->chebyshevInfo;
   COMMUNICATE   *commCP         = &(cp->communicate);
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  CPCOEFFS_INFO *cpcoeffs_info2 = &(cp2->cpcoeffs_info);
+
   CPCOEFFS_POS  *cpcoeffs_pos   = &(cp->cpcoeffs_pos[ip_now]);
+  CPCOEFFS_POS  *cpcoeffs_pos2  = &(cp2->cpcoeffs_pos[ip_now]);
+
   MPI_Comm commStates = commCP->comm_states;
   CELL *cell = &(general_data->cell);
 
@@ -3030,6 +3186,10 @@ void genStoOrbitalEnergyWindowFragTest(CLASS *class,GENERAL_DATA *general_data,
   int rhoRealGridTot = stodftInfo->rhoRealGridTot;
   int fragWindowFlag = stodftInfo->fragWindowFlag;
   int homoIndex;
+
+  int numChemPot2 = stodftInfo2->numChemPot;
+  int numStateUpProc2 = cpcoeffs_info2->nstate_up_proc;
+  int numStateDnProc2 = cpcoeffs_info2->nstate_dn_proc;
 
   int *coefFormUp   = &(cpcoeffs_pos->icoef_form_up);
   int *forceFormUp  = &(cpcoeffs_pos->ifcoef_form_up);
@@ -3100,11 +3260,46 @@ void genStoOrbitalEnergyWindowFragTest(CLASS *class,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* I) Filter Diag */
 
+  // free stodft part 
+  for(iChem=0;iChem<numChemPot;iChem++){
+    cfree(&(stoWfUpRe[iChem][1]));
+    cfree(&(stoWfUpIm[iChem][1]));
+  }
+  cfree(&coeffReUp[1]);
+  cfree(&coeffImUp[1]);
+  cfree(&(cpcoeffs_pos->fcre_up[1]));
+  cfree(&(cpcoeffs_pos->fcim_up[1]));
+
+  // allocate filter diag part
+  for(iChem=0;iChem<numChemPot2;iChem++){
+    stodftCoefPos2->stoWfUpRe[iChem] = (double*)cmalloc(numStateUpProc2*numCoeff*sizeof(double))-1;
+    stodftCoefPos2->stoWfUpIm[iChem] = (double*)cmalloc(numStateUpProc2*numCoeff*sizeof(double))-1;
+  }
+  cpcoeffs_pos2->cre_up = (double*)cmalloc(numStateUpProc2*numCoeff*sizeof(double))-1;
+  cpcoeffs_pos2->cim_up = (double*)cmalloc(numStateUpProc2*numCoeff*sizeof(double))-1;
+  cpcoeffs_pos2->fcre_up = (double*)cmalloc(numStateUpProc2*numCoeff*sizeof(double))-1;
+  cpcoeffs_pos2->fcim_up = (double*)cmalloc(numStateUpProc2*numCoeff*sizeof(double))-1;
+
   stodftInfo2->iScf = stodftInfo->iScf;
   genStoOrbitalInterp(class2,general_data2,cp2,ip_now);
   orthDiagDriver(cp2,class2,general_data2,ip_now);
 
   broadcastWfDet(cp2,class2,general_data2,cp);
+
+  // free filter diag part
+  // Done in filter diag
+
+  // allocate stodft part
+  for(iChem=0;iChem<numChemPot;iChem++){
+    stoWfUpRe[iChem] = (double*)cmalloc(numCoeffUpTot*sizeof(double))-1;
+    stoWfUpIm[iChem] = (double*)cmalloc(numCoeffUpTot*sizeof(double))-1;
+  }
+  cpcoeffs_pos->cre_up = (double*)cmalloc(numCoeffUpTot*sizeof(double))-1;
+  cpcoeffs_pos->cim_up = (double*)cmalloc(numCoeffUpTot*sizeof(double))-1;
+  cpcoeffs_pos->fcre_up = (double*)cmalloc(numCoeffUpTot*sizeof(double))-1;
+  cpcoeffs_pos->fcim_up = (double*)cmalloc(numCoeffUpTot*sizeof(double))-1;
+  coeffReUp = cpcoeffs_pos->cre_up;
+  coeffImUp = cpcoeffs_pos->cim_up;
 
 /*======================================================================*/
 /* I) Set flags                                                         */

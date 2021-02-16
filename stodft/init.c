@@ -1884,16 +1884,20 @@ void initFilterDiag(CP *cp)
     printf("Start Initializing Filter Diagonalization!\n");
     stodftCoefPos->wfBfOrthUp = (double *)cmalloc(2*numCoeffUpAllProc*
 				sizeof(double));
-    stodftCoefPos->wfOrthUpRe = (double *)cmalloc(numCoeffUpAllProc*
-				sizeof(double))-1;
-    stodftCoefPos->wfOrthUpIm = (double *)cmalloc(numCoeffUpAllProc*
-				sizeof(double))-1;
-    stodftCoefPos->KSMatrix = (double *)cmalloc(numStateUpAllProc*numStateUpAllProc*
-				sizeof(double));
+    //stodftCoefPos->wfOrthUpRe = (double *)cmalloc(numCoeffUpAllProc*
+    //	 			sizeof(double))-1;
+    //stodftCoefPos->wfOrthUpIm = (double *)cmalloc(numCoeffUpAllProc*
+    //				sizeof(double))-1;
+    //stodftCoefPos->KSMatrix = (double *)cmalloc(numStateUpAllProc*numStateUpAllProc*
+    //				sizeof(double));
   }
-  stodftCoefPos->energyLevel = (double*)cmalloc(numStateUpAllProc*sizeof(double));
-  stodftCoefPos->moUpRe = (double*)cmalloc(numCoeffUpTotal*numChemPot*sizeof(double))-1;
-  stodftCoefPos->moUpIm = (double*)cmalloc(numCoeffUpTotal*numChemPot*sizeof(double))-1;
+  stodftCoefPos->KSMatrix = NULL;
+  //stodftCoefPos->energyLevel = (double*)cmalloc(numStateUpAllProc*sizeof(double));
+  stodftCoefPos->energyLevel = NULL;
+  //stodftCoefPos->moUpRe = (double*)cmalloc(numCoeffUpTotal*numChemPot*sizeof(double))-1;
+  //stodftCoefPos->moUpIm = (double*)cmalloc(numCoeffUpTotal*numChemPot*sizeof(double))-1;
+  stodftCoefPos->moUpRe = NULL;
+  stodftCoefPos->moUpIm = NULL;
 
 /*===========================================================================*/
 /* II) MPI things  */
@@ -1902,8 +1906,14 @@ void initFilterDiag(CP *cp)
   stodftInfo->stowfDispls = (int*)cmalloc(numProcStates*sizeof(int));
   stodftInfo->stowfRecvCountsComplex = (int*)cmalloc(numProcStates*sizeof(int));
   stodftInfo->stowfDisplsComplex = (int*)cmalloc(numProcStates*sizeof(int));
+  stodftInfo->stowfRecvCountsComplex2 = (int*)cmalloc(numProcStates*sizeof(int));
+  stodftInfo->stowfDisplsComplex2 = (int*)cmalloc(numProcStates*sizeof(int));
+
   stodftInfo->numStates = (int*)cmalloc(numProcStates*sizeof(int));
   stodftInfo->dsplStates = (int*)cmalloc(numProcStates*sizeof(int));
+  stodftInfo->numStates2 = (int*)cmalloc(numProcStates*sizeof(int));
+  stodftInfo->dsplStates2 = (int*)cmalloc(numProcStates*sizeof(int));
+
 
   stowfRecvCounts = stodftInfo->stowfRecvCounts;
   stowfDispls = stodftInfo->stowfDispls;
@@ -1912,7 +1922,8 @@ void initFilterDiag(CP *cp)
   Barrier(comm_states);
 
   if(numProcStates>1){
-    Allgather(&numCoeffUpAllChemPot,1,MPI_INT,stowfRecvCounts,1,MPI_INT,0,comm_states);
+    Allgather(&numCoeffUpTotal,1,MPI_INT,stowfRecvCounts,1,MPI_INT,0,comm_states); 
+    //Allgather(&numCoeffUpAllChemPot,1,MPI_INT,stowfRecvCounts,1,MPI_INT,0,comm_states);
   }
   //Gather(&numCoeffUpAllProc,1,MPI_INT,stowfRecvCounts,numProcStates,MPI_INT,0,comm_states); 
   //Bcast(stowfRecvCounts,numProcStates,MPI_INT,0,comm_states);
@@ -1923,7 +1934,7 @@ void initFilterDiag(CP *cp)
     stowfDispls[iProc] = stowfDispls[iProc-1]+stowfRecvCounts[iProc-1];
   }
   for(iProc=0;iProc<numProcStates;iProc++){
-    stodftInfo->stowfRecvCountsComplex[iProc ] = stowfRecvCounts[iProc]*2;
+    stodftInfo->stowfRecvCountsComplex[iProc] = stowfRecvCounts[iProc]*2;
     stodftInfo->stowfDisplsComplex[iProc] = stowfDispls[iProc]*2;
   }
 

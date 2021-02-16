@@ -438,25 +438,9 @@ void calcKNEEnergyFilterDiag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   }
   Barrier(commStates);
   
-  for(iChem=0;iChem<numChemPot;iChem++){
     stat_avg->vrecip = 0.0;
     stat_avg->cp_enl = 0.0;
-    for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
-      cre_up[iCoeff] = stoWfUpRe[iChem][iCoeff];
-      cim_up[iCoeff] = stoWfUpIm[iChem][iCoeff];
-      fcre_up[iCoeff] = 0.0;
-      fcim_up[iCoeff] = 0.0;
-    }//endfor iCoeff
-    if(cpLsda==1&&numStateDnProc!=0){
-      for(iCoeff=1;iCoeff<=numCoeffDnTotal;iCoeff++){
-        cre_dn[iCoeff] = stoWfDnRe[iChem][iCoeff];
-        cim_dn[iCoeff] = stoWfDnIm[iChem][iCoeff];
-        fcre_dn[iCoeff] = 0.0;
-        fcim_dn[iCoeff] = 0.0;
-      }//endfor iCoeff
-    }//endif cpLsda
-
-    
+   
     eke = 0.0;
     for(iState=0;iState<numStateUpProc;iState++){
       ioff = iState*numCoeff;
@@ -521,7 +505,6 @@ void calcKNEEnergyFilterDiag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       energyPNL[0] += energyNLTemp;
       //printf("iChem %i chemPot %lg K %lg NL %lg\n",iChem,chemPot[iChem],energyKineticTemp,energyNLTemp);
     }
-  }//endfor iChem
   /*
   // debug
   printf("Hartree Energy: %.6lg\n",stat_avg->cp_ehart);
@@ -534,18 +517,16 @@ void calcKNEEnergyFilterDiag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 
   if(smearOpt>0){
     entropy = 0.0;
-    for(iChem=0;iChem<numChemPot;iChem++){
-      for(iState=0;iState<numStateUpProc;iState++){
-        occNow = numOccDetProc[iChem*numStateUpProc+iState];
-        if(cpLsda==0) occNow = occNow*occNow*0.5;
-        else occNow = occNow*occNow;
-        //printf("occNow %lg\n",occNow);
-        if(occNow>1.0e-13&&occNow<1.0-1.0e-13){
-          entropy += occNow*log(occNow)+(1.0-occNow)*log(1.0-occNow);
-          printf("occNow %lg entropy %lg\n",occNow,entropy);
-        }//endif occNow
-      }//endfor iState
-    }//endfor iChem
+    for(iState=0;iState<numStateUpProc;iState++){
+      occNow = numOccDetProc[iState];
+      if(cpLsda==0) occNow = occNow*occNow*0.5;
+      else occNow = occNow*occNow;
+      //printf("occNow %lg\n",occNow);
+      if(occNow>1.0e-13&&occNow<1.0-1.0e-13){
+        entropy += occNow*log(occNow)+(1.0-occNow)*log(1.0-occNow);
+        printf("occNow %lg entropy %lg\n",occNow,entropy);
+      }//endif occNow
+    }//endfor iState
     printf("entropy %lg\n",entropy);
     if(numProcStates>1){
       Reduce(&entropy,&entropyTotal,1,MPI_DOUBLE,MPI_SUM,0,commStates);

@@ -63,6 +63,12 @@
   GENERAL_DATA general_data2;
   CP cp2;
   ANALYSIS analysis2;
+  MPI_Group world_group;
+  MPI_Group calc_group;
+  int np_local;
+  int myid_local;
+  int i;
+  int *index_local;
 #endif
 
 /*=======================================================================*/
@@ -79,9 +85,45 @@
 /*=======================================================================*/
 /* II)            Initialize MPI                                         */
 
+#ifdef FAST_FILTER
+  /*
+  // Here we wan to leave (np_local-1)'th process to do SVD and gemm ONLY
+  // The (np_local-1)'th process will be on a different node
+
+  Init(&argc,&argv,&class.communicate.world_ext);
+  // Here we wan to leave (np_local-1)'th process to do SVD and gemm ONLY
+  // The (np_local-1)'th process will be on a different node
+  MPI_Comm_rank(class.communicate.world_ext,&class.communicate.myid_ext);
+  MPI_Comm_size(class.communicate.world_ext,&class.communicate.np_ext);
+  MPI_Comm_group(class.communicate.world_ext,&world_group);
+  if(class.communicate.np_ext>1){
+    //np_local = class.communicate.np_ext-1;
+    np_local = class.communicate.np_ext;
+  }
+  else{
+    // If I have only one process, nothing happens
+    np_local = class.communicate.np_ext;
+  }
+  index_local = (int*)cmalloc(np_local*sizeof(int));
+  for(i=0;i<np_local;i++)index_local[i] = i;
+  MPI_Group_incl(world_group, np_local, index_local,&calc_group);
+  MPI_Comm_create_group(class.communicate.world_ext,calc_group, 0, &class.communicate.world);
+  class.communicate.np = -1;
+  class.communicate.myid = -1;
+  if(class.communicate.world!=MPI_COMM_NULL){
+    Comm_size(class.communicate.world,&class.communicate.np);
+    Comm_rank(class.communicate.world,&class.communicate.myid);
+  }
+  cfree(index_local);
+  */
   Init(&argc,&argv,&class.communicate.world);
   Comm_size(class.communicate.world,&class.communicate.np);
   Comm_rank(class.communicate.world,&class.communicate.myid);
+#else
+  Init(&argc,&argv,&class.communicate.world);
+  Comm_size(class.communicate.world,&class.communicate.np);
+  Comm_rank(class.communicate.world,&class.communicate.myid);
+#endif
   general_data.error_check_on = (class.communicate.myid==0?1:0);
   //debug ntask-------------------------
     //MPI_Get_processor_name(processor_name,&namelen);
@@ -91,11 +133,13 @@
     //fflush(stderr);
   //-------------------------
 #ifdef FAST_FILTER
+  //MPI_Comm_dup(class.communicate.world_ext,&class2.communicate.world_ext);  
   MPI_Comm_dup(class.communicate.world,&class2.communicate.world);
+  //class2.communicate.myid_ext = class.communicate.myid_ext;
+  //class2.communicate.np_ext = class.communicate.np_ext;
   class2.communicate.myid = class.communicate.myid;
   class2.communicate.np = class.communicate.np;
   general_data2.error_check_on = (class.communicate.myid==0?1:0);
-
 #endif
 /*=======================================================================*/
 /* III)            Invoke User Interface                                 */

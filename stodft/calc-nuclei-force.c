@@ -616,6 +616,11 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
   }
   */
 
+  (class->energy_ctrl.iget_full_inter)= 1;
+  (class->energy_ctrl.iget_res_inter) = 0;
+  (class->energy_ctrl.iget_full_intra)= 1;
+  (class->energy_ctrl.iget_res_intra) = 0;
+
   if(myidState==0){
     //debug
     /*
@@ -995,74 +1000,19 @@ void calcEnergyForceFilterDiag(CLASS *class,GENERAL_DATA *general_data,CP *cp,BO
 /*--------------------------------------------------------------------------*/
 /* i) Copy the stochastic wave function and reset the force		    */
 
-  for(iChem=0;iChem<numChemPot;iChem++){
     stat_avg->vrecip = 0.0;
     stat_avg->cp_enl = 0.0;
     for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
-      cre_up[iCoeff] = stoWfUpRe[iChem][iCoeff];
-      cim_up[iCoeff] = stoWfUpIm[iChem][iCoeff];
-      //printf("1111111 Re %lg Im %lg\n",stoWfUpRe[iChem][iCoeff],stoWfUpIm[iChem][iCoeff]);
       fcre_up[iCoeff] = 0.0;
       fcim_up[iCoeff] = 0.0;
     }//endfor iCoeff
     if(cpLsda==1&&numStateDnProc!=0){
       for(iCoeff=1;iCoeff<=numCoeffDnTotal;iCoeff++){
-        cre_dn[iCoeff] = stoWfDnRe[iChem][iCoeff];
-        cim_dn[iCoeff] = stoWfDnIm[iChem][iCoeff];
         fcre_dn[iCoeff] = 0.0;
         fcim_dn[iCoeff] = 0.0;
       }//endfor iCoeff
     }//endif cpLsda
 
-    //debug
-    /*
-    int numGrid = fragInfo->numGridFragProc[0];
-    int numGridBig = (cp->cp_para_fft_pkg3d_lg.nfft_proc)/2;
-    int *gridMapProc = fragInfo->gridMapProc[0];
-    double *projRealWF = fragInfo->projRealWF;
-    double norm1,norm2,dot;
-    double *noiseWfUpReal = fragInfo->noiseWfUpReal;
-    double *noiseWfDnReal = fragInfo->noiseWfDnReal;
-
-    rhoRealCalcDriverNoise(general_data,cp,class,1);
-    for(iState=0;iState<numStateUpProc;iState++){
-      norm1 = ddotBlasWrapper(numGrid,&projRealWF[iState*numGrid],1,&projRealWF[iState*numGrid],1);
-      norm2 = ddotBlasWrapper(numGridBig,&noiseWfUpReal[iState*numGridBig],1,&noiseWfUpReal[iState*numGridBig],1);
-      norm1 = sqrt(norm1);
-      norm2 = sqrt(norm2);
-      dot = 0.0;
-      for(iGrid=0;iGrid<numGrid;iGrid++){
-	dot += noiseWfUpReal[iState*numGridBig+gridMapProc[iGrid]]*projRealWF[iState*numGrid+iGrid];
-      }
-      printf("iState %i dot %lg\n",iState,dot/norm1/norm2);
-    }
-    */
-    
-    //debug
-    /*
-    int jState;
-    for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
-      cre_up[iCoeff] = 0.0;
-      cim_up[iCoeff] = 0.0;
-    }
-    for(iState=0;iState<4;iState++){
-      FILE *fwfread = fopen("wf-det","r");
-      for(jState=0;jState<4;jState++){
-	for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
-	  fscanf(fwfread,"%lg",&(stoWfUpRe[0][iState*numCoeff*4+jState*numCoeff+iCoeff]));
-	  fscanf(fwfread,"%lg",&(stoWfUpIm[0][iState*numCoeff*4+jState*numCoeff+iCoeff]));
-	}
-      }
-      fclose(fwfread);
-    }
-    double presq = sqrt(2.0);
-    for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
-      stoWfUpRe[0][iCoeff] *= presq;
-      stoWfUpIm[0][iCoeff] *= presq;
-      cre_up[iCoeff] = stoWfUpRe[0][iCoeff];
-      cim_up[iCoeff] = stoWfUpIm[0][iCoeff];
-    }
-    */
     
     //pp 
     for(iAtom=1;iAtom<=numAtomTot;iAtom++){
@@ -1074,27 +1024,6 @@ void calcEnergyForceFilterDiag(CLASS *class,GENERAL_DATA *general_data,CP *cp,BO
 /*--------------------------------------------------------------------------*/
 /* ii) Calculate nl pp force						    */
     //debug
-    
-    /*
-    for(iState=0;iState<numStateUpProc;iState++){
-      cpcoeffs_info->nstate_up_proc = 1;
-      fy[1] = 0.0;
-      for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
-	cre_up[iCoeff] = 0.0;
-	cim_up[iCoeff] = 0.0;
-        fcre_up[iCoeff] = 0.0;
-        fcim_up[iCoeff] = 0.0;
-      }
-      for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
-	cre_up[iCoeff] = stoWfUpRe[0][iState*numCoeff+iCoeff];
-        cim_up[iCoeff] = stoWfUpIm[0][iState*numCoeff+iCoeff];
-      }
-      calcNlPseudoPostScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
-      printf("fyyyyyy %lg\n",fy[1]);
-    }
-    exit(0);
-    */
-    
     
     //calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     if(pseudoRealFlag==0){
@@ -1108,88 +1037,30 @@ void calcEnergyForceFilterDiag(CLASS *class,GENERAL_DATA *general_data,CP *cp,BO
       pseudoReal->nlppForceOnly = 0;
       if(numProcStates>1){
 	Barrier(commStates);
-	Reduce(&fx[1],&fxNl[iChem][0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
-	Reduce(&fy[1],&fyNl[iChem][0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
-	Reduce(&fz[1],&fzNl[iChem][0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+	Reduce(&fx[1],&fxNlTrue[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+	Reduce(&fy[1],&fyNlTrue[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+	Reduce(&fz[1],&fzNlTrue[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
 	Barrier(commStates);
-	if(myidState==0){
-	  memcpy(&fx[1],&fxNl[iChem][0],numAtomTot*sizeof(double));
-	  memcpy(&fy[1],&fyNl[iChem][0],numAtomTot*sizeof(double));
-	  memcpy(&fz[1],&fzNl[iChem][0],numAtomTot*sizeof(double));
-	}
+      }
+      else{
+        memcpy(&fxNlTrue[0],&fx[1],numAtomTot*sizeof(double));
+        memcpy(&fyNlTrue[0],&fy[1],numAtomTot*sizeof(double));
+        memcpy(&fzNlTrue[0],&fz[1],numAtomTot*sizeof(double));
       }
     }
     //calcCoefForceExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
     // force already reduce
-    /*
-    for(iAtom=1;iAtom<=numAtomTot;iAtom++){
-      fx[iAtom] *= occNumber;
-      fy[iAtom] *= occNumber;
-      fz[iAtom] *= occNumber;
-      //printf("fx %lg fy %lg fz %lg\n",fx[iAtom],fy[iAtom],fz[iAtom]);
-    }
-    */
 
 /*--------------------------------------------------------------------------*/
 /* iii) Reduce forces to the master proc                                    */
 
     // force already reduce in calcNlPseudoPostScf
-    /*
-    if(numProcStates>1){
-      printf("iChem %i\n",iChem);
-      Barrier(commStates);
-      Reduce(&fx[1],&fxNl[iChem][0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
-      Reduce(&fy[1],&fyNl[iChem][0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
-      Reduce(&fz[1],&fzNl[iChem][0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
-      Barrier(commStates);
-      printf("111111 myid %i %lg %lg\n",myidState,fxNl[0][0],fx[1]);
-    }
-    else{
-      memcpy(fxNl[iChem],&fx[1],numAtomTot*sizeof(double));
-      memcpy(fyNl[iChem],&fy[1],numAtomTot*sizeof(double));
-      memcpy(fzNl[iChem],&fz[1],numAtomTot*sizeof(double));
-      printf("fx[1] %lg fy[1] %lg fz[1] %lg\n",fx[1],fy[1],fz[1]);
-    }
-    */
 
 /*--------------------------------------------------------------------------*/
 /* iv) Calculate the average values                                         */
 
-    if(myidState==0){
-      memcpy(fxNl[iChem],&fx[1],numAtomTot*sizeof(double));
-      memcpy(fyNl[iChem],&fy[1],numAtomTot*sizeof(double));
-      memcpy(fzNl[iChem],&fz[1],numAtomTot*sizeof(double));      
-
-      //printf("iChem %i chemPot %lg K %lg NL %lg\n",iChem,chemPot[iChem],energyKineticTemp,energyNLTemp);
-      //debug
-      /*
-      for(iAtom=0;iAtom<numAtomTot;iAtom++){
-	fxNl[iChem][iAtom] *= numStateStoUp/(double)(occNumber);
-        fyNl[iChem][iAtom] *= numStateStoUp/(double)(occNumber);
-        fzNl[iChem][iAtom] *= numStateStoUp/(double)(occNumber);
-      }
-      */
-    }
-  }//endfor iChem
-
 /*======================================================================*/
 /* III) Interpolat nl pp and force                                      */
-
-  if(myidState==0){
-    for(iAtom=0;iAtom<numAtomTot;iAtom++){
-      fxNlTrue[iAtom] = 0.0;
-      fyNlTrue[iAtom] = 0.0;
-      fzNlTrue[iAtom] = 0.0;
-    }
-    for(iChem=0;iChem<numChemPot;iChem++){
-      for(iAtom=0;iAtom<numAtomTot;iAtom++){
-        fxNlTrue[iAtom] += fxNl[iChem][iAtom];
-        fyNlTrue[iAtom] += fyNl[iChem][iAtom];
-        fzNlTrue[iAtom] += fzNl[iChem][iAtom];
-      }
-    }
-    //Correct the non local force by fragment       
-  }//endif myidState
  
 /*======================================================================*/
 /* IV) Add fragmentation correction and local contribution              */

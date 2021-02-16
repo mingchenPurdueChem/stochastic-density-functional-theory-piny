@@ -278,7 +278,7 @@ void genChemPotInterpPoints(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
           fclose(fileTest);
           chemPot[numChemPot-1] = 100000.0;
           for(iNode=0;iNode<numChemPot;iNode++)chemPotBackUp[iNode] = chemPot[iNode];
-          for(iNode=0;iNode<numChemPot;iNode++)printf("ccccccccchempot %i %lg\n",iNode,chemPot[iNode]);
+          //for(iNode=0;iNode<numChemPot;iNode++)printf("ccccccccchempot %i %lg\n",iNode,chemPot[iNode]);
         }
         else{
           for(iNode=0;iNode<numChemPot;iNode++)chemPot[iNode] = chemPotBackUp[iNode];

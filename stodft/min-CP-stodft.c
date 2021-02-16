@@ -223,15 +223,35 @@ void scfStodftInterp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     cp2->pseudo.pseudoReal.forceCalcFlag = 0;
   }
   cp->stodftInfo->numStatePrintUp = cp2->stodftInfo->numStatePrintUp;
-  cp->stodftCoefPos->moUpRePrint = (double*)cmalloc(cp->stodftInfo->numStatePrintUp*numCoeff*sizeof(double))-1;
-  cp->stodftCoefPos->moUpImPrint = (double*)cmalloc(cp->stodftInfo->numStatePrintUp*numCoeff*sizeof(double))-1;
+  //============
+  cp->stodftInfo->numStates2 = (int*)cmalloc(numProcStates*sizeof(int));
+  cp->stodftInfo->dsplStates2 = (int*)cmalloc(numProcStates*sizeof(int));
+  int div,res,numStatePrintUpProc,iProc;
+  int *numStates22 = cp->stodftInfo->numStates2;
+  int *dsplStates22 = cp->stodftInfo->dsplStates2;
+  div = (int)(cp->stodftInfo->numStatePrintUp/numProcStates);
+  res = (cp->stodftInfo->numStatePrintUp)%numProcStates;
+  if(myidState<res) numStatePrintUpProc = div+1;
+  else numStatePrintUpProc = div;
+  if(numProcStates>1){
+    Allgather(&numStatePrintUpProc,1,MPI_INT,numStates22,1,MPI_INT,0,commStates);
+  }
+  else{
+    numStates22[0] = cp->stodftInfo->numStatePrintUp;
+  }
+
+  dsplStates22[0] = 0;
+  for(iProc=1;iProc<numProcStates;iProc++){
+    dsplStates22[iProc] = dsplStates22[iProc-1]+numStates22[iProc-1];
+  }
+  //===========
+  cp->stodftCoefPos->moUpRePrint = (double*)cmalloc(cp->stodftInfo->numStatePrintUp*numCoeff*sizeof(double));
+  cp->stodftCoefPos->moUpImPrint = (double*)cmalloc(cp->stodftInfo->numStatePrintUp*numCoeff*sizeof(double));
   // attention: size of cp->stodftCoefPos.energyLevel is different from 
   // the size of cp2->stodftCoefPos.energyLevel
   cp->stodftCoefPos->energyLevel = (double*)cmalloc(cp->stodftInfo->numStatePrintUp*sizeof(double));
-
 #endif
 
-  
   //exit(0);
 /*======================================================================*/
 /* V) SCF loop						                */
@@ -652,11 +672,41 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }
 
   cp->stodftInfo->numStatePrintUp = cp2->stodftInfo->numStatePrintUp;
-  cp->stodftCoefPos->moUpRePrint = (double*)cmalloc(cp->stodftInfo->numStatePrintUp*numCoeff*sizeof(double))-1;
-  cp->stodftCoefPos->moUpImPrint = (double*)cmalloc(cp->stodftInfo->numStatePrintUp*numCoeff*sizeof(double))-1;
+  //============
+  cp->stodftInfo->numStates2 = (int*)cmalloc(numProcStates*sizeof(int));
+  cp->stodftInfo->dsplStates2 = (int*)cmalloc(numProcStates*sizeof(int));
+  int div,res,numStatePrintUpProc,iProc;
+  int *numStates22 = cp->stodftInfo->numStates2;
+  int *dsplStates22 = cp->stodftInfo->dsplStates2;
+  div = (int)(cp->stodftInfo->numStatePrintUp/numProcStates);
+  res = (cp->stodftInfo->numStatePrintUp)%numProcStates;
+  if(myidState<res) numStatePrintUpProc = div+1;
+  else numStatePrintUpProc = div;
+  if(numProcStates>1){
+    Allgather(&numStatePrintUpProc,1,MPI_INT,numStates22,1,MPI_INT,0,commStates);
+  }
+  else{
+    numStates22[0] = cp->stodftInfo->numStatePrintUp;
+  }
+
+  dsplStates22[0] = 0;
+  for(iProc=1;iProc<numProcStates;iProc++){
+    dsplStates22[iProc] = dsplStates22[iProc-1]+numStates22[iProc-1];
+  }
+  //============
+  cp->stodftCoefPos->moUpRePrint = (double*)cmalloc(cp->stodftInfo->numStatePrintUp*numCoeff*sizeof(double));
+  cp->stodftCoefPos->moUpImPrint = (double*)cmalloc(cp->stodftInfo->numStatePrintUp*numCoeff*sizeof(double));
   // attention: size of cp->stodftCoefPos.energyLevel is different from 
   // the size of cp2->stodftCoefPos.energyLevel
   cp->stodftCoefPos->energyLevel = (double*)cmalloc(cp->stodftInfo->numStatePrintUp*sizeof(double));
+  for(iChem=0;iChem<cp2->stodftInfo->numChemPot;iChem++){
+    cfree(&(cp2->stodftCoefPos->stoWfUpRe[iChem][1]));
+    cfree(&(cp2->stodftCoefPos->stoWfUpIm[iChem][1]));
+  }
+  cfree(&(cp2->cpcoeffs_pos[1].cre_up[1]));
+  cfree(&(cp2->cpcoeffs_pos[1].cim_up[1]));
+  cfree(&(cp2->cpcoeffs_pos[1].fcre_up[1]));
+  cfree(&(cp2->cpcoeffs_pos[1].fcim_up[1]));
 #endif
 
   if(myidState==0){
@@ -1030,7 +1080,6 @@ void scfStodftFilterDiag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* 0.05) Check the approximations in the methods                        */
 
-
   if((iperd<3||iperd==4)&&checkPerdSize==1){
     cp_boundary_check(cell,clatoms_info,clatoms_pos,tolEdgeDist);
   }/*endif*/
@@ -1274,7 +1323,30 @@ void scfStodftFilterDiag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     }
     if(energyDiff<energyTol||iScf>=numScf)scfStopFlag = 1;
     //exit(0);
+    if(scfStopFlag==0){
+      cfree(&(cpcoeffs_pos->cre_up[1]));
+      cfree(&(cpcoeffs_pos->cim_up[1]));
+      cfree(&(cpcoeffs_pos->fcre_up[1]));
+      cfree(&(cpcoeffs_pos->fcim_up[1]));
 
+      cpcoeffs_info->nstate_up_proc = stodftInfo->numStateUpProcBackup;
+      cpcoeffs_info->nstate_dn_proc = stodftInfo->numStateDnProcBackup;
+
+      numStateUp = cpcoeffs_info->nstate_up_proc;
+      numStateDn = cpcoeffs_info->nstate_dn_proc;
+      numCoeffUpTotal = numStateUp*numCoeff;
+      numCoeffDnTotal = numStateDn*numCoeff;
+
+      cpcoeffs_pos->cre_up = (double*)cmalloc(numCoeffUpTotal*sizeof(double))-1;
+      cpcoeffs_pos->cim_up = (double*)cmalloc(numCoeffUpTotal*sizeof(double))-1;
+      cpcoeffs_pos->fcre_up = (double*)cmalloc(numCoeffUpTotal*sizeof(double))-1;
+      cpcoeffs_pos->fcim_up = (double*)cmalloc(numCoeffUpTotal*sizeof(double))-1;
+
+      for(iChem=0;iChem<numChemPot;iChem++){
+        stoWfUpRe[iChem] = (double*)cmalloc(numCoeffUpTotal*sizeof(double))-1;
+        stoWfUpIm[iChem] = (double*)cmalloc(numCoeffUpTotal*sizeof(double))-1;
+      }
+    }
   }//endfor iScf
 
   printf("SCF time myid %i gen-stowf %.8lg Diag %.8lg energy %.8lg density %.8lg KS potential %.8lg total-energy %.8lg\n",myidState,diffTime1,diffTime2,diffTime3,diffTime4,diffTime5,diffTime6);
@@ -1499,12 +1571,41 @@ void scfStodftEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
     cp2->pseudo.pseudoReal.forceCalcFlag = 0;
   }
   cp->stodftInfo->numStatePrintUp = cp2->stodftInfo->numStatePrintUp;
-  cp->stodftCoefPos->moUpRePrint = (double*)cmalloc(cp->stodftInfo->numStatePrintUp*numCoeff*sizeof(double))-1;
-  cp->stodftCoefPos->moUpImPrint = (double*)cmalloc(cp->stodftInfo->numStatePrintUp*numCoeff*sizeof(double))-1;
+  //============
+  cp->stodftInfo->numStates2 = (int*)cmalloc(numProcStates*sizeof(int));
+  cp->stodftInfo->dsplStates2 = (int*)cmalloc(numProcStates*sizeof(int));
+  int div,res,numStatePrintUpProc,iProc;
+  int *numStates22 = cp->stodftInfo->numStates2;
+  int *dsplStates22 = cp->stodftInfo->dsplStates2;
+  div = (int)(cp->stodftInfo->numStatePrintUp/numProcStates);
+  res = (cp->stodftInfo->numStatePrintUp)%numProcStates;
+  if(myidState<res) numStatePrintUpProc = div+1;
+  else numStatePrintUpProc = div;
+  if(numProcStates>1){
+    Allgather(&numStatePrintUpProc,1,MPI_INT,numStates22,1,MPI_INT,0,commStates);
+  }
+  else{
+    numStates22[0] = cp->stodftInfo->numStatePrintUp;
+  }
+
+  dsplStates22[0] = 0;
+  for(iProc=1;iProc<numProcStates;iProc++){
+    dsplStates22[iProc] = dsplStates22[iProc-1]+numStates22[iProc-1];
+  }
+  //============
+  cp->stodftCoefPos->moUpRePrint = (double*)cmalloc(cp->stodftInfo->numStatePrintUp*numCoeff*sizeof(double));
+  cp->stodftCoefPos->moUpImPrint = (double*)cmalloc(cp->stodftInfo->numStatePrintUp*numCoeff*sizeof(double));
   // attention: size of cp->stodftCoefPos.energyLevel is different from 
   // the size of cp2->stodftCoefPos.energyLevel
   cp->stodftCoefPos->energyLevel = (double*)cmalloc(cp->stodftInfo->numStatePrintUp*sizeof(double));
-
+  for(iChem=0;iChem<cp2->stodftInfo->numChemPot;iChem++){
+    cfree(&(cp2->stodftCoefPos->stoWfUpRe[iChem][1]));
+    cfree(&(cp2->stodftCoefPos->stoWfUpIm[iChem][1]));
+  }
+  cfree(&(cp2->cpcoeffs_pos[1].cre_up[1]));
+  cfree(&(cp2->cpcoeffs_pos[1].cim_up[1]));
+  cfree(&(cp2->cpcoeffs_pos[1].fcre_up[1]));
+  cfree(&(cp2->cpcoeffs_pos[1].fcim_up[1]));
 #endif
   //calcKSPotExtRecipWrapPreScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
   //calcKSForceControlWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
@@ -1886,11 +1987,41 @@ void scfStodftEnergyWindowFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general
     cp2->pseudo.pseudoReal.forceCalcFlag = 0;
   }
   cp->stodftInfo->numStatePrintUp = cp2->stodftInfo->numStatePrintUp;
-  cp->stodftCoefPos->moUpRePrint = (double*)cmalloc(cp->stodftInfo->numStatePrintUp*numCoeff*sizeof(double))-1;
-  cp->stodftCoefPos->moUpImPrint = (double*)cmalloc(cp->stodftInfo->numStatePrintUp*numCoeff*sizeof(double))-1;
+  //============
+  cp->stodftInfo->numStates2 = (int*)cmalloc(numProcStates*sizeof(int));
+  cp->stodftInfo->dsplStates2 = (int*)cmalloc(numProcStates*sizeof(int));
+  int div,res,numStatePrintUpProc,iProc;
+  int *numStates22 = cp->stodftInfo->numStates2;
+  int *dsplStates22 = cp->stodftInfo->dsplStates2;
+  div = (int)(cp->stodftInfo->numStatePrintUp/numProcStates);
+  res = (cp->stodftInfo->numStatePrintUp)%numProcStates;
+  if(myidState<res) numStatePrintUpProc = div+1;
+  else numStatePrintUpProc = div;
+  if(numProcStates>1){
+    Allgather(&numStatePrintUpProc,1,MPI_INT,numStates22,1,MPI_INT,0,commStates);
+  }
+  else{
+    numStates22[0] = cp->stodftInfo->numStatePrintUp;
+  }
+
+  dsplStates22[0] = 0;
+  for(iProc=1;iProc<numProcStates;iProc++){
+    dsplStates22[iProc] = dsplStates22[iProc-1]+numStates22[iProc-1];
+  }
+  //============
+  cp->stodftCoefPos->moUpRePrint = (double*)cmalloc(cp->stodftInfo->numStatePrintUp*numCoeff*sizeof(double));
+  cp->stodftCoefPos->moUpImPrint = (double*)cmalloc(cp->stodftInfo->numStatePrintUp*numCoeff*sizeof(double));
   // attention: size of cp->stodftCoefPos.energyLevel is different from 
   // the size of cp2->stodftCoefPos.energyLevel
   cp->stodftCoefPos->energyLevel = (double*)cmalloc(cp->stodftInfo->numStatePrintUp*sizeof(double));
+  for(iChem=0;iChem<cp2->stodftInfo->numChemPot;iChem++){
+    cfree(&(cp2->stodftCoefPos->stoWfUpRe[iChem][1]));
+    cfree(&(cp2->stodftCoefPos->stoWfUpIm[iChem][1]));
+  }
+  cfree(&(cp2->cpcoeffs_pos[1].cre_up[1]));
+  cfree(&(cp2->cpcoeffs_pos[1].cim_up[1]));
+  cfree(&(cp2->cpcoeffs_pos[1].fcre_up[1]));
+  cfree(&(cp2->cpcoeffs_pos[1].fcim_up[1]));
 
 #endif
   //calcKSPotExtRecipWrapPreScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
@@ -1956,7 +2087,6 @@ void scfStodftEnergyWindowFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general
 #else
       genStoOrbitalEnergyWindowFrag(class,general_data,
                        cp,generalDataMini,cpMini,classMini,ip_now);
-
 #endif
     }
  

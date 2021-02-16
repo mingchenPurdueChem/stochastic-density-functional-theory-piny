@@ -130,7 +130,7 @@ typedef struct cpopts{
 /*==========================================================================*/
 /*                  CP coeffs and states                                    */
 /*             {Variables needed for mem allocation:                        */
-/*                   ncoef_l,ncoef,(0,ncoef),nstate_up,nstate_dn}         */
+/*                   ncoef_l,ncoef,(0,ncoef),nstate_up,nstate_dn}           */
 /*                                                                          */
 typedef struct cpcoeffs_info {
   int pi_beads;                /* Num: # of path integral beads        */
@@ -735,9 +735,17 @@ typedef struct stodftInfo{
                                     /* Lth: np_states                           */
   int *dsplStates;                  /* Lst: displacement of states              */
                                     /* Lth: np_states                           */
+  int *numStates2;                  /* Lst: Number of total states on this proc */
+                                    /* Lth: np_states                           */
+  int *dsplStates2;                 /* Lst: displacement of states              */
+                                    /* Lth: np_states                           */
   int *stowfRecvCountsComplex;      /* Lst: complex version                     */
                                     /* Lth: np_states                           */
   int *stowfDisplsComplex;          /* Lst: complex version                     */
+                                    /* Lth: np_states                           */
+  int *stowfRecvCountsComplex2;     /* Lst: complex version                     */
+                                    /* Lth: np_states                           */
+  int *stowfDisplsComplex2;         /* Lst: complex version                     */
                                     /* Lth: np_states                           */
   int numStateUpIdp;                /* Num: After SVD orthogonalization, we     */
                                     /*      shall leave the independent ones    */
@@ -752,6 +760,8 @@ typedef struct stodftInfo{
   int stateStartIndex;              /* Num: We need this to determine the       */
                                     /*      occupatation of each MO             */
   double eigValMin,eigValLUMO;      /* Num: Minimum/LUMO energy of KS H         */
+  int numStateUpProcBackup;
+  int numStateDnProcBackup;
   //debug thing
   int numStatesDet;                 /* Num: Number of deterministic MO          */
                                     /*      =numElecTrue/2                      */

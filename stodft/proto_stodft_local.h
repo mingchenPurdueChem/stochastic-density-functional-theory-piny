@@ -136,11 +136,11 @@ void matrixInvSVD(double *,double *,double *,int);
 /* filter-diag.c                                                   */
 void orthDiagDriver(CP *,CLASS *,GENERAL_DATA *,int);
 void orthNormStoWf(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,CLATOMS_POS *);
-int orthogSVD(int ,int ,double *);
+int orthogSVD(int ,int ,double *,int);
 void buildKSMatrix(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,CLATOMS_POS *);
 void diagKSMatrix(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,CLATOMS_POS *);
 void diagSymMatWrapper(int ,double *,double *);
-void genMatrixMulWrapper(int ,int ,double *,double *,double *);
+void genMatrixMulWrapper(int ,int ,double *,double *,double *,int);
 void calcForceWrapper(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,CLATOMS_POS *,
 		      double *,double *);
 // Reduced Energy Calculation

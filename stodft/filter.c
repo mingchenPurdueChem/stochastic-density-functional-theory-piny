@@ -720,12 +720,18 @@ void filterNewtonPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int numProcStates = communicate->np_states;
   int numThreads = cp_sclr_fft_pkg3d_sm->numThreads;
   int pseudoRealFlag = cp->pseudo.pseudoReal.pseudoRealFlag;
-  int imu,iCoeff,iPoly,indexStart,iState,jState;
+  int imu,iCoeff,iPoly,indexStart,iState,jState,iSto;
+  int iProc;
   int index1,index2,index3;
   int startIndex;
 
   int numStatePrintUp = stodftInfo->numStatePrintUp;
   int numStatePrintDn = stodftInfo->numStatePrintDn;
+  int numStatePrintUpProc;
+
+  int *numStates22 = cp->stodftInfo->numStates2;
+  int *dsplStates22 = cp->stodftInfo->dsplStates2;
+  int *numStates;
 
   MPI_Comm comm_states   =    communicate->comm_states;
 
@@ -769,7 +775,9 @@ void filterNewtonPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   double *occupNumber;
   double *energyScale;
   double *entropyState;
-  double *wfDot;
+  double *wfDot = NULL;
+  double *coeffReUpStore = NULL;
+  double *coeffImUpStore = NULL;
 
 
 /*==========================================================================*/
@@ -778,7 +786,7 @@ void filterNewtonPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   occupNumber = (double *)cmalloc(numChemPot*numStatePrintUp*sizeof(double));
   entropyState = (double *)cmalloc(numStatePrintUp*sizeof(double));
   energyScale = (double *)cmalloc(numStatePrintUp*sizeof(double));
-  wfDot = (double *)cmalloc(numStateUpProc*numStatePrintUp*sizeof(double));
+  //wfDot = (double *)cmalloc(numStateUpProc*numStatePrintUp*sizeof(double));
 
   for(iState=0;iState<numStatePrintUp;iState++){
     energyScale[iState] = (energyLevel[iState]-energyMean)*scale;
@@ -824,6 +832,121 @@ void filterNewtonPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*==========================================================================*/
 /* ii) Filtering stochastic orbital */
 
+  numStates = (int*)cmalloc(numProcStates*sizeof(int));
+  if(numProcStates>1){
+    Allgather(&numStateUpProc,1,MPI_INT,numStates,1,MPI_INT,0,comm_states);
+  }
+  else{
+    numStates[0] = numStateUpProc;
+  }
+
+  numStatePrintUpProc = numStates22[myidState];
+  for(imu=0;imu<numChemPot;imu++){
+    #pragma omp parallel for private(iCoeff)
+    for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
+      stoWfUpRe[imu][iCoeff] = 0.0;
+      stoWfUpIm[imu][iCoeff] = 0.0;
+    }
+  }
+  if(smearOpt>0&&filterDiagFlag==0){
+    #pragma omp parallel for private(iCoeff)
+    for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
+      entropyUpRe[iCoeff] = 0.0;
+      entropyUpIm[iCoeff] = 0.0;
+    }
+  }
+
+  printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+  for(iProc=0;iProc<numProcStates;iProc++){
+    coeffReUpStore = (double*)crealloc(coeffReUpStore,numStates[iProc]*numCoeff*sizeof(double));
+    coeffImUpStore = (double*)crealloc(coeffImUpStore,numStates[iProc]*numCoeff*sizeof(double));
+    wfDot = (double*)crealloc(wfDot,numStates[iProc]*numStatePrintUpProc*sizeof(double));
+    for(iSto=0;iSto<numStates[iProc]*numStatePrintUpProc;iSto++)wfDot[iSto] = 0.0;
+    if(myidState==iProc){
+      memcpy(coeffReUpStore,&cre_up[1],numStates[iProc]*numCoeff*sizeof(double));
+      memcpy(coeffImUpStore,&cim_up[1],numStates[iProc]*numCoeff*sizeof(double));
+    }
+    if(numProcStates>1){
+      Bcast(coeffReUpStore,numStates[iProc]*numCoeff,MPI_DOUBLE,iProc,comm_states);
+      Bcast(coeffImUpStore,numStates[iProc]*numCoeff,MPI_DOUBLE,iProc,comm_states);
+    }
+    #pragma omp parallel for private(iSto,iState,iCoeff,index1,index2,sum,startIndex)
+    for(iSto=0;iSto<numStates[iProc];iSto++){
+      index1 = iSto*numCoeff;
+      for(iState=0;iState<numStatePrintUpProc;iState++){
+        index2 = iState*numCoeff;
+        sum = 0.0;
+        for(iCoeff=0;iCoeff<numCoeff-1;iCoeff++){
+          sum += coeffReUpStore[index1+iCoeff]*moUpRePrint[index2+iCoeff]+
+                 coeffImUpStore[index1+iCoeff]*moUpImPrint[index2+iCoeff];
+        }
+        sum *= 2.0;
+        sum += coeffReUpStore[index1+numCoeff-1]*moUpRePrint[index2+numCoeff-1];
+        wfDot[iSto*numStatePrintUpProc+iState] = sum;
+      }
+    }
+    for(imu=0;imu<numChemPot;imu++){
+      #pragma omp parallel for private(iCoeff)
+      for(iCoeff=0;iCoeff<numStates[iProc]*numCoeff;iCoeff++){
+        coeffReUpStore[iCoeff] = 0.0;
+        coeffImUpStore[iCoeff] = 0.0;
+      }
+      #pragma omp parallel for private(iSto,jState,iCoeff,x,y)
+      for(iSto=0;iSto<numStates[iProc];iSto++){
+        startIndex = dsplStates22[myidState];
+        for(iState=0;iState<numStatePrintUpProc;iState++){
+          x = occupNumber[imu*numStatePrintUp+startIndex+iState];
+          y = wfDot[iSto*numStatePrintUpProc+iState]*x;
+          for(iCoeff=0;iCoeff<numCoeff;iCoeff++){
+            coeffReUpStore[iSto*numCoeff+iCoeff] += y*moUpRePrint[iState*numCoeff+iCoeff];
+            coeffImUpStore[iSto*numCoeff+iCoeff] += y*moUpImPrint[iState*numCoeff+iCoeff];
+          }//endfor iCoeff
+        }//endfor iState
+      }//endfor iSto
+      if(numProcStates>1){
+        Reduce(coeffReUpStore,&(stoWfUpRe[imu][1]),numStates[iProc]*numCoeff,MPI_DOUBLE,
+               MPI_SUM,iProc,comm_states);
+        Reduce(coeffImUpStore,&(stoWfUpIm[imu][1]),numStates[iProc]*numCoeff,MPI_DOUBLE,
+               MPI_SUM,iProc,comm_states);
+      }
+      else{
+        memcpy(&(stoWfUpRe[imu][1]),coeffReUpStore,numStates[iProc]*numCoeff*sizeof(double));
+        memcpy(&(stoWfUpIm[imu][1]),coeffImUpStore,numStates[iProc]*numCoeff*sizeof(double));
+      }
+    }//endfor imu
+    if(smearOpt>0&&filterDiagFlag==0){
+      #pragma omp parallel for private(iCoeff)
+      for(iCoeff=1;iCoeff<=numStates[iProc]*numCoeff;iCoeff++){
+        coeffReUpStore[iCoeff] = 0.0;
+        coeffImUpStore[iCoeff] = 0.0;
+      }
+      for(iSto=0;iSto<numStates[iProc];iSto++){
+        for(iState=0;iState<numStatePrintUpProc;iState++){
+          startIndex = dsplStates22[myidState];
+          x = entropyState[startIndex+iState];
+          y = wfDot[iSto*numStatePrintUpProc+iState]*x;
+          for(iCoeff=0;iCoeff<numCoeff;iCoeff++){
+            coeffReUpStore[iSto*numCoeff+iCoeff] += y*moUpRePrint[iState*numCoeff+iCoeff];
+            coeffImUpStore[iSto*numCoeff+iCoeff] += y*moUpImPrint[iState*numCoeff+iCoeff];
+          }//endfor iCoeff
+        }//endfor iState
+      }//endfor iSto
+      if(numProcStates>1){
+        Reduce(coeffReUpStore,&(entropyUpRe[1]),numStates[iProc]*numCoeff,MPI_DOUBLE,
+               MPI_SUM,iProc,comm_states);
+        Reduce(coeffImUpStore,&(entropyUpIm[1]),numStates[iProc]*numCoeff,MPI_DOUBLE,
+               MPI_SUM,iProc,comm_states);
+      }
+      else{
+        memcpy(&entropyUpRe[1],coeffReUpStore,numStates[iProc]*numCoeff*sizeof(double));
+        memcpy(&entropyUpIm[1],coeffImUpStore,numStates[iProc]*numCoeff*sizeof(double));
+      }
+    }
+    if(numProcStates>1)Barrier(comm_states);
+  }//endfor iProc
+
+
+  /* 
   #pragma omp parallel for private(iState,jState,iCoeff,index1,index2,sum)
   for(iState=0;iState<numStateUpProc;iState++){
     index1 = iState*numCoeff;
@@ -877,12 +1000,14 @@ void filterNewtonPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     }//endfor iState
     //printf("entropyUpRe %lg\n",entropyUpRe[1]);
   }//endif smearOpt
-
+  */
 
   free(occupNumber);
   free(energyScale);
   free(wfDot);
   free(entropyState);
+  free(coeffReUpStore);
+  free(coeffImUpStore);
  
   Barrier(comm_states);
 
@@ -930,6 +1055,7 @@ void filterChebyPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int numThreads = cp_sclr_fft_pkg3d_sm->numThreads;
   int pseudoRealFlag = cp->pseudo.pseudoReal.pseudoRealFlag;
   int imu,iCoeff,iPoly,indexStart,iState,jState;
+  int iProc,iSto;
   int index1,index2,index3;
   int startIndex;
   int storeChebyMomentsFlag = stodftInfo->storeChebyMomentsFlag;
@@ -937,6 +1063,11 @@ void filterChebyPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 
   int numStatePrintUp = stodftInfo->numStatePrintUp;
   int numStatePrintDn = stodftInfo->numStatePrintDn;
+  int numStatePrintUpProc;
+
+  int *numStates22 = cp->stodftInfo->numStates2;
+  int *dsplStates22 = cp->stodftInfo->dsplStates2;
+  int *numStates;
 
   MPI_Comm comm_states   =    communicate->comm_states;
 
@@ -984,7 +1115,10 @@ void filterChebyPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   double *occupNumber;
   double *energyScale;
   double *entropyState;
-  double *wfDot;
+  double *wfDot = NULL;
+  double *coeffReUpStore = NULL;
+  double *coeffImUpStore = NULL;
+
 
 /*==========================================================================*/
 /* i) Generate occupatation number */
@@ -992,12 +1126,21 @@ void filterChebyPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   occupNumber = (double *)cmalloc(numChemPot*numStatePrintUp*sizeof(double));
   entropyState = (double *)cmalloc(numStatePrintUp*sizeof(double));
   energyScale = (double *)cmalloc(numStatePrintUp*sizeof(double));
-  wfDot = (double *)cmalloc(numStateUpProc*numStatePrintUp*sizeof(double));
 
   for(iState=0;iState<numStatePrintUp;iState++){
     energyScale[iState] = (energyLevel[iState]-energyMean)*scale;
     //printf("iState %i %lg\n",iState,energyScale[iState]);
   }
+
+  /*
+  if(myidState==0){
+    for(imu=0;imu<numChemPot;imu++){
+      for(iPoly=0;iPoly<polynormLength;iPoly++){
+        printf("imuuuuuuu %i iPoly %i coeff %lg\n",imu,iPoly,expanCoeff[iPoly*numChemPot+imu]);
+      }
+    }
+  }
+  */
 
   for(iState=0;iState<numStatePrintUp;iState++){
     //iPoly=0 and iPoly=1
@@ -1046,6 +1189,121 @@ void filterChebyPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*==========================================================================*/
 /* ii) Filtering stochastic orbital */
 
+  numStates = (int*)cmalloc(numProcStates*sizeof(int));
+  if(numProcStates>1){
+    Allgather(&numStateUpProc,1,MPI_INT,numStates,1,MPI_INT,0,comm_states);
+  }
+  else{
+    numStates[0] = numStateUpProc;
+  }
+
+  numStatePrintUpProc = numStates22[myidState];
+  for(imu=0;imu<numChemPot;imu++){
+    for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
+      stoWfUpRe[imu][iCoeff] = 0.0;
+      stoWfUpIm[imu][iCoeff] = 0.0;
+    }
+  }
+  if(smearOpt>0&&filterDiagFlag==0){
+    #pragma omp parallel for private(iCoeff)
+    for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
+      entropyUpRe[iCoeff] = 0.0;
+      entropyUpIm[iCoeff] = 0.0;
+    }
+  }
+
+
+  for(iProc=0;iProc<numProcStates;iProc++){
+    coeffReUpStore = (double*)crealloc(coeffReUpStore,numStates[iProc]*numCoeff*sizeof(double));
+    coeffImUpStore = (double*)crealloc(coeffImUpStore,numStates[iProc]*numCoeff*sizeof(double));
+    wfDot = (double*)crealloc(wfDot,numStates[iProc]*numStatePrintUpProc*sizeof(double));
+    for(iSto=0;iSto<numStates[iProc]*numStatePrintUpProc;iSto++)wfDot[iSto] = 0.0;
+    if(myidState==iProc){
+      memcpy(coeffReUpStore,&cre_up[1],numStates[iProc]*numCoeff*sizeof(double));
+      memcpy(coeffImUpStore,&cim_up[1],numStates[iProc]*numCoeff*sizeof(double));
+    }
+    if(numProcStates>1){
+      Bcast(coeffReUpStore,numStates[iProc]*numCoeff,MPI_DOUBLE,iProc,comm_states);
+      Bcast(coeffImUpStore,numStates[iProc]*numCoeff,MPI_DOUBLE,iProc,comm_states);
+    }
+    #pragma omp parallel for private(iSto,iState,iCoeff,index1,index2,sum,startIndex)
+    for(iSto=0;iSto<numStates[iProc];iSto++){
+      index1 = iSto*numCoeff;
+      for(iState=0;iState<numStatePrintUpProc;iState++){
+        index2 = iState*numCoeff;
+        sum = 0.0;
+        for(iCoeff=0;iCoeff<numCoeff-1;iCoeff++){
+          sum += coeffReUpStore[index1+iCoeff]*moUpRePrint[index2+iCoeff]+
+                 coeffImUpStore[index1+iCoeff]*moUpImPrint[index2+iCoeff];
+        }
+        sum *= 2.0;
+        sum += coeffReUpStore[index1+numCoeff-1]*moUpRePrint[index2+numCoeff-1];
+        wfDot[iSto*numStatePrintUpProc+iState] = sum;
+      }
+    }
+    for(imu=0;imu<numChemPot;imu++){
+      #pragma omp parallel for private(iCoeff)
+      for(iCoeff=0;iCoeff<numStates[iProc]*numCoeff;iCoeff++){
+        coeffReUpStore[iCoeff] = 0.0;
+        coeffImUpStore[iCoeff] = 0.0;
+      }
+      #pragma omp parallel for private(iSto,jState,iCoeff,x,y)
+      for(iSto=0;iSto<numStates[iProc];iSto++){
+        startIndex = dsplStates22[myidState];
+        for(iState=0;iState<numStatePrintUpProc;iState++){
+          x = occupNumber[imu*numStatePrintUp+startIndex+iState];
+          y = wfDot[iSto*numStatePrintUpProc+iState]*x;
+          for(iCoeff=0;iCoeff<numCoeff;iCoeff++){
+            coeffReUpStore[iSto*numCoeff+iCoeff] += y*moUpRePrint[iState*numCoeff+iCoeff];
+            coeffImUpStore[iSto*numCoeff+iCoeff] += y*moUpImPrint[iState*numCoeff+iCoeff];
+          }//endfor iCoeff
+        }//endfor iState
+      }//endfor iSto
+      if(numProcStates>1){
+        Reduce(coeffReUpStore,&(stoWfUpRe[imu][1]),numStates[iProc]*numCoeff,MPI_DOUBLE,
+               MPI_SUM,iProc,comm_states);
+        Reduce(coeffImUpStore,&(stoWfUpIm[imu][1]),numStates[iProc]*numCoeff,MPI_DOUBLE,
+               MPI_SUM,iProc,comm_states);
+      }
+      else{
+        memcpy(&(stoWfUpRe[imu][1]),coeffReUpStore,numStates[iProc]*numCoeff*sizeof(double));
+        memcpy(&(stoWfUpIm[imu][1]),coeffImUpStore,numStates[iProc]*numCoeff*sizeof(double));
+      }
+    }//endfor imu
+
+    if(smearOpt>0&&filterDiagFlag==0){
+      #pragma omp parallel for private(iCoeff)
+      for(iCoeff=1;iCoeff<=numStates[iProc]*numCoeff;iCoeff++){
+        coeffReUpStore[iCoeff] = 0.0;
+        coeffImUpStore[iCoeff] = 0.0;
+      }
+      for(iSto=0;iSto<numStates[iProc];iSto++){
+        for(iState=0;iState<numStatePrintUpProc;iState++){
+          startIndex = dsplStates22[myidState];
+          x = entropyState[startIndex+iState];
+          y = wfDot[iSto*numStates[iProc]+iState]*x;
+          for(iCoeff=0;iCoeff<numCoeff;iCoeff++){
+            coeffReUpStore[iSto*numCoeff+iCoeff] += y*moUpRePrint[iState*numCoeff+iCoeff];
+            coeffImUpStore[iSto*numCoeff+iCoeff] += y*moUpImPrint[iState*numCoeff+iCoeff];
+          }//endfor iCoeff
+        }//endfor iState
+      }//endfor iSto
+      if(numProcStates>1){
+        Reduce(coeffReUpStore,&(entropyUpRe[1]),numStates[iProc]*numCoeff,MPI_DOUBLE,
+               MPI_SUM,iProc,comm_states);
+        Reduce(coeffImUpStore,&(entropyUpIm[1]),numStates[iProc]*numCoeff,MPI_DOUBLE,
+               MPI_SUM,iProc,comm_states);
+      }
+      else{
+        memcpy(&entropyUpRe[1],coeffReUpStore,numStates[iProc]*numCoeff*sizeof(double));
+        memcpy(&entropyUpIm[1],coeffImUpStore,numStates[iProc]*numCoeff*sizeof(double));
+      }
+    }
+    if(numProcStates>1)Barrier(comm_states);
+  }//endfor iProc
+
+
+  /*
   #pragma omp parallel for private(iState,jState,iCoeff,index1,index2,sum)
   for(iState=0;iState<numStateUpProc;iState++){
     index1 = iState*numCoeff;
@@ -1079,6 +1337,7 @@ void filterChebyPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       }
     }
   }
+  */
 
   if(inverseFlag==1){
     #pragma omp parallel for private(iState,iCoeff)
@@ -1106,6 +1365,7 @@ void filterChebyPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   }
   */
 
+  /*
   if(smearOpt>0&&filterDiagFlag==0){
     #pragma omp parallel for private(iCoeff)
     for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
@@ -1125,6 +1385,7 @@ void filterChebyPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     }//endfor iState
     //printf("entropyUpRe %lg\n",entropyUpRe[1]);
   }//endif smearOpt
+  */
 
 /*==========================================================================*/
 /* iii) Calculate Chebyshev Momentum if necessary */
@@ -1141,6 +1402,8 @@ void filterChebyPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   free(energyScale);
   free(wfDot);
   free(entropyState);
+  free(coeffReUpStore);
+  free(coeffImUpStore);
  
   Barrier(comm_states);
 

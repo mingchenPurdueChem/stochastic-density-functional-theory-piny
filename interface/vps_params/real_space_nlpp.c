@@ -1725,12 +1725,14 @@ void testOverlap(CP *cp, CLASS *class, GENERAL_DATA *generalData)
   }
   */
 
+  /*
   if(overlapFlag==1&&myidState==0){
     printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
     printf("Non-local pseudopotential regions are overlapped.\n");
     printf("Be careful when you use multithread.\n");
     printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
   }
+  */
   pseudoReal->overlapFlag;
   
 

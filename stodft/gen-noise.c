@@ -275,6 +275,9 @@ void genNoiseOrbitalReal(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
   fclose(fileRand);
   */
   //debug
+
+  
+  /*
   char fileNameRand[100];
   FILE *fileRand;
   printf("I'm reading noise orbital\n");
@@ -288,6 +291,7 @@ void genNoiseOrbitalReal(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
     }
   }
   fclose(fileRand);
+  */
   
   
   for(iStat=0;iStat<numStatUpProc;iStat++){

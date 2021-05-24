@@ -249,9 +249,15 @@ void calcChemPotCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       numElecNew = calcNumElecCheby(cp,chemPotNew,chebyCoeffs);
       //printf("chemPotNew %lg numElecNew %lg\n",chemPotNew,numElecNew);
     }//endwhile
+
+    //DEBUG
+    /*
+    chemPotNew = 0.2223443349358951;
+
     printf("Finish Calculating Chemical Potential\n");
     printf("The correct chemical potential is %.16lg Ne %.16lg DNe %.16lg\n",chemPotNew,numElecNew,
 	    fabs(numElecNew-numElecTrue));
+    */
     //chemPotMin = chemPotInit-gapInit*0.5;
     //chemPotMax = chemPotInit+gapInit*0.5;
     //test DOS
@@ -1134,6 +1140,15 @@ void calcChebyMomentsFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   }
 
   printf("11111111 %lg\n",chebyMomentsUp[0]);
+  // debug
+  FERMIFUNR fermiFunction = stodftInfo->fermiFunctionReal;
+  double numElecTest = 0;
+  for(iState=0;iState<numStatePrintUp;iState++){
+    numElecTest += stoDetDot[iState]*fermiFunction(energyLevel[iState],0.2223443349358951,1052.58);
+  }
+  printf("numElecTest %lg\n",numElecTest);
+
+
   if(numProcStates>1)Barrier(comm_states);
 
   free(stoDetDot);

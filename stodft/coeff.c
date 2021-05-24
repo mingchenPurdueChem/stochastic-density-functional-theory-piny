@@ -946,12 +946,14 @@ void genChebyHermitTrueChemPot(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefP
     }
   }
 
+  /*
   if(smearOpt>0){
     stodftCoefPos->entropyExpanCoeff = (double*)cmalloc(polynormLength*sizeof(double));
     calcChebyCoeff(stodftInfo,stodftCoefPos,&chemPot[0],
                    &(stodftCoefPos->entropyExpanCoeff[0]),13,stodftInfo->chemPotTrue);
     //memcpy(expanCoeffLocal,stodftCoefPos->entropyExpanCoeff,totalPoly*sizeof(double));    
   }
+  */
 
 
   free(expanCoeffLocal);
@@ -992,6 +994,7 @@ void calcChebyCoeffWrapper(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
   int numFFTGridMutpl = 32;
   int numChebyGridInit = polynormLength*numFFTGridMutpl;
   int numChebyGrid;
+  int smearOpt       = stodftInfo->smearOpt;
 
   double *expanCoeff       = (double*)stodftCoefPos->expanCoeff;
   double *chemPot          = stodftCoefPos->chemPot;
@@ -1059,6 +1062,13 @@ void calcChebyCoeffWrapper(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
     }
   }
   */
+
+  if(smearOpt>0){
+    stodftCoefPos->entropyExpanCoeff = (double*)cmalloc(polynormLength*sizeof(double));
+    calcChebyCoeff(stodftInfo,stodftCoefPos,&chemPot[0],
+                   &(stodftCoefPos->entropyExpanCoeff[0]),13,chemPotTrue);
+    //memcpy(expanCoeffLocal,stodftCoefPos->entropyExpanCoeff,totalPoly*sizeof(double));    
+  }
   
   fftw_destroy_plan(stodftInfo->fftwPlanForward);
   fftw_free(stodftCoefPos->chebyCoeffsFFT);

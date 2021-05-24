@@ -1180,13 +1180,14 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*--------------------------------------------------------------------------*/
 /* iv) Determine occupatation number */
 
+  numOccDetProc = (double*)cmalloc(numStateUpProc*sizeof(double));
+
   if(smearOpt>0){
     if(myidState==0)printf("**Determine Chemical Potential...\n");
-    calcChemPotMetal(cp);
+    calcChemPotMetal(cp,numOccDetProc);
     if(myidState==0)printf("**Finish Determining Chemical Potential...\n");
   }
   else{
-    numOccDetProc = (double*)cmalloc(numStateUpProc*sizeof(double));
     if(myidState==0){
       numOccDetAll = (double*)calloc(numStateUpIdp,sizeof(double));
       for(iState=0;iState<numElecTrueUp;iState++)numOccDetAll[iState] = sqrt(2.0);
@@ -1200,6 +1201,7 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     else{
       memcpy(numOccDetProc,numOccDetAll,numStateUpProc*sizeof(double));
     }
+    cfree(numOccDetAll);
   }
   if(numProcStates>1)Barrier(comm_states);
 /*--------------------------------------------------------------------------*/
@@ -1257,7 +1259,6 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   cfree(&coeffUpImBackup[1]);
   if(myidState==0){
     cfree(energyTestAll);
-    cfree(numOccDetAll);
   }
   
   //exit(0);
@@ -1322,9 +1323,10 @@ void genMatrixMulWrapper(int m,int n,double *A,double *B,double *C,int nthreads)
   mkl_set_num_threads(nthreads);
   omp_set_nested(1);
 #endif
-  
-  //DGEMM(&transa,&transb,&m,&n,&k,&alpha,A,&lda,B,&ldb,&beta,C,&ldc); 
-  dgemm_(&transa,&transb,&m,&n,&k,&alpha,A,&lda,B,&ldb,&beta,C,&ldc);
+  {
+    //DGEMM(&transa,&transb,&m,&n,&k,&alpha,A,&lda,B,&ldb,&beta,C,&ldc); 
+    dgemm_(&transa,&transb,&m,&n,&k,&alpha,A,&lda,B,&ldb,&beta,C,&ldc);
+  }
 
 /*==========================================================================*/
 }/*end Routine*/

@@ -2143,10 +2143,12 @@ void calcRhoStoHybridEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *gene
   for(iGrid=0;iGrid<rhoRealGridTot;iGrid++)rhoSum[iGrid] = 0.0;
 
   //DEBUG
+  /*
   double test;
   FILE *frhowindow;
   char fileName[100];
   double *rhoWindowReduce;
+  */
   for(iChem=0;iChem<numChemPot;iChem++){
     //printf("!!!!!!!!!!!!! iChem %i\n",iChem);
     rhoCalcRealStoHybrid(cpscr,cpcoeffs_info,
@@ -2158,9 +2160,10 @@ void calcRhoStoHybridEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *gene
 		   &(cp->cp_para_fft_pkg3d_dens_cp_box),
 		   &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
 		   &(cp->cp_sclr_fft_pkg3d_sm));
-    test = 0.0;
+    //test = 0.0;
     //printf("rhoTemp[1] %lg\n",rhoTemp[1]);
     //DEBUG
+    /*
     if(numProcStates>1){
       if(myidState==0)rhoWindowReduce = (double*)calloc(rhoRealGridTot,sizeof(double));
       Barrier(commStates);
@@ -2168,6 +2171,7 @@ void calcRhoStoHybridEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *gene
       Barrier(commStates);
     }
     else memcpy(&rhoWindowReduce[0],&rhoTemp[1],rhoRealGridTot*sizeof(double));
+    */
     /*
     if(myidState==0){
       sprintf(fileName,"density-window-%i",iChem);

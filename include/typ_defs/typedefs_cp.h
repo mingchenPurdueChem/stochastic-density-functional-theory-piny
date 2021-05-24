@@ -815,6 +815,7 @@ typedef struct stodftInfo{
   double entropy;                   /* Num: Enertropy for metallic system       */
 
   int homoIndex;  //debug
+
 }STODFTINFO;
 
 typedef struct stodftCoefPos{

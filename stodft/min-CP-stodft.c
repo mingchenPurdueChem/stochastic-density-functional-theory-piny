@@ -546,6 +546,7 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int checkpointWriteFreq = stodftInfo->checkpointWriteFreq;
   int checkpointParFlag = stodftInfo->checkpointParFlag;
   int readCoeffFlag = stodftInfo->readCoeffFlag;
+  int electronFricFlag = stodftInfo->electronFricFlag;
   MPI_Comm commStates   =    communicate->comm_states;
 
   int *pcoefFormUp		     = &(cpcoeffs_pos->icoef_form_up);

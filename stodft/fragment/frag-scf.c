@@ -146,6 +146,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   // as updated fragmentation MO files.
   // DEBUG
   //readCoeffFlag = 3;
+  printf("readCoeffFlag %i\n",readCoeffFlag);
   if(readCoeffFlag!=3){
     
     sprintf(fileNameFragMO,"frag-MO-%i",myidState);
@@ -186,11 +187,6 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     
       controlCpMinFrag(&classMini[iFrag],&bondedMini[iFrag],&generalDataMini[iFrag],
                        &cpMini[iFrag],&analysisMini[iFrag]);      
-      if(iFrag==0){
-        printf("xxxxxxxyz %lg %lg %lg\n",classMini[0].clatoms_pos[1].x[1],
-                                         classMini[0].clatoms_pos[1].y[1],
-                                         classMini[0].clatoms_pos[1].z[1]);
-      }     
       /*
       if(myidState==0){
         fileFragMO = fopen("frag-MO-2","w");
@@ -277,6 +273,11 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }
   */
 
+  if(myidState==0){
+    printf("**Start Projecting Fragment Density\n");
+  }
+  if(numProcStates>1)Barrier(commStates);
+
   if(fragOpt==1){
     projRhoMiniMol(cp,general_data,class,cpMini,generalDataMini,classMini,ip_now);
   }
@@ -284,11 +285,17 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     projRhoMiniUnitCell(cp,general_data,class,cpMini,generalDataMini,classMini,ip_now);
   }
 
+  if(myidState==0){
+    printf("**Start Correcting Energy\n");
+  }
+  if(numProcStates>1)Barrier(commStates);
+
   if(energyWindowOn==0){
     energyCorrect(cpMini,generalDataMini,classMini,cp,class,ip_now);
   }
-  printf("!!!!!!!!!!! energywindowon %i\n",energyWindowOn);
   
+
+
   /*
   if(energyWindowOn==1){
     stodftInfo->fragWindowFlag = 0;

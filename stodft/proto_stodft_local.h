@@ -116,7 +116,7 @@ double calcLagrangeInterpFun(int ,double ,double * ,double * ,double *);
 double calcLagrangeInterpDrv(int ,double ,double * ,double * ,double *);
 void updateChemPot(STODFTINFO *,STODFTCOEFPOS *);
 void adjChemPot(STODFTINFO *,STODFTCOEFPOS *);
-void calcChemPotMetal(CP *);
+void calcChemPotMetal(CP *,double *);
 void genChemPotEnergyWindows(STODFTINFO *,STODFTCOEFPOS *);
 double calcNumElecSmear(int, double, double,double *,int);
 /*-----------------------------------------------------------------*/

@@ -244,6 +244,10 @@ void genChemPotInterpPoints(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
             //        iNode,energyMin,chemPotTrue,dE,chemPot[iNode]);
           }
           // double check the last chemical potential is correct...
+          // TEST READ chempot
+          fileTest = fopen("chempot","r");
+          for(iNode=0;iNode<numChemPot;iNode++)fscanf(fileTest,"%lg",&chemPot[iNode]);
+          fclose(fileTest);
           chemPot[numChemPot-1] = chemPotTrue;
           for(iNode=0;iNode<numChemPot;iNode++)chemPotBackUp[iNode] = chemPot[iNode];
         }
@@ -644,7 +648,7 @@ void adjChemPot(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void calcChemPotMetal(CP *cp)
+void calcChemPotMetal(CP *cp,double *numOccDetProc)
 /*========================================================================*/
 {/*begin routine*/
 /**************************************************************************/
@@ -679,6 +683,8 @@ void calcChemPotMetal(CP *cp)
 
   int *numStates = stodftInfo->numStates;
   int *dsplStates = stodftInfo->dsplStates;
+  int *numStates2 = stodftInfo->numStates2;
+  int *dsplStates2 = stodftInfo->dsplStates2;
   MPI_Comm comm_states = communicate->comm_states;
 
 
@@ -697,7 +703,6 @@ void calcChemPotMetal(CP *cp)
   double pre = sqrt(2.0);
 
   double *energyLevel = stodftCoefPos->energyLevel;
-  double *numOccDetProc = stodftInfo->numOccDetProc;
   double *numOccDetAll;
 
   
@@ -713,8 +718,8 @@ void calcChemPotMetal(CP *cp)
   }
   */
   if(myidState==0){
-    numOccDetAll = (double*)cmalloc(numStateUpAllProc*sizeof(double)); 
-    for(iState=0;iState<numStateUpAllProc;iState++){
+    numOccDetAll = (double*)cmalloc(numStateUpIdp*sizeof(double)); 
+    for(iState=0;iState<numStateUpIdp;iState++){
       numOccDetAll[iState] = 0.0;
     }
     // Now I only have spin-unpolarize filter diag
@@ -784,13 +789,13 @@ void calcChemPotMetal(CP *cp)
 
   if(numProcStates>1){
     Barrier(comm_states);
-    Scatterv(numOccDetAll,numStates,dsplStates,MPI_DOUBLE,numOccDetProc,
-             numStateUpProcTotal,MPI_DOUBLE,0,comm_states);
+    Scatterv(numOccDetAll,numStates2,dsplStates2,MPI_DOUBLE,numOccDetProc,
+             numStateUpProc,MPI_DOUBLE,0,comm_states);
   }
   else{
-    memcpy(numOccDetProc,numOccDetAll,numStateUpAllProc*sizeof(double));
+    memcpy(numOccDetProc,numOccDetAll,numStateUpIdp*sizeof(double));
   }
-  for(iState=0;iState<numStateUpProcTotal;iState++){
+  for(iState=0;iState<numStateUpProc;iState++){
     numOccDetProc[iState] = sqrt(numOccDetProc[iState])*pre;
   }
 

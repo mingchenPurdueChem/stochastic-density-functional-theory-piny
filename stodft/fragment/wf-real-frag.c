@@ -1126,14 +1126,32 @@ void noiseRealReGen(GENERAL_DATA *general_data,CP *cp,CLASS *class,int ip_now)
   gaussran2(numRandNum,&iseedNew,&iseedNew,&seedNew,randNum);
   //debug
 #endif
-  /*
+  
+  
   char fileNameRand[100];
   FILE *fileRand;
+  
   sprintf(fileNameRand,"rand-%i",myidState);
   fileRand = fopen(fileNameRand,"w");
   for(iGrid=0;iGrid<numStatUpProc*nfft2;iGrid++){
     if(randNum[iGrid]<0.0)fprintf(fileRand,"-1.0\n");
     else fprintf(fileRand,"1.0\n");
+  }
+  fclose(fileRand);
+  
+ 
+  /*
+  //char fileNameRand[100];
+  //FILE *fileRand;
+  printf("I'm reading noise orbital\n");
+  sprintf(fileNameRand,"rand-%i",myidState);
+  fileRand = fopen(fileNameRand,"r");
+  for(iStat=0;iStat<numStatUpProc;iStat++){
+    for(iGrid=0;iGrid<nfft2;iGrid++){
+      fscanf(fileRand,"%lg",&randNum[iStat*nfft2+iGrid]);
+      //if(randNum[iStat*nfft2+iGrid]<0.0)fprintf(fileRand,"-1.0\n");
+      //else fprintf(fileRand,"1.0\n");
+    }
   }
   fclose(fileRand);
   */

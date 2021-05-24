@@ -267,6 +267,23 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     }
   }
   */
+
+  /*
+  char fileNameRand[100];
+  FILE *fileRand;
+  int iState;
+
+  for(iState=0;iState<numStateUpProc;iState++){
+    sprintf(fileNameRand,"stowf-%i-%i",myidState,iState);
+    fileRand = fopen(fileNameRand,"w");
+    for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+      fprintf(fileRand,"%.16lg %.16lg\n",
+                  stoWfUpRe[0][iState*numCoeff+iCoeff],stoWfUpIm[0][iState*numCoeff+iCoeff]);
+    }
+    fclose(fileRand);
+  }
+  */
+
   Barrier(comm_states);
 
   if(myidState==0){
@@ -842,35 +859,92 @@ void filterNewtonPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 
   numStatePrintUpProc = numStates22[myidState];
   for(imu=0;imu<numChemPot;imu++){
-    #pragma omp parallel for private(iCoeff)
+    //#pragma omp parallel for private(iCoeff)
     for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
       stoWfUpRe[imu][iCoeff] = 0.0;
       stoWfUpIm[imu][iCoeff] = 0.0;
     }
   }
   if(smearOpt>0&&filterDiagFlag==0){
-    #pragma omp parallel for private(iCoeff)
+    //#pragma omp parallel for private(iCoeff)
     for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
       entropyUpRe[iCoeff] = 0.0;
       entropyUpIm[iCoeff] = 0.0;
     }
   }
 
-  printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+  /*
+  printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! %i %lg %lg \n",myidState,cre_up[100],cim_up[100]);
+
+  char fileNameRand[100];
+  FILE *fileRand;
+  for(iState=0;iState<numStateUpProc;iState++){
+    sprintf(fileNameRand,"noise-%i-%i",myidState,iState);
+    fileRand = fopen(fileNameRand,"w");
+    for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+      fprintf(fileRand,"%.16lg %.16lg\n",
+                  cre_up[iState*numCoeff+iCoeff],cim_up[iState*numCoeff+iCoeff]);
+    }
+    fclose(fileRand);
+  }
+  */
+
+  /*
+  for(iState=0;iState<numStateUpProc;iState++){
+    sprintf(fileNameRand,"det-%i",myidState);
+    fileRand = fopen(fileNameRand,"w");
+    for(iCoeff=0;iCoeff<numStatePrintUpProc*numCoeff;iCoeff++){
+      fprintf(fileRand,"%.16lg %.16lg\n",
+                  moUpRePrint[iCoeff],moUpImPrint[iCoeff]);
+    }
+    fclose(fileRand);
+  }
+  */
+
+  /*
+  for(iState=0;iState<numStateUpProc;iState++){
+    sprintf(fileNameRand,"det-%i",myidState);
+    fileRand = fopen(fileNameRand,"w");
+    for(iCoeff=0;iCoeff<numStatePrintUpProc*numCoeff;iCoeff++){
+      fprintf(fileRand,"%.16lg %.16lg\n",
+                  moUpRePrint[iCoeff],moUpImPrint[iCoeff]);
+    }
+    fclose(fileRand);
+  }
+  */
+
+
+  if(numProcStates>1)Barrier(comm_states);
+
+  double *coeffReUpSum = NULL;
+  double *coeffImUpSum = NULL;
+
   for(iProc=0;iProc<numProcStates;iProc++){
+    if(numProcStates>1)Barrier(comm_states);
     coeffReUpStore = (double*)crealloc(coeffReUpStore,numStates[iProc]*numCoeff*sizeof(double));
     coeffImUpStore = (double*)crealloc(coeffImUpStore,numStates[iProc]*numCoeff*sizeof(double));
     wfDot = (double*)crealloc(wfDot,numStates[iProc]*numStatePrintUpProc*sizeof(double));
+    if(myidState==iProc){
+      coeffReUpSum = (double*)crealloc(coeffReUpSum,numStates[iProc]*numCoeff*sizeof(double));
+      coeffImUpSum = (double*)crealloc(coeffImUpSum,numStates[iProc]*numCoeff*sizeof(double));
+      for(iCoeff=0;iCoeff<numStates[iProc]*numCoeff;iCoeff++){
+        coeffReUpSum[iCoeff] = 0.0;
+        coeffImUpSum[iCoeff] = 0.0;
+      }
+    }
+    if(numProcStates>1)Barrier(comm_states);
     for(iSto=0;iSto<numStates[iProc]*numStatePrintUpProc;iSto++)wfDot[iSto] = 0.0;
     if(myidState==iProc){
       memcpy(coeffReUpStore,&cre_up[1],numStates[iProc]*numCoeff*sizeof(double));
       memcpy(coeffImUpStore,&cim_up[1],numStates[iProc]*numCoeff*sizeof(double));
     }
+    //printf("iProc %i myidState %i coeff1 %lg %lg\n",iProc,myidState,coeffReUpStore[0],coeffImUpStore[0]);
     if(numProcStates>1){
       Bcast(coeffReUpStore,numStates[iProc]*numCoeff,MPI_DOUBLE,iProc,comm_states);
       Bcast(coeffImUpStore,numStates[iProc]*numCoeff,MPI_DOUBLE,iProc,comm_states);
     }
-    #pragma omp parallel for private(iSto,iState,iCoeff,index1,index2,sum,startIndex)
+    //printf("iProc %i myidState %i coeff2 %lg %lg\n",iProc,myidState,coeffReUpStore[0],coeffImUpStore[0]);
+    //#pragma omp parallel for private(iSto,iState,iCoeff,index1,index2,sum)
     for(iSto=0;iSto<numStates[iProc];iSto++){
       index1 = iSto*numCoeff;
       for(iState=0;iState<numStatePrintUpProc;iState++){
@@ -885,13 +959,14 @@ void filterNewtonPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
         wfDot[iSto*numStatePrintUpProc+iState] = sum;
       }
     }
+    //printf("iProc %i myidState %i wfDot %lg\n",iProc,myidState,wfDot[0]);
     for(imu=0;imu<numChemPot;imu++){
-      #pragma omp parallel for private(iCoeff)
+      //#pragma omp parallel for private(iCoeff)
       for(iCoeff=0;iCoeff<numStates[iProc]*numCoeff;iCoeff++){
         coeffReUpStore[iCoeff] = 0.0;
         coeffImUpStore[iCoeff] = 0.0;
       }
-      #pragma omp parallel for private(iSto,jState,iCoeff,x,y)
+      //#pragma omp parallel for private(iSto,iState,iCoeff,x,y,startIndex)
       for(iSto=0;iSto<numStates[iProc];iSto++){
         startIndex = dsplStates22[myidState];
         for(iState=0;iState<numStatePrintUpProc;iState++){
@@ -903,16 +978,29 @@ void filterNewtonPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
           }//endfor iCoeff
         }//endfor iState
       }//endfor iSto
+      //printf("iProc %i myidState %i coeff3 %lg %lg\n",iProc,myidState,coeffReUpStore[0],coeffImUpStore[0]);
+      //printf("numProcStates %i iProc %i myidState %i\n",numProcStates,iProc,myidState);
       if(numProcStates>1){
-        Reduce(coeffReUpStore,&(stoWfUpRe[imu][1]),numStates[iProc]*numCoeff,MPI_DOUBLE,
+        //Reduce(coeffReUpStore,&(stoWfUpRe[imu][1]),numStates[iProc]*numCoeff,MPI_DOUBLE,
+        //       MPI_SUM,iProc,comm_states);
+        //Reduce(coeffImUpStore,&(stoWfUpIm[imu][1]),numStates[iProc]*numCoeff,MPI_DOUBLE,
+        //       MPI_SUM,iProc,comm_states);
+        Reduce(coeffReUpStore,coeffReUpSum,numStates[iProc]*numCoeff,MPI_DOUBLE,
                MPI_SUM,iProc,comm_states);
-        Reduce(coeffImUpStore,&(stoWfUpIm[imu][1]),numStates[iProc]*numCoeff,MPI_DOUBLE,
+        Reduce(coeffImUpStore,coeffImUpSum,numStates[iProc]*numCoeff,MPI_DOUBLE,
                MPI_SUM,iProc,comm_states);
       }
       else{
+        //printf("Why I'm here iProc %i myidState %i\n",iProc,myidState);
         memcpy(&(stoWfUpRe[imu][1]),coeffReUpStore,numStates[iProc]*numCoeff*sizeof(double));
         memcpy(&(stoWfUpIm[imu][1]),coeffImUpStore,numStates[iProc]*numCoeff*sizeof(double));
       }
+      if(myidState==iProc){
+        memcpy(&(stoWfUpRe[imu][1]),coeffReUpSum,numStates[iProc]*numCoeff*sizeof(double));
+        memcpy(&(stoWfUpIm[imu][1]),coeffImUpSum,numStates[iProc]*numCoeff*sizeof(double));
+      }
+      //printf("iProc %i myidState %i coeff4 %lg %lg\n",iProc,myidState,stoWfUpRe[imu][1],stoWfUpIm[imu][1]);
+      if(numProcStates>1)Barrier(comm_states);
     }//endfor imu
     if(smearOpt>0&&filterDiagFlag==0){
       #pragma omp parallel for private(iCoeff)
@@ -1002,12 +1090,26 @@ void filterNewtonPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   }//endif smearOpt
   */
 
+  /*
+  for(iState=0;iState<numStateUpProc;iState++){
+    sprintf(fileNameRand,"stowf-%i-%i",myidState,iState);
+    fileRand = fopen(fileNameRand,"w");
+    for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+      fprintf(fileRand,"%.16lg %.16lg\n",
+                  stoWfUpRe[0][iState*numCoeff+iCoeff],stoWfUpIm[0][iState*numCoeff+iCoeff]);
+    }
+    fclose(fileRand);
+  }
+  */
+    
   free(occupNumber);
   free(energyScale);
   free(wfDot);
   free(entropyState);
   free(coeffReUpStore);
   free(coeffImUpStore);
+  free(coeffReUpSum);
+  free(coeffImUpSum);
  
   Barrier(comm_states);
 

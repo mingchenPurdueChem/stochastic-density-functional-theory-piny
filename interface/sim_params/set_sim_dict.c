@@ -2263,7 +2263,7 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
  /*             Local variable declarations                                */
   
   unsigned int i;
-  *num_dict = 38;
+  *num_dict = 41;
   *dict = (DICT_WORD *)cmalloc(*num_dict*sizeof(DICT_WORD))-1;
 
   for (i=1;i<=*num_dict;i++) {
@@ -2423,6 +2423,19 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
   strcpy((*dict)[38].error_mes,"File name of the final density output");
   strcpy((*dict)[38].keyword,"out_rho_file_name");
   strcpy((*dict)[38].keyarg,"density-out");
+
+  strcpy((*dict)[39].error_mes,"Calculate Electron Friction or Not");
+  strcpy((*dict)[39].keyword,"elec_fric_on");
+  strcpy((*dict)[39].keyarg,"off");
+
+  // Read File "atom_index_friction" to get all atomic indecies (start from 0)
+  strcpy((*dict)[40].error_mes,"Number of Atoms for Friction Calculation");
+  strcpy((*dict)[40].keyword,"num_atom_fric");
+  strcpy((*dict)[40].keyarg,"0");
+
+  strcpy((*dict)[41].error_mes,"Standard Deviation for Gaussians as an approximated delta function");
+  strcpy((*dict)[41].keyword,"std_gau_fric");
+  strcpy((*dict)[41].keyarg,"0.00919"); //~0.25eV
 
  /*========================================================================*/
  } /* end routine set_sim_dict_harmonic */

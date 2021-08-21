@@ -4590,7 +4590,9 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   cp->stodftInfo = stodftInfo;
   cp->stodftCoefPos = stodftCoefPos;
   FRAGINFO *fragInfo = (FRAGINFO*)cmalloc(sizeof(FRAGINFO));
+  METALLIC *metallic = (METALLIC*)cmalloc(sizeof(METALLIC));
   stodftInfo->fragInfo = fragInfo;
+  stodftInfo->metallic = metallic;
 
   /*-----------------------------------------------------------------------*/
   /*  1)\sto_dft_on{#} */
@@ -4774,6 +4776,21 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   /*-----------------------------------------------------------------------*/
   /*  38)\out_rho_file_name{#} */
   strcpy(stodftInfo->densityFinalFileName,dict[38].keyarg);
+
+  /*-----------------------------------------------------------------------*/
+  /*  39)\elec_fric_on{#} */
+  if(strcasecmp(dict[39].keyarg,"off")==0)metallic->electronFricFlag = 0;
+  if(strcasecmp(dict[39].keyarg,"on")==0)metallic->electronFricFlag = 1;
+
+  /*-----------------------------------------------------------------------*/
+  /*  40)\num_atom_fric{#} */
+  sscanf(dict[40].keyarg,"%lg",&rka);
+  metallic->numAtomFric = (int)rka;
+  
+  /*-----------------------------------------------------------------------*/
+  /*  41)\std_gau_fric{#} */
+  sscanf(dict[41].keyarg,"%lg",&rka);
+  metallic->sigma = rka;
 
 /*=======================================================================*/
 /* Check the conflicate options						 */

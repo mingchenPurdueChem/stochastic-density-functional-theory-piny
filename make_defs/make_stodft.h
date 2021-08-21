@@ -232,4 +232,26 @@ checkpointIO.o :        $(STANDARD) $(DEFINES) \
 	$(ECHO) $@
 	$(COBJ) $(DCODE)/stodft/checkpointIO.c
 
+calc-friction.o :        $(STANDARD) $(DEFINES) \
+                         $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
+                         $(TYP_STAT) $(TYP_PAR) \
+                         $(TYP_CP) $(TYP_PAR) $(ENR_CP_LOC) \
+                         $(FRND_ENT) $(MATH) $(COMM_WRAP)\
+                         $(STODFT_LOC) \
+                         $(DCODE)/stodft/calc-friction.c
+	$(ECHO) $@
+	$(COBJ) $(DCODE)/stodft/calc-friction.c
+
+
+cp-energy-eext-fric.o:  $(STANDARD) $(DEFINES) \
+                         $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
+                         $(TYP_STAT) \
+                         $(TYP_CP) $(TYP_PAR) $(ENR_CP_LOC) $(ENR_CPCON_LOC)\
+                         $(FRND_ENT) $(MATH) $(COMM_WRAP)\
+                         $(STODFT_LOC) \
+                         $(DCODE)/stodft/calc-friction.c
+
+	$(ECHO) $@
+	$(COBJ) $(DCODE)/stodft/calc-friction.c
+
 #------------------------------------------------------------------

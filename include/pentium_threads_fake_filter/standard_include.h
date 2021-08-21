@@ -17,7 +17,8 @@
 #ifdef FFTW3
 #include "fftw3.h"
 #endif
-#include <mkl.h>
+#include <lapack.h>
+#include <cblas_f77.h>
 #ifdef PARALLEL
 #include <mpi.h>
 #else

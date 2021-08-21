@@ -510,6 +510,7 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   PSEUDO *pseudo                = &(cp->pseudo);
   PSEUDO_REAL *pseudoReal	= &(pseudo->pseudoReal);
   COMMUNICATE *communicate      = &(cp->communicate);
+  METALLIC *metallic            = stodftInfo->metallic;
 
   FOR_SCR      *for_scr         = &(class->for_scr);
   EWD_SCR      *ewd_scr         = &(class->ewd_scr);
@@ -546,7 +547,7 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int checkpointWriteFreq = stodftInfo->checkpointWriteFreq;
   int checkpointParFlag = stodftInfo->checkpointParFlag;
   int readCoeffFlag = stodftInfo->readCoeffFlag;
-  int electronFricFlag = stodftInfo->electronFricFlag;
+  int electronFricFlag = metallic->electronFricFlag;
   MPI_Comm commStates   =    communicate->comm_states;
 
   int *pcoefFormUp		     = &(cpcoeffs_pos->icoef_form_up);
@@ -632,7 +633,7 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
 /*======================================================================*/
 /* III) Initial KS potential calculation			        */
-/*	Initialize real sapce nlpp*/
+/*	Initialize real sapce nlpp                                      */
 
   stat_avg->cp_ehart = 0.0;
   stat_avg->cp_eext = 0.0;
@@ -957,6 +958,13 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /* VI) Calculate nuclei forces after SCF loop	                        */
 
   calcEnergyForce(class,general_data,cp,bonded,cpcoeffs_pos,clatoms_pos);
+
+/*======================================================================*/
+/* VII) Calculate electron friction                                     */
+
+  if(electronFricFlag==1){
+    calcElectronFric(class,general_data,cp,bonded,cpcoeffs_pos,clatoms_pos);
+  }
 
 /*======================================================================*/
 /* VI) In parallel, transpose coefs and coef forces fwd                 */

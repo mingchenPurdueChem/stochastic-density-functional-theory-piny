@@ -769,6 +769,8 @@ void calcChemPotMetal(CP *cp,double *numOccDetProc)
     printf("Finish Calculating Chemical Potential for Smearing\n");  
     printf("The correct chemical potential is %.16lg Ne %.16lg DNe %.16lg\n",chemPotNew,numElecNew,
               fabs(numElecNew-numElecTrueUp));
+
+    stodftInfo->chemPotUpMetallic = chemPotNew;
     switch(smearOpt){
       case 1:
         for(iState=0;iState<numStatePrintUp;iState++){

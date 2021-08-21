@@ -831,7 +831,7 @@ double entropyReal(double x, double mu, double beta){
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 double gaussianReal(double x,double mu,double beta){
-  return 0.3989422804014327*beta*exp(-beta*beta*(x-mu)*(x-mu));
+  return 0.3989422804014327*beta*exp(-0.5*beta*beta*(x-mu)*(x-mu));
 }
 /*===============================================================*/
 

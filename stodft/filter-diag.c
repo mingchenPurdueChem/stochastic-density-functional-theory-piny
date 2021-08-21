@@ -1214,6 +1214,79 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       cim_up[index1] = coeffUpImBackup[index1]*numOccDetProc[iState];
     }
   }
+
+/*--------------------------------------------------------------------------*/
+/* vi) Prepare for calculating electron friction if needed                  */
+
+  METALLIC *metallic = stodftInfo->metallic;
+  int electronFricFlag = metallic->electronFricFlag;
+  int numStateFric;
+  int countState;
+  int div,res;
+  int procInd,stateInd;
+  int *stateFricIndex;
+  double Emin,Emax;
+  double sigma = metallic->sigma;
+  double chemPotUpMetallic = stodftInfo->chemPotUpMetallic;
+  double *ksStateChemPotRe;
+  double *ksStateChemPotIm;
+  double *ksEnergyFric;
+
+  /* We believe only a small number of orbitals are needed */
+  /* Therefore we will broadcast ksStateChemPot to all process */
+  if(electronFricFlag==1){
+    if(myidState==0){
+      Emin = chemPotUpMetallic-4.0*sigma;
+      Emax = chemPotUpMetallic+4.0*sigma;
+      countState = 0;
+      for(iState=0;iState<numStatePrintUp;iState++){
+        if(energyLevel[iState]>Emin&&energyLevel[iState]<Emax)countState += 1;
+      }//endfor iState
+    }//endif myidState
+    Bcast(&(countState),1,MPI_INT,0,comm_states);
+    metallic->numStateFric = countState;
+
+    metallic->stateFricIndex = (int*)realloc(metallic->stateFricIndex,countState*sizeof(int));
+    metallic->ksEnergyFric = (double*)realloc(metallic->ksEnergyFric,countState*sizeof(double));
+    metallic->ksStateChemPotRe = (double*)realloc(metallic->ksStateChemPotRe,countState*sizeof(double));
+    metallic->ksStateChemPotIm = (double*)realloc(metallic->ksStateChemPotIm,countState*sizeof(double));
+    stateFricIndex = metallic->stateFricIndex;
+    ksEnergyFric = metallic->ksEnergyFric;
+    ksStateChemPotRe = metallic->ksStateChemPotRe;
+    ksStateChemPotIm = metallic->ksStateChemPotIm;
+
+    if(myidState==0){
+      countState = 0;
+      for(iState=0;iState<numStatePrintUp;iState++){
+        if(energyLevel[iState]>Emin&&energyLevel[iState]<Emax){
+          stateFricIndex[countState] = iState;
+          ksEnergyFric[countState] = energyLevel[iState];
+          countState += 1;
+        }//endif
+      }//endfor iState
+    }//endif myidState
+    Bcast(stateFricIndex,countState,MPI_INT,0,comm_states);
+    Bcast(ksEnergyFric,countState,MPI_DOUBLE,0,comm_states);
+    div = numStateUpIdp/numProcStates;
+    res = numStateUpIdp%numProcStates;
+    for(iState=0;iState<stateFricIndex;iState++){
+      if(stateFricIndex[iState]<res*(div+1))procInd = stateFricIndex[iState]/(div+1);
+      else procInd = (stateFricIndex[iState]-res*(div+1))/div+res;
+      stateInd = stateFricIndex[iState]-dsplStates2[procInd];
+      if(myidState==procInd){
+        memcpy(&ksStateChemPotRe[iState*numCoeff],&coeffUpReBackup[stateInd*numCoeff],
+               numCoeff*sizeof(double));
+        memcpy(&ksStateChemPotIm[iState*numCoeff],&coeffUpImBackup[stateInd*numCoeff],
+               numCoeff*sizeof(double));
+      }
+      if(numProcStates>1){
+        Bcast(&ksStateChemPotRe[iState*numCoeff],numCoeff,MPI_DOUBLE,procInd,comm_states);
+        Bcast(&ksStateChemPotIm[iState*numCoeff],numCoeff,MPI_DOUBLE,procInd,comm_states);
+        Barrier(comm_states);
+      }//endif numProcStates
+    }//endfor iState
+  }
+
 #ifdef FAST_FILTER
   cfree(&fcre_up[1]);
   cfree(&fcim_up[1]);

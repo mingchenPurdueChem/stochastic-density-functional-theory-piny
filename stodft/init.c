@@ -105,6 +105,10 @@ void commStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
 
   Bcast(stodftInfo->densityFileName,MAXWORD,MPI_CHAR,0,world);
 
+  Bcast(&(stodftInfo->metallic->electronFricFlag),1,MPI_INT,0,world);
+  Bcast(&(stodftInfo->metallic->numAtomFric),1,MPI_INT,0,world);
+  Bcast(&(stodftInfo->metallic->sigma),1,MPI_DOUBLE,0,world);
+
 }/*end Routine*/
 /*==========================================================================*/
 
@@ -869,6 +873,64 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     initFrag(class,bonded,general_data,cp,ip_now);
   }
   */
+
+/*==========================================================================*/
+/* XI) Initialize Electron Friction                                         */
+  
+  METALLIC *metallic = stodftInfo->metallic;
+  int electronFricFlag = metallic->electronFricFlag;
+  int numAtomFric = metallic->numAtomFric;
+  int numAtomFricProc;
+  FILE *fileAtomFric = NULL;
+  int *atomFricInd;
+  int *numAtomFricAllProc;
+  int *numAtomFricDspl;
+  int iAtom;
+
+  if(myidState==0){
+    fileAtomFric = fopen("atom_index_friction","r");
+
+    if(fileAtomFric==NULL){
+      printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+      printf("Can not find a file named as atom_index_friction\n");
+      printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(0);
+    }
+    atomFricInd = (int*)cmalloc(numAtomFric*sizeof(int));
+    for(iAtom=0;iAtom<numAtomFric;iAtom++){
+      fscanf(fileAtomFric,"%i",&atomFricInd[iAtom]);
+    }
+    numAtomFricAllProc = (int*)cmalloc(numProcStates*sizeof(int));
+    div = numAtomFric/numProcStates;
+    res = numAtomFric%numProcStates;
+    for(iProc=0;iProc<numProcStates;iProc++){
+      if(iProc<res)numAtomFricAllProc[iProc] = div+1;
+      else numAtomFricAllProc[iProc] = div;
+    }
+    numAtomFricDspl = (int*)cmalloc(numProcStates*sizeof(int));
+    numAtomFricDspl[0] = 0;
+    for(iProc=1;iProc<numProcStates;iProc++){
+      numAtomFricDspl[iProc] = numAtomFricDspl[iProc-1]+numAtomFricAllProc[iProc-1];
+    }
+  }
+  if(numProcStates>1){
+    Scatter(numAtomFricAllProc,numProcStates,MPI_INT,&(metallic->numAtomFricProc),
+            1,MPI_INT,0,comm_states);
+  }
+  else{
+    metallic->numAtomFricProc = numAtomFric;
+  }
+  
+  numAtomFricProc = metallic->numAtomFricProc;
+  metallic->atomFricIndProc = (int*)cmalloc(numAtomFricProc*sizeof(int));
+  if(numProcStates>1){
+    Scatterv(atomFricInd,numAtomFricAllProc,numAtomFricDspl,MPI_INT,metallic->atomFricIndProc,
+             numAtomFricProc,MPI_INT,0,comm_states);
+  }
+  else{
+    memcpy(metallic->atomFricIndProc,atomFricInd,numAtomFric*sizeof(int));
+  }
 
 /*==========================================================================*/
 }/*end Routine*/

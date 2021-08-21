@@ -212,6 +212,26 @@ void checkpointInput(CP *,GENERAL_DATA *,CLASS *);
 void checkpointOutputDist(CP *,GENERAL_DATA *);
 void checkpointInputDist(CP *,GENERAL_DATA *,CLASS *);
 
+// Friction Calculation
+/*-----------------------------------------------------------------*/
+/* calc-friction.c */
+void calcElectronFricDet(CLASS *,GENERAL_DATA *,CP *,BONDED *,
+                        CPCOEFFS_POS *,CLATOMS_POS *);
+void calcElectronFric(CLASS *,GENERAL_DATA *,CP *,BONDED *,
+                        CPCOEFFS_POS *,CLATOMS_POS *);
+/*-----------------------------------------------------------------*/
+/* cp-energy-eext-fric.c */
+
+void calcNlppRealFriction(CLASS *,GENERAL_DATA *,CP *,double *);
+
+void calcNlppDot(CLASS *,GENERAL_DATA *,CP *,int, int, double *,
+                      double *,double *,double *,double *);
+
+void calcLocalPotFriction(CLASS *,GENERAL_DATA *,CP *);
+
+void rhoCalcRealFriction(GENERAL_DATA *,CP *,CLASS *,double *,double *,
+                        double *,int);
+
 #ifdef FAST_FILTER   
 void scfStodftCheby(CLASS *,BONDED *,GENERAL_DATA *,
                     CP *,CLASS *,BONDED *,GENERAL_DATA *,CP *,int);

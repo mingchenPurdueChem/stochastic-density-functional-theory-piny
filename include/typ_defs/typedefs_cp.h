@@ -309,6 +309,38 @@ typedef double (*FERMIFUNR)(double,double,double);//x,mu,beta
 typedef long double (*FERMIFUNLR)(long double,long double,long double);
 typedef double complex (*FERMIFUNC)(double complex,double,double);
 
+typedef struct metallic{
+  /* Electron Friction for Metallic Systems */
+  int electronFricFlag;             /* Opt: Calculate electron friction (=1)    */
+  int numAtomFric;                  /* Num: Number of atoms w electron friction */
+  int *atomFricInd;                 /* Lst: Index of atom w electron friction   */
+                                    /* Lth: numAtomFric                         */
+  int numAtomFricProc;              /* Num: Number of atoms w electron friction */
+                                    /*      per process                         */
+  int *atomFricIndProc;             /* Lst: Index of atom w electron friction   */
+                                    /*      per process                         */
+                                    /* Lth: numAtomFric                         */
+  double sigma;                     /* Num: Std for Gaussians (for Projector)   */
+  double *fricTensor;               /* Lst: Friction Tensor                     */
+                                    /* Lth: 3*natm_tot*3*natm_tot               */
+/* For Deterministic DFT */
+  int numStateFric;                 /* Opt: Number of deterministic K-S orbitals*/
+                                    /*      to calculate frictions              */
+  int *stateFricIndex;              /* Lst: State Index to calculate friction   */
+                                    /* Lth: numStateFric                        */
+  double *ksEnergyFric;             /* Lst: K-S orbital energies to calculate   */
+                                    /*      friction                            */
+                                    /* Lth: numStateFric                        */
+  double *ksStateChemPotRe;         /* Lst: K-S orbitals near chemical potential*/
+  double *ksStateChemPotIm;         /* Lth: numOrbFric*ncoef                    */
+  double *vlocDevMat;               /* Lst: <m|dVloc/dR|n> for one atom         */
+                                    /* Lth: 3*numStateFric*numStateFric         */
+  double *vnlDevMat;                /* Lst: <m|dVnl/dR|n> for one atom          */
+                                    /* Lth: 3*numStateFric*numStateFric         */
+  double *hDevMat;                  /* Lst: <m|dh/dR|n> for one atom            */
+                                    /* Lth: 3*numAtomFric*numStateFric*numStateFric */
+}METALLIC;
+
 typedef struct fragInfo{
 /* I want to store some variables here so that I can pass them everytime */
   int numFragProc;		    /* Num: Fragments calculated on one proc	*/
@@ -815,6 +847,8 @@ typedef struct stodftInfo{
   double entropy;                   /* Num: Enertropy for metallic system       */
 
   int homoIndex;  //debug
+
+  METALLIC *metallic;
 
 }STODFTINFO;
 

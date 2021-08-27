@@ -31,7 +31,7 @@
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void calcNlppRealFriction(CLASS *class,GENERAL_DATA *generalData,CP *cp,
+void calcNlppRealFriction(CLASS *class,GENERAL_DATA *general_data,CP *cp,
                           double *hDevMat)
 /*==========================================================================*/
 /*               Begin subprogram:                                          */
@@ -58,7 +58,8 @@ void calcNlppRealFriction(CLASS *class,GENERAL_DATA *generalData,CP *cp,
   PTENS *ptens                  = &(general_data->ptens);
   FRAGINFO *fragInfo            = stodftInfo->fragInfo;
   METALLIC *metallic            = stodftInfo->metallic;
-  PARA_FFT_PKG3D *cp_para_fft_pkg3d;
+  ATOMMAPS *atommaps            = &(class->atommaps);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm = &(cp->cp_sclr_fft_pkg3d_sm);
 
   int pseudoRealFlag = pseudoReal->pseudoRealFlag;
   int cpLsda         = cpopts->cp_lsda;
@@ -72,7 +73,8 @@ void calcNlppRealFriction(CLASS *class,GENERAL_DATA *generalData,CP *cp,
   int numCoeffLarge       = cpcoeffs_info->ncoef_l;
   int numCoeffLargeProc;
   //int numCoeffLargeProc   = cp->cp_para_fft_pkg3d_lg.ncoef_proc;
-  int numCoeffLargeProcDensCpBox = cp->cp_para_fft_pkg3d_dens_cp_box.ncoef_proc;
+  int nfft = cp_sclr_fft_pkg3d_sm->nfft;
+  int numGrid = nfft/2;
   int cpDualGridOptOn = cpopts->cp_dual_grid_opt;
   int rhoRealGridNum    = stodftInfo->rhoRealGridNum;
   int numInterpPmeDual = pseudo->n_interp_pme_dual;
@@ -83,7 +85,6 @@ void calcNlppRealFriction(CLASS *class,GENERAL_DATA *generalData,CP *cp,
   int numProcStates = communicate->np_states;
   int numAtomTot = clatoms_info->natm_tot;
   int iState,jState,iCoeff,iChem,iAtom,iGrid;
-  int ioff,iis;
   int smearOpt = stodftInfo->smearOpt;
   int numStateFric = metallic->numStateFric;
   int numAtomFricProc = metallic->numAtomFricProc;
@@ -93,15 +94,18 @@ void calcNlppRealFriction(CLASS *class,GENERAL_DATA *generalData,CP *cp,
   int is,i,iupper;
   int ioff,ncoef1,ioff2;
   int iii,iis,nis;
-
-  int nfft       = cp_sclr_fft_pkg3d_sm->nfft;
-  int nfft2      = nfft/2;
+  int iAng,iDim,countNlppRe,countNlppIm;
+  int iRad,radIndex,countRad;
+  int l,m;
   int myid_state = communicate->myid_state;
   int np_states  = communicate->np_states;
 
   int *atomFricIndProc = metallic->atomFricIndProc;
   int *iAtomAtomType = atommaps->iatm_atm_typ;
+  int *numLMax = pseudoReal->numLMax;
   int *numNlppAtom = pseudoReal->numNlppAtom;
+  int **atomLRadNum = pseudoReal->atomLRadNum;
+  int **atomRadMap = pseudoReal->atomRadMap;
 
   double tpi = 2.0*M_PI;
   double eke,ekeDn;
@@ -124,6 +128,10 @@ void calcNlppRealFriction(CLASS *class,GENERAL_DATA *generalData,CP *cp,
 
   double *ksStateChemPotRe = metallic->ksStateChemPotRe;
   double *ksStateChemPotIm = metallic->ksStateChemPotIm;
+  double *zfft             = cpscr->cpscr_wave.zfft;
+  double *wfReal;
+  double *vpsNormList = pseudoReal->vpsNormList;
+  double **dotRe,**dotIm,**dotDevRe,**dotDevIm;
 
   numNlppAtom = 0;
   for(iAng=0;iAng<=numLMax[atomType];iAng++){
@@ -145,6 +153,8 @@ void calcNlppRealFriction(CLASS *class,GENERAL_DATA *generalData,CP *cp,
       dotDevIm[iAtom] = (double*)cmalloc(numStateFric*(numNlppTemp-1)*3*sizeof(double));
     }
   }
+
+  wfReal = (double*)cmalloc(numGrid*sizeof(double));
 
 /*======================================================================*/
 /* I) Loop all states involved in friction calculation                  */
@@ -187,7 +197,7 @@ void calcNlppRealFriction(CLASS *class,GENERAL_DATA *generalData,CP *cp,
       atomIndex = atomFricIndProc[iAtom];
       atomType = iAtomAtomType[atomIndex+1]-1;
       numNlppTemp = numNlppAtom[atomType];
-      calcNlppDot(class,generalData,cp,atomIndex,iAtom,wfReal,&dotRe[iAtom][(is-1)*numNlppTemp],
+      calcNlppDot(class,general_data,cp,atomIndex,iAtom,wfReal,&dotRe[iAtom][(is-1)*numNlppTemp],
                   &dotIm[iAtom][(is-1)*(numNlppTemp-1)],&dotDevRe[iAtom][(is-1)*numNlppTemp*3],
                   &dotDevIm[iAtom][(is-1)*(numNlppTemp-1)*3]);
     }
@@ -199,7 +209,7 @@ void calcNlppRealFriction(CLASS *class,GENERAL_DATA *generalData,CP *cp,
       atomIndex = atomFricIndProc[iAtom];
       atomType = iAtomAtomType[atomIndex+1]-1;
       numNlppTemp = numNlppAtom[atomType];
-      calcNlppDot(class,generalData,cp,atomIndex,iAtom,wfReal,&dotRe[iAtom][(is-1)*numNlppTemp],
+      calcNlppDot(class,general_data,cp,atomIndex,iAtom,wfReal,&dotRe[iAtom][(is-1)*numNlppTemp],
                   &dotIm[iAtom][(is-1)*(numNlppTemp-1)],&dotDevRe[iAtom][(is-1)*numNlppTemp*3],
                   &dotDevIm[iAtom][(is-1)*(numNlppTemp-1)*3]);
     }
@@ -212,7 +222,7 @@ void calcNlppRealFriction(CLASS *class,GENERAL_DATA *generalData,CP *cp,
 /*--------------------------------------------------------------------------*/
 /*   I) sngl pack                                                           */
 
-    sngl_pack_coef_fftw3d(&ccreal[ioff],&ccimag[ioff],zfft,cp_sclr_fft_pkg3d_sm);
+    sngl_pack_coef_fftw3d(&ksStateChemPotRe[ioff],&ksStateChemPotIm[ioff],zfft,cp_sclr_fft_pkg3d_sm);
 
 /*--------------------------------------------------------------------------*/
 /* II) fourier transform the wavefunctions to real space                    */
@@ -230,7 +240,7 @@ void calcNlppRealFriction(CLASS *class,GENERAL_DATA *generalData,CP *cp,
       atomIndex = atomFricIndProc[iAtom];
       atomType = iAtomAtomType[atomIndex+1]-1;
       numNlppTemp = numNlppAtom[atomType];
-      calcNlppDot(class,generalData,cp,atomIndex,iAtom,wfReal,&dotRe[iAtom][(is-1)*numNlppTemp],
+      calcNlppDot(class,general_data,cp,atomIndex,iAtom,wfReal,&dotRe[iAtom][(is-1)*numNlppTemp],
                   &dotIm[iAtom][(is-1)*(numNlppTemp-1)],&dotDevRe[iAtom][(is-1)*numNlppTemp*3],
                   &dotDevIm[iAtom][(is-1)*(numNlppTemp-1)*3]);
     }
@@ -249,7 +259,7 @@ void calcNlppRealFriction(CLASS *class,GENERAL_DATA *generalData,CP *cp,
           for(jState=0;jState<numAtomFricProc;jState++){
             countNlppRe = 0;
             countNlppIm = 0;
-            for(l=0;l<=atomLMax[atomType];l++){
+            for(l=0;l<=numLMax[atomType];l++){
               for(iRad=0;iRad<atomLRadNum[atomType][l];iRad++){
                 radIndex = atomRadMap[atomType][countRad+iRad];
                 for(m=0;m<=l;m++){
@@ -279,7 +289,24 @@ void calcNlppRealFriction(CLASS *class,GENERAL_DATA *generalData,CP *cp,
       }//endfor iDim
     }//endifnumNlppAtom
   }//endfor iAtom
-  
+
+/*======================================================================*/
+/* V) Free template array                                               */
+
+  free(wfReal);
+  for(iAtom=0;iAtom<numAtomFricProc;iAtom++){
+    if(numNlppTemp>=1){
+      free(dotRe[iAtom]);
+      free(dotIm[iAtom]);
+      free(dotDevRe[iAtom]);
+      free(dotDevIm[iAtom]);
+    }
+  }
+  free(dotRe);
+  free(dotIm);
+  free(dotDevRe);
+  free(dotDevIm);
+
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/
@@ -288,7 +315,7 @@ void calcNlppRealFriction(CLASS *class,GENERAL_DATA *generalData,CP *cp,
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void calcNlppDot(CLASS *class,GENERAL_DATA *generalData,CP *cp,
+void calcNlppDot(CLASS *class,GENERAL_DATA *general_data,CP *cp,
                       int atomIndex,int iAtom, double *wfReal, 
                       double *dotRe,double *dotIm,double *dotDevRe,double *dotDevIm)
 /*==========================================================================*/
@@ -299,15 +326,19 @@ void calcNlppDot(CLASS *class,GENERAL_DATA *generalData,CP *cp,
 /*************************************************************************/
 /*==========================================================================*/
 /*               Local variable declarations                                */
+  STODFTINFO *stodftInfo        = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
   PSEUDO *pseudo = &(cp->pseudo);
   PSEUDO_REAL *pseudoReal = &(pseudo->pseudoReal);
-  CELL *cell = &(generalData->cell);
+  CELL *cell = &(general_data->cell);
   CLATOMS_POS *clatoms_pos = &(class->clatoms_pos[1]);
   CLATOMS_INFO *clatoms_info = &(class->clatoms_info);
   ATOMMAPS *atommaps = &(class->atommaps);
-  STAT_AVG *stat_avg = &(generalData->stat_avg);
+  STAT_AVG *stat_avg = &(general_data->stat_avg);
   CPEWALD *cpewald = &(cp->cpewald);
   METALLIC *metallic            = stodftInfo->metallic;
+  PARA_FFT_PKG3D *cpParaFftPkg3d = &(cp->cp_para_fft_pkg3d_lg);
+  COMMUNICATE *communicate      = &(cp->communicate);
 
   int realSparseOpt = cpewald->realSparseOpt;
   int numAtomType = atommaps->natm_typ;
@@ -315,7 +346,7 @@ void calcNlppDot(CLASS *class,GENERAL_DATA *generalData,CP *cp,
   int numGrid;
   int numGridMax;
   int countRad,countNlppRe,countNlppIm;
-  int iPart,iRad,l,m,iType,iAtom,iGrid;
+  int iPart,iRad,l,m,iType,iGrid;
   int radIndex,gridIndex;
   int aIndex,bIndex,cIndex;
   int atomType;
@@ -334,7 +365,7 @@ void calcNlppDot(CLASS *class,GENERAL_DATA *generalData,CP *cp,
   int *iAtomAtomType = atommaps->iatm_atm_typ;
   int *gridStIndRe = pseudoReal->gridStIndRe;
   int *gridStIndIm = pseudoReal->gridStIndIm;
-  int *atomLMax = pseudoReal->numLMax; //max L for each atom
+  int *numLMax = pseudoReal->numLMax; //max L for each atom
   int **atomLRadNum = pseudoReal->atomLRadNum; //num of radical functions for each atom and each L
   int **atomRadMap = pseudoReal->atomRadMap;  //map of radical functions for each atom, starting from l=0 to l=lmax
   int *numGridNlppMap = pseudoReal->numGridNlppMap;
@@ -344,7 +375,6 @@ void calcNlppDot(CLASS *class,GENERAL_DATA *generalData,CP *cp,
   double vpsNorm;
   double vol,volInv;
   double volElem;
-  double dotRe,dotIm;
   double energy = 0.0;
   double energyl;
 
@@ -390,7 +420,7 @@ void calcNlppDot(CLASS *class,GENERAL_DATA *generalData,CP *cp,
       gridIndex = gridNlppMap[atomIndex][iGrid];
       wfNbhd[iGrid] = wfReal[gridIndex];
     }
-    for(l=0;l<=atomLMax[atomType];l++){
+    for(l=0;l<=numLMax[atomType];l++){
       if(locOpt[atomType+1]!=l){
         for(iRad=0;iRad<atomLRadNum[atomType][l];iRad++){
           radIndex = atomRadMap[atomType][countRad+iRad];
@@ -465,7 +495,8 @@ void calcNlppDot(CLASS *class,GENERAL_DATA *generalData,CP *cp,
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void calcLocalPotFriction(CLASS *class,GENERAL_DATA *generalData,CP *cp)
+void calcLocalPotFriction(CLASS *class,GENERAL_DATA *general_data,CP *cp,
+                          double *vlocDevMat)
 /*==========================================================================*/
 /*               Begin subprogram:                                          */
       {/*begin routine*/
@@ -482,9 +513,9 @@ void calcLocalPotFriction(CLASS *class,GENERAL_DATA *generalData,CP *cp)
   CPEWALD      *cpewald      = &(cp->cpewald);
   STODFTINFO   *stodftInfo   = cp->stodftInfo;
   STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
-  COMMUNICATE   *comm_states    = &(cp->communicate);
+  COMMUNICATE   *communicate    = &(cp->communicate);
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
-  CPCOEFFS_POS  *cpcoeffs_pos   = &(cp->cpcoeffs_pos[ip_now]);
+  CPCOEFFS_POS  *cpcoeffs_pos   = &(cp->cpcoeffs_pos[1]);
   PSEUDO        *pseudo         = &(cp->pseudo);
   FRAGINFO *fragInfo            = stodftInfo->fragInfo;
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
@@ -500,14 +531,17 @@ void calcLocalPotFriction(CLASS *class,GENERAL_DATA *generalData,CP *cp)
   int rhoRealGridNum    = stodftInfo->rhoRealGridNum;
   int rhoRealGridTot    = stodftInfo->rhoRealGridTot;
   int cpLsda = cpopts->cp_lsda;
+  int cpGGA  = cpopts->cp_gga;
   int cpDualGridOptOn = cpopts->cp_dual_grid_opt;
-  int myidState         = commCP->myid_state;
-  int numProcStates     = commCP->np_states;
+  int myidState         = communicate->myid_state;
+  int numProcStates     = communicate->np_states;
   int numInterpPmeDual = pseudo->n_interp_pme_dual;
   int numAtomTot = clatoms_info->natm_tot;
-  int atomIndex;
   
   int iState,jState,iGrid,iAtom;
+
+  MPI_Comm comm_states   =    communicate->comm_states;
+
 
   int *coefFormUp   = &(cpcoeffs_pos->icoef_form_up);
   int *coefFormDn   = &(cpcoeffs_pos->icoef_form_dn);
@@ -521,7 +555,6 @@ void calcLocalPotFriction(CLASS *class,GENERAL_DATA *generalData,CP *cp)
   double *ksStateChemPotRe = metallic->ksStateChemPotRe;
   double *ksStateChemPotIm = metallic->ksStateChemPotIm;
   double *wfReal = (double*)cmalloc(numStateFric*rhoRealGridTot*sizeof(double));
-  double *rhoUpCorrect    = stodftCoefPos->rhoUpCorrect;
   double *rhoTemp  = (double*)cmalloc(rhoRealGridTot*sizeof(double));
   double *rhoCoeffReUp   = cpscr->cpscr_rho.rhocr_up;
   double *rhoCoeffImUp   = cpscr->cpscr_rho.rhoci_up;
@@ -575,7 +608,7 @@ void calcLocalPotFriction(CLASS *class,GENERAL_DATA *generalData,CP *cp)
       calcRhoStoRecipFullg(cpewald,cpscr,cpcoeffs_info,ewald,cell,
                          rhoCoeffReUp,rhoCoeffImUp,rhoUp,rhoCoeffReUpDensCpBox,rhoCoeffImUpDensCpBox,
                          divRhoxUp,divRhoyUp,divRhozUp,d2RhoUp,cpGGA,cpDualGridOptOn,numInterpPmeDual,
-                         commCP,&(cp->cp_para_fft_pkg3d_lg),&(cp->cp_para_fft_pkg3d_dens_cp_box));
+                         communicate,&(cp->cp_para_fft_pkg3d_lg),&(cp->cp_para_fft_pkg3d_dens_cp_box));
 
       /* Calculate F_local(ij) */
       for(iAtom=1;iAtom<=numAtomTot;iAtom++){

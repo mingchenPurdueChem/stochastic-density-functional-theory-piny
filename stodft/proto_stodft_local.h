@@ -227,7 +227,7 @@ void calcNlppRealFriction(CLASS *,GENERAL_DATA *,CP *,double *);
 void calcNlppDot(CLASS *,GENERAL_DATA *,CP *,int, int, double *,
                       double *,double *,double *,double *);
 
-void calcLocalPotFriction(CLASS *,GENERAL_DATA *,CP *);
+void calcLocalPotFriction(CLASS *,GENERAL_DATA *,CP *,double *);
 
 void rhoCalcRealFriction(GENERAL_DATA *,CP *,CLASS *,double *,double *,
                         double *,int);

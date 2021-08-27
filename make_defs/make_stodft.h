@@ -249,9 +249,9 @@ cp-energy-eext-fric.o:  $(STANDARD) $(DEFINES) \
                          $(TYP_CP) $(TYP_PAR) $(ENR_CP_LOC) $(ENR_CPCON_LOC)\
                          $(FRND_ENT) $(MATH) $(COMM_WRAP)\
                          $(STODFT_LOC) \
-                         $(DCODE)/stodft/calc-friction.c
+                         $(DCODE)/stodft/reduced-energy/cp-energy-eext-fric.c
 
 	$(ECHO) $@
-	$(COBJ) $(DCODE)/stodft/calc-friction.c
+	$(COBJ) $(DCODE)/stodft/reduced-energy/cp-energy-eext-fric.c
 
 #------------------------------------------------------------------

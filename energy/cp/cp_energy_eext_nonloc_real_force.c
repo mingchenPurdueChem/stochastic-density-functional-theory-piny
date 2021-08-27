@@ -703,6 +703,11 @@ void calcRadFunDev(double *gridAtomNbhd,int radIndex,PSEUDO_REAL *pseudoReal,
   double *vps2 = pseudoReal->vpsDevReal2;
   double *vps3 = pseudoReal->vpsDevReal3;
 
+  double *fvps0 = pseudoReal->vpsReal0;
+  double *fvps1 = pseudoReal->vpsReal1;
+  double *fvps2 = pseudoReal->vpsReal2;
+  double *fvps3 = pseudoReal->vpsReal3;
+
   for(iGrid=0;iGrid<numGrid;iGrid++){
     x = gridAtomNbhd[iGrid*3];
     y = gridAtomNbhd[iGrid*3+1];
@@ -716,7 +721,9 @@ void calcRadFunDev(double *gridAtomNbhd,int radIndex,PSEUDO_REAL *pseudoReal,
     r0 = (gridInd-1)*dr+rMin;
     h = r-r0;
     interpInd = interpGridSt+gridInd;
-    dradDr = ((vps3[interpInd]*h+vps2[interpInd])*h+vps1[interpInd])*h+vps0[interpInd];
+    //dradDr = ((vps3[interpInd]*h+vps2[interpInd])*h+vps1[interpInd])*h+vps0[interpInd];
+    dradDr = (3.0*fvps3[interpInd]*h+2.0*fvps2[interpInd])*h+fvps1[interpInd];
+
     radDevFun[3*iGrid] = -dradDr*x/r;
     radDevFun[3*iGrid+1] = -dradDr*y/r;
     radDevFun[3*iGrid+2] = -dradDr*z/r;

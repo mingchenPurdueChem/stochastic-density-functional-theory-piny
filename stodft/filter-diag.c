@@ -1025,11 +1025,15 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*==========================================================================*/
 /* I)  Diagonal KS Matrix  */
     printf("Start diagonal KS Matrix\n");
-
+#ifdef FAST_FILTER
     stodftCoefPos->moUpRe = (double*)crealloc(stodftCoefPos->moUpRe,
                                  numCoeffUpAllProc*sizeof(double));
     stodftCoefPos->moUpIm = (double*)crealloc(stodftCoefPos->moUpIm,
                                  numCoeffUpAllProc*sizeof(double));
+#else
+    stodftCoefPos->moUpRe = (double*)cmalloc(numCoeffUpAllProc*sizeof(double));
+    stodftCoefPos->moUpIm = (double*)cmalloc(numCoeffUpAllProc*sizeof(double));
+#endif
     moUpRe = stodftCoefPos->moUpRe;
     moUpIm = stodftCoefPos->moUpIm;
 
@@ -1185,6 +1189,12 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   if(smearOpt>0){
     if(myidState==0)printf("**Determine Chemical Potential...\n");
     calcChemPotMetal(cp,numOccDetProc);
+#ifndef FAST_FILTER
+    // We do this for metallic system to calculate entropy
+    for(iState=0;iState<numStateUpProc;iState++){
+      stodftInfo->numOccDetProc[iState] = numOccDetProc[iState];
+    }
+#endif 
     if(myidState==0)printf("**Finish Determining Chemical Potential...\n");
   }
   else{
@@ -1269,7 +1279,7 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     Bcast(ksEnergyFric,countState,MPI_DOUBLE,0,comm_states);
     div = numStateUpIdp/numProcStates;
     res = numStateUpIdp%numProcStates;
-    for(iState=0;iState<stateFricIndex;iState++){
+    for(iState=0;iState<numStateFric;iState++){
       if(stateFricIndex[iState]<res*(div+1))procInd = stateFricIndex[iState]/(div+1);
       else procInd = (stateFricIndex[iState]-res*(div+1))/div+res;
       stateInd = stateFricIndex[iState]-dsplStates2[procInd];
@@ -1312,7 +1322,7 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     memcpy(moUpRe,&coeffUpReBackup[1],numCoeffUpTotal*sizeof(double));
     memcpy(moUpIm,&coeffUpImBackup[1],numCoeffUpTotal*sizeof(double));
   }
-#endif   
+#endif 
   if(numProcStates>1)Barrier(comm_states);
   //debug
   /*

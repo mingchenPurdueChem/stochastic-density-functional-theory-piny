@@ -517,11 +517,12 @@ void calcKNEEnergyFilterDiag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 
   if(smearOpt>0){
     entropy = 0.0;
+    printf("numStateUpProc %i\n",numStateUpProc);
     for(iState=0;iState<numStateUpProc;iState++){
       occNow = numOccDetProc[iState];
       if(cpLsda==0) occNow = occNow*occNow*0.5;
       else occNow = occNow*occNow;
-      //printf("occNow %lg\n",occNow);
+      printf("occNow %lg\n",occNow);
       if(occNow>1.0e-13&&occNow<1.0-1.0e-13){
         entropy += occNow*log(occNow)+(1.0-occNow)*log(1.0-occNow);
         printf("occNow %lg entropy %lg\n",occNow,entropy);

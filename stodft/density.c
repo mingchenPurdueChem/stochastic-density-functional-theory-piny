@@ -1868,8 +1868,8 @@ void calcRhoFilterDiagHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_d
   */
   //end debug
   rhoCalcRealStoHybrid(cpscr,cpcoeffs_info,
-                 cell,stodftInfo,stoWfUpRe[iChem],
-                 stoWfUpIm[iChem],rhoTemp,*coefFormUp,*coefOrthUp,
+                 cell,stodftInfo,coeffReUp,
+                 coeffImUp,rhoTemp,*coefFormUp,*coefOrthUp,
                  numStateUpProc,numCoeff,cpDualGridOptOn,commCP,
                  &(cp->cp_para_fft_pkg3d_lg),
                  &(cp->cp_sclr_fft_pkg3d_lg),
@@ -1909,7 +1909,7 @@ void calcRhoFilterDiagHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_d
     }
     else memcpy(rhoUpCorrect,rhoUpChemPot[0],rhoRealGridTot*sizeof(double));
   }
-  if(myidState==0)free(rhoUpChemPot[0]);
+  //if(myidState==0)free(rhoUpChemPot[0]);
   // Test the total number of electron again
   double numElecTest = 0.0;
   for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)numElecTest += rhoUpCorrect[iGrid];

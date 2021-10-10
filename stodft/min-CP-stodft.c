@@ -1368,7 +1368,11 @@ void scfStodftFilterDiag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   calcEnergyForceFilterDiag(class,general_data,cp,bonded,cpcoeffs_pos,clatoms_pos);
 
 /*======================================================================*/
-/* VI) In parallel, transpose coefs and coef forces fwd                 */
+/* VII) Calculate Friction if needed                                    */
+
+  if(stodftInfo->metallic->electronFricFlag==1){
+    calcElectronFricDet(class,general_data,cp,bonded,cpcoeffs_pos,clatoms_pos);
+  }
 
 
 /*-----------------------------------------------------------------------*/

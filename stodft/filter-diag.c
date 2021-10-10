@@ -553,7 +553,8 @@ int orthogSVD(int m,int n,double *matrix,int nthreads)
   printf("nthreads %i\n",nthreads);
   mkl_set_dynamic(0);
   mkl_set_num_threads(nthreads);
-  omp_set_nested(1);
+  //omp_set_nested(1);
+  omp_set_max_active_levels(1);
 #endif
   {
   dgesvd_(&jobu,&jobvt,&n,&m,&matrix[0],&lda,&S[0],NULL,&ldu,NULL,&ldvt,
@@ -1255,11 +1256,13 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     }//endif myidState
     Bcast(&(countState),1,MPI_INT,0,comm_states);
     metallic->numStateFric = countState;
+    numStateFric = countState;
+    printf("numStateFric %i\n",metallic->numStateFric);
 
     metallic->stateFricIndex = (int*)realloc(metallic->stateFricIndex,countState*sizeof(int));
     metallic->ksEnergyFric = (double*)realloc(metallic->ksEnergyFric,countState*sizeof(double));
-    metallic->ksStateChemPotRe = (double*)realloc(metallic->ksStateChemPotRe,countState*sizeof(double));
-    metallic->ksStateChemPotIm = (double*)realloc(metallic->ksStateChemPotIm,countState*sizeof(double));
+    metallic->ksStateChemPotRe = (double*)realloc(metallic->ksStateChemPotRe,countState*numCoeff*sizeof(double));
+    metallic->ksStateChemPotIm = (double*)realloc(metallic->ksStateChemPotIm,countState*numCoeff*sizeof(double));
     stateFricIndex = metallic->stateFricIndex;
     ksEnergyFric = metallic->ksEnergyFric;
     ksStateChemPotRe = metallic->ksStateChemPotRe;
@@ -1269,6 +1272,7 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       countState = 0;
       for(iState=0;iState<numStatePrintUp;iState++){
         if(energyLevel[iState]>Emin&&energyLevel[iState]<Emax){
+          //printf("iState %i energyLevel %lg Emin %lg Emax %lg\n",iState,energyLevel[iState],Emin,Emax);
           stateFricIndex[countState] = iState;
           ksEnergyFric[countState] = energyLevel[iState];
           countState += 1;
@@ -1277,12 +1281,14 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     }//endif myidState
     Bcast(stateFricIndex,countState,MPI_INT,0,comm_states);
     Bcast(ksEnergyFric,countState,MPI_DOUBLE,0,comm_states);
+
     div = numStateUpIdp/numProcStates;
     res = numStateUpIdp%numProcStates;
     for(iState=0;iState<numStateFric;iState++){
       if(stateFricIndex[iState]<res*(div+1))procInd = stateFricIndex[iState]/(div+1);
       else procInd = (stateFricIndex[iState]-res*(div+1))/div+res;
       stateInd = stateFricIndex[iState]-dsplStates2[procInd];
+      printf("myidState %i iState %i stateIndex %i procInd %i stateInd %i\n",myidState,iState,stateFricIndex[iState],procInd,stateInd);
       if(myidState==procInd){
         memcpy(&ksStateChemPotRe[iState*numCoeff],&coeffUpReBackup[stateInd*numCoeff],
                numCoeff*sizeof(double));
@@ -1404,7 +1410,8 @@ void genMatrixMulWrapper(int m,int n,double *A,double *B,double *C,int nthreads)
 #ifdef MKL_THREADS
   mkl_set_dynamic(0);
   mkl_set_num_threads(nthreads);
-  omp_set_nested(1);
+  //omp_set_nested(1);
+  omp_set_max_active_levels(1);
 #endif
   {
     //DGEMM(&transa,&transb,&m,&n,&k,&alpha,A,&lda,B,&ldb,&beta,C,&ldc); 

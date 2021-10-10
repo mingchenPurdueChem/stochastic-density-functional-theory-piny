@@ -310,7 +310,7 @@ void genNoiseOrbitalReal(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
     }
     coeffReUp[iOff+numCoeff] *= 0.5;
     coeffImUp[iOff+numCoeff] = 0.0;
-    printf("myid %i iStat %i %.16lg\n",myidState,iStat,coeffReUp[iStat*numCoeff+1]);
+    //printf("myid %i iStat %i %.16lg\n",myidState,iStat,coeffReUp[iStat*numCoeff+1]);
   }
   if(cpLsda==1){
     for(iStat=1;iStat<=numStatDnTot;iStat++){

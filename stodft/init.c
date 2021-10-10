@@ -900,9 +900,14 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
         exit(0);
       }
       atomFricInd = (int*)cmalloc(numAtomFric*sizeof(int));
+      printf("The total number of Atoms to calculate Frictions is %i\n",numAtomFric);
+      printf("The list of atoms:\n");
       for(iAtom=0;iAtom<numAtomFric;iAtom++){
         fscanf(fileAtomFric,"%i",&atomFricInd[iAtom]);
+	printf("%i ",atomFricInd[iAtom]);
       }
+      printf("\n");
+      printf("Finish printing the list of atoms\n");
       numAtomFricAllProc = (int*)cmalloc(numProcStates*sizeof(int));
       div = numAtomFric/numProcStates;
       res = numAtomFric%numProcStates;
@@ -917,7 +922,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
       }
     }
     if(numProcStates>1){
-      Scatter(numAtomFricAllProc,numProcStates,MPI_INT,&(metallic->numAtomFricProc),
+      Scatter(numAtomFricAllProc,1,MPI_INT,&(metallic->numAtomFricProc),
               1,MPI_INT,0,comm_states);
     }
     else{

@@ -88,6 +88,8 @@ void calcNlppRealFriction(CLASS *class,GENERAL_DATA *general_data,CP *cp,
   int smearOpt = stodftInfo->smearOpt;
   int numStateFric = metallic->numStateFric;
   int numAtomFricProc = metallic->numAtomFricProc;
+  int numAtomType   = atommaps->natm_typ;
+
   int atomType,atomIndex;
   int numNlppTemp;
 
@@ -133,14 +135,18 @@ void calcNlppRealFriction(CLASS *class,GENERAL_DATA *general_data,CP *cp,
   double *vpsNormList = pseudoReal->vpsNormList;
   double **dotRe,**dotIm,**dotDevRe,**dotDevIm;
 
-  numNlppAtom = 0;
-  for(iAng=0;iAng<=numLMax[atomType];iAng++){
-    numNlppAtom += atomLRadNum[atomType][iAng]*(iAng+1);
-  }//endfor iAng
-  dotRe = (double**)(numAtomFricProc*sizeof(double*));
-  dotIm = (double**)(numAtomFricProc*sizeof(double*));
-  dotDevRe = (double**)(numAtomFricProc*sizeof(double*));
-  dotDevIm = (double**)(numAtomFricProc*sizeof(double*));
+  /*
+  for(iAtomType=0;iAtomType<numAtomType;iType++){
+    numNlppAtom[iAtomType] = 0.0;
+    for(iAng=0;iAng<=numLMax[iAtomType];iAng++){
+      numNlppAtom[iAtomType] += atomLRadNum[iAtomType][iAng]*(iAng+1);
+    }//endfor iAng
+  }
+  */
+  dotRe = (double**)cmalloc(numAtomFricProc*sizeof(double*));
+  dotIm = (double**)cmalloc(numAtomFricProc*sizeof(double*));
+  dotDevRe = (double**)cmalloc(numAtomFricProc*sizeof(double*));
+  dotDevIm = (double**)cmalloc(numAtomFricProc*sizeof(double*));
 
   for(iAtom=0;iAtom<numAtomFricProc;iAtom++){
     atomIndex = atomFricIndProc[iAtom];

@@ -528,7 +528,8 @@ double ddotBlasWrapperThreads(int n,double *x,int indx,double *y,int indy,
   double dotResult;
   mkl_set_dynamic(0);
   mkl_set_num_threads(numThreads);
-  omp_set_nested(1);
+  //omp_set_nested(1);
+  omp_set_max_active_levels(1);
   {
     dotResult = DDOT(&n,x,&indx,y,&indy);
   }
@@ -553,7 +554,8 @@ void daxpyBlasWrapperThreads(int n,double a,double *x,int indx,double *y,
                              int indy,int numThreads){
   mkl_set_dynamic(0);
   mkl_set_num_threads(numThreads);
-  omp_set_nested(1);
+  //omp_set_nested(1);
+  omp_set_max_active_levels(1);
   {
     DAXPY(&n,&a,x,&indx,y,&indy);
   }

@@ -66,7 +66,7 @@ void calcElectronFricDet(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *
   int numProcStates = communicate->np_states;
   int numAtomTot = clatoms_info->natm_tot;
   int iState,jState,iCoeff,iChem,iAtom,iGrid;
-  int iDim,iProc,jAtom,jDim;
+  int iDim,iProc,jAtom,jDim,iMat;
   int ioff,iis;
   int smearOpt = stodftInfo->smearOpt;
   int numStateFric = metallic->numStateFric;
@@ -105,6 +105,11 @@ void calcElectronFricDet(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *
   double *fricTensor;
   FILE *ftensor;
 
+  if(myidState==0){
+    printf("==============================================\n");
+    printf("Calculate Electron Friction\n");
+    printf("==============================================\n");
+  }
 /*======================================================================*/
 /* 0) Allocation                                                        */
 
@@ -112,6 +117,11 @@ void calcElectronFricDet(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *
                              sizeof(double));
   vlocDevMat = (double*)cmalloc(numAtomFricProc*3*numStateFric*numStateFric*
                              sizeof(double));
+
+  for(iMat=0;iMat<numAtomFricProc*3*numStateFric*numStateFric;iMat++){
+    hDevMat[iMat] = 0.0;
+    vlocDevMat[iMat] = 0.0;
+  }
 
 /*======================================================================*/
 /* I) Calculate nlpp of <m|dVnl/dR|n>                                   */
@@ -126,7 +136,6 @@ void calcElectronFricDet(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *
 /* II) Calculate local pp of <m|dVloc/dR|n>                             */
 
   calcLocalPotFriction(class,general_data,cp,vlocDevMat);
-
 
   for(iAtom=0;iAtom<numAtomFricProc;iAtom++){
     //atomIndex = atomFricIndProc[iAtom];
@@ -148,6 +157,7 @@ void calcElectronFricDet(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *
           //hDevMat[(iAtom*3+iDim)*numStateFric*numStateFric+iState*numStateFric+jState] 
           //       = vlocDevMat[iDim*numStateFric*numStateFric+iState*numStateFric+jState]+
           //         vnlDevMat[iDim*numStateFric*numStateFric+iState*numStateFric+jState];
+          printf("iAtom %i iDim %i iState %i jState %i nlmat %lg locmat %lg\n",iAtom, iDim,iState,jState,hDevMat[(iAtom*3+iDim)*numStateFric*numStateFric+iState*numStateFric+jState],vlocDevMat[(iAtom*3+iDim)*numStateFric*numStateFric+iState*numStateFric+jState]);
           hDevMat[(iAtom*3+iDim)*numStateFric*numStateFric+iState*numStateFric+jState] += 
                      vlocDevMat[(iAtom*3+iDim)*numStateFric*numStateFric+iState*numStateFric+jState];
         }//endfor iDim

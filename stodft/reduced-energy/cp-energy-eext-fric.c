@@ -106,27 +106,14 @@ void calcNlppRealFriction(CLASS *class,GENERAL_DATA *general_data,CP *cp,
   int *iAtomAtomType = atommaps->iatm_atm_typ;
   int *numLMax = pseudoReal->numLMax;
   int *numNlppAtom = pseudoReal->numNlppAtom;
+  int *locOpt = pseudo->loc_opt;
   int **atomLRadNum = pseudoReal->atomLRadNum;
   int **atomRadMap = pseudoReal->atomRadMap;
 
   double tpi = 2.0*M_PI;
-  double eke,ekeDn;
-  double chemPotTrue = stodftInfo->chemPotTrue;
-  double energyKe   = stat_avg->cp_eke;
-  double energyPnl  = stat_avg->cp_enl;
-  double energyHart = stat_avg->cp_ehart;
-  double energyEext = stat_avg->cp_eext;
-  double energyExc  = stat_avg->cp_exc;
   double vol        = cell->vol;
   double volInv     = 1.0/vol;
-  double energyTotElec,energyTot;
-  double energyExtTemp,energyExcTemp,energyHartTemp;
-  double vInter;
-  double vrecip;
-  double vself,vbgr;
-  double vrecipLocal;
-  double entropy = stodftInfo->entropy;
-  double smearTemperature = stodftInfo->smearTemperature;
+  double temp;
 
   double *ksStateChemPotRe = metallic->ksStateChemPotRe;
   double *ksStateChemPotIm = metallic->ksStateChemPotIm;
@@ -166,6 +153,7 @@ void calcNlppRealFriction(CLASS *class,GENERAL_DATA *general_data,CP *cp,
 /* I) Loop all states involved in friction calculation                  */
 
   iupper = numStateFric;
+  printf("222222 %i\n",iupper);
   if(numStateFric%2!= 0){
     iupper = numStateFric-1;
   }// endif
@@ -198,6 +186,7 @@ void calcNlppRealFriction(CLASS *class,GENERAL_DATA *general_data,CP *cp,
     for(iGrid=0;iGrid<numGrid;iGrid++){
       wfReal[iGrid] = zfft[2*iGrid+1];
     }
+
 
     for(iAtom=0;iAtom<numAtomFricProc;iAtom++){
       atomIndex = atomFricIndProc[iAtom];
@@ -252,44 +241,83 @@ void calcNlppRealFriction(CLASS *class,GENERAL_DATA *general_data,CP *cp,
     }
   }
 
+  for(iAtom=0;iAtom<numAtomFricProc;iAtom++){
+    for(is=0;is<numStateFric;is++){
+      printf("dotRe %lg dotIm %lg dotDevRe %lg dotDevIm %lg\n",dotRe[iAtom][(is)*numNlppTemp],
+             dotIm[iAtom][(is)*(numNlppTemp-1)],dotDevRe[iAtom][(is)*numNlppTemp*3],
+             dotDevIm[iAtom][(is)*(numNlppTemp-1)*3]);
+    }
+  }
 
 /*======================================================================*/
 /* V) Calculate vnlDevMat                                               */
 
   for(iAtom=0;iAtom<numAtomFricProc;iAtom++){
     atomIndex = atomFricIndProc[iAtom];
+    atomType = iAtomAtomType[atomIndex+1]-1;
     if(numNlppAtom[atomType]>=1){
       numNlppTemp = numNlppAtom[atomType];
       for(iDim=0;iDim<3;iDim++){
-        for(iState=0;iState<numAtomFricProc;iState++){
-          for(jState=0;jState<numAtomFricProc;jState++){
+        for(iState=0;iState<numStateFric;iState++){
+          for(jState=0;jState<numStateFric;jState++){
             countNlppRe = 0;
             countNlppIm = 0;
+            countRad = 0;
             for(l=0;l<=numLMax[atomType];l++){
-              for(iRad=0;iRad<atomLRadNum[atomType][l];iRad++){
-                radIndex = atomRadMap[atomType][countRad+iRad];
-                for(m=0;m<=l;m++){
-                  //calcDotNlpp(wfNbhd,radFun,&ylm[ylmShift],&dotRe,&dotIm);
-                  if(m!=0){
-                    hDevMat[(iAtom*3+iDim)*numStateFric*numStateFric+iState*numStateFric+jState] 
-                    += (dotRe[iAtom][iState*numNlppTemp+countNlppRe+m]*
-                        dotDevRe[iAtom][iState*numNlppTemp*3+(countNlppRe+m)*3+iDim]+
-                        dotIm[iAtom][iState*numNlppTemp+countNlppIm+m-1]*
-                        dotDevIm[iAtom][iState*numNlppTemp*3+(countNlppIm+m-1)*3+iDim])*
-                        4.0*vpsNormList[radIndex]*volInv;
-                    
-                  }
-                  else{
-                    hDevMat[(iAtom*3+iDim)*numStateFric*numStateFric+iState*numStateFric+jState]
-                    += (dotRe[iAtom][iState*numNlppTemp+countNlppRe+m]*
-                        dotDevRe[iAtom][iState*numNlppTemp*3+(countNlppRe+m)*3+iDim])*
-                        2.0*vpsNormList[radIndex]*volInv;
-                  }//endif m
-                }//endfor m
-                countNlppRe += l+1;
-                countNlppIm += l;
-              }//endfor iRad
+              if(locOpt[atomType+1]!=l){
+                for(iRad=0;iRad<atomLRadNum[atomType][l];iRad++){
+                  radIndex = atomRadMap[atomType][countRad+iRad];
+                  for(m=0;m<=l;m++){
+                    //calcDotNlpp(wfNbhd,radFun,&ylm[ylmShift],&dotRe,&dotIm);
+                    if(m!=0){
+                      // 2.0 due to the contribution of m and -m
+                      temp = 
+                          (dotRe[iAtom][iState*numNlppTemp+countNlppRe+m]*
+                          dotDevRe[iAtom][jState*numNlppTemp*3+(countNlppRe+m)*3+iDim]+
+                          dotIm[iAtom][iState*numNlppTemp+countNlppIm+m-1]*
+                          dotDevIm[iAtom][jState*numNlppTemp*3+(countNlppIm+m-1)*3+iDim]+
+                          dotRe[iAtom][jState*numNlppTemp+countNlppRe+m]*
+                          dotDevRe[iAtom][iState*numNlppTemp*3+(countNlppRe+m)*3+iDim]+
+                          dotIm[iAtom][jState*numNlppTemp+countNlppIm+m-1]*
+                          dotDevIm[iAtom][iState*numNlppTemp*3+(countNlppIm+m-1)*3+iDim])*
+                          2.0*vpsNormList[radIndex]*volInv;
+                      hDevMat[(iAtom*3+iDim)*numStateFric*numStateFric+iState*numStateFric+jState] += temp;
+                      //printf("iDim %i iState %i jState %i l %i m %i dotRe %lg dotIm %lg dotDevRe %lg dotDevIm %lg vpsNormList %lg volInv %lg temp %lg\n",
+                      //       iDim,iState,jState,l,m,dotRe[iAtom][iState*numNlppTemp+countNlppRe+m],
+                      //       dotIm[iAtom][iState*numNlppTemp+countNlppIm+m-1],
+                      //       dotDevRe[iAtom][jState*numNlppTemp*3+(countNlppRe+m)*3+iDim],
+                      //       dotDevIm[iAtom][jState*numNlppTemp*3+(countNlppIm+m-1)*3+iDim],
+                      //       vpsNormList[radIndex],volInv,temp);
+                    }
+                    else{
+                      temp = 
+                          (dotRe[iAtom][iState*numNlppTemp+countNlppRe+m]*
+                          dotDevRe[iAtom][jState*numNlppTemp*3+(countNlppRe+m)*3+iDim]+
+                          dotRe[iAtom][jState*numNlppTemp+countNlppRe+m]*
+                          dotDevRe[iAtom][iState*numNlppTemp*3+(countNlppRe+m)*3+iDim])*
+                          vpsNormList[radIndex]*volInv;
+                      hDevMat[(iAtom*3+iDim)*numStateFric*numStateFric+iState*numStateFric+jState] += temp;
+                      //printf("iDim %i iState %i jState %i l %i m %i dotRe %lg dotIm 0.0 dotDevRe %lg dotDevIm 0.0 vpsNormList %lg volInv %lg temp %lg\n",
+                      //       iDim,iState,jState,l,m,dotRe[iAtom][iState*numNlppTemp+countNlppRe+m],
+                      //       dotDevRe[iAtom][jState*numNlppTemp*3+(countNlppRe+m)*3+iDim],
+                      //       vpsNormList[radIndex],volInv,temp);
+                    }//endif m
+                  }//endfor m
+                  countNlppRe += l+1;
+                  countNlppIm += l;
+                }//endfor iRad
+                countRad += atomLRadNum[atomType][l];
+              }
+              else{ // local channel
+                for(iRad=0;iRad<atomLRadNum[atomType][l];iRad++){
+                  radIndex = atomRadMap[atomType][countRad+iRad];
+                  countNlppRe += l+1;
+                  countNlppIm += l;
+                }//endfor iRad
+                countRad += atomLRadNum[atomType][l];
+              }//endif locOpt
             }//endfor l
+            //printf("hDevMat %lg\n",hDevMat[(iAtom*3+iDim)*numStateFric*numStateFric+iState*numStateFric+jState]);
           }//endfor jState
         }//endfor iState
       }//endfor iDim
@@ -379,8 +407,9 @@ void calcNlppDot(CLASS *class,GENERAL_DATA *general_data,CP *cp,
   int **gridNlppMap = pseudoReal->gridNlppMap;
 
   double vpsNorm;
-  double vol,volInv;
-  double volElem;
+  double vol = cell->vol;
+  double volInv = 1.0/vol;
+  double volElem = vol/numGridTot;
   double energy = 0.0;
   double energyl;
 
@@ -414,6 +443,7 @@ void calcNlppDot(CLASS *class,GENERAL_DATA *general_data,CP *cp,
   atomType = iAtomAtomType[atomIndex+1]-1;
 
   numGrid = numGridNlppMap[atomIndex];
+  wfNbhd = (double*)cmalloc(numGrid*sizeof(double));
   countRad = 0;
   countNlppRe = 0;
   countNlppIm = 0;
@@ -433,6 +463,7 @@ void calcNlppDot(CLASS *class,GENERAL_DATA *general_data,CP *cp,
           energyl = 0.0;
           for(m=0;m<=l;m++){
             if(m!=0){
+              //printf("wfNbhd %lg vnlPhiAtomGridRe %lg vnlPhiDxAtomGridRe %lg volElem %lg\n",wfNbhd[0],vnlPhiAtomGridRe[gridShiftNowRe],vnlPhiDxAtomGridRe[gridShiftNowRe],volElem);
               dotRe[countNlppRe+m] = ddotBlasWrapper(numGrid,&wfNbhd[0],1,
                                         &vnlPhiAtomGridRe[gridShiftNowRe],1)*volElem;
               dotIm[countNlppIm+m-1] = ddotBlasWrapper(numGrid,&wfNbhd[0],1,
@@ -449,6 +480,8 @@ void calcNlppDot(CLASS *class,GENERAL_DATA *general_data,CP *cp,
                                                 &vnlPhiDzAtomGridRe[gridShiftNowRe],1)*volElem;
               dotDevIm[(countNlppIm+m-1)*3+2] = ddotBlasWrapper(numGrid,wfNbhd,1,
                                                 &vnlPhiDzAtomGridIm[gridShiftNowIm],1)*volElem;
+              //printf("m %i dotRe %lg dotIm %lg dotDevRe %lg dotDevIm %lg\n",m,dotRe[countNlppRe+m],dotIm[countNlppIm+m-1],dotDevRe[(countNlppRe+m)*3],dotDevIm[(countNlppIm+m-1)*3]);
+
               gridShiftNowRe += numGrid;
               gridShiftNowIm += numGrid;
             }
@@ -463,6 +496,7 @@ void calcNlppDot(CLASS *class,GENERAL_DATA *general_data,CP *cp,
                                            &vnlPhiDyAtomGridRe[gridShiftNowRe],1)*volElem;
               dotDevRe[countNlppRe*3+2] = ddotBlasWrapper(numGrid,wfNbhd,1,
                                            &vnlPhiDzAtomGridRe[gridShiftNowRe],1)*volElem;
+              //printf("m %i dotRe %lg dotDevRe %lg\n",m,dotRe[countNlppRe],dotDevRe[(countNlppRe)*3]);
               //printf("volElem %lg\n",volElem);
               //printf("11111111 dotRe %.8lg\n",dotRe);
               gridShiftNowRe += numGrid;
@@ -493,6 +527,8 @@ void calcNlppDot(CLASS *class,GENERAL_DATA *general_data,CP *cp,
       }//endif locOpt
     }//endfor l
   }//endif numGrid
+
+  free(wfNbhd);
 
 /*==========================================================================*/
 }/*end Routine*/
@@ -600,12 +636,14 @@ void calcLocalPotFriction(CLASS *class,GENERAL_DATA *general_data,CP *cp,
         for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
           rhoTemp[iGrid] = wfReal[iState*rhoRealGridTot+iGrid]*wfReal[jState*rhoRealGridTot+iGrid];
         }
+        printf("rhoTemp %lg\n",rhoTemp[0]);
       }
 
       /* Scatter rhoTemp */
       if(numProcStates>1){
         Scatterv(rhoTemp,rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
                  &rhoUp[1],rhoRealGridNum,MPI_DOUBLE,0,comm_states);
+        printf("rhoUp %lg\n",rhoUp[1]);
       }
       else{
         memcpy(&rhoUp[1],rhoTemp,rhoRealGridNum*sizeof(double));
@@ -616,6 +654,7 @@ void calcLocalPotFriction(CLASS *class,GENERAL_DATA *general_data,CP *cp,
                          divRhoxUp,divRhoyUp,divRhozUp,d2RhoUp,cpGGA,cpDualGridOptOn,numInterpPmeDual,
                          communicate,&(cp->cp_para_fft_pkg3d_lg),&(cp->cp_para_fft_pkg3d_dens_cp_box));
 
+      printf("rhoCoeffReUp %lg rhoCoeffImUp %lg\n",rhoCoeffReUp[1],rhoCoeffImUp[1]);
       /* Calculate F_local(ij) */
       for(iAtom=1;iAtom<=numAtomTot;iAtom++){
         fx[iAtom] = 0.0;
@@ -630,9 +669,10 @@ void calcLocalPotFriction(CLASS *class,GENERAL_DATA *general_data,CP *cp,
       Bcast(&fz[1],numAtomTot,MPI_DOUBLE,0,comm_states);
       for(iAtom=0;iAtom<numAtomFricProc;iAtom++){
         atomIndex = atomFricIndProc[iAtom];
-        vlocDevMat[(iAtom*3)*numStateFric*numStateFric+iState*numStateFric+jState] = fx[atomIndex];
-        vlocDevMat[(iAtom*3+1)*numStateFric*numStateFric+iState*numStateFric+jState] = fy[atomIndex];
-        vlocDevMat[(iAtom*3+2)*numStateFric*numStateFric+iState*numStateFric+jState] = fz[atomIndex];
+        printf("Fx %lg atomIndex %i\n",fx[1],atomIndex);
+        vlocDevMat[(iAtom*3)*numStateFric*numStateFric+iState*numStateFric+jState] = fx[atomIndex+1];
+        vlocDevMat[(iAtom*3+1)*numStateFric*numStateFric+iState*numStateFric+jState] = fy[atomIndex+1];
+        vlocDevMat[(iAtom*3+2)*numStateFric*numStateFric+iState*numStateFric+jState] = fz[atomIndex+1];
       }
     }//endfor jState
   }//endfor iState

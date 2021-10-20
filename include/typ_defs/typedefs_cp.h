@@ -1216,6 +1216,9 @@ typedef struct cpewald {
   double *fcre_up_onebody,*fcim_up_onebody;
   double *fcre_dn_onebody,*fcim_dn_onebody;
   double *keMatrix;
+  // I need a flag to control 1=calculate local pp ONLY in control_ewd_loc
+  // 2=calculate nuclei-nuclei interaction in k-space ONLY 0=calculate both terms (default)
+  int ewaldLocalOpt;
 
 } CPEWALD;
 

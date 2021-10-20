@@ -628,7 +628,7 @@ void calcLocalPotFriction(CLASS *class,GENERAL_DATA *general_data,CP *cp,
                         wfReal,numStateFric);
   }
 
-	  
+  cpewald->ewaldLocalOpt = 1;	  
   for(iState=0;iState<numStateFric;iState++){
     for(jState=0;jState<numStateFric;jState++){
       /* Calculate Real Space "Density" phi_i^*(r)phi_j(r) */
@@ -661,7 +661,6 @@ void calcLocalPotFriction(CLASS *class,GENERAL_DATA *general_data,CP *cp,
         fy[iAtom] = 0.0;
         fz[iAtom] = 0.0;
       }
-         
       calcLocExtPostScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
       /* Broadcast Force */
       Bcast(&fx[1],numAtomTot,MPI_DOUBLE,0,comm_states);
@@ -676,6 +675,7 @@ void calcLocalPotFriction(CLASS *class,GENERAL_DATA *general_data,CP *cp,
       }
     }//endfor jState
   }//endfor iState
+  cpewald->ewaldLocalOpt = 0;
 
 /*==========================================================================*/
 }/*end Routine*/

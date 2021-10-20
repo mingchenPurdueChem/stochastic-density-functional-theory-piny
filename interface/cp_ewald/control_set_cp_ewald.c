@@ -133,6 +133,8 @@ void control_set_cp_ewald(SIMOPTS *simopts,CELL *cell,
           +simopts->cp_wave_min_pimd;
 
    if(int_res_ter==0){ewald->nktot_res=0;ecor->nktot_res=0;}
+   // set default value of ewaldLocalOpt
+   cpewald->ewaldLocalOpt = 0;
 
 /*=======================================================================*/
 /* II) Allocate simple memory                                            */

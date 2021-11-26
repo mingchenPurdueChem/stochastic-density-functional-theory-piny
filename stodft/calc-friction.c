@@ -85,7 +85,7 @@ void calcElectronFricDet(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *
   int *numAtomFricProcAllProc;
 
   double tpi = 2.0*M_PI;
-  double chemPotTrue = stodftInfo->chemPotTrue;
+  double chemPotTrue = stodftInfo->chemPotUpMetallic;
   double energyTotElec,energyTot;
   double energyExtTemp,energyExcTemp,energyHartTemp;
   double entropy = stodftInfo->entropy;
@@ -202,6 +202,7 @@ void calcElectronFricDet(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *
     fricTensor = (double*)cmalloc(numAtomFric*numAtomFric*9);
     for(iState=0;iState<numStateFric;iState++){
       gauValue[iState] = gaussianReal(ksEnergyFric[iState],chemPotTrue,1.0/sigma);
+      printf("ksEnergyFric %lg chemPotTrue %lg 1.0/sigma %lg gauValue %lg\n",ksEnergyFric[iState],chemPotTrue,1.0/sigma,gauValue[iState]);
     }
 
     for(iAtom=0;iAtom<numAtomFric;iAtom++){

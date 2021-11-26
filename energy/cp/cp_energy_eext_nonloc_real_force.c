@@ -147,6 +147,7 @@ void nlppKBRealEnergyForce(CP *cp,CLASS *class,GENERAL_DATA *generalData,
         wfNbhd[iGrid] = wfReal[gridIndex];
       }//endfor iGrid
       for(l=0;l<=atomLMax[atomType];l++){
+        printf("l %i locOpt %i\n",l,locOpt[atomType+1]);
         if(locOpt[atomType+1]!=l){        
           for(iRad=0;iRad<atomLRadNum[atomType][l];iRad++){
             radIndex = atomRadMap[atomType][countRad+iRad];
@@ -615,10 +616,10 @@ void calcSpHarmDeriv(double *ylm,double *ylmTheta, double *ylmPhi,int l,
       }
       for(iGrid=0;iGrid<numGrid;iGrid++){
         ind = numGrid*3+iGrid*2;
-	ylmTheta[ind] = pre22*2.0*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+3];
-	ylmTheta[ind] = pre22*2.0*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+2];
-	ylmPhi[ind] = -pre22*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+2];
-	ylmPhi[ind+1] = pre22*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+3];
+	ylmTheta[ind] = pre22*2.0*trig[iGrid*4]*trig[iGrid*4+1]*(2*trig[iGrid*4+3]*trig[iGrid*4+3]-1);
+	ylmTheta[ind+1] = pre22*2.0*trig[iGrid*4]*trig[iGrid*4+1]*(2.0*trig[iGrid*4+3]*trig[iGrid*4+2]);
+	ylmPhi[ind] = -pre22*trig[iGrid*4]*trig[iGrid*4]*4.0*trig[iGrid*4+3]*trig[iGrid*4+2];
+	ylmPhi[ind+1] = pre22*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+3]*2.0*(2*trig[iGrid*4+3]*trig[iGrid*4+3]-1);
       }
       break;
   }

@@ -809,3 +809,700 @@ void rhoCalcRealFriction(GENERAL_DATA *general_data,CP *cp,CLASS *class,
 }/*end routine*/
 /*==============================================================*/
 
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void genDHPhi(CP *cp,CLASS *class, GENERAL_DATA *general_data,
+           double *coeffReUp, double *coeffImUp, 
+           double *coeffReDn, double *coeffImDn,
+           double *daHChiReUp, double *daHChiImUp, 
+           double *daHChiReDn, double *daHChiImDn)
+/*==========================================================================*/
+{/*begin routine*/
+/*==========================================================================*/
+#include "../typ_defs/typ_mask.h"
+
+  CPOPTS       *cpopts       = &(cp->cpopts);
+  CPSCR        *cpscr        = &(cp->cpscr);
+  CPCOEFFS_POS  *cpcoeffs_pos   = &(cp->cpcoeffs_pos[1]);
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  COMMUNICATE   *commCP         = &(cp->communicate);
+  STODFTINFO   *stodftInfo   = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  
+/*==========================================================================*/
+/* 1) Non-local pp */
+
+  calcDNLPhi(cp,class,general_data,coeffReUp,coeffImUp,
+             coeffReDn,coeffImDn,daHChiReUp,daHChiImUp,
+             daHChiReDn,daHChiImDn);
+
+/*==========================================================================*/
+/* 1) Local pp */
+
+  calcDLocPhi(cp,class,general_data,coeffReUp,coeffImUp,
+             coeffReDn,coeffImDn,daHChiReUp,daHChiImUp,
+             daHChiReDn,daHChiImDn);
+
+/*==============================================================*/
+}/*end routine*/
+/*==============================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void calcDNLPhi(CP *cp,CLASS *class, GENERAL_DATA *general_data,
+           double *coeffReUp, double *coeffImUp,
+           double *coeffReDn, double *coeffImDn,
+           double *daHChiReUp, double *daHChiImUp,
+           double *daHChiReDn, double *daHChiImDn)
+/*==========================================================================*/
+{/*begin routine*/
+/*==========================================================================*/
+#include "../typ_defs/typ_mask.h"
+
+  STODFTINFO *stodftInfo        = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  PSEUDO *pseudo = &(cp->pseudo);
+  PSEUDO_REAL *pseudoReal = &(pseudo->pseudoReal);
+  CELL *cell = &(general_data->cell);
+  CLATOMS_POS *clatoms_pos = &(class->clatoms_pos[1]);
+  CLATOMS_INFO *clatoms_info = &(class->clatoms_info);
+  ATOMMAPS *atommaps = &(class->atommaps);
+  STAT_AVG *stat_avg = &(general_data->stat_avg);
+  CPEWALD *cpewald = &(cp->cpewald);
+  METALLIC *metallic            = stodftInfo->metallic;
+  PARA_FFT_PKG3D *cpParaFftPkg3d = &(cp->cp_para_fft_pkg3d_lg);
+  COMMUNICATE *communicate      = &(cp->communicate);
+
+  int pseudoRealFlag = pseudoReal->pseudoRealFlag;
+  int cpLsda         = cpopts->cp_lsda;
+  int numStateStoUp  = stodftInfo->numStateStoUp;
+  int chemPotOpt     = stodftInfo->chemPotOpt;
+  int numStateUpProc = cpcoeffs_info->nstate_up_proc;
+  int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
+  int numCoeff       = cpcoeffs_info->ncoef;
+  int numCoeffUpTotal = numStateUpProc*numCoeff;
+  int numCoeffDnTotal = numStateDnProc*numCoeff;
+  int numCoeffLarge       = cpcoeffs_info->ncoef_l;
+  int numCoeffLargeProc;
+  //int numCoeffLargeProc   = cp->cp_para_fft_pkg3d_lg.ncoef_proc;
+  int nfft = cp_sclr_fft_pkg3d_sm->nfft;
+  int numGridAll = nfft/2;
+  int cpDualGridOptOn = cpopts->cp_dual_grid_opt;
+  int rhoRealGridNum    = stodftInfo->rhoRealGridNum;
+  int numInterpPmeDual = pseudo->n_interp_pme_dual;
+  int iperd           = cell->iperd;
+  int numChemPot = stodftInfo->numChemPot;
+  int occNumber = stodftInfo->occNumber;
+  int myidState         = communicate->myid_state;
+  int numProcStates = communicate->np_states;
+  int numAtomTot = clatoms_info->natm_tot;
+  int iState,jState,iCoeff,iChem,iAtom,iGrid;
+  int smearOpt = stodftInfo->smearOpt;
+  int numStateFric = metallic->numStateFric;
+  int numAtomFricProc = metallic->numAtomFricProc;
+  int numAtomType   = atommaps->natm_typ;
+
+  int atomType,atomIndex;
+  int numNlppTemp;
+
+  int is,i,iupper;
+  int ioff,ncoef1,ioff2;
+  int iii,iis,nis;
+  int iAng,iDim,countNlppRe,countNlppIm;
+  int iRad,radIndex,countRad;
+  int l,m;
+  int myid_state = communicate->myid_state;
+  int np_states  = communicate->np_states;
+
+  int *atomFricIndProc = metallic->atomFricIndProc;
+  int *iAtomAtomType = atommaps->iatm_atm_typ;
+  int *numLMax = pseudoReal->numLMax;
+  int *numNlppAtom = pseudoReal->numNlppAtom;
+  int *locOpt = pseudo->loc_opt;
+  int **atomLRadNum = pseudoReal->atomLRadNum;
+  int **atomRadMap = pseudoReal->atomRadMap;
+
+  double tpi = 2.0*M_PI;
+  double vol        = cell->vol;
+  double volInv     = 1.0/vol;
+  double temp;
+
+  double *ksStateChemPotRe = metallic->ksStateChemPotRe;
+  double *ksStateChemPotIm = metallic->ksStateChemPotIm;
+  double *zfft             = cpscr->cpscr_wave.zfft;
+  double *wfReal;
+  double *vpsNormList = pseudoReal->vpsNormList;
+  double **dotRe,**dotIm,**dotDevRe,**dotDevIm;
+
+  /*
+  for(iAtomType=0;iAtomType<numAtomType;iType++){
+    numNlppAtom[iAtomType] = 0.0;
+    for(iAng=0;iAng<=numLMax[iAtomType];iAng++){
+      numNlppAtom[iAtomType] += atomLRadNum[iAtomType][iAng]*(iAng+1);
+    }//endfor iAng
+  }
+  */
+  dotRe = (double**)cmalloc(numAtomFric*sizeof(double*));
+  dotIm = (double**)cmalloc(numAtomFric*sizeof(double*));
+  dotDevRe = (double**)cmalloc(numAtomFric*sizeof(double*));
+  dotDevIm = (double**)cmalloc(numAtomFric*sizeof(double*));
+
+  for(iAtom=0;iAtom<numAtomFricProc;iAtom++){
+    atomIndex = atomFricIndProc[iAtom];
+    atomType = iAtomAtomType[atomIndex+1]-1;
+    numNlppTemp = numNlppAtom[atomType];
+    if(numNlppTemp>=1){   
+      dotRe[iAtom] = (double*)cmalloc(numStateUpProc*numNlppTemp*sizeof(double));
+      dotIm[iAtom] = (double*)cmalloc(numStateUpProc*(numNlppTemp-1)*sizeof(double));
+      dotDevRe[iAtom] = (double*)cmalloc(numStateUpProc*numNlppTemp*3*sizeof(double));
+      dotDevIm[iAtom] = (double*)cmalloc(numStateUpProc*(numNlppTemp-1)*3*sizeof(double));
+    }
+  }
+
+  wfReal = (double*)cmalloc(numGrid*sizeof(double));
+
+/*======================================================================*/
+/* I) Loop all states involved in friction calculation                  */
+
+  iupper = numStateUpProc;
+  if(numStateUpProc%2!= 0){
+    iupper = numStateUpProc-1;
+  }// endif
+
+  for(is=1;is<=iupper;is=is+2){
+    ioff   = (is-1)*numCoeff;
+    ioff2 = (is)*numCoeff;
+
+/*======================================================================*/
+/* II) FFT states back to real space                                    */
+
+/*--------------------------------------------------------------------------*/
+/*I) pack the complex zfft array with two wavefunctions (real) 
+    the wavefunctions are reperesented in spherically cuttof 
+    half g space                                                            */
+
+    dble_pack_coef_fftw3d(&coeffReUp[ioff],&coeffImUp[ioff],
+                          &coeffReUp[ioff2],&coeffImUp[ioff2],
+                          zfft,cp_sclr_fft_pkg3d_sm);
+     
+/*--------------------------------------------------------------------------*/
+/*II) fourier transform the two wavefunctions to real space
+     convention exp(-igr)                                                   */
+
+    para_fft_gen3d_fwd_to_r_fftw3d_threads(zfft,cp_sclr_fft_pkg3d_sm);
+
+/*======================================================================*/
+/* III) Calculate dotRe, dotIm, dotDevRe, dotDevIm                      */
+
+    for(iGrid=0;iGrid<numGridAll;iGrid++){
+      wfReal[iGrid] = zfft[2*iGrid+1];
+    }
+
+    for(iAtom=0;iAtom<numAtomFric;iAtom++){
+      atomIndex = atomFricIndProc[iAtom];
+      atomType = iAtomAtomType[atomIndex+1]-1;
+      numNlppTemp = numNlppAtom[atomType];
+      calcNlppDot(class,general_data,cp,atomIndex,iAtom,wfReal,&dotRe[iAtom][(is-1)*numNlppTemp],
+                  &dotIm[iAtom][(is-1)*(numNlppTemp-1)],&dotDevRe[iAtom][(is-1)*numNlppTemp*3],
+                  &dotDevIm[iAtom][(is-1)*(numNlppTemp-1)*3]);
+    }
+
+    for(iGrid=0;iGrid<numGridAll;iGrid++){
+      wfReal[iGrid] = zfft[2*iGrid+2];
+    }
+    for(iAtom=0;iAtom<numAtomFricProc;iAtom++){
+      atomIndex = atomFricIndProc[iAtom];
+      atomType = iAtomAtomType[atomIndex+1]-1;
+      numNlppTemp = numNlppAtom[atomType];
+      calcNlppDot(class,general_data,cp,atomIndex,iAtom,wfReal,&dotRe[iAtom][(is)*numNlppTemp],
+                  &dotIm[iAtom][(is)*(numNlppTemp-1)],&dotDevRe[iAtom][(is)*numNlppTemp*3],
+                  &dotDevIm[iAtom][(is)*(numNlppTemp-1)*3]);
+    }
+  }//endfor is
+
+  if(numStateFric%2!= 0){
+    is = numStateFric;
+    ioff = (is -1)*numCoeff;
+
+/*--------------------------------------------------------------------------*/
+/*   I) sngl pack                                                           */
+
+    sngl_pack_coef_fftw3d(&coeffReUp[ioff],&coeffImUp[ioff],zfft,cp_sclr_fft_pkg3d_sm);
+
+/*--------------------------------------------------------------------------*/
+/* II) fourier transform the wavefunctions to real space                    */
+/*      convention exp(-igr)                                                */
+
+    para_fft_gen3d_fwd_to_r_fftw3d_threads(zfft,cp_sclr_fft_pkg3d_sm);
+
+/*--------------------------------------------------------------------------*/
+/* III) Calculate dotRe, dotIm, dotDevRe, dotDevIm                          */
+
+    for(iGrid=0;iGrid<numGridAll;iGrid++){
+      wfReal[iGrid] = zfft[2*iGrid+1];
+    }
+    for(iAtom=0;iAtom<numAtomFric;iAtom++){
+      atomIndex = atomFricIndProc[iAtom];
+      atomType = iAtomAtomType[atomIndex+1]-1;
+      numNlppTemp = numNlppAtom[atomType];
+      calcNlppDot(class,general_data,cp,atomIndex,iAtom,wfReal,&dotRe[iAtom][(is-1)*numNlppTemp],
+                  &dotIm[iAtom][(is-1)*(numNlppTemp-1)],&dotDevRe[iAtom][(is-1)*numNlppTemp*3],
+                  &dotDevIm[iAtom][(is-1)*(numNlppTemp-1)*3]);
+    }
+  }
+
+  for(iAtom=0;iAtom<numAtomFricProc;iAtom++){
+    for(is=0;is<numStateFric;is++){
+      printf("dotRe %lg dotIm %lg dotDevRe %lg dotDevIm %lg\n",dotRe[iAtom][(is)*numNlppTemp],
+             dotIm[iAtom][(is)*(numNlppTemp-1)],dotDevRe[iAtom][(is)*numNlppTemp*3],
+             dotDevIm[iAtom][(is)*(numNlppTemp-1)*3]);
+    }
+  }
+
+/*======================================================================*/
+/* V) Calculate D_nlpp|phi>                                             */
+
+  double forceTemp = (double*)calloc(numStateUpProc*numAtomFric*3*numGridMax*sizeof(double));
+
+
+  for(iState=0;iState<numStateUpProc;iState++){
+    for(iAtom=0;iAtom<numAtomFric;iAtom++){
+      atomIndex = atomFricIndProc[iAtom];
+      atomType = iAtomAtomType[atomIndex+1]-1;
+      numGrid = numGridNlppMap[atomIndex];
+      countRad = 0;
+      countNlppRe = 0;
+      countNlppIm = 0;
+      gridShiftNowRe = gridStIndRe[atomIndex];
+      gridShiftNowIm = gridStIndIm[atomIndex];
+      if(numGrid>0){
+        numNlppTemp = numNlppAtom[atomType];
+        for(l=0;l<=numLMax[atomType];l++){
+          if(locOpt[atomType+1]!=l){
+            for(iRad=0;iRad<atomLRadNum[atomType][l];iRad++){
+              radIndex = atomRadMap[atomType][countRad+iRad];
+              // m=0
+              dotReNow = dotRe[iAtom][iState*numNlppTemp+countNlppRe]*vpsNormList[radIndex];
+              for(iDim=0;iDim<3;iDim++){
+                dotDevReNow = dotDevRe[iAtom][iState*numNlppTemp*3+countNlppRe*3+iDim]*vpsNormList[radIndex];
+                gridIndex = iState*numAtomFric*numGridMax*3+
+                            iAtom*numGridMax*3+
+                            iDim*numGridMax;
+                daxpyBlasWrapper(numGrid,dotReNow,
+                                 &vnlPhiDxAtomGridRe[gridShiftNowRe],1,
+                                 &forceTemp[gridIndex],1);
+                daxpyBlasWrapper(numGrid,dotDevReNow,
+                                 &vnlPhiAtomGridRe[gridShiftNowRe],1,
+                                 &forceTemp[gridIndex],1);
+              }//endfor iDim
+              gridShiftNowRe += numGrid;
+              for(m=1;m<=l;m++){
+                dotReNow = dotRe[iAtom][iState*numNlppTemp+countNlppRe+m]*2.0*vpsNormList[radIndex];
+                dotImNow = dotIm[iAtom][iState*numNlppTemp+countNlppIm+m]*2.0*vpsNormList[radIndex];
+                for(iDim=0;iDim<3;iDim++){
+                  dotDevReNow = dotDevRe[iAtom][iState*numNlppTemp*3+(countNlppRe+m)*3+iDim]*vpsNormList[radIndex]*2.0*vpsNormList[radIndex];
+                  dotDevImNow = dotDevIm[iAtom][iState*numNlppTemp*3+(countNlppIm+m-1)*3+iDim]*vpsNormList[radIndex]*2.0*vpsNormList[radIndex];
+
+                  gridIndex = iState*numAtomFric*numGridMax*3+
+                              iAtom*numGridMax*3+
+                              iDim*numGridMax;
+                  daxpyBlasWrapper(numGrid,dotReNow,
+                                &vnlPhiDxAtomGridRe[gridShiftNowRe],1,
+                                &forceTemp[gridIndex],1);
+                  daxpyBlasWrapper(numGrid,dotImNow,
+                                &vnlPhiDxAtomGridIm[gridShiftNowIm],1,
+                                &forceTemp[gridIndex],1);
+
+                  daxpyBlasWrapper(numGrid,dotDevReNow,
+                                &vnlPhiAtomGridRe[gridShiftNowRe],1,
+                                &forceTemp[gridIndex],1);
+                  daxpyBlasWrapper(numGrid,dotDevImNow,
+                                &vnlPhiAtomGridIm[gridShiftNowIm],1,
+                                &forceTemp[gridIndex],1);
+                }
+                gridShiftNowRe += numGrid;
+                gridShiftNowIm += numGrid;
+              }//endfor m
+              countNlppRe += l+1;
+              countNlppIm += l;
+            }//endfor iRad
+            countRad += atomLRadNum[atomType][l];  
+          }
+          else{
+            for(iRad=0;iRad<atomLRadNum[atomType][l];iRad++){
+              for(m=0;m<=l;m++){
+                if(m!=0){
+                  gridShiftNowRe += numGrid;
+                  gridShiftNowIm += numGrid;
+                }
+                else{
+                  gridShiftNowRe += numGrid;
+                }//endif m
+              }//endfor m
+            }//endfor iRad
+          }//endif locOpt  
+        }//endfor l
+      }//endif numGrid
+    }//endfor iAtom
+  }//endfor iState
+
+/*======================================================================*/
+/* V) D_nlpp|phi> Real to k-space                                       */
+
+  iupper = numStateUpProc*numAtomFric;
+  if((numStateUpProc*numAtomFric)%2!= 0){
+    iupper = numStateUpProc*numAtomFric-1;
+  }// endif
+
+  for(is=1;is<=iupper;is=is+2){
+    iState1 = (is-1)/numAtomFric;
+    iAtom1 = (is-1)%numAtomFric;
+    iState2 = (is-1)/numAtomFric;
+    iAtom2 = (is-1)%numAtomFric;
+    atomIndex1 = atomFricIndProc[iAtom1];
+    atomIndex2 = atomFricIndProc[iAtom2];
+
+/*======================================================================*/
+/* II) FFT states back to real space                                    */
+    
+    for(iDim=0;iDim<3;iDim++){
+      for(iGrid=0;iGrid<numGridAll*2;iGrid++)zfft[iGrid+1] = 0.0;
+
+      numGrid = numGridNlppMap[atomIndex1];
+      for(iGrid=0;iGrid<numGrid;iGrid++){
+        gridIndex = gridNlppMap[atomIndex1][iGrid];
+        zfft[2*gridIndex+1] = forceTemp[iState1*numAtomFric*numGridMax*3+
+                                         iAtom1*numGridMax*3+
+                                         iDim*numGridMax+iGrid];
+      }
+      numGrid = numGridNlppMap[atomIndex2];
+      for(iGrid=0;iGrid<numGrid;iGrid++){
+        gridIndex = gridNlppMap[atomIndex2][iGrid];
+        zfft[2*gridIndex+2] = forceTemp[iState2*numAtomFric*numGridMax*3+
+                                        iAtom2*numGridMax*3+
+                                        iDim*numGridMax+iGrid];
+      }
+
+      if(fftw3dFlag==0){
+        para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+      }
+      else{
+        para_fft_gen3d_bck_to_g_fftw3d_threads(zfft,cp_sclr_fft_pkg3d_sm);
+      }
+
+      ioff = iState1*numAtomFric*3*numCoeffUpTotal+
+             iAtom1*3*numCoeffUpTotal+
+             iDim*numCoeffUpTotal;
+      ioff2 = iState2*numAtomFric*3*numCoeffUpTotal+
+              iAtom2*3*numCoeffUpTotal+
+              iDim*numCoeffUpTotal;
+
+      if(fftw3dFlag==0){
+        dble_upack_coef_sum(&daHChiReUp[ioff],&daHChiImUp[ioff],
+                            &daHChiReUp[ioff2],&daHChiImUp[ioff2],
+                            zfft,cp_sclr_fft_pkg3d_sm);
+      }
+      else{
+        dble_upack_coef_sum_fftw3d(&daHChiReUp[ioff],&daHChiImUp[ioff],
+                            &daHChiReUp[ioff2],&daHChiImUp[ioff2],
+                            zfft,cp_sclr_fft_pkg3d_sm);
+
+      }//endif fftw3dFlag
+    }//endfor iDim
+  }//endfor is
+
+  if(numStateUpProc*numAtomFric%2!=0){
+    is = numStateUpProc*numAtomFric;
+    iState1 = (is-1)/numAtomFric;
+    iAtom1 = (is-1)%numAtomFric;
+    
+    for(iDim=0;iDim<3;iDim++){
+      for(iGrid=0;iGrid<numGridAll*2;iGrid++)zfft[iGrid+1] = 0.0;
+
+      numGrid = numGridNlppMap[atomIndex1];
+      for(iGrid=0;iGrid<numGrid;iGrid++){
+        gridIndex = gridNlppMap[atomIndex1][iGrid];
+        zfft[2*gridIndex+1] = forceTemp[iState1*numAtomFric*numGridMax*3+
+                                         iAtom1*numGridMax*3+
+                                         iDim*numGridMax+iGrid];
+      }
+
+      if(fftw3dFlag==0){
+        para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+      }
+      else{
+        para_fft_gen3d_bck_to_g_fftw3d_threads(zfft,cp_sclr_fft_pkg3d_sm);
+      }
+
+      ioff = iState1*numAtomFric*3*numCoeffUpTotal+
+             iAtom1*3*numCoeffUpTotal+
+             iDim*numCoeffUpTotal;
+
+      if(fftw3dFlag==0){
+        sngl_upack_coef_sum(&daHChiReUp[ioff],&daHChiImUp[ioff],
+                            zfft,cp_sclr_fft_pkg3d_sm);
+      }
+      else{
+        sngl_upack_coef_sum_fftw3d(&daHChiReUp[ioff],&daHChiImUp[ioff],
+                            zfft,cp_sclr_fft_pkg3d_sm);
+
+      }//endif fftw3dFlag
+    }//endfor iDim
+
+  }//endif numStateUpProc*numAtomFric%2
+ 
+
+/*======================================================================*/
+/* V) Free template array                                               */
+
+  free(wfReal);
+  for(iAtom=0;iAtom<numAtomFricProc;iAtom++){
+    if(numNlppTemp>=1){
+      free(dotRe[iAtom]);
+      free(dotIm[iAtom]);
+      free(dotDevRe[iAtom]);
+      free(dotDevIm[iAtom]);
+    }
+  }
+  free(dotRe);
+  free(dotIm);
+  free(dotDevRe);
+  free(dotDevIm);
+
+  free(forceTemp);
+
+    
+
+/*==============================================================*/
+}/*end routine*/
+/*==============================================================*/
+
+
+
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void calcDLocPhi(CP *cp,CLASS *class, GENERAL_DATA *general_data,
+           double *coeffReUp, double *coeffImUp,
+           double *coeffReDn, double *coeffImDn,
+           double *daHChiReUp, double *daHChiImUp,
+           double *daHChiReDn, double *daHChiImDn)
+/*==========================================================================*/
+{/*begin routine*/
+/*==========================================================================*/
+#include "../typ_defs/typ_mask.h"
+
+
+  for(icount=1;icount<=ngo;icount++){
+/*======================================================================*/
+/* I) Get the k vectors                                                 */
+    aka = (double)(kastore[(icount+koff)]);
+    akb = (double)(kbstore[(icount+koff)]);
+    akc = (double)(kcstore[(icount+koff)]);
+    xk = (aka*hmati[1]+akb*hmati[2]+akc*hmati[3])*tpi;
+    yk = (aka*hmati[4]+akb*hmati[5]+akc*hmati[6])*tpi;
+    zk = (aka*hmati[7]+akb*hmati[8]+akc*hmati[9])*tpi;
+    g2 = xk*xk+yk*yk+zk*zk;
+    g4 = g2*g2;
+    g  = sqrt(g2);
+    ak2[icount] = g2;
+
+/*======================================================================*/
+/* II) If break point number one or you are just starting out calculate */
+/*     the helpful vectors                                              */
+ 
+
+    if(ibreak1[(icount+koff)]==1||icount==1){
+      for(ipart=1;ipart<=natm_use;ipart++){
+        atemp = ewd_scr_x[ipart];
+        btemp = ewd_scr_y[ipart];
+        ctemp = ewd_scr_z[ipart];
+        arg = (aka*atemp + akb*btemp + akc*ctemp)*tpi;
+        //printf("aka %lg akb %lg akc %lg\n",aka,akb,akc);
+        //printf("arg %lg\n",arg);
+        helr[ipart] = cos(arg);
+        heli[ipart] = sin(arg);
+      }/*endfor*/
+    }/*endif*/
+ 
+
+/*======================================================================*/
+/* III) Get the external potential                                      */
+/*               (interaction of electron with particles)               */
+  
+    if(ipseud_opt==1){
+      for(itype=1;itype<=natm_typ;itype++){
+        index_atm[itype] =  (itype-1)*nsplin_g*(n_ang_max+1)*n_rad_max
+                         +  loc_opt[itype]*nsplin_g*n_rad_max;
+      }/*endfor*/
+
+      get_vpsnow(index_atm,nsplin_g,gmin_spl,dg_spl,g,
+                  vps0,vps1,vps2,vps3,vtemp,iatm_typ,natm_typ,natm_use,1);
+
+
+/*-------------------------*/
+/* charge correction */
+      for(i=1; i<= natm_use; i++){
+        vtemp[i] += -fpi*(q_tmp[i] - q_pseud[iatm_typ[i]])/g2;
+      }
+    }else{  /*q_temp is q */
+      get_vpslong(natm_use,vtemp,g2,q_tmp,alpha_conv_dual,pivol);
+    }/*endif*/
+
+ /*----------------------------------------------------------------------*/
+ /* Cluster boundary condition correction                                */
+
+    if( (iperd != 3) && (idens_opt==0)){
+      for(ipart=1;ipart<=natm_use;ipart++){
+        vtemp[ipart] -= q[ipart]*clus_corr_r[icount];
+      }/* endfor */
+    }/* endif cluster boundary conditions */
+
+/*----------------------------------------------------------------------*/
+
+    vextr[icount]  =  ddot1(natm_use,helr,1,vtemp,1)*rvol;
+    vexti[icount]  = -ddot1(natm_use,heli,1,vtemp,1)*rvol;
+
+/*======================================================================*/
+/* IV) Get the real and imag parts of the structure factor              */
+
+    if(idens_opt==0){/*create charge weighted structure factor*/
+      sumr = ddot1(natm_use,helr,1,q,1);
+      sumi = ddot1(natm_use,heli,1,q,1);
+      smag = sumr*sumr+sumi*sumi;
+    }/*endif*/
+
+/*======================================================================*/
+/* VI) Get the force on the particles, checking for CBC                 */
+
+
+    if((iperd == 0)||(idens_opt==1)){
+      for(ipart=1;ipart<=natm_use;ipart++){
+        srx = xk*(2.0*rhocr[icount]*vtemp[ipart]*rvol);
+        sry = yk*(2.0*rhocr[icount]*vtemp[ipart]*rvol);
+        srz = zk*(2.0*rhocr[icount]*vtemp[ipart]*rvol);
+        six = xk*(-2.0*rhoci[icount]*vtemp[ipart]*rvol);
+        siy = yk*(-2.0*rhoci[icount]*vtemp[ipart]*rvol);
+        siz = zk*(-2.0*rhoci[icount]*vtemp[ipart]*rvol);
+        fx_tmp[ipart] += (srx*heli[ipart] - six*helr[ipart]);
+        fy_tmp[ipart] += (sry*heli[ipart] - siy*helr[ipart]);
+        fz_tmp[ipart] += (srz*heli[ipart] - siz*helr[ipart]);
+      }/* endfor */
+    }else{
+      sumr_h = sumr;
+      sumi_h = sumi;
+      sumr = sumr*preg*2.0;
+      sumi = sumi*preg*2.0;
+      for(ipart=1;ipart<=natm_use;ipart++){
+        srx = 0.0;
+        sry = 0.0;
+        srz = 0.0;
+        if(ewaldLocalOpt==0||ewaldLocalOpt==2){
+          pre = sumr*q[ipart];
+          srx = xk*pre;
+          sry = yk*pre;
+          srz = zk*pre;
+          pre = sumi*q[ipart];
+          six = xk*pre;
+          siy = yk*pre;
+          siz = zk*pre;
+        }
+
+        fxCl[ipart] += (srx*heli[ipart]  - six*helr[ipart]);
+        fyCl[ipart] += (sry*heli[ipart]  - siy*helr[ipart]);
+        fzCl[ipart] += (srz*heli[ipart]  - siz*helr[ipart]);
+
+        if(ewaldLocalOpt==0||ewaldLocalOpt==1){
+          pre = 2.0*rhocr[icount]*vtemp[ipart]*rvol;
+          srx += xk*pre;
+          sry += yk*pre;
+          srz += zk*pre;
+          pre = -2.0*rhoci[icount]*vtemp[ipart]*rvol;
+          six += xk*pre;
+          siy += yk*pre;
+          siz += zk*pre;
+        }
+
+        /*
+        srx = xk*(sumr*q[ipart]+2.0*rhocr[icount]*vtemp[ipart]*rvol);
+        sry = yk*(sumr*q[ipart]+2.0*rhocr[icount]*vtemp[ipart]*rvol);
+        srz = zk*(sumr*q[ipart]+2.0*rhocr[icount]*vtemp[ipart]*rvol);
+        six = xk*(sumi*q[ipart]-2.0*rhoci[icount]*vtemp[ipart]*rvol);
+        siy = yk*(sumi*q[ipart]-2.0*rhoci[icount]*vtemp[ipart]*rvol);
+        siz = zk*(sumi*q[ipart]-2.0*rhoci[icount]*vtemp[ipart]*rvol);
+        */
+
+        //debug k space classical force only
+        /*
+        srx = xk*(sumr*q[ipart]);
+        sry = yk*(sumr*q[ipart]);
+        srz = zk*(sumr*q[ipart]);
+        six = xk*(sumi*q[ipart]);
+        siy = yk*(sumi*q[ipart]);
+        siz = zk*(sumi*q[ipart]);
+        */
+        fx_tmp[ipart] += (srx*heli[ipart]  - six*helr[ipart]);
+        fy_tmp[ipart] += (sry*heli[ipart]  - siy*helr[ipart]);
+        fz_tmp[ipart] += (srz*heli[ipart]  - siz*helr[ipart]);
+        // debug print x,y,z
+        //printf("icount %i ipart %i rhocr %lg rhoci %lg srx %lg six %lg heli %lg helr %lg fxtmp %lg\n",icount,ipart,rhocr[icount],rhoci[icount],srx,six,heli[ipart],helr[ipart],fx_tmp[ipart]);
+
+      }/*endfor*/
+    } /* endif cluster BC */
+
+/*======================================================================*/
+/* VII) If break point two, increment the helpful vectors                 */
+
+    if(ibreak2[(icount+koff)]==1){
+      for(ipart=1;ipart<=natm_use;ipart++){
+        temp = helr[ipart];
+        helr[ipart] = helr[ipart]*cossc[ipart] - heli[ipart]*sinsc[ipart];
+        heli[ipart] = heli[ipart]*cossc[ipart] + temp*sinsc[ipart];
+      }/*endfor*/
+    }/*endif*/
+  }
+
+/*======================================================================*/
+/* VIII) g=0 term (local pseudopotential) including term for CBCs       */
+
+  if((myid_state+1)==np_states){
+    if(ipseud_opt==1){
+      ak2[(ngo+1)] = 0.0;
+      for(ipart=1;ipart<=natm_use;ipart++){
+        vtemp[ipart] = gzvps[iatm_typ[ipart]];
+      }/*endfor*/
+      vextr[(ngo+1)] =  dsum1(natm_use,vtemp,1)*rvol;
+      vexti[(ngo+1)] = 0.0;
+    }else{ /*large sparse grid */
+      vextr[(ngo+1)] = 0.0;
+      bgr  = dsum1(natm_use,q_tmp,1);
+      bgr  = bgr*M_PI/(alpha_conv_dual*alpha_conv_dual*vol);
+      vextr[(ngo+1)] = bgr;
+    }/*endif*/
+
+    if( (iperd!=3) && (idens_opt==0) ) {
+      vextr[(ngo+1)] -= dsum1(natm_use,q_tmp,1)*clus_corr_r[(ngo+1)]*rvol;
+    }/*endif*/
+
+    *pseud_hess_loc = vextr[(ngo+1)];
+
+    if( (iperd>0) && (iperd!=3) && (idens_opt==0)) {
+      q_sum1 = dsum1(natm_use,q,1);
+      if(iperd == 2){
+         vrecip += 0.5*q_sum1*q_sum1*rvol*(clus_corr_r[(ngo+1)]
+                 + M_PI/(alp_clus*alp_clus));
+       } else {
+         vrecip += 0.5*q_sum1*q_sum1*clus_corr_r[(ngo+1)]*rvol;
+       }/* endif iperd */
+    }/*endif*/
+  }/*endif*/
+
+
+/*==============================================================*/
+}/*end routine*/
+/*==============================================================*/
+

@@ -418,8 +418,8 @@ void nlppKBRealEnergyFilter(CP *cp,CLASS *class,GENERAL_DATA *generalData,
     numGrid = numGridNlppMap[iAtom];
     if(numGrid>0){
       for(iGrid=0;iGrid<numGrid;iGrid++){
-    gridIndex = gridNlppMap[iAtom][iGrid];
-    forceRealNlpp[gridIndex] += forceTemp[iAtom*numGridMax+iGrid];
+        gridIndex = gridNlppMap[iAtom][iGrid];
+        forceRealNlpp[gridIndex] += forceTemp[iAtom*numGridMax+iGrid];
       }
     }
   }

@@ -307,11 +307,11 @@ void calcElectronFric(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bon
 /* 0) Memory allocation                                                 */
   fricTensor = (double*)cmalloc(numAtomFric*numAtomFric*9);
 
-  daHChiReUp = (double*)cmalloc(numAtomFric*3*numCoeffUpTotal*sizeof(double));
-  daHChiImUp = (double*)cmalloc(numAtomFric*3*numCoeffDnTotal*sizeof(double));
+  daHChiReUp = (double*)cmalloc(numStatUpProc*numAtomFric*3*numCoeffUpTotal*sizeof(double));
+  daHChiImUp = (double*)cmalloc(numStatUpProc*numAtomFric*3*numCoeffDnTotal*sizeof(double));
   if(cpLsda==1){
-    daHChiReDn = (double*)cmalloc(numAtomFric*3*numCoeffUpTotal*sizeof(double));
-    daHChiImDn = (double*)cmalloc(numAtomFric*3*numCoeffDnTotal*sizeof(double));
+    daHChiReDn = (double*)cmalloc(numStatDnProc*numAtomFric*3*numCoeffUpTotal*sizeof(double));
+    daHChiImDn = (double*)cmalloc(numStatDnProc*numAtomFric*3*numCoeffDnTotal*sizeof(double));
   }
 
 /*======================================================================*/

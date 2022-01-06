@@ -1052,6 +1052,9 @@ void calcChebyCoeffWrapper(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
       calcChebyCoeff(stodftInfo,stodftCoefPos,&chemPot[numChemPot-2],
                      &expanCoeff[(numChemPot-1)*polynormLength],8,chemPotTrue);
       break;
+    case 4: //Gaussian
+      calcChebyCoeff(stodftInfo,stodftCoefPos,&chemPot[0],&expanCoeff[0],14,chemPotTrue);
+      
   }
 
   /*
@@ -1187,6 +1190,8 @@ void calcChebyCoeff(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
       case 13: // Entropy
         funValGridFFT[iGrid] = sqrt(-entropyReal(x,chemPotTest,beta));
         break;
+      case 14:
+        funValGridFFT[iGrid] = gaussianReal(x,chemPotTest,beta);
       default:
         printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
         printf("Unsupported filter function Flag %i!\n",funFlag);

@@ -888,7 +888,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   int *numAtomFricDspl;
   int iAtom;
 
-  if(electronFricFlag==1){
+  if(electronFricFlag==1&&filterDiagFlag==1){
     if(myidState==0){
       fileAtomFric = fopen("atom_index_friction","r");
 
@@ -938,6 +938,31 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     else{
       memcpy(metallic->atomFricIndProc,atomFricInd,numAtomFric*sizeof(int));
     }
+  }
+  if(electronFricFlag==1&&filterDiagFlag==0){
+    if(myidState==0){
+      fileAtomFric = fopen("atom_index_friction","r");
+      if(fileAtomFric==NULL){
+        printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+        printf("Can not find a file named as atom_index_friction\n");
+        printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+        fflush(stdout);
+        exit(0);
+      }
+      atomFricInd = (int*)cmalloc(numAtomFric*sizeof(int));
+      printf("The total number of Atoms to calculate Frictions is %i\n",numAtomFric);
+      printf("The list of atoms:\n");
+      for(iAtom=0;iAtom<numAtomFric;iAtom++){
+        fscanf(fileAtomFric,"%i",&atomFricInd[iAtom]);
+        printf("%i ",atomFricInd[iAtom]);
+      }
+      printf("\n");
+      printf("Finish printing the list of atoms\n");
+    }
+    metallic->atomFricIndProc = (int*)cmalloc(numAtomFric*sizeof(int));
+    if(myidState==0)memcpy(metallic->atomFricIndProc,atomFricInd,numAtomFric*sizeof(int));
+    Bcast(metallic->atomFricIndProc,1,MPI_INT,0,comm_states);
+       
   }
 
 /*==========================================================================*/

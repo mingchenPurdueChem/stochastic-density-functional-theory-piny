@@ -696,6 +696,189 @@ void filterChebyPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*=======================================================================*/
 
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void filterChebyPolyFric(CP *cp,CLASS *class,GENERAL_DATA *general_data,
+                         int ip_now,int numIter,
+                         double *coeffInUpRe,double *coeffInUpIm,
+                         double *coeffInDnRe,double *coeffInDnIm)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+  #include "../typ_defs/typ_mask.h"
+
+  STODFTINFO *stodftInfo        = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  CPOPTS *cpopts                = &(cp->cpopts);
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  CPCOEFFS_POS *cpcoeffs_pos    = &(cp->cpcoeffs_pos[ip_now]);
+  CLATOMS_POS*  clatoms_pos     = &(class->clatoms_pos[ip_now]);
+  CLATOMS_INFO *clatoms_info    = &(class->clatoms_info);
+  COMMUNICATE *communicate      = &(cp->communicate);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm = &(cp->cp_sclr_fft_pkg3d_sm);
+
+  NEWTONINFO *newtonInfo = stodftInfo->newtonInfo;
+
+  int expanType	     = stodftInfo->expanType;
+  int polynormLength = stodftInfo->polynormLength;
+  int numChemPot     = 1;
+  int smearOpt       = stodftInfo->smearOpt;
+  int filterDiagFlag = stodftInfo->filterDiagFlag;
+  int numStateUpProc = cpcoeffs_info->nstate_up_proc;
+  int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
+  int numCoeff       = cpcoeffs_info->ncoef;
+  int cpLsda	     = cpopts->cp_lsda;
+  int numCoeffUpTotal = numStateUpProc*numCoeff;
+  int numCoeffDnTotal = numStateDnProc*numCoeff;
+  int myidState       = communicate->myid_state;
+  int numProcStates = communicate->np_states;
+  int numThreads = cp_sclr_fft_pkg3d_sm->numThreads;
+  int pseudoRealFlag = cp->pseudo.pseudoReal.pseudoRealFlag;
+  int imu,iCoeff,iPoly,indexStart,iState;
+  int iOff2;
+  int startIndex;
+  int storeChebyMomentsFlag = stodftInfo->storeChebyMomentsFlag;
+  int it;
+  MPI_Comm comm_states   =    communicate->comm_states;
+
+
+  double energyDiff  = stodftInfo->energyDiff;
+  double energyMin   = stodftInfo->energyMin;
+  double energyMax   = stodftInfo->energyMax;
+  double energyMean  = stodftInfo->energyMean;
+  double scale       = newtonInfo->scale;
+  double polyCoeff;
+  double timeProc,timeTot;
+  double *cre_up = cpcoeffs_pos->cre_up;
+  double *cim_up = cpcoeffs_pos->cim_up;
+  double *cre_dn = cpcoeffs_pos->cre_dn;
+  double *cim_dn = cpcoeffs_pos->cim_dn;
+  double **stoWfUpRe = stodftCoefPos->stoWfUpRe;
+  double **stoWfUpIm = stodftCoefPos->stoWfUpIm;
+  double **stoWfDnRe = stodftCoefPos->stoWfDnRe;
+  double **stoWfDnIm = stodftCoefPos->stoWfDnIm;
+  double *wfUpRe1,*wfUpIm1;
+  double *wfDnRe1,*wfDnIm1;
+  double *wfUpRe0,*wfUpIm0;
+  double *wfDnRe0,*wfDnIm0;
+
+
+  double *expanCoeff = (double*)stodftCoefPos->expanCoeff;
+
+  // performance
+
+  omp_set_num_threads(numThreads);
+
+
+/*==========================================================================*/
+/* 0) Allocate temp memories */
+
+  stodftCoefPos->wfUpRe1 = (double*)cmalloc(numCoeffUpTotal*sizeof(double))-1;
+  stodftCoefPos->wfUpIm1 = (double*)cmalloc(numCoeffUpTotal*sizeof(double))-1;
+  wfUpRe1 = stodftCoefPos->wfUpRe1;
+  wfUpIm1 = stodftCoefPos->wfUpIm1;
+  if(cpLsda==1&&numStateDnProc!=0){
+    stodftCoefPos->wfDnRe1 = (double*)cmalloc(numCoeffDnTotal*sizeof(double))-1;
+    stodftCoefPos->wfDnIm1 = (double*)cmalloc(numCoeffDnTotal*sizeof(double))-1;
+    wfDnRe1 = stodftCoefPos->wfDnRe1;
+    wfDnIm1 = stodftCoefPos->wfDnIm1;
+  }
+
+  for(it=0;it<numIter;it++){
+  
+/*==========================================================================*/
+/* 1) Copy the initial stochastic orbital */
+
+    memcpy(&cre_up[1],&coeffInUpRe[it*numCoeffUpTotal],numCoeffUpTotal*sizeof(double));
+    memcpy(&cim_up[1],&coeffInUpIm[it*numCoeffUpTotal],numCoeffUpTotal*sizeof(double));
+    if(cpLsda==1&&numStateDnProc!=0){
+      memcpy(&cre_dn[1],&coeffInDnRe[it*numCoeffDnTotal],numCoeffDnTotal*sizeof(double));
+      memcpy(&cim_dn[1],&coeffInDnIm[it*numCoeffDnTotal],numCoeffDnTotal*sizeof(double));
+    }
+
+
+    #pragma omp parallel for private(iCoeff)
+    for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
+      stoWfUpRe[0][iCoeff] = expanCoeff[imu]*cre_up[iCoeff];
+      stoWfUpIm[0][iCoeff] = expanCoeff[imu]*cim_up[iCoeff];
+    }//endfor iCoeff
+    if(cpLsda==1&&numStateDnProc!=0){
+      #pragma omp parallel for private(iCoeff)
+      for(iCoeff=1;iCoeff<=numCoeffDnTotal;iCoeff++){
+        stoWfDnRe[0][iCoeff] = expanCoeff[imu]*cre_dn[iCoeff];
+        stoWfDnIm[0][iCoeff] = expanCoeff[imu]*cim_dn[iCoeff];
+      }//endfor iCoeff      
+    }//endif 
+
+    memcpy(&wfUpRe1[1],&cre_up[1],numCoeffUpTotal*sizeof(double));
+    memcpy(&wfUpIm1[1],&cim_up[1],numCoeffUpTotal*sizeof(double));
+    if(cpLsda==1&&numStateDnProc!=0){
+      memcpy(&wfDnRe1[1],&cre_dn[1],numCoeffDnTotal*sizeof(double));
+      memcpy(&wfDnIm1[1],&cim_dn[1],numCoeffDnTotal*sizeof(double));
+    }   
+
+/*==========================================================================*/
+/* 1) Loop over all polynomial terms (iPoly=0<=>polynomial order 1) */
+
+    for(iPoly=1;iPoly<polynormLength;iPoly++){
+      if(iPoly%1000==0&&myidState==0){
+        printf("%lg%% ",iPoly*100.0/polynormLength);
+        fflush(stdout);
+      }
+      normHCheby(cp,class,general_data,
+                   cpcoeffs_pos,clatoms_pos,iPoly,1);
+
+      polyCoeff = expanCoeff[iPoly*numChemPot+imu];
+      //omp_set_num_threads(numThreads);
+      #pragma omp parallel for private(iCoeff)
+      for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
+        stoWfUpRe[imu][iCoeff] += polyCoeff*cre_up[iCoeff];	
+        stoWfUpIm[imu][iCoeff] += polyCoeff*cim_up[iCoeff];                       
+
+      }//endfor iCoeff
+      if(cpLsda==1&&numStateDnProc!=0){
+        #pragma omp parallel for private(iCoeff)
+        for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
+          stoWfDnRe[imu][iCoeff] += polyCoeff*cre_dn[iCoeff];                     
+          stoWfDnIm[imu][iCoeff] += polyCoeff*cim_dn[iCoeff];
+        }//endfor iCoeff        
+      }//endif 
+    }//endfor iPoly
+    if(myidState==0)printf("\n");
+    Barrier(comm_states);
+    memcpy(&coeffInUpRe[it*numCoeffUpTotal],&cre_up[1],numCoeffUpTotal*sizeof(double));
+    memcpy(&coeffInUpIm[it*numCoeffUpTotal],&cim_up[1],numCoeffUpTotal*sizeof(double));
+    if(cpLsda==1&&numStateDnProc!=0){
+      memcpy(&coeffInDnRe[it*numCoeffDnTotal],&cre_dn[1],numCoeffDnTotal*sizeof(double));
+      memcpy(&coeffInDnIm[it*numCoeffDnTotal],&cim_dn[1],numCoeffDnTotal*sizeof(double));
+    }
+    
+  }
+
+  free(&wfUpRe1[1]);
+  free(&wfUpIm1[1]);
+  if(cpLsda==1&&numStateDnProc!=0){
+    free(&wfDnRe1[1]);
+    free(&wfDnIm1[1]);    
+  }
+  if(storeChebyMomentsFlag==1){
+    free(&wfUpRe0[1]);
+    free(&wfUpIm0[1]);
+    if(cpLsda==1&&numStateDnProc!=0){
+      free(&wfDnRe0[1]);
+      free(&wfDnIm0[1]);    
+    }
+  }
+
+/*==========================================================================*/
+}/*end Routine*/
+/*=======================================================================*/
+
+
+
 #ifdef FAST_FILTER   
 
 /*==========================================================================*/
@@ -1499,6 +1682,342 @@ void filterChebyPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     calcChebyMomentsFake(cp,class,general_data,ip_now);
     printf("Finish fake moment calculation\n");
   }
+
+  free(occupNumber);
+  free(energyScale);
+  free(wfDot);
+  free(entropyState);
+  free(coeffReUpStore);
+  free(coeffImUpStore);
+ 
+  Barrier(comm_states);
+
+/*==========================================================================*/
+}/*end Routine*/
+/*=======================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void filterChebyPolyFricFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
+			 int ip_now,int numIter,
+                         double *coeffInUpRe,double *coeffInUpIm,
+                         double *coeffInDnRe,double *coeffInDnIm)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+  #include "../typ_defs/typ_mask.h"
+
+  STODFTINFO *stodftInfo        = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  CPOPTS *cpopts                = &(cp->cpopts);
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  CPCOEFFS_POS *cpcoeffs_pos    = &(cp->cpcoeffs_pos[ip_now]);
+  CLATOMS_POS*  clatoms_pos     = &(class->clatoms_pos[ip_now]);
+  CLATOMS_INFO *clatoms_info    = &(class->clatoms_info);
+  COMMUNICATE *communicate      = &(cp->communicate);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm = &(cp->cp_sclr_fft_pkg3d_sm);
+
+  CHEBYSHEVINFO *chebyshevInfo = stodftInfo->chebyshevInfo;
+
+  int expanType	     = stodftInfo->expanType;
+  int polynormLength = stodftInfo->polynormLength;
+  int numChemPot     = 1;
+  int smearOpt       = stodftInfo->smearOpt;
+  int filterDiagFlag = stodftInfo->filterDiagFlag;
+  int numStateUpProc = cpcoeffs_info->nstate_up_proc;
+  int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
+  int numCoeff       = cpcoeffs_info->ncoef;
+  int cpLsda	     = cpopts->cp_lsda;
+  int numCoeffUpTotal = numStateUpProc*numCoeff;
+  int numCoeffDnTotal = numStateDnProc*numCoeff;
+  int myidState       = communicate->myid_state;
+  int numProcStates = communicate->np_states;
+  int numThreads = cp_sclr_fft_pkg3d_sm->numThreads;
+  int pseudoRealFlag = cp->pseudo.pseudoReal.pseudoRealFlag;
+  int imu,iCoeff,iPoly,indexStart,iState,jState;
+  int iProc,iSto;
+  int index1,index2,index3;
+  int startIndex;
+  int storeChebyMomentsFlag = stodftInfo->storeChebyMomentsFlag;
+  int i,j,k,it;
+
+  int numStatePrintUp = stodftInfo->numStatePrintUp;
+  int numStatePrintDn = stodftInfo->numStatePrintDn;
+  int numStatePrintUpProc;
+
+  int *numStates22 = cp->stodftInfo->numStates2;
+  int *dsplStates22 = cp->stodftInfo->dsplStates2;
+  int *numStates;
+
+  MPI_Comm comm_states   =    communicate->comm_states;
+
+  double energyDiff  = stodftInfo->energyDiff;
+  double energyMin   = stodftInfo->energyMin;
+  double energyMax   = stodftInfo->energyMax;
+  double energyMean  = stodftInfo->energyMean;
+  double scale       = chebyshevInfo->scale;
+  double prefact;
+  double polyCoeff;
+  double prod,sum;
+  double x,y,z;
+  double t0,t1,t2;
+  double timeProc,timeTot;
+  double *cre_up = cpcoeffs_pos->cre_up;
+  double *cim_up = cpcoeffs_pos->cim_up;
+  double *cre_dn = cpcoeffs_pos->cre_dn;
+  double *cim_dn = cpcoeffs_pos->cim_dn;
+  double **stoWfUpRe = stodftCoefPos->stoWfUpRe;
+  double **stoWfUpIm = stodftCoefPos->stoWfUpIm;
+  double **stoWfDnRe = stodftCoefPos->stoWfDnRe;
+  double **stoWfDnIm = stodftCoefPos->stoWfDnIm;
+  double *moUpRePrint = stodftCoefPos->moUpRePrint;
+  double *moUpImPrint = stodftCoefPos->moUpImPrint;
+  double *entropyUpRe = stodftCoefPos->entropyUpRe;
+  double *entropyUpIm = stodftCoefPos->entropyUpIm;
+  double *entropyDnRe = stodftCoefPos->entropyDnRe;
+  double *entropyDnIm = stodftCoefPos->entropyDnIm;
+  double *entropyExpanCoeff = stodftCoefPos->entropyExpanCoeff;
+  double *chebyMomentsUp = stodftCoefPos->chebyMomentsUp;
+  double *chebyMomentsDn = stodftCoefPos->chebyMomentsDn;
+  double *wfUpRe1,*wfUpIm1;
+  double *wfDnRe1,*wfDnIm1;
+  double *wfUpRe0,*wfUpIm0;
+  double *wfDnRe0,*wfDnIm0;
+
+  double *expanCoeff = (double*)stodftCoefPos->expanCoeff;
+  double timeStart,timeEnd; 
+  double timeStart2,timeEnd2;
+  double timeStart3,timeEnd3;
+  double deltaTime = 0.0;
+  double deltaTime2 = 0.0;
+
+  double *energyLevel = stodftCoefPos->energyLevel;
+  double *occupNumber;
+  double *energyScale;
+  double *entropyState;
+  double *wfDot = NULL;
+  double *coeffReUpStore = NULL;
+  double *coeffImUpStore = NULL;
+
+
+/*==========================================================================*/
+/* i) Generate occupatation number */
+
+  occupNumber = (double *)cmalloc(numStatePrintUp*sizeof(double));
+  energyScale = (double *)cmalloc(numStatePrintUp*sizeof(double));
+
+  for(iState=0;iState<numStatePrintUp;iState++){
+    energyScale[iState] = (energyLevel[iState]-energyMean)*scale;
+    //printf("iState %i %lg\n",iState,energyScale[iState]);
+  }
+
+  /*
+  if(myidState==0){
+    for(imu=0;imu<numChemPot;imu++){
+      for(iPoly=0;iPoly<polynormLength;iPoly++){
+        printf("imuuuuuuu %i iPoly %i coeff %lg\n",imu,iPoly,expanCoeff[iPoly*numChemPot+imu]);
+      }
+    }
+  }
+  */
+
+  for(iState=0;iState<numStatePrintUp;iState++){
+    //iPoly=0 and iPoly=1
+    t0 = 1;
+    t1 = energyScale[iState];
+    occupNumber[iState] = expanCoeff[0]+expanCoeff[1]*t1;
+    for(iPoly=2;iPoly<polynormLength;iPoly++){
+      t2 = 2*energyScale[iState]*t1-t0;
+      polyCoeff = expanCoeff[iPoly];
+      occupNumber[iState] += polyCoeff*t2;
+      t0 = t1;
+      t1 = t2;
+    }//endfor iPoly
+  }//endfor iState
+
+  //DEBUG
+  /*
+  if(myidState==0){
+    for(imu=0;imu<numChemPot;imu++){
+      for(iState=0;iState<numStatePrintUp;iState++){
+        printf("iiiiiiiimu %i iState %i %lg\n",imu,iState,occupNumber[imu*numStatePrintUp+iState]);
+      }
+    }
+  }
+  */
+  
+  
+  /*
+  for(iPoly=1;iPoly<polynormLength;iPoly++){
+    printf("coeff iPoly %lg\n",expanCoeff[iPoly*numChemPot]);
+  }
+  */
+
+/*==========================================================================*/
+/* ii) Filtering stochastic orbital */
+
+  numStates = (int*)cmalloc(numProcStates*sizeof(int));
+  if(numProcStates>1){
+    Allgather(&numStateUpProc,1,MPI_INT,numStates,1,MPI_INT,0,comm_states);
+  }
+  else{
+    numStates[0] = numStateUpProc;
+  }
+
+  numStatePrintUpProc = numStates22[myidState];
+
+  for(it=0;it<numIter;it++){
+
+    memcpy(&cre_up[1],&coeffInUpRe[it*numCoeffUpTotal],numCoeffUpTotal*sizeof(double));
+    memcpy(&cim_up[1],&coeffInUpIm[it*numCoeffUpTotal],numCoeffUpTotal*sizeof(double));
+
+    #pragma omp parallel for private(iCoeff)
+    for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
+      stoWfUpRe[0][iCoeff] = 0.0;
+      stoWfUpIm[0][iCoeff] = 0.0;
+    }
+
+    for(iProc=0;iProc<numProcStates;iProc++){
+      coeffReUpStore = (double*)crealloc(coeffReUpStore,numStates[iProc]*numCoeff*sizeof(double));
+      coeffImUpStore = (double*)crealloc(coeffImUpStore,numStates[iProc]*numCoeff*sizeof(double));
+      wfDot = (double*)crealloc(wfDot,numStates[iProc]*numStatePrintUpProc*sizeof(double));
+      for(iSto=0;iSto<numStates[iProc]*numStatePrintUpProc;iSto++)wfDot[iSto] = 0.0;
+      if(myidState==iProc){
+        memcpy(coeffReUpStore,&cre_up[1],numStates[iProc]*numCoeff*sizeof(double));
+        memcpy(coeffImUpStore,&cim_up[1],numStates[iProc]*numCoeff*sizeof(double));
+      }
+      if(numProcStates>1){
+        Bcast(coeffReUpStore,numStates[iProc]*numCoeff,MPI_DOUBLE,iProc,comm_states);
+        Bcast(coeffImUpStore,numStates[iProc]*numCoeff,MPI_DOUBLE,iProc,comm_states);
+      }
+      #pragma omp parallel for private(iSto,iState,iCoeff,index1,index2,sum,startIndex)
+      for(iSto=0;iSto<numStates[iProc];iSto++){
+        index1 = iSto*numCoeff;
+        for(iState=0;iState<numStatePrintUpProc;iState++){
+          index2 = iState*numCoeff;
+          sum = 0.0;
+          for(iCoeff=0;iCoeff<numCoeff-1;iCoeff++){
+            sum += coeffReUpStore[index1+iCoeff]*moUpRePrint[index2+iCoeff]+
+                   coeffImUpStore[index1+iCoeff]*moUpImPrint[index2+iCoeff];
+          }
+          sum *= 2.0;
+          sum += coeffReUpStore[index1+numCoeff-1]*moUpRePrint[index2+numCoeff-1];
+          wfDot[iSto*numStatePrintUpProc+iState] = sum;
+        }
+      }
+      #pragma omp parallel for private(iCoeff)
+      for(iCoeff=0;iCoeff<numStates[iProc]*numCoeff;iCoeff++){
+        coeffReUpStore[iCoeff] = 0.0;
+        coeffImUpStore[iCoeff] = 0.0;
+      }
+      #pragma omp parallel for private(iSto,jState,iCoeff,x,y)
+      for(iSto=0;iSto<numStates[iProc];iSto++){
+        startIndex = dsplStates22[myidState];
+        for(iState=0;iState<numStatePrintUpProc;iState++){
+          x = occupNumber[startIndex+iState];
+          y = wfDot[iSto*numStatePrintUpProc+iState]*x;
+          for(iCoeff=0;iCoeff<numCoeff;iCoeff++){
+            coeffReUpStore[iSto*numCoeff+iCoeff] += y*moUpRePrint[iState*numCoeff+iCoeff];
+            coeffImUpStore[iSto*numCoeff+iCoeff] += y*moUpImPrint[iState*numCoeff+iCoeff];
+          }//endfor iCoeff
+        }//endfor iState
+      }//endfor iSto
+      if(numProcStates>1){
+        Reduce(coeffReUpStore,&(stoWfUpRe[0][1]),numStates[iProc]*numCoeff,MPI_DOUBLE,
+               MPI_SUM,iProc,comm_states);
+        Reduce(coeffImUpStore,&(stoWfUpIm[0][1]),numStates[iProc]*numCoeff,MPI_DOUBLE,
+               MPI_SUM,iProc,comm_states);
+      }
+      else{
+        memcpy(&(stoWfUpRe[0][1]),coeffReUpStore,numStates[iProc]*numCoeff*sizeof(double));
+        memcpy(&(stoWfUpIm[0][1]),coeffImUpStore,numStates[iProc]*numCoeff*sizeof(double));
+      }
+
+      if(numProcStates>1)Barrier(comm_states);
+    }//endfor iProc
+
+    memcpy(&coeffInUpRe[it*numCoeffUpTotal],&(stoWfUpRe[0][1]),numCoeffUpTotal*sizeof(double));
+    memcpy(&coeffInUpIm[it*numCoeffUpTotal],&(stoWfUpIm[0][1]),numCoeffUpTotal*sizeof(double));
+
+  }//endfor it
+
+  /*
+  #pragma omp parallel for private(iState,jState,iCoeff,index1,index2,sum)
+  for(iState=0;iState<numStateUpProc;iState++){
+    index1 = iState*numCoeff;
+    for(jState=0;jState<numStatePrintUp;jState++){
+      index2 = jState*numCoeff;
+      sum = 0.0;
+      for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
+        sum += cre_up[index1+iCoeff]*moUpRePrint[index2+iCoeff]+
+               cim_up[index1+iCoeff]*moUpImPrint[index2+iCoeff];
+      }
+      sum *= 2.0;
+      sum += cre_up[index1+numCoeff]*moUpRePrint[index2+numCoeff];
+      wfDot[iState*numStatePrintUp+jState] = sum;
+    }
+  }
+
+  #pragma omp parallel for private(imu,iState,jState,iCoeff,x,y)
+  for(imu=0;imu<numChemPot;imu++){
+    for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
+      stoWfUpRe[imu][iCoeff] = 0.0;
+      stoWfUpIm[imu][iCoeff] = 0.0;
+    }
+    for(iState=0;iState<numStateUpProc;iState++){
+      for(jState=0;jState<numStatePrintUp;jState++){
+        x = occupNumber[imu*numStatePrintUp+jState];
+        y = wfDot[iState*numStatePrintUp+jState]*x;
+        for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+          stoWfUpRe[imu][iState*numCoeff+iCoeff] += y*moUpRePrint[jState*numCoeff+iCoeff];
+          stoWfUpIm[imu][iState*numCoeff+iCoeff] += y*moUpImPrint[jState*numCoeff+iCoeff];
+        }
+      }
+    }
+  }
+  */
+
+  //test
+  /*
+  for(i=0;i<numProcStates;i++){
+    if(myidState==i){
+      for(iState=0;iState<numStateUpProc;iState++){
+        for(imu=0;imu<numChemPot;imu++){
+          printf("iState %i imu %i stowf %lg %lg\n",
+                   iState,imu,stoWfUpRe[imu][iState*numCoeff+1],stoWfUpIm[imu][iState*numCoeff+1]);
+        } 
+      }
+    }
+  }
+  */
+
+  /*
+  if(smearOpt>0&&filterDiagFlag==0){
+    #pragma omp parallel for private(iCoeff)
+    for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
+      entropyUpRe[iCoeff] = 0.0;
+      entropyUpIm[iCoeff] = 0.0;
+    }
+    #pragma omp parallel for private(iState,jState,iCoeff,x,y)
+    for(iState=0;iState<numStateUpProc;iState++){
+      for(jState=0;jState<numStatePrintUp;jState++){
+        x = entropyState[jState];
+        y = wfDot[iState*numStatePrintUp+jState]*x;
+        for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+          entropyUpRe[iState*numCoeff+iCoeff] += y*moUpRePrint[jState*numCoeff+iCoeff];
+          entropyUpIm[iState*numCoeff+iCoeff] += y*moUpImPrint[jState*numCoeff+iCoeff];
+        }//endfor iCoeff
+      }//endfor jState
+    }//endfor iState
+    //printf("entropyUpRe %lg\n",entropyUpRe[1]);
+  }//endif smearOpt
+  */
+
+/*==========================================================================*/
+/* iii) Calculate Chebyshev Momentum if necessary */
 
   free(occupNumber);
   free(energyScale);

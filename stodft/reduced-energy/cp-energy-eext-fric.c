@@ -118,6 +118,8 @@ void calcNlppRealFriction(CLASS *class,GENERAL_DATA *general_data,CP *cp,
   double *ksStateChemPotRe = metallic->ksStateChemPotRe;
   double *ksStateChemPotIm = metallic->ksStateChemPotIm;
   double *zfft             = cpscr->cpscr_wave.zfft;
+  double *zfft_tmp         = cpscr->cpscr_wave.zfft_tmp;
+
   double *wfReal;
   double *vpsNormList = pseudoReal->vpsNormList;
   double **dotRe,**dotIm,**dotDevRe,**dotDevIm;
@@ -371,6 +373,7 @@ void calcNlppDot(CLASS *class,GENERAL_DATA *general_data,CP *cp,
   CPEWALD *cpewald = &(cp->cpewald);
   METALLIC *metallic            = stodftInfo->metallic;
   PARA_FFT_PKG3D *cpParaFftPkg3d = &(cp->cp_para_fft_pkg3d_lg);
+
   COMMUNICATE *communicate      = &(cp->communicate);
 
   int realSparseOpt = cpewald->realSparseOpt;
@@ -864,16 +867,21 @@ void calcDNLPhi(CP *cp,CLASS *class, GENERAL_DATA *general_data,
 
   STODFTINFO *stodftInfo        = cp->stodftInfo;
   STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
-  PSEUDO *pseudo = &(cp->pseudo);
-  PSEUDO_REAL *pseudoReal = &(pseudo->pseudoReal);
-  CELL *cell = &(general_data->cell);
-  CLATOMS_POS *clatoms_pos = &(class->clatoms_pos[1]);
-  CLATOMS_INFO *clatoms_info = &(class->clatoms_info);
-  ATOMMAPS *atommaps = &(class->atommaps);
-  STAT_AVG *stat_avg = &(general_data->stat_avg);
-  CPEWALD *cpewald = &(cp->cpewald);
+  CPOPTS *cpopts                = &(cp->cpopts);
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  CPSCR *cpscr                  = &(cp->cpscr);  
+  PSEUDO *pseudo                = &(cp->pseudo);
+  PSEUDO_REAL *pseudoReal       = &(pseudo->pseudoReal);
+  CELL *cell                    = &(general_data->cell);
+  CLATOMS_POS *clatoms_pos      = &(class->clatoms_pos[1]);
+  CLATOMS_INFO *clatoms_info    = &(class->clatoms_info);
+  ATOMMAPS *atommaps            = &(class->atommaps);
+  STAT_AVG *stat_avg            = &(general_data->stat_avg);
+  CPEWALD *cpewald              = &(cp->cpewald);
   METALLIC *metallic            = stodftInfo->metallic;
-  PARA_FFT_PKG3D *cpParaFftPkg3d = &(cp->cp_para_fft_pkg3d_lg);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm = &(cp->cp_sclr_fft_pkg3d_sm);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
+
   COMMUNICATE *communicate      = &(cp->communicate);
 
   int pseudoRealFlag = pseudoReal->pseudoRealFlag;
@@ -888,32 +896,39 @@ void calcDNLPhi(CP *cp,CLASS *class, GENERAL_DATA *general_data,
   int numCoeffLarge       = cpcoeffs_info->ncoef_l;
   int numCoeffLargeProc;
   //int numCoeffLargeProc   = cp->cp_para_fft_pkg3d_lg.ncoef_proc;
-  int nfft = cp_sclr_fft_pkg3d_sm->nfft;
-  int numGridAll = nfft/2;
-  int cpDualGridOptOn = cpopts->cp_dual_grid_opt;
+  int nfft              = cp_sclr_fft_pkg3d_sm->nfft;
+  int numGridAll        = nfft/2;
+  int cpDualGridOptOn   = cpopts->cp_dual_grid_opt;
   int rhoRealGridNum    = stodftInfo->rhoRealGridNum;
-  int numInterpPmeDual = pseudo->n_interp_pme_dual;
-  int iperd           = cell->iperd;
-  int numChemPot = stodftInfo->numChemPot;
-  int occNumber = stodftInfo->occNumber;
+  int numInterpPmeDual  = pseudo->n_interp_pme_dual;
+  int iperd             = cell->iperd;
+  int numChemPot        = stodftInfo->numChemPot;
+  int occNumber         = stodftInfo->occNumber;
   int myidState         = communicate->myid_state;
-  int numProcStates = communicate->np_states;
-  int numAtomTot = clatoms_info->natm_tot;
+  int numProcStates     = communicate->np_states;
+  int numAtomTot        = clatoms_info->natm_tot;
   int iState,jState,iCoeff,iChem,iAtom,iGrid;
-  int smearOpt = stodftInfo->smearOpt;
-  int numStateFric = metallic->numStateFric;
-  int numAtomFricProc = metallic->numAtomFricProc;
-  int numAtomType   = atommaps->natm_typ;
+  int smearOpt          = stodftInfo->smearOpt;
+  int numAtomFricProc   = metallic->numAtomFricProc;
+  int numAtomFric       = metallic->numAtomFric;
+  int numAtomType       = atommaps->natm_typ;
+  int fftw3dFlag        = cpopts->fftw3dFlag;
+  int numGridMax,numGrid;
 
   int atomType,atomIndex;
   int numNlppTemp;
+  int gridShiftNowRe,gridShiftNowIm;
 
   int is,i,iupper;
   int ioff,ncoef1,ioff2;
   int iii,iis,nis;
+  int iPart;
   int iAng,iDim,countNlppRe,countNlppIm;
   int iRad,radIndex,countRad;
   int l,m;
+  int gridIndex;
+  int iState1,iState2,iAtom1,iAtom2;
+  int atomIndex1,atomIndex2;
   int myid_state = communicate->myid_state;
   int np_states  = communicate->np_states;
 
@@ -922,19 +937,36 @@ void calcDNLPhi(CP *cp,CLASS *class, GENERAL_DATA *general_data,
   int *numLMax = pseudoReal->numLMax;
   int *numNlppAtom = pseudoReal->numNlppAtom;
   int *locOpt = pseudo->loc_opt;
+  int *numGridNlppMap = pseudoReal->numGridNlppMap;
+  int *gridStIndRe = pseudoReal->gridStIndRe;
+  int *gridStIndIm = pseudoReal->gridStIndIm;
   int **atomLRadNum = pseudoReal->atomLRadNum;
   int **atomRadMap = pseudoReal->atomRadMap;
+  int **gridNlppMap = pseudoReal->gridNlppMap;
 
   double tpi = 2.0*M_PI;
   double vol        = cell->vol;
   double volInv     = 1.0/vol;
   double temp;
+  double dotReNow,dotDevReNow;
+  double dotImNow,dotDevImNow;
 
   double *ksStateChemPotRe = metallic->ksStateChemPotRe;
   double *ksStateChemPotIm = metallic->ksStateChemPotIm;
   double *zfft             = cpscr->cpscr_wave.zfft;
+  double *zfft_tmp         = cpscr->cpscr_wave.zfft_tmp;
   double *wfReal;
+  double *forceTemp;
   double *vpsNormList = pseudoReal->vpsNormList;
+  double *vnlPhiAtomGridRe = pseudoReal->vnlPhiAtomGridRe;
+  double *vnlPhiAtomGridIm = pseudoReal->vnlPhiAtomGridIm;
+  double *vnlPhiDxAtomGridRe = pseudoReal->vnlPhiDxAtomGridRe;
+  double *vnlPhiDxAtomGridIm = pseudoReal->vnlPhiDxAtomGridIm;
+  double *vnlPhiDyAtomGridRe = pseudoReal->vnlPhiDyAtomGridRe;
+  double *vnlPhiDyAtomGridIm = pseudoReal->vnlPhiDyAtomGridIm;
+  double *vnlPhiDzAtomGridRe = pseudoReal->vnlPhiDzAtomGridRe;
+  double *vnlPhiDzAtomGridIm = pseudoReal->vnlPhiDzAtomGridIm;
+
   double **dotRe,**dotIm,**dotDevRe,**dotDevIm;
 
   /*
@@ -962,7 +994,7 @@ void calcDNLPhi(CP *cp,CLASS *class, GENERAL_DATA *general_data,
     }
   }
 
-  wfReal = (double*)cmalloc(numGrid*sizeof(double));
+  wfReal = (double*)cmalloc(numGridAll*sizeof(double));
 
 /*======================================================================*/
 /* I) Loop all states involved in friction calculation                  */
@@ -1013,7 +1045,7 @@ void calcDNLPhi(CP *cp,CLASS *class, GENERAL_DATA *general_data,
     for(iGrid=0;iGrid<numGridAll;iGrid++){
       wfReal[iGrid] = zfft[2*iGrid+2];
     }
-    for(iAtom=0;iAtom<numAtomFricProc;iAtom++){
+    for(iAtom=0;iAtom<numAtomFric;iAtom++){
       atomIndex = atomFricIndProc[iAtom];
       atomType = iAtomAtomType[atomIndex+1]-1;
       numNlppTemp = numNlppAtom[atomType];
@@ -1023,8 +1055,8 @@ void calcDNLPhi(CP *cp,CLASS *class, GENERAL_DATA *general_data,
     }
   }//endfor is
 
-  if(numStateFric%2!= 0){
-    is = numStateFric;
+  if(numStateUpProc%2!= 0){
+    is = numStateUpProc;
     ioff = (is -1)*numCoeff;
 
 /*--------------------------------------------------------------------------*/
@@ -1055,7 +1087,7 @@ void calcDNLPhi(CP *cp,CLASS *class, GENERAL_DATA *general_data,
   }
 
   for(iAtom=0;iAtom<numAtomFricProc;iAtom++){
-    for(is=0;is<numStateFric;is++){
+    for(is=0;is<numStateUpProc;is++){
       printf("dotRe %lg dotIm %lg dotDevRe %lg dotDevIm %lg\n",dotRe[iAtom][(is)*numNlppTemp],
              dotIm[iAtom][(is)*(numNlppTemp-1)],dotDevRe[iAtom][(is)*numNlppTemp*3],
              dotDevIm[iAtom][(is)*(numNlppTemp-1)*3]);
@@ -1065,7 +1097,12 @@ void calcDNLPhi(CP *cp,CLASS *class, GENERAL_DATA *general_data,
 /*======================================================================*/
 /* V) Calculate D_nlpp|phi>                                             */
 
-  double forceTemp = (double*)calloc(numStateUpProc*numAtomFric*3*numGridMax*sizeof(double));
+  numGridMax = numGridNlppMap[0];
+  for(iPart=0;iPart<numAtomTot;iPart++){
+    if(numGridNlppMap[iPart]>numGridMax)numGridMax = numGridNlppMap[iPart];
+  }
+
+  forceTemp = (double*)calloc(numStateUpProc*numAtomFric*3*numGridMax,sizeof(double));
 
 
   for(iState=0;iState<numStateUpProc;iState++){
@@ -1280,9 +1317,6 @@ void calcDNLPhi(CP *cp,CLASS *class, GENERAL_DATA *general_data,
 }/*end routine*/
 /*==============================================================*/
 
-
-
-
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
@@ -1296,7 +1330,289 @@ void calcDLocPhi(CP *cp,CLASS *class, GENERAL_DATA *general_data,
 /*==========================================================================*/
 #include "../typ_defs/typ_mask.h"
 
+  CLATOMS_INFO *clatoms_info = &(class->clatoms_info);
+  CLATOMS_POS *clatoms_pos = &(class->clatoms_pos[1]);
+  CELL *cell = &(general_data->cell);
+  EWALD *ewald = &(general_data->ewald);
+  CPEWALD *cpewald = &(cp->cpewald);
+  CPSCR *cpscr = &(cp->cpscr);
+  PSEUDO *pseudo = &(cp->pseudo);
+  EWD_SCR *ewd_scr = &(class->ewd_scr);
+  CPOPTS *cpopts = &(cp->cpopts);
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  ATOMMAPS *atommaps = &(class->atommaps);
+  COMMUNICATE *communicate = &(cp->communicate);
+  FOR_SCR *for_scr = &(class->for_scr);
+  STODFTINFO *stodftInfo        = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;  
+  METALLIC *metallic            = stodftInfo->metallic;
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm = &(cp->cp_sclr_fft_pkg3d_sm);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
+  
 
+  int idens_opt,ipseud_opt;
+  int istart,ngo,irem,idiv;
+  int ipart,jpart,iii,itype,i,j,k;
+  int icount,koff,natm_use;
+  int realSparseOpt = cpewald->realSparseOpt;
+  int ewaldLocalOpt = cpewald->ewaldLocalOpt;
+  int cp_dual_grid_opt = cpopts->cp_dual_grid_opt;
+  int idual_switch = 0;
+  int cp_lsda = cpopts->cp_lsda;
+
+  double falp2,falp_clus2,vol,rvol,pivol,fpi,arg,q_sum1,bgr;
+  double aka,akb,akc,xk,yk,zk,atemp,btemp,ctemp;
+  double xtemp,ytemp,ztemp;
+  double sumr,sumi,g2,g4,preg,prep,tpi,pi,g;
+  double sumr_h,sumi_h;
+  double srx,sry,srz,six,siy,siz,temp,smag;
+  double dx,dy,dz;
+  double sx,sy,sz;
+  double asx,asy,asz;
+  double phase;
+  double argp,fargp,argm,fargm,area;
+  double pre,pre2;
+
+/*--------------------------------------------*/
+/*         Local Pointer declarations         */
+
+  /*------------------*/
+  /* Atom information */
+  int natm_tot      = clatoms_info->natm_tot;
+  int hess_calc     = clatoms_info->hess_calc;
+  double *x         = clatoms_pos->x;
+  double *y         = clatoms_pos->y;
+  double *z         = clatoms_pos->z;
+  double *q         = clatoms_info->q;
+  int natm_typ      = atommaps->natm_typ;
+  int *index_atm    = for_scr->index_atm;
+  int *iatm_typ;            /*Assigned below based on flags */
+  int *iatm_typ_full;
+
+  /*--------------------------------*/
+  /* Cell and pressure information */
+  int iperd                 = cell->iperd;
+  int cp_ptens              = cpopts->cp_ptens_calc;
+  double *cp_box_center     = cell->cp_box_center;
+  double *cp_box_center_rel = cell->cp_box_center_rel;
+  double *hmat;             /* Assigned below based on flags */
+  double *hmati;
+  double *hmat_big          = cell->hmat;
+  double *hmati_big         = cell->hmati;
+
+  /*----------------------*/
+  /* G-vector information */
+  int *kastore,*kbstore,*kcstore; // Assigned below based on flags
+  int *ibreak1,*ibreak2;
+  double *vextr,*vexti;
+  double *dvextr,*dvexti;
+  double *rhocr,*rhoci;
+  double *ak2;
+  int nktot;
+
+  /*----------------------------------------------*/
+  /* Pseudo-potential and Reduced Periodicity info*/
+  int nsplin_g         = pseudo->nsplin_g;
+  int n_rad_max        = pseudo->n_rad_max;
+  double *clus_corr_r  = ewald->clus_corr_r;
+  double *dclus_corr_r = ewald->dclus_corr_r;
+  double alpha_conv_dual = pseudo->alpha_conv_dual;
+  double dg_spl        = pseudo->dg_spl;
+  double gmin_spl      = pseudo->gmin_spl;
+  double *vps0         = pseudo->vps0;
+  double *vps1         = pseudo->vps1;
+  double *vps2         = pseudo->vps2;
+  double *vps3         = pseudo->vps3;
+  double *dvps0        = pseudo->dvps0;
+  double *dvps1        = pseudo->dvps1;
+  double *dvps2        = pseudo->dvps2;
+  double *dvps3        = pseudo->dvps3;
+  double *gzvps        = pseudo->gzvps;
+  double *q_pseud      = pseudo->q_pseud;
+  int n_ang_max        = pseudo->n_ang_max;
+  int *loc_opt         = pseudo->loc_opt;
+  int np_loc_cp_box    = pseudo->np_loc_cp_box;
+  int *ip_loc_cp_box   = pseudo->ip_loc_cp_box;
+
+  /*---------------------------------*/
+  /* Ewald and ewald scr information */
+  double alp_ewald  = ewald->alp_ewd;
+  double alp_clus   = ewald->alp_clus;
+  double *cossc     = ewd_scr->cossc;
+  double *sinsc     = ewd_scr->sinsc;
+  double *helr      = ewd_scr->helr;
+  double *heli      = ewd_scr->heli;
+  double *vtemp     = ewd_scr->temp;
+  double *dvtemp    = ewd_scr->vtemp_now;
+  double *ewd_scr_x = ewd_scr->x;
+  double *ewd_scr_y = ewd_scr->y;
+  double *ewd_scr_z = ewd_scr->z;
+  double *q_tmp     = ewd_scr->q;
+
+  /*---------------------------*/
+  /* Communication information */
+  int myid_state    = communicate->myid_state;
+  int np_states     = communicate->np_states;
+  MPI_Comm comm     = communicate->comm_states;
+  //FILE *fvrecip = fopen("vrecip","w");
+
+  /*---------------------------*/
+  /* Friction Calculation      */
+  int numAtomFric      = metallic->numAtomFric;
+  int numCoeff         = cp_sclr_fft_pkg3d_sm->ncoef;
+  int *atomFricIndProc = metallic->atomFricIndProc;
+  int nfft             = cp_sclr_fft_pkg3d_sm->nfft;
+  int nfft2            = nfft/2;
+  int atomIndex;
+  int iupper,is,ioff,ioff2,iCoeff;
+  int numStateUpProc   = cpcoeffs_info->nstate_up_proc;
+  int numStateDnProc   = cpcoeffs_info->nstate_dn_proc;
+  int numCoeffUpTotal  = numStateUpProc*numCoeff;
+  int numCoeffDnTotal  = numStateDnProc*numCoeff;
+  int fftw3dFlag       = cpopts->fftw3dFlag;
+
+  double *davextr = (double*)cmalloc(3*numAtomFric*(ngo+1)*sizeof(double))-1;
+  double *davexti = (double*)cmalloc(3*numAtomFric*(ngo+1)*sizeof(double))-1;
+  double *coeffReTemp = (double*)cmalloc(numCoeff*sizeof(double))-1;
+  double *coeffImTemp = (double*)cmalloc(numCoeff*sizeof(double))-1;
+  double *coeffReTemp2 = (double*)cmalloc(numCoeff*sizeof(double))-1;
+  double *coeffImTemp2 = (double*)cmalloc(numCoeff*sizeof(double))-1;
+  double *zfft = cpscr->cpscr_wave.zfft;
+  double *zfft_tmp = cpscr->cpscr_wave.zfft_tmp;
+  double *v_loc_real_up = (double*)cmalloc(nfft2*sizeof(double))-1;
+  double *v_loc_real_dn = (double*)cmalloc(nfft2*sizeof(double))-1;
+
+/*======================================================================*/
+/* 0) Assign local pointers                                             */
+
+  //Let's test the following:
+  //generating vext on dense k grid, then transform back to r space
+  //then pooling it by select the sparse grid
+  //realSparseOpt = 0;
+
+  if(cp_dual_grid_opt < 2 || idual_switch == 0){
+    /* large sparse grid when cp_dual_grid_opt == 2*/
+    idens_opt = 0;
+    ipseud_opt= (cp_dual_grid_opt==2 ? 0 : 1);
+
+    //if(realSparseOpt==0){
+    kastore   = ewald->kastr;
+    kbstore   = ewald->kbstr;
+    kcstore   = ewald->kcstr;
+    ak2       = cpewald->ak2;
+    nktot     = ewald->nktot;
+    ibreak1   = ewald->ibrk1;
+    ibreak2   = ewald->ibrk2;
+    vextr     = cpscr->cpscr_loc.vextr;
+    vexti     = cpscr->cpscr_loc.vexti;
+    dvextr    = cpscr->cpscr_loc.dvextr;
+    dvexti    = cpscr->cpscr_loc.dvexti;
+    rhocr     = cpscr->cpscr_rho.rhocr_up;
+    rhoci     = cpscr->cpscr_rho.rhoci_up;
+    //ak2       = cpewald->ak2;
+    //nktot     = ewald->nktot;
+    hmat      = cell->hmat;
+    hmati     = cell->hmati;
+    natm_use  = natm_tot;
+    iatm_typ  = atommaps->iatm_atm_typ;
+  }else{
+    // small dense grid 
+    idens_opt = 1;
+    ipseud_opt= 1;
+    kastore   = cpewald->kastr_dens_cp_box;
+    kbstore   = cpewald->kbstr_dens_cp_box;
+    kcstore   = cpewald->kcstr_dens_cp_box;
+    ibreak1   = cpewald->ibrk1_dens_cp_box; /*DY edit*/
+    ibreak2   = cpewald->ibrk2_dens_cp_box; /*DY edit*/
+    vextr     = cpscr->cpscr_loc.vextr_dens_cp_box;
+    vexti     = cpscr->cpscr_loc.vexti_dens_cp_box;
+    rhocr     = cpscr->cpscr_rho.rhocr_up_dens_cp_box;
+    rhoci     = cpscr->cpscr_rho.rhoci_up_dens_cp_box;
+    ak2       = cpewald->ak2_dens_cp_box;
+    nktot     = cpewald->nktot_dens_cp_box;
+    hmat      = cell->hmat_cp;
+    hmati     = cell->hmati_cp;
+    natm_use  = np_loc_cp_box;
+    iatm_typ  = for_scr->iexcl;
+    iatm_typ_full = atommaps->iatm_atm_typ;
+ }/*endif*/
+
+
+/*======================================================================*/
+/* I) Get more useful constants                                         */
+
+  pi    = M_PI;
+  tpi   = 2.0*pi;
+  fpi   = 4.0*pi;
+
+  vol   = getdeth(hmat);
+  rvol  = 1.0/vol;
+  pivol = vol/4.0/pi;
+  falp2 = 4.0*alp_ewald*alp_ewald;
+  falp_clus2 = 4.0*alp_clus*alp_clus;
+
+/*======================================================================*/
+/* II) Find cos and sin of sc components of the particles               */
+/*    ( hmnati rvec = svec   r=(x,y,z) s=(a,b,c) )                       */
+
+  if(idens_opt==0){
+    for(ipart=1;ipart<=natm_use;ipart++){
+      xtemp = x[ipart];
+      ytemp = y[ipart];
+      ztemp = z[ipart];
+
+      q_tmp[ipart]     = q[ipart];
+      ewd_scr_x[ipart] = xtemp*hmati[1]
+                       + ytemp*hmati[4]
+                       + ztemp*hmati[7];
+      ewd_scr_y[ipart] = xtemp*hmati[2]
+                       + ytemp*hmati[5]
+                       + ztemp*hmati[8];
+      ewd_scr_z[ipart] = xtemp*hmati[3]
+                       + ytemp*hmati[6]
+                       + ztemp*hmati[9];
+      ctemp            = ewd_scr_z[ipart]*tpi;
+      cossc[ipart]     = cos(ctemp);
+      sinsc[ipart]     = sin(ctemp);
+      //printf("ipart %i ewd_scr %lg %lg %lg\n",ipart,ewd_scr_x[ipart],ewd_scr_y[ipart],ewd_scr_z[ipart]);
+
+    }/*endfor*/
+  }else{
+    for(ipart=1;ipart<=natm_use;ipart++){
+      iatm_typ[ipart]  = iatm_typ_full[ip_loc_cp_box[ipart]];
+      q_tmp[ipart]     = q[ip_loc_cp_box[ipart]];
+      dx               = x[ip_loc_cp_box[ipart]] - cp_box_center[1];
+      dy               = y[ip_loc_cp_box[ipart]] - cp_box_center[2];
+      dz               = z[ip_loc_cp_box[ipart]] - cp_box_center[3];
+
+      asx              = dx*hmati_big[1]+dy*hmati_big[4]+dz*hmati_big[7];
+      asy              = dx*hmati_big[2]+dy*hmati_big[5]+dz*hmati_big[8];
+      asz              = dx*hmati_big[3]+dy*hmati_big[6]+dz*hmati_big[9];
+      sx               = asx - NINT(asx);
+      sy               = asy - NINT(asy);
+      sz               = asz - NINT(asz);
+      dx               = sx*hmat_big[1]+sy*hmat_big[4]+sz*hmat_big[7];
+      dy               = sx*hmat_big[2]+sy*hmat_big[5]+sz*hmat_big[8];
+      dz               = sx*hmat_big[3]+sy*hmat_big[6]+sz*hmat_big[9];
+
+      xtemp            = dx + cp_box_center_rel[1];
+      ytemp            = dy + cp_box_center_rel[2];
+      ztemp            = dz + cp_box_center_rel[3];
+      ewd_scr_x[ipart] = xtemp*hmati[1]
+                       + ytemp*hmati[4]
+                       + ztemp*hmati[7];
+      ewd_scr_y[ipart] = xtemp*hmati[2]
+                       + ytemp*hmati[5]
+                       + ztemp*hmati[8];
+      ewd_scr_z[ipart] = xtemp*hmati[3]
+                       + ytemp*hmati[6]
+                       + ztemp*hmati[9];
+      ctemp            = ewd_scr_z[ipart]*tpi;
+      cossc[ipart]     = cos(ctemp);
+      sinsc[ipart]     = sin(ctemp);
+    }/*endfor*/
+  }/*endif*/
+  
   for(icount=1;icount<=ngo;icount++){
 /*======================================================================*/
 /* I) Get the k vectors                                                 */
@@ -1317,7 +1633,7 @@ void calcDLocPhi(CP *cp,CLASS *class, GENERAL_DATA *general_data,
  
 
     if(ibreak1[(icount+koff)]==1||icount==1){
-      for(ipart=1;ipart<=natm_use;ipart++){
+      for(ipart=0;ipart<=natm_use;ipart++){
         atemp = ewd_scr_x[ipart];
         btemp = ewd_scr_y[ipart];
         ctemp = ewd_scr_z[ipart];
@@ -1364,95 +1680,18 @@ void calcDLocPhi(CP *cp,CLASS *class, GENERAL_DATA *general_data,
 
 /*----------------------------------------------------------------------*/
 
-    vextr[icount]  =  ddot1(natm_use,helr,1,vtemp,1)*rvol;
-    vexti[icount]  = -ddot1(natm_use,heli,1,vtemp,1)*rvol;
+    for(i=0;i<numAtomFric;i++){
+      atomIndex = atomFricIndProc[i]+1;
+      davextr[i*3*ngo+icount] = heli[atomIndex]*vtemp[atomIndex]*xk;
+      davexti[i*3*ngo+icount] = -helr[atomIndex]*vtemp[atomIndex]*xk;
+      davextr[i*3*ngo+ngo+icount] = heli[atomIndex]*vtemp[atomIndex]*yk;
+      davexti[i*3*ngo+ngo+icount] = -helr[atomIndex]*vtemp[atomIndex]*yk;
+      davextr[i*3*ngo+2*ngo+icount] = heli[atomIndex]*vtemp[atomIndex]*zk;
+      davexti[i*3*ngo+2*ngo+icount] = -helr[atomIndex]*vtemp[atomIndex]*zk;
+    }
 
-/*======================================================================*/
-/* IV) Get the real and imag parts of the structure factor              */
-
-    if(idens_opt==0){/*create charge weighted structure factor*/
-      sumr = ddot1(natm_use,helr,1,q,1);
-      sumi = ddot1(natm_use,heli,1,q,1);
-      smag = sumr*sumr+sumi*sumi;
-    }/*endif*/
-
-/*======================================================================*/
-/* VI) Get the force on the particles, checking for CBC                 */
-
-
-    if((iperd == 0)||(idens_opt==1)){
-      for(ipart=1;ipart<=natm_use;ipart++){
-        srx = xk*(2.0*rhocr[icount]*vtemp[ipart]*rvol);
-        sry = yk*(2.0*rhocr[icount]*vtemp[ipart]*rvol);
-        srz = zk*(2.0*rhocr[icount]*vtemp[ipart]*rvol);
-        six = xk*(-2.0*rhoci[icount]*vtemp[ipart]*rvol);
-        siy = yk*(-2.0*rhoci[icount]*vtemp[ipart]*rvol);
-        siz = zk*(-2.0*rhoci[icount]*vtemp[ipart]*rvol);
-        fx_tmp[ipart] += (srx*heli[ipart] - six*helr[ipart]);
-        fy_tmp[ipart] += (sry*heli[ipart] - siy*helr[ipart]);
-        fz_tmp[ipart] += (srz*heli[ipart] - siz*helr[ipart]);
-      }/* endfor */
-    }else{
-      sumr_h = sumr;
-      sumi_h = sumi;
-      sumr = sumr*preg*2.0;
-      sumi = sumi*preg*2.0;
-      for(ipart=1;ipart<=natm_use;ipart++){
-        srx = 0.0;
-        sry = 0.0;
-        srz = 0.0;
-        if(ewaldLocalOpt==0||ewaldLocalOpt==2){
-          pre = sumr*q[ipart];
-          srx = xk*pre;
-          sry = yk*pre;
-          srz = zk*pre;
-          pre = sumi*q[ipart];
-          six = xk*pre;
-          siy = yk*pre;
-          siz = zk*pre;
-        }
-
-        fxCl[ipart] += (srx*heli[ipart]  - six*helr[ipart]);
-        fyCl[ipart] += (sry*heli[ipart]  - siy*helr[ipart]);
-        fzCl[ipart] += (srz*heli[ipart]  - siz*helr[ipart]);
-
-        if(ewaldLocalOpt==0||ewaldLocalOpt==1){
-          pre = 2.0*rhocr[icount]*vtemp[ipart]*rvol;
-          srx += xk*pre;
-          sry += yk*pre;
-          srz += zk*pre;
-          pre = -2.0*rhoci[icount]*vtemp[ipart]*rvol;
-          six += xk*pre;
-          siy += yk*pre;
-          siz += zk*pre;
-        }
-
-        /*
-        srx = xk*(sumr*q[ipart]+2.0*rhocr[icount]*vtemp[ipart]*rvol);
-        sry = yk*(sumr*q[ipart]+2.0*rhocr[icount]*vtemp[ipart]*rvol);
-        srz = zk*(sumr*q[ipart]+2.0*rhocr[icount]*vtemp[ipart]*rvol);
-        six = xk*(sumi*q[ipart]-2.0*rhoci[icount]*vtemp[ipart]*rvol);
-        siy = yk*(sumi*q[ipart]-2.0*rhoci[icount]*vtemp[ipart]*rvol);
-        siz = zk*(sumi*q[ipart]-2.0*rhoci[icount]*vtemp[ipart]*rvol);
-        */
-
-        //debug k space classical force only
-        /*
-        srx = xk*(sumr*q[ipart]);
-        sry = yk*(sumr*q[ipart]);
-        srz = zk*(sumr*q[ipart]);
-        six = xk*(sumi*q[ipart]);
-        siy = yk*(sumi*q[ipart]);
-        siz = zk*(sumi*q[ipart]);
-        */
-        fx_tmp[ipart] += (srx*heli[ipart]  - six*helr[ipart]);
-        fy_tmp[ipart] += (sry*heli[ipart]  - siy*helr[ipart]);
-        fz_tmp[ipart] += (srz*heli[ipart]  - siz*helr[ipart]);
-        // debug print x,y,z
-        //printf("icount %i ipart %i rhocr %lg rhoci %lg srx %lg six %lg heli %lg helr %lg fxtmp %lg\n",icount,ipart,rhocr[icount],rhoci[icount],srx,six,heli[ipart],helr[ipart],fx_tmp[ipart]);
-
-      }/*endfor*/
-    } /* endif cluster BC */
+    //vextr[icount]  =  ddot1(natm_use,helr,1,vtemp,1)*rvol;
+    //vexti[icount]  = -ddot1(natm_use,heli,1,vtemp,1)*rvol;
 
 /*======================================================================*/
 /* VII) If break point two, increment the helpful vectors                 */
@@ -1466,40 +1705,167 @@ void calcDLocPhi(CP *cp,CLASS *class, GENERAL_DATA *general_data,
     }/*endif*/
   }
 
+
+  for(i=0;i<numAtomFric;i++){
+    for(j=0;j<3;j++){
+/*====================================================================*/
+/*  II) single pack the derivative of local pp potential 
+        for fourier transform routine    */
+      
+      sngl_pack_coef(&davextr[i*3*ngo+j*ngo],&davexti[i*3*ngo+j*ngo],zfft,cp_para_fft_pkg3d_lg);
+
+/*====================================================================*/
+/* III) fourier transform ks potential to real space exp(-igr)        */
+
+      para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_para_fft_pkg3d_lg);
+
+/*====================================================================*/
+/* IV) Contract and unpack rho for dual option, otherwise just upack  */
+
+      sngl_upack_rho(zfft,v_loc_real_up,cp_para_fft_pkg3d_lg);
+
+
+/*====================================================================*/
+/* V) Assign up to down for LSDA because vext is vext        */
+
+      if(cp_lsda==1){
+        for(i=1;i<=nfft2;i++){v_loc_real_dn[i]=v_loc_real_up[i];}
+      }//endif
+
+/*====================================================================*/
+/* VI) Apply v_ks to orbitals                                         */
+
+      iupper = numStateUpProc;
+      if(numStateUpProc%2!= 0){
+        iupper = numStateUpProc-1;
+      }// endif
+
+      for(is=1;is<=iupper;is=is+2){
+        ioff   = (is-1)*numCoeff;
+        ioff2 = (is)*numCoeff;
+
 /*======================================================================*/
-/* VIII) g=0 term (local pseudopotential) including term for CBCs       */
+/* II) FFT states back to real space                                    */
 
-  if((myid_state+1)==np_states){
-    if(ipseud_opt==1){
-      ak2[(ngo+1)] = 0.0;
-      for(ipart=1;ipart<=natm_use;ipart++){
-        vtemp[ipart] = gzvps[iatm_typ[ipart]];
-      }/*endfor*/
-      vextr[(ngo+1)] =  dsum1(natm_use,vtemp,1)*rvol;
-      vexti[(ngo+1)] = 0.0;
-    }else{ /*large sparse grid */
-      vextr[(ngo+1)] = 0.0;
-      bgr  = dsum1(natm_use,q_tmp,1);
-      bgr  = bgr*M_PI/(alpha_conv_dual*alpha_conv_dual*vol);
-      vextr[(ngo+1)] = bgr;
-    }/*endif*/
+/*--------------------------------------------------------------------------*/
+/*I) pack the complex zfft array with two wavefunctions (real) 
+    the wavefunctions are reperesented in spherically cuttof 
+    half g space                                                            */
 
-    if( (iperd!=3) && (idens_opt==0) ) {
-      vextr[(ngo+1)] -= dsum1(natm_use,q_tmp,1)*clus_corr_r[(ngo+1)]*rvol;
-    }/*endif*/
+        dble_pack_coef_fftw3d(&coeffReUp[ioff],&coeffImUp[ioff],
+                              &coeffReUp[ioff2],&coeffImUp[ioff2],
+                              zfft,cp_sclr_fft_pkg3d_sm);
+     
+/*--------------------------------------------------------------------------*/
+/*II) fourier transform the two wavefunctions to real space
+     convention exp(-igr)                                                   */
 
-    *pseud_hess_loc = vextr[(ngo+1)];
+        para_fft_gen3d_fwd_to_r_fftw3d_threads(zfft,cp_sclr_fft_pkg3d_sm);
 
-    if( (iperd>0) && (iperd!=3) && (idens_opt==0)) {
-      q_sum1 = dsum1(natm_use,q,1);
-      if(iperd == 2){
-         vrecip += 0.5*q_sum1*q_sum1*rvol*(clus_corr_r[(ngo+1)]
-                 + M_PI/(alp_clus*alp_clus));
-       } else {
-         vrecip += 0.5*q_sum1*q_sum1*clus_corr_r[(ngo+1)]*rvol;
-       }/* endif iperd */
-    }/*endif*/
-  }/*endif*/
+/*======================================================================*/
+/* III) Calculate Da(V_loc)|Psi>                      */
+
+        cp_vpsi(zfft,v_loc_real_up,nfft);
+
+        if(fftw3dFlag==0){
+          para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+        }
+        else{
+          para_fft_gen3d_bck_to_g_fftw3d_threads(zfft,cp_sclr_fft_pkg3d_sm);
+        }
+
+        if(fftw3dFlag==0){
+          dble_upack_coef_sum(coeffReTemp,coeffImTemp,
+                              coeffReTemp2,coeffImTemp2,
+                              zfft,cp_sclr_fft_pkg3d_sm);
+        }
+        else{
+          dble_upack_coef_sum_fftw3d(coeffReTemp,coeffImTemp,
+                              coeffReTemp2,coeffImTemp2,
+                              zfft,cp_sclr_fft_pkg3d_sm);
+        }//endif fftw3dFlag
+
+
+        ioff = (is-1)*numAtomFric*3*numCoeffUpTotal+
+               i*3*numCoeffUpTotal+
+               j*numCoeffUpTotal;
+        ioff2 = is*numAtomFric*3*numCoeffUpTotal+
+                i*3*numCoeffUpTotal+
+                j*numCoeffUpTotal;
+        for(iCoeff=0;iCoeff<numCoeff;iCoeff++){
+          daHChiReUp[ioff+iCoeff] += coeffReTemp[iCoeff+1];
+          daHChiImUp[ioff+iCoeff] += coeffImTemp[iCoeff+1];
+        }
+        for(iCoeff=0;iCoeff<numCoeff;iCoeff++){
+          daHChiReUp[ioff2+iCoeff] += coeffReTemp2[iCoeff+1];
+          daHChiImUp[ioff2+iCoeff] += coeffImTemp2[iCoeff+1];
+        }
+
+      }//endfor is
+
+      if(numStateUpProc%2!= 0){
+        is = numStateUpProc;
+        ioff = (is -1)*numCoeff;
+
+/*--------------------------------------------------------------------------*/
+/*   I) sngl pack                                                           */
+
+        sngl_pack_coef_fftw3d(&coeffReUp[ioff],&coeffImUp[ioff],zfft,cp_sclr_fft_pkg3d_sm);
+
+/*--------------------------------------------------------------------------*/
+/* II) fourier transform the wavefunctions to real space                    */
+/*      convention exp(-igr)                                                */
+
+        para_fft_gen3d_fwd_to_r_fftw3d_threads(zfft,cp_sclr_fft_pkg3d_sm);
+
+/*--------------------------------------------------------------------------*/
+/* III) Calculate dotRe, dotIm, dotDevRe, dotDevIm                          */
+
+        cp_vpsi(zfft,v_loc_real_up,nfft);
+
+        if(fftw3dFlag==0){
+          para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+        }
+        else{
+          para_fft_gen3d_bck_to_g_fftw3d_threads(zfft,cp_sclr_fft_pkg3d_sm);
+        }
+
+        if(fftw3dFlag==0){
+          sngl_upack_coef_sum(coeffReTemp,coeffImTemp,zfft,
+                              cp_sclr_fft_pkg3d_sm);
+        }
+        else{
+          sngl_upack_coef_sum_fftw3d(coeffReTemp,coeffImTemp,zfft,
+                              cp_sclr_fft_pkg3d_sm);
+        }
+
+        ioff = (is-1)*numAtomFric*3*numCoeffUpTotal+
+               i*3*numCoeffUpTotal+
+               j*numCoeffUpTotal;
+
+        for(iCoeff=0;iCoeff<numCoeff;iCoeff++){
+          daHChiReUp[ioff+iCoeff] += coeffReTemp[iCoeff+1];
+          daHChiImUp[ioff+iCoeff] += coeffImTemp[iCoeff+1];
+        }//endfor iCoeff
+      }//endif numStateProc
+    }//endfor j
+  }//endfor i
+
+/*==============================================================*/
+}/*end routine*/
+/*==============================================================*/
+
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void daVlocApply(GENERAL_DATA *general_data,CP *cp,CLASS *class,
+                        double *ccreal,double *ccimag,
+                        double *wfReal,int nstate)
+/*==========================================================================*/
+{/*begin routine*/
+/*==========================================================================*/
+#include "../typ_defs/typ_mask.h"
 
 
 /*==============================================================*/

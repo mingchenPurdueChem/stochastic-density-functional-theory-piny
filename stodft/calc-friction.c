@@ -265,28 +265,30 @@ void calcElectronFric(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bon
 
   CPOPTS       *cpopts       = &(cp->cpopts);
   CPSCR        *cpscr        = &(cp->cpscr);
-  CPCOEFFS_POS  *cpcoeffs_pos   = &(cp->cpcoeffs_pos[1]);
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
   COMMUNICATE   *commCP         = &(cp->communicate);
   STODFTINFO   *stodftInfo   = cp->stodftInfo;
   STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  METALLIC *metallic            = stodftInfo->metallic;
 
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
   PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm = &(cp->cp_sclr_fft_pkg3d_sm);
 
   int numStateStoUp     = stodftInfo->numStateStoUp;
   int numStateStoDn     = stodftInfo->numStateStoDn;
-  int numStatUpProc = cpcoeffs_info->nstate_up_proc;
-  int numStatDnProc = cpcoeffs_info->nstate_dn_proc;
+  int numStateUpProc = cpcoeffs_info->nstate_up_proc;
+  int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
   int numCoeff = cpcoeffs_info->ncoef;
   int numCoeffUpTotal = numStateUpProc*numCoeff;
   int numCoeffDnTotal = numStateDnProc*numCoeff;  
   int cpLsda = cpopts->cp_lsda;
   int numAtomFric = metallic->numAtomFric;
   int iAtom,jAtom,iDim,jDim,index1,index2;
+  int iState,iCoeff;
   int myidState         = commCP->myid_state;
   int numProcStates     = commCP->np_states;
 
+  FILE *ftensor;
   MPI_Comm commStates   =    commCP->comm_states;
 
 
@@ -304,49 +306,68 @@ void calcElectronFric(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bon
 
 
 /*======================================================================*/
-/* 0) Memory allocation                                                 */
+/* I) Memory allocation                                                 */
   fricTensor = (double*)cmalloc(numAtomFric*numAtomFric*9);
 
-  daHChiReUp = (double*)cmalloc(numStatUpProc*numAtomFric*3*numCoeffUpTotal*sizeof(double));
-  daHChiImUp = (double*)cmalloc(numStatUpProc*numAtomFric*3*numCoeffDnTotal*sizeof(double));
+  daHChiReUp = (double*)cmalloc(numAtomFric*3*numCoeffUpTotal*sizeof(double));
+  daHChiImUp = (double*)cmalloc(numAtomFric*3*numCoeffUpTotal*sizeof(double));
+  daHXiReUp = (double*)cmalloc(numAtomFric*3*numCoeffUpTotal*sizeof(double));
+  daHXiImUp = (double*)cmalloc(numAtomFric*3*numCoeffUpTotal*sizeof(double));
+
+
   if(cpLsda==1){
-    daHChiReDn = (double*)cmalloc(numStatDnProc*numAtomFric*3*numCoeffUpTotal*sizeof(double));
-    daHChiImDn = (double*)cmalloc(numStatDnProc*numAtomFric*3*numCoeffDnTotal*sizeof(double));
+    daHChiReDn = (double*)cmalloc(numAtomFric*3*numCoeffDnTotal*sizeof(double));
+    daHChiImDn = (double*)cmalloc(numAtomFric*3*numCoeffDnTotal*sizeof(double));
+    daHXiReDn = (double*)cmalloc(numAtomFric*3*numCoeffDnTotal*sizeof(double));
+    daHXiImDn = (double*)cmalloc(numAtomFric*3*numCoeffDnTotal*sizeof(double));
   }
 
 /*======================================================================*/
-/* I) Generate noise orbitals |X>                                       */
+/* II) Generate coefficients                                            */
+
+  calcChebyCoeffWrapper(stodftInfo,stodftCoefPos,4);
+
+/*======================================================================*/
+/* III) Generate noise orbitals |X>                                     */
 
   genNoiseOrbitalReal(cp,cpcoeffs_pos);
   
 /*======================================================================*/
-/* II) Calculate |Y>=(D_a H)|X>                                         */
+/* IV) Calculate |Y>=(D_a H)|X>                                         */
 
   genDHPhi(cp,class,general_data,
            coeffReUp,coeffImUp,coeffReDn,coeffImDn,
-           daHChiReUp,daHChiImUp,daHChiReDn,daHChiImDn) 
+           daHChiReUp,daHChiImUp,daHChiReDn,daHChiImDn); 
 
 /*======================================================================*/
-/* III) Calculate |Z>=P(u)|Y>                                           */
+/* V) Calculate |Z>=P(u)|Y>                                             */
 
-  filterChebyPolyFric(cp,class,general_data,
+  filterChebyPolyFric(cp,class,general_data,1,numAtomFric*3,
                       daHChiReUp,daHChiImUp,daHChiReDn,daHChiImDn);
 
-/*======================================================================*/
-/* IV) Calculate |A>=P(u)|X>                                            */
 
-  filterChebyPolyFric(cp,class,general_data,
+/*======================================================================*/
+/* VI) Generate noise orbitals |X> again                                */
+
+  genNoiseOrbitalReal(cp,cpcoeffs_pos);
+
+
+/*======================================================================*/
+/* VII) Calculate |A>=P(u)|X>                                           */
+
+
+  filterChebyPolyFric(cp,class,general_data,1,1,
                       coeffReUp,coeffImUp,coeffReDn,coeffImDn);
   
 /*======================================================================*/
-/* V) Calculate |B>=(D_b H)|A>                                          */
+/* VIII) Calculate |B>=(D_b H)|A>                                       */
 
   genDHPhi(cp,class,general_data,
            coeffReUp,coeffImUp,coeffReDn,coeffImDn,
            daHXiReUp,daHXiImUp,daHXiReDn,daHXiImDn);
   
 /*======================================================================*/
-/* VI) Calculate <Z|B>                                                  */
+/* IX) Calculate <Z|B>                                                  */
 
   for(iAtom=0;iAtom<numAtomFric;iAtom++){
     for(iDim=0;iDim<3;iDim++){
@@ -355,7 +376,7 @@ void calcElectronFric(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bon
           index1 = iAtom*3*numCoeffUpTotal+iDim*numCoeffUpTotal;
           index2 = jAtom*3*numCoeffUpTotal+jDim*numCoeffUpTotal;
           fricTensor[(iAtom*3+iDim)*numAtomFric*3+jAtom*3+jDim] = 0;
-          for(iState=0;iState<numCoeffUpTotal;iState++){
+          for(iState=0;iState<numStateUpProc;iState++){
             dot = 0.0;
             for(iCoeff=0;iCoeff<numCoeff-1;iCoeff++){
               dot += daHChiReUp[index1+iState*numCoeff+iCoeff]*daHXiReUp[index2+iState*numCoeff+iCoeff]+

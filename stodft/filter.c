@@ -1383,7 +1383,7 @@ void filterChebyPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
         for(iState=0;iState<numStatePrintUpProc;iState++){
           startIndex = dsplStates22[myidState];
           x = entropyState[startIndex+iState];
-          y = wfDot[iSto*numStates[iProc]+iState]*x;
+          y = wfDot[iSto*numStatePrintUpProc+iState]*x;
           for(iCoeff=0;iCoeff<numCoeff;iCoeff++){
             coeffReUpStore[iSto*numCoeff+iCoeff] += y*moUpRePrint[iState*numCoeff+iCoeff];
             coeffImUpStore[iSto*numCoeff+iCoeff] += y*moUpImPrint[iState*numCoeff+iCoeff];

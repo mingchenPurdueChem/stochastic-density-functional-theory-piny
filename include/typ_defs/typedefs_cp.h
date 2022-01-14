@@ -580,7 +580,10 @@ typedef struct stodftInfo{
                                     /*      0 = numChemPot                      */
                                     /*      1 = numChemPot+1                    */
   int numScf;			    /* Num: Maximum SCF loop			*/
-  int iScf;			    /* Num: SCF loop index			*/
+  int iScf;			    /* Num: SCF loop index, can be the index    */
+                                    /*      stored in checkpoint files          */
+  int iScfTrue;                     /* Num: True SCF loop index, not affected by*/
+                                    /*      reading checkpoint files            */
   int expanType;                    /* Opt: Method of Fermi function expension. */
 				    /*      1 = Chebyshev Poly	                */
 				    /*	    2 = Newtonian Poly (Hermitian)	*/

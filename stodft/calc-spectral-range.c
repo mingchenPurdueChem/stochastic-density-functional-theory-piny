@@ -63,7 +63,7 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int numCoeffUpTot   = numStateUpProc*numCoeff;
   int numCoeffDnTot   = numStateDnProc*numCoeff;
   int myidState = communicate->myid_state;
-  int iScf = stodftInfo->iScf;
+  int iScfTrue = stodftInfo->iScfTrue;
 
   int numIteration    = 100;
   int iIter;
@@ -124,7 +124,7 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*     We can't use the readin coeff since it is an eigenfunction of H      */
 /*     Pick a random orbital and normalize it.	                */
 
-  if(iScf==1){
+  if(iScfTrue==1){
 #ifdef MKL_RANDOM
     VSLStreamStatePtr stream;
     int errcode;
@@ -166,6 +166,7 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   }
   length *= 2.0;
   length += cre_up[numCoeff]*cre_up[numCoeff];
+  printf("iScfTrue %i length %lg\n",iScfTrue,length);
   length = sqrt(length);
   for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
     cre_up[iCoeff] /= length;
@@ -361,7 +362,7 @@ void genEnergyMin(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int numIteration   = 1000;
   int iIter;
   int iState,iCoeff,iCoeffStart,index1,index2;
-  int iScf = stodftInfo->iScf;
+  int iScfTrue = stodftInfo->iScfTrue;
 
   double *cre_up = cpcoeffs_pos->cre_up;
   double *cim_up = cpcoeffs_pos->cim_up;
@@ -393,7 +394,7 @@ void genEnergyMin(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /* II) Prepare a random initial wave function                               */
 /*     We can't use the readin coeff since it is an eigenfunction of H      */
 /*     Pick a random orbital and normalize it.                              */
-  if(iScf==1){
+  if(iScfTrue==1){
 #ifdef MKL_RANDOM
     VSLStreamStatePtr stream;
     int errcode;

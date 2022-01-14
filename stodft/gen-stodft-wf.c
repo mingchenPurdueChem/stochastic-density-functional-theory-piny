@@ -174,7 +174,7 @@ void genStoOrbitalInterp(CLASS *class,GENERAL_DATA *general_data,
 	Barrier(commStates);
 	Bcast(&(stodftInfo->eigValMin),1,MPI_DOUBLE,0,commStates);
       }
-      int iScf = stodftInfo->iScf;
+      int iScf = stodftInfo->iScfTrue;
       if(iScf>1){ //Not the first SCF step
         int numStatePrintUp = stodftInfo->numStatePrintUp;
 	double eigValMin = stodftCoefPos->energyLevel[0];
@@ -213,7 +213,7 @@ void genStoOrbitalInterp(CLASS *class,GENERAL_DATA *general_data,
 	Barrier(commStates);
 	Bcast(&(stodftInfo->eigValMin),1,MPI_DOUBLE,0,commStates);
       }
-      int iScf = stodftInfo->iScf;
+      int iScf = stodftInfo->iScfTrue;
       if(iScf>1){ //Not the first SCF step
         int numStatePrintUp = stodftInfo->numStatePrintUp;
 	double eigValMin = stodftCoefPos->energyLevel[0];
@@ -2597,6 +2597,7 @@ void genStoOrbitalEnergyWindowTest(CLASS *class,GENERAL_DATA *general_data,
   cpcoeffs_pos2->fcim_up = (double*)cmalloc(numStateUpProc2*numCoeff*sizeof(double))-1;
 
   stodftInfo2->iScf = stodftInfo->iScf;
+  stodftInfo2->iScfTrue = stodftInfo->iScfTrue;
   genStoOrbitalInterp(class2,general_data2,cp2,ip_now);
   orthDiagDriver(cp2,class2,general_data2,ip_now);
 

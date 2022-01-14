@@ -736,6 +736,7 @@ void calcKSPot(CLASS *class,GENERAL_DATA *general_data,
               cp_para_fft_pkg3d_dens_cp_box,cp_sclr_fft_pkg3d_lg,
               cp_para_fft_pkg3d_lg,cp_dual_grid_opt);
 
+  printf("v_ks_up %lg %lg %lg\n",v_ks_up[1],v_ks_up[10],v_ks_up[100]);
 
 /*==========================================================================*/
 }/*end Routine*/

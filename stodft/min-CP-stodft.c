@@ -1419,6 +1419,7 @@ void scfStodftEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
 
   int iperd		    = cell->iperd;
   int iScf,iCell,iCoeff,iState,iChem;
+  int iScfTrue;
   int numScf			= stodftInfo->numScf; //Need claim this in cp
   int numChemPot		= stodftInfo->numChemPot;
   int cpLsda			= cpopts->cp_lsda;
@@ -1641,14 +1642,17 @@ void scfStodftEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
   else{
     iScf = 0;
   }
+  iScfTrue = 0;
 
 
   while(scfStopFlag==0){
     timeStart = omp_get_wtime();
     iScf += 1;
+    iScfTrue += 1;
     stodftInfo->iScf = iScf;
+    stodftInfo->iScfTrue = iScfTrue;
 
-
+    printf("stodftInfo->iScfTrue %i\n",stodftInfo->iScfTrue);
     if(myidState==0){
       printf("********************************************************\n");
       printf("SCF Step %i\n",iScf);

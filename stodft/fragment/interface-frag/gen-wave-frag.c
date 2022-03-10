@@ -232,15 +232,15 @@ void gen_wave_frag(CLASS *class,GENERAL_DATA *general_data,CP *cp,
 
   if( nstate_up_gw != nstate_up ){
     if(myid == master){
-     printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
-     printf("The number of states up not equal to what is in the set file\n");
-     printf("%d here and %d from the set file\n",nstate_up_gw, nstate_up);
-     printf("Please check the values of cp_valence_up in the parm files\n");
-     printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+      printf("The number of states up not equal to what is in the set file\n");
+      printf("%d here and %d from the set file\n",nstate_up_gw, nstate_up);
+      printf("Please check the values of cp_valence_up in the parm files\n");
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
     }/*endif myid*/
     if(nproc>1){
-     Barrier(comm_states);
-     Finalize();
+      Barrier(comm_states);
+      Finalize();
     }
      exit(1);
   }/*endif*/

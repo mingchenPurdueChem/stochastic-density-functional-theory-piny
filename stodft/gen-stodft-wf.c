@@ -155,7 +155,7 @@ void genStoOrbitalInterp(CLASS *class,GENERAL_DATA *general_data,
   energyMin = stodftInfo->energyMin;
   energyMax = stodftInfo->energyMax;
   //printf("energyMax %lg energyMin %lg\n",energyMax,energyMin);
-  Barrier(commStates);
+  if(numProcStates>1)Barrier(commStates);
   stodftInfo->energyDiff = energyMax-energyMin;
   energyDiff = stodftInfo->energyDiff;
   stodftInfo->energyMean = 0.5*(energyMin+energyMax);
@@ -471,7 +471,7 @@ void genStoOrbitalCheby(CLASS *class,GENERAL_DATA *general_data,
   energyMin = stodftInfo->energyMin;
   energyMax = stodftInfo->energyMax;
   //printf("energyMax %lg energyMin %lg\n",energyMax,energyMin);
-  Barrier(commStates);
+  if(numProcStates>1)Barrier(commStates);
   stodftInfo->energyDiff = energyMax-energyMin;
   energyDiff = stodftInfo->energyDiff;
   stodftInfo->energyMean = 0.5*(energyMin+energyMax);
@@ -989,7 +989,7 @@ void genStoOrbitalEnergyWindow(CLASS *class,GENERAL_DATA *general_data,
   energyMin = stodftInfo->energyMin;
   energyMax = stodftInfo->energyMax;
   //printf("energyMax %lg energyMin %lg\n",energyMax,energyMin);
-  Barrier(commStates);
+  if(numProcStates>1)Barrier(commStates);
   stodftInfo->energyDiff = energyMax-energyMin;
   energyDiff = stodftInfo->energyDiff;
   stodftInfo->energyMean = 0.5*(energyMin+energyMax);
@@ -1609,7 +1609,7 @@ void genStoOrbitalEnergyWindowFrag(CLASS *class,GENERAL_DATA *general_data,
   energyMin = stodftInfo->energyMin;
   energyMax = stodftInfo->energyMax;
   //printf("energyMax %lg energyMin %lg\n",energyMax,energyMin);
-  Barrier(commStates);
+  if(numProcStates>1)Barrier(commStates);
   stodftInfo->energyDiff = energyMax-energyMin;
   energyDiff = stodftInfo->energyDiff;
   stodftInfo->energyMean = 0.5*(energyMin+energyMax);
@@ -2233,7 +2233,7 @@ void genStoOrbitalChebyTest(CLASS *class,GENERAL_DATA *general_data,
   energyMin = stodftInfo->energyMin;
   energyMax = stodftInfo->energyMax;
   //printf("energyMax %lg energyMin %lg\n",energyMax,energyMin);
-  Barrier(commStates);
+  if(numProcStates>1)Barrier(commStates);
   stodftInfo->energyDiff = energyMax-energyMin;
   energyDiff = stodftInfo->energyDiff;
   stodftInfo->energyMean = 0.5*(energyMin+energyMax);
@@ -2642,7 +2642,7 @@ void genStoOrbitalEnergyWindowTest(CLASS *class,GENERAL_DATA *general_data,
   energyMin = stodftInfo->energyMin;
   energyMax = stodftInfo->energyMax;
   //printf("energyMax %lg energyMin %lg\n",energyMax,energyMin);
-  Barrier(commStates);
+  if(numProcStates>1)Barrier(commStates);
   stodftInfo->energyDiff = energyMax-energyMin;
   energyDiff = stodftInfo->energyDiff;
   stodftInfo->energyMean = 0.5*(energyMin+energyMax);
@@ -3004,7 +3004,7 @@ void genStoOrbitalInterpTest(CLASS *class,GENERAL_DATA *general_data,CP *cp,
   energyMin = stodftInfo->energyMin;
   energyMax = stodftInfo->energyMax;
   //printf("energyMax %lg energyMin %lg\n",energyMax,energyMin);
-  Barrier(commStates);
+  if(numProcStates>1)Barrier(commStates);
   stodftInfo->energyDiff = energyMax-energyMin;
   energyDiff = stodftInfo->energyDiff;
   stodftInfo->energyMean = 0.5*(energyMin+energyMax);
@@ -3340,7 +3340,7 @@ void genStoOrbitalEnergyWindowFragTest(CLASS *class,GENERAL_DATA *general_data,
   energyMin = stodftInfo->energyMin;
   energyMax = stodftInfo->energyMax;
   //printf("energyMax %lg energyMin %lg\n",energyMax,energyMin);
-  Barrier(commStates);
+  if(numProcStates>1)Barrier(commStates);
   stodftInfo->energyDiff = energyMax-energyMin;
   energyDiff = stodftInfo->energyDiff;
   stodftInfo->energyMean = 0.5*(energyMin+energyMax);

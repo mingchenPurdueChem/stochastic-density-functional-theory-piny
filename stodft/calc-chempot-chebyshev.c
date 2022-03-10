@@ -158,7 +158,7 @@ void calcChemPotCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     }//endif
   }//endif
   if(myidState==0)printf("Finish Calculating Chebyshev Moments\n");
-  Barrier(comm_states);
+  if(numProcStates>1)Barrier(comm_states);
 
 
 /*==========================================================================*/
@@ -208,7 +208,7 @@ void calcChemPotCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     //exit(0);
     */
     
-    //printf("2222 %.16lg\n",calcNumElecCheby(cp,0.4990160113690848,chebyCoeffs));
+    printf("2222222 Ne test %.16lg\n",calcNumElecCheby(cp,0.2472244378617802,chebyCoeffs));
     chemPotMin = chemPotInit-gapInit*0.5;
     chemPotMax = chemPotInit+gapInit*0.5;
     numElecMin = calcNumElecCheby(cp,chemPotMin,chebyCoeffs);
@@ -249,6 +249,10 @@ void calcChemPotCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       numElecNew = calcNumElecCheby(cp,chemPotNew,chebyCoeffs);
       //printf("chemPotNew %lg numElecNew %lg\n",chemPotNew,numElecNew);
     }//endwhile
+    printf("Finish Calculating Chemical Potential\n");
+    printf("The correct chemical potential is %.16lg Ne %.16lg DNe %.16lg\n",chemPotNew,numElecNew,
+            fabs(numElecNew-numElecTrue));
+
 
     //DEBUG
     /*
@@ -430,7 +434,7 @@ void calcChemPotChebyEWFrag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     }//endif
   }//endif
   if(myidState==0)printf("Finish Calculating Chebyshev Moments\n");
-  Barrier(comm_states);
+  if(numProcStates>1)Barrier(comm_states);
 
 
 /*==========================================================================*/
@@ -552,7 +556,8 @@ void calcChemPotChebyEWFrag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     }
     free(&numElecMu[0]);
     */
-  }
+  }//endif myidState
+
   if(numProcStates>1){
     Barrier(comm_states);
     Bcast(&chemPotNew,1,MPI_DOUBLE,0,comm_states);
@@ -1068,11 +1073,12 @@ void calcChebyMomentsFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   */
   stoDetDotProc = (double*)calloc(numStates22[myidState],sizeof(double));
 
-  
+ 
   for(iProc=0;iProc<numProcStates;iProc++){
     coeffReUpStore = (double*)crealloc(coeffReUpStore,numStates[iProc]*numCoeff*sizeof(double));
     coeffImUpStore = (double*)crealloc(coeffImUpStore,numStates[iProc]*numCoeff*sizeof(double));
-    
+
+    printf("numStates22[myidState] %i\n",numStates22[myidState]);    
     for(iState=0;iState<numStates22[myidState];iState++)stoDetDotProc[iState] = 0.0;
     if(myidState==iProc){
       memcpy(coeffReUpStore,&coeffReUp[1],numStates[iProc]*numCoeff*sizeof(double));
@@ -1102,6 +1108,9 @@ void calcChebyMomentsFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
               stoDetDot,numStates22,dsplStates22,MPI_DOUBLE,
               iProc,comm_states);
       Barrier(comm_states);
+    }
+    else{
+      memcpy(stoDetDot,stoDetDotProc,numStatePrintUp*sizeof(double));
     }
     if(numProcStates>1)Barrier(comm_states);
   }//endfor iProc
@@ -1144,7 +1153,7 @@ void calcChebyMomentsFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   FERMIFUNR fermiFunction = stodftInfo->fermiFunctionReal;
   double numElecTest = 0;
   for(iState=0;iState<numStatePrintUp;iState++){
-    numElecTest += stoDetDot[iState]*fermiFunction(energyLevel[iState],0.2223443349358951,1052.58);
+    numElecTest += stoDetDot[iState]*fermiFunction(energyLevel[iState],0.2472244378617802,1052.58);
   }
   printf("numElecTest %lg\n",numElecTest);
 

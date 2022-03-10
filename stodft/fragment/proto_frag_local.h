@@ -3,6 +3,11 @@
 /* control-cp-min-frag.c */
 
 void controlCpMinFrag(CLASS *,BONDED *,GENERAL_DATA *,CP *,ANALYSIS *);
+
+/*-----------------------------------------------------------------*/
+/* control-fd-frag.c */
+void controlStodftMinfrag(CLASS *,BONDED *,GENERAL_DATA *,CP *,ANALYSIS *);
+
 /*-----------------------------------------------------------------*/
 /* init-frag.c */
 void initFragMol(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);

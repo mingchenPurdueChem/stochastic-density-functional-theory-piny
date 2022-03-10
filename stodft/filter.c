@@ -284,7 +284,7 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   }
   */
 
-  Barrier(comm_states);
+  if(numProcStates>1)Barrier(comm_states);
 
   if(myidState==0){
     printf("Process ID %i filter time %.8lg total NormH time %.8lg Accumulate P(H)|phi> time %.8lg\n",myidState,timeProc,deltaTime2,deltaTime);
@@ -295,7 +295,7 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
    fflush(stdout);
   }
 
-  Barrier(comm_states);
+  if(numProcStates>1)Barrier(comm_states);
 
   //debug
   /*
@@ -656,7 +656,7 @@ void filterChebyPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     }
   }
   */
-  Barrier(comm_states);
+  if(numProcStates>1)Barrier(comm_states);
 
   if(myidState==0){
     printf("Process ID %i filter time %.8lg total NormH time %.8lg Accumulate P(H)|phi> time %.8lg\n",myidState,timeProc,deltaTime2,deltaTime);
@@ -667,7 +667,7 @@ void filterChebyPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
    fflush(stdout);
   }
 
-  Barrier(comm_states);
+  if(numProcStates>1)Barrier(comm_states);
 
   //debug
   /*
@@ -1111,7 +1111,7 @@ void filterNewtonPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   free(coeffReUpSum);
   free(coeffImUpSum);
  
-  Barrier(comm_states);
+  if(numProcStates>1)Barrier(comm_states);
 
 /*==========================================================================*/
 }/*end Routine*/
@@ -1375,7 +1375,7 @@ void filterChebyPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 
     if(smearOpt>0&&filterDiagFlag==0){
       #pragma omp parallel for private(iCoeff)
-      for(iCoeff=1;iCoeff<=numStates[iProc]*numCoeff;iCoeff++){
+      for(iCoeff=0;iCoeff<numStates[iProc]*numCoeff;iCoeff++){
         coeffReUpStore[iCoeff] = 0.0;
         coeffImUpStore[iCoeff] = 0.0;
       }
@@ -1383,7 +1383,7 @@ void filterChebyPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
         for(iState=0;iState<numStatePrintUpProc;iState++){
           startIndex = dsplStates22[myidState];
           x = entropyState[startIndex+iState];
-          y = wfDot[iSto*numStates[iProc]+iState]*x;
+          y = wfDot[iSto*numStatePrintUpProc+iState]*x;
           for(iCoeff=0;iCoeff<numCoeff;iCoeff++){
             coeffReUpStore[iSto*numCoeff+iCoeff] += y*moUpRePrint[iState*numCoeff+iCoeff];
             coeffImUpStore[iSto*numCoeff+iCoeff] += y*moUpImPrint[iState*numCoeff+iCoeff];
@@ -1507,7 +1507,7 @@ void filterChebyPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   free(coeffReUpStore);
   free(coeffImUpStore);
  
-  Barrier(comm_states);
+  if(numProcStates>1)Barrier(comm_states);
 
 /*==========================================================================*/
 }/*end Routine*/

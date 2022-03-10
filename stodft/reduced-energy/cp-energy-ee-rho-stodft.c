@@ -1005,7 +1005,7 @@ void cpGetVksStodft(CPOPTS *cpopts,CPSCR *cpscr,CPEWALD *cpewald,EWALD *ewald,
       memcpy(&v_ks_dn[1],&(zfft[1]),nfft2*sizeof(double));
     }
   }
-  Barrier(comm);
+  if(np_states>1)Barrier(comm);
 
   //printf("11111111111111 v_ks_up[1] %lg\n",v_ks_up[1]);
   //fflush(stdout);

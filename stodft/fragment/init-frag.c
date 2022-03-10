@@ -72,7 +72,9 @@ void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   }
   if(numProcStates>1)Barrier(world);
   //printf("fragOpt %i\n",fragOpt);
-  
+ 
+  Bcast(&(fragInfo->fragOrbRatio),1,MPI_DOUBLE,0,world); 
+
   switch(fragOpt){ 
     case 1:
       initFragMol(class,bonded,general_data,cp,ip_now);
@@ -126,7 +128,6 @@ void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   if(myidState==0)printf("Finish initializing fragments energy...\n");
   if(numProcStates>1)Barrier(world);
 
-
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/
@@ -176,6 +177,8 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   int fragCellOpt       = stodftInfo->fragCellOpt;
   int rhoRealGridNum	= stodftInfo->rhoRealGridNum;
   int cpLsda		= cpopts->cp_lsda;
+  int smearOpt          = stodftInfo->smearOpt;
+  int fragDFTMethod     = stodftInfo->fragDFTMethod;
   int numMolTot;
   int numMolType        = atommaps->nmol_typ;
   int molIndStart;
@@ -212,7 +215,7 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   int **atomFragVnlCalcFlag;
 
   char *atomSkinFile;
-
+  double fragOrbRatio = fragInfo->fragOrbRatio;
   double *skinAll;
   FILE *fileSkin;
   FILE *fileNumUC;
@@ -415,6 +418,12 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   fragInfo->numElecDnFragTot = (int*)cmalloc(numFragTot*sizeof(int));
   fragInfo->numElecUpFragProc = (int*)cmalloc(numFragProc*sizeof(int));
   fragInfo->numElecDnFragProc = (int*)cmalloc(numFragProc*sizeof(int));
+  if(fragDFTMethod==2){
+    fragInfo->numElecTrueUpFragTot = (int*)cmalloc(numFragTot*sizeof(int));
+    fragInfo->numElecTrueDnFragTot = (int*)cmalloc(numFragTot*sizeof(int));
+    fragInfo->numElecTrueUpFragProc = (int*)cmalloc(numFragProc*sizeof(int));
+    fragInfo->numElecTrueDnFragProc = (int*)cmalloc(numFragProc*sizeof(int));
+  }
   numElecUpFragTot = fragInfo->numElecUpFragTot;
   numElecDnFragTot = fragInfo->numElecDnFragTot;
   numElecUpFragProc = fragInfo->numElecUpFragProc;
@@ -429,8 +438,15 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
       numElecUpFragTot[iMol] += atomVlncUpAll[atomInd];
       numElecDnFragTot[iMol] += atomVlncDnAll[atomInd];
     }
+    if(fragDFTMethod==2){
+      fragInfo->numElecTrueUpFragTot[iMol] = numElecUpFragTot[iMol];
+      fragInfo->numElecTrueDnFragTot[iMol] = numElecDnFragTot[iMol];
+      numElecUpFragTot[iMol] = (int)(numElecUpFragTot[iMol]*fragOrbRatio);
+      numElecDnFragTot[iMol] = (int)(numElecDnFragTot[iMol]*fragOrbRatio);
+    }
     countAtom += atomNumMol[iMol];
   }
+
   //end molecule fragment only part
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     numElecUpFragProc[iFrag] = 0;
@@ -440,6 +456,12 @@ void initFragMol(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
       numElecUpFragProc[iFrag] += atomVlncUpAll[atomInd-1];
       numElecDnFragProc[iFrag] += atomVlncDnAll[atomInd-1];
     }//endfor iAtom
+    if(fragDFTMethod==2){
+      fragInfo->numElecTrueUpFragProc[iFrag] = numElecUpFragProc[iFrag];
+      fragInfo->numElecTrueDnFragProc[iFrag] = numElecDnFragProc[iFrag];
+      numElecUpFragProc[iFrag] = (int)(numElecUpFragProc[iFrag]*fragOrbRatio);
+      numElecDnFragProc[iFrag] = (int)(numElecDnFragProc[iFrag]*fragOrbRatio);
+    }
   }//endfor iFrag
   
   /*
@@ -581,6 +603,7 @@ void initFragUnitCell(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP 
   int fragOpt           = stodftInfo->fragOpt;
   int fragCellOpt       = stodftInfo->fragCellOpt;
   int rhoRealGridNum	= stodftInfo->rhoRealGridNum;
+  int fragDFTMethod     = stodftInfo->fragDFTMethod;
   int skinUCNum;
   int cpLsda		= cpopts->cp_lsda;
   int numMolTot;
@@ -629,6 +652,7 @@ void initFragUnitCell(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP 
   
   char *atomSkinFile;
 
+  double fragOrbRatio = fragInfo->fragOrbRatio;
   double xRoot,yRoot,zRoot,x,y,z;
   double xDiff,yDiff,zDiff,xTemp,yTemp,zTemp;
   double comSys[3],boxCnt[3];
@@ -694,7 +718,7 @@ void initFragUnitCell(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP 
     mapFragMolHalf(fragInfo,communicate,numMolType,molType,
 		    &numGridBox[0],comMolReduce);
   }
-  Barrier(commStates);
+  if(numProcStates>1)Barrier(commStates);
   
   molFragMapProc = fragInfo->molFragMapProc;
   numMolFragProc = fragInfo->numMolFragProc;
@@ -831,6 +855,14 @@ void initFragUnitCell(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP 
   fragInfo->numElecDnFragTot = (int*)cmalloc(numFragTot*sizeof(int));
   fragInfo->numElecUpFragProc = (int*)cmalloc(numFragProc*sizeof(int));
   fragInfo->numElecDnFragProc = (int*)cmalloc(numFragProc*sizeof(int));
+
+  if(fragDFTMethod==2){
+    fragInfo->numElecTrueUpFragTot = (int*)cmalloc(numFragTot*sizeof(int));
+    fragInfo->numElecTrueDnFragTot = (int*)cmalloc(numFragTot*sizeof(int));
+    fragInfo->numElecTrueUpFragProc = (int*)cmalloc(numFragProc*sizeof(int));
+    fragInfo->numElecTrueDnFragProc = (int*)cmalloc(numFragProc*sizeof(int));
+  }
+
   numElecUpFragTot = fragInfo->numElecUpFragTot;
   numElecDnFragTot = fragInfo->numElecDnFragTot;
   numElecUpFragProc = fragInfo->numElecUpFragProc;
@@ -859,6 +891,12 @@ void initFragUnitCell(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP 
       numElecUpFragProc[iFrag] += atomVlncUpAll[atomInd-1];
       numElecDnFragProc[iFrag] += atomVlncDnAll[atomInd-1];
     }//endfor iAtom
+    if(fragDFTMethod==2){
+      fragInfo->numElecTrueUpFragProc[iFrag] = numElecUpFragProc[iFrag];
+      fragInfo->numElecTrueDnFragProc[iFrag] = numElecDnFragProc[iFrag];
+      numElecUpFragProc[iFrag] = (int)(numElecUpFragProc[iFrag]*fragOrbRatio);
+      numElecDnFragProc[iFrag] = (int)(numElecDnFragProc[iFrag]*fragOrbRatio);
+    }
   }//endfor iFrag
   
   /*
@@ -956,6 +994,7 @@ void initFragEnergy(CP *cpMini,CLASS *classMini,CLASS *class,CP *cp)
 
   int rhoRealGridTot        = stodftInfo->rhoRealGridTot;
   int energyWindowOn        = stodftInfo->energyWindowOn;
+  int fragDFTMethod         = stodftInfo->fragDFTMethod;
   int numAtomCalc;
   
   fragInfo->vnlFxCor = (double*)cmalloc(numAtomTot*sizeof(double));
@@ -975,7 +1014,15 @@ void initFragEnergy(CP *cpMini,CLASS *classMini,CLASS *class,CP *cp)
   }
 
   for(iFrag=0;iFrag<numFragProc;iFrag++){
-    numStateUpMini = cpMini[iFrag].cpcoeffs_info.nstate_up_proc;
+    switch(fragDFTMethod){
+      case 1:
+        numStateUpMini = cpMini[iFrag].cpcoeffs_info.nstate_up_proc;
+        break;
+      case 2:
+        numStateUpMini = fragInfo->numElecUpFragProc[iFrag];
+        break;
+    }
+    
     fragInfo->wfProjUp[iFrag] = (double*)cmalloc(numStateUpMini*numStateStoUp*numChemPot*sizeof(double));
     fragInfo->keMatrixUp[iFrag] = (double*)cmalloc(numStateUpMini*numStateUpMini*sizeof(double));
     fragInfo->vnlMatrixUp[iFrag] = (double*)cmalloc(numStateUpMini*numStateUpMini*sizeof(double));
@@ -1468,7 +1515,8 @@ void mapFragMol(FRAGINFO *fragInfo,COMMUNICATE *communicate,
     startFragInd = (div+1)*res+div*(myidState-res);
   }
   numFragProc = fragInfo->numFragProc;
-  fragInd = (int*)cmalloc(numFragProc*sizeof(int));
+  fragInfo->fragInd = (int*)cmalloc(numFragProc*sizeof(int));
+  fragInd = fragInfo->fragInd;
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     fragInd[iFrag] = startFragInd+iFrag;
   }
@@ -1747,7 +1795,8 @@ void mapFragMolHalf(FRAGINFO *fragInfo,COMMUNICATE *communicate,
     startFragInd = (div+1)*res+div*(myidState-res);
   }
   numFragProc = fragInfo->numFragProc;
-  fragInd = (int*)cmalloc(numFragProc*sizeof(int));
+  fragInfo->fragInd = (int*)cmalloc(numFragProc*sizeof(int));
+  fragInd = fragInfo->fragInd;
   for(iFrag=0;iFrag<numFragProc;iFrag++){
     fragInd[iFrag] = startFragInd+iFrag;
   }

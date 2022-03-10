@@ -310,6 +310,7 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }//endif filterDiagFlag
   else scfStodftFilterDiag(class,bonded,general_data,cp,ip_now);
   //scfStodft(class,bonded,general_data,cp,ip_now);
+  
    
 /*======================================================================*/
 /* V) Loop over the specified number of time steps for geometric	*/

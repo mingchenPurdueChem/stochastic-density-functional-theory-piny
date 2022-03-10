@@ -1112,6 +1112,7 @@ void gen_wave(CLASS *class,GENERAL_DATA *general_data,CP *cp,
   cfree(&(gpsi00[1]));
   cfree(helr);
   cfree(heli);
+  cfree(randnum);
 
 /*===========================================================================*/
 

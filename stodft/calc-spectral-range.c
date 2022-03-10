@@ -26,6 +26,7 @@
 #include "../proto_defs/proto_stodft_local.h"
 
 #define TIME_CP_OFF
+//#define TEST_FILTER
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
@@ -63,7 +64,7 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int numCoeffUpTot   = numStateUpProc*numCoeff;
   int numCoeffDnTot   = numStateDnProc*numCoeff;
   int myidState = communicate->myid_state;
-  int iScf = stodftInfo->iScf;
+  int iScf = stodftInfo->iScfTrue;
 
   int numIteration    = 100;
   int iIter;
@@ -295,7 +296,7 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   stodftInfo->energyMax = energy+0.1;
   //debug
 #ifdef TEST_FILTER
-  stodftInfo->energyMax = 10.20338948312444;
+  stodftInfo->energyMax = 21.20756077465795;
 #endif
 
   cpcoeffs_info->nstate_up_proc = numStateUpProc;
@@ -361,7 +362,7 @@ void genEnergyMin(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int numIteration   = 1000;
   int iIter;
   int iState,iCoeff,iCoeffStart,index1,index2;
-  int iScf = stodftInfo->iScf;
+  int iScf = stodftInfo->iScfTrue;
 
   double *cre_up = cpcoeffs_pos->cre_up;
   double *cim_up = cpcoeffs_pos->cim_up;
@@ -531,7 +532,7 @@ void genEnergyMin(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   stodftInfo->energyMin = energy-0.1;
 
 #ifdef TEST_FILTER
-  stodftInfo->energyMin = -0.314882;
+  stodftInfo->energyMin = -0.2123333026780721;
 #endif
 
   cpcoeffs_info->nstate_up_proc = numStateUpProc;

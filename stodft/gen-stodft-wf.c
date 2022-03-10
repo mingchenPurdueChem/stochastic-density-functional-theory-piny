@@ -174,8 +174,8 @@ void genStoOrbitalInterp(CLASS *class,GENERAL_DATA *general_data,
 	Barrier(commStates);
 	Bcast(&(stodftInfo->eigValMin),1,MPI_DOUBLE,0,commStates);
       }
-      int iScf = stodftInfo->iScf;
-      if(iScf>1){ //Not the first SCF step
+      int iScfTrue = stodftInfo->iScfTrue;
+      if(iScfTrue>1){ //Not the first SCF step
         int numStatePrintUp = stodftInfo->numStatePrintUp;
 	double eigValMin = stodftCoefPos->energyLevel[0];
 	double eigValMax = stodftCoefPos->energyLevel[numStatePrintUp-1];
@@ -213,8 +213,8 @@ void genStoOrbitalInterp(CLASS *class,GENERAL_DATA *general_data,
 	Barrier(commStates);
 	Bcast(&(stodftInfo->eigValMin),1,MPI_DOUBLE,0,commStates);
       }
-      int iScf = stodftInfo->iScf;
-      if(iScf>1){ //Not the first SCF step
+      int iScfTrue = stodftInfo->iScfTrue;
+      if(iScfTrue>1){ //Not the first SCF step
         int numStatePrintUp = stodftInfo->numStatePrintUp;
 	double eigValMin = stodftCoefPos->energyLevel[0];
 	double eigValMax = stodftCoefPos->energyLevel[numStatePrintUp-1];
@@ -2172,7 +2172,7 @@ void genStoOrbitalChebyTest(CLASS *class,GENERAL_DATA *general_data,
   cpcoeffs_pos2->fcim_up = (double*)cmalloc(numStateUpProc2*numCoeff*sizeof(double))-1;
 
   stodftInfo2->iScf = stodftInfo->iScf;
-
+  stodftInfo2->iScfTrue = stodftInfo->iScfTrue;
   timeStart01 = omp_get_wtime();
   genStoOrbitalInterp(class2,general_data2,cp2,ip_now);
   timeEnd01 = omp_get_wtime();
@@ -2456,6 +2456,7 @@ void genStoOrbitalEnergyWindowTest(CLASS *class,GENERAL_DATA *general_data,
   STODFTCOEFPOS *stodftCoefPos2 = cp2->stodftCoefPos;
 
   NEWTONINFO   *newtonInfo      = stodftInfo->newtonInfo;
+  CHEBYSHEVINFO *chebyshevInfo = stodftInfo->chebyshevInfo;
   COMMUNICATE   *commCP	        = &(cp->communicate);
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
   CPCOEFFS_INFO *cpcoeffs_info2 = &(cp2->cpcoeffs_info);
@@ -2597,6 +2598,7 @@ void genStoOrbitalEnergyWindowTest(CLASS *class,GENERAL_DATA *general_data,
   cpcoeffs_pos2->fcim_up = (double*)cmalloc(numStateUpProc2*numCoeff*sizeof(double))-1;
 
   stodftInfo2->iScf = stodftInfo->iScf;
+  stodftInfo2->iScfTrue = stodftInfo->iScfTrue;
   genStoOrbitalInterp(class2,general_data2,cp2,ip_now);
   orthDiagDriver(cp2,class2,general_data2,ip_now);
 
@@ -2651,6 +2653,29 @@ void genStoOrbitalEnergyWindowTest(CLASS *class,GENERAL_DATA *general_data,
 /* III) Generate Length of Polynomial Chain                             */
 
   timeStart2 = omp_get_wtime();
+  if(expanType==1){
+    Smin = chebyshevInfo->Smin;
+    Smax = chebyshevInfo->Smax;
+    scale = (Smax-Smin)/energyDiff;
+    chebyshevInfo->scale = scale;
+    //cheat my code
+    numChemPotTemp = stodftInfo->numChemPot;
+    stodftInfo->numChemPot = 2;
+    free(&(stodftCoefPos->chemPot[0]));
+    stodftCoefPos->chemPot = (double*)cmalloc(2*sizeof(double));
+    stodftCoefPos->chemPot[0] = chemPotInit-gapInit*0.5;
+    stodftCoefPos->chemPot[1] = chemPotInit+gapInit*0.5;
+    if(myidState==0)genChebyHermit(stodftInfo,stodftCoefPos,0);
+    if(numProcStates>1){
+      Barrier(commStates);
+      Bcast(&(stodftInfo->polynormLength),1,MPI_INT,0,commStates);
+      Barrier(commStates);
+    }
+    stodftInfo->numChemPot = numChemPotTemp;
+    free(&(stodftCoefPos->chemPot[0]));
+    stodftCoefPos->chemPot = (double*)cmalloc(numChemPotTemp*sizeof(double));
+    //finish cheating my code
+  }
   if(expanType==2){
     Smin = newtonInfo->Smin;
     Smax = newtonInfo->Smax;
@@ -2959,6 +2984,7 @@ void genStoOrbitalInterpTest(CLASS *class,GENERAL_DATA *general_data,CP *cp,
   cpcoeffs_pos2->fcim_up = (double*)cmalloc(numStateUpProc2*numCoeff*sizeof(double))-1;
 
   stodftInfo2->iScf = stodftInfo->iScf;
+  stodftInfo2->iScfTrue = stodftInfo->iScfTrue;
   genStoOrbitalInterp(class2,general_data2,cp2,ip_now);
   orthDiagDriver(cp2,class2,general_data2,ip_now);
 
@@ -3194,6 +3220,7 @@ void genStoOrbitalEnergyWindowFragTest(CLASS *class,GENERAL_DATA *general_data,
   int fragWindowFlag = stodftInfo->fragWindowFlag;
   int homoIndex;
   int smearOpt = stodftInfo->smearOpt;
+  int smearOptBackup;
 
   int numChemPot2 = stodftInfo2->numChemPot;
   int numStateUpProc2 = cpcoeffs_info2->nstate_up_proc;
@@ -3289,6 +3316,7 @@ void genStoOrbitalEnergyWindowFragTest(CLASS *class,GENERAL_DATA *general_data,
   cpcoeffs_pos2->fcim_up = (double*)cmalloc(numStateUpProc2*numCoeff*sizeof(double))-1;
 
   stodftInfo2->iScf = stodftInfo->iScf;
+  stodftInfo2->iScfTrue = stodftInfo->iScfTrue;
   genStoOrbitalInterp(class2,general_data2,cp2,ip_now);
   orthDiagDriver(cp2,class2,general_data2,ip_now);
 
@@ -3420,7 +3448,12 @@ void genStoOrbitalEnergyWindowFragTest(CLASS *class,GENERAL_DATA *general_data,
   switch(expanType){
     case 1:
       stodftInfo->storeChebyMomentsFlag = 1;
+      // At this step we need to turn off smearing 
+      // since we have not initialize entropy coefficient
+      smearOptBackup = stodftInfo->smearOpt;
+      stodftInfo->smearOpt = 0;
       filterChebyPolyHermFake(cp,class,general_data,ip_now,1);
+      stodftInfo->smearOpt = smearOptBackup;
       //filterChebyPolyHerm(cp,class,general_data,ip_now);
       stodftInfo->storeChebyMomentsFlag = 0;
       break;

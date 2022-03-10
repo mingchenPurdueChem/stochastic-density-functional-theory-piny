@@ -1818,6 +1818,7 @@ void mapFragMolHalf(FRAGINFO *fragInfo,COMMUNICATE *communicate,
     yBase = ((double)fragRootInd[iFrag*3+1])/numGridBox[1];
     zBase = ((double)fragRootInd[iFrag*3+2])/numGridBox[2];
     //printf("fragRootInd %i %i %i %i %i %i\n",fragRootInd[iFrag*3],fragRootInd[iFrag*3+1],fragRootInd[iFrag*3+2],numGridBox[0],numGridBox[1],numGridBox[2]);
+    //printf("numUnitCellDim[0] %i fragLengthInd[fragInd[iFrag]*3] %lg\n",numUnitCellDim[0],fragLengthInd[fragInd[iFrag]*3]);
     aFragLength = 1.0/numUnitCellDim[0]*(fragLengthInd[fragInd[iFrag]*3]+1.0);
     bFragLength = 1.0/numUnitCellDim[1]*(fragLengthInd[fragInd[iFrag]*3+1]+1.0);
     cFragLength = 1.0/numUnitCellDim[2]*(fragLengthInd[fragInd[iFrag]*3+2]+1.0);

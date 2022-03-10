@@ -25,6 +25,8 @@
 
 #include "../typ_defs/typ_mask.h"
 #define MKL_THREADS
+// scatterv has problem on bell. This is a replaced version
+#define TEST_SCATTERV 
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
@@ -138,6 +140,7 @@ void orthNormStoWf(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   }
   */
   if(myidState==0)printf("Start Gathering WF\n");
+  //DEBUG
   for(iChem=numChemPot-1;iChem>0;iChem--){
     for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
       stoWfUpRe[iChem][iCoeff] -= stoWfUpRe[iChem-1][iCoeff];
@@ -208,8 +211,12 @@ void orthNormStoWf(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   */
   
   
-
-  wfBfOrthUp = (double*)calloc(numCoeffUpAllProc*2,sizeof(double));
+  int numCoeffUpAllProc2 = numCoeffUpAllProc*2;
+  if(myidState==0){
+    wfBfOrthUp = (double*)calloc(numCoeffUpAllProc*2,sizeof(double));
+  }
+  //DEBUG
+  
   for(iChem=0;iChem<numChemPot;iChem++){
     for(iState=0;iState<numStateUpProc;iState++){
       for(iCoeff=0;iCoeff<numCoeff-1;iCoeff++){
@@ -242,6 +249,7 @@ void orthNormStoWf(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     free(&stoWfUpRe[iChem][1]);
     free(&stoWfUpIm[iChem][1]);
   }//endfor iChem
+  
 
   /*
   if(myidState==0){
@@ -271,7 +279,9 @@ void orthNormStoWf(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   if(myidState==0){
     time_st = omp_get_wtime();
     printf("Start SVD\n");
+    //DEBUG    
     indexCut = orthogSVD(numStateUpAllProc,2*numCoeff,wfBfOrthUp,numThreadsMKL);
+    //indexCut = 1250;
     //indexCut = orthogSVD(numCoeff,numStateUpAllProc,wfBfOrthUp);
     printf("indexCut %i\n",indexCut);
     if(indexCut<stodftInfo->numStatePrintUp){
@@ -361,14 +371,31 @@ void orthNormStoWf(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   if(myidState==0)printf("Start Scatter Data\n");
 
   if(numProcStates>1){
+    for(iProc=0;iProc<numProcStates;iProc++){
+      printf("stowfRecvCountsComplex2 %i stowfDisplsComplex2 %i %i\n",stowfRecvCountsComplex2[iProc],stowfDisplsComplex2[iProc],2*numCoeffUpTotal);
+    }
+    printf("2*numCoeffUpTotal %i numCoeffUpAllProc*2 %i %i\n",2*numCoeffUpTotal,numCoeffUpAllProc2,numCoeffUpAllProc*2);
+#ifdef TEST_SCATTERV
+    if(myidState!=0){
+      Recv(allWF,2*numCoeffUpTotal,MPI_DOUBLE,0,myidState,comm_states);
+    }
+    else{
+      for(iProc=1;iProc<numProcStates;iProc++){
+        Send(&wfBfOrthUp[stowfDisplsComplex2[iProc]],stowfRecvCountsComplex2[iProc],
+             MPI_DOUBLE,iProc,iProc,comm_states);
+      }
+      memcpy(allWF,wfBfOrthUp,2*numCoeffUpTotal*sizeof(double));
+    }
+#else
     Scatterv(wfBfOrthUp,stowfRecvCountsComplex2,stowfDisplsComplex2,MPI_DOUBLE,
   	      allWF,2*numCoeffUpTotal,MPI_DOUBLE,0,comm_states);
+#endif
   }
   else{
     memcpy(&allWF[0],&wfBfOrthUp[0],2*numCoeffUpTotal*sizeof(double));
   }
 
-  free(wfBfOrthUp);
+  if(myidState==0)free(wfBfOrthUp);
 
 /*==========================================================================*/
 /* IV) Unpack all stochastic wave functions */
@@ -1053,6 +1080,7 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*     after diag). Call blas to do it.					    */
     
     printf("Calculate MO\n");
+    fflush(stdout);
 
     time_st = omp_get_wtime();
     genMatrixMulWrapper(numCoeff,numStateUpIdp,wfOrthUpRe,
@@ -1061,10 +1089,12 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 			KSMatrix,moUpIm,numThreadsMKL);
     time_end = omp_get_wtime();
     printf("rotate orbital time %lg\n",time_end-time_st);
+    fflush(stdout);
 
     cfree(wfOrthUpRe);
     cfree(wfOrthUpIm);
     printf("Start scattering wf\n");
+    fflush(stdout);
   }//endif myid
 
 /*==========================================================================*/

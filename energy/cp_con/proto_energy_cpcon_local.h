@@ -234,6 +234,8 @@ void rotate_occ_shuffle_dvr(double *,int , double *,double *, double *,double *,
 
 void occ_sort(int , double *);
 
+void  cp_calc_occ(CP *,double *,double *,int,double *,int);
+
 
 /*--------------------------------------------------------------------------*/
 /* Utilities:cp_con_utils.c                                                 */ 

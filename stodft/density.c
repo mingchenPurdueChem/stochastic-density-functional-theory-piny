@@ -803,7 +803,7 @@ void calcRhoStoRecipFullg(CPEWALD *cpewald,CPSCR *cpscr,
     for(i=1 ; i<= nfft2_proc;i++)rho[i] *= rvol_cp;
   }/*endif cp_dual_grid_opt*/
 
-  Barrier(comm_states);
+  //Barrier(comm_states);
 /*==============================================================*/
 /* VII) if doing gradient corrections, get gradient of density    */
 
@@ -1932,6 +1932,8 @@ void calcRhoFilterDiagHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_d
 /*==========================================================================*/
 /* V) Generate the diis density                                             */
 
+  printf("rhoUp %lg %lg %lg\n",rhoUp[1],rhoUp[10],rhoUp[100]);
+
   if(densityMixFlag>0){
     if(myidState==0){
       printf("Start Mixing Density\n");
@@ -1943,6 +1945,7 @@ void calcRhoFilterDiagHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_d
       fflush(stdout);
     }
   }
+  printf("rhoUp %lg %lg %lg\n",rhoUp[1],rhoUp[10],rhoUp[100]);
 
 /*==========================================================================*/
 /* VI) Generate the reciprocal part and all the other things                */
@@ -1957,6 +1960,7 @@ void calcRhoFilterDiagHybrid(CLASS *class,BONDED *bonded,GENERAL_DATA *general_d
 		     rhoCoeffReUp,rhoCoeffImUp,rhoUp,rhoCoeffReUpDensCpBox,rhoCoeffImUpDensCpBox,
 		     divRhoxUp,divRhoyUp,divRhozUp,d2RhoUp,cpGGA,cpDualGridOptOn,numInterpPmeDual,
 		     commCP,&(cp->cp_para_fft_pkg3d_lg),&(cp->cp_para_fft_pkg3d_dens_cp_box));
+  printf("rhoCoeffReUp %lg %lg %lg\n",rhoCoeffReUp[1],rhoCoeffReUp[10],rhoCoeffReUp[100]);
   if(cpLsda==1&&numStateDnProc!=0){
     calcRhoStoRecipFullg(cpewald,cpscr,cpcoeffs_info,ewald,cell,
 		       rhoCoeffReDn,rhoCoeffImDn,rhoDn,rhoCoeffReDnDensCpBox,rhoCoeffImDnDensCpBox,

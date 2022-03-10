@@ -86,10 +86,10 @@ void control_sim_params(CLASS *class,GENERAL_DATA *general_data,
 /*=======================================================================*/
 /*   II) Set up dictionary and default parameters                        */
 /*            (set_sim_dict.c)   */ 
-   if(myid==0){      
-     printf("b/f request mem -1\n");
+  if(myid==0){      
+    printf("b/f request mem -1\n");
     fflush(stdout);
-   }
+  }
   set_sim_dict_fun(&num_dict_fun,&dict_fun);
   set_sim_dict_list(&num_dict_list,&dict_list);
   set_sim_dict_cp(&num_dict_cp,&dict_cp);
@@ -109,16 +109,16 @@ void control_sim_params(CLASS *class,GENERAL_DATA *general_data,
   set_sim_dict_dafed(&num_dict_dafed,&dict_dafed);
   set_sim_dict_stodft(&num_dict_stodft,&dict_stodft);
   //debug Ma
-   if(myid==0){ 
-  printf("b/f request mem \n");
-   }
+  if(myid==0){ 
+    printf("b/f request mem \n");
+  }
 
   fun_key     = (char *)cmalloc(MAXWORD*sizeof(char));
   //debug Ma
-   if(myid==0){ 
-  printf("after request mem 1 \n");
+  if(myid==0){ 
+    printf("after request mem 1 \n");
     fflush(stdout);
-   }
+  }
 /*=======================================================================*/
 /*  III) Malloc some memory */
 

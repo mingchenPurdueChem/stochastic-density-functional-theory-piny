@@ -705,7 +705,6 @@ void calcChemPotMetal(CP *cp,double *numOccDetProc)
   double *energyLevel = stodftCoefPos->energyLevel;
   double *numOccDetAll;
 
-  
   /*
   // For closed shell system, we will use half the number of 
   // electrons to determine the chemical potential so that 
@@ -718,8 +717,8 @@ void calcChemPotMetal(CP *cp,double *numOccDetProc)
   }
   */
   if(myidState==0){
-    numOccDetAll = (double*)cmalloc(numStateUpIdp*sizeof(double)); 
-    for(iState=0;iState<numStateUpIdp;iState++){
+    numOccDetAll = (double*)cmalloc(numStatePrintUp*sizeof(double)); 
+    for(iState=0;iState<numStatePrintUp;iState++){
       numOccDetAll[iState] = 0.0;
     }
     // Now I only have spin-unpolarize filter diag
@@ -795,7 +794,7 @@ void calcChemPotMetal(CP *cp,double *numOccDetProc)
              numStateUpProc,MPI_DOUBLE,0,comm_states);
   }
   else{
-    memcpy(numOccDetProc,numOccDetAll,numStateUpIdp*sizeof(double));
+    memcpy(numOccDetProc,numOccDetAll,numStatePrintUp*sizeof(double));
   }
   for(iState=0;iState<numStateUpProc;iState++){
     numOccDetProc[iState] = sqrt(numOccDetProc[iState])*pre;

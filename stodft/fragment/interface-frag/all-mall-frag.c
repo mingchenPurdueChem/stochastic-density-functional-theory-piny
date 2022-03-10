@@ -1071,6 +1071,11 @@ void mall_cp_scr_frag(CPTHERM_INFO *cptherm_info,CPOPTS *cpopts,CPEWALD *cpewald
                         cmalloc(ncoef_l_proc_max_mall*sizeof(double))-1;
   cpscr->cpscr_loc.vexti = (double *)
                         cmalloc(ncoef_l_proc_max_mall*sizeof(double))-1;
+  cpscr->cpscr_loc.vextr_loc = (double *)
+                        cmalloc(ncoef_l_proc_max_mall*sizeof(double))-1;
+  cpscr->cpscr_loc.vexti_loc = (double *)
+                        cmalloc(ncoef_l_proc_max_mall*sizeof(double))-1;
+
   num += 2*ncoef_l_proc_max;
 
   if(cp_dual_grid_opt_on == 2){

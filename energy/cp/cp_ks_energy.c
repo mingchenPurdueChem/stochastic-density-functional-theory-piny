@@ -671,32 +671,69 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
       }
     }
   }
+
+  
   
   // We will try to construct and diag ks_mat. Then try to rotate the MO to eigenfunctions
   //test ksmat
-  /*
-  double *kseig_vals = (double*)cmalloc(nstate_up*sizeof(double))-1;
-  double *kseig_vecs = (double*)cmalloc(nstate_up*nstate_up*sizeof(double))-1;
-  double *ksmat_test = (double*)cmalloc(nstate_up*nstate_up*sizeof(double))-1;
-  double *ks_scr = (double*)cmalloc(nstate_up*nstate_up*sizeof(double))-1;
-  double *rs_scr1 = (double*)cmalloc(nstate_up*nstate_up*sizeof(double))-1;
-  double *rs_scr2 = (double*)cmalloc(nstate_up*nstate_up*sizeof(double))-1;
+  int metalFlag = cp->cpopts.metalFlag;
+  double *kseig_vals_up,*kseig_vals_dn;
+  double *kseig_vecs_up,*kseig_vecs_dn;
+  double *ksmat_test_up,*ksmat_test_dn;
+  double *ks_scr_up,*ks_scr_dn;
+  double *rs_scr1_up,*rs_scr1_dn;
+  double *rs_scr2_up,*rs_scr2_dn;
   double kseig_sum;
-  int istate; 
-  cp_condiag_ksmat(cre_up,cim_up,*icoef_form_up,*icoef_orth_up,fcre_up,fcim_up,
-                   *ifcoef_form_up,*ifcoef_orth_up,kseig_vals,kseig_vecs,
-                    ksmat_test,ks_scr,rs_scr1,rs_scr2,ioff_upt,
-                    &(cp->cp_comm_state_pkg_up),&kseig_sum);
+  int istate;
 
-  printf("kseig_sum %lg\n",kseig_sum);
-  //exit(0);
-  FILE *feige = fopen("orbital-e","w");
-  for(istate=1;istate<=nstate_up;istate++){
-    fprintf(feige,"%i %.16lg\n",istate,kseig_vals[istate]);
+  if(metalFlag==1){
+    if(np_states>1){
+      printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+      printf("We currently do not support multi-process CG method on metallic systems\n");
+      printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(0);
+    }
+    else{
+      kseig_vals_up = (double*)cmalloc(nstate_up*sizeof(double))-1;
+      
+      kseig_vecs_up = (double*)cmalloc(nstate_up*nstate_up*sizeof(double))-1;
+      ksmat_test_up = (double*)cmalloc(nstate_up*nstate_up*sizeof(double))-1;
+      ks_scr_up = (double*)cmalloc(nstate_up*nstate_up*sizeof(double))-1;
+      rs_scr1_up = (double*)cmalloc(nstate_up*nstate_up*sizeof(double))-1;
+      rs_scr2_up = (double*)cmalloc(nstate_up*nstate_up*sizeof(double))-1;
+      
+      cp_condiag_ksmat(cre_up,cim_up,*icoef_form_up,*icoef_orth_up,fcre_up,fcim_up,
+                       *ifcoef_form_up,*ifcoef_orth_up,kseig_vals_up,kseig_vecs_up,
+                        ksmat_test_up,ks_scr_up,rs_scr1_up,rs_scr2_up,ioff_upt,
+                        &(cp->cp_comm_state_pkg_up),&kseig_sum);
+
+      cp_calc_occ(cp,cre_up,cim_up,nstate_up,kseig_vals_up,cp->cpopts.numElecTrueUp);
+      if((cp_lsda == 1) && (nstate_dn != 0)){
+        kseig_vals_dn = (double*)cmalloc(nstate_dn*sizeof(double))-1;
+        kseig_vecs_dn = (double*)cmalloc(nstate_dn*nstate_dn*sizeof(double))-1;
+        ksmat_test_dn = (double*)cmalloc(nstate_dn*nstate_dn*sizeof(double))-1;
+        ks_scr_dn = (double*)cmalloc(nstate_dn*nstate_dn*sizeof(double))-1;
+        rs_scr1_dn = (double*)cmalloc(nstate_dn*nstate_dn*sizeof(double))-1;
+        rs_scr2_dn = (double*)cmalloc(nstate_dn*nstate_dn*sizeof(double))-1;
+        cp_condiag_ksmat(cre_dn,cim_dn,*icoef_form_dn,*icoef_orth_dn,fcre_dn,fcim_dn,
+                         *ifcoef_form_dn,*ifcoef_orth_dn,kseig_vals_dn,kseig_vecs_dn,
+                          ksmat_test_dn,ks_scr_dn,rs_scr1_dn,rs_scr2_dn,ioff_dnt,
+                          &(cp->cp_comm_state_pkg_dn),&kseig_sum);
+        cp_calc_occ(cp,cre_dn,cim_dn,nstate_dn,kseig_vals_dn,cp->cpopts.numElecTrueDn);
+        
+      }
+      //printf("kseig_sum %lg\n",kseig_sum);
+      //exit(0);
+      //FILE *feige = fopen("orbital-e","w");
+      //for(istate=1;istate<=nstate_up;istate++){
+      //  fprintf(feige,"%i %.16lg\n",istate,kseig_vals[istate]);
+      //}
+      //fclose(feige);
+    }
   }
-  fclose(feige);
   // Finish testing
-  */
+  
   
   // Finish testing
   /*

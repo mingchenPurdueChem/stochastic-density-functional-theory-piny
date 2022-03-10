@@ -1379,6 +1379,7 @@ void scfStodftFilterDiag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* VII) Calculate Friction if needed                                    */
 
+  printf("electronFricFlag %i\n",stodftInfo->metallic->electronFricFlag);
   if(stodftInfo->metallic->electronFricFlag==1){
     calcElectronFricDet(class,general_data,cp,bonded,cpcoeffs_pos,clatoms_pos);
   }

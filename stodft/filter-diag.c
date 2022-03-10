@@ -339,6 +339,9 @@ void orthNormStoWf(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       stowfDispls[iProc] = stowfDispls[iProc-1]+stowfRecvCounts[iProc-1];
     }
   }
+  else{
+    numStates2[0] = numStateUpProc;
+  }
 
   /*
   for(iProc=0;iProc<numProcStates;iProc++){
@@ -352,7 +355,7 @@ void orthNormStoWf(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 
   //Gather(&numCoeffUpAllProc,1,MPI_INT,stowfRecvCounts,numProcStates,MPI_INT,0,comm_states); 
   //Bcast(stowfRecvCounts,numProcStates,MPI_INT,0,comm_states);
-  Barrier(comm_states);
+  if(numProcStates>1)Barrier(comm_states);
   free(&(cpcoeffs_pos->cre_up[1]));
   free(&(cpcoeffs_pos->cim_up[1]));
   free(&(cpcoeffs_pos->fcre_up[1]));
@@ -778,60 +781,87 @@ void buildKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   }
 
   printf("aaaaa numCoeffUpTotal %i numStates2[iProc] %i\n",numCoeffUpTotal,numStates2[myidState]*numCoeff);
-  for(iProc=0;iProc<numProcStates;iProc++){
-    if(numProcStates>1)Barrier(comm_states);
-    forceUpRe = (double*)crealloc(forceUpRe,numStates2[iProc]*numCoeff*sizeof(double)); 
-    forceUpIm = (double*)crealloc(forceUpIm,numStates2[iProc]*numCoeff*sizeof(double));
-    for(iCoeff=0;iCoeff<numStates2[iProc]*numCoeff;iCoeff++){
-      forceUpRe[iCoeff] = 0.0;
-      forceUpIm[iCoeff] = 0.0;
-    }
-    for(iState=0;iState<numStateUpIdp*numStateUpIdp;iState++)KSMatrix[iState] = 0.0;
-    if(myidState==0){
-      for(iState=0;iState<numStateUpIdp*numStateUpIdp;iState++)KSMatrixReduce[iState] = 0.0;
-    }
-    if(numProcStates>1)Barrier(comm_states);
-    if(myidState==iProc){
-      memcpy(forceUpRe,&fcre_up[1],numCoeffUpTotal*sizeof(double));
-      memcpy(forceUpIm,&fcim_up[1],numCoeffUpTotal*sizeof(double));
-    }
-    if(numProcStates>1){
-      Barrier(comm_states);
-      Bcast(forceUpRe,numStates2[iProc]*numCoeff,MPI_DOUBLE,iProc,comm_states);
-      Bcast(forceUpIm,numStates2[iProc]*numCoeff,MPI_DOUBLE,iProc,comm_states);
-      Barrier(comm_states);
-    }
-    for(iState=0;iState<numStateUpProc;iState++){
-      indexState1 = dsplStates2[myidState]+iState;
-      for(jState=0;jState<numStates2[iProc];jState++){
-        indexState2 = dsplStates2[iProc]+jState;
+  if(numProcStates>1){
+    for(iProc=0;iProc<numProcStates;iProc++){
+      if(numProcStates>1)Barrier(comm_states);
+      forceUpRe = (double*)crealloc(forceUpRe,numStates2[iProc]*numCoeff*sizeof(double)); 
+      forceUpIm = (double*)crealloc(forceUpIm,numStates2[iProc]*numCoeff*sizeof(double));
+      for(iCoeff=0;iCoeff<numStates2[iProc]*numCoeff;iCoeff++){
+        forceUpRe[iCoeff] = 0.0;
+        forceUpIm[iCoeff] = 0.0;
+      }
+      for(iState=0;iState<numStateUpIdp*numStateUpIdp;iState++)KSMatrix[iState] = 0.0;
+      if(myidState==0){
+        for(iState=0;iState<numStateUpIdp*numStateUpIdp;iState++)KSMatrixReduce[iState] = 0.0;
+      }
+      if(numProcStates>1)Barrier(comm_states);
+      if(myidState==iProc){
+        memcpy(forceUpRe,&fcre_up[1],numCoeffUpTotal*sizeof(double));
+        memcpy(forceUpIm,&fcim_up[1],numCoeffUpTotal*sizeof(double));
+      }
+      if(numProcStates>1){
+        Barrier(comm_states);
+        Bcast(forceUpRe,numStates2[iProc]*numCoeff,MPI_DOUBLE,iProc,comm_states);
+        Bcast(forceUpIm,numStates2[iProc]*numCoeff,MPI_DOUBLE,iProc,comm_states);
+        Barrier(comm_states);
+      }
+      for(iState=0;iState<numStateUpProc;iState++){
+        indexState1 = dsplStates2[myidState]+iState;
+        for(jState=0;jState<numStates2[iProc];jState++){
+          indexState2 = dsplStates2[iProc]+jState;
+          sum = 0.0;
+          for(iCoeff=0;iCoeff<numCoeff-1;iCoeff++){
+            index1 = iState*numCoeff+iCoeff;
+            index2 = jState*numCoeff+iCoeff;
+            sum += cre_up[index1+1]*forceUpRe[index2]
+                   +cim_up[index1+1]*forceUpIm[index2];
+          }//endfor iCoeff
+          sum *= 2.0;
+          index1 = iState*numCoeff+numCoeff-1;
+          index2 = jState*numCoeff+numCoeff-1;
+          sum += cre_up[index1+1]*forceUpRe[index2];
+          KSMatrix[indexState1*numStateUpIdp+indexState2] = sum;
+          //KSMatrix[indexState2*numStateUpIdp+indexState1] = sum;
+        }//endfor jState
+      }//endfor iState
+      if(numProcStates>1){
+        Barrier(comm_states);
+        Reduce(KSMatrix,KSMatrixReduce,numStateUpIdp*numStateUpIdp,
+               MPI_DOUBLE,MPI_SUM,0,comm_states);
+        if(myidState==0){
+          for(iState=0;iState<numStateUpIdp*numStateUpIdp;iState++){
+            KSMatrixReduceAll[iState] += KSMatrixReduce[iState];
+          }
+        }
+        Barrier(comm_states);
+      }
+    }//endfor iProc
+  }
+  else{
+    #pragma omp parallel for private(iState,jState,sum,iCoeff,index1,index2)
+    for(iState=0;iState<numStateUpIdp;iState++){
+      for(jState=iState;jState<numStateUpIdp;jState++){
         sum = 0.0;
         for(iCoeff=0;iCoeff<numCoeff-1;iCoeff++){
           index1 = iState*numCoeff+iCoeff;
           index2 = jState*numCoeff+iCoeff;
-          sum += cre_up[index1+1]*forceUpRe[index2]
-                 +cim_up[index1+1]*forceUpIm[index2];
+          sum += cre_up[index1+1]*fcre_up[index2+1]
+                 +cim_up[index1+1]*fcim_up[index2+1];
         }//endfor iCoeff
         sum *= 2.0;
         index1 = iState*numCoeff+numCoeff-1;
         index2 = jState*numCoeff+numCoeff-1;
-        sum += cre_up[index1+1]*forceUpRe[index2];
-        KSMatrix[indexState1*numStateUpIdp+indexState2] = sum;
+        sum += cre_up[index1+1]*fcre_up[index2+1];
+        KSMatrix[iState*numStateUpIdp+jState] = sum;
         //KSMatrix[indexState2*numStateUpIdp+indexState1] = sum;
       }//endfor jState
     }//endfor iState
-    if(numProcStates>1){
-      Barrier(comm_states);
-      Reduce(KSMatrix,KSMatrixReduce,numStateUpIdp*numStateUpIdp,
-             MPI_DOUBLE,MPI_SUM,0,comm_states);
-      if(myidState==0){
-        for(iState=0;iState<numStateUpIdp*numStateUpIdp;iState++){
-          KSMatrixReduceAll[iState] += KSMatrixReduce[iState];
-        }
+    for(iState=0;iState<numStateUpIdp;iState++){
+      for(jState=0;jState<iState;jState++){
+        KSMatrix[iState*numStateUpIdp+jState] = KSMatrix[jState*numStateUpIdp+iState];
       }
-      Barrier(comm_states);
     }
-  }//endfor iProc
+  }
 
   // debug
   /*
@@ -937,9 +967,11 @@ void buildKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 
 /*==========================================================================*/
 /* IV)  Free local memories  */
-
-  free(forceUpRe);
-  free(forceUpIm);
+  
+  if(numProcStates>1){
+    free(forceUpRe);
+    free(forceUpIm);
+  }
   if(myidState==0&&numProcStates>1){
     //free(&allForceRe[1]);
     //free(&allForceIm[1]);
@@ -1098,6 +1130,38 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   }//endif myid
 
 /*==========================================================================*/
+/* II.V Reset Number of Orbitals                                            */
+
+  int div,res;
+  div = (int)(numStatePrintUp/numProcStates);
+  res = numStatePrintUp%numProcStates;
+  if(myidState<res)cpcoeffs_info->nstate_up_proc = div+1;
+  else cpcoeffs_info->nstate_up_proc = div;
+  numStateUpProc = cpcoeffs_info->nstate_up_proc;
+  numStateDnProc = cpcoeffs_info->nstate_dn_proc;
+  numCoeffUpTotal = numStateUpProc*numCoeff;
+  numCoeffDnTotal = numStateDnProc*numCoeff;
+  //numStateUpTotal = stodftInfo->numStateStoUp;
+  //numStateUpAllProc = numChemPot*numStateUpTotal;
+  numCoeffUpAllProc = numChemPot*numStateUpTotal*numCoeff;
+  printf("numStateUpProc %i numCoeffUpTotal %i numCoeffUpAllProc %i\n",numStateUpProc,numCoeffUpTotal,numCoeffUpAllProc);
+
+  if(numProcStates>1){
+    Allgather(&numCoeffUpTotal,1,MPI_INT,stowfRecvCounts,1,MPI_INT,0,comm_states);
+    Allgather(&numStateUpProc,1,MPI_INT,numStates2,1,MPI_INT,0,comm_states);    
+    //Allgather(&numCoeffUpAllChemPot,1,MPI_INT,stowfRecvCounts,1,MPI_INT,0,comm_states);
+    dsplStates2[0] = 0;
+    stowfDispls[0] = 0;
+    for(iProc=1;iProc<numProcStates;iProc++){
+      dsplStates2[iProc] = numStates2[iProc-1]+dsplStates2[iProc-1];
+      stowfDispls[iProc] = stowfDispls[iProc-1]+stowfRecvCounts[iProc-1];
+    }
+  }
+  else{
+    numStates2[0] = numStateUpProc;
+  }
+
+/*==========================================================================*/
 /* III) Scatter the wave functions  */
 
   coeffUpReBackup = (double*)cmalloc(numCoeffUpTotal*sizeof(double))-1;
@@ -1113,13 +1177,15 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
              &coeffUpImBackup[1],numCoeffUpTotal,MPI_DOUBLE,0,comm_states);
   }
   else{
-    memcpy(&coeffUpReBackup[1],moUpRe,numCoeffUpAllProc*sizeof(double));
-    memcpy(&coeffUpImBackup[1],moUpIm,numCoeffUpAllProc*sizeof(double));
+    memcpy(&coeffUpReBackup[1],moUpRe,numCoeffUpTotal*sizeof(double));
+    memcpy(&coeffUpImBackup[1],moUpIm,numCoeffUpTotal*sizeof(double));
   }
 
   if(myidState==0){
     cfree(moUpRe);
     cfree(moUpIm);
+    stodftCoefPos->moUpRe = NULL;
+    stodftCoefPos->moUpIm = NULL;
   } 
 
 /*==========================================================================*/
@@ -1143,12 +1209,15 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 
   calcForceWrapper(cp,class,general_data,cpcoeffs_pos,clatoms_pos,
                   coeffUpReBackup,coeffUpImBackup);
+  //printf("fcre_up[0] %lg\n",fcre_up[0]);
+
   for(iState=0;iState<numStateUpProc;iState++){
     fcim_up[iState*numCoeff+numCoeff] = 0.0; //exact 0
   }
   calcForceWrapper(cp,class,general_data,cpcoeffs_pos,clatoms_pos,
                   fcre_up,fcim_up);
 
+  //printf("fcre_up[0] %lg\n",fcre_up[0]);
 /*--------------------------------------------------------------------------*/
 /* iii)  Calculate <phi|H^2|phi> and compare with KS   */
 
@@ -1169,11 +1238,14 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   }
   
   if(myidState==0){
-    energyTestAll = (double*)cmalloc(numStateUpIdp*sizeof(double));
+    energyTestAll = (double*)cmalloc(numStatePrintUp*sizeof(double));
   }
   if(numProcStates>1){
     Gatherv(energyTest,numStateUpProc,MPI_DOUBLE,energyTestAll,
             numStates2,dsplStates2,MPI_DOUBLE,0,comm_states);
+  }
+  else{
+    memcpy(energyTestAll,energyTest,numStatePrintUp*sizeof(double));
   }
   
   if(myidState==0){
@@ -1220,17 +1292,17 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   if(smearOpt>0){
     if(myidState==0)printf("**Determine Chemical Potential...\n");
     calcChemPotMetal(cp,numOccDetProc);
-#ifndef FAST_FILTER
+//#ifndef FAST_FILTER
     // We do this for metallic system to calculate entropy
     for(iState=0;iState<numStateUpProc;iState++){
       stodftInfo->numOccDetProc[iState] = numOccDetProc[iState];
     }
-#endif 
+//#endif 
     if(myidState==0)printf("**Finish Determining Chemical Potential...\n");
   }
   else{
     if(myidState==0){
-      numOccDetAll = (double*)calloc(numStateUpIdp,sizeof(double));
+      numOccDetAll = (double*)calloc(numStatePrintUp,sizeof(double));
       for(iState=0;iState<numElecTrueUp;iState++)numOccDetAll[iState] = sqrt(2.0);
     }
     if(numProcStates>1){
@@ -1249,6 +1321,7 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /* v) Scale by occupied number */
   
   for(iState=0;iState<numStateUpProc;iState++){
+    //printf("iState %i coeffUpReBackup %lg\n",iState,coeffUpReBackup[iState*numCoeff+numCoeff]);
     for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
       index1 = iState*numCoeff+iCoeff;
       cre_up[index1] = coeffUpReBackup[index1]*numOccDetProc[iState];
@@ -1263,7 +1336,6 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int electronFricFlag = metallic->electronFricFlag;
   int numStateFric;
   int countState;
-  int div,res;
   int procInd,stateInd;
   int *stateFricIndex;
   double Emin,Emax;
@@ -1287,7 +1359,7 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     Bcast(&(countState),1,MPI_INT,0,comm_states);
     metallic->numStateFric = countState;
     numStateFric = countState;
-    printf("numStateFric %i\n",metallic->numStateFric);
+    //printf("numStateFric %i\n",metallic->numStateFric);
 
     metallic->stateFricIndex = (int*)realloc(metallic->stateFricIndex,countState*sizeof(int));
     metallic->ksEnergyFric = (double*)realloc(metallic->ksEnergyFric,countState*sizeof(double));
@@ -1318,7 +1390,6 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       if(stateFricIndex[iState]<res*(div+1))procInd = stateFricIndex[iState]/(div+1);
       else procInd = (stateFricIndex[iState]-res*(div+1))/div+res;
       stateInd = stateFricIndex[iState]-dsplStates2[procInd];
-      printf("myidState %i iState %i stateIndex %i procInd %i stateInd %i\n",myidState,iState,stateFricIndex[iState],procInd,stateInd);
       if(myidState==procInd){
         memcpy(&ksStateChemPotRe[iState*numCoeff],&coeffUpReBackup[stateInd*numCoeff],
                numCoeff*sizeof(double));
@@ -1334,11 +1405,17 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   }
 
 #ifdef FAST_FILTER
-  cfree(&fcre_up[1]);
-  cfree(&fcim_up[1]);
-  cfree(&cre_up[1]);
-  cfree(&cim_up[1]);
+  //cfree(&fcre_up[1]);
+  //cfree(&fcim_up[1]);
+  //cfree(&cre_up[1]);
+  //cfree(&cim_up[1]);
 
+  //temp store it in fcre_up and fcim_up
+  memcpy(&fcre_up[1],&coeffUpReBackup[1],numCoeffUpTotal*sizeof(double));
+  memcpy(&fcim_up[1],&coeffUpImBackup[1],numCoeffUpTotal*sizeof(double));
+  
+
+  /*
   if(myidState==0){
     stodftCoefPos->moUpRe = (double*)cmalloc(numCoeffUpAllProc*sizeof(double));
     stodftCoefPos->moUpIm = (double*)cmalloc(numCoeffUpAllProc*sizeof(double));
@@ -1358,6 +1435,7 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     memcpy(moUpRe,&coeffUpReBackup[1],numCoeffUpTotal*sizeof(double));
     memcpy(moUpIm,&coeffUpImBackup[1],numCoeffUpTotal*sizeof(double));
   }
+  */
 #endif 
   if(numProcStates>1)Barrier(comm_states);
   //debug
@@ -1566,10 +1644,12 @@ void broadcastWfDet(CP *cp2,CLASS *class2,GENERAL_DATA *general_data2,CP *cp)
 
   int numChemPot     = stodftInfo->numChemPot;
   int numStateUpPrintProc = cpcoeffs_info->nstate_up_proc;
+  int numStateDnPrintProc = cpcoeffs_info->nstate_dn_proc;
+
   int numStateUpTotal = stodftInfo->numStateStoUp;
   int numCoeff       = cpcoeffs_info->ncoef;
-  int numCoeffUpTotal;
-  int numCoeffDnTotal;
+  int numCoeffUpTotal = numStateUpPrintProc*numCoeff;
+  int numCoeffDnTotal = numCoeffDnTotal*numCoeff;
   int numCoeffUpAllProc = numChemPot*numStateUpTotal*numCoeff;
   int numStateUpAllProc = numChemPot*numStateUpTotal;
   int numStateUpIdp = stodftInfo->numStateUpIdp;
@@ -1593,13 +1673,21 @@ void broadcastWfDet(CP *cp2,CLASS *class2,GENERAL_DATA *general_data2,CP *cp)
   int *stowfRecvCounts = stodftInfo->stowfRecvCounts;
   int *stowfDispls = stodftInfo->stowfDispls;
 
-  double *moUpRe = stodftCoefPos->moUpRe;
-  double *moUpIm = stodftCoefPos->moUpIm;
+  double *moUpRe;
+  double *moUpIm;
   double *moUpRePrint = cp->stodftCoefPos->moUpRePrint;
   double *moUpImPrint = cp->stodftCoefPos->moUpImPrint;
   double *energyLevel2 = cp2->stodftCoefPos->energyLevel;
   double *energyLevel = cp->stodftCoefPos->energyLevel;
   double *moUpReAll,*moUpImAll;
+  double *cre_up = cpcoeffs_pos->cre_up;
+  double *cim_up = cpcoeffs_pos->cim_up;
+  double *cre_dn = cpcoeffs_pos->cre_dn;
+  double *cim_dn = cpcoeffs_pos->cim_dn;
+  double *fcre_up = cpcoeffs_pos->fcre_up;
+  double *fcim_up = cpcoeffs_pos->fcim_up;
+  double *fcre_dn = cpcoeffs_pos->fcre_dn;
+  double *fcim_dn = cpcoeffs_pos->fcim_dn;
 
   double **stoWfUpRe = stodftCoefPos->stoWfUpRe;
   double **stoWfUpIm = stodftCoefPos->stoWfUpIm;
@@ -1607,8 +1695,53 @@ void broadcastWfDet(CP *cp2,CLASS *class2,GENERAL_DATA *general_data2,CP *cp)
   double **stoWfDnIm = stodftCoefPos->stoWfDnIm;
 
 /*--------------------------------------------------------------------------*/
+/* 0) Free and Reallocate memories */
+
+  //This part is used to be in orthDiagDriver but it creates a lot of 
+  //problems while running filter diag with fake filter. Now let's move it to 
+  //this function
+
+  //cfree(&fcre_up[1]);
+  //cfree(&fcim_up[1]);
+  cfree(&cre_up[1]);
+  cfree(&cim_up[1]);
+
+  // Now I've reset the total # of up orbitals=numStatePrintUp and we just need to 
+  // copy the orbitals.
+
+  memcpy(moUpRePrint,&fcre_up[1],numCoeffUpTotal*sizeof(double));
+  memcpy(moUpImPrint,&fcim_up[1],numCoeffUpTotal*sizeof(double));
+
+
+  /*
+  if(myidState==0){
+    stodftCoefPos->moUpRe = (double*)cmalloc(numCoeffUpAllProc*sizeof(double));
+    stodftCoefPos->moUpIm = (double*)cmalloc(numCoeffUpAllProc*sizeof(double));
+    moUpRe = stodftCoefPos->moUpRe;
+    moUpIm = stodftCoefPos->moUpIm;
+  }
+
+  if(numProcStates>1){
+    Gatherv(&fcre_up[1],numCoeffUpTotal,MPI_DOUBLE,
+            moUpRe,stowfRecvCounts,stowfDispls,MPI_DOUBLE,
+            0,comm_states);
+    Gatherv(&fcim_up[1],numCoeffUpTotal,MPI_DOUBLE,
+            moUpIm,stowfRecvCounts,stowfDispls,MPI_DOUBLE,
+            0,comm_states);
+  }
+  else{
+    memcpy(moUpRe,&fcre_up[1],numCoeffUpTotal*sizeof(double));
+    memcpy(moUpIm,&fcim_up[1],numCoeffUpTotal*sizeof(double));
+  }
+  */
+  cfree(&fcre_up[1]);
+  cfree(&fcim_up[1]);
+
+/*--------------------------------------------------------------------------*/
 /* i) Gather all wavefunctions to the master process */
 
+
+  // I still need this part
   div = (int)(numStatePrintUp/numProcStates);
   res = numStatePrintUp%numProcStates;
   if(myidState<res) numStatePrintUpProc = div+1;
@@ -1632,6 +1765,7 @@ void broadcastWfDet(CP *cp2,CLASS *class2,GENERAL_DATA *general_data2,CP *cp)
   if(myidState==0){
     memcpy(energyLevel,energyLevel2,numStatePrintUp*sizeof(double));
   }
+  if(numProcStates>1)Bcast(energyLevel,numStatePrintUp,MPI_DOUBLE,0,comm_states);
 
   if(numProcStates>1){
     Allgather(&numCoeffUpTotal,1,MPI_INT,stowfRecvCounts,1,MPI_INT,0,comm_states);
@@ -1646,6 +1780,8 @@ void broadcastWfDet(CP *cp2,CLASS *class2,GENERAL_DATA *general_data2,CP *cp)
 
   //cp->stodftInfo.numStatePrintUp = numStatePrintUp;
 
+  // I don't need this part
+  /*
   if(numProcStates>1){
     Scatterv(moUpRe,stowfRecvCounts,stowfDispls,MPI_DOUBLE,
              moUpRePrint,numCoeffUpTotal,MPI_DOUBLE,0,comm_states);
@@ -1657,18 +1793,24 @@ void broadcastWfDet(CP *cp2,CLASS *class2,GENERAL_DATA *general_data2,CP *cp)
     memcpy(moUpRePrint,moUpRe,numCoeffUpTotal*sizeof(double));
     memcpy(moUpImPrint,moUpIm,numCoeffUpTotal*sizeof(double));
   }
+  */
 
 /*--------------------------------------------------------------------------*/
 /* iii) Free local memory and allocate others */
 
   //cfree(stowfRecvCounts);
   //cfree(stowfDispls);
+
+  // No free since we won't allocate these arrays
+
+  /*
   if(myidState==0){
     cfree(moUpRe);
     cfree(moUpIm);
     stodftCoefPos->moUpRe = NULL;
     stodftCoefPos->moUpIm = NULL;
   }
+  */
   cpcoeffs_info->nstate_up_proc = stodftInfo->numStateUpProcBackup;
   cpcoeffs_info->nstate_dn_proc = stodftInfo->numStateDnProcBackup;
 
@@ -1696,6 +1838,7 @@ void broadcastWfDet(CP *cp2,CLASS *class2,GENERAL_DATA *general_data2,CP *cp)
       stowfDispls[iProc] = stowfDispls[iProc-1]+stowfRecvCounts[iProc-1];
     }
   }
+  //printf("moUpRePrint %lg %lg %lg\n",moUpRePrint[1],moUpRePrint[10],moUpRePrint[100]);
 
   //free(stowfRecvCounts);
   //free(stowfDispls);

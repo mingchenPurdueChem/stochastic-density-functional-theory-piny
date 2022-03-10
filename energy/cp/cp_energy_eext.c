@@ -664,6 +664,7 @@ void control_ewd_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
   int icount,koff,natm_use;
   int hess_ind;
   int realSparseOpt = cpewald->realSparseOpt;
+  int ewaldLocalOpt = cpewald->ewaldLocalOpt;
 
   double falp2,falp_clus2,vol,rvol,pivol,fpi,arg,q_sum1,bgr;
   double aka,akb,akc,xk,yk,zk,atemp,btemp,ctemp;
@@ -1124,27 +1125,34 @@ void control_ewd_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
       sumr = sumr*preg*2.0;
       sumi = sumi*preg*2.0;
       for(ipart=1;ipart<=natm_use;ipart++){
-        pre = sumr*q[ipart];
-        srx = xk*pre;
-        sry = yk*pre;
-        srz = zk*pre;
-        pre = sumi*q[ipart];
-        six = xk*pre;
-        siy = yk*pre;
-        siz = zk*pre;
+        srx = 0.0;
+        sry = 0.0;
+        srz = 0.0;
+        if(ewaldLocalOpt==0||ewaldLocalOpt==2){
+          pre = sumr*q[ipart];
+          srx = xk*pre;
+          sry = yk*pre;
+          srz = zk*pre;
+          pre = sumi*q[ipart];
+          six = xk*pre;
+          siy = yk*pre;
+          siz = zk*pre;
+        }
 
         fxCl[ipart] += (srx*heli[ipart]  - six*helr[ipart]);
         fyCl[ipart] += (sry*heli[ipart]  - siy*helr[ipart]);
         fzCl[ipart] += (srz*heli[ipart]  - siz*helr[ipart]);
 
-        pre = 2.0*rhocr[icount]*vtemp[ipart]*rvol;
-        srx += xk*pre;
-        sry += yk*pre;
-        srz += zk*pre;
-        pre = -2.0*rhoci[icount]*vtemp[ipart]*rvol;
-        six += xk*pre;
-        siy += yk*pre;
-        siz += zk*pre;
+        if(ewaldLocalOpt==0||ewaldLocalOpt==1){
+          pre = 2.0*rhocr[icount]*vtemp[ipart]*rvol;
+          srx += xk*pre;
+          sry += yk*pre;
+          srz += zk*pre;
+          pre = -2.0*rhoci[icount]*vtemp[ipart]*rvol;
+          six += xk*pre;
+          siy += yk*pre;
+          siz += zk*pre;
+        }
 
         /*
 	srx = xk*(sumr*q[ipart]+2.0*rhocr[icount]*vtemp[ipart]*rvol);
@@ -1167,6 +1175,9 @@ void control_ewd_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 	fx_tmp[ipart] += (srx*heli[ipart]  - six*helr[ipart]);
 	fy_tmp[ipart] += (sry*heli[ipart]  - siy*helr[ipart]);
 	fz_tmp[ipart] += (srz*heli[ipart]  - siz*helr[ipart]); 
+        // debug print x,y,z
+        //printf("icount %i ipart %i rhocr %lg rhoci %lg srx %lg six %lg heli %lg helr %lg fxtmp %lg\n",icount,ipart,rhocr[icount],rhoci[icount],srx,six,heli[ipart],helr[ipart],fx_tmp[ipart]);
+
       }/*endfor*/
     } /* endif cluster BC */
 

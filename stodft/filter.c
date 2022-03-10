@@ -288,7 +288,7 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   }
   */
 
-  Barrier(comm_states);
+  if(numProcStates>1)Barrier(comm_states);
 
   if(myidState==0){
     printf("Process ID %i filter time %.8lg total NormH time %.8lg Accumulate P(H)|phi> time %.8lg\n",myidState,timeProc,deltaTime2,deltaTime);
@@ -299,7 +299,7 @@ void filterNewtonPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
    fflush(stdout);
   }
 
-  Barrier(comm_states);
+  if(numProcStates>1)Barrier(comm_states);
 
   //debug
   /*
@@ -667,7 +667,7 @@ void filterChebyPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     }
   }
   */
-  Barrier(comm_states);
+  if(numProcStates>1)Barrier(comm_states);
 
   if(myidState==0){
     printf("Process ID %i filter time %.8lg total NormH time %.8lg Accumulate P(H)|phi> time %.8lg\n",myidState,timeProc,deltaTime2,deltaTime);
@@ -678,7 +678,7 @@ void filterChebyPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
    fflush(stdout);
   }
 
-  Barrier(comm_states);
+  if(numProcStates>1)Barrier(comm_states);
 
   //debug
   /*
@@ -1122,7 +1122,7 @@ void filterNewtonPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   free(coeffReUpSum);
   free(coeffImUpSum);
  
-  Barrier(comm_states);
+  if(numProcStates>1)Barrier(comm_states);
 
 /*==========================================================================*/
 }/*end Routine*/
@@ -1518,7 +1518,7 @@ void filterChebyPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   free(coeffReUpStore);
   free(coeffImUpStore);
  
-  Barrier(comm_states);
+  if(numProcStates>1)Barrier(comm_states);
 
 /*==========================================================================*/
 }/*end Routine*/

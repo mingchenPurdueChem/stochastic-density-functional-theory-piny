@@ -1099,6 +1099,28 @@ int iii;
   sscanf(dict[71].keyarg,"%lg",&real_key_arg);
   cp->pseudo.pseudoReal.kStartSwitch = real_key_arg;
 
+  /*-----------------------------------------------------------------------*/
+  /* 72)\smear_type{#} */
+  if(strcasecmp(dict[72].keyarg,"off")==0)cp->cpopts.smearingType = 0;
+  if(strcasecmp(dict[72].keyarg,"fermi")==0)cp->cpopts.smearingType = 1;
+  if(cp->cpopts.smearingType>0)cp->cpopts.metalFlag = 1;
+
+  /*-----------------------------------------------------------------------*/
+  /* 73)\elec_temp{#} */
+  sscanf(dict[73].keyarg,"%lg",&real_key_arg);
+  cp->cpopts.elecT = real_key_arg;
+
+  /*-----------------------------------------------------------------------*/
+  /* 74)\num_elec_up_true{#} */
+  sscanf(dict[74].keyarg,"%lg",&real_key_arg);
+  cp->cpopts.numElecTrueUp = real_key_arg;
+
+  /*-----------------------------------------------------------------------*/
+  /* 75)\num_elec_dn_true{#} */
+  sscanf(dict[75].keyarg,"%lg",&real_key_arg);
+  cp->cpopts.numElecTrueDn = real_key_arg;
+
+
 /*========================================================================*/
     }/*end routine*/ 
 /*========================================================================*/
@@ -4630,7 +4652,7 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   /*-----------------------------------------------------------------------*/
   /*  8)\read_coeff_opt{#} */
   if(strcasecmp(dict[8].keyarg,"off")==0)stodftInfo->readCoeffFlag = 0;
-  if(strcasecmp(dict[8].keyarg,"sto")==0)stodftInfo->readCoeffFlag = 1;
+  if(strcasecmp(dict[8].keyarg,"sto")==0)stodftInfo->readCoeffFlag = 1;//deactive
   if(strcasecmp(dict[8].keyarg,"det")==0)stodftInfo->readCoeffFlag = 2;
   if(strcasecmp(dict[8].keyarg,"rho")==0)stodftInfo->readCoeffFlag = -2;
   if(strcasecmp(dict[8].keyarg,"frag")==0)stodftInfo->readCoeffFlag = -1;
@@ -4791,6 +4813,16 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   /*  41)\std_gau_fric{#} */
   sscanf(dict[41].keyarg,"%lg",&rka);
   metallic->sigma = rka;
+
+  /*-----------------------------------------------------------------------*/
+  /*  42)\frag_dft_method{#} */
+  if(strcasecmp(dict[42].keyarg,"cg")==0)stodftInfo->fragDFTMethod = 1;
+  if(strcasecmp(dict[42].keyarg,"fd")==0)stodftInfo->fragDFTMethod = 2;
+
+  /*-----------------------------------------------------------------------*/
+  /*  43)\frag_dft_method{#} */
+  sscanf(dict[43].keyarg,"%lg",&rka);
+  fragInfo->fragOrbRatio = rka;
 
 /*=======================================================================*/
 /* Check the conflicate options						 */

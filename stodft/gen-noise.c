@@ -366,7 +366,7 @@ void genNoiseOrbitalReal(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
   }
   */
   free(randNum);
-  Barrier(comm_states);
+  if(numProcStates>1)Barrier(comm_states);
   //fflush(stdout);
   //exit(0);
 

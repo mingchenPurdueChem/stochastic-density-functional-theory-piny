@@ -2288,7 +2288,7 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
  /*             Local variable declarations                                */
   
   unsigned int i;
-  *num_dict = 43;
+  *num_dict = 47;
   *dict = (DICT_WORD *)cmalloc(*num_dict*sizeof(DICT_WORD))-1;
 
   for (i=1;i<=*num_dict;i++) {
@@ -2464,11 +2464,27 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
 
   strcpy((*dict)[42].error_mes,"Please select cg or fd for fragment calculation");
   strcpy((*dict)[42].keyword,"frag_dft_method");
-  strcpy((*dict)[42].keyarg,"cg"); //~0.25eV
+  strcpy((*dict)[42].keyarg,"cg"); 
 
   strcpy((*dict)[43].error_mes,"#Frag orb = R*N_occ. Please specify R");
   strcpy((*dict)[43].keyword,"frag_fd_orb_rat");
-  strcpy((*dict)[43].keyarg,"1.0"); //~0.25eV
+  strcpy((*dict)[43].keyarg,"1.0");
+
+  strcpy((*dict)[44].error_mes,"#Frag stocharstic orb spin up.");
+  strcpy((*dict)[44].keyword,"frag_num_sto_state_up");
+  strcpy((*dict)[44].keyarg,"2"); 
+
+  strcpy((*dict)[45].error_mes,"#Frag stocharstic orb spin dn.");
+  strcpy((*dict)[45].keyword,"frag_num_sto_state_dn");
+  strcpy((*dict)[45].keyarg,"2"); 
+
+  strcpy((*dict)[46].error_mes,"#Frag chem pot");
+  strcpy((*dict)[46].keyword,"frag_num_chem_pot");
+  strcpy((*dict)[46].keyarg,"1");
+ 
+  strcpy((*dict)[47].error_mes,"Frag beta");
+  strcpy((*dict)[47].keyword,"frag_beta");
+  strcpy((*dict)[47].keyarg,"50.0");
 
  /*========================================================================*/
  } /* end routine set_sim_dict_harmonic */

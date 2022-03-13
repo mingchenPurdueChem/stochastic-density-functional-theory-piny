@@ -54,6 +54,7 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
   int numStatePrintUp;
   int numStatePrintDn;
   int numChemPot;
+  FILE *rhoRead;
 
 /*=======================================================================*/
 /*   I) set_sim_params_gen						 */
@@ -563,8 +564,8 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
     cpMini->stodftInfo->expanType = 2; //Newton
     cpMini->stodftInfo->filterFunType = 1;
     cpMini->stodftInfo->fitErrTol = stodftInfo->fitErrTol;
-    cpMini->stodftInfo->numChemPot = 20;
-    cpMini->stodftInfo->beta = 50.0;
+    cpMini->stodftInfo->numChemPot = fragInfo->fragNumChemPot;
+    cpMini->stodftInfo->beta = fragInfo->fragBeta;
     cpMini->stodftInfo->numScf = stodftInfo->numScf;
     //cpMini->stodftInfo->numScf = 2;
     cpMini->stodftInfo->readCoeffFlag = 0;
@@ -599,19 +600,33 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
     numChemPot = cpMini->stodftInfo->numChemPot;
     cpMini->stodftInfo->numElecTrueUp = numElecTrueUp;
     cpMini->stodftInfo->numElecTrueDn = numElecTrueDn;
-    numStateStoUp = (int)(numElecTrueUp*2/numChemPot+1);
-    numStateStoDn = (int)(numElecTrueDn*2/numChemPot+1); 
-    cpMini->stodftInfo->numStateStoUp = MAX(numStateStoUp,4);
-    cpMini->stodftInfo->numStateStoDn = MAX(numStateStoDn,4);;
+    //numStateStoUp = (int)(numElecTrueUp*4/numChemPot+1);
+    //numStateStoDn = (int)(numElecTrueDn*4/numChemPot+1); 
+    //cpMini->stodftInfo->numStateStoUp = MAX(numStateStoUp,4);
+    //cpMini->stodftInfo->numStateStoDn = MAX(numStateStoDn,4);
+    cpMini->stodftInfo->numStateStoUp = fragInfo->fragNumStateStoUp;
+    cpMini->stodftInfo->numStateStoDn = fragInfo->fragNumStateStoDn;
+
     cpMini->stodftInfo->numStatePrintUp = fragInfo->numElecUpFragProc[iFrag];
     cpMini->stodftInfo->numStatePrintDn = fragInfo->numElecDnFragProc[iFrag];
-    printf("numStatePrintUp %i\n",cpMini->stodftInfo->numStatePrintUp);
+    //printf("numStatePrintUp %i\n",cpMini->stodftInfo->numStatePrintUp);
     cpMini->stodftInfo->fragInfo->iFrag = fragInfo->fragInd[iFrag];
     sprintf(cpMini->stodftInfo->densityFinalFileName,"%s-%i",
             stodftInfo->densityFinalFileName,
             fragInfo->fragInd[iFrag]);
     sprintf(cpMini->stodftInfo->densityFileName,"%s-%i",stodftInfo->densityFileName,
            fragInfo->fragInd[iFrag]);
+    rhoRead = NULL;
+    sprintf(cpMini->stodftInfo->densityReadFileName,"%s-%i",stodftInfo->densityReadFileName,
+            fragInfo->fragInd[iFrag]);
+    rhoRead = fopen(cpMini->stodftInfo->densityReadFileName,"r");
+    if(rhoRead!=NULL){
+      //printf("readCoeffFlag %i\n",cpMini->stodftInfo->readCoeffFlag);
+      cpMini->stodftInfo->readCoeffFlag = -2;
+      cpMini->cpopts.readCoeffFlag = -2;
+      fclose(rhoRead);
+    }
+    //printf("2222222 readCoeffFlag %i\n",cpMini->stodftInfo->readCoeffFlag);
   }
   
 

@@ -74,6 +74,10 @@ void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   //printf("fragOpt %i\n",fragOpt);
  
   Bcast(&(fragInfo->fragOrbRatio),1,MPI_DOUBLE,0,world); 
+  Bcast(&(fragInfo->fragNumStateStoUp),1,MPI_INT,0,world);
+  Bcast(&(fragInfo->fragNumStateStoDn),1,MPI_INT,0,world);
+  Bcast(&(fragInfo->fragNumChemPot),1,MPI_INT,0,world);
+  Bcast(&(fragInfo->fragBeta),1,MPI_DOUBLE,0,world);
 
   switch(fragOpt){ 
     case 1:

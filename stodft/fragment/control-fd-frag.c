@@ -144,9 +144,8 @@ void controlStodftMinfrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data
   printf("111111111111111111\n");
   fflush(stdout);
   readCoeffFlag = stodftInfo->readCoeffFlag;
+  printf("rrrrrrrrrrreadCoeffFlag %i\n",readCoeffFlag);
   fragWindowFlag = stodftInfo->fragWindowFlag;
-  //printf("readCoeffFlag %i\n",readCoeffFlag);
-  //If I'm not reading checkpoint file, calculate initial density
   if(readCoeffFlag!=-3)calcRhoInit(class,bonded,general_data,cp,ip_now);
   //exit(0);
 
@@ -211,14 +210,9 @@ void controlStodftMinfrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data
   
   dup2(saved_stdout,fileno(stdout));
   dup2(saved_stderr,fileno(stderr));
-  
-  
+   
 /*-----------------------------------------------------------------------*/
 }/*end routine*/
 /*==========================================================================*/
-
-
-
-
 
 

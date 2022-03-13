@@ -593,7 +593,6 @@ void readRho(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   PSEUDO        *pseudo         = &(cp->pseudo);
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
 
-  
   int cpParaOpt = cpopts->cp_para_opt;
   int cpLsda = cpopts->cp_lsda;
   int cpGGA  = cpopts->cp_gga;  

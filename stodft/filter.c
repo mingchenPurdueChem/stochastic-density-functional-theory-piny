@@ -1250,7 +1250,7 @@ void filterChebyPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     for(imu=0;imu<numChemPot;imu++){
       for(iPoly=0;iPoly<polynormLength;iPoly++){
         printf("imuuuuuuu %i iPoly %i coeff %lg\n",imu,iPoly,expanCoeff[iPoly*numChemPot+imu]);
-      }
+   da  }
     }
   }
   */
@@ -1312,6 +1312,7 @@ void filterChebyPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 
   numStatePrintUpProc = numStates22[myidState];
   for(imu=0;imu<numChemPot;imu++){
+    #pragma omp parallel for private(iCoeff)
     for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
       stoWfUpRe[imu][iCoeff] = 0.0;
       stoWfUpIm[imu][iCoeff] = 0.0;
@@ -1339,7 +1340,7 @@ void filterChebyPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       Bcast(coeffReUpStore,numStates[iProc]*numCoeff,MPI_DOUBLE,iProc,comm_states);
       Bcast(coeffImUpStore,numStates[iProc]*numCoeff,MPI_DOUBLE,iProc,comm_states);
     }
-    #pragma omp parallel for private(iSto,iState,iCoeff,index1,index2,sum,startIndex)
+    #pragma omp parallel for private(iSto,iState,iCoeff,index1,index2,sum)
     for(iSto=0;iSto<numStates[iProc];iSto++){
       index1 = iSto*numCoeff;
       for(iState=0;iState<numStatePrintUpProc;iState++){
@@ -1360,7 +1361,7 @@ void filterChebyPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
         coeffReUpStore[iCoeff] = 0.0;
         coeffImUpStore[iCoeff] = 0.0;
       }
-      #pragma omp parallel for private(iSto,jState,iCoeff,x,y)
+      #pragma omp parallel for private(iSto,iState,iCoeff,x,y)
       for(iSto=0;iSto<numStates[iProc];iSto++){
         startIndex = dsplStates22[myidState];
         for(iState=0;iState<numStatePrintUpProc;iState++){
@@ -1390,6 +1391,7 @@ void filterChebyPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
         coeffReUpStore[iCoeff] = 0.0;
         coeffImUpStore[iCoeff] = 0.0;
       }
+      #pragma omp parallel for private(iSto,iState,iCoeff,x,y)
       for(iSto=0;iSto<numStates[iProc];iSto++){
         for(iState=0;iState<numStatePrintUpProc;iState++){
           startIndex = dsplStates22[myidState];

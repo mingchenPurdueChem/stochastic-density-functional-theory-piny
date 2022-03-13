@@ -712,16 +712,10 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   rootCoord[2] = fragRootIndA*aGrid[2]+fragRootIndB*bGrid[2]+fragRootIndC*cGrid[2];
  
   //printf("numAtomFrag %i\n",numAtomFrag);
-  if(iFrag==0&&myidState==0){
-    printf("rrrrrrrrroot %lg %lg %lg\n",rootCoord[0],rootCoord[1],rootCoord[2]);
-  }
   for(iAtom=0;iAtom<numAtomFrag;iAtom++){
     xDiff[iAtom] = x[atomFragMap[iAtom]]-rootCoord[0];
     yDiff[iAtom] = y[atomFragMap[iAtom]]-rootCoord[1];
     zDiff[iAtom] = z[atomFragMap[iAtom]]-rootCoord[2]; 
-    if(iFrag==0&&myidState==0){
-      printf("000iiiiiFrag %i iAtom %i %lg %lg %lg\n",iFrag,iAtom,x[atomFragMap[iAtom]],y[atomFragMap[iAtom]],z[atomFragMap[iAtom]]);
-    }
     xTemp[iAtom] = xDiff[iAtom]*hmati[1]+yDiff[iAtom]*hmati[4]+zDiff[iAtom]*hmati[7];
     yTemp[iAtom] = xDiff[iAtom]*hmati[2]+yDiff[iAtom]*hmati[5]+zDiff[iAtom]*hmati[8];
     zTemp[iAtom] = xDiff[iAtom]*hmati[3]+yDiff[iAtom]*hmati[6]+zDiff[iAtom]*hmati[9];
@@ -731,9 +725,6 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
     xMini[iAtom+1] = xTemp[iAtom]*hmat[1]+yTemp[iAtom]*hmat[4]+zTemp[iAtom]*hmat[7];
     yMini[iAtom+1] = xTemp[iAtom]*hmat[2]+yTemp[iAtom]*hmat[5]+zTemp[iAtom]*hmat[8];
     zMini[iAtom+1] = xTemp[iAtom]*hmat[3]+yTemp[iAtom]*hmat[6]+zTemp[iAtom]*hmat[9];
-    if(iFrag==0&&myidState==0){
-      printf("iiiiiFrag %i iAtom %i %lg %lg %lg\n",iFrag,iAtom,xMini[iAtom+1],yMini[iAtom+1],zMini[iAtom+1]);
-    }
 
     //debug
     /*

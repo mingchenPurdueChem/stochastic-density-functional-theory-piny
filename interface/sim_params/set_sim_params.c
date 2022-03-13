@@ -4820,9 +4820,29 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   if(strcasecmp(dict[42].keyarg,"fd")==0)stodftInfo->fragDFTMethod = 2;
 
   /*-----------------------------------------------------------------------*/
-  /*  43)\frag_dft_method{#} */
+  /*  43)\frag_fd_orb_rat{#} */
   sscanf(dict[43].keyarg,"%lg",&rka);
   fragInfo->fragOrbRatio = rka;
+
+  /*-----------------------------------------------------------------------*/
+  /*  44)\frag_num_sto_state_up{#} */
+  sscanf(dict[44].keyarg,"%lg",&rka);
+  fragInfo->fragNumStateStoUp = (int)rka;
+
+  /*-----------------------------------------------------------------------*/
+  /*  45)\frag_num_sto_state_dn{#} */
+  sscanf(dict[45].keyarg,"%lg",&rka);
+  fragInfo->fragNumStateStoDn = (int)rka;
+
+  /*-----------------------------------------------------------------------*/
+  /*  46)\frag_num_chem_pot{#} */
+  sscanf(dict[46].keyarg,"%lg",&rka);
+  fragInfo->fragNumChemPot = (int)rka;
+
+  /*-----------------------------------------------------------------------*/
+  /*  46)\frag_beta{#} */
+  sscanf(dict[47].keyarg,"%lg",&rka);
+  fragInfo->fragBeta = rka;
 
 /*=======================================================================*/
 /* Check the conflicate options						 */

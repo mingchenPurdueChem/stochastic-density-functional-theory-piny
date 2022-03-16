@@ -194,6 +194,8 @@ void controlStodftMinfrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data
   }
 
   scfStodftFilterDiag(class,bonded,general_data,cp,ip_now);
+
+  scaleFragWf(class,general_data,cp,ip_now);
    
 /*======================================================================*/
 /*  III)Write to Screen                                                 */
@@ -215,4 +217,47 @@ void controlStodftMinfrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data
 }/*end routine*/
 /*==========================================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void scaleFragWf(CLASS *class,GENERAL_DATA *general_data,CP *cp,int ip_now)
+/*=======================================================================*/
+/*            Begin subprogram:                                          */
+{   /*begin routine*/
+/*************************************************************************/
+/* Scale the wavefunction. Current scaling is sqrt(2f) while we need     */
+/* f^0.25 as scaling. We are doing it here so that we don't need to do   */
+/* it when transfering to real space representation.                     */
+/*************************************************************************/
+  STODFTINFO *stodftInfo = cp->stodftInfo;
+  CPCOEFFS_INFO *cpcoeffs_info = &(cp->cpcoeffs_info);
+  
+  int iState,iCoeff;
+  int numStateUpFrag = cpcoeffs_info->nstate_up_proc;
+  int numCoeff = cpcoeffs_info->ncoef;
+  double *ccrealUp        = cp->cpcoeffs_pos[ip_now].cre_up;
+  double *ccimagUp        = cp->cpcoeffs_pos[ip_now].cim_up;
+  double *ccrealDn        = cp->cpcoeffs_pos[ip_now].cim_dn;
+  double *ccimagDn        = cp->cpcoeffs_pos[ip_now].cim_dn;
+
+  double *numOccDetProc = stodftInfo->numOccDetProc;
+  double occPre;
+  for(iState=0;iState<numStateUpFrag;iState++){
+    if(numOccDetProc[iState]>1.0e-20){
+      occPre = sqrt(sqrt(2.0))/sqrt(numOccDetProc[iState]);
+    }
+    else{
+      occPre = 0.0;
+    }
+    for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+      ccrealUp[iCoeff] *= occPre;
+      ccimagUp[iCoeff] *= occPre;
+    }    
+  }
+  // DEBUG: LSDA NOT APPLIED
+
+
+/*-----------------------------------------------------------------------*/
+}/*end routine*/
+/*==========================================================================*/
 

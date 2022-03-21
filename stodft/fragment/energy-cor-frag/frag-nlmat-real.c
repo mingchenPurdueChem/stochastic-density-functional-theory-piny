@@ -343,6 +343,8 @@ void calcVnlRealDot(CP *cpMini, CLASS *classMini,GENERAL_DATA *generalDataMini,
     for(is=1;is<=iupper;is+=2){
       ioff = (is-1)*ncoef;
       ioff2 = (is)*ncoef;
+      //printf("is %i cre %lg cim %lg\n",is-1,ccreal[(is-1)*ncoef+1],ccimag[(is-1)*ncoef+1]);
+      //printf("is %i cre %lg cim %lg\n",is,ccreal[(is)*ncoef+1],ccimag[(is)*ncoef+1]);
 
 /*==========================================================================*/
 /* 1) get the wave functions in real space two at a time                    */
@@ -582,6 +584,7 @@ void calcVnlRealDotState(CP *cp,CLASS *class,GENERAL_DATA *generalData,
                 dotIm[atomIndSt+countNlppIm+m-1] 
                                   = ddotBlasWrapper(numGrid,wfNbhd,1,
                                     &vnlPhiAtomGridIm[gridShiftNowIm],1)*volElem;
+                //printf("iAtom %i l %i m %i dotRe %lg dotIm %lg\n",iAtom,l,m,dotRe[atomIndSt+countNlppRe+m],dotIm[atomIndSt+countNlppIm+m-1]);
                 dotReDx[atomIndSt+countNlppRe+m] 
                                   = ddotBlasWrapper(numGrid,wfNbhd,1,
                                     &vnlPhiDxAtomGridRe[gridShiftNowRe],1)*volElem;
@@ -697,6 +700,7 @@ void calcMatrixFromDot(CP *cp, CP *cpMini,CLASS *classMini,
   int numGrid,atomIndSt,atomType,countRad,countNlppRe,countNlppIm;
   int numNlppAll = pseudoReal->numNlppAll;
   int countAtom;
+  int fragDFTMethod = cp->stodftInfo->fragDFTMethod;
 
   int *locOpt = pseudo->loc_opt;
   int *atomFragVnlCalcMap = fragInfo->atomFragVnlCalcMap[iFrag];
@@ -719,6 +723,8 @@ void calcMatrixFromDot(CP *cp, CP *cpMini,CLASS *classMini,
   double *Fy = clatoms_pos->fy;
   double *Fz = clatoms_pos->fz;
   double *hmat = cell->hmat;
+  double occPre = 1.0;
+  double *numOccDetProc = cpMini->stodftInfo->numOccDetProc;
 
   vol = getdeth(hmat);
   volInv = 1.0/vol;
@@ -740,8 +746,13 @@ void calcMatrixFromDot(CP *cp, CP *cpMini,CLASS *classMini,
     }//endfor jState
   }//endfor iState
 
+  energy = 0.0;
   for(iState=0;iState<numStates;iState++){
-    energy = 0.0;
+    if(fragDFTMethod==2){
+      occPre = numOccDetProc[iState]/sqrt(2.0);
+      //printf("occPre %lg\n",occPre);
+    }
+    //energy = 0.0;
     for(jState=iState;jState<numStates;jState++){
       vnlMatrix[iState*numStates+jState] = 0.0;
       countAtom = 0;
@@ -754,7 +765,7 @@ void calcMatrixFromDot(CP *cp, CP *cpMini,CLASS *classMini,
 	countNlppRe = 0;
 	countNlppIm = 0;
 	if(numGrid>0){
-	  for(l=0;l<atomLMax[atomType];l++){
+	  for(l=0;l<=atomLMax[atomType];l++){
             if(locOpt[atomType+1]!=l){
               for(iRad=0;iRad<atomLRadNum[atomType][l];iRad++){
                 radIndex = atomRadMap[atomType][countRad+iRad];
@@ -766,11 +777,11 @@ void calcMatrixFromDot(CP *cp, CP *cpMini,CLASS *classMini,
                       iTempIm = dotIm[iState*numNlppAll+atomIndSt+countNlppIm+m-1];
                       jTempRe = dotRe[jState*numNlppAll+atomIndSt+countNlppRe+m];
                       jTempIm = dotIm[jState*numNlppAll+atomIndSt+countNlppIm+m-1];
-                      /*
-                      if(jState==iState){
-                        printf("mmmmmmatrix iAtom %i l %i m %i re %lg im %lg\n",iAtom,l,m,iTempRe,iTempIm);
-                      }
-                      */
+                      
+                      //if(jState==iState){
+                      //  printf("mmmmmmatrix iAtom %i l %i m %i re %lg im %lg\n",iAtom,l,m,iTempRe,iTempIm);
+                      //}
+                      
                       vnlMatrix[iState*numStates+jState] += 2.0*(iTempRe*jTempRe+iTempIm*jTempIm)*vpsNormList[radIndex]*volInv;
                       iTempDRe = dotReDx[iState*numNlppAll+atomIndSt+countNlppRe+m];
                       iTempDIm = dotImDx[iState*numNlppAll+atomIndSt+countNlppIm+m-1];
@@ -841,15 +852,15 @@ void calcMatrixFromDot(CP *cp, CP *cpMini,CLASS *classMini,
 	if(atomFragVnlCalcMapInv[iAtom]!=-1)countAtom += 1;
       }//endfor iAtom
     }//endfor jState
-    stat_avg->cp_enl += vnlMatrix[iState*numStates+iState];
+    stat_avg->cp_enl += vnlMatrix[iState*numStates+iState]*occPre;
     energy += vnlMatrix[iState*numStates+iState];
-    //printf("matrix stat_avg->cp_enl %lg %lg\n",stat_avg->cp_enl,vnlMatrix[iState*numStates+iState]);
+    //printf("iState %i matrix stat_avg->cp_enl %lg %lg\n",iState,stat_avg->cp_enl,vnlMatrix[iState*numStates+iState]);
     countAtom = 0;
     for(iAtom=0;iAtom<numAtomTot;iAtom++){
       if(atomFragVnlCalcMapInv[iAtom]!=-1){
-	Fx[countAtom+1] += vnlFxMatrix[countAtom*numStates*numStates+iState*numStates+iState];
-        Fy[countAtom+1] += vnlFyMatrix[countAtom*numStates*numStates+iState*numStates+iState];
-        Fz[countAtom+1] += vnlFzMatrix[countAtom*numStates*numStates+iState*numStates+iState];
+	Fx[countAtom+1] += vnlFxMatrix[countAtom*numStates*numStates+iState*numStates+iState]*occPre;
+        Fy[countAtom+1] += vnlFyMatrix[countAtom*numStates*numStates+iState*numStates+iState]*occPre;
+        Fz[countAtom+1] += vnlFzMatrix[countAtom*numStates*numStates+iState*numStates+iState]*occPre;
 	countAtom += 1;
       }
     }
@@ -857,6 +868,8 @@ void calcMatrixFromDot(CP *cp, CP *cpMini,CLASS *classMini,
     //fflush(stdout);
     //exit(0);
   }//endfor iState
+
+  //printf("stat_avg->cp_enl %.16lg %.16lg\n",stat_avg->cp_enl,energy);
   
   /*
   countAtom = 0;

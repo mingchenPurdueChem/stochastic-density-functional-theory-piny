@@ -369,6 +369,7 @@ void nlppKBRealEnergy(CP *cp,CLASS *class,GENERAL_DATA *generalData,
     *energyNl += energy;
     //stat_avg->cp_enl += energy;
     //printf("eeeeeeeeeeeeenergy %lg\n",stat_avg->cp_enl);
+    //printf("energyNl %lg\n",*energyNl);
   }
 
 /*======================================================================*/

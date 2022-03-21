@@ -100,7 +100,6 @@ void controlStodftMinfrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data
 /* I) Write to Screen                                                   */
 
   //DEBUG
-  printf("111111111111111111\n"); 
   sprintf(fileScreenFrag,"frag-screen-%i",iFrag);
   sprintf(fileScreenErr,"frag-screen-error-%i",iFrag);
   fout = open(fileScreenFrag,O_RDWR|O_CREAT, 0600);
@@ -121,12 +120,10 @@ void controlStodftMinfrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data
 /*======================================================================*/
 /* II) Initialize the stochastic DFT                                    */
 
-  printf("111111111111111111\n");
   fflush(stdout);
   if(numProc>1)commStodft(class,bonded,general_data,cp);
 
 
-  printf("111111111111111111\n");
   fflush(stdout);
 
   initStodft(class,bonded,general_data,cp,ip_now);
@@ -141,10 +138,8 @@ void controlStodftMinfrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data
 /*======================================================================*/
 /* III) Calculate initial density			                */
 
-  printf("111111111111111111\n");
   fflush(stdout);
   readCoeffFlag = stodftInfo->readCoeffFlag;
-  printf("rrrrrrrrrrreadCoeffFlag %i\n",readCoeffFlag);
   fragWindowFlag = stodftInfo->fragWindowFlag;
   if(readCoeffFlag!=-3)calcRhoInit(class,bonded,general_data,cp,ip_now);
   //exit(0);
@@ -194,6 +189,8 @@ void controlStodftMinfrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data
   }
 
   scfStodftFilterDiag(class,bonded,general_data,cp,ip_now);
+
+  scaleFragWf(class,general_data,cp,ip_now);
    
 /*======================================================================*/
 /*  III)Write to Screen                                                 */
@@ -215,4 +212,48 @@ void controlStodftMinfrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data
 }/*end routine*/
 /*==========================================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void scaleFragWf(CLASS *class,GENERAL_DATA *general_data,CP *cp,int ip_now)
+/*=======================================================================*/
+/*            Begin subprogram:                                          */
+{   /*begin routine*/
+/*************************************************************************/
+/* Scale the wavefunction. Current scaling is sqrt(2f) while we need     */
+/* f^0.25 as scaling. We are doing it here so that we don't need to do   */
+/* it when transfering to real space representation.                     */
+/*************************************************************************/
+  STODFTINFO *stodftInfo = cp->stodftInfo;
+  CPCOEFFS_INFO *cpcoeffs_info = &(cp->cpcoeffs_info);
+  
+  int iState,iCoeff;
+  int numStateUpFrag = cpcoeffs_info->nstate_up_proc;
+  int numCoeff = cpcoeffs_info->ncoef;
+  double *ccrealUp        = cp->cpcoeffs_pos[ip_now].cre_up;
+  double *ccimagUp        = cp->cpcoeffs_pos[ip_now].cim_up;
+  double *ccrealDn        = cp->cpcoeffs_pos[ip_now].cim_dn;
+  double *ccimagDn        = cp->cpcoeffs_pos[ip_now].cim_dn;
+
+  double *numOccDetProc = stodftInfo->numOccDetProc;
+  double occPre;
+  for(iState=0;iState<numStateUpFrag;iState++){
+    if(numOccDetProc[iState]>1.0e-20){
+      occPre = sqrt(sqrt(2.0))/sqrt(numOccDetProc[iState]);
+    }
+    else{
+      occPre = 0.0;
+    }
+    //printf("iState %i occPre %lg\n",iState,occPre);
+    for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+      ccrealUp[iState*numCoeff+iCoeff] *= occPre;
+      ccimagUp[iState*numCoeff+iCoeff] *= occPre;
+    }    
+  }
+  // DEBUG: LSDA NOT APPLIED
+
+
+/*-----------------------------------------------------------------------*/
+}/*end routine*/
+/*==========================================================================*/
 

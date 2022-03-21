@@ -107,6 +107,8 @@ void commStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
     Bcast(&(stodftInfo->smearTemperature),1,MPI_DOUBLE,0,world);
 
     Bcast(stodftInfo->densityFileName,MAXWORD,MPI_CHAR,0,world);
+    Bcast(stodftInfo->densityFinalFileName,MAXWORD,MPI_CHAR,0,world);
+    Bcast(stodftInfo->densityReadFileName,MAXWORD,MPI_CHAR,0,world);
 
     Bcast(&(stodftInfo->metallic->electronFricFlag),1,MPI_INT,0,world);
     Bcast(&(stodftInfo->metallic->numAtomFric),1,MPI_INT,0,world);

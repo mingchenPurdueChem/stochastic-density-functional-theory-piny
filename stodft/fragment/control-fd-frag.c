@@ -100,7 +100,6 @@ void controlStodftMinfrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data
 /* I) Write to Screen                                                   */
 
   //DEBUG
-  printf("111111111111111111\n"); 
   sprintf(fileScreenFrag,"frag-screen-%i",iFrag);
   sprintf(fileScreenErr,"frag-screen-error-%i",iFrag);
   fout = open(fileScreenFrag,O_RDWR|O_CREAT, 0600);
@@ -121,12 +120,10 @@ void controlStodftMinfrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data
 /*======================================================================*/
 /* II) Initialize the stochastic DFT                                    */
 
-  printf("111111111111111111\n");
   fflush(stdout);
   if(numProc>1)commStodft(class,bonded,general_data,cp);
 
 
-  printf("111111111111111111\n");
   fflush(stdout);
 
   initStodft(class,bonded,general_data,cp,ip_now);
@@ -141,10 +138,8 @@ void controlStodftMinfrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data
 /*======================================================================*/
 /* III) Calculate initial density			                */
 
-  printf("111111111111111111\n");
   fflush(stdout);
   readCoeffFlag = stodftInfo->readCoeffFlag;
-  printf("rrrrrrrrrrreadCoeffFlag %i\n",readCoeffFlag);
   fragWindowFlag = stodftInfo->fragWindowFlag;
   if(readCoeffFlag!=-3)calcRhoInit(class,bonded,general_data,cp,ip_now);
   //exit(0);
@@ -249,9 +244,10 @@ void scaleFragWf(CLASS *class,GENERAL_DATA *general_data,CP *cp,int ip_now)
     else{
       occPre = 0.0;
     }
+    //printf("iState %i occPre %lg\n",iState,occPre);
     for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
-      ccrealUp[iCoeff] *= occPre;
-      ccimagUp[iCoeff] *= occPre;
+      ccrealUp[iState*numCoeff+iCoeff] *= occPre;
+      ccimagUp[iState*numCoeff+iCoeff] *= occPre;
     }    
   }
   // DEBUG: LSDA NOT APPLIED

@@ -558,14 +558,8 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
       break;
     case 2:
       for(is=0;is<nstate;is++){
-        if(numOccDetProc[is]>1.0e-20){
-          occPre[is] = sqrt(sqrt(2.0))/sqrt(numOccDetProc[is]);
-        }
-        else{
-          occPre[is] = 0.0;
-        }
+        occPre[is] = numOccDetProc[is]/sqrt(2.0);
         //printf("is %i occPre %lg\n",is,occPre[is]);
-        //occPre[is] = 1.0;
       }
       break;
   }
@@ -635,11 +629,11 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
       }
    
       for(igrid=0;igrid<nfft2_proc;igrid++){
-	wfReal[gridOff1+igrid] = zfft_threads[iThread][igrid*2+1]*prefact*occPre[is-1];
-	wfReal[gridOff2+igrid] = zfft_threads[iThread][igrid*2+2]*prefact*occPre[is];
+	wfReal[gridOff1+igrid] = zfft_threads[iThread][igrid*2+1]*prefact;
+	wfReal[gridOff2+igrid] = zfft_threads[iThread][igrid*2+2]*prefact;
 	rho_scr_threads[iThread*nfft2+igrid] 
-		+= zfft_threads[iThread][igrid*2+1]*zfft_threads[iThread][igrid*2+1]+
-		   zfft_threads[iThread][igrid*2+2]*zfft_threads[iThread][igrid*2+2];
+		+= zfft_threads[iThread][igrid*2+1]*zfft_threads[iThread][igrid*2+1]*occPre[is-1]+
+		   zfft_threads[iThread][igrid*2+2]*zfft_threads[iThread][igrid*2+2]*occPre[is];
       }
       //printf("ioff %i ioff2 %i wfReal %lg %lg\n",ioff,ioff2,wfReal[ioff],wfReal[ioff2]);
     }//endfor is
@@ -687,8 +681,8 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
 
     
     for(igrid=0;igrid<nfft2_proc;igrid++){
-      wfReal[ioff*nfft2+igrid] = zfft_threads[0][igrid*2+1]*prefact*occPre[nstate-1];
-      rho[igrid] += zfft_threads[0][igrid*2+1]*zfft_threads[0][igrid*2+1];
+      wfReal[ioff*nfft2+igrid] = zfft_threads[0][igrid*2+1]*prefact;
+      rho[igrid] += zfft_threads[0][igrid*2+1]*zfft_threads[0][igrid*2+1]*occPre[nstate-1];
     }
 
   }//endif nstat%2

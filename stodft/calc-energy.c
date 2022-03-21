@@ -320,7 +320,6 @@ void calcTotEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*--------------------------------------------------------------------------*/
 /* V) Calculate entropy                                                     */
 
-  printf("smearOpt %i\n",smearOpt);
   if(smearOpt>0)calcStoEntropy(cp);
 
 /*--------------------------------------------------------------------------*/
@@ -517,23 +516,21 @@ void calcKNEEnergyFilterDiag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 
   if(smearOpt>0){
     entropy = 0.0;
-    printf("numStateUpProc %i\n",numStateUpProc);
     for(iState=0;iState<numStateUpProc;iState++){
       occNow = numOccDetProc[iState];
       if(cpLsda==0) occNow = occNow*occNow*0.5;
       else occNow = occNow*occNow;
-      printf("occNow %lg\n",occNow);
       if(occNow>1.0e-13&&occNow<1.0-1.0e-13){
         entropy += occNow*log(occNow)+(1.0-occNow)*log(1.0-occNow);
-        printf("occNow %lg entropy %lg\n",occNow,entropy);
+        //printf("occNow %lg entropy %lg\n",occNow,entropy);
       }//endif occNow
     }//endfor iState
-    printf("entropy %lg\n",entropy);
+    //printf("entropy %lg\n",entropy);
     if(numProcStates>1){
       Reduce(&entropy,&entropyTotal,1,MPI_DOUBLE,MPI_SUM,0,commStates);
     }
     else entropyTotal = entropy;
-    printf("entropyTotal %lg\n",entropyTotal);
+    //printf("entropyTotal %lg\n",entropyTotal);
     if(cpLsda==0)stodftInfo->entropy = entropyTotal*2.0;
     else stodftInfo->entropy = entropyTotal;
   }

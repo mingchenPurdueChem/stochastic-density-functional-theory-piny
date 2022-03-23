@@ -70,7 +70,6 @@ void scfStodftInterp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
   int iperd            		= cell->iperd;
   int iScf,iCell,iCoeff,iState,iChem;
-  int iScfTrue;
   int numScf			= stodftInfo->numScf; //Need claim this in cp
   int numChemPot		= stodftInfo->numChemPot;
   int cpLsda 			= cpopts->cp_lsda;
@@ -265,14 +264,10 @@ void scfStodftInterp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }
   //for(iScf=1;iScf<=numScf;iScf++){
   iScf = 0;
-  iScfTrue = 0;
-  
   while(scfStopFlag==0){ 
     timeStart = omp_get_wtime();
     iScf += 1;
-    iScfTrue += 1;
     stodftInfo->iScf = iScf;
-    stodftInfo->iScfTrue = iScfTrue;
     if(myidState==0){
       printf("********************************************************\n");
       printf("SCF Step %i\n",iScf);
@@ -525,7 +520,6 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
   int iperd			= cell->iperd;
   int iScf,iCell,iCoeff,iState,iChem;
-  int iScfTrue;
   int numScf			= stodftInfo->numScf; //Need claim this in cp
   int numChemPot		= stodftInfo->numChemPot;
   int cpLsda			= cpopts->cp_lsda;
@@ -732,16 +726,10 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   else{
     iScf = 0;
   }
-  iScfTrue = 0;
-
-
   while(scfStopFlag==0){
     timeStart = omp_get_wtime();
     iScf += 1;
-    iScfTrue += 1;
     stodftInfo->iScf = iScf;
-    stodftInfo->iScfTrue = iScfTrue;
-
 
     if(myidState==0){
       printf("********************************************************\n");
@@ -1019,7 +1007,6 @@ void scfStodftFilterDiag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
   int iperd		    = cell->iperd;
   int iScf,iCell,iCoeff,iState,iChem;
-  int iScfTrue;
   int numScf		= stodftInfo->numScf; //Need claim this in cp
   int numChemPot	= stodftInfo->numChemPot;
   int cpLsda		= cpopts->cp_lsda;
@@ -1172,14 +1159,11 @@ void scfStodftFilterDiag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   else{
     iScf = 0;
   }
-  iScfTrue = 0;
 
   while(scfStopFlag==0){
     timeStart = omp_get_wtime();
     iScf += 1;
-    iScfTrue += 1;
     stodftInfo->iScf = iScf;
-    stodftInfo->iScfTrue = iScfTrue;
 
     if(myidState==0){
       printf("********************************************************\n");
@@ -1860,7 +1844,6 @@ void scfStodftEnergyWindowFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general
 
   int iperd		    = cell->iperd;
   int iScf,iCell,iCoeff,iState,iChem;
-  int iScfTrue;
   int numScf			= stodftInfo->numScf; //Need claim this in cp
   int numChemPot		= stodftInfo->numChemPot;
   int cpLsda			= cpopts->cp_lsda;
@@ -2079,16 +2062,13 @@ void scfStodftEnergyWindowFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general
   else{
     iScf = 0;
   }
-  iScfTrue = 0;
 
   stodftInfo->isFirstStepFlag = 1;
  
   while(scfStopFlag==0){
     timeStart = omp_get_wtime();
     iScf += 1;
-    iScfTrue += 1;
     stodftInfo->iScf = iScf;
-    stodftInfo->iScfTrue = iScfTrue;
 
 
     if(myidState==0){

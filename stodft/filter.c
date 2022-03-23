@@ -1271,7 +1271,7 @@ void filterChebyPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   }//endfor iState
 
   //DEBUG
-  
+  /*
   if(myidState==0){
     for(imu=0;imu<numChemPot;imu++){
       for(iState=0;iState<numStatePrintUp;iState++){
@@ -1279,7 +1279,7 @@ void filterChebyPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       }
     }
   }
-  
+  */
   
   
   /*

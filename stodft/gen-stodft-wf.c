@@ -2172,7 +2172,6 @@ void genStoOrbitalChebyTest(CLASS *class,GENERAL_DATA *general_data,
   cpcoeffs_pos2->fcim_up = (double*)cmalloc(numStateUpProc2*numCoeff*sizeof(double))-1;
 
   stodftInfo2->iScf = stodftInfo->iScf;
-  stodftInfo2->iScfTrue = stodftInfo->iScfTrue;
 
   timeStart01 = omp_get_wtime();
   genStoOrbitalInterp(class2,general_data2,cp2,ip_now);
@@ -2961,7 +2960,6 @@ void genStoOrbitalInterpTest(CLASS *class,GENERAL_DATA *general_data,CP *cp,
   cpcoeffs_pos2->fcim_up = (double*)cmalloc(numStateUpProc2*numCoeff*sizeof(double))-1;
 
   stodftInfo2->iScf = stodftInfo->iScf;
-  stodftInfo2->iScfTrue = stodftInfo->iScfTrue;
   genStoOrbitalInterp(class2,general_data2,cp2,ip_now);
   orthDiagDriver(cp2,class2,general_data2,ip_now);
 
@@ -3197,7 +3195,6 @@ void genStoOrbitalEnergyWindowFragTest(CLASS *class,GENERAL_DATA *general_data,
   int fragWindowFlag = stodftInfo->fragWindowFlag;
   int homoIndex;
   int smearOpt = stodftInfo->smearOpt;
-  int smearOptBackup = stodftInfo->smearOpt;
 
   int numChemPot2 = stodftInfo2->numChemPot;
   int numStateUpProc2 = cpcoeffs_info2->nstate_up_proc;
@@ -3293,7 +3290,6 @@ void genStoOrbitalEnergyWindowFragTest(CLASS *class,GENERAL_DATA *general_data,
   cpcoeffs_pos2->fcim_up = (double*)cmalloc(numStateUpProc2*numCoeff*sizeof(double))-1;
 
   stodftInfo2->iScf = stodftInfo->iScf;
-  stodftInfo2->iScfTrue = stodftInfo->iScfTrue;
   genStoOrbitalInterp(class2,general_data2,cp2,ip_now);
   orthDiagDriver(cp2,class2,general_data2,ip_now);
 
@@ -3425,12 +3421,7 @@ void genStoOrbitalEnergyWindowFragTest(CLASS *class,GENERAL_DATA *general_data,
   switch(expanType){
     case 1:
       stodftInfo->storeChebyMomentsFlag = 1;
-      // At this step we need to turn off smearing
-      // since we have not initialize entropy coefficient
-      smearOptBackup = stodftInfo->smearOpt;
-      stodftInfo->smearOpt = 0;
       filterChebyPolyHermFake(cp,class,general_data,ip_now,1);
-      stodftInfo->smearOpt = smearOptBackup;
       //filterChebyPolyHerm(cp,class,general_data,ip_now);
       stodftInfo->storeChebyMomentsFlag = 0;
       break;

@@ -25,7 +25,6 @@
 
 #include "../typ_defs/typ_mask.h"
 #define MKL_THREADS
-#define TEST_SCATTERV
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
@@ -361,29 +360,13 @@ void orthNormStoWf(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 
   if(myidState==0)printf("Start Scatter Data\n");
 
-#ifdef TEST_SCATTERV
-  if(myidState!=0){
-    Recv(allWF,2*numCoeffUpTotal,MPI_DOUBLE,0,myidState,comm_states);
+  if(numProcStates>1){
+    Scatterv(wfBfOrthUp,stowfRecvCountsComplex2,stowfDisplsComplex2,MPI_DOUBLE,
+  	      allWF,2*numCoeffUpTotal,MPI_DOUBLE,0,comm_states);
   }
   else{
-    for(iProc=1;iProc<numProcStates;iProc++){
-      Send(&wfBfOrthUp[stowfDisplsComplex2[iProc]],stowfRecvCountsComplex2[iProc],
-           MPI_DOUBLE,iProc,iProc,comm_states);
-    }
-    memcpy(allWF,wfBfOrthUp,2*numCoeffUpTotal*sizeof(double));
+    memcpy(&allWF[0],&wfBfOrthUp[0],2*numCoeffUpTotal*sizeof(double));
   }
-#else
-  Scatterv(wfBfOrthUp,stowfRecvCountsComplex2,stowfDisplsComplex2,MPI_DOUBLE,
-              allWF,2*numCoeffUpTotal,MPI_DOUBLE,0,comm_states);
-#endif  
-
-//  if(numProcStates>1){
-//    Scatterv(wfBfOrthUp,stowfRecvCountsComplex2,stowfDisplsComplex2,MPI_DOUBLE,
-//  	      allWF,2*numCoeffUpTotal,MPI_DOUBLE,0,comm_states);
-//  }
-//  else{
-//    memcpy(&allWF[0],&wfBfOrthUp[0],2*numCoeffUpTotal*sizeof(double));
-//  }
 
   free(wfBfOrthUp);
 

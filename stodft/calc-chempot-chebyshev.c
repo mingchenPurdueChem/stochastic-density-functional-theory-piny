@@ -289,10 +289,6 @@ void calcChemPotCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   
   chemPot[0] = chemPotNew;
   stodftInfo->chemPotTrue = chemPotNew; // another backup
-  if(myidState==0){
-    printf("Correct Chemical Potential is %.16lg\n",chemPotNew);
-    fflush(stdout);
-  }
 
   free(chebyCoeffs);
   free(stodftCoefPos->chebyMomentsUp);
@@ -528,7 +524,7 @@ void calcChemPotChebyEWFrag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       */
       chemPotNew = 0.5*(chemPotMin+chemPotMax);
       numElecNew = calcNumElecCheby(cp,chemPotNew,chebyCoeffs);
-      printf("chemPotNew %lg numElecNew %lg\n",chemPotNew,numElecNew);
+      //printf("chemPotNew %lg numElecNew %lg\n",chemPotNew,numElecNew);
     }//endwhile
     printf("Finish Calculating Chemical Potential\n");
     printf("The correct chemical potential is %.16lg Ne %.16lg DNe %.16lg\n",chemPotNew,numElecNew,

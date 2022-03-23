@@ -153,6 +153,11 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     cim_up[numCoeff] = 0.0;
 #endif
   }
+  else if(iScfTrue==0){
+    printf("Error! You can't have iscfTrue=0!\n");
+    fflush(stdout);
+    exit(0);
+  }
   else{
     for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
       cre_up[iCoeff] = testWfMaxRe[iCoeff-1];

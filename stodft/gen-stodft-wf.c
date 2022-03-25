@@ -213,13 +213,8 @@ void genStoOrbitalInterp(CLASS *class,GENERAL_DATA *general_data,
 	Barrier(commStates);
 	Bcast(&(stodftInfo->eigValMin),1,MPI_DOUBLE,0,commStates);
       }
-<<<<<<< HEAD
-      int iScf = stodftInfo->iScfTrue;
-      if(iScf>1){ //Not the first SCF step
-=======
       int iScfTrue = stodftInfo->iScfTrue;
       if(iScfTrue>1){ //Not the first SCF step
->>>>>>> e10ac23dd180c2b7e8ca6a18a77c1b08d34c2fad
         int numStatePrintUp = stodftInfo->numStatePrintUp;
 	double eigValMin = stodftCoefPos->energyLevel[0];
 	double eigValMax = stodftCoefPos->energyLevel[numStatePrintUp-1];
@@ -2178,10 +2173,6 @@ void genStoOrbitalChebyTest(CLASS *class,GENERAL_DATA *general_data,
 
   stodftInfo2->iScf = stodftInfo->iScf;
   stodftInfo2->iScfTrue = stodftInfo->iScfTrue;
-<<<<<<< HEAD
-
-=======
->>>>>>> e10ac23dd180c2b7e8ca6a18a77c1b08d34c2fad
   timeStart01 = omp_get_wtime();
   genStoOrbitalInterp(class2,general_data2,cp2,ip_now);
   timeEnd01 = omp_get_wtime();
@@ -3229,11 +3220,7 @@ void genStoOrbitalEnergyWindowFragTest(CLASS *class,GENERAL_DATA *general_data,
   int fragWindowFlag = stodftInfo->fragWindowFlag;
   int homoIndex;
   int smearOpt = stodftInfo->smearOpt;
-<<<<<<< HEAD
-  int smearOptBackup = stodftInfo->smearOpt;
-=======
   int smearOptBackup;
->>>>>>> e10ac23dd180c2b7e8ca6a18a77c1b08d34c2fad
 
   int numChemPot2 = stodftInfo2->numChemPot;
   int numStateUpProc2 = cpcoeffs_info2->nstate_up_proc;
@@ -3461,11 +3448,7 @@ void genStoOrbitalEnergyWindowFragTest(CLASS *class,GENERAL_DATA *general_data,
   switch(expanType){
     case 1:
       stodftInfo->storeChebyMomentsFlag = 1;
-<<<<<<< HEAD
-      // At this step we need to turn off smearing
-=======
       // At this step we need to turn off smearing 
->>>>>>> e10ac23dd180c2b7e8ca6a18a77c1b08d34c2fad
       // since we have not initialize entropy coefficient
       smearOptBackup = stodftInfo->smearOpt;
       stodftInfo->smearOpt = 0;

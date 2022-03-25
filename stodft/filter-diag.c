@@ -401,10 +401,6 @@ void orthNormStoWf(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     }
     memcpy(allWF,wfBfOrthUp,2*numCoeffUpTotal*sizeof(double));
   }
-#else
-  Scatterv(wfBfOrthUp,stowfRecvCountsComplex2,stowfDisplsComplex2,MPI_DOUBLE,
-              allWF,2*numCoeffUpTotal,MPI_DOUBLE,0,comm_states);
-#endif  
 
 //  if(numProcStates>1){
 //    Scatterv(wfBfOrthUp,stowfRecvCountsComplex2,stowfDisplsComplex2,MPI_DOUBLE,

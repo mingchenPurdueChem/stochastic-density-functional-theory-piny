@@ -64,6 +64,7 @@ void genEnergyMax(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int numCoeffUpTot   = numStateUpProc*numCoeff;
   int numCoeffDnTot   = numStateDnProc*numCoeff;
   int myidState = communicate->myid_state;
+  int iScfTrue;
   int iScf = stodftInfo->iScfTrue;
 
   int numIteration    = 100;
@@ -368,6 +369,7 @@ void genEnergyMin(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int numIteration   = 1000;
   int iIter;
   int iState,iCoeff,iCoeffStart,index1,index2;
+  int iScfTrue;
   int iScf = stodftInfo->iScfTrue;
 
   double *cre_up = cpcoeffs_pos->cre_up;

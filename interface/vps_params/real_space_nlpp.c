@@ -361,7 +361,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
               //printf("1111111 rGridddddd %lg %lg\n",rGrid*dr,vNl[iAng*numR+rGrid]);
             }//endfor rGrid
             vpsNormList[countR+iAng] *= dr;
-              //printf("countR %i vpsNormList %lg\n",countR+iAng,vpsNormList[countR+iAng]);
+            //printf("countR %i vpsNormList %lg\n",countR+iAng,vpsNormList[countR+iAng]);
             vpsNormList[countR+iAng] = 1.0/vpsNormList[countR+iAng];
           }//endif iformat
           //printf("countR %i iAng %i vpsNormList %lg\n",countR,iAng,vpsNormList[countR+iAng]);

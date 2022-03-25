@@ -155,7 +155,7 @@ void genStoOrbitalInterp(CLASS *class,GENERAL_DATA *general_data,
   energyMin = stodftInfo->energyMin;
   energyMax = stodftInfo->energyMax;
   //printf("energyMax %lg energyMin %lg\n",energyMax,energyMin);
-  Barrier(commStates);
+  if(numProcStates>1)Barrier(commStates);
   stodftInfo->energyDiff = energyMax-energyMin;
   energyDiff = stodftInfo->energyDiff;
   stodftInfo->energyMean = 0.5*(energyMin+energyMax);
@@ -174,8 +174,8 @@ void genStoOrbitalInterp(CLASS *class,GENERAL_DATA *general_data,
 	Barrier(commStates);
 	Bcast(&(stodftInfo->eigValMin),1,MPI_DOUBLE,0,commStates);
       }
-      int iScf = stodftInfo->iScfTrue;
-      if(iScf>1){ //Not the first SCF step
+      int iScfTrue = stodftInfo->iScfTrue;
+      if(iScfTrue>1){ //Not the first SCF step
         int numStatePrintUp = stodftInfo->numStatePrintUp;
 	double eigValMin = stodftCoefPos->energyLevel[0];
 	double eigValMax = stodftCoefPos->energyLevel[numStatePrintUp-1];
@@ -213,8 +213,13 @@ void genStoOrbitalInterp(CLASS *class,GENERAL_DATA *general_data,
 	Barrier(commStates);
 	Bcast(&(stodftInfo->eigValMin),1,MPI_DOUBLE,0,commStates);
       }
+<<<<<<< HEAD
       int iScf = stodftInfo->iScfTrue;
       if(iScf>1){ //Not the first SCF step
+=======
+      int iScfTrue = stodftInfo->iScfTrue;
+      if(iScfTrue>1){ //Not the first SCF step
+>>>>>>> e10ac23dd180c2b7e8ca6a18a77c1b08d34c2fad
         int numStatePrintUp = stodftInfo->numStatePrintUp;
 	double eigValMin = stodftCoefPos->energyLevel[0];
 	double eigValMax = stodftCoefPos->energyLevel[numStatePrintUp-1];
@@ -471,7 +476,7 @@ void genStoOrbitalCheby(CLASS *class,GENERAL_DATA *general_data,
   energyMin = stodftInfo->energyMin;
   energyMax = stodftInfo->energyMax;
   //printf("energyMax %lg energyMin %lg\n",energyMax,energyMin);
-  Barrier(commStates);
+  if(numProcStates>1)Barrier(commStates);
   stodftInfo->energyDiff = energyMax-energyMin;
   energyDiff = stodftInfo->energyDiff;
   stodftInfo->energyMean = 0.5*(energyMin+energyMax);
@@ -989,7 +994,7 @@ void genStoOrbitalEnergyWindow(CLASS *class,GENERAL_DATA *general_data,
   energyMin = stodftInfo->energyMin;
   energyMax = stodftInfo->energyMax;
   //printf("energyMax %lg energyMin %lg\n",energyMax,energyMin);
-  Barrier(commStates);
+  if(numProcStates>1)Barrier(commStates);
   stodftInfo->energyDiff = energyMax-energyMin;
   energyDiff = stodftInfo->energyDiff;
   stodftInfo->energyMean = 0.5*(energyMin+energyMax);
@@ -1609,7 +1614,7 @@ void genStoOrbitalEnergyWindowFrag(CLASS *class,GENERAL_DATA *general_data,
   energyMin = stodftInfo->energyMin;
   energyMax = stodftInfo->energyMax;
   //printf("energyMax %lg energyMin %lg\n",energyMax,energyMin);
-  Barrier(commStates);
+  if(numProcStates>1)Barrier(commStates);
   stodftInfo->energyDiff = energyMax-energyMin;
   energyDiff = stodftInfo->energyDiff;
   stodftInfo->energyMean = 0.5*(energyMin+energyMax);
@@ -2173,7 +2178,10 @@ void genStoOrbitalChebyTest(CLASS *class,GENERAL_DATA *general_data,
 
   stodftInfo2->iScf = stodftInfo->iScf;
   stodftInfo2->iScfTrue = stodftInfo->iScfTrue;
+<<<<<<< HEAD
 
+=======
+>>>>>>> e10ac23dd180c2b7e8ca6a18a77c1b08d34c2fad
   timeStart01 = omp_get_wtime();
   genStoOrbitalInterp(class2,general_data2,cp2,ip_now);
   timeEnd01 = omp_get_wtime();
@@ -2234,7 +2242,7 @@ void genStoOrbitalChebyTest(CLASS *class,GENERAL_DATA *general_data,
   energyMin = stodftInfo->energyMin;
   energyMax = stodftInfo->energyMax;
   //printf("energyMax %lg energyMin %lg\n",energyMax,energyMin);
-  Barrier(commStates);
+  if(numProcStates>1)Barrier(commStates);
   stodftInfo->energyDiff = energyMax-energyMin;
   energyDiff = stodftInfo->energyDiff;
   stodftInfo->energyMean = 0.5*(energyMin+energyMax);
@@ -2457,6 +2465,7 @@ void genStoOrbitalEnergyWindowTest(CLASS *class,GENERAL_DATA *general_data,
   STODFTCOEFPOS *stodftCoefPos2 = cp2->stodftCoefPos;
 
   NEWTONINFO   *newtonInfo      = stodftInfo->newtonInfo;
+  CHEBYSHEVINFO *chebyshevInfo = stodftInfo->chebyshevInfo;
   COMMUNICATE   *commCP	        = &(cp->communicate);
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
   CPCOEFFS_INFO *cpcoeffs_info2 = &(cp2->cpcoeffs_info);
@@ -2644,7 +2653,7 @@ void genStoOrbitalEnergyWindowTest(CLASS *class,GENERAL_DATA *general_data,
   energyMin = stodftInfo->energyMin;
   energyMax = stodftInfo->energyMax;
   //printf("energyMax %lg energyMin %lg\n",energyMax,energyMin);
-  Barrier(commStates);
+  if(numProcStates>1)Barrier(commStates);
   stodftInfo->energyDiff = energyMax-energyMin;
   energyDiff = stodftInfo->energyDiff;
   stodftInfo->energyMean = 0.5*(energyMin+energyMax);
@@ -2653,6 +2662,29 @@ void genStoOrbitalEnergyWindowTest(CLASS *class,GENERAL_DATA *general_data,
 /* III) Generate Length of Polynomial Chain                             */
 
   timeStart2 = omp_get_wtime();
+  if(expanType==1){
+    Smin = chebyshevInfo->Smin;
+    Smax = chebyshevInfo->Smax;
+    scale = (Smax-Smin)/energyDiff;
+    chebyshevInfo->scale = scale;
+    //cheat my code
+    numChemPotTemp = stodftInfo->numChemPot;
+    stodftInfo->numChemPot = 2;
+    free(&(stodftCoefPos->chemPot[0]));
+    stodftCoefPos->chemPot = (double*)cmalloc(2*sizeof(double));
+    stodftCoefPos->chemPot[0] = chemPotInit-gapInit*0.5;
+    stodftCoefPos->chemPot[1] = chemPotInit+gapInit*0.5;
+    if(myidState==0)genChebyHermit(stodftInfo,stodftCoefPos,0);
+    if(numProcStates>1){
+      Barrier(commStates);
+      Bcast(&(stodftInfo->polynormLength),1,MPI_INT,0,commStates);
+      Barrier(commStates);
+    }
+    stodftInfo->numChemPot = numChemPotTemp;
+    free(&(stodftCoefPos->chemPot[0]));
+    stodftCoefPos->chemPot = (double*)cmalloc(numChemPotTemp*sizeof(double));
+    //finish cheating my code
+  }
   if(expanType==2){
     Smin = newtonInfo->Smin;
     Smax = newtonInfo->Smax;
@@ -3007,7 +3039,7 @@ void genStoOrbitalInterpTest(CLASS *class,GENERAL_DATA *general_data,CP *cp,
   energyMin = stodftInfo->energyMin;
   energyMax = stodftInfo->energyMax;
   //printf("energyMax %lg energyMin %lg\n",energyMax,energyMin);
-  Barrier(commStates);
+  if(numProcStates>1)Barrier(commStates);
   stodftInfo->energyDiff = energyMax-energyMin;
   energyDiff = stodftInfo->energyDiff;
   stodftInfo->energyMean = 0.5*(energyMin+energyMax);
@@ -3197,7 +3229,11 @@ void genStoOrbitalEnergyWindowFragTest(CLASS *class,GENERAL_DATA *general_data,
   int fragWindowFlag = stodftInfo->fragWindowFlag;
   int homoIndex;
   int smearOpt = stodftInfo->smearOpt;
+<<<<<<< HEAD
   int smearOptBackup = stodftInfo->smearOpt;
+=======
+  int smearOptBackup;
+>>>>>>> e10ac23dd180c2b7e8ca6a18a77c1b08d34c2fad
 
   int numChemPot2 = stodftInfo2->numChemPot;
   int numStateUpProc2 = cpcoeffs_info2->nstate_up_proc;
@@ -3345,7 +3381,7 @@ void genStoOrbitalEnergyWindowFragTest(CLASS *class,GENERAL_DATA *general_data,
   energyMin = stodftInfo->energyMin;
   energyMax = stodftInfo->energyMax;
   //printf("energyMax %lg energyMin %lg\n",energyMax,energyMin);
-  Barrier(commStates);
+  if(numProcStates>1)Barrier(commStates);
   stodftInfo->energyDiff = energyMax-energyMin;
   energyDiff = stodftInfo->energyDiff;
   stodftInfo->energyMean = 0.5*(energyMin+energyMax);
@@ -3425,7 +3461,11 @@ void genStoOrbitalEnergyWindowFragTest(CLASS *class,GENERAL_DATA *general_data,
   switch(expanType){
     case 1:
       stodftInfo->storeChebyMomentsFlag = 1;
+<<<<<<< HEAD
       // At this step we need to turn off smearing
+=======
+      // At this step we need to turn off smearing 
+>>>>>>> e10ac23dd180c2b7e8ca6a18a77c1b08d34c2fad
       // since we have not initialize entropy coefficient
       smearOptBackup = stodftInfo->smearOpt;
       stodftInfo->smearOpt = 0;

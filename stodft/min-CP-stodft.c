@@ -734,14 +734,12 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }
   iScfTrue = 0;
 
-
   while(scfStopFlag==0){
     timeStart = omp_get_wtime();
     iScf += 1;
     iScfTrue += 1;
     stodftInfo->iScf = iScf;
     stodftInfo->iScfTrue = iScfTrue;
-
 
     if(myidState==0){
       printf("********************************************************\n");
@@ -1180,7 +1178,6 @@ void scfStodftFilterDiag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     iScfTrue += 1;
     stodftInfo->iScf = iScf;
     stodftInfo->iScfTrue = iScfTrue;
-
     if(myidState==0){
       printf("********************************************************\n");
       printf("SCF Step %i\n",iScf);
@@ -1386,6 +1383,7 @@ void scfStodftFilterDiag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* VII) Calculate Friction if needed                                    */
 
+  printf("electronFricFlag %i\n",stodftInfo->metallic->electronFricFlag);
   if(stodftInfo->metallic->electronFricFlag==1){
     calcElectronFricDet(class,general_data,cp,bonded,cpcoeffs_pos,clatoms_pos);
   }
@@ -1659,7 +1657,6 @@ void scfStodftEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
     iScf = 0;
   }
   iScfTrue = 0;
-
 
   while(scfStopFlag==0){
     timeStart = omp_get_wtime();

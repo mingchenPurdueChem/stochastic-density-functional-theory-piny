@@ -268,9 +268,9 @@ cp_con_dvr.o     :       $(STANDARD) $(DEFINES) \
 
 #------------------------------------------------------------------
 cp_orth_rot_utils.o  :   $(STANDARD) $(DEFINES) \
-                         $(TYP_GEN) $(TYP_CP) \
+                         $(TYP_GEN) $(TYP_CP) $(TYP_CLASS) $(TYP_BND)\
                          $(ENR_CPCON_LOC) $(FRND_ENT) $(MATH) \
-                         $(COMM_WRAP) \
+                         $(COMM_WRAP) $(STODFT_LOC)\
                          $(CODE)/energy/cp_con/cp_orth_rot_utils.c
 	$(ECHO) $@
 	$(COBJ) $(CODE)/energy/cp_con/cp_orth_rot_utils.c

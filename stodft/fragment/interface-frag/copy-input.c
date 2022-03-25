@@ -45,6 +45,16 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
 
   STODFTINFO    *stodftInfo	  = cp->stodftInfo;
   FRAGINFO      *fragInfo         = stodftInfo->fragInfo;
+  int fragDFTMethod = stodftInfo->fragDFTMethod;
+  int iFrag = fragInfo->iFrag;
+  int numElecTrueUp;
+  int numElecTrueDn;
+  int numStateStoUp;
+  int numStateStoDn;
+  int numStatePrintUp;
+  int numStatePrintDn;
+  int numChemPot;
+  FILE *rhoRead;
 
 /*=======================================================================*/
 /*   I) set_sim_params_gen						 */
@@ -544,6 +554,81 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
 
 /*=======================================================================*/
 /*  XVII) set_sim_params_stodft                                          */
+  if(fragDFTMethod==2){ //fragment DFT use filter-diag
+    cpMini->stodftInfo = (STODFTINFO*)cmalloc(sizeof(STODFTINFO));
+    cpMini->stodftCoefPos = (STODFTCOEFPOS*)cmalloc(sizeof(STODFTCOEFPOS));
+    cpMini->stodftInfo->metallic = (METALLIC*)cmalloc(sizeof(METALLIC));
+    // I need fragInfo since frag index is stored in iFrag for each fragment
+    cpMini->stodftInfo->fragInfo = (FRAGINFO*)cmalloc(sizeof(FRAGINFO));
+    cpMini->stodftInfo->missionType = stodftInfo->missionType;
+    cpMini->stodftInfo->expanType = 2; //Newton
+    cpMini->stodftInfo->filterFunType = 1;
+    cpMini->stodftInfo->fitErrTol = stodftInfo->fitErrTol;
+    cpMini->stodftInfo->numChemPot = fragInfo->fragNumChemPot;
+    cpMini->stodftInfo->beta = fragInfo->fragBeta;
+    cpMini->stodftInfo->numScf = stodftInfo->numScf;
+    //cpMini->stodftInfo->numScf = 2;
+    cpMini->stodftInfo->readCoeffFlag = 0;
+    cpMini->stodftInfo->chemPotInit = stodftInfo->chemPotInit;
+    cpMini->stodftInfo->gapInit = stodftInfo->gapInit;
+    cpMini->stodftInfo->densityMixFlag = stodftInfo->densityMixFlag;
+    cpMini->stodftInfo->numStepMix = stodftInfo->numStepMix;
+    cpMini->stodftInfo->numDiis = stodftInfo->numDiis;
+    cpMini->stodftInfo->calcFragFlag = 0; // no fragment in fragment
+    cpMini->stodftInfo->fragOpt = 1; //default choice
+    cpMini->stodftInfo->fragCellOpt = 1; //default
+    //strcpy(cpMini->stodftInfo->densityFileName,stodftInfo->densityFileName);
+    cpMini->stodftInfo->chemPotOpt = 1;
+    cpMini->stodftInfo->filterDiagFlag = 1;
+    cpMini->stodftInfo->mixRatioSM = stodftInfo->mixRatioSM;
+    cpMini->stodftInfo->randSeed = stodftInfo->randSeed;
+    cpMini->stodftInfo->energyTol = stodftInfo->energyTol;
+    cpMini->stodftInfo->checkpointWriteFreq = 1000;
+    cpMini->stodftInfo->checkpointParFlag = 0;
+    cpMini->stodftInfo->smearOpt = stodftInfo->smearOpt;
+    cpMini->stodftInfo->smearTemperature = stodftInfo->smearTemperature;
+    cpMini->stodftInfo->energyWindowOn = 0;
+    cpMini->stodftInfo->printChebyMoment = 0;
+    //strcpy(cpMini->stodftInfo->densityFinalFileName,stodftInfo->densityFinalFileName);
+    cpMini->stodftInfo->metallic->electronFricFlag = 0;
+    cpMini->stodftInfo->numElecTrueUp = fragInfo->numElecTrueUpFragProc[iFrag];
+    cpMini->stodftInfo->numElecTrueDn = fragInfo->numElecTrueDnFragProc[iFrag];
+    cpMini->stodftInfo->numElecTrue = cpMini->stodftInfo->numElecTrueUp+
+                                      cpMini->stodftInfo->numElecTrueDn;
+    numElecTrueUp = fragInfo->numElecTrueUpFragProc[iFrag];
+    numElecTrueDn = fragInfo->numElecTrueDnFragProc[iFrag];
+    numChemPot = cpMini->stodftInfo->numChemPot;
+    cpMini->stodftInfo->numElecTrueUp = numElecTrueUp;
+    cpMini->stodftInfo->numElecTrueDn = numElecTrueDn;
+    //numStateStoUp = (int)(numElecTrueUp*4/numChemPot+1);
+    //numStateStoDn = (int)(numElecTrueDn*4/numChemPot+1); 
+    //cpMini->stodftInfo->numStateStoUp = MAX(numStateStoUp,4);
+    //cpMini->stodftInfo->numStateStoDn = MAX(numStateStoDn,4);
+    cpMini->stodftInfo->numStateStoUp = fragInfo->fragNumStateStoUp;
+    cpMini->stodftInfo->numStateStoDn = fragInfo->fragNumStateStoDn;
+
+    cpMini->stodftInfo->numStatePrintUp = fragInfo->numElecUpFragProc[iFrag];
+    cpMini->stodftInfo->numStatePrintDn = fragInfo->numElecDnFragProc[iFrag];
+    //printf("numStatePrintUp %i\n",cpMini->stodftInfo->numStatePrintUp);
+    cpMini->stodftInfo->fragInfo->iFrag = fragInfo->fragInd[iFrag];
+    sprintf(cpMini->stodftInfo->densityFinalFileName,"%s-%i",
+            stodftInfo->densityFinalFileName,
+            fragInfo->fragInd[iFrag]);
+    sprintf(cpMini->stodftInfo->densityFileName,"%s-%i",stodftInfo->densityFileName,
+           fragInfo->fragInd[iFrag]);
+    rhoRead = NULL;
+    sprintf(cpMini->stodftInfo->densityReadFileName,"%s-%i",stodftInfo->densityReadFileName,
+            fragInfo->fragInd[iFrag]);
+    rhoRead = fopen(cpMini->stodftInfo->densityReadFileName,"r");
+    if(rhoRead!=NULL){
+      //printf("readCoeffFlag %i\n",cpMini->stodftInfo->readCoeffFlag);
+      cpMini->stodftInfo->readCoeffFlag = -2;
+      cpMini->cpopts.readCoeffFlag = -2;
+      fclose(rhoRead);
+    }
+    //printf("2222222 readCoeffFlag %i\n",cpMini->stodftInfo->readCoeffFlag);
+  }
+  
 
 /*------------------------------------------------------------------------*/
 }/*end routine*/

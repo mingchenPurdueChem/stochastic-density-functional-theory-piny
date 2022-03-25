@@ -266,6 +266,7 @@ void calcKEMatrixUC(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,
   int numGrid = fragInfo->numGridFragProc[iFrag];
   int numGridSmall = fragInfo->numGridFragProcSmall[iFrag];
   int occNumber = stodftInfo->occNumber;
+  int fragDFTMethod = cp->stodftInfo->fragDFTMethod;
 
   int *gridMapProc         = fragInfo->gridMapProc[iFrag];
   int *gridMapProcSmall    = fragInfo->gridMapProcSmall[iFrag];
@@ -292,6 +293,8 @@ void calcKEMatrixUC(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,
   double *coefUpFragProc,*coefDnFragProc;
   double *coefUpTemp,*coefDnTemp;
   double *hmatCpMini = generalDataMini->cell.hmat_cp;
+  double *occPre;
+  double *numOccDetProc = cpMini->stodftInfo->numOccDetProc;
   
 
 /*======================================================================*/
@@ -324,6 +327,17 @@ void calcKEMatrixUC(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,
   memcpy(coefUpTemp,coefUpFragProc,numStateUp*numGrid*sizeof(double));
   if(cpLsda==1&&numStateDn!=0)memcpy(coefDnTemp,coefDnFragProc,numStateUp*numGrid*sizeof(double));
   
+  // In case use fractional occupatation number, cre and cim are scaled 
+  // by occ^(1/4). We need to scale it by sqrt(occ) when we calculate 
+  // kinetic energy for each fragment
+  occPre = (double*)cmalloc(numStateUp*sizeof(double));
+  for(iState=0;iState<numStateUp;iState++)occPre[iState] = 1.0;
+  if(fragDFTMethod==2){
+    for(iState=0;iState<numStateUp;iState++){
+      occPre[iState] = numOccDetProc[iState]/sqrt(2.0);
+    }
+  }
+
 
 /*======================================================================*/
 /* II) Calculate kinetic energy density                                 */
@@ -516,7 +530,7 @@ void calcKEMatrixUC(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,
       index1 = jState*numStateUp+iState;
       keMatrixUp[index] = ddotBlasWrapper(numGridSmall,&wfTemp[0],1,&coefUpFragCoreProc[jState*numGridSmall],1)*volMini;
       if(jState==iState){
-	keLocal += keMatrixUp[index];
+	keLocal += keMatrixUp[index]*occPre[iState];
 	//printf("iState %i keLocal %lg\n",iState,keMatrixUp[index]);
       }
       //else keMatrixUp[index1] = keMatrixUp[index];
@@ -551,7 +565,7 @@ void calcKEMatrixUC(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,
         index1 = jState*numStateDn+iState;
         keMatrixDn[index] = ddotBlasWrapper(numGridSmall,&wfTemp[0],1,&coefDnFragCoreProc[jState*numGridSmall],1)*volMini;
         if(jState==iState)keLocal += keMatrixDn[index];
-        keMatrixDn[index1] = keMatrixDn[index];
+        keMatrixDn[index1] = keMatrixDn[index]*occPre[iState]; // DEBUG
       }//endfor jState
     }//endfor iState   
   }//endif 
@@ -582,6 +596,7 @@ void calcKEMatrixUC(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *classMini,
   free(coefTemp);
   free(wfTemp);
   free(coefUpTemp);
+  free(occPre);
 
 /*==========================================================================*/
 }/*end Routine*/

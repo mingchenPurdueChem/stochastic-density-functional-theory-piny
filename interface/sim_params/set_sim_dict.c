@@ -324,7 +324,7 @@ void set_sim_dict_cp(int *num_dict,DICT_WORD *dict[])
 /*========================================================================*/
 /*  0) Malloc the dictionary                                              */ 
 
-  *num_dict = 71;
+  *num_dict = 75;
   *dict = (DICT_WORD *)cmalloc(*num_dict*sizeof(DICT_WORD))-1;
 
 /*========================================================================*/
@@ -726,6 +726,31 @@ void set_sim_dict_cp(int *num_dict,DICT_WORD *dict[])
        strcpy((*dict)[71].error_mes,"(k space switch start)/(wave function kmax)");
        strcpy((*dict)[71].keyword,"nlpp_k_switch_start_ratio");
        strcpy((*dict)[71].keyarg,"0.75");
+
+  /*-----------------------------------------------------------------------*/
+  /* 72)\smear_type{#} */
+       strcpy((*dict)[72].error_mes,"off; fermi");
+       strcpy((*dict)[72].keyword,"smear_type");
+       strcpy((*dict)[72].keyarg,"0");
+
+
+  /*-----------------------------------------------------------------------*/
+  /* 73)\elec_temp{#} */
+       strcpy((*dict)[73].error_mes,"Electron Temperature");
+       strcpy((*dict)[73].keyword,"elec_temp");
+       strcpy((*dict)[73].keyarg,"300.0");
+
+  /*-----------------------------------------------------------------------*/
+  /* 74)\num_elec_up_true{#} */
+       strcpy((*dict)[74].error_mes,"True number of Spin Up Electron");
+       strcpy((*dict)[74].keyword,"num_elec_up_true");
+       strcpy((*dict)[74].keyarg,"0.0");
+
+  /*-----------------------------------------------------------------------*/
+  /* 75)\num_elec_dn_true{#} */
+       strcpy((*dict)[75].error_mes,"True number of Spin Dn Electron");
+       strcpy((*dict)[75].keyword,"num_elec_dn_true");
+       strcpy((*dict)[75].keyarg,"0.0");
   
 /*========================================================================*/
 /*------------------------------------------------------------------------*/
@@ -2263,7 +2288,7 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
  /*             Local variable declarations                                */
   
   unsigned int i;
-  *num_dict = 41;
+  *num_dict = 47;
   *dict = (DICT_WORD *)cmalloc(*num_dict*sizeof(DICT_WORD))-1;
 
   for (i=1;i<=*num_dict;i++) {
@@ -2436,6 +2461,30 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
   strcpy((*dict)[41].error_mes,"Standard Deviation for Gaussians as an approximated delta function");
   strcpy((*dict)[41].keyword,"std_gau_fric");
   strcpy((*dict)[41].keyarg,"0.00919"); //~0.25eV
+
+  strcpy((*dict)[42].error_mes,"Please select cg or fd for fragment calculation");
+  strcpy((*dict)[42].keyword,"frag_dft_method");
+  strcpy((*dict)[42].keyarg,"cg"); 
+
+  strcpy((*dict)[43].error_mes,"#Frag orb = R*N_occ. Please specify R");
+  strcpy((*dict)[43].keyword,"frag_fd_orb_rat");
+  strcpy((*dict)[43].keyarg,"1.0");
+
+  strcpy((*dict)[44].error_mes,"#Frag stocharstic orb spin up.");
+  strcpy((*dict)[44].keyword,"frag_num_sto_state_up");
+  strcpy((*dict)[44].keyarg,"2"); 
+
+  strcpy((*dict)[45].error_mes,"#Frag stocharstic orb spin dn.");
+  strcpy((*dict)[45].keyword,"frag_num_sto_state_dn");
+  strcpy((*dict)[45].keyarg,"2"); 
+
+  strcpy((*dict)[46].error_mes,"#Frag chem pot");
+  strcpy((*dict)[46].keyword,"frag_num_chem_pot");
+  strcpy((*dict)[46].keyarg,"1");
+ 
+  strcpy((*dict)[47].error_mes,"Frag beta");
+  strcpy((*dict)[47].keyword,"frag_beta");
+  strcpy((*dict)[47].keyarg,"50.0");
 
  /*========================================================================*/
  } /* end routine set_sim_dict_harmonic */

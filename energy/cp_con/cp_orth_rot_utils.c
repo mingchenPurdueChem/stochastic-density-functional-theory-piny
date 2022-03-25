@@ -17,11 +17,13 @@
 #include "standard_include.h"
 #include "../typ_defs/typedefs_gen.h"
 #include "../typ_defs/typedefs_cp.h"
+#include "../typ_defs/typedefs_class.h"
+#include "../typ_defs/typedefs_bnd.h"
 #include "../proto_defs/proto_energy_cpcon_local.h"
 #include "../proto_defs/proto_friend_lib_entry.h"
 #include "../proto_defs/proto_math.h"
 #include "../proto_defs/proto_communicate_wrappers.h"
-
+#include "../proto_defs/proto_stodft_local.h"
 #define DEBUG_GS_OFF
 #define HAND_ROT_OFF
 //#define DEBUG_GS
@@ -1816,6 +1818,111 @@ void occ_sort(int n, double *index)
 /*==========================================================================*/
 
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+
+void  cp_calc_occ(CP *cp,double *cre,double *cim,int nstate,double *kseig_vals, 
+                  int numElecTrue)
+
+/*=======================================================================*/
+/*            Begin subprogram:                                          */
+{/*begin routine*/
+/*=======================================================================*/
+/*          Local variable declarations                                  */
+  CPOPTS *cpopts = &(cp->cpopts);
+  COMMUNICATE *communicate = &(cp->communicate);
+
+
+  int myidState = communicate->myid_state;
+  int ncoef          = cp->cpcoeffs_info.ncoef;
+  int smearingType = cpopts->smearingType;
+  int iState,iCoeff;
+  int cplsda = cpopts->cp_lsda;
+  double elecT = cpopts->elecT/3.157750e5;
+  double numElecDiff = 1000;
+  double chemPotMin = kseig_vals[1];
+  double chemPotMax = kseig_vals[nstate];
+  double numElecMin,numElecMax;
+  double numElecTol = 1.0e-11*numElecTrue;
+  double chemPotNew,numElecNew;
+
+  double *occ = (double*)cmalloc(nstate*sizeof(double));
+
+  for(iState=0;iState<nstate;iState++)occ[iState] = 0.0;
+
+  numElecMin = calcNumElecSmear(smearingType,elecT,
+                                chemPotMin,&kseig_vals[1],nstate);
+  numElecMax = calcNumElecSmear(smearingType,elecT,
+                                chemPotMax,&kseig_vals[1],nstate);
+
+  if(numElecMin>numElecTrue||numElecMax<numElecTrue){
+    if(myidState==0){
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      printf("The number of electron %lg is out of range %lg %lg\n",
+              numElecTrue,numElecMin,numElecMax);
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(0);
+    }
+  }
+  chemPotNew = (numElecTrue-numElecMin)*(chemPotMax-chemPotMin)/(numElecMax-numElecMin)+
+                 chemPotMin;
+  numElecNew = calcNumElecSmear(smearingType,elecT,
+                                chemPotNew,&kseig_vals[1],nstate);
+  while(fabs(numElecNew-numElecTrue)>numElecTol){
+    if(numElecNew>numElecTrue){
+      chemPotMax = chemPotNew;
+      numElecMax = numElecNew;
+    }
+    if(numElecNew<numElecTrue){
+      chemPotMin = chemPotNew;
+      numElecMin = numElecNew;
+    }
+    chemPotNew = (numElecTrue-numElecMin)*(chemPotMax-chemPotMin)/(numElecMax-numElecMin)+
+                  chemPotMin;
+    numElecNew = calcNumElecSmear(smearingType,elecT,
+                                chemPotNew,&kseig_vals[1],nstate);
+
+  }
+  if(myidState==0){
+    printf("chemical potential is %.16lg\n",chemPotNew);
+    printf("Number of electron is %.16lg\n",numElecNew);
+  }
+
+  switch(smearingType){
+    case 0:
+      if(myidState==0){
+        printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+        printf("Have to choose a smearing scheme when you work with metallic\n");
+        printf("system. \n");
+        printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+        fflush(stdout);
+        exit(0);
+      }
+      break;
+    case 1:
+      for(iState=0;iState<nstate;iState++){
+        occ[iState] = 1.0/(1.0+exp(1.0/elecT*(kseig_vals[iState+1]-chemPotNew)));
+      }
+      break;
+    case 2:
+      for(iState=0;iState<nstate;iState++){
+        occ[iState] = 0.5*(1.0-erf(1.0/elecT*(kseig_vals[iState+1]-chemPotNew)));
+      }
+      break;
+  }
+
+  for(iState=0;iState<nstate;iState++){
+    for(iCoeff=0;iCoeff<ncoef;iCoeff++){
+      cre[iState*ncoef+iCoeff+1] *= sqrt(occ[iState]);
+      cim[iState*ncoef+iCoeff+1] *= sqrt(occ[iState]);
+    }
+  }
+
+/*-----------------------------------------------------------------------*/
+} /*end routine*/
+/*==========================================================================*/
 
 
 

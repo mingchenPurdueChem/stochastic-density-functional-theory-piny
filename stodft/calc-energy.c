@@ -320,7 +320,6 @@ void calcTotEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*--------------------------------------------------------------------------*/
 /* V) Calculate entropy                                                     */
 
-  printf("smearOpt %i\n",smearOpt);
   if(smearOpt>0)calcStoEntropy(cp);
 
 /*--------------------------------------------------------------------------*/
@@ -436,75 +435,75 @@ void calcKNEEnergyFilterDiag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     energyKe[0] = 0.0;
     energyPNL[0] = 0.0;
   }
-  Barrier(commStates);
+  if(numProcStates>1)Barrier(commStates);
   
-    stat_avg->vrecip = 0.0;
-    stat_avg->cp_enl = 0.0;
-   
-    eke = 0.0;
-    for(iState=0;iState<numStateUpProc;iState++){
+  stat_avg->vrecip = 0.0;
+  stat_avg->cp_enl = 0.0;
+ 
+  eke = 0.0;
+  for(iState=0;iState<numStateUpProc;iState++){
+    ioff = iState*numCoeff;
+    for(iCoeff=1;iCoeff<=numCoeff-1;iCoeff++){
+      iis = ioff+iCoeff;
+      eke += 2.0*ak2Kinetic[iCoeff]*(cre_up[iis]*cre_up[iis]+cim_up[iis]*cim_up[iis]);
+    }//endfor iCoeff
+  }//endfor iState
+  eke *= 0.5;
+  if(cpLsda==1&&numStateDnProc!=0){
+    ekeDn = 0.0;
+    for(iState=0;iState<numStateDnProc;iState++){
       ioff = iState*numCoeff;
       for(iCoeff=1;iCoeff<=numCoeff-1;iCoeff++){
         iis = ioff+iCoeff;
-        eke += 2.0*ak2Kinetic[iCoeff]*(cre_up[iis]*cre_up[iis]+cim_up[iis]*cim_up[iis]);
+        ekeDn += 2.0*ak2Kinetic[iCoeff]*(cre_dn[iis]*cre_dn[iis]+cim_dn[iis]*cim_dn[iis]);
       }//endfor iCoeff
     }//endfor iState
-    eke *= 0.5;
+    eke += ekeDn*0.5;
+  }//endif cpLsda
+  //printf("eke %lg\n",eke);
+  stat_avg->cp_eke = eke;
+    
+  //printf("before cp_eke %lg\n",stat_avg->cp_eke);
+  
+  //calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+  //calcCoefForceExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+  //pp
+  if(pseudoRealFlag==0){
+    calcNonLocalPseudoScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+  }
+  else{
+    /*
+    for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
+      fcre_up[iCoeff] = 0.0;
+      fcim_up[iCoeff] = 0.0;
+    }//endfor iCoeff
     if(cpLsda==1&&numStateDnProc!=0){
-      ekeDn = 0.0;
-      for(iState=0;iState<numStateDnProc;iState++){
-        ioff = iState*numCoeff;
-        for(iCoeff=1;iCoeff<=numCoeff-1;iCoeff++){
-          iis = ioff+iCoeff;
-          ekeDn += 2.0*ak2Kinetic[iCoeff]*(cre_dn[iis]*cre_dn[iis]+cim_dn[iis]*cim_dn[iis]);
-        }//endfor iCoeff
-      }//endfor iState
-      eke += ekeDn*0.5;
-    }//endif cpLsda
-    //printf("eke %lg\n",eke);
-    stat_avg->cp_eke = eke;
-    
-    //printf("before cp_eke %lg\n",stat_avg->cp_eke);
-    
-    //calcKSPotExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
-    //calcCoefForceExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
-    //pp
-    if(pseudoRealFlag==0){
-      calcNonLocalPseudoScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
-    }
-    else{
-      /*
-      for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
-        fcre_up[iCoeff] = 0.0;
-        fcim_up[iCoeff] = 0.0;
+      for(iCoeff=1;iCoeff<=numCoeffDnTotal;iCoeff++){
+        fcre_dn[iCoeff] = 0.0;
+        fcim_dn[iCoeff] = 0.0;
       }//endfor iCoeff
-      if(cpLsda==1&&numStateDnProc!=0){
-        for(iCoeff=1;iCoeff<=numCoeffDnTotal;iCoeff++){
-          fcre_dn[iCoeff] = 0.0;
-          fcim_dn[iCoeff] = 0.0;
-        }//endfor iCoeff
-      }//endif cpLsda     
-      */
-      calcCoefForceEnergy(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
-    }
+    }//endif cpLsda     
+    */
+    calcCoefForceEnergy(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+  }
 
     
-    if(numProcStates>1){
-      Reduce(&(stat_avg->cp_enl),&energyNLTemp,1,MPI_DOUBLE,MPI_SUM,0,commStates);
-      Reduce(&eke,&energyKineticTemp,1,MPI_DOUBLE,MPI_SUM,0,commStates);
-    }
-    else{
-      energyNLTemp = stat_avg->cp_enl;
-      energyKineticTemp = eke;
-    }
+  if(numProcStates>1){
+    Reduce(&(stat_avg->cp_enl),&energyNLTemp,1,MPI_DOUBLE,MPI_SUM,0,commStates);
+    Reduce(&eke,&energyKineticTemp,1,MPI_DOUBLE,MPI_SUM,0,commStates);
+  }
+  else{
+    energyNLTemp = stat_avg->cp_enl;
+    energyKineticTemp = eke;
+  }
 
-    if(myidState==0){
-      //energyNLTemp /= numStateStoUp;
-      //energyKineticTemp /= numStateStoUp;
-      energyKe[0] += energyKineticTemp;
-      energyPNL[0] += energyNLTemp;
-      //printf("iChem %i chemPot %lg K %lg NL %lg\n",iChem,chemPot[iChem],energyKineticTemp,energyNLTemp);
-    }
+  if(myidState==0){
+    //energyNLTemp /= numStateStoUp;
+    //energyKineticTemp /= numStateStoUp;
+    energyKe[0] += energyKineticTemp;
+    energyPNL[0] += energyNLTemp;
+    //printf("iChem %i chemPot %lg K %lg NL %lg\n",iChem,chemPot[iChem],energyKineticTemp,energyNLTemp);
+  }
   /*
   // debug
   printf("Hartree Energy: %.6lg\n",stat_avg->cp_ehart);
@@ -517,23 +516,21 @@ void calcKNEEnergyFilterDiag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 
   if(smearOpt>0){
     entropy = 0.0;
-    printf("numStateUpProc %i\n",numStateUpProc);
     for(iState=0;iState<numStateUpProc;iState++){
       occNow = numOccDetProc[iState];
       if(cpLsda==0) occNow = occNow*occNow*0.5;
       else occNow = occNow*occNow;
-      printf("occNow %lg\n",occNow);
       if(occNow>1.0e-13&&occNow<1.0-1.0e-13){
         entropy += occNow*log(occNow)+(1.0-occNow)*log(1.0-occNow);
-        printf("occNow %lg entropy %lg\n",occNow,entropy);
+        //printf("occNow %lg entropy %lg\n",occNow,entropy);
       }//endif occNow
     }//endfor iState
-    printf("entropy %lg\n",entropy);
+    //printf("entropy %lg\n",entropy);
     if(numProcStates>1){
       Reduce(&entropy,&entropyTotal,1,MPI_DOUBLE,MPI_SUM,0,commStates);
     }
     else entropyTotal = entropy;
-    printf("entropyTotal %lg\n",entropyTotal);
+    //printf("entropyTotal %lg\n",entropyTotal);
     if(cpLsda==0)stodftInfo->entropy = entropyTotal*2.0;
     else stodftInfo->entropy = entropyTotal;
   }

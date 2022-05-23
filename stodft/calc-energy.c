@@ -320,7 +320,7 @@ void calcTotEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*--------------------------------------------------------------------------*/
 /* V) Calculate entropy                                                     */
 
-  printf("smearOpt %i\n",smearOpt);
+  //printf("smearOpt %i\n",smearOpt);
   if(smearOpt>0)calcStoEntropy(cp);
 
 /*--------------------------------------------------------------------------*/
@@ -515,6 +515,7 @@ void calcKNEEnergyFilterDiag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*--------------------------------------------------------------------------*/
 /* II) Entropy term for metallic system                                     */
 
+  // Here we calculate the -TS
   if(smearOpt>0){
     entropy = 0.0;
     printf("numStateUpProc %i\n",numStateUpProc);

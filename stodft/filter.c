@@ -525,14 +525,14 @@ void filterChebyPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   if(smearOpt>0&&filterDiagFlag==0){
     #pragma omp parallel for private(iCoeff)
     for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
-      entropyUpRe[iCoeff] = entropyExpanCoeff[imu]*cre_up[iCoeff];
-      entropyUpIm[iCoeff] = entropyExpanCoeff[imu]*cim_up[iCoeff];
+      entropyUpRe[iCoeff] = entropyExpanCoeff[0]*cre_up[iCoeff];
+      entropyUpIm[iCoeff] = entropyExpanCoeff[0]*cim_up[iCoeff];
     }//endfor iCoeff
     if(cpLsda==1&&numStateDnProc!=0){
       #pragma omp parallel for private(iCoeff)
       for(iCoeff=1;iCoeff<=numCoeffDnTotal;iCoeff++){
-        entropyDnRe[iCoeff] = entropyExpanCoeff[imu]*cre_dn[iCoeff];
-        entropyDnIm[iCoeff] = entropyExpanCoeff[imu]*cim_dn[iCoeff];
+        entropyDnRe[iCoeff] = entropyExpanCoeff[0]*cre_dn[iCoeff];
+        entropyDnIm[iCoeff] = entropyExpanCoeff[0]*cim_dn[iCoeff];
       }//endfor iCoeff
     }//endif cpLsda
   }//endif smearOpt
@@ -1532,7 +1532,7 @@ void filterChebyPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
         coeffReUpStore[iCoeff] = 0.0;
         coeffImUpStore[iCoeff] = 0.0;
       }
-      #pragma omp parallel for private(iSto,jState,iCoeff,x,y)
+      #pragma omp parallel for private(iSto,iState,iCoeff,x,y)
       for(iSto=0;iSto<numStates[iProc];iSto++){
         startIndex = dsplStates22[myidState];
         for(iState=0;iState<numStatePrintUpProc;iState++){
@@ -1562,6 +1562,7 @@ void filterChebyPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
         coeffReUpStore[iCoeff] = 0.0;
         coeffImUpStore[iCoeff] = 0.0;
       }
+      #pragma omp parallel for private(iSto,iState,iCoeff,x,y)
       for(iSto=0;iSto<numStates[iProc];iSto++){
         for(iState=0;iState<numStatePrintUpProc;iState++){
           startIndex = dsplStates22[myidState];
@@ -1913,7 +1914,7 @@ void filterChebyPolyFricFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
         coeffReUpStore[iCoeff] = 0.0;
         coeffImUpStore[iCoeff] = 0.0;
       }
-      #pragma omp parallel for private(iSto,jState,iCoeff,x,y)
+      #pragma omp parallel for private(iSto,iState,iCoeff,x,y)
       for(iSto=0;iSto<numStates[iProc];iSto++){
         startIndex = dsplStates22[myidState];
         for(iState=0;iState<numStatePrintUpProc;iState++){

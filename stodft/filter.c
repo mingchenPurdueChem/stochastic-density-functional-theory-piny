@@ -529,8 +529,8 @@ void filterChebyPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   if(smearOpt>0&&filterDiagFlag==0){
     #pragma omp parallel for private(iCoeff)
     for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
-      entropyUpRe[iCoeff] = entropyExpanCoeff[imu]*cre_up[iCoeff];
-      entropyUpIm[iCoeff] = entropyExpanCoeff[imu]*cim_up[iCoeff];
+      entropyUpRe[iCoeff] = entropyExpanCoeff[0]*cre_up[iCoeff];
+      entropyUpIm[iCoeff] = entropyExpanCoeff[0]*cim_up[iCoeff];
       //if(isnormal(entropyUpRe[iCoeff])==0||isnormal(entropyUpIm[iCoeff])==0){
       //  printf("bbbbbb %i %lg %lg %lg\n",iCoeff,entropyUpRe[iCoeff],entropyUpIm[iCoeff],entropyExpanCoeff[imu]);
       //}
@@ -539,8 +539,8 @@ void filterChebyPolyHerm(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     if(cpLsda==1&&numStateDnProc!=0){
       #pragma omp parallel for private(iCoeff)
       for(iCoeff=1;iCoeff<=numCoeffDnTotal;iCoeff++){
-        entropyDnRe[iCoeff] = entropyExpanCoeff[imu]*cre_dn[iCoeff];
-        entropyDnIm[iCoeff] = entropyExpanCoeff[imu]*cim_dn[iCoeff];
+        entropyDnRe[iCoeff] = entropyExpanCoeff[0]*cre_dn[iCoeff];
+        entropyDnIm[iCoeff] = entropyExpanCoeff[0]*cim_dn[iCoeff];
       }//endfor iCoeff
     }//endif cpLsda
   }//endif smearOpt

@@ -676,7 +676,8 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
     printf("Electron Ext Energy:          %.20lg\n",energyExtTemp);
     printf("Electron Ex-Cor Energy:       %.20lg\n",energyExcTemp);
     if(smearOpt>0){
-      printf("TS:                           %.16lg\n",temperature*stodftInfo->entropy);
+      // Since calcStoEntropy already scale entropy with T, we don't scale entropy here
+      printf("TS:                           %.16lg\n",stodftInfo->entropy);
     }
     printf("Electron Total Elec Energy:   %.20lg\n",energyTotElec);
     printf("Atom Energy:		  %.20lg\n",vInter);

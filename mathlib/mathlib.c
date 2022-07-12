@@ -861,6 +861,13 @@ double j2(double x){
 }
 /*===============================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+double j3(double x){
+  return (15.0/(x*x*x)-6.0/x)*sin(x)/x-(15.0/(x*x)-1)*cos(x)/x;
+}
+/*===============================================================*/
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
@@ -891,6 +898,17 @@ double dj2(double x){
 }
 /*===============================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+double dj3(double x){
+  double x2 = x*x;
+  double x3 = x2*x;
+  double x4 = x2*x2;
+  double x5 = x4*x;
+  return (-((x4-27.0*x2+60.0)*sin(x)+x*(7*x2-60)*cos(x))/x5);
+}
+/*===============================================================*/
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/

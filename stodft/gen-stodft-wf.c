@@ -183,8 +183,10 @@ void genStoOrbitalInterp(CLASS *class,GENERAL_DATA *general_data,
 	  printf("eigValMin %lg\n",eigValMin);
 	  printf("eigValMax %lg\n",eigValMax);  
 	}
-	stodftInfo->gapInit = eigValMax-eigValMin;
-	stodftInfo->chemPotInit = 0.5*(eigValMax+eigValMin);
+	//stodftInfo->gapInit = eigValMax-eigValMin;
+	stodftInfo->gapInit = eigValMax-energyMin;
+	//stodftInfo->chemPotInit = 0.5*(eigValMax+eigValMin);
+	stodftInfo->chemPotInit = 0.5*(eigValMax+energyMin);
 	genChemPotInterpPoints(stodftInfo,stodftCoefPos);
       }
     }

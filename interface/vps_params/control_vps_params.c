@@ -988,7 +988,7 @@ void make_vps_splin(char *vps_file,int loc_opt,int n_ang,
      }/*endif*/
 
    }/*endif ivps_label goedecker*/
-
+   
    v_rphi = (double *) cmalloc(nr*sizeof(double))-1;
    v_loc  = (double *) cmalloc(nr*sizeof(double))-1;
    r      = (double *) cmalloc(nr*sizeof(double))-1;
@@ -1526,6 +1526,7 @@ void make_vps_splin(char *vps_file,int loc_opt,int n_ang,
         arg = r[ir]*g[ig];
         rj0 = (sin(arg)/arg)*r[ir];
         fv_rphi[ig]  += fpidr*rj0*v_rphi[ir];
+	//printf("fv_rphi %f\n", fv_rphi[ig]);
        } /* endfor */
       if(cp_ptens_calc ==1 ){
         for(ir=2;ir <= nr; ir++) {
@@ -1553,6 +1554,7 @@ void make_vps_splin(char *vps_file,int loc_opt,int n_ang,
           arg = r[ir]*g[ig];
           rj1 = ((sin(arg)/arg - cos(arg))/arg)*r[ir];
           fv_rphi[ig] += fpidr*rj1*v_rphi[ir];
+	  //printf("fv_rphi %f\n", fv_rphi[ig]);
         } /* endfor */
        if(cp_ptens_calc ==1 ){
         for(ir=2;ir <= nr; ir++) {
@@ -1580,6 +1582,7 @@ void make_vps_splin(char *vps_file,int loc_opt,int n_ang,
           arg = r[ir]*g[ig];
           rj2 = (((3.0/(arg*arg)-1.0)*sin(arg)-3.0*cos(arg)/arg)/arg)*r[ir];
           fv_rphi[ig] += fpidr*rj2*v_rphi[ir];
+	  //printf("fv_rphi %f\n", fv_rphi[ig]); 
         } /* endfor */
        if(cp_ptens_calc ==1 ){
         for(ir=2;ir <= nr; ir++) {
@@ -1609,6 +1612,7 @@ void make_vps_splin(char *vps_file,int loc_opt,int n_ang,
           rj3 = (((15.0/(arg*arg) - 6.0)*sin(arg)/arg + 
                  (1.0 - 15.0/(arg*arg))*cos(arg))/arg)*r[ir];
           fv_rphi[ig] += fpidr*rj3*v_rphi[ir];
+	  //printf("fv_rphi %f\n", fv_rphi[ig]);
         } /* endfor */
        if(cp_ptens_calc ==1 ){
         for(ir=2;ir <= nr; ir++) {
@@ -1648,6 +1652,7 @@ void make_vps_splin(char *vps_file,int loc_opt,int n_ang,
              -  ztot*fpi*(
                         exp((-0.25*g2/(alpha_conv_dual*alpha_conv_dual))))/g2
                );
+	 //printf("fv_rphi %f\n", fv_rphi[ig]);
     } /* endfor */
        falpha_12        = 4.0*alpha_1*alpha_1;
        falpha_22        = 4.0*alpha_2*alpha_2; 
@@ -1689,7 +1694,8 @@ void make_vps_splin(char *vps_file,int loc_opt,int n_ang,
             phi           = atan2(g[ig],angamma[i]);
             pre_c         = 0.50*zpol*tpi*c[i];
             fv_rphi[ig]  -= pre_c*(gm1*gamm_min*phi+angamma[i]*log(gamm_plu));
-            fdv_rphi[ig] -= pre_c*(gm1*gamm_min*(-phi*gm1+angamma[i]/gamm_plu)
+            //printf("fv_rphi %f\n", fv_rphi[ig]);
+	    fdv_rphi[ig] -= pre_c*(gm1*gamm_min*(-phi*gm1+angamma[i]/gamm_plu)
                                   -2.0*phi+2.0*g[ig]*angamma[i]/gamm_plu)*gm1;
           } /* endfor ig */
          } /* endfor i */
@@ -1703,6 +1709,7 @@ void make_vps_splin(char *vps_file,int loc_opt,int n_ang,
             phi           = atan2(g[ig],angamma[i]);
             pre_c         = 0.50*zpol*tpi*c[i];
             fv_rphi[ig]  -= pre_c*(gm1*gamm_min*phi+angamma[i]*log(gamm_plu));
+	    //printf("fv_rphi %f\n", fv_rphi[ig]);
           } /* endfor ig */
          } /* endfor i */
         }/*endif*/

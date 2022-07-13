@@ -373,7 +373,7 @@ void controlNlppReal(CP *cp,CLASS *class,GENERAL_DATA *generalData,
       for(iAng=0;iAng<=angNow;iAng++){
         if(iAng!=locOpt[iType+1]){
           rGrid = numR-1;
-          while(fabs(vNl[iAng*numR+rGrid])<1.0e-5&&rGrid>0){//double check 1.0e-10
+          while(fabs(vNl[iAng*numR+rGrid])<1.0e-4&&rGrid>0){//double check 1.0e-10
             //if(myidState==1)printf("rrrrrrrGrid %i\n",rGrid);
             rGrid -= 1;
           }

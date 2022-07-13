@@ -100,6 +100,7 @@ void make_vps_splin_dvr(char *vps_file,int loc_opt,int natm_typ,
   double *phi0;                  /* Num: r=0 value for pseudo wave func */
   double *v_phi,*v_loc,*r;       /* Lst: temporary spline arrays     */
   double *v_rphi, *v_g, *rphi;
+  double *fv_rphi;
   int ir,ig;                        /* Num: counter for above arrays    */
   int nr;                        /* Num: Length of above arrays      */
   int nsplin_r_loc;
@@ -297,6 +298,8 @@ void make_vps_splin_dvr(char *vps_file,int loc_opt,int natm_typ,
    /* allocate more memory for NL PP */
 
    v_phi =  (double *) cmalloc(nr*sizeof(double))-1;
+   fv_rphi= (double *) cmalloc(nr*sizeof(double))-1;
+   //printf("fv_rphi %f\n", fv_rphi);
    v_rphi = (double *) cmalloc(nr*sizeof(double))-1;
    v_loc  = (double *) cmalloc(nr*sizeof(double))-1;
    r      = (double *) cmalloc(nr*sizeof(double))-1;
@@ -681,6 +684,7 @@ void make_vps_splin_dvr(char *vps_file,int loc_opt,int natm_typ,
         arg = r[ir]*g[ig];
         rj0 = (sin(arg)/arg);
         fv_rphi[ir]  += tpisqdg*rj0*v_g[ig]*g[ig]*g[ig];
+	//printf("fv_rphi %i\n", fv_rphi);
        } /* endfor */
       } /* endfor */
 
@@ -703,6 +707,7 @@ void make_vps_splin_dvr(char *vps_file,int loc_opt,int natm_typ,
           arg = r[ir]*g[ig];
           rj1 = ((sin(arg)/arg - cos(arg))/arg);
           fv_rphi[ir] += tpisqdg*rj1*v_g[ig]*g[ig]*g[ig];
+	  //printf("fv_rphi %i\n", fv_rphi);
         } /* endfor */
       } /* endfor */
 
@@ -721,6 +726,7 @@ void make_vps_splin_dvr(char *vps_file,int loc_opt,int natm_typ,
           arg = r[ir]*g[ig];
           rj2 = (((3.0/(arg*arg)-1.0)*sin(arg)-3.0*cos(arg)/arg)/arg);
           fv_rphi[ir] += tpisqdg*rj2*v_g[ig]*g[ig]*g[ig];
+	  //printf("fv_rphi %i\n", fv_rphi);
         } /* endfor */
       } /* endfor */
 
@@ -741,6 +747,7 @@ void make_vps_splin_dvr(char *vps_file,int loc_opt,int natm_typ,
           rj3 = (((15.0/(arg*arg) - 6.0)*sin(arg)/arg +
                  (1.0 - 15.0/(arg*arg))*cos(arg))/arg);
           fv_rphi[ir] += tpisqdg*rj3*v_g[ig]*g[ig]*g[ig];
+	  //printf("fv_rphi %i\n", fv_rphi);
         } /* endfor */
       } /* endfor */
 

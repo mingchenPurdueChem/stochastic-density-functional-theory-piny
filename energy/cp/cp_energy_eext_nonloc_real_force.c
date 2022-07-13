@@ -601,6 +601,7 @@ void calcSpHarmDeriv(double *ylm,double *ylmTheta, double *ylmPhi,int l,
       //printf("m=1 Im DylmDtheta %lg DPhi %lg\n",ylmTheta[numGrid+3],ylmPhi[numGrid+3]);
       break;
     case 2:
+      printf("sintheta %lg costheta %lg sinphi %lg cosphi %lg\n",trig[0],trig[1],trig[2],trig[3]);
       for(iGrid=0;iGrid<numGrid;iGrid++){ //Y20
         ylmTheta[iGrid] = -pre20*6.0*trig[iGrid*4]*trig[iGrid*4+1];
 	ylmPhi[iGrid] = 0.0;
@@ -619,7 +620,7 @@ void calcSpHarmDeriv(double *ylm,double *ylmTheta, double *ylmPhi,int l,
 	ylmTheta[ind] = pre22*2.0*trig[iGrid*4]*trig[iGrid*4+1]*(2*trig[iGrid*4+3]*trig[iGrid*4+3]-1);
 	ylmTheta[ind+1] = pre22*2.0*trig[iGrid*4]*trig[iGrid*4+1]*(2.0*trig[iGrid*4+3]*trig[iGrid*4+2]);
 	ylmPhi[ind] = -pre22*trig[iGrid*4]*trig[iGrid*4]*4.0*trig[iGrid*4+3]*trig[iGrid*4+2];
-	ylmPhi[ind+1] = pre22*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+3]*2.0*(2*trig[iGrid*4+3]*trig[iGrid*4+3]-1);
+        ylmPhi[ind+1] = pre22*trig[iGrid*4]*trig[iGrid*4]*2.0*(2*trig[iGrid*4+3]*trig[iGrid*4+3]-1);
       }
       break;
   }

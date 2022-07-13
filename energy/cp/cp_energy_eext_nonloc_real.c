@@ -704,6 +704,10 @@ void calcSpHarm(double *ylm,int l,double *gridAtomNbhd,int numGrid,
   double pre20 = 0.25*sqrt(5.0*piInv);
   double pre21 = -0.5*sqrt(7.5*piInv);
   double pre22 = 0.25*sqrt(7.5*piInv);
+  double pre30 = 0.25*sqrt(7.0*piInv);
+  double pre31 = -0.125*sqrt(21*piInv);
+  double pre32 = 0.25*sqrt(52.5*piInv);
+  double pre33 = -0.125*sqrt(35*piInv);
 
 
   switch(l){
@@ -736,6 +740,29 @@ void calcSpHarm(double *ylm,int l,double *gridAtomNbhd,int numGrid,
 	ind = numGrid*3+iGrid*2;
 	ylm[ind] = temp1*(2.0*trig[iGrid*4+3]*trig[iGrid*4+3]-1.0);
 	ylm[ind+1] = temp1*(2.0*trig[iGrid*4+3]*trig[iGrid*4+2]);
+      }
+      break;
+    case 3:
+      for(iGrid=0;iGrid<numGrid;iGrid++){
+       ylm[iGrid] = pre30*(5.0*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4+1]-3.0*trig[iGrid*4+1]);
+      }
+      for(iGrid=0;iGrid<numGrid;iGrid++){
+       temp1 = pre31*trig[iGrid*4]*(5.0*trig[iGrid*4+1]*trig[iGrid*4+1]-1.0);
+       ind = numGrid+iGrid*2;
+       ylm[ind] = temp1*trig[iGrid*4+3];
+       ylm[ind+1] = temp1*trig[iGrid*4+2];
+      }
+      for(iGrid=0;iGrid<numGrid;iGrid++){
+        temp1 = pre32*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1];
+       ind = numGrid*3+iGrid*2;
+       ylm[ind] = temp1*(2.0*trig[iGrid*4+3]*trig[iGrid*4+3]-1.0);
+       ylm[ind+1] = temp1*(2.0*trig[iGrid*4+3]*trig[iGrid*4+2]);
+      }
+      for(iGrid=0;iGrid<numGrid;iGrid++){
+       temp1 = pre33*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4];
+       ind = numGrid*5+iGrid*2;
+       ylm[ind] = temp1*(4.0*trig[iGrid*4+3]*trig[iGrid*4+3]*trig[iGrid*4+3]-3.0*trig[iGrid*4+3]);
+       ylm[ind+1] = temp1*(3.0*trig[iGrid*4+2]-4.0*trig[iGrid*4+2]*trig[iGrid*4+2]*trig[iGrid*4+2]);
       }
       break;
   }

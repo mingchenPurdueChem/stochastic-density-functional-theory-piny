@@ -574,6 +574,10 @@ void calcSpHarmDeriv(double *ylm,double *ylmTheta, double *ylmPhi,int l,
   double pre20 = 0.25*sqrt(5.0*piInv);
   double pre21 = -0.5*sqrt(7.5*piInv);
   double pre22 = 0.25*sqrt(7.5*piInv);
+  double pre30 = 0.25*sqrt(7*piInv);
+  double pre31 = -0.125*sqrt(21*piInv);
+  double pre32 = 0.25*sqrt(52.5*piInv);
+  double pre33 = -0.125*sqrt(35*piInv);
   // trig 0:sin(theta) 1:cos(theta) 2:sin(phi) 3:cos(phi)
   
 
@@ -601,7 +605,7 @@ void calcSpHarmDeriv(double *ylm,double *ylmTheta, double *ylmPhi,int l,
       //printf("m=1 Im DylmDtheta %lg DPhi %lg\n",ylmTheta[numGrid+3],ylmPhi[numGrid+3]);
       break;
     case 2:
-      printf("sintheta %lg costheta %lg sinphi %lg cosphi %lg\n",trig[0],trig[1],trig[2],trig[3]);
+      //printf("sintheta %lg costheta %lg sinphi %lg cosphi %lg\n",trig[0],trig[1],trig[2],trig[3]);
       for(iGrid=0;iGrid<numGrid;iGrid++){ //Y20
         ylmTheta[iGrid] = -pre20*6.0*trig[iGrid*4]*trig[iGrid*4+1];
 	ylmPhi[iGrid] = 0.0;
@@ -621,6 +625,48 @@ void calcSpHarmDeriv(double *ylm,double *ylmTheta, double *ylmPhi,int l,
 	ylmTheta[ind+1] = pre22*2.0*trig[iGrid*4]*trig[iGrid*4+1]*(2.0*trig[iGrid*4+3]*trig[iGrid*4+2]);
 	ylmPhi[ind] = -pre22*trig[iGrid*4]*trig[iGrid*4]*4.0*trig[iGrid*4+3]*trig[iGrid*4+2];
         ylmPhi[ind+1] = pre22*trig[iGrid*4]*trig[iGrid*4]*2.0*(2*trig[iGrid*4+3]*trig[iGrid*4+3]-1);
+      }
+      break;
+    case 3:
+      for(iGrid=0;iGrid<numGrid;iGrid++){ //Y30
+       ylmTheta[iGrid] = pre30*(3*trig[iGrid*4]-15*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4];
+       ylmPhi[iGrid] = 0.0;
+      }
+      for(iGrid=0;iGrid<numGrid;iGrid++){ //Y31
+       ind = numGrid+iGrid*2;
+       ylmTheta[ind] = pre31*(5*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4+3]-
+                       10*trig[iGrid*4+1]*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+3]-
+                       trig[iGrid*4+1]*trig[iGrid*4+3]);
+       ylmTheta[ind+1] = pre31*(5*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4+2]-
+                         10*trig[iGrid*4+1]*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+2]-
+                         trig[iGrid*4+1]*trig[iGrid*4+2]);
+       ylmPhi[ind] = pre31*(trig[iGrid*4]*trig[iGrid*4+2]-
+                     5*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4]*trig[iGrid*4+2]);
+       ylmPhi[ind+1] = pre31*(5*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4]*trig[iGrid*4+3]-
+                       trig[iGrid*4]*trig[iGrid*4+3]);
+      }
+      for(iGrid=0;iGrid<numGrid;iGrid++){ //Y32
+       ind = numGrid*3+iGrid*2;
+       ylmTheta[ind] = pre32*(4*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4+3]*trig[iGrid*4+3]-
+                       2*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+3]*trig[iGrid*4+3]-
+                       2*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+1]+
+                       trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4]);
+       ylmTheta[ind+1] = pre32*(4*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4+2]*trig[iGrid*4+3]-
+                         2**trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+2]*trig[iGrid*4+3]);
+       ylmPhi[ind] = -pre32*(4*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+2]*trig[iGrid*4+3]);
+       ylmPhi[ind+1] = pre32*(2*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+3]*trig[iGrid*4+3]-
+                       2*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+2]*trig[iGrid*4+2]);
+      }
+      for(iGrid=0;iGrid<numGrid;iGrid++){ //Y33
+       ind = numGrid*5+iGrid*2;
+       ylmTheta[ind] = pre33*(12*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+3]*trig[iGrid*4+3]*trig[iGrid*4+3]-
+                       9*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+3]);
+       ylmTheta[ind+1] = pre33*(9*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+2]-
+                         12*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+2]*trig[iGrid*4+2]*trig[iGrid*4+2]);
+       ylmPhi[ind] = pre33*(3*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+2]-
+                     12*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+2]*trig[iGrid*4+3]*trig[iGrid*4+3]);
+       ylmPhi[ind+1] = pre33*(3*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+2]-
+                       12*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+2]*trig[iGrid*4+2]*trig[iGrid*4+3]);
       }
       break;
   }

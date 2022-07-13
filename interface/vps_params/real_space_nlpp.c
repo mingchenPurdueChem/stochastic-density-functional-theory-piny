@@ -823,6 +823,19 @@ void bessTransform(double *funIn,int numIn,double dx,int l,double *funOut,
 	}//endif y
       }//endfor iGrid
       break;
+    case 3:
+      for(iGrid=0;iGrid<numOut;iGrid++){
+        funOut[iGrid] = 0.0;
+        y = yList[iGrid];
+        if(y>1.0e-100){
+          for(jGrid=1;jGrid<numIn;jGrid++){
+            x = jGrid*dx;
+            arg = x*y;
+            funOut[iGrid] += dj3(arg)*x*funIn[jGrid]*dx;
+          }//endfor jGrid
+        }//endif y
+      }//endfor iGrid
+      break;
   }//endswitch
 
 /*--------------------------------------------------------------------------*/
@@ -897,6 +910,15 @@ void optGCoeff(PSEUDO_REAL *pseudoReal,int numGLg,int numGSm,int numR,
           }
           A[iGridG*numGLg+jGridG] *= dr*qi*qi*qj*qj;
           break;
+	case 3:
+         for(kGridR=1;kGridR<numRCutoff;kGridR++){
+           r = kGridR*dr;
+           arg1 = qi*r;
+           arg2 = qj*r;
+           A[iGridG*numGLg+jGridG] += j3(arg1)*j3(arg2)*r*r;
+         }
+         A[iGridG*numGLg+jGridG] *= dr*qi*qi*qj*qj;
+         break;
       }//endswitch l
       A[jGridG*numGLg+iGridG] = A[iGridG*numGLg+jGridG];
     }//endfor jGridG
@@ -1034,6 +1056,19 @@ void bessTransformGrad(double *funIn,int numIn,double dx,int l,double *funOut,
 	}//endif y
       }//endfor iGrid
       break;
+    case 3:
+      for(iGrid=0;iGrid<numOut;iGrid++){
+        funOut[iGrid] = 0.0;
+        y = yList[iGrid];
+        if(y>1.0e-100){
+          for(jGrid=1;jGrid<numIn;jGrid++){
+            x = jGrid*dx;
+            arg = x*y;
+            funOut[iGrid] += dj3(arg)*x*x*funIn[jGrid]*dx;
+          }//endfor jGrid
+        }//endif y
+      }//endfor iGrid
+      break;
   }//endswitch
 
 /*--------------------------------------------------------------------------*/
@@ -1136,6 +1171,19 @@ void bessTransformGradGrad(double *funIn,int numIn,double dx,int l,double *funOu
             x = jGrid*dx;
             arg = x*y;
             funOut[iGrid] += dj2(arg)*x*x*x*funIn[jGrid]*dx;
+          }//endfor jGrid
+        }//endif y
+      }//endfor iGrid
+      break;
+    case 3:
+      for(iGrid=0;iGrid<numOut;iGrid++){
+        funOut[iGrid] = 0.0;
+        y = yList[iGrid];
+        if(y>1.0e-100){
+          for(jGrid=1;jGrid<numIn;jGrid++){
+            x = jGrid*dx;
+            arg = x*y;
+            funOut[iGrid] += dj3(arg)*x*x*x*funIn[jGrid]*dx;
           }//endfor jGrid
         }//endif y
       }//endfor iGrid

@@ -1419,7 +1419,7 @@ void genStoOrbitalEnergyWindowFake(CLASS *class,GENERAL_DATA *general_data,
   exit(0);
   */
   
-  printf("numStateUpProc %i\n",numStateUpProc);
+  //printf("numStateUpProc %i\n",numStateUpProc);
   for(iState=0;iState<numStateUpProc;iState++){
     iOff = iState*numCoeff;
     memcpy(wfReTemp,&coeffReUp[iOff+1],numCoeff*sizeof(double));
@@ -2325,14 +2325,14 @@ void genStoOrbitalChebyTest(CLASS *class,GENERAL_DATA *general_data,
         }
       }
       Barrier(commStates);
-      printf("%p\n",stodftCoefPos->expanCoeff);
+      //printf("%p\n",stodftCoefPos->expanCoeff);
       Bcast(stodftCoefPos->expanCoeff,totalPoly,MPI_DOUBLE,0,commStates);
-      printf("smearOpt %i\n",smearOpt);
+      //printf("smearOpt %i\n",smearOpt);
       if(smearOpt>0){
         Bcast(stodftCoefPos->entropyExpanCoeff,polynormLength,MPI_DOUBLE,0,commStates);
       }
     }
-    printf("11111111111111111\n");
+    //printf("11111111111111111\n");
   }
   if(expanType==2){
     Smin = newtonInfo->Smin;

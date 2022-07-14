@@ -629,7 +629,7 @@ void calcSpHarmDeriv(double *ylm,double *ylmTheta, double *ylmPhi,int l,
       break;
     case 3:
       for(iGrid=0;iGrid<numGrid;iGrid++){ //Y30
-	ylmTheta[iGrid] = pre30*(3*trig[iGrid*4]-15*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4];
+	ylmTheta[iGrid] = pre30*(3*trig[iGrid*4]-15*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4]);
 	ylmPhi[iGrid] = 0.0;
       }
       for(iGrid=0;iGrid<numGrid;iGrid++){ //Y31	
@@ -652,7 +652,7 @@ void calcSpHarmDeriv(double *ylm,double *ylmTheta, double *ylmPhi,int l,
 			2*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+1]+
 			trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4]);
 	ylmTheta[ind+1] = pre32*(4*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4+2]*trig[iGrid*4+3]-
-			  2**trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+2]*trig[iGrid*4+3]);
+			  2*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+2]*trig[iGrid*4+3]);
 	ylmPhi[ind] = -pre32*(4*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+2]*trig[iGrid*4+3]);
 	ylmPhi[ind+1] = pre32*(2*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+3]*trig[iGrid*4+3]-
 			2*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+2]*trig[iGrid*4+2]);
@@ -691,7 +691,7 @@ void calcAngleDeriv(double *trig,double *gridAtomNbhd,double *dTheta,double *dPh
   int iGrid;
   double r,r2,rProj2,rProj;
   double x,y,z;
-	  double pre1,pre2;
+  double pre1,pre2;
 
   for(iGrid=0;iGrid<numGrid;iGrid++){
     x = gridAtomNbhd[3*iGrid];

@@ -745,6 +745,7 @@ void calcSpHarm(double *ylm,int l,double *gridAtomNbhd,int numGrid,
     case 3:
       for(iGrid=0;iGrid<numGrid;iGrid++){
        ylm[iGrid] = pre30*(5.0*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4+1]-3.0*trig[iGrid*4+1]);
+       printf("iGrid\n")
       }
       for(iGrid=0;iGrid<numGrid;iGrid++){
        temp1 = pre31*trig[iGrid*4]*(5.0*trig[iGrid*4+1]*trig[iGrid*4+1]-1.0);
@@ -753,7 +754,7 @@ void calcSpHarm(double *ylm,int l,double *gridAtomNbhd,int numGrid,
        ylm[ind+1] = temp1*trig[iGrid*4+2];
       }
       for(iGrid=0;iGrid<numGrid;iGrid++){
-        temp1 = pre32*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1];
+       temp1 = pre32*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1];
        ind = numGrid*3+iGrid*2;
        ylm[ind] = temp1*(2.0*trig[iGrid*4+3]*trig[iGrid*4+3]-1.0);
        ylm[ind+1] = temp1*(2.0*trig[iGrid*4+3]*trig[iGrid*4+2]);
@@ -764,6 +765,9 @@ void calcSpHarm(double *ylm,int l,double *gridAtomNbhd,int numGrid,
        ylm[ind] = temp1*(4.0*trig[iGrid*4+3]*trig[iGrid*4+3]*trig[iGrid*4+3]-3.0*trig[iGrid*4+3]);
        ylm[ind+1] = temp1*(3.0*trig[iGrid*4+2]-4.0*trig[iGrid*4+2]*trig[iGrid*4+2]*trig[iGrid*4+2]);
       }
+      //if(l==1)printf("m=0 ylm %.16lg\n",ylm[1]);
+      //printf("m=1 ylm Re %.16lg im %.16lg\n",ylm[numGrid+2],ylm[numGrid+3]);
+      //exit(0);
       break;
   }
 

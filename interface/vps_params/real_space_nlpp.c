@@ -915,9 +915,11 @@ void optGCoeff(PSEUDO_REAL *pseudoReal,int numGLg,int numGSm,int numR,
            r = kGridR*dr;
            arg1 = qi*r;
            arg2 = qj*r;
+	   //printf("arg1 = %.16f, j3(arg1) = %.16f\n", arg1, j3(arg1));
            A[iGridG*numGLg+jGridG] += j3(arg1)*j3(arg2)*r*r;
          }
-         A[iGridG*numGLg+jGridG] *= dr*qi*qi*qj*qj;
+         //exit(0);
+	 A[iGridG*numGLg+jGridG] *= dr*qi*qi*qj*qj;
          break;
       }//endswitch l
       A[jGridG*numGLg+iGridG] = A[iGridG*numGLg+jGridG];
@@ -1065,7 +1067,9 @@ void bessTransformGrad(double *funIn,int numIn,double dx,int l,double *funOut,
             x = jGrid*dx;
             arg = x*y;
             funOut[iGrid] += dj3(arg)*x*x*funIn[jGrid]*dx;
+	    //printf("arg = %.16f, dj3 = %.16f\n", arg, dj3(arg));
           }//endfor jGrid
+	  //exit(0);
         }//endif y
       }//endfor iGrid
       break;
@@ -1636,6 +1640,10 @@ void mapRealSpaceGrid(CP *cp, CLASS *class, GENERAL_DATA *generalData)
 	      if(fftw3dFlag==0)gridInd = zGridInd*nkb*nka+yGridInd*nka+xGridInd;
 	      else gridInd = xGridInd*nkb*nkc+yGridInd*nkc+zGridInd;
 	      gridNlppMap[iAtom][numGridCount] = gridInd;
+	      if(gridInd>110592){
+	        printf("gridInd %i %i %i %i %i\n",xGridInd,yGridInd,zGridInd,xInd,k);
+	        //exit(0);
+	      }
 	      numGridCount += 1;  
 	      if(numGridCount%100==0){
 		gridNlppMap[iAtom] = (int *)realloc(gridNlppMap[iAtom],(numGridCount+100)*sizeof(int));
@@ -1795,7 +1803,7 @@ void testOverlap(CP *cp, CLASS *class, GENERAL_DATA *generalData)
     for(iGrid=0;iGrid<numGrid;iGrid++){
       gridIndex = gridNlppMap[iAtom][iGrid];
       if(gridNlppMapInvTemp[gridIndex][0]==0){
-	numGridNlppAll += 1;
+        numGridNlppAll += 1;
       }
       gridNlppMapInvTemp[gridIndex][0] += 1;
       numUpdate = gridNlppMapInvTemp[gridIndex][0];

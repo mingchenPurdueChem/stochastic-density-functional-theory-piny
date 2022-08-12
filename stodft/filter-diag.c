@@ -373,10 +373,10 @@ void orthNormStoWf(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 
   if(myidState==0)printf("Start Scatter Data\n");
 
-  //if(numProcStates>1){
-    //for(iProc=0;iProc<numProcStates;iProc++){
-      //printf("stowfRecvCountsComplex2 %i stowfDisplsComplex2 %i %i\n",stowfRecvCountsComplex2[iProc],stowfDisplsComplex2[iProc],2*numCoeffUpTotal);
-    //}
+  if(numProcStates>1){
+    for(iProc=0;iProc<numProcStates;iProc++){
+      printf("stowfRecvCountsComplex2 %i stowfDisplsComplex2 %i %i\n",stowfRecvCountsComplex2[iProc],stowfDisplsComplex2[iProc],2*numCoeffUpTotal);
+    }
     //printf("2*numCoeffUpTotal %i numCoeffUpAllProc*2 %i %i\n",2*numCoeffUpTotal,numCoeffUpAllProc2,numCoeffUpAllProc*2);
 #ifdef TEST_SCATTERV
     if(myidState!=0){

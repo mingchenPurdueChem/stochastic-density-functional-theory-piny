@@ -685,6 +685,10 @@ void gen_wave(CLASS *class,GENERAL_DATA *general_data,CP *cp,
 	      p_a = -rad2*ylmr[3]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
 	      p_c = -rad2*ylmi[3]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
 	      break;
+	    case 3:
+	      p_b = -ylmr[2]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
+              p_a = -rad2*ylmr[3]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
+              p_c = -rad2*ylmi[3]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
 	  }/*end switch*/
 	  psi_r[(ipart-1)*20+2] = 0.0;
 	  psi_i[(ipart-1)*20+2] = (p_c + (p_b+p_a)/rad2)/rad2;

@@ -322,13 +322,14 @@ void calcDensityDiis(CP *cp,double **rhoBank,double **rhoErr)
   // push stack then mix density
   int iScf = stodftInfo->iScf;
   double mixRatioSM = stodftInfo->mixRatioSM; //alpha
+  double mixRatioSM2 = stodftInfo->mixRatioSM2; //alpha
   double pre = mixRatioSM-1.0;
   if(myidState==0){
     printf("mixRatioSM %lg pre %lg\n",mixRatioSM,pre);
     printf("numDiisNow %i\n",numDiisNow);
   }
 
-  if(iScf<=400){
+  if(iScf<=10){
     for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
       rhoUp[iGrid+1] = 0.0;
       for(iDiis=0;iDiis<numDiisNow;iDiis++){
@@ -338,9 +339,9 @@ void calcDensityDiis(CP *cp,double **rhoBank,double **rhoErr)
     }//endfor iGrid
   }//endif iScf
   else{
-    //mixRatioSM = 0.5;	
-    mixRatioSM = 1.0;
-    pre = mixRatioSM-1.0;
+    //mixRatioSM = 0.3;	
+    //mixRatioSM = 1.0;
+    pre = mixRatioSM2-1.0;
     for(iGrid=0;iGrid<rhoRealGridNum;iGrid++){
       rhoUp[iGrid+1] = 0.0;
       for(iDiis=0;iDiis<numDiisNow;iDiis++)rhoUp[iGrid+1] += diisCoeff[iDiis]*(rhoBank[iDiis][iGrid]+pre*rhoErr[iDiis][iGrid]);

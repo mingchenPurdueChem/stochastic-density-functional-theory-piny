@@ -375,9 +375,9 @@ void orthNormStoWf(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 
   if(numProcStates>1){
     for(iProc=0;iProc<numProcStates;iProc++){
-      printf("stowfRecvCountsComplex2 %i stowfDisplsComplex2 %i %i\n",stowfRecvCountsComplex2[iProc],stowfDisplsComplex2[iProc],2*numCoeffUpTotal);
+      //printf("stowfRecvCountsComplex2 %i stowfDisplsComplex2 %i %i\n",stowfRecvCountsComplex2[iProc],stowfDisplsComplex2[iProc],2*numCoeffUpTotal);
     }
-    printf("2*numCoeffUpTotal %i numCoeffUpAllProc*2 %i %i\n",2*numCoeffUpTotal,numCoeffUpAllProc2,numCoeffUpAllProc*2);
+    //printf("2*numCoeffUpTotal %i numCoeffUpAllProc*2 %i %i\n",2*numCoeffUpTotal,numCoeffUpAllProc2,numCoeffUpAllProc*2);
 #ifdef TEST_SCATTERV
     if(myidState!=0){
       Recv(allWF,2*numCoeffUpTotal,MPI_DOUBLE,0,myidState,comm_states);
@@ -792,7 +792,7 @@ void buildKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     KSMatrixReduceAll = (double*)calloc(numStateUpIdp*numStateUpIdp,sizeof(double));
   }
 
-  printf("aaaaa numCoeffUpTotal %i numStates2[iProc] %i\n",numCoeffUpTotal,numStates2[myidState]*numCoeff);
+  //printf("aaaaa numCoeffUpTotal %i numStates2[iProc] %i\n",numCoeffUpTotal,numStates2[myidState]*numCoeff);
   if(numProcStates>1){
     for(iProc=0;iProc<numProcStates;iProc++){
       if(numProcStates>1)Barrier(comm_states);
@@ -1156,7 +1156,7 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   //numStateUpTotal = stodftInfo->numStateStoUp;
   //numStateUpAllProc = numChemPot*numStateUpTotal;
   numCoeffUpAllProc = numChemPot*numStateUpTotal*numCoeff;
-  printf("numStateUpProc %i numCoeffUpTotal %i numCoeffUpAllProc %i\n",numStateUpProc,numCoeffUpTotal,numCoeffUpAllProc);
+  //printf("numStateUpProc %i numCoeffUpTotal %i numCoeffUpAllProc %i\n",numStateUpProc,numCoeffUpTotal,numCoeffUpAllProc);
 
   if(numProcStates>1){
     Allgather(&numCoeffUpTotal,1,MPI_INT,stowfRecvCounts,1,MPI_INT,0,comm_states);

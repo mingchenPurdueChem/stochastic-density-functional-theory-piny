@@ -561,7 +561,7 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   CLATOMS_POS *clatomsPosMini   = &(classMini->clatoms_pos[1]);
   CLATOMS_POS *clatomsPos	= &(class-> clatoms_pos[1]);
 
-  int iAtom,iProj,iDim;
+  int iAtom,iProj,iDim,iType,iMol;
   int iGrid,jGrid,kGrid;
   int numGridTotFrag;
   int numGridTotFragSmall; //small cell
@@ -585,12 +585,17 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   int numGridBigBox[3];
   int skinA,skinB,skinC;
   //int indexGrid[3],zeroGrid[3],zeroGridBig[3];
+  int atomIndTypeStart,atomIndStart,atomIndFrag;
+  int numMolType = classMini->atommaps.nmol_typ;
 
   int *numGridFragDim = fragInfo->numGridFragDim[iFrag];
   int *numUnitCellDim = fragInfo->numUnitCellDim;
   int *numGridFragDimSmall = fragInfo->numGridFragDimSmall[iFrag];
   int *atomFragMap = fragInfo->atomFragMapProc[iFrag];
   int *gridShift = fragInfo->gridShift;
+  int *jatomJmolTypeStart = classMini->atommaps.jatm_jmol_typ_strt;
+  int *numMolJmolType = classMini->atommaps.nmol_jmol_typ;
+  int *numAtomJmolType = classMini->atommaps.natm_1mol_jmol_typ;
 
   //double geoCntBox[3],geoCntDiff[3],gridSize[3];
   //double zeroShift[3] = {0};
@@ -605,6 +610,7 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   //double distVert,distProjAxis;
   //double negativeLength;
   //double sigma;
+  double xCom,yCom,zCom,xComTemp,yComTemp,zComTemp;  
 
   double *hmat  = cell->hmat;
   double *hmati = cell->hmati;
@@ -619,6 +625,7 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   double *x = clatomsPos->x;
   double *y = clatomsPos->y;
   double *z = clatomsPos->z;
+  double *relativeCoord;
 
   int myidState = cp->communicate.myid_state;
 /*======================================================================*/
@@ -712,6 +719,73 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
   rootCoord[2] = fragRootIndA*aGrid[2]+fragRootIndB*bGrid[2]+fragRootIndC*cGrid[2];
  
   //printf("numAtomFrag %i\n",numAtomFrag);
+  // Move COM of each mol to fragment
+    for(iType=1;iType<=numMolType;iType++){
+      atomIndTypeStart = jatomJmolTypeStart[iType];
+      relativeCoord = (double*)cmalloc(numAtomJmolType[iType]*3*sizeof(double));
+      for(iMol=0;iMol<numMolJmolType[iType];iMol++){
+        atomIndStart = atomIndTypeStart+iMol*numAtomJmolType[iType];
+        // get com
+        xCom = 0.0;
+        yCom = 0.0;
+        zCom = 0.0;
+        for(iAtom=0;iAtom<numAtomJmolType[iType];iAtom++){
+         atomIndFrag = atomIndStart+iAtom;
+         //printf("atominmol %i %i %i %lg %lg %lg\n",iAtom,atomIndFrag,atomFragMap[atomIndFrag-1],x[atomFragMap[atomIndFrag-1]],y[atomFragMap[atomIndFrag-1]],z[atomFragMap[atomIndFrag-1]]);
+         xCom += x[atomFragMap[atomIndFrag-1]];
+         yCom += y[atomFragMap[atomIndFrag-1]];
+         zCom += z[atomFragMap[atomIndFrag-1]];
+        }
+        xCom = xCom/numAtomJmolType[iType];
+        yCom = yCom/numAtomJmolType[iType];
+        zCom = zCom/numAtomJmolType[iType];
+        for(iAtom=0;iAtom<numAtomJmolType[iType];iAtom++){
+         atomIndFrag = atomIndStart+iAtom;
+          relativeCoord[iAtom*3] = x[atomFragMap[atomIndFrag-1]]-xCom;
+         relativeCoord[iAtom*3+1] = y[atomFragMap[atomIndFrag-1]]-yCom;
+         relativeCoord[iAtom*3+2] = z[atomFragMap[atomIndFrag-1]]-zCom;
+        }
+        //printf("root %lg %lg %lg\n",rootCoord[0],rootCoord[1],rootCoord[2]);
+        xCom -= rootCoord[0];
+        yCom -= rootCoord[1];
+        zCom -= rootCoord[2];
+        xComTemp = xCom*hmati[1]+yCom*hmati[4]+zCom*hmati[7];
+        yComTemp = xCom*hmati[2]+yCom*hmati[5]+zCom*hmati[8];
+        zComTemp = xCom*hmati[3]+yCom*hmati[6]+zCom*hmati[9];
+        if(xComTemp<0.0)xComTemp += 1.0;
+        if(yComTemp<0.0)yComTemp += 1.0;
+        if(zComTemp<0.0)zComTemp += 1.0;
+        xCom = xComTemp*hmat[1]+yComTemp*hmat[4]+zComTemp*hmat[7];
+        yCom = xComTemp*hmat[2]+yComTemp*hmat[5]+zComTemp*hmat[8];
+        zCom = xComTemp*hmat[3]+yComTemp*hmat[6]+zComTemp*hmat[9];
+        //printf("xyz com %lg %lg %lg\n",xCom,yCom,zCom);
+        for(iAtom=0;iAtom<numAtomJmolType[iType];iAtom++){
+         atomIndFrag = atomIndStart+iAtom;
+          xMini[atomIndFrag] = xCom+relativeCoord[iAtom*3];
+         yMini[atomIndFrag] = yCom+relativeCoord[iAtom*3+1];
+         zMini[atomIndFrag] = zCom+relativeCoord[iAtom*3+2];
+        }//endfor iAtom
+        //exit(0);     
+      }//endfor iMol
+      cfree(relativeCoord);
+    }//endfor iType
+  
+  // Move atoms to fragment
+  for(iAtom=0;iAtom<numAtomFrag;iAtom++){
+    xTemp[iAtom] = xMini[iAtom+1]*hmati[1]+yMini[iAtom+1]*hmati[4]+zMini[iAtom+1]*hmati[7];
+    yTemp[iAtom] = xMini[iAtom+1]*hmati[2]+yMini[iAtom+1]*hmati[5]+zMini[iAtom+1]*hmati[8];
+    zTemp[iAtom] = xMini[iAtom+1]*hmati[3]+yMini[iAtom+1]*hmati[6]+zMini[iAtom+1]*hmati[9];
+    if(xTemp[iAtom]<0.0)xTemp[iAtom] += 1.0;
+    if(yTemp[iAtom]<0.0)yTemp[iAtom] += 1.0;
+    if(zTemp[iAtom]<0.0)zTemp[iAtom] += 1.0;
+    if(xTemp[iAtom]>=1.0)xTemp[iAtom] -= 1.0;
+    if(yTemp[iAtom]>=1.0)yTemp[iAtom] -= 1.0;
+    if(zTemp[iAtom]>=1.0)zTemp[iAtom] -= 1.0;    
+    xMini[iAtom+1] = xTemp[iAtom]*hmat[1]+yTemp[iAtom]*hmat[4]+zTemp[iAtom]*hmat[7];
+    yMini[iAtom+1] = xTemp[iAtom]*hmat[2]+yTemp[iAtom]*hmat[5]+zTemp[iAtom]*hmat[8];
+    zMini[iAtom+1] = xTemp[iAtom]*hmat[3]+yTemp[iAtom]*hmat[6]+zTemp[iAtom]*hmat[9];    
+  }
+  /*
   for(iAtom=0;iAtom<numAtomFrag;iAtom++){
     xDiff[iAtom] = x[atomFragMap[iAtom]]-rootCoord[0];
     yDiff[iAtom] = y[atomFragMap[iAtom]]-rootCoord[1];
@@ -727,7 +801,7 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
     zMini[iAtom+1] = xTemp[iAtom]*hmat[3]+yTemp[iAtom]*hmat[6]+zTemp[iAtom]*hmat[9];
 
     //debug
-    /*
+    
     if(xMini[iAtom+1]<0.0||xMini[iAtom+1]>hmatMini[1]||yMini[iAtom+1]<0.0||yMini[iAtom+1]>hmatMini[5]||zMini[iAtom+1]<0.0||zMini[iAtom+1]>hmatMini[9]){
       printf("bad coordinate %i %lg %lg %lg\n",iAtom+1,xMini[iAtom+1],yMini[iAtom+1],zMini[iAtom+1]);
       printf("rootCoord %lg %lg %lg\n",rootCoord[0],rootCoord[1],rootCoord[2]);
@@ -736,8 +810,8 @@ void initFFTMapUnitCell(GENERAL_DATA *generalData,CLASS *class,CP *cp,
       fflush(stdout);
       exit(0);
     }
-    */
-  }
+    
+  }*/
   //debug
   //printf("3 %lg %lg %lg 18 %lg %lg %lg\n",xMini[3],yMini[3],zMini[3],xMini[18],yMini[18],zMini[18]);
   

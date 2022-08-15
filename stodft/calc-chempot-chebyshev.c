@@ -1082,7 +1082,7 @@ void calcChebyMomentsFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     coeffReUpStore = (double*)crealloc(coeffReUpStore,numStates[iProc]*numCoeff*sizeof(double));
     coeffImUpStore = (double*)crealloc(coeffImUpStore,numStates[iProc]*numCoeff*sizeof(double));
 
-    printf("numStates22[myidState] %i\n",numStates22[myidState]);    
+    //printf("numStates22[myidState] %i\n",numStates22[myidState]);    
     for(iState=0;iState<numStates22[myidState];iState++)stoDetDotProc[iState] = 0.0;
     if(myidState==iProc){
       memcpy(coeffReUpStore,&coeffReUp[1],numStates[iProc]*numCoeff*sizeof(double));

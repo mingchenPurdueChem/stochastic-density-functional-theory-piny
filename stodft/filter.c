@@ -1283,13 +1283,13 @@ void filterChebyPolyHermFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 
   //DEBUG
   
-  //if(myidState==0){
-    //for(imu=0;imu<numChemPot;imu++){
-      //for(iState=0;iState<numStatePrintUp;iState++){
-        //printf("iiiiiiiimu %i iState %i %lg\n",imu,iState,occupNumber[imu*numStatePrintUp+iState]);
-      //}
-    //}
-  //}
+  if(myidState==0){
+    for(imu=0;imu<numChemPot;imu++){
+      for(iState=0;iState<numStatePrintUp;iState++){
+        printf("iiiiiiiimu %i iState %i %lg\n",imu,iState,occupNumber[imu*numStatePrintUp+iState]);
+      }
+    }
+  }
   
   
   

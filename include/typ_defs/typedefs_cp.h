@@ -769,7 +769,7 @@ typedef struct stodftInfo{
   double mixRatioBig;		    /* Num: What is the best ratio for mixing?  */
 				    /*	    This is for pure mixing		*/
   double mixRatioSM;		    /* Num: We can also combine diis with	*/
-  double mixRatioSM2;		    /*	    mixing. This is the mixing ratio.	*/
+				    /*	    mixing. This is the mixing ratio.	*/
 				    /*	    (the potion for last step)		*/
   double lambdaDiis;		    /* Num: Lagrange Multiplier for Diis	*/
 

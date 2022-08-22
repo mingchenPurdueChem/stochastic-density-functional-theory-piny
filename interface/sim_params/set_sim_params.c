@@ -4744,9 +4744,6 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   sscanf(dict[25].keyarg,"%lg",&rka);
   stodftInfo->mixRatioSM = rka;
 
-  sscanf(dict[48].keyarg,"%lg",&rka);
-  stodftInfo->mixRatioSM2 = rka;
-
   /*-----------------------------------------------------------------------*/
   /*  26)\stowf_seed{#} */
   sscanf(dict[26].keyarg,"%lg",&rka);

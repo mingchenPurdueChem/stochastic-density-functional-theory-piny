@@ -103,7 +103,6 @@ void commStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
     Bcast(&(stodftInfo->chemPotInit),1,MPI_DOUBLE,0,world);
     Bcast(&(stodftInfo->gapInit),1,MPI_DOUBLE,0,world);
     Bcast(&(stodftInfo->mixRatioSM),1,MPI_DOUBLE,0,world);
-    Bcast(&(stodftInfo->mixRatioSM2),1,MPI_DOUBLE,0,world);
     Bcast(&(stodftInfo->energyTol),1,MPI_DOUBLE,0,world);
     Bcast(&(stodftInfo->smearTemperature),1,MPI_DOUBLE,0,world);
 

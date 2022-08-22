@@ -1226,9 +1226,9 @@ void shiftSystem(int numMolTot,int numAtomTot,int numMolType,int *molType,
       if(xTemp>1.0)xTemp -= 1.0;
       if(yTemp>1.0)yTemp -= 1.0;
       if(zTemp>1.0)zTemp -= 1.0;
-      if(xTemp<0.0)xTemp += 1.0;
-      if(yTemp<0.0)yTemp += 1.0;
-      if(zTemp<0.0)zTemp += 1.0;
+      if(xTemp<-1.0)xTemp += 1.0;
+      if(yTemp<-1.0)yTemp += 1.0;
+      if(zTemp<-1.0)zTemp += 1.0;
       comMolReduce[(countMol+iMol)*3] = xTemp;
       comMolReduce[(countMol+iMol)*3+1] = yTemp;
       comMolReduce[(countMol+iMol)*3+2] = zTemp;
@@ -1268,11 +1268,11 @@ void shiftSystem(int numMolTot,int numAtomTot,int numMolType,int *molType,
   sysRoot[0] = x-0.5;sysRoot[1] = y-0.5;sysRoot[2] = z-0.5;
   // 10. Round the root point to the grid point
   rate = sysRoot[0]*numGridBox[0];
-  sysRootInd[0] = NINT(rate)+1;
+  sysRootInd[0] = NINT(rate);
   rate = sysRoot[1]*numGridBox[1];
-  sysRootInd[1] = NINT(rate)+1;
+  sysRootInd[1] = NINT(rate);
   rate = sysRoot[2]*numGridBox[2];
-  sysRootInd[2] = NINT(rate)+1;
+  sysRootInd[2] = NINT(rate);
   sysRoot[0] = ((double)sysRootInd[0])/numGridBox[0];
   sysRoot[1] = ((double)sysRootInd[1])/numGridBox[1];
   sysRoot[2] = ((double)sysRootInd[2])/numGridBox[2];
@@ -1855,7 +1855,7 @@ void mapFragMolHalf(FRAGINFO *fragInfo,COMMUNICATE *communicate,
     fragRootInd[iFrag*3] = iGrid;
     fragRootInd[iFrag*3+1] = jGrid;
     fragRootInd[iFrag*3+2] = kGrid;
-  }//endfor iFrag
+  }
 
   // Start build Fragment
   for(iFrag=0;iFrag<numFragProc;iFrag++){

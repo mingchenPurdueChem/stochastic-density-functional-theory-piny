@@ -67,6 +67,7 @@ void genStoOrbitalInterp(CLASS *class,GENERAL_DATA *general_data,
   int totalPoly;
   int numCoeffUpTot   = numStateUpProc*numCoeff;
   int numCoeffDnTot   = numStateDnProc*numCoeff;
+  int smearOpt        = stodftInfo->smearOpt;
 
   int *coefFormUp   = &(cpcoeffs_pos->icoef_form_up);
   int *forceFormUp  = &(cpcoeffs_pos->ifcoef_form_up);
@@ -199,9 +200,16 @@ void genStoOrbitalInterp(CLASS *class,GENERAL_DATA *general_data,
       if(myidState!=0){
 	stodftCoefPos->expanCoeff = (double*)crealloc(stodftCoefPos->expanCoeff,
 				totalPoly*sizeof(double));
+        if(smearOpt>0){
+          stodftCoefPos->entropyExpanCoeff = (double*)cmalloc(polynormLength*sizeof(double));
+        }
       }
       Barrier(commStates);
       Bcast(stodftCoefPos->expanCoeff,totalPoly,MPI_DOUBLE,0,commStates);
+      if(smearOpt>0){
+        Bcast(stodftCoefPos->entropyExpanCoeff,polynormLength,MPI_DOUBLE,0,commStates);
+      }
+      Barrier(commStates);
     }
   }
   if(expanType==2){
@@ -244,11 +252,18 @@ void genStoOrbitalInterp(CLASS *class,GENERAL_DATA *general_data,
 				polynormLength*sizeof(double));
 	newtonInfo->sampPointUnscale = (double*)crealloc(newtonInfo->sampPointUnscale,
 				polynormLength*sizeof(double));
+        if(smearOpt>0){
+          stodftCoefPos->entropyExpanCoeff = (double*)cmalloc(polynormLength*sizeof(double));
+        }
       }
       Barrier(commStates);
       Bcast(stodftCoefPos->expanCoeff,totalPoly,MPI_DOUBLE,0,commStates);
       Bcast(newtonInfo->sampPoint,polynormLength,MPI_DOUBLE,0,commStates);
       Bcast(newtonInfo->sampPointUnscale,polynormLength,MPI_DOUBLE,0,commStates);
+      if(smearOpt>0){
+        Bcast(stodftCoefPos->entropyExpanCoeff,polynormLength,MPI_DOUBLE,0,commStates);
+      }
+      Barrier(commStates);
     }
     /*
     for(iPoly=0;iPoly<polynormLength;iPoly++){
@@ -572,6 +587,7 @@ void genStoOrbitalCheby(CLASS *class,GENERAL_DATA *general_data,
       Bcast(stodftCoefPos->expanCoeff,totalPoly,MPI_DOUBLE,0,commStates);
       if(smearOpt>0){
         Bcast(stodftCoefPos->entropyExpanCoeff,polynormLength,MPI_DOUBLE,0,commStates);
+      Barrier(commStates);
       }
     }
   }
@@ -603,6 +619,7 @@ void genStoOrbitalCheby(CLASS *class,GENERAL_DATA *general_data,
       Bcast(newtonInfo->sampPointUnscale,polynormLength,MPI_DOUBLE,0,commStates);
       if(smearOpt>0){
         Bcast(stodftCoefPos->entropyExpanCoeff,polynormLength,MPI_DOUBLE,0,commStates);
+      Barrier(commStates);
       }
     }
     
@@ -1084,9 +1101,16 @@ void genStoOrbitalEnergyWindow(CLASS *class,GENERAL_DATA *general_data,
       if(myidState!=0){
         stodftCoefPos->expanCoeff = (double*)crealloc(stodftCoefPos->expanCoeff,
                             totalPoly*sizeof(double));
+        if(smearOpt>0){
+          stodftCoefPos->entropyExpanCoeff = (double*)cmalloc(polynormLength*sizeof(double));
+        }
       }
       Barrier(commStates);
       Bcast(stodftCoefPos->expanCoeff,totalPoly,MPI_DOUBLE,0,commStates);
+      if(smearOpt>0){
+        Bcast(stodftCoefPos->entropyExpanCoeff,polynormLength,MPI_DOUBLE,0,commStates);
+      }
+      Barrier(commStates);
     }
   }
   if(expanType==2){
@@ -1107,7 +1131,7 @@ void genStoOrbitalEnergyWindow(CLASS *class,GENERAL_DATA *general_data,
                             polynormLength*sizeof(double));
         newtonInfo->sampPointUnscale = (double*)crealloc(newtonInfo->sampPointUnscale,
                             polynormLength*sizeof(double));
-      if(smearOpt>0){
+        if(smearOpt>0){
           stodftCoefPos->entropyExpanCoeff = (double*)cmalloc(polynormLength*sizeof(double));
         }
       }
@@ -1651,9 +1675,16 @@ void genStoOrbitalEnergyWindowFrag(CLASS *class,GENERAL_DATA *general_data,
       if(myidState!=0){
         stodftCoefPos->expanCoeff = (double*)crealloc(stodftCoefPos->expanCoeff,
                                 totalPoly*sizeof(double));
+        if(smearOpt>0){
+          stodftCoefPos->entropyExpanCoeff = (double*)cmalloc(polynormLength*sizeof(double));
+        }
       }
       Barrier(commStates);
       Bcast(stodftCoefPos->expanCoeff,totalPoly,MPI_DOUBLE,0,commStates);
+      if(smearOpt>0){
+        Bcast(stodftCoefPos->entropyExpanCoeff,polynormLength,MPI_DOUBLE,0,commStates);
+      }
+      Barrier(commStates);
     }
     //printf("numChemPotTemp %i\n",numChemPotTemp);
   }
@@ -2348,6 +2379,7 @@ void genStoOrbitalChebyTest(CLASS *class,GENERAL_DATA *general_data,
       if(smearOpt>0){
         Bcast(stodftCoefPos->entropyExpanCoeff,polynormLength,MPI_DOUBLE,0,commStates);
       }
+      Barrier(commStates);
     }
     //printf("11111111111111111\n");
   }
@@ -2381,6 +2413,7 @@ void genStoOrbitalChebyTest(CLASS *class,GENERAL_DATA *general_data,
       if(smearOpt>0){
         Bcast(stodftCoefPos->entropyExpanCoeff,polynormLength,MPI_DOUBLE,0,commStates);
       }
+      Barrier(commStates);
     }
     
     /*
@@ -2768,6 +2801,7 @@ void genStoOrbitalEnergyWindowTest(CLASS *class,GENERAL_DATA *general_data,
       if(smearOpt>0){
         Bcast(stodftCoefPos->entropyExpanCoeff,polynormLength,MPI_DOUBLE,0,commStates);
       }
+      Barrier(commStates);
     }
   }
 
@@ -3098,7 +3132,7 @@ void genStoOrbitalInterpTest(CLASS *class,GENERAL_DATA *general_data,CP *cp,
 				polynormLength*sizeof(double));
 	newtonInfo->sampPointUnscale = (double*)crealloc(newtonInfo->sampPointUnscale,
 				polynormLength*sizeof(double));
-      if(smearOpt>0){
+        if(smearOpt>0){
           stodftCoefPos->entropyExpanCoeff = (double*)cmalloc(polynormLength*sizeof(double));
         }
       }
@@ -3108,7 +3142,7 @@ void genStoOrbitalInterpTest(CLASS *class,GENERAL_DATA *general_data,CP *cp,
       Bcast(newtonInfo->sampPointUnscale,polynormLength,MPI_DOUBLE,0,commStates);
       if(smearOpt>0){
           stodftCoefPos->entropyExpanCoeff = (double*)cmalloc(polynormLength*sizeof(double));
-        }
+      }
       Barrier(commStates);
     }
     /*
@@ -3435,6 +3469,7 @@ void genStoOrbitalEnergyWindowFragTest(CLASS *class,GENERAL_DATA *general_data,
       if(smearOpt>0){
         Bcast(stodftCoefPos->entropyExpanCoeff,polynormLength,MPI_DOUBLE,0,commStates);
       }
+      Barrier(commStates);
     }
     //printf("numChemPotTemp %i\n",numChemPotTemp);
   }

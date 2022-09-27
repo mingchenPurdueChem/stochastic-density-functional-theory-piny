@@ -2288,7 +2288,7 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
  /*             Local variable declarations                                */
   
   unsigned int i;
-  *num_dict = 48;
+  *num_dict = 49;
   *dict = (DICT_WORD *)cmalloc(*num_dict*sizeof(DICT_WORD))-1;
 
   for (i=1;i<=*num_dict;i++) {
@@ -2489,6 +2489,10 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
   strcpy((*dict)[48].error_mes,"Please input a real number >0 and <=1");
   strcpy((*dict)[48].keyword,"diis_max_ratio_2");
   strcpy((*dict)[48].keyarg,"1.0");
+
+  strcpy((*dict)[49].error_mes,"If you want to calculate <r|f(h_KS)|r> like ldos on/off");
+  strcpy((*dict)[49].keyword,"calc_local_trace");
+  strcpy((*dict)[49].keyarg,"off");
 
  /*========================================================================*/
  } /* end routine set_sim_dict_harmonic */

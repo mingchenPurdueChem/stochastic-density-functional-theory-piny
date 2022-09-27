@@ -1032,6 +1032,7 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int numElecTrueUp = stodftInfo->numElecTrueUp;
   int smearOpt = stodftInfo->smearOpt;
   int numThreadsMKL = communicate->numThreadsMKL;
+  int cpLsda         = cpopts->cp_lsda;
   MPI_Comm comm_states = communicate->comm_states;
   
   int *stowfRecvCounts = stodftInfo->stowfRecvCounts;
@@ -1295,6 +1296,60 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     
   if(numProcStates>1)Barrier(comm_states);
 
+
+/*--------------------------------------------------------------------------*/
+/* iii2) Output real space orbitals and orbital energies */  
+  int *orbIndexUp,*orbIndexDn;
+  int *orbIndexAllStUp,*orbIndexAllStDn;
+  double sum;
+  printf("here 0 %i \n", stodftInfo->calcLocalTraceOpt);
+  if(stodftInfo->calcLocalTraceOpt==1){
+    printf("here %i \n", stodftInfo->calcLocalTraceOpt);
+    div = (int)(numStatePrintUp/numProcStates);
+    res = numStatePrintUp%numProcStates;
+    orbIndexAllStUp = (int*)cmalloc(numProcStates*sizeof(int));
+    orbIndexAllStUp[0] = 0;
+    for(iProc=1;iProc<numProcStates;iProc++){
+      if(iProc<res)orbIndexAllStUp[iProc]=orbIndexAllStUp[iProc-1]+div+1;
+      else orbIndexAllStUp[iProc]=orbIndexAllStUp[iProc-1]+div;
+    }
+    printf("orbIndexAllStUp %i %i\n",orbIndexAllStUp[0],orbIndexAllStUp[2]);
+    cpcoeffs_info->orbIndexStUp = orbIndexAllStUp[myidState];
+    free(orbIndexAllStUp);
+    if(cpLsda==1&&numStateDnProc>0){
+      div = (int)(numStatePrintDn/numProcStates);
+      res = numStatePrintDn%numProcStates;
+      orbIndexAllStDn = (int*)cmalloc(numProcStates*sizeof(int));
+      orbIndexAllStDn[0] = 0;
+      for(iProc=1;iProc<res;iProc++)orbIndexAllStDn[iProc]=orbIndexAllStDn[iProc-1]+div+1;
+      for(iProc=res;iProc<numProcStates;iProc++)orbIndexAllStDn[iProc]=orbIndexAllStDn[iProc-1]+div;
+      cpcoeffs_info->orbIndexStDn = orbIndexAllStDn[myidState];
+      free(orbIndexAllStDn);
+    }//endif cpLsda
+    //printf("111111111 cre_up[1] %lg 100 %lg 1000 %lg\n",cre_up[1],cre_up[100],cre_up[1000]);
+    for(iState=0;iState<numStateUpProc;iState++){
+      //printf("iState %i coeffUpReBackup %lg\n",iState,coeffUpReBackup[iState*numCoeff+numCoeff]);
+      for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+        index1 = iState*numCoeff+iCoeff;
+        cre_up[index1] = coeffUpReBackup[index1];
+        cim_up[index1] = coeffUpImBackup[index1];
+      }
+      sum = 0.0;
+      for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
+        index1 = iState*numCoeff+iCoeff;
+        sum += cre_up[index1]*cre_up[index1]+cim_up[index1]*cim_up[index1];
+      }
+      sum *= 2.0;
+      index1 = iState*numCoeff+numCoeff;
+      sum += cre_up[index1]*cre_up[index1];
+      printf("myidState %i iState %i sum %lg\n",myidState,iState,sum);
+    }
+    //printf("222222222 cre_up[1] %lg 100 %lg 1000 %lg\n",cre_up[1],cre_up[100],cre_up[1000]);
+    calcOrbRealHybrid(class,general_data,cp,1);
+
+        
+	  
+  }//endif calcLocalTraceOpt
 
 /*--------------------------------------------------------------------------*/
 /* iv) Determine occupatation number */

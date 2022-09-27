@@ -234,6 +234,7 @@ typedef struct cpcoeffs_info {
   int recordVNLFlag;		/*Opt: Flag to control record vnl energy */
 				/*     and vnl force 1=On 0=Off		 */
   double cputime0,cputime1,cputime2,cputime3,cputime4,cputime5,cputime6;
+  int orbIndexStUp,orbIndexStDn;/*Num: global orbital starting index on each process */
 
 } CPCOEFFS_INFO;
 
@@ -854,6 +855,13 @@ typedef struct stodftInfo{
 				    /*	    2=nhg  (non-homogenious)		*/
   int fragDFTMethod;                /* Opt: fragment deterministic DFT method   */
                                     /*      1=cg 2=filter-diag                  */
+  /* Calculate LDOS or local Entropy */
+  int calcLocalTraceOpt;            /* Opt: calculate local trace <r|f(h_KS)|r> */
+                                    /*      0=off 1=on                          */
+  int spinFlag;                     /* Opt: flag of calculating spin up/dn      */
+                                    /*      0=up 1=dn                           */
+  int orbRealPrintFlag;             /* Opt: print real space orbital            */
+                                    /*      0=no 1=yes                          */
   FRAGINFO *fragInfo;
  
 

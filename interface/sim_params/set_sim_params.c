@@ -4744,9 +4744,6 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   sscanf(dict[25].keyarg,"%lg",&rka);
   stodftInfo->mixRatioSM = rka;
 
-  sscanf(dict[48].keyarg,"%lg",&rka);
-  stodftInfo->mixRatioSM2 = rka;
-
   /*-----------------------------------------------------------------------*/
   /*  26)\stowf_seed{#} */
   sscanf(dict[26].keyarg,"%lg",&rka);
@@ -4843,9 +4840,21 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   fragInfo->fragNumChemPot = (int)rka;
 
   /*-----------------------------------------------------------------------*/
-  /*  46)\frag_beta{#} */
+  /*  47)\frag_beta{#} */
   sscanf(dict[47].keyarg,"%lg",&rka);
   fragInfo->fragBeta = rka;
+
+  /*-----------------------------------------------------------------------*/
+  /*  48)\diis_max_ratio_2{#} */
+
+  sscanf(dict[48].keyarg,"%lg",&rka);
+  stodftInfo->mixRatioSM2 = rka;
+
+  /*-----------------------------------------------------------------------*/
+  /*  49)\calc_local_trace{#} */
+
+  if(strcasecmp(dict[49].keyarg,"off")==0)stodftInfo->calcLocalTraceOpt = 0;
+  if(strcasecmp(dict[49].keyarg,"on")==0)stodftInfo->calcLocalTraceOpt = 1;
 
 /*=======================================================================*/
 /* Check the conflicate options						 */

@@ -114,6 +114,7 @@ void commStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
     Bcast(&(stodftInfo->metallic->electronFricFlag),1,MPI_INT,0,world);
     Bcast(&(stodftInfo->metallic->numAtomFric),1,MPI_INT,0,world);
     Bcast(&(stodftInfo->metallic->sigma),1,MPI_DOUBLE,0,world);
+    Bcast(&(stodftInfo->calcLocalTraceOpt),1,MPI_INT,0,world);
   }
 
 }/*end Routine*/
@@ -287,7 +288,9 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     // numChemPot+1 at reading paramter file step
     //stodftInfo->numChemPot += 1;
     //numChemPot += 1;
-  }  
+  } 
+
+  stodftInfo->orbRealPrintFlag = 0;
 
   stodftInfo->numElecSys = stodftInfo->numElecTrue;
 

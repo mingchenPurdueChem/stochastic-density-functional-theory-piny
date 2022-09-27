@@ -106,6 +106,8 @@ void calcRhoStoHybridCheby(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 void outputDensity(CP *,CELL *,int);
 void calcRhoFilterDiagHybrid(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 void calcRhoStoHybridEnergyWindow(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
+void calcOrbRealHybrid(CLASS *,GENERAL_DATA *,CP *,int);
+
 
 /*-----------------------------------------------------------------*/
 /* calc-chempot.c                                                  */

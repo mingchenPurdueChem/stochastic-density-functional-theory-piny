@@ -4,7 +4,6 @@
 #define SIMP_NINT
 #define FFTW3
 #define MKL_LAPACK
-//#define FAST_FILTER
 
 #include <string.h>
 #include <ctype.h>

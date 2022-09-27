@@ -439,6 +439,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     chebyshevInfo = stodftInfo->chebyshevInfo;
     chebyshevInfo->Smin = -1.0;
     chebyshevInfo->Smax = 1.0;
+    stodftCoefPos->expanCoeff = NULL;
   }
 
   //For debug only

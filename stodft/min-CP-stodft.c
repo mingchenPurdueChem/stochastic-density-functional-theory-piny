@@ -1794,6 +1794,7 @@ void scfStodftEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
     timeEnd = omp_get_wtime();
 
     if(myidState==0){
+      printf("The master process spend %lgs in this SCF step.\n",timeEnd-timeStart);
       printf("--------------------------------------------------------\n");
       printf("Finish SCF Step %i\n",iScf);
       printf("********************************************************\n");
@@ -2227,6 +2228,7 @@ void scfStodftEnergyWindowFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general
     timeEnd = omp_get_wtime();
 
     if(myidState==0){
+      printf("The master process spend %lgs in this SCF step.\n",timeEnd-timeStart);
       printf("--------------------------------------------------------\n");
       printf("Finish SCF Step %i\n",iScf);
       printf("********************************************************\n");

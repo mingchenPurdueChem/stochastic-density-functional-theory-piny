@@ -2336,6 +2336,22 @@ void calcRhoStoHybridEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *gene
     }
   }
 
+  // Test the total number of electron again
+  numElecTest = 0.0;
+  for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)numElecTest += rhoUpCorrect[iGrid];
+  if(cpLsda==1&&numStateDnProc!=0){
+    for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)numElecTest += rhoDnCorrect[iGrid];
+  }
+  numElecTest *= numGridTotInv;
+  double numElecTestTot = 0.0;
+  if(numProcStates>1){
+    Barrier(commStates);
+    Reduce(&numElecTest,&numElecTestTot,1,MPI_DOUBLE,MPI_SUM,0,commStates);
+    Barrier(commStates);
+  }
+  else numElecTestTot = numElecTest;
+  if(myidState==0)printf("After fragment correction, #electron is %.16lg\n",numElecTestTot);
+
 /*==========================================================================*/
 /* IV) Output the density                                                   */
 

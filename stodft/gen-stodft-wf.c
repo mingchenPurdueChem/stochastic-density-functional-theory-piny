@@ -68,6 +68,7 @@ void genStoOrbitalInterp(CLASS *class,GENERAL_DATA *general_data,
   int numCoeffUpTot   = numStateUpProc*numCoeff;
   int numCoeffDnTot   = numStateDnProc*numCoeff;
   int smearOpt        = stodftInfo->smearOpt;
+  int calcLocalTraceOpt = stodftInfo->calcLocalTraceOpt;
 
   int *coefFormUp   = &(cpcoeffs_pos->icoef_form_up);
   int *forceFormUp  = &(cpcoeffs_pos->ifcoef_form_up);
@@ -191,7 +192,7 @@ void genStoOrbitalInterp(CLASS *class,GENERAL_DATA *general_data,
 	genChemPotInterpPoints(stodftInfo,stodftCoefPos);
       }
     }
-    if(myidState==0)genChebyHermitTrueChemPot(stodftInfo,stodftCoefPos,0);
+    if(myidState==0)genChebyHermit(stodftInfo,stodftCoefPos,0);
     if(numProcStates>1){
       Barrier(commStates);
       Bcast(&(stodftInfo->polynormLength),1,MPI_INT,0,commStates);

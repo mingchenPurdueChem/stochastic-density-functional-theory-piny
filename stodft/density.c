@@ -2610,4 +2610,300 @@ void calcOrbRealHybrid(CLASS *class,GENERAL_DATA *general_data,
 }/*end Routine*/
 /*==========================================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void calcSqOrbPostAnalysis(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
+                   CP *cp,int ip_now)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* This is the routine to calculate <r|f(h_KS,e_i)|r> where e_i is some  */
+/* parameter. stoWfUp[i] stores |eta_i>=sqrt(f(h_KS,e_i))|chi>. In this  */
+/* routine we calculate |eta_i(r)|^2 and average over all stochastic     */
+/* orbitals. The real space function is also output in this routine.     */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+  #include "../typ_defs/typ_mask.h"
+
+  EWALD        *ewald        = &(general_data->ewald);
+  CELL         *cell         = &(general_data->cell);
+  CPOPTS       *cpopts       = &(cp->cpopts);
+  CPSCR        *cpscr        = &(cp->cpscr);
+  CPEWALD      *cpewald      = &(cp->cpewald);
+  STODFTINFO   *stodftInfo   = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  COMMUNICATE   *commCP         = &(cp->communicate);
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  CPCOEFFS_POS  *cpcoeffs_pos   = &(cp->cpcoeffs_pos[ip_now]);
+  PSEUDO        *pseudo         = &(cp->pseudo);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
+  //PARA_FFT_PKG3D *cp_para_fft_pkg3d;
+
+  int cpParaOpt = cpopts->cp_para_opt;
+  int cpLsda = cpopts->cp_lsda;
+  int cpGGA  = cpopts->cp_gga;
+  int realSparseOpt = cpopts->realSparseOpt;
+  int numCoeffLarge       = cpcoeffs_info->ncoef_l;
+  int numCoeffLargeProc   = cp->cp_para_fft_pkg3d_lg.ncoef_proc;
+  int numCoeffLargeProcDensCpBox = cp->cp_para_fft_pkg3d_dens_cp_box.ncoef_proc;
+  int cpDualGridOptOn = cpopts->cp_dual_grid_opt;
+  int numInterpPmeDual = pseudo->n_interp_pme_dual;
+  int numStateUpProc = cpcoeffs_info->nstate_up_proc;
+  int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
+  int numCoeff       = cpcoeffs_info->ncoef;
+  int numChemPot     = stodftInfo->numChemPot;
+  int numFFTProc        = cp_para_fft_pkg3d_lg->nfft_proc;
+  int numFFT            = cp_para_fft_pkg3d_lg->nfft;
+  int numFFT2           = numFFT/2;
+  int numFFT2Proc       = numFFTProc/2;
+
+  int rhoRealGridNum    = stodftInfo->rhoRealGridNum;
+  int rhoRealGridTot    = stodftInfo->rhoRealGridTot;
+  int numChemProc       = stodftInfo->numChemProc;
+  int numStateStoUp	= stodftInfo->numStateStoUp;
+  int numStateStoDn	= stodftInfo->numStateStoDn;
+  int occNumber		= stodftInfo->occNumber;
+  int densityMixFlag	= stodftInfo->densityMixFlag;
+  int iScf		= stodftInfo->iScf;
+  int myidState		= commCP->myid_state;
+  int numProcStates     = commCP->np_states;
+
+  int iCoeff,iChem,iGrid;
+  int index;
+  int i,j,k;
+  int reRunFlag;
+
+  int *coefFormUp   = &(cpcoeffs_pos->icoef_form_up);
+  int *coefFormDn   = &(cpcoeffs_pos->icoef_form_dn);
+  int *coefOrthUp   = &(cpcoeffs_pos->icoef_orth_up);
+  int *coefOrthDn   = &(cpcoeffs_pos->icoef_orth_dn);
+  int *densityMap   = stodftInfo->densityMap;
+  int *indexChemProc = stodftInfo->indexChemProc;
+  int *chemProcIndexInv = stodftInfo->chemProcIndexInv;
+
+  char fname[100];
+  FILE *fout;
+
+  double volCP,rvolCP;
+  double numGridTotInv = 1.0/rhoRealGridTot;
+  double aveFactUp = occNumber/(double)(numStateStoUp);
+  double numElecTrue = stodftInfo->numElecTrue;
+  double aveFactDn;
+
+  double *hmatCP    = cell->hmat_cp;
+  double *coeffReUp = cpcoeffs_pos->cre_up;
+  double *coeffImUp = cpcoeffs_pos->cim_up;
+  double *coeffReDn = cpcoeffs_pos->cre_dn;
+  double *coeffImDn = cpcoeffs_pos->cim_dn;
+  double *rhoCoeffReUp   = cpscr->cpscr_rho.rhocr_up;
+  double *rhoCoeffImUp   = cpscr->cpscr_rho.rhoci_up;
+  double *rhoUp          = cpscr->cpscr_rho.rho_up;
+  double *rhoCoeffReUpDensCpBox = cpscr->cpscr_rho.rhocr_up_dens_cp_box;
+  double *rhoCoeffImUpDensCpBox = cpscr->cpscr_rho.rhoci_up_dens_cp_box;
+  double *divRhoxUp       = cpscr->cpscr_grho.d_rhox_up;
+  double *divRhoyUp       = cpscr->cpscr_grho.d_rhoy_up;
+  double *divRhozUp       = cpscr->cpscr_grho.d_rhoz_up;
+  double *d2RhoUp        = cpscr->cpscr_grho.d2_rho_up;
+  double *rhoCoeffReDn   = cpscr->cpscr_rho.rhocr_dn;
+  double *rhoCoeffImDn   = cpscr->cpscr_rho.rhoci_dn;
+  double *rhoDn          = cpscr->cpscr_rho.rho_dn;
+  double *rhoCoeffReDnDensCpBox = cpscr->cpscr_rho.rhocr_dn_dens_cp_box;
+  double *rhoCoeffImDnDensCpBox = cpscr->cpscr_rho.rhoci_dn_dens_cp_box;
+  double *rhoUpCorrect	  = stodftCoefPos->rhoUpCorrect;
+  double *divRhoxDn       = cpscr->cpscr_grho.d_rhox_dn;
+  double *divRhoyDn       = cpscr->cpscr_grho.d_rhoy_dn;
+  double *divRhozDn       = cpscr->cpscr_grho.d_rhoz_dn;
+  double *d2RhoDn        = cpscr->cpscr_grho.d2_rho_dn;
+  double *numElectron = stodftCoefPos->numElectron;
+  double *chemPot = stodftCoefPos->chemPot;
+  double *numElectronTemp = (double*)cmalloc(numChemPot*sizeof(double));
+
+  double **stoWfUpRe = stodftCoefPos->stoWfUpRe;
+  double **stoWfUpIm = stodftCoefPos->stoWfUpIm;
+  double **stoWfDnRe = stodftCoefPos->stoWfDnRe;
+  double **stoWfDnIm = stodftCoefPos->stoWfDnIm;
+
+  double **rhoUpChemPot = stodftCoefPos->rhoUpChemPot;
+  double **rhoDnChemPot = stodftCoefPos->rhoDnChemPot;
+
+  double *rhoTemp  = (double*)cmalloc(numFFT2*sizeof(double))-1;
+
+  MPI_Comm commStates   =    commCP->comm_states;
+
+/*==========================================================================*/
+/* I) Generate density in real space for all chem potentials		    */
+
+  //vol_cp  = getdeth(hmat_cp);
+  //rvol_cp = 1.0/vol_cp;
+  /*
+  if(realSparseOpt==0){
+    cp_para_fft_pkg3d = &(cp->cp_para_fft_pkg3d_lg);
+  }
+  else{
+    cp_para_fft_pkg3d = &(cp->cp_para_fft_pkg3d_sparse);
+  }
+  */
+  
+
+  if(numProcStates>1)Barrier(commStates);
+  
+  for(iChem=0;iChem<numChemProc;iChem++){
+    for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)rhoUpChemPot[iChem][iGrid] = 0.0;
+  }
+  if(cpLsda==1&&numStateDnProc!=0){
+    for(iChem=0;iChem<numChemProc;iChem++){
+      for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)rhoDnChemPot[iChem][iGrid] = 0.0;
+    }
+  }
+
+  if(cpLsda==1&&numStateDnProc!=0)aveFactDn = occNumber/(double)(numStateStoDn);
+
+  //printf("111111111 Finish Initialize Densities\n");
+  //fflush(stdout);
+  if(numProcStates>1)Barrier(commStates);
+
+  //debug
+  //for(iChem=0;iChem<numChemPot;iChem++)printf("myid %i densityMap %i\n",myidState,densityMap[iChem],indexChemProc[iChem]);
+  //fflush(stdout);
+  //if(numProcStates>1)Barrier(commStates);
+
+  for(iChem=0;iChem<numChemPot;iChem++){
+    //debug
+    if(myidState==densityMap[iChem]){
+      for(iGrid=0;iGrid<rhoRealGridTot;iGrid++)rhoUpChemPot[indexChemProc[iChem]][iGrid] = 0.0;
+    }
+    //end debug
+    rhoCalcRealStoHybrid(cpscr,cpcoeffs_info,
+		   cell,stodftInfo,stoWfUpRe[iChem],
+		   stoWfUpIm[iChem],rhoTemp,*coefFormUp,*coefOrthUp,
+		   numStateUpProc,numCoeff,cpDualGridOptOn,commCP,
+		   &(cp->cp_para_fft_pkg3d_lg),
+		   &(cp->cp_sclr_fft_pkg3d_lg),
+		   &(cp->cp_para_fft_pkg3d_dens_cp_box),
+		   &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
+		   &(cp->cp_sclr_fft_pkg3d_sm));
+    //debug
+    /*
+    if(checkNanArray(&rhoTemp[1],rhoRealGridTot)==1){
+      printf("iChem %i myid %i density is wrong before reduce!\n",iChem,myidState);
+    }
+    */
+    /*
+    if(myidState==0){
+      printf("iChem %i finish density calc\n",iChem);
+      printf("rhoUpChemPot[0] %p\n",rhoUpChemPot[0]);
+      fflush(stdout);
+    }
+    printf("myidState %i iChem %i indexChemProc[iChem] %i densityMap[iChem] %i rhoRealGridTot %i rhoUpChemPot %p rhoUpChemPot again %p numFFT2 %i\n",
+	    myidState,iChem,indexChemProc[iChem],densityMap[iChem],rhoRealGridTot,rhoUpChemPot[0],&rhoUpChemPot[0][0],numFFT2);
+    */
+    //end debug
+    if(numProcStates>1){
+      Barrier(commStates);
+      Reduce(&rhoTemp[1],rhoUpChemPot[indexChemProc[iChem]],rhoRealGridTot,MPI_DOUBLE,
+	     MPI_SUM,densityMap[iChem],commStates);
+      //MPI_Reduce(&rhoTemp[1],rhoUpChemPot[0],rhoRealGridTot,MPI_DOUBLE,MPI_SUM,densityMap[iChem],commStates);
+      Barrier(commStates);
+    }
+    else memcpy(rhoUpChemPot[iChem],&rhoTemp[1],rhoRealGridTot*sizeof(double));
+    //debug
+    //printf("iChem %i rhoTemp %lg rhoUp %lg\n",iChem,rhoTemp[4001],rhoUpChemPot[iChem][4000]);
+    // Calculate the average density, haven't scale by 1/volume
+  }
+  //printf("rhoUp %lg\n",rhoUpChemPot[0][4000]);
+  if(cpLsda==1&&numStateDnProc!=0){
+    for(iChem=0;iChem<numChemPot;iChem++){
+      rhoCalcRealStoHybrid(cpscr,cpcoeffs_info,
+		   cell,stodftInfo,stoWfDnRe[iChem],
+		   stoWfDnIm[iChem],rhoTemp,*coefFormDn,*coefOrthDn,
+		   numStateDnProc,numCoeff,cpDualGridOptOn,commCP,
+		   &(cp->cp_para_fft_pkg3d_lg),
+		   &(cp->cp_sclr_fft_pkg3d_lg),
+		   &(cp->cp_para_fft_pkg3d_dens_cp_box),
+		   &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
+		   &(cp->cp_sclr_fft_pkg3d_sm));
+      if(numProcStates>1){
+        Reduce(&rhoTemp[1],rhoDnChemPot[indexChemProc[iChem]],rhoRealGridTot,MPI_DOUBLE,
+	     MPI_SUM,densityMap[iChem],commStates);
+      }
+      else memcpy(rhoDnChemPot[iChem],&rhoTemp[1],rhoRealGridTot);
+    }  
+  }
+  if(numProcStates>1)Barrier(commStates);
+
+  // Calculate the average density, haven't scale by 1/volume
+  
+  //for(i=0;i<10;i++)printf("i %i rhoUp %lg\n",i,rhoUpChemPot[0][i]);
+  //printf("aveFactUp %lg occNumber %i\n",aveFactUp,occNumber);
+  //printf("rhoRealGridNum %i rhoRealGridTot %i\n",rhoRealGridNum,rhoRealGridTot);
+  for(iChem=0;iChem<numChemProc;iChem++){
+    for(iGrid=0;iGrid<rhoRealGridTot;iGrid++)rhoUpChemPot[iChem][iGrid] *= aveFactUp;
+  }
+  if(cpLsda==1&&numStateDnProc!=0){
+    for(iChem=0;iChem<numChemProc;iChem++){
+      for(iGrid=0;iGrid<rhoRealGridTot;iGrid++)rhoDnChemPot[iChem][iGrid] *= aveFactDn;
+    }
+  }
+
+  // debug
+  /*
+  for(iChem=0;iChem<numChemProc;iChem++){
+    if(checkNanArray(rhoUpChemPot[iChem],rhoRealGridTot)==1){
+      printf("iChem %i myid %i density is wrong after reduce\n",iChem,myidState);
+    }
+  }
+  */
+
+  // debug
+  /*
+  FILE *fileDensityTest = fopen("density-test","w");
+  for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)fprintf(fileDensityTest,"%.16lg\n",rhoUpChemPot[0][iGrid]);
+  fclose(fileDensityTest);
+  */
+  
+
+  free(&rhoTemp[1]);
+
+  if(numProcStates>1)Barrier(commStates);
+
+/*==========================================================================*/
+/* II) Output all |eta_i(r)|^2.                                             */
+
+
+  for(iChem=0;iChem<numChemPot;iChem++){
+    sprintf(fname,"eta-up-%i",iChem);
+    if(myidState==densityMap[iChem]){
+      fout = fopen(fname,"w");
+      for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+        fprintf(fout,"%.16lg\n",rhoUpChemPot[indexChemProc[iChem]][iGrid]);
+      }//endfor iGrid
+      fclose(fout);
+    }//endif myidState
+    if(numProcStates>1)Barrier(commStates);
+  }//endfor iChem
+  if(cpLsda==1&&numStateDnProc!=0){
+    for(iChem=0;iChem<numChemPot;iChem++){
+      sprintf(fname,"eta-dn-%i",iChem);
+      if(myidState==densityMap[iChem]){
+	fout = fopen(fname,"w");
+	for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
+	  fprintf(fout,"%.16lg\n",rhoDnChemPot[indexChemProc[iChem]][iGrid]);
+	}//endfor iGrid
+	fclose(fout);
+      }//endif myidState
+      if(numProcStates>1)Barrier(commStates);
+    }//endfor iChem
+  }//endif cpLsda
+
+
+  if(myidState==0){
+    printf("Finish Calculating |eta_i(r)|^2\n");
+  }
+  
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
 

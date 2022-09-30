@@ -4632,7 +4632,9 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   /*  3)\filter_type{#} */
   if(strcasecmp(dict[3].keyarg,"fermi_exp")==0)stodftInfo->filterFunType = 1;
   if(strcasecmp(dict[3].keyarg,"fermi_erfc")==0)stodftInfo->filterFunType = 2;
-  if(strcasecmp(dict[3].keyarg,"gauss")==0)stodftInfo->filterFunType = 3;
+  if(strcasecmp(dict[3].keyarg,"gaussian")==0)stodftInfo->filterFunType = 3;
+  if(strcasecmp(dict[3].keyarg,"entropy")==0)stodftInfo->filterFunType = 4;
+
   /*-----------------------------------------------------------------------*/
   /*  4)poly_fit_error{#} */
   sscanf(dict[4].keyarg,"%lg",&rka);
@@ -5016,6 +5018,19 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
         fflush(stdout);
         exit(0);
       }
+    }
+    if(stodftInfo->calcLocalTraceOpt==1&&stodftInfo->chemPotOpt==2){
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      printf("Calculating local trace requires chem_pot_opt=interp\n");      
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(0);
+    }
+    if(stodftInfo->calcLocalTraceOpt==1&&stodftInfo->filterDiagFlag==0&&stodftInfo->numScf>1){
+      printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
+      printf("Calculating local trace with sDFT does not support SCF iteraction.\n");
+      printf("A non-SCF calculation will be performed!\n");
+      printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
     }
   }//endif stodftOn
 

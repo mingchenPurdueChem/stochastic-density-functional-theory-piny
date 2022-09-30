@@ -335,6 +335,9 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
         case 3:
           stodftInfo->fermiFunctionReal = &gaussianReal;
           break;
+        case 4:
+          stodftInfo->fermiFunctionReal = &entropyReal;
+          break;
         default:
           printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
           printf("Internal Error! Bad filter type!\n");
@@ -359,6 +362,9 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
           break;
         case 3:
           stodftInfo->fermiFunctionReal = &gaussianReal;
+          break;
+        case 4:
+          stodftInfo->fermiFunctionReal = &entropyReal;
           break;
         default:
           printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");

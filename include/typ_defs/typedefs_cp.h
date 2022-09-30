@@ -621,6 +621,7 @@ typedef struct stodftInfo{
 				    /*	    1 = Fermi exponential		*/
 				    /*	    2 = Fermi erfc function		*/
 				    /*	    3 = Gaussian (debug only)		*/
+                                    /*      4 = Entropy                         */
   int numOrbital;	            /* Num: number of stochastic orbitals	*/
   int storeChebyMomentsFlag;        /* Opt: store Chebyshev moments (=1) or not */
                                     /*      (=0)                                */

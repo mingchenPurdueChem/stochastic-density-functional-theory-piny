@@ -51,7 +51,7 @@ void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 #include "../typ_defs/typ_mask.h"
 
   STODFTINFO    *stodftInfo       = cp->stodftInfo;
-  FRAGINFO      *fragInfo;
+  FRAGINFO      *fragInfo = stodftInfo->fragInfo;
   COMMUNICATE   *communicate      = &(cp->communicate);
   CLATOMS_INFO *clatomsInfo     = &(class->clatoms_info);
 
@@ -65,12 +65,14 @@ void initFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
   MPI_Comm world                = communicate->world;
 
+  /*
   if(myidState==0)fragInfo = stodftInfo->fragInfo;
   else{
     stodftInfo->fragInfo = (FRAGINFO*)cmalloc(sizeof(FRAGINFO));
     fragInfo = stodftInfo->fragInfo;
   }
   if(numProcStates>1)Barrier(world);
+  */
   //printf("fragOpt %i\n",fragOpt);
  
   Bcast(&(fragInfo->fragOrbRatio),1,MPI_DOUBLE,0,world); 

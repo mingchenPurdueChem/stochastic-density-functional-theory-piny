@@ -62,6 +62,7 @@ void commStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
     stodftInfo = cp->stodftInfo;
     stodftCoefPos = cp->stodftCoefPos;
     stodftInfo->metallic = (METALLIC*)cmalloc(sizeof(METALLIC));
+    stodftInfo->fragInfo = (FRAGINFO*)cmalloc(sizeof(FRAGINFO));
   }
  
   if(numProcStates>1){ 
@@ -274,6 +275,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   stodftInfo->vpsAtomListFlag = 0;
   stodftInfo->filterFlag = 0;
   stodftInfo->numThreads = communicate->numThreads;
+  stodftInfo->fragInfo->iFrag = 0;
   // Chebyshev way to calculate chem pot (if we do not use energy window)
   if(chemPotOpt==2&&energyWindowOn==0)stodftInfo->numChemPot = 1;
   

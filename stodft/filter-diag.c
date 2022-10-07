@@ -1011,6 +1011,7 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
   CPOPTS *cpopts                = &(cp->cpopts);
   COMMUNICATE *communicate      = &(cp->communicate);
+  //FRAGINFO *fragInfo = stodftInfo->fragInfo;
   
   int iChem,iCoeff,iState,jState,iComb,iProc;
   int index1,index2;
@@ -1033,6 +1034,7 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int smearOpt = stodftInfo->smearOpt;
   int numThreadsMKL = communicate->numThreadsMKL;
   int cpLsda         = cpopts->cp_lsda;
+  //int iFrag          = fragInfo->iFrag;
   MPI_Comm comm_states = communicate->comm_states;
   
   int *stowfRecvCounts = stodftInfo->stowfRecvCounts;
@@ -1346,9 +1348,6 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     }
     //printf("222222222 cre_up[1] %lg 100 %lg 1000 %lg\n",cre_up[1],cre_up[100],cre_up[1000]);
     calcOrbRealHybrid(class,general_data,cp,1);
-
-        
-	  
   }//endif calcLocalTraceOpt
 
 /*--------------------------------------------------------------------------*/

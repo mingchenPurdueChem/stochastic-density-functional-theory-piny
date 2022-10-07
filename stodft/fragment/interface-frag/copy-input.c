@@ -586,6 +586,7 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
     cpMini->stodftInfo->checkpointWriteFreq = 1000;
     cpMini->stodftInfo->checkpointParFlag = 0;
     cpMini->stodftInfo->smearOpt = stodftInfo->smearOpt;
+   // cpMini->stodftInfo->smearOpt = stodftInfo->smearOpt; another flag for Mini
     cpMini->stodftInfo->smearTemperature = stodftInfo->smearTemperature;
     cpMini->stodftInfo->energyWindowOn = 0;
     cpMini->stodftInfo->printChebyMoment = 0;
@@ -627,6 +628,8 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
       fclose(rhoRead);
     }
     //printf("2222222 readCoeffFlag %i\n",cpMini->stodftInfo->readCoeffFlag);
+    cpMini->stodftInfo->calcLocalTraceOpt = stodftInfo->calcLocalTraceOpt;
+    cpMini->stodftInfo->orbRealPrintFlag = stodftInfo->orbRealPrintFlag;
   }
   
 

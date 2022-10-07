@@ -71,6 +71,7 @@ void rhoCalcRealStoHybrid(CPSCR *cpscr,
   int orbRealPrintFlag = stodftInfo->orbRealPrintFlag;
   int orbIndexNow;
   int orbIndexSt;
+  int iFrag = stodftInfo->fragInfo->iFrag; //iFrag should be the global index
 
   double vol_cp,rvol_cp;
   double temp_r,temp_i;
@@ -181,7 +182,7 @@ void rhoCalcRealStoHybrid(CPSCR *cpscr,
     if(orbRealPrintFlag==1){
       orbIndexNow = orbIndexSt+is-1;
       printf("orbIndexSt %i orbIndexNow %i\n",orbIndexSt,orbIndexNow);
-      sprintf(name,"stowf-%i",orbIndexNow);
+      sprintf(name,"stowf-%i-%i",iFrag,orbIndexNow);
       fstowf = fopen(name,"w");
       sum = 0.0;
       for(i=1;i<=nfft2;i++)sum += zfft[2*i-1]*zfft[2*i-1];
@@ -190,7 +191,7 @@ void rhoCalcRealStoHybrid(CPSCR *cpscr,
       fclose(fstowf);
       orbIndexNow = orbIndexSt+is;      
       printf("orbIndexSt %i orbIndexNow %i\n",orbIndexSt,orbIndexNow);
-      sprintf(name,"stowf-%i",orbIndexNow);
+      sprintf(name,"stowf-%i-%i",iFrag,orbIndexNow);
       fstowf = fopen(name,"w");
       sum = 0.0;
       for(i=1;i<=nfft2;i++)sum += zfft[2*i]*zfft[2*i];
@@ -245,7 +246,7 @@ void rhoCalcRealStoHybrid(CPSCR *cpscr,
 
     if(orbRealPrintFlag==1){
       orbIndexNow = orbIndexSt+nstate-1;
-      sprintf(name,"stowf-%i",orbIndexNow);
+      sprintf(name,"stowf-%i-%i",iFrag,orbIndexNow);
       fstowf = fopen(name,"w");
       for(i=1;i<=nfft2;i++)fprintf(fstowf,"%.16lg\n",zfft[2*i-1]);
       fclose(fstowf);
@@ -2635,6 +2636,7 @@ void calcSqOrbPostAnalysis(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
   CPEWALD      *cpewald      = &(cp->cpewald);
   STODFTINFO   *stodftInfo   = cp->stodftInfo;
   STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  FRAGINFO *fragInfo = stodftInfo->fragInfo;
   COMMUNICATE   *commCP         = &(cp->communicate);
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
   CPCOEFFS_POS  *cpcoeffs_pos   = &(cp->cpcoeffs_pos[ip_now]);
@@ -2871,7 +2873,6 @@ void calcSqOrbPostAnalysis(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
 
 /*==========================================================================*/
 /* II) Output all |eta_i(r)|^2.                                             */
-
 
   for(iChem=0;iChem<numChemPot;iChem++){
     sprintf(fname,"eta-up-%i",iChem);

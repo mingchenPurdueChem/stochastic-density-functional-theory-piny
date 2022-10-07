@@ -352,6 +352,7 @@ typedef struct fragInfo{
   int numFragProc;		    /* Num: Fragments calculated on one proc	*/
   int numFragTot;		    /* Num: Total number of fragments		*/
   int iFrag;			    /* Num: fragmentation index I'm working on  */
+  int iFragGlobal;                  /* Num: Global fragmentation index          */
   int *fragInd;                     /* Lst: list of frag index on this process  */
                                     /* Lth: numFragProc                         */
   int *numMolTypeFrag;		    /* Lst: Number of molecule types in each	*/

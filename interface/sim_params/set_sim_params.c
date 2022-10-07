@@ -5016,7 +5016,7 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
         printf("The smearing type needs to be consistent!\n");
         printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
         fflush(stdout);
-        exit(0);
+        //exit(0);
       }
     }
     if(stodftInfo->calcLocalTraceOpt==1&&stodftInfo->chemPotOpt==2){
@@ -5031,6 +5031,7 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
       printf("Calculating local trace with sDFT does not support SCF iteraction.\n");
       printf("A non-SCF calculation will be performed!\n");
       printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
+      stodftInfo->numScf = 1;
     }
   }//endif stodftOn
 

@@ -2288,7 +2288,7 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
  /*             Local variable declarations                                */
   
   unsigned int i;
-  *num_dict = 49;
+  *num_dict = 50;
   *dict = (DICT_WORD *)cmalloc(*num_dict*sizeof(DICT_WORD))-1;
 
   for (i=1;i<=*num_dict;i++) {
@@ -2493,6 +2493,10 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
   strcpy((*dict)[49].error_mes,"If you want to calculate <r|f(h_KS)|r> like ldos on/off");
   strcpy((*dict)[49].keyword,"calc_local_trace");
   strcpy((*dict)[49].keyarg,"off");
+
+  strcpy((*dict)[50].error_mes,"Smearing function for metallic system (for FRAGMENT); choose from off,fermi,gauss");
+  strcpy((*dict)[50].keyword,"smear_opt_metal_frag");
+  strcpy((*dict)[50].keyarg,"off");
 
  /*========================================================================*/
  } /* end routine set_sim_dict_harmonic */

@@ -1385,16 +1385,17 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   if(numProcStates>1)Barrier(comm_states);
 /*--------------------------------------------------------------------------*/
 /* v) Scale by occupied number */
-  
-  for(iState=0;iState<numStateUpProc;iState++){
-    //printf("iState %i coeffUpReBackup %lg\n",iState,coeffUpReBackup[iState*numCoeff+numCoeff]);
-    for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
-      index1 = iState*numCoeff+iCoeff;
-      cre_up[index1] = coeffUpReBackup[index1]*numOccDetProc[iState];
-      cim_up[index1] = coeffUpImBackup[index1]*numOccDetProc[iState];
+// do not scale for calcLocalTraceOpt==1 option !! 
+  if(stodftInfo->calcLocalTraceOpt==0) { 
+    for(iState=0;iState<numStateUpProc;iState++){
+      //printf("iState %i coeffUpReBackup %lg\n",iState,coeffUpReBackup[iState*numCoeff+numCoeff]);
+      for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+	index1 = iState*numCoeff+iCoeff;
+	cre_up[index1] = coeffUpReBackup[index1]*numOccDetProc[iState];
+	cim_up[index1] = coeffUpImBackup[index1]*numOccDetProc[iState];
+      }
     }
   }
-
 /*--------------------------------------------------------------------------*/
 /* vi) Prepare for calculating electron friction if needed                  */
 

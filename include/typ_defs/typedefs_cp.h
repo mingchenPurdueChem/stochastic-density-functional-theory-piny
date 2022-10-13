@@ -883,6 +883,12 @@ typedef struct stodftInfo{
   int smearOpt;                     /* Opt: Do you wanna use smearing On=1,     */
                                     /*      Off=0(default) 1= Fermi-Dirac,      */
                                     /*      2 = Gauss (error function)          */
+  /* In case we want to use different smearing for Fragment calculation.
+   * Relavant in case of "calcLocalTraceOpt" ON option                          */
+  int smearOptFrag;                 /* Opt: Do you wanna use smearing On=1,     */
+                                    /*      Off=0(default) 1= Fermi-Dirac,      */
+                                    /*      2 = Gauss (error function)          */
+
   double smearTemperature;          /* Num: Smearing temperatur. I'm currently  */
                                     /*      using Fermi Dirac smearing          */
   double chemPotUpMetallic;         /* Num: Chemical potential in the smearing  */

@@ -585,7 +585,13 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
     cpMini->stodftInfo->energyTol = stodftInfo->energyTol;
     cpMini->stodftInfo->checkpointWriteFreq = 1000;
     cpMini->stodftInfo->checkpointParFlag = 0;
-    cpMini->stodftInfo->smearOpt = stodftInfo->smearOpt;
+    if(stodftInfo->calcLocalTraceOpt==1){
+      cpMini->stodftInfo->smearOpt = stodftInfo->smearOptFrag;
+    }
+    else {
+      cpMini->stodftInfo->smearOpt = stodftInfo->smearOpt;
+    }
+   //cpMini->stodftInfo->smearOpt = stodftInfo->smearOpt;
    // cpMini->stodftInfo->smearOpt = stodftInfo->smearOpt; another flag for Mini
     cpMini->stodftInfo->smearTemperature = stodftInfo->smearTemperature;
     cpMini->stodftInfo->energyWindowOn = 0;

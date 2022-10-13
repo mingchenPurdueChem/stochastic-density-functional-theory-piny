@@ -4858,6 +4858,12 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   if(strcasecmp(dict[49].keyarg,"off")==0)stodftInfo->calcLocalTraceOpt = 0;
   if(strcasecmp(dict[49].keyarg,"on")==0)stodftInfo->calcLocalTraceOpt = 1;
 
+  /*-----------------------------------------------------------------------*/
+  /*  50)\smear_opt_metal_frag{#} */
+  if(strcasecmp(dict[50].keyarg,"off")==0)stodftInfo->smearOptFrag = 0;
+  if(strcasecmp(dict[50].keyarg,"fermi")==0)stodftInfo->smearOptFrag = 1;
+  if(strcasecmp(dict[50].keyarg,"gauss")==0)stodftInfo->smearOptFrag = 2;
+
 /*=======================================================================*/
 /* Check the conflicate options						 */
   

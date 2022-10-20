@@ -1373,7 +1373,17 @@ void scfStodftFilterDiag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
   printf("SCF time myid %i gen-stowf %.8lg Diag %.8lg energy %.8lg density %.8lg KS potential %.8lg total-energy %.8lg\n",myidState,diffTime1,diffTime2,diffTime3,diffTime4,diffTime5,diffTime6);
 
+  /*
+  char fname[100];
+  FILE *fdetwf;
 
+
+  sprintf(fname,"detwf-%i",i);
+  fdetwf = fopen(fname,"w");
+  for(i=1;i<=nfft2;i++)fprintf(fdetwf,"%.16lg\n", [i]);
+  fclose(fdetwf)
+  */
+  
 /*======================================================================*/
 /* VI) Calculate nuclei forces after SCF loop                           */
 

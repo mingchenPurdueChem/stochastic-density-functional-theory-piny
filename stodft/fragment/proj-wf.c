@@ -1262,7 +1262,8 @@ void combineStoUC(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   double *rhoDnFragSum;
   double *noiseWfUpReal,*noiseWfDnReal;
 
-  
+  //char name[100];
+  //FILE *fstochasticwf;  
 /*======================================================================*/
 /* I) Asign local variables				                */
 
@@ -1335,6 +1336,12 @@ void combineStoUC(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   noiseRealReGen(general_data,cp,class,ip_now);
 #endif
 
+  /*
+  sprintf(name,"stochastic-wf");
+  fstochasticwf = fopen(name,"w");
+  for(int i=0; i < cp_para_fft_pkg3d_lg->nfft/2 ;i++)fprintf(fstochasticwf,"%.16lg\n",noiseWfUpReal[i]);
+  fclose(fstochasticwf); 
+  */
 /*======================================================================*/
 /* IV) Project the real space noise wave function                       */
 

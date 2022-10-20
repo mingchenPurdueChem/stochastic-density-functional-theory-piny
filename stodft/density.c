@@ -164,7 +164,7 @@ void rhoCalcRealStoHybrid(CPSCR *cpscr,
 /*II) fourier transform the two wavefunctions to real space
      convention exp(-igr)                                                   */
 
-    printf("zzzzzfft %lg %lg\n",zfft[1],zfft[100]);
+    //printf("zzzzzfft %lg %lg\n",zfft[1],zfft[100]);
     para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
 
     /*
@@ -173,7 +173,7 @@ void rhoCalcRealStoHybrid(CPSCR *cpscr,
       realspace_wf[is*100+i] = zfft[i*2+2];
     }
     */
-    printf("zffttttttttt %lg %lg\n",zfft[1],zfft[100]);
+    //printf("zffttttttttt %lg %lg\n",zfft[1],zfft[100]);
  
 /*--------------------------------------------------------------------------*/
 /* III) add the square of the two wave functions to the density(real space) */

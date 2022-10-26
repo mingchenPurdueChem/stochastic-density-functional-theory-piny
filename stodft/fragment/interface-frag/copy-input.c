@@ -560,6 +560,7 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
     cpMini->stodftInfo->metallic = (METALLIC*)cmalloc(sizeof(METALLIC));
     // I need fragInfo since frag index is stored in iFrag for each fragment
     cpMini->stodftInfo->fragInfo = (FRAGINFO*)cmalloc(sizeof(FRAGINFO));
+    cpMini->stodftInfo->fragInfo->iFrag = stodftInfo->fragInfo->fragInd[iFrag];
     cpMini->stodftInfo->missionType = stodftInfo->missionType;
     cpMini->stodftInfo->expanType = 2; //Newton
     cpMini->stodftInfo->filterFunType = 1;

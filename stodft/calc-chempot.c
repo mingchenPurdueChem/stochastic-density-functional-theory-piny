@@ -813,6 +813,12 @@ void calcChemPotMetal(CP *cp,double *numOccDetProc)
       printf("%.8lg %.8lg\n",energyLevel[iState],numOccDetAll[iState]);
     }
   }//endif myidState
+  else{
+    printf("Orbital energies and occupation numbers\n");
+    for(iState=0;iState<numStatePrintUp;iState++){
+      printf("%.8lg \n",energyLevel[iState]);
+    }
+  }
 
   if(numProcStates>1){
     Barrier(comm_states);

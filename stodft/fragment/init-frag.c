@@ -1431,12 +1431,22 @@ void partMolUC(double *comMolReduce,int numMolTot,int *numGridBox,
     x = comMolReduce[iMol*3]-sysRoot[0];
     y = comMolReduce[iMol*3+1]-sysRoot[1];
     z = comMolReduce[iMol*3+2]-sysRoot[2];
+    if(x<0.0)x += 1.0;
+    if(y<0.0)y += 1.0;
+    if(z<0.0)z += 1.0;
+    if(x>=1.0)x -= 1.0;
+    if(y>=1.0)y -= 1.0;
+    if(z>=1.0)z -= 1.0;
+
     indx = (int)(x/xBin);
     indy = (int)(y/yBin);
     indz = (int)(z/zBin);
+    //printf("comMolReduce: %lg %lg %lg \n", comMolReduce[iMol*3], comMolReduce[iMol*3+1], comMolReduce[iMol*3+2]);
+    //printf("sysRoot %lg %lg %lg\n", sysRoot[0],sysRoot[1],sysRoot[2]);
+    //printf("bin %lg %lg %lg\n",xBin,yBin,zBin);
     //printf("indx %i indy %i indz %i\n",indx,indy,indz);
     indUC = indz*numUCB*numUCA+indy*numUCA+indx;
-    //printf("indx %i indy %i indz %i indUC %i\n",indx,indy,indz,indUC);
+    //printf("indx %i indy %i indz %i indUC %i molNumUC %i \n",indx,indy,indz,indUC, molNumUC[indUC]);
     //if(iMol==496)printf("496 ind x %lg y %lg z %lg xBin %lg yBin %lg zBin %lg indx %i indy %i indz %i\n",x,y,z,xBin,yBin,zBin,indx,indy,indz);
     molNumUC[indUC] += 1;
     if(molNumUC[indUC]%100==0){

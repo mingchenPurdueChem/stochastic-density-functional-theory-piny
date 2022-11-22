@@ -582,6 +582,7 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
     cpMini->stodftInfo->chemPotOpt = 1;
     cpMini->stodftInfo->filterDiagFlag = 1;
     cpMini->stodftInfo->mixRatioSM = stodftInfo->mixRatioSM;
+    cpMini->stodftInfo->mixRatioSM2 = stodftInfo->mixRatioSM2;
     cpMini->stodftInfo->randSeed = stodftInfo->randSeed;
     cpMini->stodftInfo->energyTol = stodftInfo->energyTol;
     cpMini->stodftInfo->checkpointWriteFreq = 1000;

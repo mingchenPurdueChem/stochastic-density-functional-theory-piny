@@ -1380,7 +1380,7 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     else{
       memcpy(numOccDetProc,numOccDetAll,numStateUpProc*sizeof(double));
     }
-    cfree(numOccDetAll);
+    if(myidState==0) cfree(numOccDetAll);
   }
   if(numProcStates>1)Barrier(comm_states);
 /*--------------------------------------------------------------------------*/

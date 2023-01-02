@@ -278,7 +278,7 @@ void genStoOrbitalInterp(CLASS *class,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* IV) Generate random orbital                                          */
 
-  genNoiseOrbitalReal(cp,cpcoeffs_pos);  //TODO ??
+  genNoiseOrbital(cp,cpcoeffs_pos);  //TODO ??
   //debug
   /*
   for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
@@ -640,7 +640,7 @@ void genStoOrbitalCheby(CLASS *class,GENERAL_DATA *general_data,
 /* IV) Generate random orbital                                          */
 
   timeStart5 = omp_get_wtime();
-  genNoiseOrbitalReal(cp,cpcoeffs_pos); //TODO
+  genNoiseOrbital(cp,cpcoeffs_pos); //TODO
   timeEnd5 = omp_get_wtime();
   diffTime5 = timeEnd5-timeStart5;
 

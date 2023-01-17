@@ -768,6 +768,7 @@ void controlSetMolParamsFrag(CP_PARSE *cp_parse,CLASS_PARSE *class_parse,
   int countMol;
   int numMolTyp	      = atommapsMacro->nmol_typ;
   int iFrag   = fragInfo->iFrag;
+  int fragDFTMethod = stodftInfo->fragDFTMethod;
   int numMolTypeNow   = fragInfo->numMolTypeFrag[iFrag];
   int typeInd;
 
@@ -798,6 +799,8 @@ void controlSetMolParamsFrag(CP_PARSE *cp_parse,CLASS_PARSE *class_parse,
   int *molNumTypeFragNow = fragInfo->molNumTypeFrag[iFrag];
   int *numElecUpFragProc = fragInfo->numElecUpFragProc;
   int *numElecDnFragProc = fragInfo->numElecDnFragProc;
+  int *numElecTrueUpFragProc = fragInfo->numElecTrueUpFragProc;
+  int *numElecTrueDnFragProc = fragInfo->numElecTrueDnFragProc;
   
   char *molsetname        = filename_parse->molsetname;
 
@@ -898,8 +901,18 @@ void controlSetMolParamsFrag(CP_PARSE *cp_parse,CLASS_PARSE *class_parse,
       break;
     */
     case 2:
-      sprintf(dict_mol->wave_dict[1].keyarg,"%i",numElecUpFragProc[iFrag]);
-      sprintf(dict_mol->wave_dict[2].keyarg,"%i",numElecDnFragProc[iFrag]);
+      printf("fragDFTMethod %i\n",fragDFTMethod);
+      if(fragDFTMethod==2){
+        printf("numElecTrueUpFragProc[iFrag] %i\n",numElecTrueUpFragProc[iFrag]);
+        printf("numElecTrueDnFragProc[iFrag] %i\n",numElecTrueDnFragProc[iFrag]);
+
+        sprintf(dict_mol->wave_dict[1].keyarg,"%i",numElecTrueUpFragProc[iFrag]);
+        sprintf(dict_mol->wave_dict[2].keyarg,"%i",numElecTrueDnFragProc[iFrag]);
+      }
+      else{
+        sprintf(dict_mol->wave_dict[1].keyarg,"%i",numElecUpFragProc[iFrag]);
+        sprintf(dict_mol->wave_dict[2].keyarg,"%i",numElecDnFragProc[iFrag]);
+      }
       set_wave_params(molsetname,fun_key,
                     dict_mol->wave_dict,dict_mol->num_wave_dict,
                     cpopts,cpcoeffs_info,cp_parse);

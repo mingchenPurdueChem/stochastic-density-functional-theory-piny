@@ -873,6 +873,7 @@ void combineRhoUC(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   CELL *cell	      = &(general_data->cell);
  
   int iFrag,jFrag,iGrid,jGrid,iState,jState,iStateFrag,iProc;
+  int iFragGlobal;
   int iAtom;
   int gridIndex;
   int numGrid,numGridSmall;
@@ -899,6 +900,7 @@ void combineRhoUC(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 
   int *numGridFragProc	    = fragInfo->numGridFragProc;
   int *numGridFragProcSmall = fragInfo->numGridFragProcSmall;
+  int *fragInd              = fragInfo->fragInd;
   int *rhoRealSendCounts = stodftInfo->rhoRealSendCounts;
   int *rhoRealDispls = stodftInfo->rhoRealDispls;
   int *numStateUpAllProc;
@@ -906,6 +908,9 @@ void combineRhoUC(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 
   int **gridMapProc	    = fragInfo->gridMapProc;
   int **gridMapProcSmall    = fragInfo->gridMapProcSmall;
+
+  char fname[100];
+  FILE *fileSmallToMedium, *fileSmallToLarge;
  
   double proj;
   double numElecProj = 0.0;
@@ -1038,6 +1043,30 @@ void combineRhoUC(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     free(fragInfo->rhoUpFragProc[iFrag]);
     free(fragInfo->coefUpFragProc[iFrag]);
 #endif
+    if(stodftInfo->calcLocalTraceOpt==1){
+      // output grid mapping
+      iFragGlobal = fragInd[iFrag];
+      // This file contains gridMapProcSmall[iFrag][i] where 
+      // gridMapProcSmall[iFrag][i]
+      // is printed on the i'th line
+      sprintf(fname,"core-to-fragment-map-%i",iFragGlobal);
+      fileSmallToMedium = fopen(fname,"w");
+      for(iGrid=0;iGrid<numGridSmall;iGrid++){
+	fprintf(fileSmallToMedium,"%i\n",gridMapProcSmall[iFrag][iGrid]);
+      }//endif iGrid
+      fclose(fileSmallToMedium);
+      // This file contains gridMapProc[iFrag][gridMapProcSmall[iFrag][i]] where 
+      // gridMapProc[iFrag][gridMapProcSmall[iFrag][i]]
+      // is printed on the i'th line
+      sprintf(fname,"core-to-system-map-%i",iFragGlobal);
+      fileSmallToLarge = fopen(fname,"w");
+      for(iGrid=0;iGrid<numGridSmall;iGrid++){
+	fprintf(fileSmallToLarge,"%i\n",
+		gridMapProc[iFrag][gridMapProcSmall[iFrag][iGrid]]);
+      }
+      fclose(fileSmallToLarge);
+      // end output grid mapping
+    }
   }//endfor iFrag
   Barrier(commStates);
   //fflush(stdout);
@@ -1233,7 +1262,8 @@ void combineStoUC(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   double *rhoDnFragSum;
   double *noiseWfUpReal,*noiseWfDnReal;
 
-  
+  //char name[100];
+  //FILE *fstochasticwf;  
 /*======================================================================*/
 /* I) Asign local variables				                */
 
@@ -1306,6 +1336,12 @@ void combineStoUC(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   noiseRealReGen(general_data,cp,class,ip_now);
 #endif
 
+  /*
+  sprintf(name,"stochastic-wf");
+  fstochasticwf = fopen(name,"w");
+  for(int i=0; i < cp_para_fft_pkg3d_lg->nfft/2 ;i++)fprintf(fstochasticwf,"%.16lg\n",noiseWfUpReal[i]);
+  fclose(fstochasticwf); 
+  */
 /*======================================================================*/
 /* IV) Project the real space noise wave function                       */
 
@@ -1497,6 +1533,19 @@ void combineStoUC(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 
   //debug, output all wf filtered by frag wf
   //double *stowffrag = (double*)cmalloc(numStateUpAllProc[0]*rhoRealGridTot*sizeof(double));
+  // DEBUG
+  /*
+  FILE *ftest = fopen("noise-test-k","r");
+  double *cre_test = (double *)cmalloc(numStateUpProc*numCoeff*sizeof(double));
+  double *cim_test = (double *)cmalloc(numStateUpProc*numCoeff*sizeof(double));
+  for(iGrid=0;iGrid<numStateUpProc*numCoeff;iGrid++){
+    //fscanf(ftest,"%lg %lg",cre_test[iGrid],cim_test[iGrid]);
+    fscanf(ftest,"%lg",&cre_test[iGrid]);
+    fscanf(ftest,"%lg",&cim_test[iGrid]);
+  }
+  fclose(ftest);
+  */
+
   for(iFrag=0;iFrag<numFragProcMax;iFrag++){
     if(iFrag<numFragProc){
       fragInfo->iFrag = iFrag;
@@ -1545,6 +1594,22 @@ void combineStoUC(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 	    }
 	    //testsum += proj*coefUpFragProc[iFrag][iStateFrag*numGrid+gridMapProcSmall[iFrag][0]];
 	  }//endfor iStateFrag
+          //DEBUG
+          /*
+          for(iStateFrag=0;iStateFrag<numStateUpMini;iStateFrag++){
+            proj = 0.0;
+            for(iGrid=0;iGrid<numCoeff-1;iGrid++){
+              proj+= cre_test[iState*numCoeff+iGrid]*
+                     cpMini[iFrag].cpcoeffs_pos[1].cre_up[iStateFrag*numCoeff+iGrid+1]+
+                     cim_test[iState*numCoeff+iGrid]*
+                     cpMini[iFrag].cpcoeffs_pos[1].cim_up[iStateFrag*numCoeff+iGrid+1];
+            }
+            proj *= 2.0;
+            proj += cre_test[iState*numCoeff+numCoeff-1]*
+                    cpMini[iFrag].cpcoeffs_pos[1].cre_up[iStateFrag*numCoeff+numCoeff];
+            printf("iState %i iStateFrag %i proj-k %.16lg\n",iState,iStateFrag,proj);
+          }
+          */
 	  //debug
 	  /*
 	  for(iGrid=0;iGrid<numGridSmall;iGrid++){

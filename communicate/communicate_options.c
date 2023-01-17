@@ -231,6 +231,10 @@ void comm_cpopts(CPOPTS *cpopts,MPI_Comm world)
   Bcast(&(cpopts->threadFlag),1,MPI_INT,0,world);
   Barrier(world);
   Bcast(&(cpopts->realSparseOpt),1,MPI_INT,0,world);
+  Bcast(&(cpopts->metalFlag),1,MPI_INT,0,world);
+  Bcast(&(cpopts->smearingType),1,MPI_INT,0,world);
+  Bcast(&(cpopts->elecT),1,MPI_DOUBLE,0,world);
+  
   //printf("Finish bcast cpopts %i %i %i\n",cpopts->cp_lda,cpopts->stodftOn,cpopts->realSparseOpt);
   //fflush(stdout);
 

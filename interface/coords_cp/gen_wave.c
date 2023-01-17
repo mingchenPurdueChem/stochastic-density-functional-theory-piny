@@ -490,10 +490,10 @@ void gen_wave(CLASS *class,GENERAL_DATA *general_data,CP *cp,
    dylmr_z  = (double *) cmalloc(16*sizeof(double)) -1;
    dylmi_z  = (double *) cmalloc(16*sizeof(double)) -1;
 
-   psi_r_threads    = (double *) cmalloc(numThreads*20*sizeof(double )) -1;
-   psi_i_threads    = (double *) cmalloc(numThreads*20*sizeof(double )) -1;
-   psi_r    = (double *) cmalloc(20*sizeof(double )) -1;
-   psi_i    = (double *) cmalloc(20*sizeof(double )) -1;
+   //psi_r_threads    = (double *) cmalloc(numThreads*20*sizeof(double )) -1;
+   //psi_i_threads    = (double *) cmalloc(numThreads*20*sizeof(double )) -1;
+   psi_r    = (double *) cmalloc(nab_initio*20*sizeof(double )) -1;
+   psi_i    = (double *) cmalloc(nab_initio*20*sizeof(double )) -1;
 
    randnum = (double*)cmalloc((ncoef-1)*nab_initio*sizeof(double));
    for(i=0;i<(ncoef-1)*nab_initio;i++){
@@ -513,11 +513,11 @@ void gen_wave(CLASS *class,GENERAL_DATA *general_data,CP *cp,
    gpsi3 = (double ***) cmalloc(natm_typ_cp*sizeof(double **))-1;
 
   for(i=1; i<= natm_typ_cp; i++){
-    gpsi0[i] = (double **) cmalloc(3*sizeof(double *))-1;
-    gpsi1[i] = (double **) cmalloc(3*sizeof(double *))-1;
-    gpsi2[i] = (double **) cmalloc(3*sizeof(double *))-1;
-    gpsi3[i] = (double **) cmalloc(3*sizeof(double *))-1;
-    for(j=1; j<=3; j++){
+    gpsi0[i] = (double **) cmalloc(4*sizeof(double *))-1;
+    gpsi1[i] = (double **) cmalloc(4*sizeof(double *))-1;
+    gpsi2[i] = (double **) cmalloc(4*sizeof(double *))-1;
+    gpsi3[i] = (double **) cmalloc(4*sizeof(double *))-1;
+    for(j=1; j<=4; j++){
       gpsi0[i][j] = (double *) cmalloc(nsplin*sizeof(double ))-1;
       gpsi1[i][j] = (double *) cmalloc(nsplin*sizeof(double ))-1;
       gpsi2[i][j] = (double *) cmalloc(nsplin*sizeof(double ))-1;
@@ -525,7 +525,7 @@ void gen_wave(CLASS *class,GENERAL_DATA *general_data,CP *cp,
     }/*endfor*/
   }/*endfor*/
 
-   gpsi_now = cmall_mat(1,natm_typ_cp,1,3);
+   gpsi_now = cmall_mat(1,natm_typ_cp,1,4);
    gpsi00   = (double *) cmalloc(natm_typ_cp*sizeof(double)) -1;
   
   helr = (double*)cmalloc(nab_initio*sizeof(double));
@@ -658,9 +658,9 @@ void gen_wave(CLASS *class,GENERAL_DATA *general_data,CP *cp,
       #pragma omp for
       for(ipart = 1; ipart <= nab_initio; ipart++){
   /*  S STATE                                                                 */
-	psi_r_threads[iThread*20+1] = ylmr[1]*gpsi_now[iatm_atm_typ_cp[ipart]][1]/volrt; 
+	psi_r[(ipart-1)*20+1] = ylmr[1]*gpsi_now[iatm_atm_typ_cp[ipart]][1]/volrt; 
       /*     psi_r[1] = exp(-g2/(2.0*kappa*kappa))/volrt; */
-	psi_i_threads[iThread*20+1] = 0.0;
+	psi_i[(ipart-1)*20+1] = 0.0;
   /* SPHERICALIZED P BAND                                                    */
 	if(n_ang[iatm_atm_typ_cp[ipart]] >= 1){
 	  itemp = (int)randnum[(i-1)*nab_initio+ipart-1];
@@ -684,26 +684,31 @@ void gen_wave(CLASS *class,GENERAL_DATA *general_data,CP *cp,
 	      p_a = -rad2*ylmr[3]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
 	      p_c = -rad2*ylmi[3]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
 	      break;
+	    case 3:
+              p_b = -ylmr[2]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
+              p_a = -rad2*ylmr[3]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
+              p_c = -rad2*ylmi[3]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
+
 	  }/*end switch*/
-	  psi_r_threads[iThread*20+2] = 0.0;
-	  psi_i_threads[iThread*20+2] = (p_c + (p_b+p_a)/rad2)/rad2;
-	  psi_r_threads[iThread*20+3] = 0.0;
-	  psi_i_threads[iThread*20+3] = (p_c - (p_b+p_a)/rad2)/rad2;
-	  psi_r_threads[iThread*20+4] = 0.0;
-	  psi_i_threads[iThread*20+4] = (p_b-p_a)/rad2;
+	  psi_r[(ipart-1)*20+2] = 0.0;
+	  psi_i[(ipart-1)*20+2] = (p_c + (p_b+p_a)/rad2)/rad2;
+	  psi_r[(ipart-1)*20+3] = 0.0;
+	  psi_i[(ipart-1)*20+3] = (p_c - (p_b+p_a)/rad2)/rad2;
+	  psi_r[(ipart-1)*20+4] = 0.0;
+	  psi_i[(ipart-1)*20+4] = (p_b-p_a)/rad2;
 	}/*endif*/
   /*  D BAND                                                                   */
 	if(n_ang[iatm_atm_typ_cp[ipart]] >= 2){
-	  psi_r_threads[iThread*20+5] = -ylmr[5]*gpsi_now[iatm_atm_typ_cp[ipart]][3]/volrt;
-	  psi_i_threads[iThread*20+5] = 0.0;
-	  psi_r_threads[iThread*20+6] = -rad2*ylmr[6]*gpsi_now[iatm_atm_typ_cp[ipart]][3]/volrt;
-	  psi_i_threads[iThread*20+6] = 0.0;
-	  psi_r_threads[iThread*20+7] = -rad2*ylmi[6]*gpsi_now[iatm_atm_typ_cp[ipart]][3]/volrt;
-	  psi_i_threads[iThread*20+7] = 0.0;
-	  psi_r_threads[iThread*20+8] = -rad2*ylmr[8]*gpsi_now[iatm_atm_typ_cp[ipart]][3]/volrt;
-	  psi_i_threads[iThread*20+8] = 0.0;
-	  psi_r_threads[iThread*20+9] = -rad2*ylmi[8]*gpsi_now[iatm_atm_typ_cp[ipart]][3]/volrt;
-	  psi_i_threads[iThread*20+9] = 0.0;
+	  psi_r[(ipart-1)*20+5] = -ylmr[5]*gpsi_now[iatm_atm_typ_cp[ipart]][3]/volrt;
+	  psi_i[(ipart-1)*20+5] = 0.0;
+	  psi_r[(ipart-1)*20+6] = -rad2*ylmr[6]*gpsi_now[iatm_atm_typ_cp[ipart]][3]/volrt;
+	  psi_i[(ipart-1)*20+6] = 0.0;
+	  psi_r[(ipart-1)*20+7] = -rad2*ylmi[6]*gpsi_now[iatm_atm_typ_cp[ipart]][3]/volrt;
+	  psi_i[(ipart-1)*20+7] = 0.0;
+	  psi_r[(ipart-1)*20+8] = -rad2*ylmr[8]*gpsi_now[iatm_atm_typ_cp[ipart]][3]/volrt;
+	  psi_i[(ipart-1)*20+8] = 0.0;
+	  psi_r[(ipart-1)*20+9] = -rad2*ylmi[8]*gpsi_now[iatm_atm_typ_cp[ipart]][3]/volrt;
+	  psi_i[(ipart-1)*20+9] = 0.0;
 	}/*endif*/
 
 /*---------------------------------------------------------------------------*/
@@ -736,16 +741,6 @@ void gen_wave(CLASS *class,GENERAL_DATA *general_data,CP *cp,
       }//endfor ipart
     }
     
-    for(j=1;j<=20;j++){
-      psi_r[j] = 0.0;
-      psi_i[j] = 0.0;
-    }
-    for(iThread=0;iThread<numThreads;iThread++){
-      for(j=1;j<=20;j++){
-        psi_r[j] += psi_r_threads[iThread*20+j];
-	psi_i[j] += psi_i_threads[iThread*20+j];
-      }
-    }
    
 /*=========================================================================*/
 /*  construct the coeff                                                    */
@@ -758,8 +753,8 @@ void gen_wave(CLASS *class,GENERAL_DATA *general_data,CP *cp,
        if( ((istate_up + is ) >= istate_up_st) &&
        ((istate_up + is) <= istate_up_end)){  
 	 ind = i + (istate_up - istate_up_st + is  )*ncoef;
-	 creal_up[ind]  =  helr[ipart-1]*psi_r[is] - heli[ipart-1]*psi_i[is];
-	 cimag_up[ind]  =  heli[ipart-1]*psi_r[is] + helr[ipart-1]*psi_i[is];
+	 creal_up[ind]  =  helr[ipart-1]*psi_r[(ipart-1)*20+is] - heli[ipart-1]*psi_i[(ipart-1)*20+is];
+	 cimag_up[ind]  =  heli[ipart-1]*psi_r[(ipart-1)*20+is] + helr[ipart-1]*psi_i[(ipart-1)*20+is];
        }/*endif*/
       }/*endfor*/
 
@@ -770,8 +765,8 @@ void gen_wave(CLASS *class,GENERAL_DATA *general_data,CP *cp,
 	 if( ((istate_dn + is ) >= istate_dn_st) && 
 	 ((istate_dn + is) <= istate_dn_end)){  
 	   ind = i + (istate_dn - istate_dn_st + is  )*ncoef;
-	   creal_dn[ind] =  helr[ipart-1]*psi_r[is] - heli[ipart-1]*psi_i[is];
-	   cimag_dn[ind] =  heli[ipart-1]*psi_r[is] + helr[ipart-1]*psi_i[is];
+	   creal_dn[ind] =  helr[ipart-1]*psi_r[(ipart-1)*20+is] - heli[ipart-1]*psi_i[(ipart-1)*20+is];
+	   cimag_dn[ind] =  heli[ipart-1]*psi_r[(ipart-1)*20+is] + helr[ipart-1]*psi_i[(ipart-1)*20+is];
 	 }/*endif*/
        }/*endfor*/
        istate_dn +=  nstate_dn_atm[iatm_atm_typ_cp[ipart]];
@@ -1112,6 +1107,7 @@ void gen_wave(CLASS *class,GENERAL_DATA *general_data,CP *cp,
   cfree(&(gpsi00[1]));
   cfree(helr);
   cfree(heli);
+  cfree(randnum);
 
 /*===========================================================================*/
 

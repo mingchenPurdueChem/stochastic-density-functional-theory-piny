@@ -266,12 +266,22 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }
   if(filterDiagFlag==0){
     if(stodftInfo->chemPotOpt==1){
+      if(stodftInfo->calcLocalTraceOpt==0){
 #ifdef FAST_FILTER   
-      scfStodftInterp(class,bonded,general_data,cp,
-                      class2,bonded2,general_data2,cp2,ip_now);
+        scfStodftInterp(class,bonded,general_data,cp,
+                        class2,bonded2,general_data2,cp2,ip_now);
 #else
-      scfStodftInterp(class,bonded,general_data,cp,ip_now);
+        scfStodftInterp(class,bonded,general_data,cp,ip_now);
 #endif
+      }
+      else{
+#ifdef FAST_FILTER   
+        scfStodftInterpPostAnalysis(class,bonded,general_data,cp,
+                        class2,bonded2,general_data2,cp2,ip_now);
+#else
+        scfStodftInterpPostAnalysis(class,bonded,general_data,cp,ip_now);
+#endif
+      }
     }
     else if(stodftInfo->chemPotOpt==2){
       if(stodftInfo->energyWindowOn==0){
@@ -310,6 +320,7 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }//endif filterDiagFlag
   else scfStodftFilterDiag(class,bonded,general_data,cp,ip_now);
   //scfStodft(class,bonded,general_data,cp,ip_now);
+  
    
 /*======================================================================*/
 /* V) Loop over the specified number of time steps for geometric	*/

@@ -24,6 +24,8 @@
 #include "../proto_defs/proto_communicate_wrappers.h"
 #include "../proto_defs/proto_stodft_local.h"
 
+#define TEST_SCATTERV 
+
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
@@ -251,7 +253,7 @@ void checkpointInput(CP *cp,GENERAL_DATA *general_data,CLASS *class)
   int cpDualGridOptOn	= cpopts->cp_dual_grid_opt;
   int numInterpPmeDual	= pseudo->n_interp_pme_dual;
   int numCoeff		= cpcoeffs_info->ncoef;
-  int iScf,iDiis,iGrid,iCoeff;
+  int iScf,iDiis,iGrid,iCoeff,iProc;
 
   MPI_Comm commStates = communicate->comm_states;
 
@@ -318,6 +320,7 @@ void checkpointInput(CP *cp,GENERAL_DATA *general_data,CLASS *class)
     Scatterv(rhoTemp,rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
 	     &rhoUp[1],rhoRealGridNum,MPI_DOUBLE,0,commStates);
     Barrier(commStates);
+    //printf("rho %lg\n",rhoUp[100]);
   }
   else{
     memcpy(&rhoUp[1],rhoTemp,rhoRealGridTot*sizeof(double));
@@ -403,32 +406,62 @@ void checkpointInput(CP *cp,GENERAL_DATA *general_data,CLASS *class)
       for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
 	fscanf(fileCheckpoint,"%lg",&rhoTemp[iGrid]);
       }//endfor iGrid
+      printf("iDiis %i rhoTemp %lg\n",iDiis,rhoTemp[100]);
     }//endif myidState
     if(numProcStates>1){
       Barrier(commStates);
+#ifdef TEST_SCATTERV
+      if(myidState!=0){
+        Recv(rhoUpBank[iDiis],rhoRealGridNum,MPI_DOUBLE,0,myidState,commStates);
+      }
+      else{
+        for(iProc=1;iProc<numProcStates;iProc++){
+          Send(&rhoTemp[rhoRealDispls[iProc]],rhoRealSendCounts[iProc],
+               MPI_DOUBLE,iProc,iProc,commStates);
+        }
+        memcpy(rhoUpBank[iDiis],rhoTemp,rhoRealGridNum*sizeof(double));
+      }
+#else
       Scatterv(rhoTemp,rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
 	       rhoUpBank[iDiis],rhoRealGridNum,MPI_DOUBLE,0,commStates);
+#endif
       Barrier(commStates);
     }
     else{
       memcpy(rhoUpBank[iDiis],rhoTemp,rhoRealGridTot*sizeof(double));
     }
+    printf("iDiis %i rhoUpBank %lg\n",iDiis,rhoUpBank[iDiis][100]);
   }
   for(iDiis=0;iDiis<numDiisNow;iDiis++){
     if(myidState==0){    
       for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
         fscanf(fileCheckpoint,"%lg",&rhoTemp[iGrid]);
       }//endfor iGrid
+      printf("iDiis %i rhoTemp %lg\n",iDiis,rhoTemp[100]);
     }
     if(numProcStates>1){
       Barrier(commStates);
+#ifdef TEST_SCATTERV
+      if(myidState!=0){
+        Recv(rhoUpErr[iDiis],rhoRealGridNum,MPI_DOUBLE,0,myidState,commStates);
+      }
+      else{
+        for(iProc=1;iProc<numProcStates;iProc++){
+          Send(&rhoTemp[rhoRealDispls[iProc]],rhoRealSendCounts[iProc],
+               MPI_DOUBLE,iProc,iProc,commStates);
+        }
+        memcpy(rhoUpErr[iDiis],rhoTemp,rhoRealGridNum*sizeof(double));
+      }
+#else
       Scatterv(rhoTemp,rhoRealSendCounts,rhoRealDispls,MPI_DOUBLE,
 	       rhoUpErr[iDiis],rhoRealGridNum,MPI_DOUBLE,0,commStates);
+#endif
       Barrier(commStates);
     }
     else{
       memcpy(rhoUpErr[iDiis],rhoTemp,rhoRealGridTot*sizeof(double));
     }
+    printf("iDiis %i rhoUpErr %lg\n",iDiis,rhoUpErr[iDiis][100]);
   }
   if(cpLsda==1){
     for(iDiis=0;iDiis<numDiisOutput;iDiis++){

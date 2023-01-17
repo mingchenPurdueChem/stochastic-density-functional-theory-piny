@@ -1,0 +1,268 @@
+commit b43a1680a56bf53c0c6101cb4c1550dcbe7d2d71
+Author: Jake Phuoc Doan Vu <vuj@bell-fe02.rcac.purdue.edu>
+Date:   Tue Jul 12 19:01:40 2022 -0400
+
+    implemented f channel capabilities
+
+diff --git a/energy/cp/cp_energy_eext_nonloc_real.c b/energy/cp/cp_energy_eext_nonloc_real.c
+index fe7128a..54518a8 100644
+--- a/energy/cp/cp_energy_eext_nonloc_real.c
++++ b/energy/cp/cp_energy_eext_nonloc_real.c
+@@ -704,6 +704,10 @@ void calcSpHarm(double *ylm,int l,double *gridAtomNbhd,int numGrid,
+   double pre20 = 0.25*sqrt(5.0*piInv);
+   double pre21 = -0.5*sqrt(7.5*piInv);
+   double pre22 = 0.25*sqrt(7.5*piInv);
++  double pre30 = 0.25*sqrt(7.0*piInv);
++  double pre31 = -0.125*sqrt(21*piInv);
++  double pre32 = 0.25*sqrt(52.5*piInv);
++  double pre33 = -0.125*sqrt(35*piInv);
+ 
+ 
+   switch(l){
+@@ -738,6 +742,30 @@ void calcSpHarm(double *ylm,int l,double *gridAtomNbhd,int numGrid,
+ 	ylm[ind+1] = temp1*(2.0*trig[iGrid*4+3]*trig[iGrid*4+2]);
+       }
+       break;
++    case 3:
++      for(iGrid=0;iGrid<numGrid;iGrid++){
++	ylm[iGrid] = pre30*(5.0*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4+1]-3.0**trig[iGrid*4+1];
++      }
++      for(iGrid=0;iGrid<numGrid;iGrid++){
++	temp1 = pre31*trig[iGrid*4]*(5.0*trig[iGrid*4+1]*trig[iGrid*4+1]-1.0);
++	ind = numGrid+iGrid*2;
++	ylm[ind] = temp1*trig[iGrid*4+3];
++	ylm[ind+1] = temp1*trig[iGrid*4+2];
++      }
++      for(iGrid=0;iGrid<numGrid;iGrid++){
++        temp1 = pre32*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1];
++	ind = numGrid*3+iGrid*2;
++	ylm[ind] = temp1*(2.0*trig[iGrid*4+3]*trig[iGrid*4+3]-1.0);
++	ylm[ind+1] = temp1*(2.0*trig[iGrid*4+3]*trig[iGrid*4+2]);
++      }
++      for(iGrid=0;iGrid<numGrid;iGrid++){
++	temp1 = pre33**trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4];
++	ind = numGrid*5+iGrid*2;
++	ylm[ind] = temp1*(4.0*trig[iGrid*4+3]*trig[iGrid*4+3]*trig[iGrid*4+3]-3.0*trig[iGrid*4+3]);
++	ylm[ind+1] = temp1*(3.0*trig[iGrid*4+2]-4.0*trig[iGrid*4+2]*trig[iGrid*4+2]*trig[iGrid*4+2]);
++      }
++      break;
++	
+   }
+ 
+ /*--------------------------------------------------------------------------*/
+diff --git a/energy/cp/cp_energy_eext_nonloc_real_force.c b/energy/cp/cp_energy_eext_nonloc_real_force.c
+index 177d73a..9a360ab 100644
+--- a/energy/cp/cp_energy_eext_nonloc_real_force.c
++++ b/energy/cp/cp_energy_eext_nonloc_real_force.c
+@@ -574,6 +574,10 @@ void calcSpHarmDeriv(double *ylm,double *ylmTheta, double *ylmPhi,int l,
+   double pre20 = 0.25*sqrt(5.0*piInv);
+   double pre21 = -0.5*sqrt(7.5*piInv);
+   double pre22 = 0.25*sqrt(7.5*piInv);
++  double pre30 = 0.25*sqrt(7*piInv);
++  double pre31 = -0.125*sqrt(21*piInv);
++  double pre32 = 0.25*sqrt(52.5*piInv);
++  double pre33 = -0.125*sqrt(35*piInv);
+   // trig 0:sin(theta) 1:cos(theta) 2:sin(phi) 3:cos(phi)
+   
+ 
+@@ -601,6 +605,7 @@ void calcSpHarmDeriv(double *ylm,double *ylmTheta, double *ylmPhi,int l,
+       //printf("m=1 Im DylmDtheta %lg DPhi %lg\n",ylmTheta[numGrid+3],ylmPhi[numGrid+3]);
+       break;
+     case 2:
++      //printf("sintheta %lg costheta %lg sinphi %lg cosphi %lg\n",trig[0],trig[1],trig[2],trig[3]);
+       for(iGrid=0;iGrid<numGrid;iGrid++){ //Y20
+         ylmTheta[iGrid] = -pre20*6.0*trig[iGrid*4]*trig[iGrid*4+1];
+ 	ylmPhi[iGrid] = 0.0;
+@@ -619,7 +624,49 @@ void calcSpHarmDeriv(double *ylm,double *ylmTheta, double *ylmPhi,int l,
+ 	ylmTheta[ind] = pre22*2.0*trig[iGrid*4]*trig[iGrid*4+1]*(2*trig[iGrid*4+3]*trig[iGrid*4+3]-1);
+ 	ylmTheta[ind+1] = pre22*2.0*trig[iGrid*4]*trig[iGrid*4+1]*(2.0*trig[iGrid*4+3]*trig[iGrid*4+2]);
+ 	ylmPhi[ind] = -pre22*trig[iGrid*4]*trig[iGrid*4]*4.0*trig[iGrid*4+3]*trig[iGrid*4+2];
+-	ylmPhi[ind+1] = pre22*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+3]*2.0*(2*trig[iGrid*4+3]*trig[iGrid*4+3]-1);
++        ylmPhi[ind+1] = pre22*trig[iGrid*4]*trig[iGrid*4]*2.0*(2*trig[iGrid*4+3]*trig[iGrid*4+3]-1);
++      }
++      break;
++    case 3:
++      for(iGrid=0;iGrid<numGrid;iGrid++){ //Y30
++	ylmTheta[iGrid] = pre30*(3*trig[iGrid*4]-15*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4];
++	ylmPhi[iGrid] = 0.0;
++      }
++      for(iGrid=0;iGrid<numGrid;iGrid++){ //Y31	
++	ind = numGrid+iGrid*2;
++	ylmTheta[ind] = pre31*(5*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4+3]-
++			10*trig[iGrid*4+1]*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+3]-
++			trig[iGrid*4+1]*trig[iGrid*4+3]);
++	ylmTheta[ind+1] = pre31*(5*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4+2]-
++			  10*trig[iGrid*4+1]*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+2]-
++			  trig[iGrid*4+1]*trig[iGrid*4+2]);
++	ylmPhi[ind] = pre31*(trig[iGrid*4]*trig[iGrid*4+2]-
++		      5*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4]*trig[iGrid*4+2]);
++	ylmPhi[ind+1] = pre31*(5*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4]*trig[iGrid*4+3]-
++			trig[iGrid*4]*trig[iGrid*4+3]);
++      }
++      for(iGrid=0;iGrid<numGrid;iGrid++){ //Y32
++ 	ind = numGrid*3+iGrid*2;
++	ylmTheta[ind] = pre32*(4*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4+3]*trig[iGrid*4+3]-
++			2*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+3]*trig[iGrid*4+3]-
++			2*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+1]+
++			trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4]);
++	ylmTheta[ind+1] = pre32*(4*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4+2]*trig[iGrid*4+3]-
++			  2**trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+2]*trig[iGrid*4+3]);
++	ylmPhi[ind] = -pre32*(4*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+2]*trig[iGrid*4+3]);
++	ylmPhi[ind+1] = pre32*(2*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+3]*trig[iGrid*4+3]-
++			2*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+2]*trig[iGrid*4+2]);
++      }
++      for(iGrid=0;iGrid<numGrid;iGrid++){ //Y33
++	ind = numGrid*5+iGrid*2;
++	ylmTheta[ind] = pre33*(12*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+3]*trig[iGrid*4+3]*trig[iGrid*4+3]-
++			9*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+3]);
++	ylmTheta[ind+1] = pre33*(9*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+2]-
++			  12*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+2]*trig[iGrid*4+2]*trig[iGrid*4+2]);
++	ylmPhi[ind] = pre33*(3*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+2]-
++		      12*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+2]*trig[iGrid*4+3]*trig[iGrid*4+3]);
++	ylmPhi[ind+1] = pre33*(3*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+2]-
++			12*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+2]*trig[iGrid*4+2]*trig[iGrid*4+3]);
+       }
+       break;
+   }
+@@ -644,7 +691,7 @@ void calcAngleDeriv(double *trig,double *gridAtomNbhd,double *dTheta,double *dPh
+   int iGrid;
+   double r,r2,rProj2,rProj;
+   double x,y,z;
+-  double pre1,pre2;
++	  double pre1,pre2;
+ 
+   for(iGrid=0;iGrid<numGrid;iGrid++){
+     x = gridAtomNbhd[3*iGrid];
+diff --git a/interface/vps_params/real_space_nlpp.c b/interface/vps_params/real_space_nlpp.c
+index b9d5f41..5e0e836 100644
+--- a/interface/vps_params/real_space_nlpp.c
++++ b/interface/vps_params/real_space_nlpp.c
+@@ -823,6 +823,19 @@ void bessTransform(double *funIn,int numIn,double dx,int l,double *funOut,
+ 	}//endif y
+       }//endfor iGrid
+       break;
++    case 3:
++      for(iGrid=0;iGrid<numOut;iGrid++){
++        funOut[iGrid] = 0.0;
++        y = yList[iGrid];
++        if(y>1.0e-100){
++          for(jGrid=1;jGrid<numIn;jGrid++){
++            x = jGrid*dx;
++            arg = x*y;
++            funOut[iGrid] += dj3(arg)*x*funIn[jGrid]*dx;
++          }//endfor jGrid
++        }//endif y
++      }//endfor iGrid
++      break;
+   }//endswitch
+ 
+ /*--------------------------------------------------------------------------*/
+@@ -897,6 +910,15 @@ void optGCoeff(PSEUDO_REAL *pseudoReal,int numGLg,int numGSm,int numR,
+           }
+           A[iGridG*numGLg+jGridG] *= dr*qi*qi*qj*qj;
+           break;
++	case 3:
++	  for(kGridR=1;kGridR<numRCutoff;kGridR++){
++	    r = kGridR*dr;
++	    arg1 = qi*r;
++	    arg2 = qj*r;
++	    A[iGridG*numGLg+jGridG] += j3(arg1)*j3(arg2)*r*r;
++	  }
++	  A[iGridG*numGLg+jGridG] *= dr*qi*qi*qj*qj;
++	  break;
+       }//endswitch l
+       A[jGridG*numGLg+iGridG] = A[iGridG*numGLg+jGridG];
+     }//endfor jGridG
+@@ -1034,6 +1056,19 @@ void bessTransformGrad(double *funIn,int numIn,double dx,int l,double *funOut,
+ 	}//endif y
+       }//endfor iGrid
+       break;
++    case 3:
++      for(iGrid=0;iGrid<numOut;iGrid++){
++        funOut[iGrid] = 0.0;
++        y = yList[iGrid];
++        if(y>1.0e-100){
++          for(jGrid=1;jGrid<numIn;jGrid++){
++            x = jGrid*dx;
++            arg = x*y;
++            funOut[iGrid] += dj3(arg)*x*x*funIn[jGrid]*dx;
++          }//endfor jGrid
++        }//endif y
++      }//endfor iGrid
++      break;
+   }//endswitch
+ 
+ /*--------------------------------------------------------------------------*/
+@@ -1140,6 +1175,19 @@ void bessTransformGradGrad(double *funIn,int numIn,double dx,int l,double *funOu
+         }//endif y
+       }//endfor iGrid
+       break;
++    case 3:
++      for(iGrid=0;iGrid<numOut;iGrid++){
++        funOut[iGrid] = 0.0;
++        y = yList[iGrid];
++        if(y>1.0e-100){
++          for(jGrid=1;jGrid<numIn;jGrid++){
++            x = jGrid*dx;
++            arg = x*y;
++            funOut[iGrid] += dj3(arg)*x*x*x*funIn[jGrid]*dx;
++          }//endfor jGrid
++        }//endif y
++      }//endfor iGrid
++      break;
+   }//endswitch
+ 
+ /*--------------------------------------------------------------------------*/
+diff --git a/mathlib/mathlib.c b/mathlib/mathlib.c
+index 4a033a9..5526849 100644
+--- a/mathlib/mathlib.c
++++ b/mathlib/mathlib.c
+@@ -861,6 +861,13 @@ double j2(double x){
+ }
+ /*===============================================================*/
+ 
++/*==========================================================================*/
++/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
++/*==========================================================================*/
++double j3(double x){
++  return (15.0/(x*x*x)-6.0/x)*sin(x)/x-(15.0/(x*x)-1)*cos(x)/x;
++}
++/*===============================================================*/
+ 
+ /*==========================================================================*/
+ /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+@@ -891,6 +898,17 @@ double dj2(double x){
+ }
+ /*===============================================================*/
+ 
++/*==========================================================================*/
++/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
++/*==========================================================================*/
++double dj3(double x){
++  double x2 = x*x;
++  double x3 = x2*x;
++  double x4 = x2*x2;
++  double x5 = x4*x;
++  return (-((x4-27.0*x2+60.0)*sin(x)+x*(7*x2-60)*cos(x))/x5);
++}
++/*===============================================================*/
+ 
+ /*==========================================================================*/
+ /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+diff --git a/mathlib/proto_math.h b/mathlib/proto_math.h
+index 227a6f0..30eee90 100644
+--- a/mathlib/proto_math.h
++++ b/mathlib/proto_math.h
+@@ -382,10 +382,12 @@ double entropyReal(double, double, double);
+ double j0(double);
+ double j1(double);
+ double j2(double);
++double j3(double);
+ 
+ double dj0(double);
+ double dj1(double);
+ double dj2(double);
++double dj3(double);
+ 
+ void dsysvWrapper(double *,double *,int);
+ 

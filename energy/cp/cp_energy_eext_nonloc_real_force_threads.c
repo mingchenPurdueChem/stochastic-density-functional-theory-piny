@@ -168,7 +168,7 @@ void nlppKBRealEnergyForceThreads(CP *cp,CLASS *class,GENERAL_DATA *generalData,
                        &vnlPhiDxAtomGridRe[gridShiftNowRe],1)*volElem;
                 dotDevIm = ddotBlasWrapper(numGrid,wfNbhd,1,
                            &vnlPhiDxAtomGridIm[gridShiftNowIm],1)*volElem;
-                printf("xxx l %i m %i dotRe %lg dotIm %lg dotDevRe %lg dotDevIm %lg\n",l,m,dotRe,dotIm,dotDevRe,dotDevIm);
+                //printf("xxx l %i m %i dotRe %lg dotIm %lg dotDevRe %lg dotDevIm %lg\n",l,m,dotRe,dotIm,dotDevRe,dotDevIm);
                 forceNlX += (dotRe*dotDevRe+dotIm*dotDevIm)*4.0*vpsNormList[radIndex]*volInv;
                 // y
                 dotDevRe = ddotBlasWrapper(numGrid,wfNbhd,1,
@@ -196,7 +196,7 @@ void nlppKBRealEnergyForceThreads(CP *cp,CLASS *class,GENERAL_DATA *generalData,
                 // x
                 dotDevRe = ddotBlasWrapper(numGrid,wfNbhd,1,
                        &vnlPhiDxAtomGridRe[gridShiftNowRe],1)*volElem;
-                printf("xxx l %i m %i dotRe %lg dotIm 0.0 dotDevRe %lg dotDevIm 0.0\n",l,m,dotRe,dotDevRe);
+                //printf("xxx l %i m %i dotRe %lg dotIm 0.0 dotDevRe %lg dotDevIm 0.0\n",l,m,dotRe,dotDevRe);
 
                 forceNlX += dotRe*dotDevRe*2.0*vpsNormList[radIndex]*volInv;
                 // y

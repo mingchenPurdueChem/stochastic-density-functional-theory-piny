@@ -526,11 +526,14 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
   int numThreads = cp_para_fft_pkg3d_lg->numThreads;
   int iThread;
   int gridOff1,gridOff2;
+  int fragDFTMethod = cp->stodftInfo->fragDFTMethod;
 
   //printf("nfftttttt2_proc %i\n",nfft2_proc);
   double *zfft           =    cpscr->cpscr_wave.zfft;
   double *zfft_tmp       =    cpscr->cpscr_wave.zfft_tmp;
   double *hmatCP         =    cell->hmat_cp;
+  double *numOccDetProc;
+  double *occPre;
   double volFrag         = getdeth(hmatCP);
   double invVolFrag	 = 1.0/volFrag;
   double prefact;
@@ -539,10 +542,33 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
   double **zfft_tmp_threads = cpscr->cpscr_wave.zfft_tmp_threads;
   double *rho_scr_threads;
 
-
-  prefact = 1.0/sqrt(2.0*volFrag);
+  if(cp->stodftInfo->calcLocalTraceOpt == 1){
+    prefact = 1.0/sqrt(volFrag);
+  }
+  else {
+    prefact = 1.0/sqrt(2.0*volFrag);
+  }
+  //prefact = 1.0/sqrt(2.0*volFrag);
   if(cp_lsda==1)prefact = sqrt(invVolFrag);
   rho_scr_threads = (double*)cmalloc((numThreads*nfft2+1)*sizeof(double));
+
+  // DEBUG NOT WORK FOR SPIN DOWN
+  if(fragDFTMethod==2){
+    numOccDetProc = cpMini->stodftInfo->numOccDetProc;
+  }
+  occPre = (double*)cmalloc(nstate*sizeof(double));
+  switch(fragDFTMethod){
+    case 1:
+      for(is=0;is<nstate;is++)occPre[is] = 1.0;
+      break;
+    case 2:
+      for(is=0;is<nstate;is++){
+        occPre[is] = numOccDetProc[is]/sqrt(2.0);
+        //printf("is %i occPre %lg\n",is,occPre[is]);
+      }
+      break;
+  }
+  
 
 /* ================================================================= */
 /*1) zero density and gradients if necessary                         */
@@ -580,7 +606,7 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
 
       //dble_pack_coef(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
       //                  zfft,cp_sclr_fft_pkg3d_sm);
-
+      //printf("is %i %i ccreal %lg %lg\n",is-1,is,ccreal[ioff+2],ccreal[ioff2+2]);
       dble_pack_coef_fftw3d(&ccreal[ioff],&ccimag[ioff],&ccreal[ioff2],&ccimag[ioff2],
 			zfft_threads[iThread],cp_sclr_fft_pkg3d_sm);
 
@@ -611,8 +637,8 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
 	wfReal[gridOff1+igrid] = zfft_threads[iThread][igrid*2+1]*prefact;
 	wfReal[gridOff2+igrid] = zfft_threads[iThread][igrid*2+2]*prefact;
 	rho_scr_threads[iThread*nfft2+igrid] 
-		+= zfft_threads[iThread][igrid*2+1]*zfft_threads[iThread][igrid*2+1]+
-		   zfft_threads[iThread][igrid*2+2]*zfft_threads[iThread][igrid*2+2];
+		+= zfft_threads[iThread][igrid*2+1]*zfft_threads[iThread][igrid*2+1]*occPre[is-1]+
+		   zfft_threads[iThread][igrid*2+2]*zfft_threads[iThread][igrid*2+2]*occPre[is];
       }
       //printf("ioff %i ioff2 %i wfReal %lg %lg\n",ioff,ioff2,wfReal[ioff],wfReal[ioff2]);
     }//endfor is
@@ -661,7 +687,7 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
     
     for(igrid=0;igrid<nfft2_proc;igrid++){
       wfReal[ioff*nfft2+igrid] = zfft_threads[0][igrid*2+1]*prefact;
-      rho[igrid] += zfft_threads[0][igrid*2+1]*zfft_threads[0][igrid*2+1];
+      rho[igrid] += zfft_threads[0][igrid*2+1]*zfft_threads[0][igrid*2+1]*occPre[nstate-1];
     }
 
   }//endif nstat%2
@@ -700,6 +726,9 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
     }
   }
   */
+
+  free(occPre);
+  free(rho_scr_threads);
 
 /*==========================================================================*/
 }/*end Routine*/
@@ -1127,7 +1156,7 @@ void noiseRealReGen(GENERAL_DATA *general_data,CP *cp,CLASS *class,int ip_now)
   //debug
 #endif
   
-  
+  /*
   char fileNameRand[100];
   FILE *fileRand;
   
@@ -1138,6 +1167,7 @@ void noiseRealReGen(GENERAL_DATA *general_data,CP *cp,CLASS *class,int ip_now)
     else fprintf(fileRand,"1.0\n");
   }
   fclose(fileRand);
+  */
   
  
   /*
@@ -1180,8 +1210,47 @@ void noiseRealReGen(GENERAL_DATA *general_data,CP *cp,CLASS *class,int ip_now)
     else noiseWfUpReal[iGrid] = ranValue;
   }
   */
+
+  //DEBUG
+  /*
+  int *gridMapProc = fragInfo->gridMapProc[0];
+  double *wfTemp = (double*)cmalloc(2*nfft2*sizeof(double))-1;
+  double *wfTemp_temp = (double*)cmalloc(2*nfft2*sizeof(double))-1;
+
+  double *cre_temp = (double*)cmalloc(numCoeff*sizeof(double))-1;
+  double *cim_temp = (double*)cmalloc(numCoeff*sizeof(double))-1;
+
+  FILE *ftest = fopen("noise-test-k","w");
+  for(iStat=0;iStat<numStatUpProc;iStat++){
+    for(iGrid=0;iGrid<nfft2;iGrid++){
+      wfTemp[2*iGrid+1] = noiseWfUpReal[iStat*nfft2+gridMapProc[iGrid]];
+      //wfTemp[2*iGrid+1] = noiseWfUpReal[iStat*nfft2+iGrid];
+      wfTemp[2*iGrid+2] = 0.0;
+    }
+    for(iGrid=0;iGrid<numCoeff;iGrid++){
+      cre_temp[iGrid+1] = 0.0;
+      cim_temp[iGrid+1] = 0.0;
+    }
+    para_fft_gen3d_bck_to_g(wfTemp,wfTemp_temp,cp_sclr_fft_pkg3d_sm);
+    sngl_upack_coef_sum(cre_temp,cim_temp,wfTemp,
+                            cp_sclr_fft_pkg3d_sm);
+    
+    for(iGrid=0;iGrid<numCoeff-1;iGrid++){
+      cre_temp[iGrid+1] *= 0.25;
+      cim_temp[iGrid+1] *= 0.25;
+    }
+    cre_temp[numCoeff] *= 0.5;
+    cim_temp[numCoeff] = 0.0;
+    
+    for(iGrid=0;iGrid<numCoeff;iGrid++){
+      fprintf(ftest,"%.16lg %.16lg\n",cre_temp[iGrid+1],cim_temp[iGrid+1]);
+    }
+  }
+  fclose(ftest);
+  */
+
   free(randNum);
-  Barrier(comm_states);
+  if(numProcStates>1)Barrier(comm_states);
   //fflush(stdout);
   //exit(0);
   

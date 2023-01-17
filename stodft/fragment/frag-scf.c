@@ -58,6 +58,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int fragOpt		= stodftInfo->fragOpt;
   int energyWindowOn    = stodftInfo->energyWindowOn;
   int readCoeffFlag     = stodftInfo->readCoeffFlag;
+  int fragDFTMethod     = stodftInfo->fragDFTMethod;
   MPI_Comm commStates   = communicate->comm_states;
 
   int *numGridFragProc = fragInfo->numGridFragProc;
@@ -148,31 +149,65 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   //readCoeffFlag = 3;
   printf("readCoeffFlag %i\n",readCoeffFlag);
   if(readCoeffFlag!=3){
-    
-    sprintf(fileNameFragMO,"frag-MO-%i",myidState);
-    if(numFragProc>0){
-      fileFragMO = NULL;
-      fileFragMO = fopen(fileNameFragMO,"r");
-      if(fileFragMO!=NULL){
-        printf("I'm reading in fragment MO as initial guess!\n");
-        for(iFrag=0;iFrag<numFragProc;iFrag++){
-          //printf("%p\n",fileFragMO);
-          ncoef = cpMini[iFrag].cpcoeffs_info.ncoef;
-          for(iState=0;iState<numElecUpFragProc[iFrag];iState++){
-            for(icoef=1;icoef<=ncoef;icoef++){
-              fscanf(fileFragMO,"%lg",&(cpMini[iFrag].cpcoeffs_pos[1].cre_up[iState*ncoef+icoef]));
-              fscanf(fileFragMO,"%lg",&(cpMini[iFrag].cpcoeffs_pos[1].cim_up[iState*ncoef+icoef]));
+    printf("fragDFTMethod %i\n",fragDFTMethod);
+    switch(fragDFTMethod){
+      case 1:
+        sprintf(fileNameFragMO,"frag-MO-%i",myidState);
+        if(numFragProc>0){
+          // If the occupatation number is not 1, orbials will be automatically 
+          // scaled. 
+          fileFragMO = NULL;
+          fileFragMO = fopen(fileNameFragMO,"r");
+          if(fileFragMO!=NULL){
+            printf("I'm reading in fragment MO as initial guess!\n");
+            for(iFrag=0;iFrag<numFragProc;iFrag++){
+              //printf("%p\n",fileFragMO);
+              ncoef = cpMini[iFrag].cpcoeffs_info.ncoef;
+              for(iState=0;iState<numElecUpFragProc[iFrag];iState++){
+                for(icoef=1;icoef<=ncoef;icoef++){
+                  fscanf(fileFragMO,"%lg",&(cpMini[iFrag].cpcoeffs_pos[1].cre_up[iState*ncoef+icoef]));
+                  fscanf(fileFragMO,"%lg",&(cpMini[iFrag].cpcoeffs_pos[1].cim_up[iState*ncoef+icoef]));
+                }
+              }
             }
+            fclose(fileFragMO);
+          }
+          else{
+            printf("I can't find checkpoint file for process %i\n",myidState);
+            printf("Inseated I'll use gen_wave as initial guess.\n");
           }
         }
-        fclose(fileFragMO);
-      }
-      else{
-        printf("I can't find checkpoint file for process %i\n",myidState);
-        printf("Inseated I'll use gen_wave as initial guess.\n");
-      }
-    }
-      
+        break;
+      case 2:
+        /*
+        sprintf(fileNameFragMO,"frag-MO-%i",myidState);
+        if(numFragProc>0){
+          // If the occupatation number is not 1, orbials will be automatically 
+          // scaled. 
+          fileFragMO = NULL;
+          fileFragMO = fopen(fileNameFragMO,"r");
+          if(fileFragMO!=NULL){
+            printf("I'm reading in fragment MO as initial guess!\n");
+            for(iFrag=0;iFrag<numFragProc;iFrag++){
+              //printf("%p\n",fileFragMO);
+              ncoef = cpMini[iFrag].cpcoeffs_info.ncoef;
+              for(iState=0;iState<numElecUpFragProc[iFrag];iState++){
+                for(icoef=1;icoef<=ncoef;icoef++){
+                  fscanf(fileFragMO,"%lg",&(cpMini[iFrag].cpcoeffs_pos[1].cre_up[iState*ncoef+icoef]));
+                  fscanf(fileFragMO,"%lg",&(cpMini[iFrag].cpcoeffs_pos[1].cim_up[iState*ncoef+icoef]));
+                }
+              }
+            }
+            fclose(fileFragMO);
+          }
+          else{
+            printf("I can't find checkpoint file for process %i\n",myidState);
+            printf("Inseated I'll use gen_wave as initial guess.\n");
+          }
+        }
+        */
+        break;
+    }//endif numFragProc
     for(iFrag=0;iFrag<numFragProc;iFrag++){
 /*======================================================================*/
 /* I) Initialize Fragment SCF					        */
@@ -185,8 +220,16 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* II) SCF LOOP					                        */
     
-      controlCpMinFrag(&classMini[iFrag],&bondedMini[iFrag],&generalDataMini[iFrag],
-                       &cpMini[iFrag],&analysisMini[iFrag]);      
+      switch(fragDFTMethod){
+        case 1:
+          controlCpMinFrag(&classMini[iFrag],&bondedMini[iFrag],&generalDataMini[iFrag],
+                           &cpMini[iFrag],&analysisMini[iFrag]);
+          break;
+        case 2:
+          controlStodftMinfrag(&classMini[iFrag],&bondedMini[iFrag],&generalDataMini[iFrag],
+                           &cpMini[iFrag],&analysisMini[iFrag]);
+          break;
+      }
       /*
       if(myidState==0){
         fileFragMO = fopen("frag-MO-2","w");

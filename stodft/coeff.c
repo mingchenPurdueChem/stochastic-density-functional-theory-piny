@@ -232,7 +232,8 @@ void genCoeffNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   FERMIFUNLR fermiFunctionLongDouble;
 
   if(energyWindowOn==0){
-    fermiFunction = stodftInfo->fermiFunctionReal;
+    if(stodftInfo->calcLocalTraceOpt==0)fermiFunction = stodftInfo->fermiFunctionReal;
+    else fermiFunction = stodftInfo->fermiFunctionReal;
   }
   else{
     fermiFunctionLongDouble = stodftInfo->fermiFunctionLongDouble;
@@ -920,6 +921,7 @@ void genChebyHermitTrueChemPot(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefP
   int numChemPot     = stodftInfo->numChemPot;
   int smearOpt       = stodftInfo->smearOpt;
   int totalPoly      = polynormLength*numChemPot;  //iniital total polynormial
+  int filterDiagFlag = stodftInfo->filterDiagFlag;
 
 /*==========================================================================*/
 /* I) Generate coeffcients for initial chain length  */
@@ -947,14 +949,14 @@ void genChebyHermitTrueChemPot(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefP
   }
 
   /*
-  if(smearOpt>0){
+  if(smearOpt>0&&filterDiagFlag==0){
     stodftCoefPos->entropyExpanCoeff = (double*)cmalloc(polynormLength*sizeof(double));
     calcChebyCoeff(stodftInfo,stodftCoefPos,&chemPot[0],
                    &(stodftCoefPos->entropyExpanCoeff[0]),13,stodftInfo->chemPotTrue);
     //memcpy(expanCoeffLocal,stodftCoefPos->entropyExpanCoeff,totalPoly*sizeof(double));    
   }
+  
   */
-
 
   free(expanCoeffLocal);
   printf("-----------------------------------------------\n");
@@ -982,6 +984,7 @@ void calcChebyCoeffWrapper(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
 /*                 filtering without multiplying F                       */
 /* filterFlag = 3: Energy window with fragmentation, the second time     */
 /*                 filtering with multiplying F                          */
+/* filterFlag = 4: sqrt(Gaussian) Filter for all chemical potentials     */
 /*************************************************************************/
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
@@ -995,6 +998,7 @@ void calcChebyCoeffWrapper(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
   int numChebyGridInit = polynormLength*numFFTGridMutpl;
   int numChebyGrid;
   int smearOpt       = stodftInfo->smearOpt;
+  int filterDiagFlag = stodftInfo->filterDiagFlag;
 
   double *expanCoeff       = (double*)stodftCoefPos->expanCoeff;
   double *chemPot          = stodftCoefPos->chemPot;
@@ -1066,11 +1070,16 @@ void calcChebyCoeffWrapper(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
   }
   */
 
-  if(smearOpt>0){
+  if(smearOpt>0&&filterDiagFlag==0){
     stodftCoefPos->entropyExpanCoeff = (double*)cmalloc(polynormLength*sizeof(double));
     calcChebyCoeff(stodftInfo,stodftCoefPos,&chemPot[0],
                    &(stodftCoefPos->entropyExpanCoeff[0]),13,chemPotTrue);
-    //memcpy(expanCoeffLocal,stodftCoefPos->entropyExpanCoeff,totalPoly*sizeof(double));    
+    //memcpy(expanCoeffLocal,stodftCoefPos->entropyExpanCoeff,totalPoly*sizeof(double)); 
+    for(iPoly=0;iPoly<polynormLength;iPoly++){
+      if(isnormal(stodftCoefPos->entropyExpanCoeff[iPoly])==0&&stodftCoefPos->entropyExpanCoeff[iPoly]!=0.0){
+        printf("%i %lg\n",iPoly,stodftCoefPos->entropyExpanCoeff[iPoly]);
+      }
+    }
   }
   
   fftw_destroy_plan(stodftInfo->fftwPlanForward);
@@ -1199,7 +1208,9 @@ void calcChebyCoeff(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
         fflush(stdout);
         exit(0);
     }
-    //if(iGrid%1000==0)printf("x %lg funVal %lg\n",x,funValGridFFT[iGrid]);
+    //if(funFlag==13){
+    //  if(iGrid%1000==0)printf("x %lg funVal %lg\n",x,funValGridFFT[iGrid]);
+    //}
   }
 
   fftw_execute(fftwPlanForward);

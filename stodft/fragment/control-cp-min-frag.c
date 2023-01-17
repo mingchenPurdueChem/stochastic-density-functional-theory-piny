@@ -316,5 +316,22 @@ void controlCpMinFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
 
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+
+void controlCpMinFragFilterDiag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
+                                 CP *cp,ANALYSIS *analysis)
+
+/*=======================================================================*/
+/*            Begin subprogram:                                          */
+{   /*begin routine*/
+/*=======================================================================*/
+/*            Local variable declarations                                */
+  
+
+/*-----------------------------------------------------------------------*/
+}/*end routine*/
+/*==========================================================================*/
 
 

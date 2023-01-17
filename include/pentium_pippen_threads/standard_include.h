@@ -4,7 +4,6 @@
 #define SIMP_NINT
 #define FFTW3
 #define MKL_LAPACK
-//#define FAST_FILTER
 
 #include <string.h>
 #include <ctype.h>
@@ -24,6 +23,8 @@
 #include "../typ_defs/mpi_f.h"
 #endif
 #include "../typ_defs/defines.h"
+#include <fcntl.h>                                     
+#include <unistd.h>
 typedef struct {
   double re;
   double im;

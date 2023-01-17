@@ -382,10 +382,12 @@ double entropyReal(double, double, double);
 double j0(double);
 double j1(double);
 double j2(double);
+double j3(double);
 
 double dj0(double);
 double dj1(double);
 double dj2(double);
+double dj3(double);
 
 void dsysvWrapper(double *,double *,int);
 

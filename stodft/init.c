@@ -62,53 +62,61 @@ void commStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
     stodftInfo = cp->stodftInfo;
     stodftCoefPos = cp->stodftCoefPos;
     stodftInfo->metallic = (METALLIC*)cmalloc(sizeof(METALLIC));
+    stodftInfo->fragInfo = (FRAGINFO*)cmalloc(sizeof(FRAGINFO));
   }
-  
-  Bcast(&(stodftInfo->stodftOn),1,MPI_INT,0,world);
-  Bcast(&(stodftInfo->missionType),1,MPI_INT,0,world);
-  Bcast(&(stodftInfo->numScf),1,MPI_INT,0,world);
-  Bcast(&(stodftInfo->expanType),1,MPI_INT,0,world);
-  Bcast(&(stodftInfo->filterFunType),1,MPI_INT,0,world);
-  Bcast(&(stodftInfo->numOrbital),1,MPI_INT,0,world);
-  Bcast(&(stodftInfo->numChemPot),1,MPI_INT,0,world);
-  Bcast(&(stodftInfo->energyWindowOn),1,MPI_INT,0,world);
-  Bcast(&(stodftInfo->printChebyMoment),1,MPI_INT,0,world);
-  //Bcast(&(stodftInfo->readCoeffFlag),1,MPI_INT,0,world);
-  Bcast(&(stodftInfo->numStateStoUp),1,MPI_INT,0,world);
-  Bcast(&(stodftInfo->numStateStoDn),1,MPI_INT,0,world);
-  Bcast(&(stodftInfo->chemPotOpt),1,MPI_INT,0,world);
-  Bcast(&(stodftInfo->filterDiagFlag),1,MPI_INT,0,world);
-  Bcast(&(stodftInfo->densityMixFlag),1,MPI_INT,0,world);
-  Bcast(&(stodftInfo->numDiis),1,MPI_INT,0,world);
-  Bcast(&(stodftInfo->numStepMix),1,MPI_INT,0,world);
-  Bcast(&(stodftInfo->checkpointWriteFreq),1,MPI_INT,0,world);
-  Bcast(&(stodftInfo->checkpointParFlag),1,MPI_INT,0,world);
-  Bcast(&(stodftInfo->numStatePrintUp),1,MPI_INT,0,world);
-  Bcast(&(stodftInfo->numStatePrintDn),1,MPI_INT,0,world);
-  Bcast(&(stodftInfo->smearOpt),1,MPI_INT,0,world);
+ 
+  if(numProcStates>1){ 
+    Bcast(&(stodftInfo->stodftOn),1,MPI_INT,0,world);
+    Bcast(&(stodftInfo->missionType),1,MPI_INT,0,world);
+    Bcast(&(stodftInfo->numScf),1,MPI_INT,0,world);
+    Bcast(&(stodftInfo->expanType),1,MPI_INT,0,world);
+    Bcast(&(stodftInfo->filterFunType),1,MPI_INT,0,world);
+    Bcast(&(stodftInfo->numOrbital),1,MPI_INT,0,world);
+    Bcast(&(stodftInfo->numChemPot),1,MPI_INT,0,world);
+    Bcast(&(stodftInfo->energyWindowOn),1,MPI_INT,0,world);
+    Bcast(&(stodftInfo->printChebyMoment),1,MPI_INT,0,world);
+    //Bcast(&(stodftInfo->readCoeffFlag),1,MPI_INT,0,world);
+    Bcast(&(stodftInfo->numStateStoUp),1,MPI_INT,0,world);
+    Bcast(&(stodftInfo->numStateStoDn),1,MPI_INT,0,world);
+    Bcast(&(stodftInfo->chemPotOpt),1,MPI_INT,0,world);
+    Bcast(&(stodftInfo->filterDiagFlag),1,MPI_INT,0,world);
+    Bcast(&(stodftInfo->densityMixFlag),1,MPI_INT,0,world);
+    Bcast(&(stodftInfo->numDiis),1,MPI_INT,0,world);
+    Bcast(&(stodftInfo->numStepMix),1,MPI_INT,0,world);
+    Bcast(&(stodftInfo->checkpointWriteFreq),1,MPI_INT,0,world);
+    Bcast(&(stodftInfo->checkpointParFlag),1,MPI_INT,0,world);
+    Bcast(&(stodftInfo->numStatePrintUp),1,MPI_INT,0,world);
+    Bcast(&(stodftInfo->numStatePrintDn),1,MPI_INT,0,world);
+    Bcast(&(stodftInfo->smearOpt),1,MPI_INT,0,world);
 
-  //frag
-  Bcast(&(stodftInfo->calcFragFlag),1,MPI_INT,0,world);
-  Bcast(&(stodftInfo->fragOpt),1,MPI_INT,0,world);
-  Bcast(&(stodftInfo->fragCellOpt),1,MPI_INT,0,world);
+    //frag
+    Bcast(&(stodftInfo->calcFragFlag),1,MPI_INT,0,world);
+    Bcast(&(stodftInfo->fragOpt),1,MPI_INT,0,world);
+    Bcast(&(stodftInfo->fragCellOpt),1,MPI_INT,0,world);
+    Bcast(&(stodftInfo->fragDFTMethod),1,MPI_INT,0,world);
 
-  Bcast(&(stodftInfo->fitErrTol),1,MPI_DOUBLE,0,world);
-  Bcast(&(stodftInfo->beta),1,MPI_DOUBLE,0,world);
-  Bcast(&(stodftInfo->numElecTrue),1,MPI_DOUBLE,0,world);
-  Bcast(&(stodftInfo->numElecTrueUp),1,MPI_DOUBLE,0,world);
-  Bcast(&(stodftInfo->numElecTrueDn),1,MPI_DOUBLE,0,world);
-  Bcast(&(stodftInfo->numElecTrue),1,MPI_DOUBLE,0,world);
-  Bcast(&(stodftInfo->chemPotInit),1,MPI_DOUBLE,0,world);
-  Bcast(&(stodftInfo->gapInit),1,MPI_DOUBLE,0,world);
-  Bcast(&(stodftInfo->mixRatioSM),1,MPI_DOUBLE,0,world);
-  Bcast(&(stodftInfo->energyTol),1,MPI_DOUBLE,0,world);
-  Bcast(&(stodftInfo->smearTemperature),1,MPI_DOUBLE,0,world);
+    Bcast(&(stodftInfo->fitErrTol),1,MPI_DOUBLE,0,world);
+    Bcast(&(stodftInfo->beta),1,MPI_DOUBLE,0,world);
+    Bcast(&(stodftInfo->numElecTrue),1,MPI_DOUBLE,0,world);
+    Bcast(&(stodftInfo->numElecTrueUp),1,MPI_DOUBLE,0,world);
+    Bcast(&(stodftInfo->numElecTrueDn),1,MPI_DOUBLE,0,world);
+    Bcast(&(stodftInfo->numElecTrue),1,MPI_DOUBLE,0,world);
+    Bcast(&(stodftInfo->chemPotInit),1,MPI_DOUBLE,0,world);
+    Bcast(&(stodftInfo->gapInit),1,MPI_DOUBLE,0,world);
+    Bcast(&(stodftInfo->mixRatioSM),1,MPI_DOUBLE,0,world);
+    Bcast(&(stodftInfo->mixRatioSM2),1,MPI_DOUBLE,0,world);
+    Bcast(&(stodftInfo->energyTol),1,MPI_DOUBLE,0,world);
+    Bcast(&(stodftInfo->smearTemperature),1,MPI_DOUBLE,0,world);
 
-  Bcast(stodftInfo->densityFileName,MAXWORD,MPI_CHAR,0,world);
+    Bcast(stodftInfo->densityFileName,MAXWORD,MPI_CHAR,0,world);
+    Bcast(stodftInfo->densityFinalFileName,MAXWORD,MPI_CHAR,0,world);
+    Bcast(stodftInfo->densityReadFileName,MAXWORD,MPI_CHAR,0,world);
 
-  Bcast(&(stodftInfo->metallic->electronFricFlag),1,MPI_INT,0,world);
-  Bcast(&(stodftInfo->metallic->numAtomFric),1,MPI_INT,0,world);
-  Bcast(&(stodftInfo->metallic->sigma),1,MPI_DOUBLE,0,world);
+    Bcast(&(stodftInfo->metallic->electronFricFlag),1,MPI_INT,0,world);
+    Bcast(&(stodftInfo->metallic->numAtomFric),1,MPI_INT,0,world);
+    Bcast(&(stodftInfo->metallic->sigma),1,MPI_DOUBLE,0,world);
+    Bcast(&(stodftInfo->calcLocalTraceOpt),1,MPI_INT,0,world);
+  }
 
 }/*end Routine*/
 /*==========================================================================*/
@@ -247,10 +255,12 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   double *ptensPvtenTmp    = ptens->pvten_tmp;
 
   FILE *densityFile;
-  Barrier(comm_states);
+  
+  if(numProcStates>1)Barrier(comm_states);
 
 /*==========================================================================*/
 /* I) General parameters and malloc					    */
+
   if(realSparseOpt==0){
     cp_para_fft_pkg3d = &(cp->cp_para_fft_pkg3d_lg);
   }
@@ -265,6 +275,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   stodftInfo->vpsAtomListFlag = 0;
   stodftInfo->filterFlag = 0;
   stodftInfo->numThreads = communicate->numThreads;
+  //stodftInfo->fragInfo->iFrag = 0; //TODO sagar
   // Chebyshev way to calculate chem pot (if we do not use energy window)
   if(chemPotOpt==2&&energyWindowOn==0)stodftInfo->numChemPot = 1;
   
@@ -279,7 +290,9 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     // numChemPot+1 at reading paramter file step
     //stodftInfo->numChemPot += 1;
     //numChemPot += 1;
-  }  
+  } 
+
+  stodftInfo->orbRealPrintFlag = 0;
 
   stodftInfo->numElecSys = stodftInfo->numElecTrue;
 
@@ -324,6 +337,9 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
         case 3:
           stodftInfo->fermiFunctionReal = &gaussianReal;
           break;
+        case 4:
+          stodftInfo->fermiFunctionReal = &entropyReal;
+          break;
         default:
           printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
           printf("Internal Error! Bad filter type!\n");
@@ -348,6 +364,9 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
           break;
         case 3:
           stodftInfo->fermiFunctionReal = &gaussianReal;
+          break;
+        case 4:
+          stodftInfo->fermiFunctionReal = &entropyReal;
           break;
         default:
           printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
@@ -411,6 +430,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*==========================================================================*/
 /* II) Malloc by expension type						    */
 
+
   stodftInfo->newtonInfo = (NEWTONINFO *)cmalloc(sizeof(NEWTONINFO));
   stodftInfo->chebyshevInfo = (CHEBYSHEVINFO *)cmalloc(sizeof(CHEBYSHEVINFO));
 
@@ -460,6 +480,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   */
 /*==========================================================================*/
 /* IV) Initialize Flags							    */
+
 
   general_data->stat_avg.count_diag_srot      = 0.0;
   general_data->stat_avg.fatm_mag = 10000.0;
@@ -525,6 +546,8 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*==========================================================================*/
 /* VI) Initialize noise orbital scattering	                            */
 
+
+
   stodftInfo->randSeedTot = (double*)cmalloc(numProcStates*sizeof(double));
 
   /*
@@ -579,6 +602,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   // I use similiar functions. I don't need this if I read in density or generate 
   // density from fragmentation.
 
+
   //printf("coefFormUp %i forceCoefFormUp %i\n",coefFormUp,forceCoefFormUp);
   if(readCoeffFlag>=0){
     if(numProcStates>1){
@@ -601,7 +625,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 	}/*endif*/
       }/*endif*/
     }/*endif*/
-    Barrier(comm_states);
+    if(numProcStates>1)Barrier(comm_states);
 
     if((iperd<3||iperd==4)&&checkPerdSize==1){
       cp_boundary_check(cell,clatoms_info,clatoms_pos,tolEdgeDist);
@@ -634,6 +658,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
 /*==========================================================================*/
 /* VI) Initialize density interpolation                                     */
+
 
   //Set occupitation number
   //This is only used in reading wave functions. occNumber will be 
@@ -790,7 +815,8 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
 /*==========================================================================*/
 /* VII) Initialize density mixing                                           */
-   
+ 
+  
   if(densityMixFlag==1){//mixing only, overwirte some parameters
     stodftInfo->numStepMix = numScf+1;
     stodftInfo->numDiis = 1;
@@ -825,15 +851,17 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*==========================================================================*/
 /* VII) Initialize dynamic density                                          */
 
+
   stodftInfo->chemPotHistory = (double*)cmalloc(numScf*sizeof(double));
 
 
 /*==========================================================================*/
 /* VIII) Initialize density output                                          */
 
+
   // master proc only check existance
   if(myidState==0){
-    //printf("%s\n",stodftInfo->densityFileName);
+    printf("%s\n",stodftInfo->densityFileName);
     densityFile = NULL;
     densityFile = cfopen(stodftInfo->densityFileName,"w");
     if(densityFile!=NULL)fclose(densityFile);
@@ -841,6 +869,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
 /*==========================================================================*/
 /* IX) Initialize backup determ wf                                          */
+
 
   if(filterDiagFlag==1){
     stodftInfo->numStatesDet = numElecTrue/2;
@@ -877,7 +906,8 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 
 /*==========================================================================*/
 /* XI) Initialize Electron Friction                                         */
-  
+
+ 
   METALLIC *metallic = stodftInfo->metallic;
   int electronFricFlag = metallic->electronFricFlag;
   int numAtomFric = metallic->numAtomFric;
@@ -2014,7 +2044,7 @@ void initFilterDiag(CP *cp)
   stowfDispls = stodftInfo->stowfDispls;
   numStates = stodftInfo->numStates;
   dsplStates = stodftInfo->dsplStates;
-  Barrier(comm_states);
+  if(numProcStates>1)Barrier(comm_states);
 
   if(numProcStates>1){
     Allgather(&numCoeffUpTotal,1,MPI_INT,stowfRecvCounts,1,MPI_INT,0,comm_states); 
@@ -2022,7 +2052,7 @@ void initFilterDiag(CP *cp)
   }
   //Gather(&numCoeffUpAllProc,1,MPI_INT,stowfRecvCounts,numProcStates,MPI_INT,0,comm_states); 
   //Bcast(stowfRecvCounts,numProcStates,MPI_INT,0,comm_states);
-  Barrier(comm_states);
+  if(numProcStates>1)Barrier(comm_states);
 
   stowfDispls[0] = 0;
   for(iProc=1;iProc<numProcStates;iProc++){
@@ -2059,7 +2089,7 @@ void initFilterDiag(CP *cp)
   if(myidState!=0){ 
     Recv(&(stodftInfo->stateStartIndex),1,MPI_INT,0,myidState,comm_states);
   }
-  Barrier(comm_states);
+  if(numProcStates>1)Barrier(comm_states);
   stateIndex = stodftInfo->stateStartIndex;
   stodftInfo->numOccDetProc = (double*)cmalloc(numStateProcTot*sizeof(double));
   for(iState=0;iState<numStateProcTot;iState++){

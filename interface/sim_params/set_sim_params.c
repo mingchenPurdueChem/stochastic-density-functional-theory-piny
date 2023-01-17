@@ -1099,6 +1099,28 @@ int iii;
   sscanf(dict[71].keyarg,"%lg",&real_key_arg);
   cp->pseudo.pseudoReal.kStartSwitch = real_key_arg;
 
+  /*-----------------------------------------------------------------------*/
+  /* 72)\smear_type{#} */
+  if(strcasecmp(dict[72].keyarg,"off")==0)cp->cpopts.smearingType = 0;
+  if(strcasecmp(dict[72].keyarg,"fermi")==0)cp->cpopts.smearingType = 1;
+  if(cp->cpopts.smearingType>0)cp->cpopts.metalFlag = 1;
+
+  /*-----------------------------------------------------------------------*/
+  /* 73)\elec_temp{#} */
+  sscanf(dict[73].keyarg,"%lg",&real_key_arg);
+  cp->cpopts.elecT = real_key_arg;
+
+  /*-----------------------------------------------------------------------*/
+  /* 74)\num_elec_up_true{#} */
+  sscanf(dict[74].keyarg,"%lg",&real_key_arg);
+  cp->cpopts.numElecTrueUp = real_key_arg;
+
+  /*-----------------------------------------------------------------------*/
+  /* 75)\num_elec_dn_true{#} */
+  sscanf(dict[75].keyarg,"%lg",&real_key_arg);
+  cp->cpopts.numElecTrueDn = real_key_arg;
+
+
 /*========================================================================*/
     }/*end routine*/ 
 /*========================================================================*/
@@ -4610,7 +4632,9 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   /*  3)\filter_type{#} */
   if(strcasecmp(dict[3].keyarg,"fermi_exp")==0)stodftInfo->filterFunType = 1;
   if(strcasecmp(dict[3].keyarg,"fermi_erfc")==0)stodftInfo->filterFunType = 2;
-  if(strcasecmp(dict[3].keyarg,"gauss")==0)stodftInfo->filterFunType = 3;
+  if(strcasecmp(dict[3].keyarg,"gaussian")==0)stodftInfo->filterFunType = 3;
+  if(strcasecmp(dict[3].keyarg,"entropy")==0)stodftInfo->filterFunType = 4;
+
   /*-----------------------------------------------------------------------*/
   /*  4)poly_fit_error{#} */
   sscanf(dict[4].keyarg,"%lg",&rka);
@@ -4630,7 +4654,7 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   /*-----------------------------------------------------------------------*/
   /*  8)\read_coeff_opt{#} */
   if(strcasecmp(dict[8].keyarg,"off")==0)stodftInfo->readCoeffFlag = 0;
-  if(strcasecmp(dict[8].keyarg,"sto")==0)stodftInfo->readCoeffFlag = 1;
+  if(strcasecmp(dict[8].keyarg,"sto")==0)stodftInfo->readCoeffFlag = 1;//deactive
   if(strcasecmp(dict[8].keyarg,"det")==0)stodftInfo->readCoeffFlag = 2;
   if(strcasecmp(dict[8].keyarg,"rho")==0)stodftInfo->readCoeffFlag = -2;
   if(strcasecmp(dict[8].keyarg,"frag")==0)stodftInfo->readCoeffFlag = -1;
@@ -4792,6 +4816,54 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   sscanf(dict[41].keyarg,"%lg",&rka);
   metallic->sigma = rka;
 
+  /*-----------------------------------------------------------------------*/
+  /*  42)\frag_dft_method{#} */
+  if(strcasecmp(dict[42].keyarg,"cg")==0)stodftInfo->fragDFTMethod = 1;
+  if(strcasecmp(dict[42].keyarg,"fd")==0)stodftInfo->fragDFTMethod = 2;
+
+  /*-----------------------------------------------------------------------*/
+  /*  43)\frag_fd_orb_rat{#} */
+  sscanf(dict[43].keyarg,"%lg",&rka);
+  fragInfo->fragOrbRatio = rka;
+
+  /*-----------------------------------------------------------------------*/
+  /*  44)\frag_num_sto_state_up{#} */
+  sscanf(dict[44].keyarg,"%lg",&rka);
+  fragInfo->fragNumStateStoUp = (int)rka;
+
+  /*-----------------------------------------------------------------------*/
+  /*  45)\frag_num_sto_state_dn{#} */
+  sscanf(dict[45].keyarg,"%lg",&rka);
+  fragInfo->fragNumStateStoDn = (int)rka;
+
+  /*-----------------------------------------------------------------------*/
+  /*  46)\frag_num_chem_pot{#} */
+  sscanf(dict[46].keyarg,"%lg",&rka);
+  fragInfo->fragNumChemPot = (int)rka;
+
+  /*-----------------------------------------------------------------------*/
+  /*  47)\frag_beta{#} */
+  sscanf(dict[47].keyarg,"%lg",&rka);
+  fragInfo->fragBeta = rka;
+
+  /*-----------------------------------------------------------------------*/
+  /*  48)\diis_max_ratio_2{#} */
+
+  sscanf(dict[48].keyarg,"%lg",&rka);
+  stodftInfo->mixRatioSM2 = rka;
+
+  /*-----------------------------------------------------------------------*/
+  /*  49)\calc_local_trace{#} */
+
+  if(strcasecmp(dict[49].keyarg,"off")==0)stodftInfo->calcLocalTraceOpt = 0;
+  if(strcasecmp(dict[49].keyarg,"on")==0)stodftInfo->calcLocalTraceOpt = 1;
+
+  /*-----------------------------------------------------------------------*/
+  /*  50)\smear_opt_metal_frag{#} */
+  if(strcasecmp(dict[50].keyarg,"off")==0)stodftInfo->smearOptFrag = 0;
+  if(strcasecmp(dict[50].keyarg,"fermi")==0)stodftInfo->smearOptFrag = 1;
+  if(strcasecmp(dict[50].keyarg,"gauss")==0)stodftInfo->smearOptFrag = 2;
+
 /*=======================================================================*/
 /* Check the conflicate options						 */
   
@@ -4950,8 +5022,22 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
         printf("The smearing type needs to be consistent!\n");
         printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
         fflush(stdout);
-        exit(0);
+        //exit(0);
       }
+    }
+    if(stodftInfo->calcLocalTraceOpt==1&&stodftInfo->chemPotOpt==2){
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      printf("Calculating local trace requires chem_pot_opt=interp\n");      
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(0);
+    }
+    if(stodftInfo->calcLocalTraceOpt==1&&stodftInfo->filterDiagFlag==0&&stodftInfo->numScf>1){
+      printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
+      printf("Calculating local trace with sDFT does not support SCF iteraction.\n");
+      printf("A non-SCF calculation will be performed!\n");
+      printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
+      stodftInfo->numScf = 1;
     }
   }//endif stodftOn
 

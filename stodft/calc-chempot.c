@@ -262,7 +262,12 @@ void genChemPotInterpPoints(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
         // the CURRENT chemical potential. In the first step, chemPot[numChemPot-2] 
         // is the chemPotInit+0.5*gapInit. In the first 2 to N steps, chemPot[numChemPot-2]
         // is the chemical potential in the previous step. After N steps, chemPot[numChemPot-2] 
-        // is fixed. 
+        // is fixed.
+        fileTest = fopen("chempot","r");
+        for(iNode=0;iNode<numChemPot-1;iNode++)fscanf(fileTest,"%lg",&chemPot[iNode]);
+        fclose(fileTest);
+        chemPot[numChemPot-1] = 100000.0;
+	/* 
         if(iScf<10){
           energyMin = stodftInfo->energyMin;
           // The first SCF step: use chemPotInit
@@ -287,6 +292,7 @@ void genChemPotInterpPoints(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
         else{
           for(iNode=0;iNode<numChemPot;iNode++)chemPot[iNode] = chemPotBackUp[iNode];
         }
+	*/
       }//endif fragWindowFlag
     }//endif energyWindowOn    
   }//endif filterDiagFlag

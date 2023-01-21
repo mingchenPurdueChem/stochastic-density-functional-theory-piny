@@ -148,7 +148,8 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   // DEBUG
   //readCoeffFlag = 3;
   printf("readCoeffFlag %i\n",readCoeffFlag);
-  if(readCoeffFlag!=3){
+  if(readCoeffFlag!=4){
+    printf("I'm going through this pre-initialization step\n");
     printf("fragDFTMethod %i\n",fragDFTMethod);
     switch(fragDFTMethod){
       case 1:
@@ -199,6 +200,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
                            &cpMini[iFrag],&analysisMini[iFrag]);
           break;
         case 2:
+	  printf("I will now run fragment SCF\n");
           controlStodftMinfrag(&classMini[iFrag],&bondedMini[iFrag],&generalDataMini[iFrag],
                            &cpMini[iFrag],&analysisMini[iFrag]);
           break;
@@ -240,6 +242,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   else{
     // Now I'd like to read in converged fragmentation MO file 
     // without further fragment SCF calculation.
+    printf("I did not run fragment SCF\n");
     sprintf(fileNameFragMO,"frag-MO-%i",myidState);
     if(numFragProc>0){
       fileFragMO = NULL;
@@ -295,9 +298,11 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   if(numProcStates>1)Barrier(commStates);
 
   if(fragOpt==1){
+    printf("I'm projecting Molecule Density\n");
     projRhoMiniMol(cp,general_data,class,cpMini,generalDataMini,classMini,ip_now);
   }
   if(fragOpt==3){
+    printf("I'm projecting Unitcell Density\n");
     projRhoMiniUnitCell(cp,general_data,class,cpMini,generalDataMini,classMini,ip_now);
   }
 

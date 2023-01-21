@@ -200,16 +200,16 @@ void genStoOrbitalInterp(CLASS *class,GENERAL_DATA *general_data,
       if(myidState!=0){
 	stodftCoefPos->expanCoeff = (double*)crealloc(stodftCoefPos->expanCoeff,
 				totalPoly*sizeof(double));
-        if(smearOpt>0){
-          stodftCoefPos->entropyExpanCoeff = (double*)cmalloc(polynormLength*sizeof(double));
-        }
+        //if(smearOpt>0){
+        //  stodftCoefPos->entropyExpanCoeff = (double*)cmalloc(polynormLength*sizeof(double));
+        //}
       }
       Barrier(commStates);
       Bcast(stodftCoefPos->expanCoeff,totalPoly,MPI_DOUBLE,0,commStates);
-      if(smearOpt>0){
-        Bcast(stodftCoefPos->entropyExpanCoeff,polynormLength,MPI_DOUBLE,0,commStates);
-      }
-      Barrier(commStates);
+      //if(smearOpt>0){
+      //  Bcast(stodftCoefPos->entropyExpanCoeff,polynormLength,MPI_DOUBLE,0,commStates);
+      //}
+      //Barrier(commStates);
     }
   }
   if(expanType==2){
@@ -252,18 +252,18 @@ void genStoOrbitalInterp(CLASS *class,GENERAL_DATA *general_data,
 				polynormLength*sizeof(double));
 	newtonInfo->sampPointUnscale = (double*)crealloc(newtonInfo->sampPointUnscale,
 				polynormLength*sizeof(double));
-        if(smearOpt>0){
-          stodftCoefPos->entropyExpanCoeff = (double*)cmalloc(polynormLength*sizeof(double));
-        }
+        //if(smearOpt>0){
+        //  stodftCoefPos->entropyExpanCoeff = (double*)cmalloc(polynormLength*sizeof(double));
+        //}
       }
       Barrier(commStates);
       Bcast(stodftCoefPos->expanCoeff,totalPoly,MPI_DOUBLE,0,commStates);
       Bcast(newtonInfo->sampPoint,polynormLength,MPI_DOUBLE,0,commStates);
       Bcast(newtonInfo->sampPointUnscale,polynormLength,MPI_DOUBLE,0,commStates);
-      if(smearOpt>0){
-        Bcast(stodftCoefPos->entropyExpanCoeff,polynormLength,MPI_DOUBLE,0,commStates);
-      }
-      Barrier(commStates);
+      //if(smearOpt>0){
+      //  Bcast(stodftCoefPos->entropyExpanCoeff,polynormLength,MPI_DOUBLE,0,commStates);
+      //}
+      //Barrier(commStates);
     }
     /*
     for(iPoly=0;iPoly<polynormLength;iPoly++){

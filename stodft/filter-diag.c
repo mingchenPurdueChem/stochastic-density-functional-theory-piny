@@ -1236,7 +1236,7 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   energyTest = (double*)cmalloc(numStateUpProc*sizeof(double));
 
   for(iState=0;iState<numStateUpProc;iState++){
-  //printf("iState %i numStateUpIdp %i\n",iState,numStateUpIdp);
+  printf("iState %i numStateUpIdp %i\n",iState,numStateUpIdp);
     energyTest[iState] = 0.0;
     for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
       index1 = iState*numCoeff+iCoeff;
@@ -1326,7 +1326,7 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     else{
       memcpy(numOccDetProc,numOccDetAll,numStateUpProc*sizeof(double));
     }
-    cfree(numOccDetAll);
+    if(myidState==0)cfree(numOccDetAll);
   }
   if(numProcStates>1)Barrier(comm_states);
 /*--------------------------------------------------------------------------*/

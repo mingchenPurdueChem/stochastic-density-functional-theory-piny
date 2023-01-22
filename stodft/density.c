@@ -2164,7 +2164,7 @@ void calcRhoStoHybridEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *gene
 		   &(cp->cp_para_fft_pkg3d_dens_cp_box),
 		   &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
 		   &(cp->cp_sclr_fft_pkg3d_sm));
-    //test = 0.0;
+    test = 0.0;
     //printf("rhoTemp[1] %lg\n",rhoTemp[1]);
     //DEBUG
     /*
@@ -2351,6 +2351,7 @@ void calcRhoStoHybridEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *gene
   }
   else numElecTestTot = numElecTest;
   if(myidState==0)printf("After fragment correction, #electron is %.16lg\n",numElecTestTot);
+
 
 /*==========================================================================*/
 /* IV) Output the density                                                   */

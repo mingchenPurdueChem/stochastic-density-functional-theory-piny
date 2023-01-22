@@ -561,6 +561,7 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
     // I need fragInfo since frag index is stored in iFrag for each fragment
     cpMini->stodftInfo->fragInfo = (FRAGINFO*)cmalloc(sizeof(FRAGINFO));
     cpMini->stodftInfo->missionType = stodftInfo->missionType;
+    cpMini->stodftInfo->stodftOn = 1; // Here we set it =1 as we are running fd for fragment
     cpMini->stodftInfo->expanType = 2; //Newton
     cpMini->stodftInfo->filterFunType = 1;
     cpMini->stodftInfo->fitErrTol = stodftInfo->fitErrTol;
@@ -806,7 +807,7 @@ void copyNlppReal(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
       for(iRad=0;iRad<atomLRadNum[iType][l];iRad++){
 	radIndexLg = atomRadMapLg[indTypeLg][countRad+iRad];
 	radIndexFrag = atomRadMap[iType][countRad+iRad];
-        printf("iType %i indTypeLg %i l %i iRad %i radIndexFrag %i radIndexLg %i\n",iType,indTypeLg,l,iRad,radIndexFrag,radIndexLg);
+        //printf("iType %i indTypeLg %i l %i iRad %i radIndexFrag %i radIndexLg %i\n",iType,indTypeLg,l,iRad,radIndexFrag,radIndexLg);
 	//printf("iType %i indTypeLg %i l %i iRad %i radIndexLg %i radIndexFrag %i\n",
 	//	iType,indTypeLg,l,iRad,radIndexLg,radIndexFrag);
 	memcpy(&(pseudoRealMini->vpsReal0[radIndexFrag*numInterpGrid+1]),

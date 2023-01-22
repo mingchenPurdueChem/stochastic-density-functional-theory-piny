@@ -419,6 +419,7 @@ void controlMolParamsFrag(CLASS *class,GENERAL_DATA *general_data,
 
   CLATOMS_INFO *clatoms_info   = &(classMini->clatoms_info);
   STODFTINFO *stodftInfo       = cp->stodftInfo;
+  STODFTINFO *stodftInfoMini   = cpMini->stodftInfo;
   FRAGINFO *fragInfo           = stodftInfo->fragInfo;
   CPCOEFFS_INFO *cpcoeffs_info = &(cpMini->cpcoeffs_info);
   DICT_MOL dict_mol;                        /* Dictionaries and sizes */
@@ -439,6 +440,10 @@ void controlMolParamsFrag(CLASS *class,GENERAL_DATA *general_data,
   int numMolTypTrue  = fragInfo->numMolTypeFrag[iFrag];
   int iMolTyp;
   int iextend,ipress;
+  int stodftOn = stodftInfoMini->stodftOn;
+  int readCoeffFlag = stodftInfoMini->readCoeffFlag;
+  int numStateStoUp = stodftInfoMini->numStateStoUp;
+  int numStateStoDn = stodftInfoMini->numStateStoDn;
   int *mol_freeze_opt;
   int *imol_nhc_opt;
   int *nmol_jmol_typ;
@@ -632,6 +637,34 @@ void controlMolParamsFrag(CLASS *class,GENERAL_DATA *general_data,
   for(i=1; i<= nmol_typ; i++){
     text_mol[i] = text_nhc_mol[i];   
   }/*endfor*/
+
+  if(stodftOn==1&&readCoeffFlag==1){
+    if((numStateStoUp!=cpcoeffs_info->nstate_up)||
+        (numStateStoDn!=cpcoeffs_info->nstate_dn)){
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+      printf("You want to readin stochastic orbitals but the number of \n");
+      printf("orbitals is inconsistent! Please check the parameters!\n");
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(1);
+    }
+  }
+  if(stodftOn==1){
+    if(readCoeffFlag<0){
+      if((numStateStoUp!=cpcoeffs_info->nstate_up)||
+        (numStateStoDn!=cpcoeffs_info->nstate_dn)){
+        printf("$$$$$$$$$$$$$$$$$$$$_WARNING_$$$$$$$$$$$$$$$$$$$$\n");
+        printf("You choose to generating initial guess without \n");
+        printf("deterministic wave function. I'll reset nstate_up(dn)\n");
+        printf("to numStateStoUp(Dn).\n");
+        printf("$$$$$$$$$$$$$$$$$$$$_WARNING_$$$$$$$$$$$$$$$$$$$$\n");
+        cpcoeffs_info->nstate_up = numStateStoUp;
+        cpcoeffs_info->nstate_dn = numStateStoDn;
+      }
+    }
+  }
+
+
 
 /*========================================================================*/
 /* V) Free some memory and malloc some other                              */

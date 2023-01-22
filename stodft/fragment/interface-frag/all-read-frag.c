@@ -64,6 +64,9 @@ void readCoefFrag(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 
   int ibinary            = cp->cpopts.iread_coef_binary;
   int iii;
+  int stodftOn = cp->stodftInfo->stodftOn;
+  int readCoeffFlag = cp->stodftInfo->readCoeffFlag;
+  int genWaveFlag = 0;
 
   int iopt_cp_pw         = cp->cpcoeffs_info.iopt_cp_pw;
   int iopt_cp_dvr        = cp->cpcoeffs_info.iopt_cp_dvr;
@@ -72,6 +75,8 @@ void readCoefFrag(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 
 /*========================================================================*/
 /*  V) Allocate and initialize coefficient arrays                         */
+
+  if(stodftOn==0||readCoeffFlag==0)genWaveFlag = 1;
 
   if(iopt_cp_pw){
     readCoefAllocInitFrag(cp,cp_min_on,tot_memory);
@@ -82,7 +87,9 @@ void readCoefFrag(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 /*  VII) Read/Spread the coefficients  */
 
   if(iopt_cp_pw==1){
-    gen_wave_frag(class,general_data,cp,cp_parse,filename_parse->vps_name);
+    if(genWaveFlag==1){
+      gen_wave_frag(class,general_data,cp,cp_parse,filename_parse->vps_name);
+    }
   }
 
   

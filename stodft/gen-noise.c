@@ -336,11 +336,12 @@ void genNoiseOrbitalReal(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
       coeffImUp[iOff+numCoeff] = 0.0;
     }
   }
+  //DEBUG
   /* 
   char fileNameRand[100];
   FILE *fileRand;
   double test;
-  //sprintf(fileNameRand,"rand-%i",myidState);
+  sprintf(fileNameRand,"rand-%i",myidState);
   for(iStat=1;iStat<=numStatUpTot;iStat++){
     coeffReUp[iStat] = 0.0;
     coeffImUp[iStat] = 0.0;
@@ -365,6 +366,7 @@ void genNoiseOrbitalReal(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
     coeffImUp[iOff+numCoeff] = 0.0;
   }
   */
+  //DEBUG
   free(randNum);
   if(numProcStates>1)Barrier(comm_states);
   //fflush(stdout);

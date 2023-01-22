@@ -1174,7 +1174,7 @@ void calcChebyCoeff(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
         break;
       case 10: // \sqrt{P_i}
         temp = (double)(fermiFunctionLongDouble(x,chemPot[1],beta)-
-                                        fermiFunctionLongDouble(x,chemPot[0],beta)); 
+                                        fermiFunctionLongDouble(x,chemPot[0],beta));
         funValGridFFT[iGrid] = sqrt(temp);
         break;
       case 11: // P_N

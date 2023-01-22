@@ -147,7 +147,6 @@ void orthNormStoWf(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       stoWfUpIm[iChem][iCoeff] -= stoWfUpIm[iChem-1][iCoeff];
     }//endfor iCoeff
   }//endfor iChem
-  
 
   /*
   for(iChem=0;iChem<numChemPot;iChem++){
@@ -217,6 +216,7 @@ void orthNormStoWf(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   }
   //DEBUG
   
+  
   for(iChem=0;iChem<numChemPot;iChem++){
     for(iState=0;iState<numStateUpProc;iState++){
       for(iCoeff=0;iCoeff<numCoeff-1;iCoeff++){
@@ -244,12 +244,11 @@ void orthNormStoWf(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     }
     else{
       memcpy(&wfBfOrthUp[iChem*numCeoffUpAllProcOneChem*2],&allWF[0],
-             2*numCeoffUpAllProcOneChem*sizeof(double));
+            2*numCeoffUpAllProcOneChem*sizeof(double));
     }
     free(&stoWfUpRe[iChem][1]);
     free(&stoWfUpIm[iChem][1]);
   }//endfor iChem
-  
 
   /*
   if(myidState==0){
@@ -1326,7 +1325,7 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     else{
       memcpy(numOccDetProc,numOccDetAll,numStateUpProc*sizeof(double));
     }
-    cfree(numOccDetAll);
+    if(myidState==0)cfree(numOccDetAll);
   }
   if(numProcStates>1)Barrier(comm_states);
 /*--------------------------------------------------------------------------*/

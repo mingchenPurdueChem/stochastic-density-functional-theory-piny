@@ -2131,15 +2131,20 @@ void calcRhoStoHybridEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *gene
     cp_para_fft_pkg3d = &(cp->cp_para_fft_pkg3d_sparse);
   }
   */
-  
-  if(cpLsda==1&&numStateDnProc!=0)aveFactDn = occNumber/(double)(numStateStoDn);
+ 
+  //printf("Generate density in real space\n"); 
+  if(cpLsda==1&&numStateDnProc!=0){
+    aveFactDn = occNumber/(double)(numStateStoDn);
+    //printf("aveFactDn %lg\n",aveFactDn);
+  }
+  printf("aveFactDn %lg aveFactUp %lg\n",aveFactDn,aveFactUp);
 
   //printf("111111111 Finish Initialize Densities\n");
   //fflush(stdout);
   if(numProcStates>1)Barrier(commStates);
 
   //debug
-  //for(iChem=0;iChem<numChemPot;iChem++)printf("myid %i densityMap %i\n",myidState,densityMap[iChem],indexChemProc[iChem]);
+  //for(iChem=0;iChem<numChemPot;iChem++)printf("myid %i densityMap %i\n",myidState,densityMap[iChem]);
   //fflush(stdout);
 
   //if(numProcStates>1)Barrier(commStates);
@@ -2147,12 +2152,12 @@ void calcRhoStoHybridEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *gene
   for(iGrid=0;iGrid<rhoRealGridTot;iGrid++)rhoSum[iGrid] = 0.0;
 
   //DEBUG
-  /*
+  //
   double test;
   FILE *frhowindow;
   char fileName[100];
   double *rhoWindowReduce;
-  */
+  //
   for(iChem=0;iChem<numChemPot;iChem++){
     //printf("!!!!!!!!!!!!! iChem %i\n",iChem);
     rhoCalcRealStoHybrid(cpscr,cpcoeffs_info,
@@ -2164,7 +2169,7 @@ void calcRhoStoHybridEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *gene
 		   &(cp->cp_para_fft_pkg3d_dens_cp_box),
 		   &(cp->cp_sclr_fft_pkg3d_dens_cp_box),
 		   &(cp->cp_sclr_fft_pkg3d_sm));
-    //test = 0.0;
+    test = 0.0;
     //printf("rhoTemp[1] %lg\n",rhoTemp[1]);
     //DEBUG
     /*
@@ -2190,9 +2195,10 @@ void calcRhoStoHybridEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *gene
 
     for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
       rhoSum[iGrid] += rhoTemp[iGrid+1];
-      //test += rhoTemp[iGrid+1];
+      test += rhoTemp[iGrid+1];
+      //printf("rhosum %lg rhoTemp[iGrid+1] %lg\n", rhoSum[iGrid], rhoTemp[iGrid+1]);
     }
-    //printf("tttttttest %lg\n",test);
+    //printf("tttttttest %lg rhoTemp[iGrid+1] %lg\n",test, rhoTemp[iGrid+1]);
     // TEST
     /*
     if(iChem==numChemPot-1){
@@ -2234,15 +2240,17 @@ void calcRhoStoHybridEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *gene
   if(numProcStates>1)Barrier(commStates);
 
   // Calculate the average density, haven't scale by 1/volume
-  
+ 
   //for(i=0;i<10;i++)printf("i %i rhoUp %lg\n",i,rhoUpChemPot[0][i]);
   //printf("aveFactUp %lg occNumber %i\n",aveFactUp,occNumber);
   //printf("rhoRealGridNum %i rhoRealGridTot %i\n",rhoRealGridNum,rhoRealGridTot);
 
+  printf("$$$$$$$ Calculate the averge Density\n");
   if(myidState==0){
     //printf("2222222222222222 aveFactUp %lg rhoUpChemPot[0][0] %lg\n",aveFactUp,rhoUpChemPot[0][0]);
     for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
       rhoUpChemPot[0][iGrid] *= aveFactUp;
+      //printf("rhoUpChemPot %lg aveFactUp %lg\n", rhoUpChemPot[0][iGrid], aveFactUp);
       //rhoLastWindow[iGrid] *= aveFactUp;
     }
     if(cpLsda==1&&numStateDnProc!=0){
@@ -2290,7 +2298,7 @@ void calcRhoStoHybridEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *gene
     numElecTest *= numGridTotInv;
     printf("Number of electron is %.16lg.\n",numElecTest);
   }
-
+  
   if(numProcStates>1)Barrier(commStates);
 
 
@@ -2335,6 +2343,23 @@ void calcRhoStoHybridEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *gene
       for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)rhoDnCorrect[iGrid] += rhoDnFragSum[iGrid];
     }
   }
+
+  // Test the total number of electron again
+  numElecTest = 0.0;
+  for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)numElecTest += rhoUpCorrect[iGrid];
+  if(cpLsda==1&&numStateDnProc!=0){
+    for(iGrid=0;iGrid<rhoRealGridNum;iGrid++)numElecTest += rhoDnCorrect[iGrid];
+  }
+  numElecTest *= numGridTotInv;
+  double numElecTestTot = 0.0;
+  if(numProcStates>1){
+    Barrier(commStates);
+    Reduce(&numElecTest,&numElecTestTot,1,MPI_DOUBLE,MPI_SUM,0,commStates);
+    Barrier(commStates);
+  }
+  else numElecTestTot = numElecTest;
+  if(myidState==0)printf("After fragment correction, #electron is %.16lg\n",numElecTestTot);
+
 
 /*==========================================================================*/
 /* IV) Output the density                                                   */

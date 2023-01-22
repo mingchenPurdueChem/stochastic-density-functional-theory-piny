@@ -48,6 +48,8 @@
 /*   Local Variables */
 
   int iii,is;
+  double time_start;
+  double time_end;
   CLASS class;
   BONDED bonded;
   GENERAL_DATA general_data;
@@ -73,6 +75,8 @@
 
 /*=======================================================================*/
 /*  I)             Check for input file                                  */
+
+  time_start = omp_get_wtime();
 
   if(argc < 2) {
     printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@\n");
@@ -208,6 +212,11 @@
 /*==========================================================================*/
 /* V)                Exit Program                                           */
 
+  time_end = omp_get_wtime();
+  if(class.communicate.myid==0){
+    printf("PINY has spent %f seconds on this calculation\n", time_end-time_start);
+  }
+
   if(class.communicate.np>1){
    Barrier(class.communicate.world);
    Finalize();
@@ -219,7 +228,4 @@
 /*----------------------------------------------------------------------*/
    }/*end routine*/
 /*==========================================================================*/
-
-
-
 

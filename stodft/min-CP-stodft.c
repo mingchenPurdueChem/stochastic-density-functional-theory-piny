@@ -1794,6 +1794,7 @@ void scfStodftEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
     timeEnd = omp_get_wtime();
 
     if(myidState==0){
+      printf("The master process spend %lgs in this SCF step.\n",timeEnd-timeStart);
       printf("--------------------------------------------------------\n");
       printf("Finish SCF Step %i\n",iScf);
       printf("********************************************************\n");
@@ -1902,7 +1903,8 @@ void scfStodftEnergyWindowFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general
   double numElecTrue = stodftInfo->numElecTrue;
   double tolEdgeDist	    = cpopts->tol_edge_dist;
   double energyDiff	= -1.0;
-  double energyTol	= stodftInfo->energyTol*numElecTrue;
+  //double energyTol	= stodftInfo->energyTol*numElecTrue;
+  double energyTol    = 1.0e-12;
 
   double *coeffReUp        = cpcoeffs_pos->cre_up;
   double *coeffImUp        = cpcoeffs_pos->cim_up;
@@ -2227,6 +2229,7 @@ void scfStodftEnergyWindowFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general
     timeEnd = omp_get_wtime();
 
     if(myidState==0){
+      printf("The master process spend %lgs in this SCF step.\n",timeEnd-timeStart);
       printf("--------------------------------------------------------\n");
       printf("Finish SCF Step %i\n",iScf);
       printf("********************************************************\n");

@@ -148,7 +148,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   // DEBUG
   //readCoeffFlag = 3;
   printf("readCoeffFlag %i\n",readCoeffFlag);
-  if(readCoeffFlag!=3){
+  if(readCoeffFlag!=4){
     printf("fragDFTMethod %i\n",fragDFTMethod);
     switch(fragDFTMethod){
       case 1:
@@ -180,7 +180,7 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
         break;
       case 2:
         break;
-    }//endif numFragProc
+    }//endswitch
     for(iFrag=0;iFrag<numFragProc;iFrag++){
 /*======================================================================*/
 /* I) Initialize Fragment SCF					        */

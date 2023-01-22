@@ -865,14 +865,7 @@ double j2(double x){
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 double j3(double x){
-  double result;
-  if(x>0.01){
-    result = (15.0/(x*x*x)-6.0/x)*(sin(x)/x)-(15.0/(x*x)-1.0)*(cos(x)/x);
-  }
-  else{
-    result = 0.00952380952380951*x*x*x;
-  }
-  return result;
+  return (15.0/(x*x*x)-6.0/x)*(sin(x)/x)-(15.0/(x*x)-1.0)*(cos(x)/x);
 }
 /*===============================================================*/
 
@@ -913,16 +906,8 @@ double dj3(double x){
   double x3 = x2*x;
   double x4 = x2*x2;
   double x5 = x4*x;
-  double result;
-  //return -(((x4-27.0*x2+60.0)*sin(x))+(x*(7.0*x2-60.0)*cos(x)))/x5;
-  if(x>0.01){
-    result = (27.0*x2-60.0-1.0*x4)*(sin(x)/x5)+(-7.0*x2+60.0)*(cos(x)/x4);
-  }
-  else{
-    result = 0.028571428571428525*x2;
-  }
-  return result;
-  //return (27.0*x2-60.0-1.0*x4)*(sin(x)/x5)+(-7.0*x2+60.0)*(cos(x)/x4);
+  return -((x4-27.0*x2+60.0)*sin(x)+x*(7*x2-60)*cos(x))/x5;
+  //return (27.0/x3-60.0/x5-1/x)*sin(x)+(60.0/x4-7.0/x2)*cos(x);
 }
 /*===============================================================*/
 

@@ -831,7 +831,7 @@ void bessTransform(double *funIn,int numIn,double dx,int l,double *funOut,
           for(jGrid=1;jGrid<numIn;jGrid++){
             x = jGrid*dx;
             arg = x*y;
-            funOut[iGrid] += dj3(arg)*x*funIn[jGrid]*dx;
+            funOut[iGrid] += j3(arg)*x*funIn[jGrid]*dx;
           }//endfor jGrid
         }//endif y
       }//endfor iGrid
@@ -1641,7 +1641,7 @@ void mapRealSpaceGrid(CP *cp, CLASS *class, GENERAL_DATA *generalData)
 	      else gridInd = xGridInd*nkb*nkc+yGridInd*nkc+zGridInd;
 	      gridNlppMap[iAtom][numGridCount] = gridInd;
 	      if(gridInd>110592){
-	        printf("gridInd %i %i %i %i %i\n",xGridInd,yGridInd,zGridInd,xInd,k);
+	        //printf("gridInd %i %i %i %i %i\n",xGridInd,yGridInd,zGridInd,xInd,k);
 	        //exit(0);
 	      }
 	      numGridCount += 1;  

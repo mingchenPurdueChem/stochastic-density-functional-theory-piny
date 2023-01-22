@@ -545,6 +545,7 @@ void calcPseudoWf(CP *cp,CLASS *class,GENERAL_DATA *generalData)
       }
       calcTrig(&gridAtomNbhd[iThread*numGridMax*3],numGrid,&trig[4*numGridMax*iThread]);
       //printf("theta %.16lg phi %.16lg\n",acos(trig[5]),atan2(trig[6],trig[7]));
+      //exit(0);
       countRad = 0;
       for(l=0;l<=atomLMax[atomType];l++){
         if(locOpt[atomType+1]!=l){
@@ -709,13 +710,22 @@ void calcSpHarm(double *ylm,int l,double *gridAtomNbhd,int numGrid,
   double pre32 = 0.25*sqrt(52.5*piInv);
   double pre33 = -0.125*sqrt(35*piInv);
 
+  // trig 0:sin(theta) 1:cos(theta) 2:sin(phi) 3:cos(phi)
 
   switch(l){
     case 0:
-      for(iGrid=0;iGrid<numGrid;iGrid++)ylm[iGrid] = pre00;
+      for(iGrid=0;iGrid<numGrid;iGrid++){
+	ylm[iGrid] = pre00;
+        //printf("iGrid = %.16f, ylm = %.16f\n", iGrid, ylm[iGrid]);
+        //exit(0);
+      }
       break;
     case 1:
-      for(iGrid=0;iGrid<numGrid;iGrid++)ylm[iGrid] = pre10*trig[iGrid*4+1];
+      for(iGrid=0;iGrid<numGrid;iGrid++){
+	ylm[iGrid] = pre10*trig[iGrid*4+1];
+        //printf("l = %i, iGrid = %.16f, ylm = %.16f\n", l, iGrid, ylm[iGrid]);
+	//exit(0);
+      }
       for(iGrid=0;iGrid<numGrid;iGrid++){
 	temp1 = pre11*trig[iGrid*4];
 	ind = numGrid+iGrid*2;
@@ -728,6 +738,8 @@ void calcSpHarm(double *ylm,int l,double *gridAtomNbhd,int numGrid,
     case 2:
       for(iGrid=0;iGrid<numGrid;iGrid++){
 	ylm[iGrid] = pre20*(3.0*trig[iGrid*4+1]*trig[iGrid*4+1]-1.0);
+        //printf("l = %i, iGrid = %.16f, ylm = %.16f\n", l, iGrid, ylm[iGrid]);
+	//exit(0);
       }
       for(iGrid=0;iGrid<numGrid;iGrid++){
 	temp1 = pre21*trig[iGrid*4]*trig[iGrid*4+1];
@@ -744,27 +756,35 @@ void calcSpHarm(double *ylm,int l,double *gridAtomNbhd,int numGrid,
       break;
     case 3:
       for(iGrid=0;iGrid<numGrid;iGrid++){
-       ylm[iGrid] = pre30*(5.0*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4+1]-3.0*trig[iGrid*4+1]);
-       printf("iGrid\n")
+	ylm[iGrid] = pre30*(5.0*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4+1]-3.0*trig[iGrid*4+1]);
+	//printf("theta %.16lg phi %.16lg ylm %.16lg+0.0j\n", acos(trig[iGrid*4+1]), acos(trig[iGrid*4+3]), ylm[iGrid]);
+	//exit(0);
       }
       for(iGrid=0;iGrid<numGrid;iGrid++){
-       temp1 = pre31*trig[iGrid*4]*(5.0*trig[iGrid*4+1]*trig[iGrid*4+1]-1.0);
-       ind = numGrid+iGrid*2;
-       ylm[ind] = temp1*trig[iGrid*4+3];
-       ylm[ind+1] = temp1*trig[iGrid*4+2];
+	temp1 = pre31*trig[iGrid*4]*(5.0*trig[iGrid*4+1]*trig[iGrid*4+1]-1.0);
+	ind = numGrid+iGrid*2;
+	ylm[ind] = temp1*trig[iGrid*4+3];
+	ylm[ind+1] = temp1*trig[iGrid*4+2];
+        //printf("theta %.16lg phi %.16lg ylm %.16lg+%.16lgj\n", atan2(trig[iGrid*4],trig[iGrid*4+1]), atan2(trig[iGrid*4+2],trig[iGrid*4+3]), ylm[ind], ylm[ind+1]);
+	//exit(0);
       }
       for(iGrid=0;iGrid<numGrid;iGrid++){
-       temp1 = pre32*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1];
-       ind = numGrid*3+iGrid*2;
-       ylm[ind] = temp1*(2.0*trig[iGrid*4+3]*trig[iGrid*4+3]-1.0);
-       ylm[ind+1] = temp1*(2.0*trig[iGrid*4+3]*trig[iGrid*4+2]);
+	temp1 = pre32*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1];
+	ind = numGrid*3+iGrid*2;
+	ylm[ind] = temp1*(2.0*trig[iGrid*4+3]*trig[iGrid*4+3]-1.0);
+	ylm[ind+1] = temp1*(2.0*trig[iGrid*4+3]*trig[iGrid*4+2]);
+        //printf("theta %.16lg phi %.16lg ylm %.16lg+%.16lgj \n", atan2(trig[iGrid*4],trig[iGrid*4+1]), atan2(trig[iGrid*4+2],trig[iGrid*4+3]), ylm[ind], ylm[ind+1]);
+        //exit(0);
       }
       for(iGrid=0;iGrid<numGrid;iGrid++){
-       temp1 = pre33*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4];
-       ind = numGrid*5+iGrid*2;
-       ylm[ind] = temp1*(4.0*trig[iGrid*4+3]*trig[iGrid*4+3]*trig[iGrid*4+3]-3.0*trig[iGrid*4+3]);
-       ylm[ind+1] = temp1*(3.0*trig[iGrid*4+2]-4.0*trig[iGrid*4+2]*trig[iGrid*4+2]*trig[iGrid*4+2]);
+	temp1 = pre33*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4];
+	ind = numGrid*5+iGrid*2;
+	ylm[ind] = temp1*(4.0*trig[iGrid*4+3]*trig[iGrid*4+3]*trig[iGrid*4+3]-3.0*trig[iGrid*4+3]);
+	ylm[ind+1] = temp1*(3.0*trig[iGrid*4+2]-4.0*trig[iGrid*4+2]*trig[iGrid*4+2]*trig[iGrid*4+2]);
+        //printf("theta %.16lg phi %.16lg ylm %.16lg+%.16lgj \n", atan2(trig[iGrid*4],trig[iGrid*4+1]), atan2(trig[iGrid*4+2],trig[iGrid*4+3]), ylm[ind], ylm[ind+1]);
+        //exit(0);
       }
+      //exit(0);
       //if(l==1)printf("m=0 ylm %.16lg\n",ylm[1]);
       //printf("m=1 ylm Re %.16lg im %.16lg\n",ylm[numGrid+2],ylm[numGrid+3]);
       //exit(0);

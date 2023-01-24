@@ -153,6 +153,11 @@ void coefForceCalcHybridSCF(CPEWALD *,int,double *,double *,
                             double *,double *,double *,double *,double *,
                             int ,double *,COMMUNICATE *,int ,int ,int ,int ,int ,
                             PARA_FFT_PKG3D *,CP *,CLASS *,GENERAL_DATA *);
+void coefForceCalcHybridSCFReal(CPEWALD *,int,double *,double *,
+                            double *,double *,double *,double *,
+                            double *,double *,double *,double *,double *,
+                            int ,double *,COMMUNICATE *,int ,int ,int ,int ,int ,
+                            PARA_FFT_PKG3D *,CP *,CLASS *,GENERAL_DATA *);
 void coefForceCalcHybridEnergy(CPEWALD *,int,double *,double *,
                             double *,double *,double *,double *,
                             double *,double *,double *,double *,double *,
@@ -193,6 +198,9 @@ void calcKSPot(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);
 void calcCoefForceScf(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);
 void calcCoefForceEnergy(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);
 void calcCoefForceWrapSCF(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);
+/*-----------------------------------------------------------------*/
+void calcCoefForceScfReal(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);
+void calcCoefForceWrapSCFReal(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);
 /*-----------------------------------------------------------------*/
 /* energy-wrapper-post-scf.c                                       */
 void calcCoefForceWrap(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);

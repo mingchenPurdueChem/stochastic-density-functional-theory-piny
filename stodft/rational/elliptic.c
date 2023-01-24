@@ -6,7 +6,13 @@
 
 #include <math.h>       // required for fabs(), fabsl(), sqrtl(), and M_PI_2
 #include <float.h>      // required for LDBL_EPSILON, DBL_MAX
-#include "typedefs_elliptic.h"
+
+#include "standard_include.h"
+#include "../typ_defs/typedefs_gen.h"
+#include "../typ_defs/typedefs_class.h"
+#include "../typ_defs/typedefs_cp.h"
+
+#include "../proto_defs/proto_rational_elliptic.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 // double Complete_Elliptic_Integral_First_Kind(char arg, double x)           //

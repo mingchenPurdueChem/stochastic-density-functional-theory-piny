@@ -31,7 +31,7 @@
 #include "../proto_defs/proto_interface_frag_entry.h"
 #include "../proto_defs/proto_frag_local.h"
 
-#include "../rational/typedefs_elliptic.h"
+#include "../proto_defs/proto_rational_elliptic.h"
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/

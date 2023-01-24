@@ -28,6 +28,7 @@
 #include "../proto_defs/proto_math.h"
 #include "../proto_defs/proto_stodft_local.h"
 #include "../proto_defs/proto_frag_local.h"
+#include "../proto_defs/proto_rational_elliptic.h"
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
@@ -286,6 +287,7 @@ void genStoOrbitalInterp(CLASS *class,GENERAL_DATA *general_data,
     coeffImUp[iCoeff] = stodftCoefPos->cimTest[iCoeff];
   }
   */
+
   
   
   
@@ -561,6 +563,8 @@ void genStoOrbitalCheby(CLASS *class,GENERAL_DATA *general_data,
   timeEnd3 = omp_get_wtime();
   diffTime3 = timeEnd3-timeStart3;
 
+// change filterflag ?
+
 /*======================================================================*/
 /* V) Generate Coeffcients for Polynormial interpolation with Correct   */
 /*    Chemical Potential.						*/
@@ -644,6 +648,19 @@ void genStoOrbitalCheby(CLASS *class,GENERAL_DATA *general_data,
   timeEnd5 = omp_get_wtime();
   diffTime5 = timeEnd5-timeStart5;
 
+if(myidState  == 0){
+FILE *fp;
+int iOff;
+fp = fopen("out-sto-orb-old.dat", "w");
+
+  for(iState=0; iState<numStateUpProc; iState++){
+    iOff = iState*numCoeff;
+    for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+      fprintf(fp, "%.8f %.8f \n", coeffReUp[iOff + iCoeff], coeffImUp[iOff + iCoeff]);
+    }
+  }
+
+}
 /*======================================================================*/
 /* V) Filter the stochastic orbitals			*/
 
@@ -660,6 +677,11 @@ void genStoOrbitalCheby(CLASS *class,GENERAL_DATA *general_data,
   stodftInfo->filterFlag = 0;
   timeEnd6 = omp_get_wtime();
   diffTime6 = timeEnd6-timeStart6;
+
+  printf("tessssssssssssst RA \n");
+  test(0.999701);
+  filterRational(cp,class,general_data,ip_now);
+  printf("tessssssssssssst RA \n");
 
   printf("Gen-stowf time myid %i spec-range %.8lg gen-poly-length %.8lg gen-chempot %.8lg gen-poly-coeff %.8lg gen-rand %.8lg filter %.8lg\n",myidState,diffTime1,diffTime2,diffTime3,diffTime4,diffTime5,diffTime6);
 

@@ -933,9 +933,12 @@ void genChebyHermitTrueChemPot(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefP
                                                 totalPoly*sizeof(double));
   expanCoeffLocal = (double *)cmalloc(totalPoly*sizeof(double));
 
-  calcChebyCoeffWrapper(stodftInfo,stodftCoefPos,filterFlag);
+  //calcChebyCoeffWrapper(stodftInfo,stodftCoefPos,filterFlag);
+  printf("changed filter flag here to 4 \n");
+  calcChebyCoeffWrapper(stodftInfo,stodftCoefPos, 4);
   
-  fitErr = calcFitErrorCheby(stodftInfo,stodftCoefPos,filterFlag);
+  //fitErr = calcFitErrorCheby(stodftInfo,stodftCoefPos,filterFlag);
+  fitErr = calcFitErrorCheby(stodftInfo,stodftCoefPos, 4);
 
   // Transpose
   expanCoeff = (double*)stodftCoefPos->expanCoeff;
@@ -1025,6 +1028,12 @@ void calcChebyCoeffWrapper(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
   //for(iChem=0;iChem<numChemPot;iChem++)printf("11111111 chemPot %lg\n",chemPot[iChem]);
 
   switch(filterFlag){
+    case 4:
+      for(iChem=0;iChem<numChemPot;iChem++){
+        calcChebyCoeff(stodftInfo,stodftCoefPos,&chemPot[iChem],
+                       &expanCoeff[iChem*polynormLength],1,0.0);
+      }
+      break;
     case 0:
       for(iChem=0;iChem<numChemPot;iChem++){
         calcChebyCoeff(stodftInfo,stodftCoefPos,&chemPot[iChem],
@@ -1138,7 +1147,7 @@ void calcChebyCoeff(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
         funValGridFFT[iGrid] = fermiFunction(x,chemPot[0],beta);
         break;
       case 2: // \sqrt{F}
-        funValGridFFT[iGrid] = sqrt(fermiFunction(x,chemPot[0],beta));
+        funValGridFFT[iGrid] = sqrt(fermiFunction(x,chemPot[0],beta)); 
         break;
       case 3: // F*P_0
         funValGridFFT[iGrid] = fermiFunction(x,chemPotTest,beta)*
@@ -1254,6 +1263,13 @@ double calcFitErrorCheby(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
 
 
   switch(filterFlag){
+    case 4:
+      for(iChem=0;iChem<numChemPot;iChem++){
+        testTemp = testChebyCoeff(stodftInfo,stodftCoefPos,&chemPot[iChem],
+                                &expanCoeff[iChem*polynormLength],1,0.0);
+        if(testTemp>testMax)testMax = testTemp;
+      }
+      break;
     case 0:
       for(iChem=0;iChem<numChemPot;iChem++){
         testTemp = testChebyCoeff(stodftInfo,stodftCoefPos,&chemPot[iChem],

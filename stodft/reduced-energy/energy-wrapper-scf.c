@@ -1200,7 +1200,8 @@ void calcCoefForceWrapSCF(CLASS *class,GENERAL_DATA *general_data,
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 void calcCoefForceWrapSCFReal(CLASS *class,GENERAL_DATA *general_data,
-                   CP *cp,CPCOEFFS_POS  *cpcoeffs_pos,CLATOMS_POS *clatoms_pos)
+                   CP *cp,CPCOEFFS_POS  *cpcoeffs_pos,CLATOMS_POS *clatoms_pos,
+                    double complex *v2, double complex *v12,int spinFlag)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
@@ -1324,7 +1325,7 @@ void calcCoefForceWrapSCFReal(CLASS *class,GENERAL_DATA *general_data,
   //stodftInfo->cputime1 += time_end-time_st;
 
   //cputime(&time_st);
-  calcCoefForceScfReal(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+  calcCoefForceScfReal(class,general_data,cp,cpcoeffs_pos,clatoms_pos, v2, v12, spinFlag);
   //cputime(&time_end);
   //stodftInfo->cputime2 += time_end-time_st;
 
@@ -1335,7 +1336,8 @@ void calcCoefForceWrapSCFReal(CLASS *class,GENERAL_DATA *general_data,
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 void calcCoefForceScfReal(CLASS *class,GENERAL_DATA *general_data,
-                   CP *cp,CPCOEFFS_POS  *cpcoeffs_pos,CLATOMS_POS *clatoms_pos)
+                   CP *cp,CPCOEFFS_POS  *cpcoeffs_pos,CLATOMS_POS *clatoms_pos,
+                   double complex *v2, double complex *v12,int spinFlag)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
@@ -1464,26 +1466,28 @@ void calcCoefForceScfReal(CLASS *class,GENERAL_DATA *general_data,
 
  /*-----------------------------------------*/
  /* i)  Up states                           */
-  coefForceCalcHybridSCFReal(cpewald,nstate_up,creal_up,cimag_up,
-                          fcreal_up,fcimag_up,
-                          zfft,zfft_tmp,v_ks_up,v_ks_tau_up,ak2_sm,&cp_eke,pvten_cp,
-                          cp_ptens_calc,hmati_cp,communicate,icoef_form_up,
-                          icoef_orth_up,ifcoef_form_up,cp_tau_functional,cp_min_on,
-                          cp_sclr_fft_pkg3d_sm,cp,class,general_data);
-  *cp_eke_ret += cp_eke;
-
+  if(spinFlag==0){
+    coefForceCalcHybridSCFReal(cpewald,nstate_up,creal_up,cimag_up,
+			  fcreal_up,fcimag_up,
+			  zfft,zfft_tmp,v_ks_up,v_ks_tau_up,ak2_sm,&cp_eke,pvten_cp,
+			  cp_ptens_calc,hmati_cp,communicate,icoef_form_up,
+			  icoef_orth_up,ifcoef_form_up,cp_tau_functional,cp_min_on,
+			  cp_sclr_fft_pkg3d_sm,cp,class,general_data,v2,v12);
+    *cp_eke_ret += cp_eke;
+  }
  /*--------------------------------------------*/
  /* ii) down states (if necessary)             */
 
-  if(cp_lsda == 1 && nstate_dn != 0){
+  if(spinFlag==1){
     coefForceCalcHybridSCFReal(cpewald,nstate_dn,creal_dn,cimag_dn,
                           fcreal_dn,fcimag_dn,
                           zfft,zfft_tmp,v_ks_dn,v_ks_tau_dn,ak2_sm,&cp_eke_dn,pvten_cp,
                           cp_ptens_calc,hmati_cp,communicate,icoef_form_dn,
                           icoef_orth_dn,ifcoef_form_dn,cp_tau_functional,cp_min_on,
-                          cp_sclr_fft_pkg3d_sm,cp,class,general_data);
+                          cp_sclr_fft_pkg3d_sm,cp,class,general_data,v2,v12);
     *cp_eke_ret += cp_eke_dn;
-  }/*endif*/
+  }//endif
+
 
 /*==========================================================================*/
 }/*end Routine*/

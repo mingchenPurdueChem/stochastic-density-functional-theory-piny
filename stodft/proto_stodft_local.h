@@ -66,6 +66,7 @@ void genStoOrbitalEnergyWindowFrag(CLASS *,GENERAL_DATA *,
 /* gen-noise.c							   */
 void genNoiseOrbital(CP *,CPCOEFFS_POS *);
 void genNoiseOrbitalReal(CP *,CPCOEFFS_POS *);
+void genNoiseOrbitalRealRational(CP *,CPCOEFFS_POS *, double complex *);
 /*-----------------------------------------------------------------*/
 /* normh.c                                                         */
 void normHNewtonHerm(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,
@@ -157,7 +158,8 @@ void coefForceCalcHybridSCFReal(CPEWALD *,int,double *,double *,
                             double *,double *,double *,double *,
                             double *,double *,double *,double *,double *,
                             int ,double *,COMMUNICATE *,int ,int ,int ,int ,int ,
-                            PARA_FFT_PKG3D *,CP *,CLASS *,GENERAL_DATA *);
+                            PARA_FFT_PKG3D *,CP *,CLASS *,GENERAL_DATA *,
+                            double complex*, double complex*);
 void coefForceCalcHybridEnergy(CPEWALD *,int,double *,double *,
                             double *,double *,double *,double *,
                             double *,double *,double *,double *,double *,
@@ -199,8 +201,10 @@ void calcCoefForceScf(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);
 void calcCoefForceEnergy(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);
 void calcCoefForceWrapSCF(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);
 /*-----------------------------------------------------------------*/
-void calcCoefForceScfReal(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);
-void calcCoefForceWrapSCFReal(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);
+void calcCoefForceScfReal(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *,
+                            double complex *,double complex *,int);
+void calcCoefForceWrapSCFReal(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *,
+                              double complex *,double complex *,int);
 /*-----------------------------------------------------------------*/
 /* energy-wrapper-post-scf.c                                       */
 void calcCoefForceWrap(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);

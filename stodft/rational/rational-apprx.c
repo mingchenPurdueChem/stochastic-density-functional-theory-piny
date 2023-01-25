@@ -49,7 +49,7 @@ double complex fun_test(double complex x, double dmu, double beta, double epsilo
 }
 
 /*===============================================================*/
-void solve_shifted_eqn_cocg( CP *cp, CLASS *class, GENERAL_DATA *general_data, double complex *z, double complex *x, int nz, int ndim, int sign) { 
+void solve_shifted_eqn_cocg( CP *cp, CLASS *class, GENERAL_DATA *general_data, double complex *z, double complex *x, int nz, int ndim) { 
 //                      int *ndim, int *nz, double complex *ham, double complex *rhs, double complex *z, double complex *x  ) {
 
 /* =------------------- */
@@ -64,12 +64,16 @@ void solve_shifted_eqn_cocg( CP *cp, CLASS *class, GENERAL_DATA *general_data, d
   CLATOMS_INFO *clatoms_info    = &(class->clatoms_info);
   COMMUNICATE *communicate      = &(cp->communicate);
 
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
 
   int numStateUpProc = cpcoeffs_info->nstate_up_proc;
   int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
   int numCoeff       = cpcoeffs_info->ncoef;
   int numCoeffUpTotal = numStateUpProc*numCoeff;
   int numCoeffDnTotal = numStateDnProc*numCoeff;
+
+  int nfft          = cp_para_fft_pkg3d_lg->nfft;
+  int nfft2         = nfft/2;
 
   double *cre_up = cpcoeffs_pos->cre_up;
   double *cim_up = cpcoeffs_pos->cim_up;
@@ -83,7 +87,7 @@ void solve_shifted_eqn_cocg( CP *cp, CLASS *class, GENERAL_DATA *general_data, d
   double *wfUpIm1 = stodftCoefPos->wfUpIm1;
   double *wfDnRe1 = stodftCoefPos->wfDnRe1;
   double *wfDnIm1 = stodftCoefPos->wfDnIm1;
-
+  int spinFlag;
 
   int iState,iCoeff, iOff, iCoeffStart,index1,index2;
 
@@ -106,9 +110,11 @@ scale2 = -1.0;
 
 // ndim = 2*(numCoeff - 1) + 1
 zdim = nz;
-dim = ndim;
-itermax =  990000;
+dim = nfft2; // ndim;
+itermax =  90000;
 threshold = 1.0E-5;
+spinFlag = 0;
+
 
 v12 = (double complex*)malloc((dim)*sizeof(double complex));
 v2 = (double complex*)malloc((dim)*sizeof(double complex));
@@ -116,26 +122,23 @@ r_l = (double complex*)malloc((dim)*sizeof(double complex));
 /* =------------------- */
 
 
-
-//z[0] = 0.1 + 0.1*I;
-//z[nz-1] = 0.1 + 0.1*I;
-
-for (int i = 0; i < nz; i++ ) {
-  z[i] = creal(z[i]) + 0.0*I;
-  printf("after Z VALUES are %lg, %lg\n", creal(z[i]), cimag(z[i]));
-}
+//for (int i = 0; i < nz; i++ ) {
+//  z[i] = creal(z[i]) + 0.0*I;
+//  printf("after Z VALUES are %lg, %lg\n", creal(z[i]), cimag(z[i]));
+//}
   printf("--- tessssssssssssst solve_shifted_eqn start ---- \n");
 
-genNoiseOrbitalReal(cp,cpcoeffs_pos); 
+genNoiseOrbitalRealRational(cp,cpcoeffs_pos, v2); 
 
 printf("#####  CG Iteration 1 #####\n");
 
+/*
 for (i = 1; i < numCoeff; i++ ) {
   v2[i-1] = cre_up[i] + cim_up[i] * I;
   v2[i-1 + numCoeff] = cre_up[i] - cim_up[i]*I;
 }
 v2[numCoeff-1] = cre_up[numCoeff] + cim_up[numCoeff] * I;
-
+*/
 printf("#####  CG Iteration 0 #####\n");
 
 komega_cocg_init(&ndim, &dim, &nz, x, z, &itermax, &threshold, NULL);
@@ -148,25 +151,27 @@ for (iter = 0; iter < itermax; iter++){
     r_l[i] = v2[i];
   }
 
-  calcCoefForceWrapSCFReal(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+  // spinFlag=0: spin up (or no spin polarized), spinFlag=1: spin dn 
+  calcCoefForceWrapSCFReal(class,general_data,cp,cpcoeffs_pos,clatoms_pos,v2,v12,spinFlag);
 
       //memcpy(&cre_up[1],&fcre_up[1],numCoeffUpTotal*sizeof(double));
       //memcpy(&cim_up[1],&fcim_up[1],numCoeffUpTotal*sizeof(double));
 
-    for (i = 1; i < numCoeff; i++) {
-      v12[i-1] = scale1*fcre_up[i] + scale1*fcim_up[i] * I;
-      v12[i-1 + numCoeff] = scale1*fcre_up[i] - scale1*fcim_up[i]*I;
-    }
-    v12[numCoeff-1] = scale2*fcre_up[numCoeff] + scale2*fcim_up[numCoeff] * I;
+
+//    for (i = 1; i < numCoeff; i++) {
+//      v12[i-1] = scale1*fcre_up[i] + scale1*fcim_up[i] * I;
+//      v12[i-1 + numCoeff] = scale1*fcre_up[i] - scale1*fcim_up[i]*I;
+//    }
+//    v12[numCoeff-1] = scale2*fcre_up[numCoeff] + scale2*fcim_up[numCoeff] * I;
 
   komega_cocg_update(v12, v2, x, r_l, status);
 
-    for (i = 1; i < numCoeff; i++) {
-      cre_up[i]  = creal(v2[i-1]);
-      cim_up[i]  = cimag(v2[i-1]);
-    }
-    cre_up[numCoeff]  = creal(v2[numCoeff-1]);
-    cim_up[numCoeff]  = cimag(v2[numCoeff-1]);
+//    for (i = 1; i < numCoeff; i++) {
+//      cre_up[i]  = creal(v2[i-1]);
+//      cim_up[i]  = cimag(v2[i-1]);
+//    }
+//    cre_up[numCoeff]  = creal(v2[numCoeff-1]);
+//    cim_up[numCoeff]  = cimag(v2[numCoeff-1]);
 
 //for (i = 1; i < numCoeff; i++ ) {
 //  printf("real %lg imag %lg , real %lg imag %lg \n", creal(v2[i-1]), cimag(v2[i-1]), creal(v2[i-1+numCoeff]), cimag(v2[i-1+numCoeff]));
@@ -240,78 +245,6 @@ fp1 = fopen("out-sto-orb1.dat", "w");
 }
 */
   printf("--- tessssssssssssst solve_shifted_eqn end ---- \n");
-/*
-int  itermax, iter_old;
-double threshold;
-double complex z_seed;
-
-double complex *v12, *v2, *r_l;
-
-int status[3];
-
-int i, j, iter, jiter, dim, zdim;
-
-zdim = *nz;
-dim = *ndim;
-itermax = 5000;
-threshold = 1.0E-5;
-
-v12 = (double complex*)malloc((dim)*sizeof(double complex));
-v2 = (double complex*)malloc((dim)*sizeof(double complex));
-r_l = (double complex*)malloc((dim)*sizeof(double complex));
-
-
-for (i = 0; i < dim; i++ ) {
-  v2[i] = rhs[i];
-}
-
-
-komega_cocg_init(ndim, &dim, nz, x, z, &itermax, &threshold, NULL);
-
-
-printf("#####  CG Iteration starts  #####\n");
-for (iter = 0; iter < itermax; iter++){
-
-  for (i = 0; i < dim; i++) {
-    r_l[i] = v2[i];
-  }
-
-  for (i = 0; i < dim; i++){
-    v12[i] = 0.0 + 0.0*I;
-    for (j = 0; j < dim; j++) {
-      v12[i] = v12[i] + ham[i + dim * j] * v2[j];
-    }
-  }
-
-  komega_cocg_update(v12, v2, x, r_l, status);
-
-  printf(" DEBUG : %i %i %i %i %lg \n", iter, status[0], status[1], status[2], creal(v12[0]));
-
-  if(status[0] < 0) break;
-
-} // for i
-printf("#####  CG Iteration finished  #####\n");
-
-switch(status[1]) {
-  case (0) :
-    printf("  Converged in iteration %d \n", abs(status[0]));
-    break;
-  case (1) :
-    printf("  Not Converged in iteration %d \n", abs(status[0]));
-    break;
-  case (2) :
-    printf("  Alpha becomes infinity %d \n", abs(status[0]));
-    break;
-  case (3) :
-    printf("  Pi_seed becomes zero %d \n", abs(status[0]));
-    break;
-  case (4) :
-    printf("  Residual & Shadow residual are orthogonal %d \n", abs(status[0]));
-    break;
-}
-
-komega_cocg_finalize();
-*/
 }
 /*===============================================================*/
 /*==========================================================================*/
@@ -816,6 +749,8 @@ void filterRational(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   COMMUNICATE *communicate      = &(cp->communicate);
   PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm = &(cp->cp_sclr_fft_pkg3d_sm);
 
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
+
   NEWTONINFO *newtonInfo = stodftInfo->newtonInfo;
 
   int expanType	     = stodftInfo->expanType;
@@ -876,6 +811,11 @@ void filterRational(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   double deltaTime = 0.0;
   double deltaTime2 = 0.0;
   double dot;
+
+
+  int nfft          = cp_para_fft_pkg3d_lg->nfft;
+  int nfft2         = nfft/2;
+  
 
 /*****************************************************/
 // define variables, move to a different place later !!
@@ -1061,71 +1001,87 @@ for (int i = 0; i < ngrid; i++){
 
 
 /******************************************************************************/
-double complex *z_p, *z_m, *x_p_p, *x_m_p, *x_p_m, *x_m_m, *rhs_p, *rhs_m;
+//double complex *z_p, *z_m, *x_p_p, *x_m_p, *x_p_m, *x_m_m, *rhs_p, *rhs_m;
+double complex *zseed, *x;
 int ndim, nl, nz;
 
-ndim = 2*(numCoeff-1) + 1;
+ndim = nfft2; // 2*(numCoeff-1) + 1; //TODO change here
 nl =ndim;
-nz = ntgrid;
+nz = 2*ntgrid;
 
 
-rhs_p = (double complex*)malloc((ndim)*sizeof(double complex));
-rhs_m = (double complex*)malloc((ndim)*sizeof(double complex));
-z_p = (double complex*)malloc((nz)*sizeof(double complex));
-z_m = (double complex*)malloc((nz)*sizeof(double complex));
-x_p_p = (double complex*)malloc((nl*nz)*sizeof(double complex));
-x_m_p = (double complex*)malloc((nl*nz)*sizeof(double complex));
-x_p_m = (double complex*)malloc((nl*nz)*sizeof(double complex));
-x_m_m = (double complex*)malloc((nl*nz)*sizeof(double complex));
+//rhs_p = (double complex*)malloc((ndim)*sizeof(double complex));
+//rhs_m = (double complex*)malloc((ndim)*sizeof(double complex));
+//z_p = (double complex*)malloc((nz)*sizeof(double complex));
+//z_m = (double complex*)malloc((nz)*sizeof(double complex));
+
+zseed = (double complex*)malloc((nz)*sizeof(double complex));
+
+x = (double complex*)malloc((nl*nz)*sizeof(double complex));
+//x_p_p = (double complex*)malloc((nl*nz)*sizeof(double complex));
+//x_m_p = (double complex*)malloc((nl*nz)*sizeof(double complex));
+//x_p_m = (double complex*)malloc((nl*nz)*sizeof(double complex));
+//x_m_m = (double complex*)malloc((nl*nz)*sizeof(double complex));
 /******************************************************************************/
 
 
 for (int j =0; j < ntgrid; j++){
-  z_p[j] =  ksi_p[j]; 
-  z_m[j] =  ksi_m[j]; 
+  //z_p[j] =  ksi_p[j]; 
+  //z_m[j] =  ksi_m[j]; 
+
+  zseed[j] =  ksi_p[j]; 
+  zseed[j + ntgrid] =  ksi_m[j];
+ 
   //z_p[j] =  ksi_p[j] + stodftInfo->chemPotTrue; //TODO check
   //z_m[j] =  ksi_m[j] + stodftInfo->chemPotTrue;
 }
-
-for (int i = 0; i < nz; i++ ) {
-  printf("BEFORE Z VALUES are %lg, %lg\n", creal(z_p[i]), cimag(z_p[i]));
-}
-
-//solve_shifted_eqn_cocg( cp, class, general_data, rhs_p, z_p, x_p_p, nz, ndim);
-solve_shifted_eqn( cp, class, general_data, z_p, x_p_p, nz, ndim, 1);
-
 //Barrier(comm_states);
 //printf("@@@@@@@@@@@@@@@@@@@@_forced_stop__@@@@@@@@@@@@@@@@@@@@\n");
 //fflush(stdout);
 //exit(1);
 
-solve_shifted_eqn( cp, class, general_data, z_m, x_m_p, nz, ndim, 1);
+for (int i = 0; i < nz; i++ ) {
+  printf("BEFORE Z VALUES are %lg, %lg\n", creal(zseed[i]), cimag(zseed[i]));
+}
 
-solve_shifted_eqn( cp, class, general_data, z_p, x_p_m, nz, ndim, -1);
-solve_shifted_eqn( cp, class, general_data, z_m, x_m_m, nz, ndim, -1);
+solve_shifted_eqn_cocg( cp, class, general_data, zseed, x, nz, ndim);
+
+//solve_shifted_eqn_cocg( cp, class, general_data, rhs_p, z_p, x_p_p, nz, ndim);
+//solve_shifted_eqn( cp, class, general_data, z_p, x_p_p, nz, ndim, 1);
+
+Barrier(comm_states);
+printf("@@@@@@@@@@@@@@@@@@@@_forced_stop__@@@@@@@@@@@@@@@@@@@@\n");
+fflush(stdout);
+exit(1);
+
+//solve_shifted_eqn( cp, class, general_data, z_m, x_m_p, nz, ndim, 1);
+
+//solve_shifted_eqn( cp, class, general_data, z_p, x_p_m, nz, ndim, -1);
+//solve_shifted_eqn( cp, class, general_data, z_m, x_m_m, nz, ndim, -1);
 
 /********************************/
-double complex *f_p, *f_m, *frhs;
-double *dxi, *dyi;
+double complex *frhs;
+//double *dxi, *dyi;
 
-f_p = (double complex*)malloc((ndim)*sizeof(double complex));
-f_m = (double complex*)malloc((ndim)*sizeof(double complex));
+//f_p = (double complex*)malloc((ndim)*sizeof(double complex));
+//f_m = (double complex*)malloc((ndim)*sizeof(double complex));
 frhs = (double complex*)malloc((ndim)*sizeof(double complex));
 
-dxi = (double*)malloc((ndim)*sizeof(double));
-dyi = (double*)malloc((ndim)*sizeof(double));
+//dxi = (double*)malloc((ndim)*sizeof(double));
+//dyi = (double*)malloc((ndim)*sizeof(double));
 
-double complex sum_p_p, sum_m_p, sum_p_m, sum_m_m;
+//double complex sum_p_p, sum_m_p, sum_p_m, sum_m_m;
 double preRat = -2 * K *sqrt(mA*MA) / M_PI / ntgrid * kinv;
 
 printf("preRat %lg\n",preRat);
-for(int j=0;j<ntgrid;j++){
-  printf("j %i fun_p %lg %lg fun_m[j] %lg %lg\n",
-         j,creal(fun_p[j]),cimag(fun_p[j]),creal(fun_m[j]),cimag(fun_m[j]));
-}
+//for(int j=0;j<ntgrid;j++){
+//  printf("j %i fun_p %lg %lg fun_m[j] %lg %lg\n",
+//         j,creal(fun_p[j]),cimag(fun_p[j]),creal(fun_m[j]),cimag(fun_m[j]));
+//}
 //fflush(stdout);
 //exit(0);
 
+/*
 for (int i = 0; i < ndim; i++){
   sum_p_p = 0.0 + 0.0 *I ;
   sum_m_p = 0.0 + 0.0 *I ;
@@ -1141,19 +1097,24 @@ for (int i = 0; i < ndim; i++){
   printf("i %i f_p %lg %lg\n",i,creal(f_p[i]),cimag(f_p[i]));
   f_m[i] =  sum_p_m + sum_m_m;
 }
+*/
 
 // dxi real part
 // dyi imag part
 
-for (int i=0; i<numCoeff-1; i++){
-  dxi[i] = 0.5*(cimag(f_p[i])+cimag(f_p[i+numCoeff]));
-  dyi[i] = 0.5*(creal(f_p[i+numCoeff])-creal(f_p[i]));
-}
-dxi[numCoeff-1] = cimag(f_p[numCoeff-1]);
+//for (int i=0; i<numCoeff-1; i++){
+//  dxi[i] = 0.5*(cimag(f_p[i])+cimag(f_p[i+numCoeff]));
+//  dyi[i] = 0.5*(creal(f_p[i+numCoeff])-creal(f_p[i]));
+//}
+//dxi[numCoeff-1] = cimag(f_p[numCoeff-1]);
 
 //double preRat = -2 * K *sqrt(mA*MA) / M_PI / ntgrid * kinv;
-for (int i = 0; i<numCoeff;i++){
-  frhs[i] = preRat*(dxi[i]+dyi[i]*I);
+for (int i = 0; i<ndim;i++){
+  sum = 0.0 + 0.0 *I ;
+  for (int j =0; j < ntgrid; j++){
+    sum = sum + fun_p[j] * x[j*ndim + i] + fun_m[j] * x[(j+ntgrid)*ndim + i];
+  }
+  frhs[i] = preRat*cimag(sum);
 }
 
 //for (int i = 0; i < ndim; i++){

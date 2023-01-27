@@ -517,7 +517,8 @@ void genNoiseOrbitalRealRational(CP *cp,CPCOEFFS_POS *cpcoeffs_pos, double compl
   */
   
   
-  for(iStat=0;iStat<numStatUpProc;iStat++){
+  //for(iStat=0;iStat<numStatUpProc;iStat++){
+  for(iStat=0;iStat<1;iStat++){
     for(iGrid=0;iGrid<nfft2;iGrid++){
       if(randNum[iStat*nfft2+iGrid]<0.0) zfft[iGrid*2+1] = -ranValue;
       else zfft[iGrid*2+1] = ranValue;
@@ -537,7 +538,7 @@ void genNoiseOrbitalRealRational(CP *cp,CPCOEFFS_POS *cpcoeffs_pos, double compl
     //if rational
     sngl_pack_coef_fftw3d_filter(&coeffReUp[iOff],&coeffImUp[iOff],zfft,cp_sclr_fft_pkg3d_sm);
     para_fft_gen3d_fwd_to_r_fftw3d_filter(zfft,cp_sclr_fft_pkg3d_sm);
-    for(iGrid=0;iGrid<nfft2;iGrid++)v2[iGrid] = zfft[2*iGrid+1]+0.0*I;
+    for(iGrid=0;iGrid<nfft2;iGrid++)v2[iStat*nfft2+iGrid] = zfft[2*iGrid+1]+0.0*I;
     // end if rational
   }
   if(cpLsda==1){

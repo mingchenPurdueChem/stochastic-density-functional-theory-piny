@@ -170,6 +170,12 @@ void cpGetVksStodft(CPOPTS *,CPSCR *,CPEWALD *,EWALD *,
                 STAT_AVG *,double *,CELL *, char *,double *,double ,double,
                 int,int,int,int,int,int,PARA_FFT_PKG3D *,PARA_FFT_PKG3D *,
                 PARA_FFT_PKG3D *,PARA_FFT_PKG3D *,int);
+
+void fftWraperRhsReal(CPEWALD *,int, double *,double *,
+                             double *,double  *, double *,double *,
+                             double *,double *,double *, double *,double *,
+                             int,double *, COMMUNICATE *, int ,int ,int , int ,int,
+                             PARA_FFT_PKG3D *, CP *, CLASS *,GENERAL_DATA *,double *);
 /*-----------------------------------------------------------------*/
 /* cp-energy-eext-stodft.c					   */
 void controlEwdLocPreScf(CLATOMS_INFO *,CLATOMS_POS *,CELL *, PTENS *, EWALD *,
@@ -205,6 +211,8 @@ void calcCoefForceScfReal(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS
                             double complex *,double complex *,int);
 void calcCoefForceWrapSCFReal(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *,
                               double complex *,double complex *,int);
+void rhsReal(CLASS *class,GENERAL_DATA *,
+                   CP *,CPCOEFFS_POS *,CLATOMS_POS *, double *);
 /*-----------------------------------------------------------------*/
 /* energy-wrapper-post-scf.c                                       */
 void calcCoefForceWrap(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);

@@ -173,8 +173,8 @@ for (iter = 0; iter < itermax; iter++){
 //    cre_up[numCoeff]  = creal(v2[numCoeff-1]);
 //    cim_up[numCoeff]  = cimag(v2[numCoeff-1]);
 
-//for (i = 1; i < numCoeff; i++ ) {
-//  printf("real %lg imag %lg , real %lg imag %lg \n", creal(v2[i-1]), cimag(v2[i-1]), creal(v2[i-1+numCoeff]), cimag(v2[i-1+numCoeff]));
+//for (i = 1; i < nfft2; i++ ) {
+//  printf("real %lg imag %lg , real %lg imag %lg \n", creal(v2[i-1]), cimag(v2[i-1]), creal(v12[i-1]), cimag(v12[i-1]));
 //}
 
   printf(" DEBUG : %i %i %i %i %lg \n", iter, status[0], status[1], status[2], creal(v12[0]));
@@ -1007,6 +1007,7 @@ int ndim, nl, nz;
 
 ndim = nfft2; // 2*(numCoeff-1) + 1; //TODO change here
 nl =ndim;
+//nz = ntgrid;
 nz = 2*ntgrid;
 
 
@@ -1049,10 +1050,10 @@ solve_shifted_eqn_cocg( cp, class, general_data, zseed, x, nz, ndim);
 //solve_shifted_eqn_cocg( cp, class, general_data, rhs_p, z_p, x_p_p, nz, ndim);
 //solve_shifted_eqn( cp, class, general_data, z_p, x_p_p, nz, ndim, 1);
 
-Barrier(comm_states);
-printf("@@@@@@@@@@@@@@@@@@@@_forced_stop__@@@@@@@@@@@@@@@@@@@@\n");
-fflush(stdout);
-exit(1);
+//Barrier(comm_states);
+//printf("@@@@@@@@@@@@@@@@@@@@_forced_stop__@@@@@@@@@@@@@@@@@@@@\n");
+//fflush(stdout);
+//exit(1);
 
 //solve_shifted_eqn( cp, class, general_data, z_m, x_m_p, nz, ndim, 1);
 
@@ -1060,12 +1061,12 @@ exit(1);
 //solve_shifted_eqn( cp, class, general_data, z_m, x_m_m, nz, ndim, -1);
 
 /********************************/
-double complex *frhs;
+double *frhs;
 //double *dxi, *dyi;
 
 //f_p = (double complex*)malloc((ndim)*sizeof(double complex));
 //f_m = (double complex*)malloc((ndim)*sizeof(double complex));
-frhs = (double complex*)malloc((ndim)*sizeof(double complex));
+frhs = (double*)malloc((ndim)*sizeof(double));
 
 //dxi = (double*)malloc((ndim)*sizeof(double));
 //dyi = (double*)malloc((ndim)*sizeof(double));
@@ -1142,13 +1143,21 @@ printf("==== final results === \n");
     cim_up[2*numCoeff]  = 0.0;
 */
 
-
-for (int j =0; j < numCoeff; j++){
-  printf(" %.8f  %.8f \n", creal(frhs[j]), cimag(frhs[j]));
+for (int j =1; j <= numCoeff; j++){
+//  printf(" %.8f  %.8f \n", creal(frhs[j]), cimag(frhs[j]));
  // printf(" %.8f  %.8f \n", cre_up[j+1], cim_up[j+1]);
-  printf(" %.8f  %.8f %.8f  %.8f \n",  stoWfUpRe[0][j+1],  stoWfUpIm[0][j+1] ,stoWfUpRe[0][j+1] - creal(frhs[j]), stoWfUpIm[0][j+1] -  cimag(frhs[j]));
-//  printf(" %.8f  %.8f \n",  stoWfUpRe[1][j+1],  stoWfUpIm[1][j+1] );
+//  printf(" %.8f  %.8f %.8f  %.8f \n",  stoWfUpRe[0][j+1],  stoWfUpIm[0][j+1] ,stoWfUpRe[0][j+1] - creal(frhs[j]), stoWfUpIm[0][j+1] -  cimag(frhs[j]));
+  printf("actuai %i  %.8f  %.8f \n", j,  stoWfUpRe[0][j],  stoWfUpIm[0][j] );
 }
+
+rhsReal(class, general_data, cp, cpcoeffs_pos, clatoms_pos, frhs);
+
+//for (int j =0; j < ndim; j++){
+//  printf(" %.8f  %.8f \n", creal(frhs[j]), cimag(frhs[j]));
+ // printf(" %.8f  %.8f \n", cre_up[j+1], cim_up[j+1]);
+//  printf(" %.8f  %.8f %.8f  %.8f \n",  stoWfUpRe[0][j+1],  stoWfUpIm[0][j+1] ,stoWfUpRe[0][j+1] - creal(frhs[j]), stoWfUpIm[0][j+1] -  cimag(frhs[j]));
+//  printf(" %.8f  %.8f \n",  stoWfUpRe[0][j+1],  stoWfUpIm[0][j+1] );
+//}
 
 
 

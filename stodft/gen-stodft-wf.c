@@ -664,6 +664,7 @@ fp = fopen("out-sto-orb-old.dat", "w");
 /*======================================================================*/
 /* V) Filter the stochastic orbitals			*/
 
+/*
   timeStart6 = omp_get_wtime();
   switch(expanType){
     case 1:
@@ -677,7 +678,7 @@ fp = fopen("out-sto-orb-old.dat", "w");
   stodftInfo->filterFlag = 0;
   timeEnd6 = omp_get_wtime();
   diffTime6 = timeEnd6-timeStart6;
-
+*/
   printf("tessssssssssssst RA \n");
   test(0.999701);
   filterRational(cp,class,general_data,ip_now);

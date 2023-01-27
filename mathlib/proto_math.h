@@ -369,6 +369,7 @@ void get_ind_rev(int*,int*,int,int);
 
 /*----------------------------------------------------------------------*/
 /* Fillter functions  */
+double fermiTestReal(double, double, double, double, double);
 double fermiExpReal(double,double,double);
 long double fermiExpLongDouble(long double,long double,long double);
 double complex fermiExpComplex(double complex,double,double);

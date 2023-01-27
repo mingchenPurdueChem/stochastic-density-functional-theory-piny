@@ -1031,7 +1031,7 @@ void calcChebyCoeffWrapper(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
     case 4:
       for(iChem=0;iChem<numChemPot;iChem++){
         calcChebyCoeff(stodftInfo,stodftCoefPos,&chemPot[iChem],
-                       &expanCoeff[iChem*polynormLength],1,0.0);
+                       &expanCoeff[iChem*polynormLength],21,0.0);
       }
       break;
     case 0:
@@ -1143,6 +1143,10 @@ void calcChebyCoeff(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
     x = energyDiff*cos(pre*(double)iGrid/(double)numChebyGrid)+energyMean;
     // P_N = I-\sum_i P_i
     switch(funFlag){
+      case 21: // test F function
+        funValGridFFT[iGrid] = fermiTestReal(x, chemPot[0], beta, 0.0005, 0.001);
+        //funValGridFFT[iGrid] = fermiTestReal(x, chemPot[0], beta, dmu, epsilon);
+        break;
       case 1: // F
         funValGridFFT[iGrid] = fermiFunction(x,chemPot[0],beta);
         break;
@@ -1266,7 +1270,7 @@ double calcFitErrorCheby(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
     case 4:
       for(iChem=0;iChem<numChemPot;iChem++){
         testTemp = testChebyCoeff(stodftInfo,stodftCoefPos,&chemPot[iChem],
-                                &expanCoeff[iChem*polynormLength],1,0.0);
+                                &expanCoeff[iChem*polynormLength],21,0.0);
         if(testTemp>testMax)testMax = testTemp;
       }
       break;
@@ -1394,6 +1398,10 @@ double testChebyCoeff(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
   */
   for(iGrid=0;iGrid<numPointTest;iGrid++){
     switch(funFlag){
+      case 21: // test F function
+        funTrue = fermiTestReal(x[iGrid], chemPot[0], beta, 0.0005, 0.001);
+        //funValGridFFT[iGrid] = fermiTestReal(x, chemPot[0], beta, dmu, epsilon);
+        break;
       case 1: // F
         funTrue = fermiFunction(x[iGrid],chemPot[0],beta);
         break;

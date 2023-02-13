@@ -82,6 +82,7 @@ void coefForceCalcHybridSCFReal(CPEWALD *cpewald,int nstate,
   double chemPotTrue = stodftInfo->chemPotTrue;
   double *keMatrix = cpewald->keMatrix;
   double *ak2Kinetic = cpewald->ak2Kinetic;
+  //double *ak2_sm = cpewald->ak2_sm;
 #define DEBUG_OFF
 #ifdef DEBUG
   int icount;
@@ -91,11 +92,19 @@ void coefForceCalcHybridSCFReal(CPEWALD *cpewald,int nstate,
 #endif
 
   double *cre,*cim,*fcre,*fcim,*fcrek,*fcimk;
+  double *pre_cond;
+  double gcut_sq = 1.0; //TODO change
+
 
 /* ================================================================= */
 /*0) Check the form of the coefficients                              */
 
   //printf(" NEW routine coefForceCalcHybridSCFReal %i %i %i %i %i \n", ncoef, nfft, nstate, fftw3dFlag, pseudoRealFlag);
+  pre_cond = (double*)calloc(ncoef,sizeof(double))-1;
+  for(i=1;i<=ncoef;i++){
+    if(ak2_sm[i]>gcut_sq)pre_cond[i] = 0.5*ak2_sm[i];
+    else pre_cond[i] = 0.5*gcut_sq;     
+  }
   ncoef1 = ncoef-1;
 
   cre = (double*)calloc(2*ncoef,sizeof(double))-1;
@@ -150,18 +159,49 @@ void coefForceCalcHybridSCFReal(CPEWALD *cpewald,int nstate,
     stodftInfo->cputime4 += time_end-time_st; // CHANGE IT
 
     for(i=1; i< ncoef ; i++){
+      //cre[i] *= -0.25*pre_cond[i];
+      //cim[i] *= -0.25*pre_cond[i];
       cre[i] *= -0.25;
       cim[i] *= -0.25;
     }
+    //cre[ncoef] *= -0.5*pre_cond[ncoef];
     cre[ncoef] *= -0.5;
     cim[ncoef] = 0.0;
     for(i=1; i< ncoef ; i++){
+      //cre[i+ncoef] *= -0.25*pre_cond[i];
+      //cim[i+ncoef] *= -0.25*pre_cond[i];
       cre[i+ncoef] *= -0.25;
       cim[i+ncoef] *= -0.25;
     }
+    //cre[2*ncoef] *= -0.5*pre_cond[ncoef];
     cre[2*ncoef] *= -0.5;
     cim[2*ncoef] = 0.0;
 
+
+/*-----------------------------------------------------------------*/
+/* IV) pack phi(g)                                                 */
+
+    time_st = omp_get_wtime();
+    if(fftw3dFlag==0){
+      dble_pack_coef(&cre[0],&cim[0],&cre[ncoef],&cim[ncoef],
+                     zfft,cp_sclr_fft_pkg3d_sm);
+    }
+    else{
+      dble_pack_coef_fftw3d_filter(&cre[0],&cim[0],&cre[ncoef],
+                     &cim[ncoef],
+                     zfft,cp_sclr_fft_pkg3d_sm);
+    }
+
+/*-----------------------------------------------------------------*/
+/* V) transform phi(g) to phi(r) to complete the projection        */
+
+
+    if(fftw3dFlag==0){
+      para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+    }
+    else{
+      para_fft_gen3d_fwd_to_r_fftw3d_filter(zfft,cp_sclr_fft_pkg3d_sm);
+    }
 
 /*-----------------------------------------------------------------*/
 /* IV) Calculate t|phi(g)>                                         */
@@ -183,10 +223,10 @@ void coefForceCalcHybridSCFReal(CPEWALD *cpewald,int nstate,
 /*-----------------------------------------------------------------*/
 /* V) Copy phi(r)                                                  */
 
-    for(i=0;i<nfft2;i++){
-      zfft[2*i+1] = creal(v2[is*nfft2+i]);
-      zfft[2*i+2] = cimag(v2[is*nfft2+i]);
-    }
+    //for(i=0;i<nfft2;i++){
+    //  zfft[2*i+1] = creal(v2[is*nfft2+i]);
+    //  zfft[2*i+2] = cimag(v2[is*nfft2+i]);
+    //}
 
 /*-----------------------------------------------------------------*/
 /* VI) Calculate v|phi>(r)                                         */
@@ -244,14 +284,20 @@ void coefForceCalcHybridSCFReal(CPEWALD *cpewald,int nstate,
     for(i=1; i< ncoef ; i++){
       fcre[i] *= -0.25;
       fcim[i] *= -0.25;
+      //fcre[i] *= -0.25/pre_cond[i];
+      //fcim[i] *= -0.25/pre_cond[i];
     }
     fcre[ncoef] *= -0.5;
+    //fcre[ncoef] *= -0.5/pre_cond[ncoef];
     fcim[ncoef] = 0.0;
     for(i=1; i< ncoef ; i++){
       fcre[i+ncoef] *= -0.25;
       fcim[i+ncoef] *= -0.25;
+      //fcre[i+ncoef] *= -0.25/pre_cond[i];
+      //fcim[i+ncoef] *= -0.25/pre_cond[i];
     }
     fcre[2*ncoef] *= -0.5;
+    //fcre[2*ncoef] *= -0.5/pre_cond[ncoef];
     fcim[2*ncoef] = 0.0;
 
 /*-----------------------------------------------------------------*/
@@ -298,6 +344,7 @@ void coefForceCalcHybridSCFReal(CPEWALD *cpewald,int nstate,
   cfree(&fcim[1]);
   cfree(&fcrek[1]);
   cfree(&fcimk[1]);
+  cfree(&pre_cond[1]);
 
 /*==========================================================================*/
    }/*end routine*/

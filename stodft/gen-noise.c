@@ -416,6 +416,7 @@ void genNoiseOrbitalRealRational(CP *cp,CPCOEFFS_POS *cpcoeffs_pos, double compl
   MPI_Comm comm_states   =    communicate->comm_states;
  
   double ranValue = sqrt(nfft2);
+  double gcut_sq  = 1.0; //TODO change
   double *randNumSeedTot = stodftInfo->randSeedTot;
   double *randNum;
   double *coeffReUp = cpcoeffs_pos->cre_up;
@@ -424,6 +425,14 @@ void genNoiseOrbitalRealRational(CP *cp,CPCOEFFS_POS *cpcoeffs_pos, double compl
   double *coeffImDn = cpcoeffs_pos->cim_dn;
   double *zfft      = cpscr->cpscr_wave.zfft;
   double *zfft_temp = cpscr->cpscr_wave.zfft_tmp;
+  double *ak2_sm    = cp->cpewald.ak2_sm;
+  double *pre_cond;
+
+  pre_cond = (double*)calloc(numCoeff,sizeof(double))-1;
+  for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+    if(ak2_sm[iCoeff]>gcut_sq)pre_cond[iCoeff] = 0.5*ak2_sm[iCoeff];
+    else pre_cond[iCoeff] = 0.5*gcut_sq;
+  }
 
   numRandNum = numStatUpProc*nfft2;
   if(cpLsda==1)numRandNum += numStatDnProc*nfft2;
@@ -531,8 +540,11 @@ void genNoiseOrbitalRealRational(CP *cp,CPCOEFFS_POS *cpcoeffs_pos, double compl
     for(iCoeff=1;iCoeff<numCoeff;iCoeff++){
       coeffReUp[iOff+iCoeff] *= 0.25;
       coeffImUp[iOff+iCoeff] *= 0.25;
+      //coeffReUp[iOff+iCoeff] *= 0.25/pre_cond[iCoeff];
+      //coeffImUp[iOff+iCoeff] *= 0.25/pre_cond[iCoeff];
     }
     coeffReUp[iOff+numCoeff] *= 0.5;
+    //coeffReUp[iOff+numCoeff] *= 0.5/pre_cond[numCoeff];
     coeffImUp[iOff+numCoeff] = 0.0;
     //printf("myid %i iStat %i %.16lg\n",myidState,iStat,coeffReUp[iStat*numCoeff+1]);
     //if rational
@@ -595,6 +607,7 @@ void genNoiseOrbitalRealRational(CP *cp,CPCOEFFS_POS *cpcoeffs_pos, double compl
   }
   */
   free(randNum);
+  free(&pre_cond[1]);
   if(numProcStates>1)Barrier(comm_states);
   //fflush(stdout);
   //exit(0);

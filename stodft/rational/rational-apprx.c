@@ -111,7 +111,7 @@ scale2 = -1.0;
 // ndim = 2*(numCoeff - 1) + 1
 zdim = nz;
 dim = nfft2; // ndim;
-itermax =  90000;
+itermax =  9000;
 threshold = 1.0E-5;
 spinFlag = 0;
 
@@ -139,6 +139,8 @@ for (i = 1; i < numCoeff; i++ ) {
 }
 v2[numCoeff-1] = cre_up[numCoeff] + cim_up[numCoeff] * I;
 */
+printf("zdim %i dim %i ndim %i \n", zdim, dim, ndim);
+
 printf("#####  CG Iteration 0 #####\n");
 
 komega_cocg_init(&ndim, &dim, &nz, x, z, &itermax, &threshold, NULL);
@@ -827,18 +829,23 @@ void filterRational(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int ntgrid;
   double dx;
   int ngrid;
+  double energymax;
 /*****************************************************/
  
 //if(myidState==0){ 
   printf("from RAAAAAAAAAAAAAAAATIONALLLLLLL \n");
   printf("Energy Max= %.16lg.\n", stodftInfo->energyMax);
   printf("Energy Min= %.16lg.\n", stodftInfo->energyMin);
+  //stodftInfo->beta = 6000.0;
   printf("Beta= %.16lg.\n", stodftInfo->beta);
+  //stodftInfo->chemPotTrue = 0.3177870; // 0.22182526; // 0.23124281;//0.243;
   printf("Correct Chemical Potential = %.16lg.\n", stodftInfo->chemPotTrue);
 
 
+  energymax = stodftInfo->energyMax -  stodftInfo->chemPotTrue;
   mA = (M_PI*M_PI)/(stodftInfo->beta*stodftInfo->beta);
-  MA = stodftInfo->energyMax*stodftInfo->energyMax + mA;
+  MA = energymax*energymax + mA;
+  //MA = stodftInfo->energyMax*stodftInfo->energyMax + mA;
   ktmp = sqrt(MA/mA);
   k = (ktmp - 1.0)/(ktmp + 1.0);
   kinv = 1.0/k;
@@ -846,7 +853,7 @@ void filterRational(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   dmu = 0.0005;
   epsilon = 0.001;
 
-  ntgrid=100;
+  ntgrid=100; // 100; // 0;
   ngrid = 10000;
   
   dx = (stodftInfo->energyMax - stodftInfo->energyMin)/ngrid;
@@ -1036,6 +1043,41 @@ for (int j =0; j < ntgrid; j++){
   //z_p[j] =  ksi_p[j] + stodftInfo->chemPotTrue; //TODO check
   //z_m[j] =  ksi_m[j] + stodftInfo->chemPotTrue;
 }
+
+/*
+ zseed[0] = 1.04768+ 1.04542*I;
+ zseed[1] = 2.18331+ 2.15733*I;
+ zseed[2] = 4.61523+ 4.38088*I;
+ zseed[3] = 10.2523+ 8.18529*I;
+ zseed[4] = 23.2806+ 8.13315*I;
+
+ zseed[0+5] = -1.04768- 1.04542*I;
+ zseed[1+5] = -2.18331- 2.15733*I;
+ zseed[2+5] = -4.61523- 4.38088*I;
+ zseed[3+5] = -10.2523- 8.18529*I;
+ zseed[4+5] = -23.2806- 8.13315*I;
+*/
+
+/*
+
+//zseed[0]= 0.0141268+ 0.0404358*I;
+zseed[0] = 0.24768+ 0.14542*I;
+zseed[1]= 0.2502362+ 0.1629215*I;
+//zseed[1] = 2.18331+ 2.15733*I;
+zseed[2]= 0.2142830+ 0.1203960*I;
+zseed[3]= 0.2418940+ 0.2448070*I;
+zseed[4]= 0.5041410+ 0.5052320*I;
+
+
+zseed[0+5] = -0.24768- 0.14542*I;
+//zseed[0+5]= -0.0141268- 0.0404358*I;
+zseed[1+5]= -0.2502362- 0.1629215*I;
+//zseed[1+5] = -2.18331- 2.15733*I;
+zseed[2+5]= -0.2142830- 0.1203960*I;
+zseed[3+5]= -0.2418940- 0.2448070*I;
+zseed[4+5]= -0.5041410- 0.5052320*I;
+*/
+
 //Barrier(comm_states);
 //printf("@@@@@@@@@@@@@@@@@@@@_forced_stop__@@@@@@@@@@@@@@@@@@@@\n");
 //fflush(stdout);

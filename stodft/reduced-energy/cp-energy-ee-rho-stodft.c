@@ -367,7 +367,7 @@ void fftWraperRhsReal(CPEWALD *cpewald,int nstate,
                              int icoef_form,int icoef_orth,int ifcoef_form,
                              int cp_tau_functional,int cp_min_on,
                              PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm,
-			     CP *cp, CLASS *class,GENERAL_DATA *general_data,double *rhs)
+			     CP *cp, CLASS *class,GENERAL_DATA *general_data,double *rhs, int id)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
 {/*Begin Routine*/
@@ -460,7 +460,7 @@ fccimag[ncoef] = 0.0;
 
 
 for (int j =1; j <= ncoef; j++){
- printf("frhs %i  %.8f  %.8f \n", j, fccreal[j], fccimag[j]);
+ printf("frhs %i %i  %.8f  %.8f \n", myid_state, j, fccreal[j], fccimag[j]);
 }
 
 /*==========================================================================*/

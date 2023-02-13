@@ -1498,7 +1498,7 @@ void calcCoefForceScfReal(CLASS *class,GENERAL_DATA *general_data,
 /*==========================================================================*/
 void rhsReal(CLASS *class,GENERAL_DATA *general_data,
                    CP *cp,CPCOEFFS_POS  *cpcoeffs_pos,CLATOMS_POS *clatoms_pos,
-                   double *rhs)
+                   double *rhs, int id)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
    {/*Begin Routine*/
@@ -1632,7 +1632,7 @@ void rhsReal(CLASS *class,GENERAL_DATA *general_data,
 			  zfft,zfft_tmp,v_ks_up,v_ks_tau_up,ak2_sm,&cp_eke,pvten_cp,
 			  cp_ptens_calc,hmati_cp,communicate,icoef_form_up,
 			  icoef_orth_up,ifcoef_form_up,cp_tau_functional,cp_min_on,
-			  cp_sclr_fft_pkg3d_sm,cp,class,general_data,rhs);
+			  cp_sclr_fft_pkg3d_sm,cp,class,general_data,rhs, id);
  /*--------------------------------------------*/
  /* ii) down states (if necessary)             */
 

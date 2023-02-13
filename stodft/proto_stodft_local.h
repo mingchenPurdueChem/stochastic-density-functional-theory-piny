@@ -66,7 +66,7 @@ void genStoOrbitalEnergyWindowFrag(CLASS *,GENERAL_DATA *,
 /* gen-noise.c							   */
 void genNoiseOrbital(CP *,CPCOEFFS_POS *);
 void genNoiseOrbitalReal(CP *,CPCOEFFS_POS *);
-void genNoiseOrbitalRealRational(CP *,CPCOEFFS_POS *, double complex *);
+void genNoiseOrbitalRealRational(CP *,CPCOEFFS_POS *, double complex *, int);
 /*-----------------------------------------------------------------*/
 /* normh.c                                                         */
 void normHNewtonHerm(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,
@@ -175,7 +175,7 @@ void fftWraperRhsReal(CPEWALD *,int, double *,double *,
                              double *,double  *, double *,double *,
                              double *,double *,double *, double *,double *,
                              int,double *, COMMUNICATE *, int ,int ,int , int ,int,
-                             PARA_FFT_PKG3D *, CP *, CLASS *,GENERAL_DATA *,double *);
+                             PARA_FFT_PKG3D *, CP *, CLASS *,GENERAL_DATA *,double *, int);
 /*-----------------------------------------------------------------*/
 /* cp-energy-eext-stodft.c					   */
 void controlEwdLocPreScf(CLATOMS_INFO *,CLATOMS_POS *,CELL *, PTENS *, EWALD *,
@@ -212,7 +212,7 @@ void calcCoefForceScfReal(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS
 void calcCoefForceWrapSCFReal(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *,
                               double complex *,double complex *,int);
 void rhsReal(CLASS *class,GENERAL_DATA *,
-                   CP *,CPCOEFFS_POS *,CLATOMS_POS *, double *);
+                   CP *,CPCOEFFS_POS *,CLATOMS_POS *, double *, int);
 /*-----------------------------------------------------------------*/
 /* energy-wrapper-post-scf.c                                       */
 void calcCoefForceWrap(CLASS *,GENERAL_DATA *,CP *,CPCOEFFS_POS *,CLATOMS_POS *);

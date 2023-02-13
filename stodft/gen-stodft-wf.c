@@ -648,23 +648,11 @@ void genStoOrbitalCheby(CLASS *class,GENERAL_DATA *general_data,
   timeEnd5 = omp_get_wtime();
   diffTime5 = timeEnd5-timeStart5;
 
-if(myidState  == 0){
-FILE *fp;
-int iOff;
-fp = fopen("out-sto-orb-old.dat", "w");
-
-  for(iState=0; iState<numStateUpProc; iState++){
-    iOff = iState*numCoeff;
-    for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
-      fprintf(fp, "%.8f %.8f \n", coeffReUp[iOff + iCoeff], coeffImUp[iOff + iCoeff]);
-    }
-  }
-
-}
 /*======================================================================*/
 /* V) Filter the stochastic orbitals			*/
 
   timeStart6 = omp_get_wtime();
+  printf("filtertype = %i \n", expanType);
   switch(expanType){
     case 1:
       stodftInfo->storeChebyMomentsFlag = 0;
@@ -672,6 +660,9 @@ fp = fopen("out-sto-orb-old.dat", "w");
       break;
     case 2:
       filterNewtonPolyHerm(cp,class,general_data,ip_now);
+      break;
+    case 4:
+      filterRational(cp,class,general_data,ip_now);
       break;
   }
   stodftInfo->filterFlag = 0;
@@ -681,7 +672,7 @@ fp = fopen("out-sto-orb-old.dat", "w");
 
 
   printf("tessssssssssssst RA \n");
-  test(0.999701);
+//  test(0.999701);
   filterRational(cp,class,general_data,ip_now);
   printf("tessssssssssssst RA \n");
 

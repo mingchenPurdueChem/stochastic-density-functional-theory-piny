@@ -4628,6 +4628,7 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   if(strcasecmp(dict[2].keyarg,"chebyshev")==0)stodftInfo->expanType = 1;
   if(strcasecmp(dict[2].keyarg,"newton_hermit")==0)stodftInfo->expanType = 2;
   if(strcasecmp(dict[2].keyarg,"newton_nohermit")==0)stodftInfo->expanType = 3;
+  if(strcasecmp(dict[2].keyarg,"rational")==0)stodftInfo->expanType = 4;
   /*-----------------------------------------------------------------------*/
   /*  3)\filter_type{#} */
   if(strcasecmp(dict[3].keyarg,"fermi_exp")==0)stodftInfo->filterFunType = 1;

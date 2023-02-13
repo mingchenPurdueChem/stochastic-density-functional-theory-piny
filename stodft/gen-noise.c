@@ -382,7 +382,7 @@ void genNoiseOrbitalReal(CP *cp,CPCOEFFS_POS *cpcoeffs_pos)
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void genNoiseOrbitalRealRational(CP *cp,CPCOEFFS_POS *cpcoeffs_pos, double complex *v2)
+void genNoiseOrbitalRealRational(CP *cp,CPCOEFFS_POS *cpcoeffs_pos, double complex *v2, int id)
 /*========================================================================*/
 {/*begin routine*/
 /**************************************************************************/
@@ -428,11 +428,11 @@ void genNoiseOrbitalRealRational(CP *cp,CPCOEFFS_POS *cpcoeffs_pos, double compl
   double *ak2_sm    = cp->cpewald.ak2_sm;
   double *pre_cond;
 
-  pre_cond = (double*)calloc(numCoeff,sizeof(double))-1;
-  for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
-    if(ak2_sm[iCoeff]>gcut_sq)pre_cond[iCoeff] = 0.5*ak2_sm[iCoeff];
-    else pre_cond[iCoeff] = 0.5*gcut_sq;
-  }
+  //pre_cond = (double*)calloc(numCoeff,sizeof(double))-1;
+  //for(iCoeff=1;iCoeff<=numCoeff;iCoeff++){
+ //   if(ak2_sm[iCoeff]>gcut_sq)pre_cond[iCoeff] = 0.5*ak2_sm[iCoeff];
+ //   else pre_cond[iCoeff] = 0.5*gcut_sq;
+ // }
 
   numRandNum = numStatUpProc*nfft2;
   if(cpLsda==1)numRandNum += numStatDnProc*nfft2;
@@ -527,7 +527,10 @@ void genNoiseOrbitalRealRational(CP *cp,CPCOEFFS_POS *cpcoeffs_pos, double compl
   
   
   //for(iStat=0;iStat<numStatUpProc;iStat++){
-  for(iStat=0;iStat<1;iStat++){
+  //for(iStat=0;iStat<1;iStat++){
+
+    //printf("myid str %i %i \n", id, myidState);
+    iStat = id;
     for(iGrid=0;iGrid<nfft2;iGrid++){
       if(randNum[iStat*nfft2+iGrid]<0.0) zfft[iGrid*2+1] = -ranValue;
       else zfft[iGrid*2+1] = ranValue;
@@ -550,9 +553,14 @@ void genNoiseOrbitalRealRational(CP *cp,CPCOEFFS_POS *cpcoeffs_pos, double compl
     //if rational
     sngl_pack_coef_fftw3d_filter(&coeffReUp[iOff],&coeffImUp[iOff],zfft,cp_sclr_fft_pkg3d_sm);
     para_fft_gen3d_fwd_to_r_fftw3d_filter(zfft,cp_sclr_fft_pkg3d_sm);
-    for(iGrid=0;iGrid<nfft2;iGrid++)v2[iStat*nfft2+iGrid] = zfft[2*iGrid+1]+0.0*I;
+    //for(iGrid=0;iGrid<nfft2;iGrid++)v2[iStat*nfft2+iGrid] = zfft[2*iGrid+1]+0.0*I;
+    for(iGrid=0;iGrid<nfft2;iGrid++)v2[iGrid] = zfft[2*iGrid+1]+0.0*I;
     // end if rational
-  }
+  //}
+
+    //printf("myid end %i %i \n", id, myidState);
+
+
   if(cpLsda==1){
     for(iStat=1;iStat<=numStatDnTot;iStat++){
       coeffReDn[iStat] = 0.0;
@@ -606,12 +614,14 @@ void genNoiseOrbitalRealRational(CP *cp,CPCOEFFS_POS *cpcoeffs_pos, double compl
     coeffImUp[iOff+numCoeff] = 0.0;
   }
   */
+  //printf("myid endi %i %i \n", id, myidState);
   free(randNum);
-  free(&pre_cond[1]);
+  //free(&pre_cond[1]);
   if(numProcStates>1)Barrier(comm_states);
   //fflush(stdout);
   //exit(0);
 
+    //printf("myid end %i %i \n", id, myidState);
 /*--------------------------------------------------------------------------*/
 }/*end routine*/
 /*==========================================================================*/

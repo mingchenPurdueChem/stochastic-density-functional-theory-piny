@@ -9,3 +9,5 @@ double Jacobi_am(double, char, double);
 
 void test(double );
 void filterRational(CP *, CLASS *, GENERAL_DATA *, int );
+void calcChemPotRational(CP *,CLASS *,GENERAL_DATA *, int );
+void init_zseed( CP *, double complex *, int, double *, double complex *, double complex *);

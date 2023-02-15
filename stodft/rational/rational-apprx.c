@@ -49,6 +49,146 @@ double complex fun_test(double complex x, double dmu, double beta, double epsilo
 }
 
 /*========================================================================================*/
+void solve_shifted_eqn_cocg_mu( CP *cp, CLASS *class, GENERAL_DATA *general_data, 
+                            double complex *z, double complex *x, double *rhs, int nz, int ndim, int id) { 
+/*========================================================================================*/
+/* =------------------------------------------------------------------------------------= */
+#include "../typ_defs/typ_mask.h"
+
+  STODFTINFO *stodftInfo        = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  CPOPTS *cpopts                = &(cp->cpopts);
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  CPCOEFFS_POS *cpcoeffs_pos    = &(cp->cpcoeffs_pos[1]);
+  CLATOMS_POS*  clatoms_pos     = &(class->clatoms_pos[1]);
+  CLATOMS_INFO *clatoms_info    = &(class->clatoms_info);
+  COMMUNICATE *communicate      = &(cp->communicate);
+
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
+
+  int numStateUpProc = cpcoeffs_info->nstate_up_proc;
+  int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
+  int numCoeff       = cpcoeffs_info->ncoef;
+  int numCoeffUpTotal = numStateUpProc*numCoeff;
+  int numCoeffDnTotal = numStateDnProc*numCoeff;
+
+  int nfft          = cp_para_fft_pkg3d_lg->nfft;
+  int nfft2         = nfft/2;
+
+  double *cre_up = cpcoeffs_pos->cre_up;
+  double *cim_up = cpcoeffs_pos->cim_up;
+  double *cre_dn = cpcoeffs_pos->cre_dn;
+  double *cim_dn = cpcoeffs_pos->cim_dn;
+  double *fcre_up = cpcoeffs_pos->fcre_up;
+  double *fcim_up = cpcoeffs_pos->fcim_up;
+  double *fcre_dn = cpcoeffs_pos->fcre_dn;
+  double *fcim_dn = cpcoeffs_pos->fcim_dn;
+  double *wfUpRe1 = stodftCoefPos->wfUpRe1;
+  double *wfUpIm1 = stodftCoefPos->wfUpIm1;
+  double *wfDnRe1 = stodftCoefPos->wfDnRe1;
+  double *wfDnIm1 = stodftCoefPos->wfDnIm1;
+  int spinFlag;
+
+  int iState,iCoeff, iOff, iCoeffStart,index1,index2;
+
+/* =------------------------------------------------------------------------------------= */
+int  itermax, iter_old;
+double threshold;
+double complex z_seed;
+
+double complex *v12, *v2, *r_l;
+
+int status[3];
+
+int i, j, iter, jiter, dim, zdim;
+
+double scale1, scale2;
+
+scale1 = -0.5;
+scale2 = -1.0;
+
+zdim = nz;
+dim = nfft2; // ndim;
+itermax =  9000;
+threshold = 1.0E-5;
+spinFlag = 0;
+
+
+v12 = (double complex*)malloc((dim)*sizeof(double complex));
+v2 = (double complex*)malloc((dim)*sizeof(double complex));
+r_l = (double complex*)malloc((dim)*sizeof(double complex));
+/* =------------------- */
+
+printf("--- tessssssssssssst solve_shifted_eqn start ---- \n");
+
+genNoiseOrbitalRealRational(cp,cpcoeffs_pos, v2, id); 
+
+
+//double sum;
+//sum = 0.0;
+//
+//for (i=0; i < nfft2; i++){
+//  sum += creal(v2[i])*creal(v2[i]);
+//}
+//printf("--- sum here = %lg \n", sum);
+
+for (i=0; i < nfft2; i++){
+  rhs[i] = creal(v2[i]);
+}
+
+
+printf("#####  CG Iteration 1 #####\n");
+
+printf("zdim %i dim %i ndim %i \n", zdim, dim, ndim);
+
+printf("#####  CG Iteration 0 #####\n");
+
+komega_cocg_init(&ndim, &dim, &nz, x, z, &itermax, &threshold, NULL);
+
+printf("#####  CG Iteration  #####\n");
+
+for (iter = 0; iter < itermax; iter++){
+
+  for (i = 0; i < dim; i++) {
+    r_l[i] = v2[i];
+  }
+
+  calcCoefForceWrapSCFReal(class,general_data,cp,cpcoeffs_pos,clatoms_pos,v2,v12,spinFlag);
+
+
+  komega_cocg_update(v12, v2, x, r_l, status);
+
+  printf(" DEBUG : %i %i %i %i %lg \n", iter, status[0], status[1], status[2], creal(v12[0]));
+
+  if(status[0] < 0) break;
+
+}
+
+switch(status[1]) {
+  case (0) :
+    printf("  Converged in iteration %d \n", abs(status[0]));
+    break;
+  case (1) :
+    printf("  Not Converged in iteration %d \n", abs(status[0]));
+    break;
+  case (2) :
+    printf("  Alpha becomes infinity %d \n", abs(status[0]));
+    break;
+  case (3) :
+    printf("  Pi_seed becomes zero %d \n", abs(status[0]));
+    break;
+  case (4) :
+    printf("  Residual & Shadow residual are orthogonal %d \n", abs(status[0]));
+    break;
+}
+
+komega_cocg_finalize();
+
+
+printf("--- tessssssssssssst solve_shifted_eqn end ---- \n");
+}
+/*==========================================================================*/
+/*========================================================================================*/
 /*========================================================================================*/
 void solve_shifted_eqn_cocg( CP *cp, CLASS *class, GENERAL_DATA *general_data, 
                             double complex *z, double complex *x, int nz, int ndim, int id) { 
@@ -844,15 +984,15 @@ z_re = (double*)malloc((ntgrid)*sizeof(double));
 z_im = (double*)malloc((ntgrid)*sizeof(double));
 
 double complex *ksi_p, *ksi_m;
-double *ksi_p_re, *ksi_p_im;
-double *ksi_m_re, *ksi_m_im;
+//double *ksi_p_re, *ksi_p_im;
+//double *ksi_m_re, *ksi_m_im;
 
 ksi_p = (double complex*)malloc((ntgrid)*sizeof(double complex));
 ksi_m = (double complex*)malloc((ntgrid)*sizeof(double complex));
-ksi_p_re = (double*)malloc((ntgrid)*sizeof(double));
-ksi_p_im = (double*)malloc((ntgrid)*sizeof(double));
-ksi_m_re = (double*)malloc((ntgrid)*sizeof(double));
-ksi_m_im = (double*)malloc((ntgrid)*sizeof(double));
+//ksi_p_re = (double*)malloc((ntgrid)*sizeof(double));
+//ksi_p_im = (double*)malloc((ntgrid)*sizeof(double));
+//ksi_m_re = (double*)malloc((ntgrid)*sizeof(double));
+//ksi_m_im = (double*)malloc((ntgrid)*sizeof(double));
 
 double complex *fun_p, *fun_m;
 fun_p = (double complex*)malloc((ntgrid)*sizeof(double complex));
@@ -891,10 +1031,10 @@ for (int i = 0; i < ntgrid; i++){
 for (int i = 0; i < ntgrid; i++){
   ksi_p[i] = csqrt(z[i] - mA);
   ksi_m[i] = - csqrt(z[i] - mA);
-  ksi_p_re[i] = creal(ksi_p[i]);
-  ksi_p_im[i] = cimag(ksi_p[i]);
-  ksi_m_re[i] = creal(ksi_m[i]);
-  ksi_m_im[i] = cimag(ksi_m[i]);
+  //ksi_p_re[i] = creal(ksi_p[i]);
+  //ksi_p_im[i] = cimag(ksi_p[i]);
+  //ksi_m_re[i] = creal(ksi_m[i]);
+  //ksi_m_im[i] = cimag(ksi_m[i]);
 }
 
 for (int i = 0; i < ntgrid; i++){
@@ -948,11 +1088,30 @@ frhs = (double*)malloc((ndim)*sizeof(double));
 
 double preRat = -2 * K *sqrt(mA*MA) / M_PI / ntgrid * kinv;
 
-printf("preRat %lg\n",preRat);
+printf("before preRat = %lg %lg %lg %lg %lg %lg %i \n", preRat, K, mA, MA, M_PI, kinv, ntgrid);
+//printf("preRat %lg\n",preRat);
+//printf("before preRat %lg %lg %lg \n",preRat, creal(zseed[1]), cimag(zseed[1]));
 
 
 printf("numStateUpProc %i %i %i %i \n", numStateUpProc, myidState, numProcStates, numThreads);
 
+
+/******************************************************************************/
+printf("Start Calculating ChemicalPotential with Rational Approximation\n");
+/******************************************************************************/
+
+calcChemPotRational(cp, class, general_data, ip_now);
+
+Barrier(comm_states);
+
+/******************************************************************************/
+printf("Done Calculating ChemicalPotential with Rational Approximation\n");
+/******************************************************************************/
+
+
+
+/******************************************************************************/
+printf("Start Filtering ChemicalPotential with Rational Approximation\n");
 /******************************************************************************/
 for(iState=0;iState<numStateUpProc;iState++){
 
@@ -977,27 +1136,11 @@ for(iState=0;iState<numStateUpProc;iState++){
 
 }
 /******************************************************************************/
+/******************************************************************************/
+printf("Done Filtering ChemicalPotential with Rational Approximation\n");
+/******************************************************************************/
 
-//for (int j =0; j < ndim; j++){
-//  printf(" %.8f  %.8f \n", creal(frhs[j]), cimag(frhs[j]));
- // printf(" %.8f  %.8f \n", cre_up[j+1], cim_up[j+1]);
-//  printf(" %.8f  %.8f %.8f  %.8f \n",  stoWfUpRe[0][j+1],  stoWfUpIm[0][j+1] ,stoWfUpRe[0][j+1] - creal(frhs[j]), stoWfUpIm[0][j+1] -  cimag(frhs[j]));
-//  printf(" %.8f  %.8f \n",  stoWfUpRe[0][j+1],  stoWfUpIm[0][j+1] );
-//}
-
-
-
-/********************************/
-
-//} //if myidState
-// printf("myid= %i %i %i %i %i \n", myidState, numStateUpProc, numStateDnProc, numCoeff, numProcStates);
-// printf("myid= %i cre %lg \n", myidState, cre_up[0]); 
-// printf("myid= %i fcre %lg \n", myidState, cpcoeffs_pos->fcre_up[0]); 
 Barrier(comm_states);
-
-
-
-
 
 printf("@@@@@@@@@@@@@@@@@@@@_forced_stop__@@@@@@@@@@@@@@@@@@@@\n");
 fflush(stdout);
@@ -1296,4 +1439,557 @@ exit(1);
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void calcChemPotRational(CP *cp,CLASS *class,GENERAL_DATA *general_data,
+                          int ip_now)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* This routine first generate all chebyshev momentum. The Chebyshev	 */
+/* is half of the newton polynoimial length (so make the newton one even */
+/* ). Then calculate all chebyshev moments. Then do optimization	 */
+/* Attention: after calculating all chebyshev moments, check whether the */
+/* initial chem pots DO give you the > and < # of electrons		 */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+#include "../typ_defs/typ_mask.h"
+
+  STODFTINFO *stodftInfo        = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  CPOPTS *cpopts                = &(cp->cpopts);
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  CPCOEFFS_POS *cpcoeffs_pos    = &(cp->cpcoeffs_pos[ip_now]);
+  CLATOMS_POS*  clatoms_pos     = &(class->clatoms_pos[ip_now]);
+  COMMUNICATE *communicate      = &(cp->communicate);
+
+  CHEBYSHEVINFO *chebyshevInfo = stodftInfo->chebyshevInfo;
+
+  int iPoly,iState,iChem;
+  int iScf = stodftInfo->iScf;
+  int polynormLength = stodftInfo->polynormLength;
+  int numChebyMoments = (polynormLength%2==0)?(polynormLength/2+1):((polynormLength+1)/2);
+  int numFFTGridMutpl = 32;
+  int numChebyGridInit = polynormLength*numFFTGridMutpl;
+  int numChebyGrid;
+  int numStateUpProc = cpcoeffs_info->nstate_up_proc;
+  int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
+  int numCoeff       = cpcoeffs_info->ncoef;
+  int cpLsda         = cpopts->cp_lsda;
+  int numCoeffUpTotal = numStateUpProc*numCoeff;
+  int numCoeffDnTotal = numStateDnProc*numCoeff;
+  int numProcStates   = communicate->np_states;
+  int myidState	      = communicate->myid_state;
+  int numStateStoUp = stodftInfo->numStateStoUp;
+  int numStateStoDn = stodftInfo->numStateStoDn;
+  int printChebyMoment = stodftInfo->printChebyMoment;
+  MPI_Comm comm_states   =    communicate->comm_states;
+
+  double chemPotDiff = 1000.0;
+  double numElecTrue = stodftInfo->numElecTrue;
+  double numElecTol = 1.0e-11*numElecTrue;
+  double chemPotMin,chemPotMax;
+  double chemPotInit = stodftInfo->chemPotInit;
+  double gapInit = stodftInfo->gapInit;
+  double chemPotNew,chemPotOld;
+  double numElecMin,numElecMax;
+  double numElecNew,numElecOld;
+  double Smin = chebyshevInfo->Smin;
+  double Smax = chebyshevInfo->Smax;
+  double energyDiff = stodftInfo->energyDiff;
+  
+  double *chebyCoeffs = (double*)cmalloc(polynormLength*sizeof(double));
+  double *chebyMomentsTemp;
+  double *chemPot = stodftCoefPos->chemPot;
+  double *chebyMomentsUp,*chebyMomentsDn;
+
+  fftw_complex *chebyCoeffsFFT,*funValGridFFT;
+
+
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
+  int nfft          = cp_para_fft_pkg3d_lg->nfft;
+  int nfft2         = nfft/2;
+
+
+  int ntgrid;
+  ntgrid=100;
+  double complex *zseed;
+  zseed = (double complex*)malloc((2*ntgrid)*sizeof(double complex));
+  double preRat;
+
+double complex *fun_p, *fun_m;
+fun_p = (double complex*)malloc((ntgrid)*sizeof(double complex));
+fun_m = (double complex*)malloc((ntgrid)*sizeof(double complex));
+
+
+init_zseed(cp, zseed, ntgrid, &preRat, fun_p, fun_m);
+printf("preRat %lg %lg %lg \n", preRat, creal(zseed[1]), cimag(zseed[1]));
+
+
+/******************************************************************************/
+printf("Start ChemicalPotential with Rational Approximation\n");
+/******************************************************************************/
+double complex *x;
+x = (double complex*)malloc((nfft2*2*ntgrid)*sizeof(double complex));
+double complex sum;
+
+double *frhs;
+double *rhs;
+
+double dsum;
+double NElecTot;
+NElecTot = 0.0;
+dsum = 0.0;
+
+frhs = (double*)malloc((nfft2)*sizeof(double));
+rhs = (double*)malloc((nfft2)*sizeof(double));
+
+printf(" rhoRealGridNum %i %i \n", stodftInfo->rhoRealGridNum, stodftInfo->rhoRealGridTot);
+
+for(iState=0;iState<numStateUpProc;iState++){
+
+  printf("myidState %i %i %i %i %i \n", myidState, numStateUpProc, iState, numProcStates, numStateStoUp);
+  solve_shifted_eqn_cocg_mu( cp, class, general_data, zseed, x, rhs, 2*ntgrid, nfft2, iState);
+
+  for (int i = 0; i<nfft2;i++){
+    sum = 0.0 + 0.0 *I ;
+    for (int j =0; j < ntgrid; j++){
+      sum = sum + fun_p[j] * x[j*nfft2 + i] + fun_m[j] * x[(j+ntgrid)*nfft2 + i];
+    }
+    frhs[i] = preRat*cimag(sum);
+    dsum = dsum + 2.0*frhs[i]*rhs[i];
+  }
+
+  //printf("==== final results === \n");
+
+ // for (int j =1; j <= numCoeff; j++){
+ //   printf("actuai %i %i  %.8f  %.8f \n", myidState, j,  stoWfUpRe[0][j + (iState*numCoeff)],  stoWfUpIm[0][j + (iState*numCoeff)] );
+ // }
+
+  //rhsReal(class, general_data, cp, cpcoeffs_pos, clatoms_pos, frhs, iState);
+
+}
+
+printf("b==== final results === %lg  \n", dsum*(1.0/stodftInfo->rhoRealGridTot));
+dsum = (dsum/numStateStoUp)*(1.0/stodftInfo->rhoRealGridTot);
+printf("a==== final results === %lg  \n", dsum);
+
+if(numProcStates>1)Reduce(&dsum,&NElecTot,1,MPI_DOUBLE,MPI_SUM,0,comm_states);
+
+printf("==== final results === %lg %lg \n", dsum, NElecTot);
+
+/******************************************************************************/
+/******************************************************************************/
+printf("Done ChemicalPotential with Rational Approximation\n");
+/******************************************************************************/
+
+
+
+printf("@@@@@@@@@@@@@@@@@@@@_forced_stop__@@@@@@@@@@@@@@@@@@@@\n");
+fflush(stdout);
+exit(1);
+
+ 
+/*==========================================================================*/
+/* I) Allocate memories */
+   
+  chebyshevInfo->scale = (Smax-Smin)/energyDiff;
+
+  stodftInfo->numChebyMoments = numChebyMoments;
+  stodftCoefPos->chebyMomentsUp = (double*)cmalloc((polynormLength+1)*sizeof(double));
+  chebyMomentsUp = stodftCoefPos->chebyMomentsUp;
+  if(cpLsda==1&&numStateDnProc!=0){
+    stodftCoefPos->chebyMomentsDn = (double*)cmalloc((polynormLength+1)*sizeof(double));
+    chebyMomentsDn = stodftCoefPos->chebyMomentsDn;
+  }
+  if(myidState==0){
+    numChebyGrid = roundFFT(numChebyGridInit);
+    stodftInfo->numChebyGrid = numChebyGrid;
+    stodftCoefPos->chebyCoeffsFFT = fftw_malloc(numChebyGrid*sizeof(fftw_complex));
+    stodftCoefPos->funValGridFFT = fftw_malloc(numChebyGrid*sizeof(fftw_complex));
+    chebyCoeffsFFT = stodftCoefPos->chebyCoeffsFFT;
+    funValGridFFT = stodftCoefPos->funValGridFFT;
+    stodftInfo->fftwPlanForward = fftw_plan_dft_1d(numChebyGrid,funValGridFFT,chebyCoeffsFFT,
+                                    FFTW_FORWARD,FFTW_MEASURE);
+  }
+
+  //debug
+  /*
+  stodftInfo->numElecStoWf = (double*)cmalloc((polynormLength+1)*numStateUpProc*sizeof(double));
+  double *numElecStoWf = stodftInfo->numElecStoWf;
+  for(iPoly=0;iPoly<=polynormLength;iPoly++){
+    for(iState=0;iState<numStateUpProc;iState++){
+      numElecStoWf[iPoly*numStateUpProc+iState] = 0.0;
+    }
+  }
+  */
+
+/*==========================================================================*/
+/* II) Calculate Chebyshev Moments */
+
+  if(myidState==0)printf("Start Calculating Chebyshev Moments\n");
+#ifdef FAST_FILTER   
+  calcChebyMomentsFake(cp,class,general_data,ip_now);
+#else
+  calcChebyMoments(cp,class,general_data,ip_now);
+#endif
+  if(numProcStates>1){
+    if(myidState==0){
+      chebyMomentsTemp = (double*)cmalloc((polynormLength+1)*sizeof(double));
+      for(iPoly=0;iPoly<=polynormLength;iPoly++)chebyMomentsTemp[iPoly] = 0.0;
+    }
+    Reduce(chebyMomentsUp,chebyMomentsTemp,polynormLength+1,
+	    MPI_DOUBLE,MPI_SUM,0,comm_states);
+    if(myidState==0){
+      memcpy(chebyMomentsUp,chebyMomentsTemp,(polynormLength+1)*sizeof(double));
+    }
+    if(cpLsda==1&&numStateDnProc!=0){
+      if(myidState==0){
+	for(iPoly=0;iPoly<=polynormLength;iPoly++)chebyMomentsTemp[iPoly] = 0.0;
+      }
+      Reduce(chebyMomentsDn,chebyMomentsTemp,polynormLength+1,
+             MPI_DOUBLE,MPI_SUM,0,comm_states);
+      if(myidState==0){
+	memcpy(chebyMomentsDn,chebyMomentsTemp,(polynormLength+1)*sizeof(double));
+      }//endif
+    }//endif
+  }//endif
+  if(myidState==0)printf("Finish Calculating Chebyshev Moments\n");
+  if(numProcStates>1)Barrier(comm_states);
+
+
+/*==========================================================================*/
+/* II) Solve N(mu)=Ne */
+
+  if(myidState==0){
+    printf("Start Calculating Chemical Potential\n");
+    for(iPoly=0;iPoly<=polynormLength;iPoly++){
+      //printf("chebyMomentsUp %i %lg\n",iPoly,chebyMomentsUp[iPoly]);
+      chebyMomentsUp[iPoly] /= (double)numStateStoUp;
+      //printf("chebyMomentsUp %i %lg\n",iPoly,chebyMomentsUp[iPoly]);
+    }
+    //printf("chebyMomentsUp %lg %lg %lg\n",chebyMomentsUp[0],chebyMomentsUp[1],chebyMomentsUp[2]);
+    if(cpLsda==1&&numStateDnProc!=0){
+      for(iPoly=0;iPoly<=polynormLength;iPoly++){
+	chebyMomentsDn[iPoly] /= (double)numStateStoDn;
+      }      
+    }
+    
+    if(stodftInfo->printChebyMoment==1){
+      FILE *filecheby = fopen("cheby-moment-output","w");
+      for(iPoly=0;iPoly<=polynormLength;iPoly++){
+        fprintf(filecheby,"%.16lg\n",chebyMomentsUp[iPoly]);
+      }
+      fclose(filecheby);
+    }
+    //exit(0);
+    
+    /*
+    FILE *filecheby = fopen("cheby-moment","r");
+    for(iPoly=0;iPoly<=polynormLength;iPoly++){
+      fscanf(filecheby,"%lg",&chebyMomentsUp[iPoly]);
+    }
+    fclose(filecheby);
+    */
+    
+    //debug
+    /*
+    double numChemTest = 1000;
+    double deltChemPot = gapInit/numChemTest;
+    int iChem;
+    for(iChem=0;iChem<numChemTest;iChem++){
+      chemPotNew = chemPotMin+(iChem+0.5)*deltChemPot;
+      numElecNew = calcNumElecCheby(cp,chemPotNew,chebyCoeffs);
+      printf("Scaleeee %.16lg %.16lg\n",chemPotNew,numElecNew);
+    }
+    //exit(0);
+    */
+    
+    printf("2222222 Ne test %.16lg\n",calcNumElecCheby(cp,0.2472244378617802,chebyCoeffs));
+    chemPotMin = chemPotInit-gapInit*0.5;
+    chemPotMax = chemPotInit+gapInit*0.5;
+    numElecMin = calcNumElecCheby(cp,chemPotMin,chebyCoeffs);
+    numElecMax = calcNumElecCheby(cp,chemPotMax,chebyCoeffs);
+    printf("numEmin %.16lg numEmax %.16lg\n",numElecMin,numElecMax);
+    while(numElecMax<numElecTrue){
+      printf("numEmin %lg numEmax %lg\n",numElecMin,numElecMax);
+      chemPotMin = chemPotMax;
+      chemPotMax += gapInit;
+      numElecMin = calcNumElecCheby(cp,chemPotMin,chebyCoeffs);
+      numElecMax = calcNumElecCheby(cp,chemPotMax,chebyCoeffs);
+    }
+    while(numElecMin>numElecTrue){
+      printf("numEmin %lg numEmax %lg\n",numElecMin,numElecMax);
+      chemPotMax = chemPotMin;
+      chemPotMin -= gapInit;
+      numElecMin = calcNumElecCheby(cp,chemPotMin,chebyCoeffs);
+      numElecMax = calcNumElecCheby(cp,chemPotMax,chebyCoeffs);
+    }
+    printf("numEmin %lg numEmax %lg\n",numElecMin,numElecMax);
+    chemPotNew = (numElecTrue-numElecMin)*(chemPotMax-chemPotMin)/(numElecMax-numElecMin)+
+		  chemPotMin;  
+    numElecNew = calcNumElecCheby(cp,chemPotNew,chebyCoeffs); 
+    while(fabs(numElecNew-numElecTrue)>numElecTol){
+      if(numElecNew>numElecTrue){
+	chemPotMax = chemPotNew;
+	numElecMax = numElecNew;
+      }
+      if(numElecNew<numElecTrue){
+	chemPotMin = chemPotNew;
+	numElecMin = numElecNew;
+      }
+      /*
+      chemPotNew = (numElecTrue-numElecMin)*(chemPotMax-chemPotMin)/(numElecMax-numElecMin)+
+		    chemPotMin;
+      */
+      chemPotNew = 0.5*(chemPotMin+chemPotMax);
+      numElecNew = calcNumElecCheby(cp,chemPotNew,chebyCoeffs);
+      //printf("chemPotNew %lg numElecNew %lg\n",chemPotNew,numElecNew);
+    }//endwhile
+    printf("Finish Calculating Chemical Potential\n");
+    printf("The correct chemical potential is %.16lg Ne %.16lg DNe %.16lg\n",chemPotNew,numElecNew,
+            fabs(numElecNew-numElecTrue));
+
+
+    //DEBUG
+    /*
+    chemPotNew = 0.2223443349358951;
+
+    printf("Finish Calculating Chemical Potential\n");
+    printf("The correct chemical potential is %.16lg Ne %.16lg DNe %.16lg\n",chemPotNew,numElecNew,
+	    fabs(numElecNew-numElecTrue));
+    */
+    //chemPotMin = chemPotInit-gapInit*0.5;
+    //chemPotMax = chemPotInit+gapInit*0.5;
+    //test DOS
+    /*
+    double chemPot1 = chemPotNew-0.0734;
+    double chemPot2 = chemPotNew+0.0734;
+    int numChemPotTest = 100;
+    double dmu = (chemPot2-chemPot1)/numChemPotTest;
+    double *numElecMu = (double*)cmalloc(numChemPotTest*sizeof(double));
+    double x,dos;
+    double dmuInv = 0.5/dmu;
+    for(iChem=0;iChem<numChemPotTest;iChem++){
+      x = chemPot1+iChem*dmu;
+      numElecMu[iChem] = calcNumElecCheby(cp,x,chebyCoeffs);
+      printf("%i Nemuuuu %.10lg %.10lg\n",iScf,x,numElecMu[iChem]);
+    }
+    for(iChem=1;iChem<numChemPotTest-1;iChem++){
+      x = chemPot1+iChem*dmu;
+      dos = (numElecMu[iChem+1]-numElecMu[iChem-1])*dmuInv;
+      printf("%i dossssss %.10lg %.10lg\n",iScf,x,dos);
+    }
+    free(&numElecMu[0]);
+    */
+  }
+  if(numProcStates>1){
+    Barrier(comm_states);
+    Bcast(&chemPotNew,1,MPI_DOUBLE,0,comm_states);
+  }
+  
+  chemPot[0] = chemPotNew;
+  stodftInfo->chemPotTrue = chemPotNew; // another backup
+  if(myidState==0){
+    printf("Correct Chemical Potential is %.16lg\n",chemPotNew);
+    fflush(stdout);
+  }
+
+  free(chebyCoeffs);
+  free(stodftCoefPos->chebyMomentsUp);
+  if(cpLsda==1&&numStateDnProc!=0)free(stodftCoefPos->chebyMomentsDn);
+  if(numProcStates>1&&myidState==0)free(chebyMomentsTemp);
+  //exit(0);
+
+  if(myidState==0){
+    fftw_destroy_plan(stodftInfo->fftwPlanForward);
+    fftw_free(chebyCoeffsFFT);
+    fftw_free(funValGridFFT);
+  }
+  
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
+/*========================================================================================*/
+/*========================================================================================*/
+void init_zseed( CP *cp, double complex *zseed, int ntgrid, double *preRat, double complex *fun_p, double complex *fun_m ) {
+
+#include "../typ_defs/typ_mask.h"
+
+
+STODFTINFO *stodftInfo        = cp->stodftInfo;
+
+/*         Local Variable declarations                                   */
+double K, K_prim;
+double mA, MA, ktmp, k, kinv, m;
+double dmu, epsilon;
+//int ntgrid;
+double energymax;
+
+printf("from init_zseed \n");
+printf("Energy Max= %.16lg.\n", stodftInfo->energyMax);
+printf("Energy Min= %.16lg.\n", stodftInfo->energyMin);
+//stodftInfo->beta = 6000.0;
+printf("Beta= %.16lg.\n", stodftInfo->beta);
+stodftInfo->chemPotTrue = 0.26615; // 0.22182526; // 0.23124281;//0.243;
+printf("Correct Chemical Potential = %.16lg.\n", stodftInfo->chemPotTrue);
+
+
+  energymax = stodftInfo->energyMax -  stodftInfo->chemPotTrue;
+  mA = (M_PI*M_PI)/(stodftInfo->beta*stodftInfo->beta);
+  MA = energymax*energymax + mA;
+//MA = stodftInfo->energyMax*stodftInfo->energyMax + mA;
+  ktmp = sqrt(MA/mA);
+  k = (ktmp - 1.0)/(ktmp + 1.0);
+  kinv = 1.0/k;
+  m = k*k;
+  dmu = 0.0005;
+  epsilon = 0.001;
+
+
+//  ntgrid=100; // 100; // 0;
+
+  printf(" mA = %lg , MA = %lg \n", mA, MA);
+  printf(" k = %lg , kinv =  %lg , m =  %lg \n", k, kinv, m);
+
+  if (m > 0.9){
+    K = Complete_Elliptic_Integral_First_Kind('m', m);
+  }
+  else {
+    K = Complete_Elliptic_Integral_First_Kind('m', m);
+  }
+
+  K_prim = Complete_Elliptic_Integral_First_Kind('m', 1 - m);
+
+  printf("m= %lg, K= %lg, K_prim = %lg \n", m, K, K_prim);
+
+  printf("from init_zseed %i \n", ntgrid);
+
+
+/*****************************************************/
+double complex *tgrid;
+
+double *tgrid_re, *tgrid_im;
+double *sn_re, *cn_re, *dn_re;
+double *sn_tmp, *cn_tmp, *dn_tmp;
+double *cn_im, *dn_im;
+
+double complex *sn_im;
+double complex *sn_c, *cn_c, *dn_c;
+
+double complex *z;
+double *z_re, *z_im;
+
+double complex *ksi_p, *ksi_m;
+
+tgrid = (double complex*)malloc((ntgrid)*sizeof(double complex));
+tgrid_re = (double*)malloc((ntgrid)*sizeof(double));
+tgrid_im = (double*)malloc((ntgrid)*sizeof(double));
+sn_re = (double*)malloc((ntgrid)*sizeof(double));
+cn_re = (double*)malloc((ntgrid)*sizeof(double));
+dn_re = (double*)malloc((ntgrid)*sizeof(double));
+sn_tmp = (double*)malloc((ntgrid)*sizeof(double));
+cn_tmp = (double*)malloc((ntgrid)*sizeof(double));
+dn_tmp = (double*)malloc((ntgrid)*sizeof(double));
+cn_im = (double*)malloc((ntgrid)*sizeof(double));
+dn_im = (double*)malloc((ntgrid)*sizeof(double));
+
+sn_im = (double complex*)malloc((ntgrid)*sizeof(double complex));
+sn_c = (double complex*)malloc((ntgrid)*sizeof(double complex));
+cn_c = (double complex*)malloc((ntgrid)*sizeof(double complex));
+dn_c = (double complex*)malloc((ntgrid)*sizeof(double complex));
+
+
+z = (double complex*)malloc((ntgrid)*sizeof(double complex));
+z_re = (double*)malloc((ntgrid)*sizeof(double));
+z_im = (double*)malloc((ntgrid)*sizeof(double));
+
+
+ksi_p = (double complex*)malloc((ntgrid)*sizeof(double complex));
+ksi_m = (double complex*)malloc((ntgrid)*sizeof(double complex));
+
+/*****************************************************/
+
+for (int i = 0; i < ntgrid; i++){
+  tgrid[i] = -K + 2.0*(i + 0.5)*K/ntgrid + K_prim*0.5 * I ; // 0.0 + (double) i; 
+}
+
+for (int i = 0; i < ntgrid; i++){
+  tgrid_re[i] = creal(tgrid[i]);
+  tgrid_im[i] = cimag(tgrid[i]);
+}
+
+for (int i = 0; i < ntgrid; i++){
+  Jacobi_sn_cn_dn(tgrid_re[i], 'm', m, &sn_re[i], &cn_re[i], &dn_re[i] );
+  Jacobi_sn_cn_dn(tgrid_im[i], 'm', 1-m, &sn_tmp[i], &cn_tmp[i], &dn_tmp[i] );
+  sn_im[i] = sn_tmp[i]/cn_tmp[i] * I;
+  cn_im[i] = 1 / cn_tmp[i];
+  dn_im[i] = dn_tmp[i] / cn_tmp[i];
+}
+
+for (int i = 0; i < ntgrid; i++){
+  sn_c[i] = (sn_re[i]*sn_re[i] - sn_im[i]*sn_im[i]) / (sn_re[i]*cn_im[i]*dn_im[i] - sn_im[i]*cn_re[i]*dn_re[i]);
+  cn_c[i] = (sn_re[i]*cn_re[i]*dn_im[i] - sn_im[i]*cn_im[i]*dn_re[i])/(sn_re[i]*cn_im[i]*dn_im[i] - sn_im[i]*cn_re[i]*dn_re[i]);
+  dn_c[i] = (sn_re[i]*cn_im[i]*dn_re[i] - sn_im[i]*cn_re[i]*dn_im[i])/(sn_re[i]*cn_im[i]*dn_im[i] - sn_im[i]*cn_re[i]*dn_re[i]);
+}
+
+for (int i = 0; i < ntgrid; i++){
+  z[i] = sqrt(mA*MA) * (kinv + sn_c[i]) / (kinv - sn_c[i]) ;
+  z_re[i] = creal(z[i]);
+  z_im[i] = cimag(z[i]);
+}
+
+for (int i = 0; i < ntgrid; i++){
+  ksi_p[i] = csqrt(z[i] - mA);
+  ksi_m[i] = - csqrt(z[i] - mA);
+}
+
+
+for (int i = 0; i < ntgrid; i++){
+  fun_p[i] = fun_test(ksi_p[i], dmu, stodftInfo->beta, epsilon)*fun_test(ksi_p[i], dmu, stodftInfo->beta, epsilon);
+  fun_m[i] = fun_test(ksi_m[i], dmu, stodftInfo->beta, epsilon)*fun_test(ksi_m[i], dmu, stodftInfo->beta, epsilon);
+  fun_p[i] = fun_p[i]*cn_c[i]*dn_c[i] / ((kinv - sn_c[i])*(kinv - sn_c[i])) / ksi_p[i];
+  fun_m[i] = fun_m[i]*cn_c[i]*dn_c[i] / ((kinv - sn_c[i])*(kinv - sn_c[i])) / ksi_m[i];
+}
+
+for (int j =0; j < ntgrid; j++){
+  zseed[j] =  ksi_p[j];
+  zseed[j + ntgrid] =  ksi_m[j];
+}
+
+*preRat = -2 * K *sqrt(mA*MA) / M_PI / ntgrid * kinv;
+
+//printf("preRat = %lg %lg %lg %lg %lg %lg %i \n", preRat, K, mA, MA, M_PI, kinv, ntgrid);
+
+free(tgrid);
+free(tgrid_re);
+free(tgrid_im);
+free(sn_re);
+free(cn_re);
+free(dn_re);
+free(sn_tmp);
+free(cn_tmp);
+free(dn_tmp);
+free(cn_im);
+free(dn_im);
+free(sn_im);
+free(sn_c);
+free(cn_c);
+free(dn_c);
+free(z);
+free(z_re);
+free(z_im);
+free(ksi_p);
+free(ksi_m);
+
+
+}
+/*========================================================================================*/
+/*========================================================================================*/
+
 

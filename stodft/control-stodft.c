@@ -289,6 +289,7 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
         scfStodftCheby(class,bonded,general_data,cp,
                        class2,bonded2,general_data2,cp2,ip_now);
 #else
+        stodftInfo->chemPotTrue = 0.6;
         scfStodftCheby(class,bonded,general_data,cp,ip_now);
 #endif
       }

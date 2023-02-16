@@ -556,6 +556,7 @@ void genStoOrbitalCheby(CLASS *class,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* IV) Calculate the True Chemical Potential                            */
 
+  printf("Calculate the True Chemical Potential hereee \n");
   timeStart3 = omp_get_wtime();
   calcChemPotCheby(cp,class,general_data,ip_now);
   timeEnd3 = omp_get_wtime();

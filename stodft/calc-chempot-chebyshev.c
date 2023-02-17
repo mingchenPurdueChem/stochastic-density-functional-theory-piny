@@ -90,7 +90,7 @@ void calcChemPotCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   double *chebyMomentsTemp;
   double *chemPot = stodftCoefPos->chemPot;
   double *chebyMomentsUp,*chebyMomentsDn;
-  double dmu, Dmu, dNdm, fmu;
+  double dmu, Dmu, dNdm, fmu, incr;
 
 
   fftw_complex *chebyCoeffsFFT,*funValGridFFT;
@@ -264,7 +264,8 @@ void calcChemPotCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 */
 //////////////////////////////////////////////////////////////
     dmu = 0.00001;
-    Dmu = 0.002;
+    Dmu = 0.000002;
+    incr = 0.02;
     chemPotNew = stodftInfo->chemPotTrue;
     numElecNew = calcNumElecCheby(cp,chemPotNew,chebyCoeffs); 
     //while(fabs(numElecNew-numElecTrue)>numElecTol){
@@ -272,7 +273,15 @@ void calcChemPotCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
       dNdm = (calcNumElecCheby(cp,chemPotNew+dmu,chebyCoeffs) - calcNumElecCheby(cp,chemPotNew-dmu,chebyCoeffs))/(2.0*dmu);
       fmu = -(calcNumElecCheby(cp,chemPotNew,chebyCoeffs) - numElecTrue)*dNdm;   
       printf("dNdm %.16lg fmu %.16lg mu  %.16lg update to %.16lg \n", dNdm, fmu, chemPotNew, chemPotNew+(fmu*Dmu));
-      chemPotNew = chemPotNew + (fmu*Dmu);
+
+      if (fabs(fmu*Dmu) > incr ){
+        if(fmu*Dmu>0) chemPotNew = chemPotNew + incr;
+        else chemPotNew = chemPotNew - incr;
+      } 
+      else {
+        chemPotNew = chemPotNew + (fmu*Dmu);
+      }
+      //chemPotNew = chemPotNew + (fmu*Dmu);
 
       numElecNew = calcNumElecCheby(cp,chemPotNew,chebyCoeffs); 
   

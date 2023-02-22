@@ -132,9 +132,10 @@ void filterRational(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int nfft          = cp_para_fft_pkg3d_lg->nfft;
   int nfft2         = nfft/2;
 
-  printf("myidState = %i %i %lg %lg %i %lg %lg \n", 
+  printf("myidState = %i %i %lg %lg %i %lg %lg %lg %lg \n", 
    myidState,rationalInfo->ntgrid, rationalInfo->dmu, rationalInfo->threshold,
-   rationalInfo->itermax, rationalInfo->large_dmu,  rationalInfo->small_dmu);
+   rationalInfo->itermax, rationalInfo->large_dmu,
+   rationalInfo->small_dmu, rationalInfo->maxmu, rationalInfo->epsilon);
 
 /*==========================================================================*/
 }/*end Routine*/

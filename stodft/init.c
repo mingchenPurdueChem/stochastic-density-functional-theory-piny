@@ -63,6 +63,7 @@ void commStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
     stodftCoefPos = cp->stodftCoefPos;
     stodftInfo->metallic = (METALLIC*)cmalloc(sizeof(METALLIC));
     stodftInfo->fragInfo = (FRAGINFO*)cmalloc(sizeof(FRAGINFO));
+    stodftInfo->rationalInfo = (RATIONALINFO*)cmalloc(sizeof(RATIONALINFO));
   }
  
   if(numProcStates>1){ 
@@ -116,6 +117,15 @@ void commStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
     Bcast(&(stodftInfo->metallic->numAtomFric),1,MPI_INT,0,world);
     Bcast(&(stodftInfo->metallic->sigma),1,MPI_DOUBLE,0,world);
     Bcast(&(stodftInfo->calcLocalTraceOpt),1,MPI_INT,0,world);
+
+    Bcast(&(stodftInfo->rationalInfo->ntgrid),1,MPI_INT,0,world);
+    Bcast(&(stodftInfo->rationalInfo->small_dmu),1,MPI_DOUBLE,0,world);
+    Bcast(&(stodftInfo->rationalInfo->large_dmu),1,MPI_DOUBLE,0,world);
+    Bcast(&(stodftInfo->rationalInfo->maxmu),1,MPI_DOUBLE,0,world);
+    Bcast(&(stodftInfo->rationalInfo->dmu),1,MPI_DOUBLE,0,world);
+    Bcast(&(stodftInfo->rationalInfo->epsilon),1,MPI_DOUBLE,0,world);
+    Bcast(&(stodftInfo->rationalInfo->itermax),1,MPI_INT,0,world);
+    Bcast(&(stodftInfo->rationalInfo->threshold),1,MPI_DOUBLE,0,world);
   }
 
 }/*end Routine*/

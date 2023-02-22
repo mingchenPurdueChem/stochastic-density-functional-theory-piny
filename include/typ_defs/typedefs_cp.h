@@ -296,6 +296,40 @@ typedef struct cpcoeffs_pos {
 
 } CPCOEFFS_POS;
 
+typedef struct rationalInfo{
+/* These following parameters will be read from the input file                             */
+/*=========================================================================================*/
+  int ntgrid;                       /* Num: Number of zseeds in the Rational Approximation */
+  double dmu;                       /* Num: Stepsize for calculating dN/dmu                */
+  double Dmu;                       /* Num: Stepsize for updating chemical potetial        */
+  double maxmu;                     /* Num: Maximum stepsize for updating chemical pot.    */
+  double dm;                        /* Num: Parameter for modified Fermi function          */
+  double epsilon;                   /* Num: Parameter for modified Fermi function          */
+  int itermax;                      /* Num: Number of maximum iteration for shifted COCG   */ 
+  double threshold;                 /* Num: Threshold for shifted COCG convergence         */ 
+/*=========================================================================================*/
+  double K, K_prim, k, kinv, m;     /* Num: For calculating the Elliptic functions         */
+  double mA, MA, preRat;            /* Num: For calculating the Elliptic functions         */
+/*=========================================================================================*/
+/* These following Lst (arrays) are of length ntgrid                                       */
+  double complex *tgrid, *sn_im, *sn_c, *cn_c, *dn_c;
+  double *tgrid_re, *tgrid_im, *sn_re, *cn_re, *dn_re, *cn_im, *dn_im;
+  double *sn_tmp, *cn_tmp, *dn_tmp;
+  double complex *z, *ksi_p, *ksi_m, *fun_p, *fun_m;
+  double *z_re, *z_im; 
+/*=========================================================================================*/
+  double complex *zseed;            /* Lst: all the +/- zseeds            */
+                                    /* Lth: 2*ntgrid                      */
+  double complex *x;                /* Lst: Solutions from shifted COCG            */
+                                    /* Lth: nfft2*(2*ntgrid)                       */
+  double *frhs, *rhs;               /* Lst: f(Fermi function)|rhs>                 */
+                                    /* Lth: nfft2                                  */
+/*=========================================================================================*/
+  double complex *v12, *v2, *r_l;   /* Lst: arrays for shifted COCG solver         */
+                                    /* Lth: nfft2                                  */
+/*=========================================================================================*/
+}RATIONALINFO;
+
 typedef struct chebyshevInfo{
   double Smin,Smax;                 /* Num: Interpolation Min/Max values(+-1)   */
   double scale;                     /* Num: =(Smax-Smin)/(energyDiff) (1/sigma) */
@@ -873,6 +907,7 @@ typedef struct stodftInfo{
   
   NEWTONINFO *newtonInfo;
   CHEBYSHEVINFO *chebyshevInfo;
+  RATIONALINFO *rationalInfo;
   /* Monitering performance */
   int filterFlag;		    /* Opt:Use simplied energy routine for      */
 				    /*	   massive H|phi> calculations		*/

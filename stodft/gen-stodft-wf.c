@@ -498,7 +498,15 @@ void genStoOrbitalCheby(CLASS *class,GENERAL_DATA *general_data,
   timeEnd1 = omp_get_wtime();
   diffTime1 = timeEnd1-timeStart1;
 
-
+/*======================================================================*/
+/* TEST Rational routines here                                          */
+  printf("start tessssssssssssst RA \n");
+  filterRational(cp,class,general_data,ip_now);
+  printf("end tessssssssssssst RA \n");
+  Barrier(commStates);
+  printf("@@@@@@@@@@@@@@@@@@@@_forced_stop__@@@@@@@@@@@@@@@@@@@@\n");
+  fflush(stdout);
+  exit(1);
 /*======================================================================*/
 /* III) Generate Length of Polynomial Chain		                */
   

@@ -389,6 +389,19 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
           exit(1);
       }
       break;
+    case 4:
+      switch(filterFunType){
+        case 1:
+          stodftInfo->fermiFunctionReal = &fermiExpReal;
+          break;
+        default:
+          printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+          printf("Internal Error! Bad filter type!\n");
+          printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
+          fflush(stdout);
+          exit(1);
+      }  
+      break;
     default:
       printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
       printf("Bad expansion type!\n");

@@ -2288,7 +2288,7 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
  /*             Local variable declarations                                */
   
   unsigned int i;
-  *num_dict = 50;
+  *num_dict = 58;
   *dict = (DICT_WORD *)cmalloc(*num_dict*sizeof(DICT_WORD))-1;
 
   for (i=1;i<=*num_dict;i++) {
@@ -2497,6 +2497,38 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
   strcpy((*dict)[50].error_mes,"Smearing function for metallic system (for FRAGMENT); choose from off,fermi,gauss");
   strcpy((*dict)[50].keyword,"smear_opt_metal_frag");
   strcpy((*dict)[50].keyarg,"off");
+
+  strcpy((*dict)[51].error_mes,"Number of zseeds for Rational approximation");
+  strcpy((*dict)[51].keyword,"rational_ntgrid");
+  strcpy((*dict)[51].keyarg,"100");
+
+  strcpy((*dict)[52].error_mes,"dmu for chemical potential update");
+  strcpy((*dict)[52].keyword,"rational_dmu");
+  strcpy((*dict)[52].keyarg,"0.00001");
+
+  strcpy((*dict)[53].error_mes,"Dmu for chemical potential update");
+  strcpy((*dict)[53].keyword,"rational_Dmu");
+  strcpy((*dict)[53].keyarg,"0.00001");
+
+  strcpy((*dict)[54].error_mes,"maxmu for chemical potential update");
+  strcpy((*dict)[54].keyword,"rational_maxmu");
+  strcpy((*dict)[54].keyarg,"0.02");
+
+  strcpy((*dict)[55].error_mes,"dm parameter for modified Fermi function");
+  strcpy((*dict)[55].keyword,"rational_dm");
+  strcpy((*dict)[55].keyarg,"0.0005");
+
+  strcpy((*dict)[56].error_mes,"epsilon parameter for modified Fermi function");
+  strcpy((*dict)[56].keyword,"rational_epsilon");
+  strcpy((*dict)[56].keyarg,"0.001");
+
+  strcpy((*dict)[57].error_mes,"itermax for shifted COCG solver");
+  strcpy((*dict)[57].keyword,"rational_itermax");
+  strcpy((*dict)[57].keyarg,"9999");
+
+  strcpy((*dict)[58].error_mes,"threshold for shifted COCG solver");
+  strcpy((*dict)[58].keyword,"rational_threshold");
+  strcpy((*dict)[58].keyarg,"1.0E-5");
 
  /*========================================================================*/
  } /* end routine set_sim_dict_harmonic */

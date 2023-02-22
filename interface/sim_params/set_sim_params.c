@@ -4616,6 +4616,8 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   stodftInfo->fragInfo = fragInfo;
   stodftInfo->metallic = metallic;
 
+  RATIONALINFO *rationalInfo = (RATIONALINFO*)cmalloc(sizeof(RATIONALINFO));
+  stodftInfo->rationalInfo = rationalInfo;
   /*-----------------------------------------------------------------------*/
   /*  1)\sto_dft_on{#} */
   if(strcasecmp(dict[1].keyarg,"off")==0)missionType = 0;
@@ -4628,6 +4630,7 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   if(strcasecmp(dict[2].keyarg,"chebyshev")==0)stodftInfo->expanType = 1;
   if(strcasecmp(dict[2].keyarg,"newton_hermit")==0)stodftInfo->expanType = 2;
   if(strcasecmp(dict[2].keyarg,"newton_nohermit")==0)stodftInfo->expanType = 3;
+  if(strcasecmp(dict[2].keyarg,"rational")==0)stodftInfo->expanType = 4;
   /*-----------------------------------------------------------------------*/
   /*  3)\filter_type{#} */
   if(strcasecmp(dict[3].keyarg,"fermi_exp")==0)stodftInfo->filterFunType = 1;
@@ -4863,6 +4866,46 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   if(strcasecmp(dict[50].keyarg,"off")==0)stodftInfo->smearOptFrag = 0;
   if(strcasecmp(dict[50].keyarg,"fermi")==0)stodftInfo->smearOptFrag = 1;
   if(strcasecmp(dict[50].keyarg,"gauss")==0)stodftInfo->smearOptFrag = 2;
+
+  /*-----------------------------------------------------------------------*/
+  /*  51)\rational_ntgrid{#} */
+  sscanf(dict[51].keyarg,"%lg",&rka);
+  rationalInfo->ntgrid = (int)rka;
+
+  /*-----------------------------------------------------------------------*/
+  /*  52)\rational_dmu{#} */
+  sscanf(dict[52].keyarg,"%lg",&rka);
+  rationalInfo->dmu = rka;
+
+  /*-----------------------------------------------------------------------*/
+  /*  53)\rational_Dmu{#} */
+  sscanf(dict[53].keyarg,"%lg",&rka);
+  rationalInfo->Dmu = rka;
+
+  /*-----------------------------------------------------------------------*/
+  /*  54)\rational_maxmu{#} */
+  sscanf(dict[54].keyarg,"%lg",&rka);
+  rationalInfo->maxmu = rka;
+
+  /*-----------------------------------------------------------------------*/
+  /*  55)\rational_dm{#} */
+  sscanf(dict[55].keyarg,"%lg",&rka);
+  rationalInfo->dm = rka;
+
+  /*-----------------------------------------------------------------------*/
+  /*  56)\rational_epsilon{#} */
+  sscanf(dict[56].keyarg,"%lg",&rka);
+  rationalInfo->epsilon = rka;
+
+  /*-----------------------------------------------------------------------*/
+  /*  57)\rational_itermax{#} */
+  sscanf(dict[57].keyarg,"%lg",&rka);
+  rationalInfo->itermax = (int)rka;
+
+  /*-----------------------------------------------------------------------*/
+  /*  58)\rational_threshold{#} */
+  sscanf(dict[58].keyarg,"%lg",&rka);
+  rationalInfo->threshold = rka;
 
 /*=======================================================================*/
 /* Check the conflicate options						 */

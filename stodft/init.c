@@ -166,9 +166,11 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   NEWTONINFO    *newtonInfo;
   CHEBYSHEVINFO *chebyshevInfo;
   FRAGINFO	*fragInfo;
+  RATIONALINFO  *rationalInfo     = stodftInfo->rationalInfo;
   //PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
   PARA_FFT_PKG3D *cp_para_fft_pkg3d; // use lg or sparse
-  
+
+  int ntgrid         = rationalInfo->ntgrid;  
   int iperd          = cell->iperd;
   int cpLsda         = cpopts->cp_lsda;
   int cpGga          = cpopts->cp_gga;
@@ -226,6 +228,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   int numFragTot;
   int numFragProc;
   int iFrag;
+  int nfft2;
 
   MPI_Comm comm_states   =    communicate->comm_states;
 
@@ -453,6 +456,51 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
 /*==========================================================================*/
 /* II) Malloc by expension type						    */
 
+  if(expanType==4){
+   if(myidState==0)printf("Starting Allocating Arrays for the Rational Approximation \n");
+   nfft2 = numFFT2;
+   rationalInfo->tgrid = (double complex*)malloc((ntgrid)*sizeof(double complex));
+   rationalInfo->tgrid_re = (double*)malloc((ntgrid)*sizeof(double));
+   rationalInfo->tgrid_im = (double*)malloc((ntgrid)*sizeof(double));
+
+   rationalInfo->sn_re = (double*)malloc((ntgrid)*sizeof(double));
+   rationalInfo->cn_re = (double*)malloc((ntgrid)*sizeof(double));
+   rationalInfo->dn_re = (double*)malloc((ntgrid)*sizeof(double));
+
+   rationalInfo->sn_tmp = (double*)malloc((ntgrid)*sizeof(double));
+   rationalInfo->cn_tmp = (double*)malloc((ntgrid)*sizeof(double));
+   rationalInfo->dn_tmp = (double*)malloc((ntgrid)*sizeof(double));
+
+   rationalInfo->cn_im = (double*)malloc((ntgrid)*sizeof(double));
+   rationalInfo->dn_im = (double*)malloc((ntgrid)*sizeof(double));
+   rationalInfo->sn_im = (double complex*)malloc((ntgrid)*sizeof(double complex));
+
+   rationalInfo->sn_c = (double complex*)malloc((ntgrid)*sizeof(double complex));
+   rationalInfo->cn_c = (double complex*)malloc((ntgrid)*sizeof(double complex));
+   rationalInfo->dn_c = (double complex*)malloc((ntgrid)*sizeof(double complex)); 
+
+   rationalInfo->z = (double complex*)malloc((ntgrid)*sizeof(double complex));
+   rationalInfo->z_re = (double*)malloc((ntgrid)*sizeof(double));
+   rationalInfo->z_im = (double*)malloc((ntgrid)*sizeof(double));
+   rationalInfo->ksi_p = (double complex*)malloc((ntgrid)*sizeof(double complex));
+   rationalInfo->ksi_m = (double complex*)malloc((ntgrid)*sizeof(double complex));
+   rationalInfo->fun_p = (double complex*)malloc((ntgrid)*sizeof(double complex));
+   rationalInfo->fun_m = (double complex*)malloc((ntgrid)*sizeof(double complex));
+
+   rationalInfo->zseed = (double complex*)malloc((2*ntgrid)*sizeof(double complex));
+
+   rationalInfo->x = (double complex*)malloc((nfft2*2*ntgrid)*sizeof(double complex));
+
+   rationalInfo->frhs = (double*)malloc((nfft2)*sizeof(double));
+   rationalInfo->rhs = (double*)malloc((nfft2)*sizeof(double));
+
+   rationalInfo->v12 = (double complex*)malloc((nfft2)*sizeof(double complex));
+   rationalInfo->v2 = (double complex*)malloc((nfft2)*sizeof(double complex));
+   rationalInfo->r_l = (double complex*)malloc((nfft2)*sizeof(double complex));
+
+   if(myidState==0)printf("Memory size (in MBytes) = %i \n", (((36*ntgrid) + (8*nfft2) + (nfft2*4*ntgrid))*sizeof(double)/(1024*1024)));
+   if(myidState==0)printf("Finished Allocating Arrays for the Rational Approximation \n");
+  }
 
   stodftInfo->newtonInfo = (NEWTONINFO *)cmalloc(sizeof(NEWTONINFO));
   stodftInfo->chebyshevInfo = (CHEBYSHEVINFO *)cmalloc(sizeof(CHEBYSHEVINFO));

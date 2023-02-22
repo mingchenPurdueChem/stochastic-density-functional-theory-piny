@@ -4873,14 +4873,14 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   rationalInfo->ntgrid = (int)rka;
 
   /*-----------------------------------------------------------------------*/
-  /*  52)\rational_dmu{#} */
+  /*  52)\rational_small_dmu{#} */
   sscanf(dict[52].keyarg,"%lg",&rka);
-  rationalInfo->dmu = rka;
+  rationalInfo->small_dmu = rka;
 
   /*-----------------------------------------------------------------------*/
-  /*  53)\rational_Dmu{#} */
+  /*  53)\rational_large_dmu{#} */
   sscanf(dict[53].keyarg,"%lg",&rka);
-  rationalInfo->Dmu = rka;
+  rationalInfo->large_dmu = rka;
 
   /*-----------------------------------------------------------------------*/
   /*  54)\rational_maxmu{#} */
@@ -4888,9 +4888,9 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   rationalInfo->maxmu = rka;
 
   /*-----------------------------------------------------------------------*/
-  /*  55)\rational_dm{#} */
+  /*  55)\rational_dmu{#} */
   sscanf(dict[55].keyarg,"%lg",&rka);
-  rationalInfo->dm = rka;
+  rationalInfo->dmu = rka;
 
   /*-----------------------------------------------------------------------*/
   /*  56)\rational_epsilon{#} */

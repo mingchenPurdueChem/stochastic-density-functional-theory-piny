@@ -300,10 +300,10 @@ typedef struct rationalInfo{
 /* These following parameters will be read from the input file                             */
 /*=========================================================================================*/
   int ntgrid;                       /* Num: Number of zseeds in the Rational Approximation */
-  double dmu;                       /* Num: Stepsize for calculating dN/dmu                */
-  double Dmu;                       /* Num: Stepsize for updating chemical potetial        */
+  double small_dmu;                 /* Num: Stepsize for calculating dN/dmu                */
+  double large_dmu;                 /* Num: Stepsize for updating chemical potetial        */
   double maxmu;                     /* Num: Maximum stepsize for updating chemical pot.    */
-  double dm;                        /* Num: Parameter for modified Fermi function          */
+  double dmu;                       /* Num: Parameter for modified Fermi function          */
   double epsilon;                   /* Num: Parameter for modified Fermi function          */
   int itermax;                      /* Num: Number of maximum iteration for shifted COCG   */ 
   double threshold;                 /* Num: Threshold for shifted COCG convergence         */ 

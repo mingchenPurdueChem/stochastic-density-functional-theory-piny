@@ -2502,20 +2502,20 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
   strcpy((*dict)[51].keyword,"rational_ntgrid");
   strcpy((*dict)[51].keyarg,"100");
 
-  strcpy((*dict)[52].error_mes,"dmu for chemical potential update");
-  strcpy((*dict)[52].keyword,"rational_dmu");
+  strcpy((*dict)[52].error_mes,"small_dmu for chemical potential update");
+  strcpy((*dict)[52].keyword,"rational_small_dmu");
   strcpy((*dict)[52].keyarg,"0.00001");
 
-  strcpy((*dict)[53].error_mes,"Dmu for chemical potential update");
-  strcpy((*dict)[53].keyword,"rational_Dmu");
+  strcpy((*dict)[53].error_mes,"large_dmu for chemical potential update");
+  strcpy((*dict)[53].keyword,"rational_large_dmu");
   strcpy((*dict)[53].keyarg,"0.00001");
 
   strcpy((*dict)[54].error_mes,"maxmu for chemical potential update");
   strcpy((*dict)[54].keyword,"rational_maxmu");
   strcpy((*dict)[54].keyarg,"0.02");
 
-  strcpy((*dict)[55].error_mes,"dm parameter for modified Fermi function");
-  strcpy((*dict)[55].keyword,"rational_dm");
+  strcpy((*dict)[55].error_mes,"dmu parameter for modified Fermi function");
+  strcpy((*dict)[55].keyword,"rational_dmu");
   strcpy((*dict)[55].keyarg,"0.0005");
 
   strcpy((*dict)[56].error_mes,"epsilon parameter for modified Fermi function");

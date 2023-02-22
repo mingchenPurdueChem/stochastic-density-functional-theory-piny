@@ -2288,7 +2288,7 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
  /*             Local variable declarations                                */
   
   unsigned int i;
-  *num_dict = 58;
+  *num_dict = 59;
   *dict = (DICT_WORD *)cmalloc(*num_dict*sizeof(DICT_WORD))-1;
 
   for (i=1;i<=*num_dict;i++) {
@@ -2381,7 +2381,7 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
   strcpy((*dict)[20].keyword,"log_rho_file_name");
   strcpy((*dict)[20].keyarg,"density.log");
 
-  strcpy((*dict)[21].error_mes,"Valid chem pot option:interp/cheby");
+  strcpy((*dict)[21].error_mes,"Valid chem pot option:interp/cheby/rational");
   strcpy((*dict)[21].keyword,"chem_pot_opt");
   strcpy((*dict)[21].keyarg,"interp");
 
@@ -2529,6 +2529,10 @@ void set_sim_dict_stodft(int *num_dict,DICT_WORD *dict[])
   strcpy((*dict)[58].error_mes,"threshold for shifted COCG solver");
   strcpy((*dict)[58].keyword,"rational_threshold");
   strcpy((*dict)[58].keyarg,"1.0E-5");
+
+  strcpy((*dict)[59].error_mes,"Initial Guess for chemical potential update");
+  strcpy((*dict)[59].keyword,"rational_init_mu");
+  strcpy((*dict)[59].keyarg,"0.2");
 
  /*========================================================================*/
  } /* end routine set_sim_dict_harmonic */

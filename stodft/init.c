@@ -121,6 +121,7 @@ void commStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
     Bcast(&(stodftInfo->rationalInfo->ntgrid),1,MPI_INT,0,world);
     Bcast(&(stodftInfo->rationalInfo->small_dmu),1,MPI_DOUBLE,0,world);
     Bcast(&(stodftInfo->rationalInfo->large_dmu),1,MPI_DOUBLE,0,world);
+    Bcast(&(stodftInfo->rationalInfo->init_mu),1,MPI_DOUBLE,0,world);
     Bcast(&(stodftInfo->rationalInfo->maxmu),1,MPI_DOUBLE,0,world);
     Bcast(&(stodftInfo->rationalInfo->dmu),1,MPI_DOUBLE,0,world);
     Bcast(&(stodftInfo->rationalInfo->epsilon),1,MPI_DOUBLE,0,world);

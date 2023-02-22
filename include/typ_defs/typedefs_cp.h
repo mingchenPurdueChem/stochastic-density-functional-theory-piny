@@ -302,6 +302,7 @@ typedef struct rationalInfo{
   int ntgrid;                       /* Num: Number of zseeds in the Rational Approximation */
   double small_dmu;                 /* Num: Stepsize for calculating dN/dmu                */
   double large_dmu;                 /* Num: Stepsize for updating chemical potetial        */
+  double init_mu;                   /* Num: Initial Guess for updating chemical pot.       */
   double maxmu;                     /* Num: Maximum stepsize for updating chemical pot.    */
   double dmu;                       /* Num: Parameter for modified Fermi function          */
   double epsilon;                   /* Num: Parameter for modified Fermi function          */

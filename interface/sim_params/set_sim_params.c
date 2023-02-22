@@ -4729,6 +4729,7 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   /*  21)\chem_pot_opt{#} */
   if(strcasecmp(dict[21].keyarg,"interp")==0)stodftInfo->chemPotOpt = 1;
   if(strcasecmp(dict[21].keyarg,"cheby")==0)stodftInfo->chemPotOpt = 2;
+  if(strcasecmp(dict[21].keyarg,"rational")==0)stodftInfo->chemPotOpt = 3;
 
   /*-----------------------------------------------------------------------*/
   /*  22)\filter_diag{#} */
@@ -4906,6 +4907,11 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   /*  58)\rational_threshold{#} */
   sscanf(dict[58].keyarg,"%lg",&rka);
   rationalInfo->threshold = rka;
+
+  /*-----------------------------------------------------------------------*/
+  /*  59)\rational_init_mu{#} */
+  sscanf(dict[59].keyarg,"%lg",&rka);
+  rationalInfo->init_mu = rka;
 
 /*=======================================================================*/
 /* Check the conflicate options						 */

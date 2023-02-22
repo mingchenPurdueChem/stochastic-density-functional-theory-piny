@@ -283,6 +283,9 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 #endif
       }
     }
+    else if(stodftInfo->chemPotOpt==3){ //Rational Approximation
+      scfStodftCheby(class,bonded,general_data,cp,ip_now);
+    }
     else if(stodftInfo->chemPotOpt==2){
       if(stodftInfo->energyWindowOn==0){
 #ifdef FAST_FILTER   

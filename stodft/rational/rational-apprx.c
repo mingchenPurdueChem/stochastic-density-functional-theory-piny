@@ -132,11 +132,104 @@ void filterRational(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int nfft          = cp_para_fft_pkg3d_lg->nfft;
   int nfft2         = nfft/2;
 
+  printf("start tessssssssssssst RA \n");
+
   printf("myidState = %i %i %lg %lg %i %lg %lg %lg %lg %i %lg \n", 
    myidState,rationalInfo->ntgrid, rationalInfo->dmu, rationalInfo->threshold,
    rationalInfo->itermax, rationalInfo->large_dmu,
    rationalInfo->small_dmu, rationalInfo->maxmu, rationalInfo->epsilon, expanType,
    rationalInfo->init_mu);
+
+  printf("end tessssssssssssst RA \n");
+  Barrier(comm_states);
+  printf("@@@@@@@@@@@@@@@@@@@@_forced_stop__@@@@@@@@@@@@@@@@@@@@\n");
+  fflush(stdout);
+  exit(1);
+
+/*==========================================================================*/
+}/*end Routine*/
+/*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void calcChemPotRational(CP *cp,CLASS *class,GENERAL_DATA *general_data,
+                          int ip_now)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* This routine first generate all chebyshev momentum. The Chebyshev	 */
+/* is half of the newton polynoimial length (so make the newton one even */
+/* ). Then calculate all chebyshev moments. Then do optimization	 */
+/* Attention: after calculating all chebyshev moments, check whether the */
+/* initial chem pots DO give you the > and < # of electrons		 */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+#include "../typ_defs/typ_mask.h"
+
+  STODFTINFO *stodftInfo        = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  CPOPTS *cpopts                = &(cp->cpopts);
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  CPCOEFFS_POS *cpcoeffs_pos    = &(cp->cpcoeffs_pos[ip_now]);
+  CLATOMS_POS*  clatoms_pos     = &(class->clatoms_pos[ip_now]);
+  COMMUNICATE *communicate      = &(cp->communicate);
+
+  CHEBYSHEVINFO *chebyshevInfo = stodftInfo->chebyshevInfo;
+
+  int iPoly,iState,iChem;
+  int iScf = stodftInfo->iScf;
+  int polynormLength = stodftInfo->polynormLength;
+  int numChebyMoments = (polynormLength%2==0)?(polynormLength/2+1):((polynormLength+1)/2);
+  int numFFTGridMutpl = 32;
+  int numChebyGridInit = polynormLength*numFFTGridMutpl;
+  int numChebyGrid;
+  int numStateUpProc = cpcoeffs_info->nstate_up_proc;
+  int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
+  int numCoeff       = cpcoeffs_info->ncoef;
+  int cpLsda         = cpopts->cp_lsda;
+  int numCoeffUpTotal = numStateUpProc*numCoeff;
+  int numCoeffDnTotal = numStateDnProc*numCoeff;
+  int numProcStates   = communicate->np_states;
+  int myidState	      = communicate->myid_state;
+  int numStateStoUp = stodftInfo->numStateStoUp;
+  int numStateStoDn = stodftInfo->numStateStoDn;
+  int printChebyMoment = stodftInfo->printChebyMoment;
+  MPI_Comm comm_states   =    communicate->comm_states;
+
+  double chemPotDiff = 1000.0;
+  double numElecTrue = stodftInfo->numElecTrue;
+  double numElecTol = 1.0e-11*numElecTrue;
+  double chemPotMin,chemPotMax;
+  double chemPotInit = stodftInfo->chemPotInit;
+  double gapInit = stodftInfo->gapInit;
+  double chemPotNew,chemPotOld;
+  double numElecMin,numElecMax;
+  double numElecNew,numElecOld;
+  double Smin = chebyshevInfo->Smin;
+  double Smax = chebyshevInfo->Smax;
+  double energyDiff = stodftInfo->energyDiff;
+  
+  double *chebyCoeffs = (double*)cmalloc(polynormLength*sizeof(double));
+  double *chebyMomentsTemp;
+  double *chemPot = stodftCoefPos->chemPot;
+  double *chebyMomentsUp,*chebyMomentsDn;
+
+  fftw_complex *chebyCoeffsFFT,*funValGridFFT;
+
+
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
+  int nfft          = cp_para_fft_pkg3d_lg->nfft;
+  int nfft2         = nfft/2;
+
+
+
+/******************************************************************************/
+printf("Start ChemicalPotential with Rational Approximation\n");
+/******************************************************************************/
+
 
 /*==========================================================================*/
 }/*end Routine*/

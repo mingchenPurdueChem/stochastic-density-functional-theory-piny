@@ -8,3 +8,4 @@ void Jacobi_sd_cd_nd(double, char, double, double* , double* , double* );
 double Jacobi_am(double, char, double);
 
 void filterRational(CP *, CLASS *, GENERAL_DATA *, int );
+void calcChemPotRational(CP *,CLASS *,GENERAL_DATA *, int );

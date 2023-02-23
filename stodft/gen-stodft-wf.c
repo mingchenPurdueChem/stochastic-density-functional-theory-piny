@@ -28,6 +28,7 @@
 #include "../proto_defs/proto_math.h"
 #include "../proto_defs/proto_stodft_local.h"
 #include "../proto_defs/proto_frag_local.h"
+#include "../proto_defs/proto_rational_elliptic.h"
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
@@ -499,15 +500,6 @@ void genStoOrbitalCheby(CLASS *class,GENERAL_DATA *general_data,
   diffTime1 = timeEnd1-timeStart1;
 
 /*======================================================================*/
-/* TEST Rational routines here                                          */
-  printf("start tessssssssssssst RA \n");
-  filterRational(cp,class,general_data,ip_now);
-  printf("end tessssssssssssst RA \n");
-  Barrier(commStates);
-  printf("@@@@@@@@@@@@@@@@@@@@_forced_stop__@@@@@@@@@@@@@@@@@@@@\n");
-  fflush(stdout);
-  exit(1);
-/*======================================================================*/
 /* III) Generate Length of Polynomial Chain		                */
   
   timeStart2 = omp_get_wtime();
@@ -558,6 +550,11 @@ void genStoOrbitalCheby(CLASS *class,GENERAL_DATA *general_data,
     stodftCoefPos->chemPot = (double*)cmalloc(sizeof(double));    
     //finish cheating my code
   }
+  if(expanType==4){
+    if(myidState==0){
+      printf("No Need to Generate Length of Polynomial Chain in Rational Appr. \n"); 
+    }
+  }
   timeEnd2 = omp_get_wtime();
   diffTime2 = timeEnd2-timeStart2;
 
@@ -565,7 +562,12 @@ void genStoOrbitalCheby(CLASS *class,GENERAL_DATA *general_data,
 /* IV) Calculate the True Chemical Potential                            */
 
   timeStart3 = omp_get_wtime();
-  calcChemPotCheby(cp,class,general_data,ip_now);
+  if(stodftInfo->chemPotOpt==3){ //Rational Approximation
+    calcChemPotRational(cp,class,general_data,ip_now);
+  }
+  else{
+    calcChemPotCheby(cp,class,general_data,ip_now);
+  }
   timeEnd3 = omp_get_wtime();
   diffTime3 = timeEnd3-timeStart3;
 
@@ -574,6 +576,13 @@ void genStoOrbitalCheby(CLASS *class,GENERAL_DATA *general_data,
 /*    Chemical Potential.						*/
   
   timeStart4 = omp_get_wtime();
+
+  if(expanType==4){
+    if(myidState==0){
+      printf("No Need to Generate Generate Coeffcients for Polynormial interpolation in Rational Appr. \n"); 
+    }
+  }
+
   if(expanType==1){
     Smin = chebyshevInfo->Smin;
     Smax = chebyshevInfo->Smax;
@@ -663,6 +672,9 @@ void genStoOrbitalCheby(CLASS *class,GENERAL_DATA *general_data,
       break;
     case 2:
       filterNewtonPolyHerm(cp,class,general_data,ip_now);
+      break;
+    case 4:
+      filterRational(cp,class,general_data,ip_now); //TEST Rational routines here 
       break;
   }
   stodftInfo->filterFlag = 0;

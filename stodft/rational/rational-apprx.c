@@ -253,7 +253,7 @@ void filterRational(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   double complex *fun_p = rationalInfo->fun_p;
   double complex *fun_m = rationalInfo->fun_m;
   double complex *x = rationalInfo->x;
-  double preRat = rationalInfo->preRat;
+  //double preRat = rationalInfo->preRat;
   double *frhs = rationalInfo->frhs;
 
   printf("start tessssssssssssst RA \n");
@@ -280,7 +280,7 @@ for(iState=0;iState<numStateUpProc;iState++){
     for (int j =0; j < ntgrid; j++){
       sum = sum + fun_p[j] * x[j*nfft2 + i] + fun_m[j] * x[(j+ntgrid)*nfft2 + i];
     }
-    frhs[i] = preRat*cimag(sum);
+    frhs[i] = rationalInfo->preRat*cimag(sum);
   }
 
   rhsReal(class, general_data, cp, cpcoeffs_pos, clatoms_pos, frhs, iState);
@@ -379,7 +379,7 @@ void calcChemPotRational(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   double complex *fun_p = rationalInfo->fun_p;
   double complex *fun_m = rationalInfo->fun_m;
   double complex *x = rationalInfo->x;
-  double preRat = rationalInfo->preRat;
+  //double preRat = rationalInfo->preRat;
   double *frhs = rationalInfo->frhs;
   double *rhs = rationalInfo->rhs;
   double maxmu = rationalInfo->maxmu;
@@ -401,6 +401,17 @@ chemPotNew = stodftInfo->chemPotTrue;
 /******************************************************************************/
 init_zseed(cp, 1);
 
+printf("myidStates %i %lg  \n", myidState, rationalInfo->preRat);
+//for (int j =0; j < ntgrid; j++){
+// printf("myidState %i %lg %lg \n", myidState,creal(rationalInfo->fun_m[j]), cimag(rationalInfo->fun_m[j]));
+//}
+/*
+Barrier(comm_states);
+printf("@@@@@@@@@@@@@@@@@@@@_forced_stop__@@@@@@@@@@@@@@@@@@@@\n");
+fflush(stdout);
+exit(1);
+*/
+dsum = 0.0;
 for(iState=0;iState<numStateUpProc;iState++){
 
   //printf("myidState %i %i %i %i %i \n", myidState, numStateUpProc, iState, numProcStates, numStateStoUp);
@@ -411,7 +422,7 @@ for(iState=0;iState<numStateUpProc;iState++){
     for (int j =0; j < ntgrid; j++){
       sum = sum + fun_p[j] * x[j*nfft2 + i] + fun_m[j] * x[(j+ntgrid)*nfft2 + i];
     }
-    frhs[i] = preRat*cimag(sum);
+    frhs[i] = rationalInfo->preRat*cimag(sum);
     dsum = dsum + 2.0*frhs[i]*rhs[i];
   }
 
@@ -425,6 +436,7 @@ printf("==== final results: NElecTot === %lg %lg \n", dsum, NElecTot);
 stodftInfo->chemPotTrue = chemPotNew - small_dmu;
 init_zseed(cp, 1);
 
+dsum = 0.0;
 for(iState=0;iState<numStateUpProc;iState++){
 
   //printf("myidState %i %i %i %i %i \n", myidState, numStateUpProc, iState, numProcStates, numStateStoUp);
@@ -435,7 +447,7 @@ for(iState=0;iState<numStateUpProc;iState++){
     for (int j =0; j < ntgrid; j++){
       sum = sum + fun_p[j] * x[j*nfft2 + i] + fun_m[j] * x[(j+ntgrid)*nfft2 + i];
     }
-    frhs[i] = preRat*cimag(sum);
+    frhs[i] = rationalInfo->preRat*cimag(sum);
     dsum = dsum + 2.0*frhs[i]*rhs[i];
   }
 
@@ -449,6 +461,7 @@ printf("==== final results: numElecMin === %lg %lg \n", dsum, numElecMin);
 stodftInfo->chemPotTrue = chemPotNew + small_dmu;
 init_zseed(cp, 1);
 
+dsum = 0.0;
 for(iState=0;iState<numStateUpProc;iState++){
 
   //printf("myidState %i %i %i %i %i \n", myidState, numStateUpProc, iState, numProcStates, numStateStoUp);
@@ -459,7 +472,7 @@ for(iState=0;iState<numStateUpProc;iState++){
     for (int j =0; j < ntgrid; j++){
       sum = sum + fun_p[j] * x[j*nfft2 + i] + fun_m[j] * x[(j+ntgrid)*nfft2 + i];
     }
-    frhs[i] = preRat*cimag(sum);
+    frhs[i] = rationalInfo->preRat*cimag(sum);
     dsum = dsum + 2.0*frhs[i]*rhs[i];
   }
 
@@ -546,7 +559,7 @@ double *z_re  = rationalInfo->z_re;
 double *z_im  = rationalInfo->z_im;
 
 double complex *zseed = rationalInfo->zseed;
-double preRat = rationalInfo->preRat; 
+//double preRat = rationalInfo->preRat; 
 
 printf("Energy Max= %.16lg.\n", stodftInfo->energyMax);
 printf("Energy Min= %.16lg.\n", stodftInfo->energyMin);
@@ -635,8 +648,8 @@ for (int j =0; j < ntgrid; j++){
   zseed[j + ntgrid] =  ksi_m[j];
 }
 
-preRat = -2 * K *sqrt(mA*MA) / M_PI / ntgrid * kinv;
-
+rationalInfo->preRat = -2 * K *sqrt(mA*MA) / M_PI / ntgrid * kinv;
+printf("myidStatesin %lg  \n", rationalInfo->preRat);
 }
 /*========================================================================================*/
 /*========================================================================================*/

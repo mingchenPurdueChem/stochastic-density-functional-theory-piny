@@ -274,6 +274,10 @@ void calcTotEnergy(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 	energyKeTrue = energyKe[0];
 	energyPNLTrue = energyPNL[0];
       }
+      if(chemPotOpt==3){
+	energyKeTrue = energyKe[0];
+	energyPNLTrue = energyPNL[0];
+      }
     }
     else{
       energyKeTrue = 0.0;

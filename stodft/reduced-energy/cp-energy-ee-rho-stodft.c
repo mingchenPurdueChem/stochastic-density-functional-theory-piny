@@ -29,6 +29,450 @@
 #include "complex.h"
 #define TIME_CP_OFF
 
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+/* calculate the force on the coeff's (up or down, both) */
+/* given an appropriate v_ks (up or down, both).         */
+/*==========================================================================*/
+void coefForceCalcHybridSCFReal(CPEWALD *cpewald,int nstate,
+                             double *ccreal,double *ccimag,
+                             double *fccreal,double  *fccimag,
+                             double *zfft,double *zfft_tmp,
+                             double *v_ks,double *v_ks_tau,double *ak2_sm,
+                             double *eke_ret,double *pvten_cp,
+                             int cp_ptens_calc,double *hmati,
+                             COMMUNICATE *communicate,
+                             int icoef_form,int icoef_orth,int ifcoef_form,
+                             int cp_tau_functional,int cp_min_on,
+                             PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm,
+			     CP *cp, CLASS *class,GENERAL_DATA *general_data,
+                             double complex *v2, double complex *v12)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+{/*Begin Routine*/
+/*=======================================================================*/
+/*            Local variable declarations                               */
+#include "../typ_defs/typ_mask.h"
+  STODFTINFO *stodftInfo = cp->stodftInfo;
+  int is,i,iupper;
+  int ioff,ncoef1,ioff2;
+  int iii,iis,nis;
+  int nfft       = cp_sclr_fft_pkg3d_sm->nfft;
+  int nfft2      = nfft/2;
+  int ncoef      = cp_sclr_fft_pkg3d_sm->ncoef;
+  int myid_state = communicate->myid_state;
+  int np_states  = communicate->np_states;
+  int fftw3dFlag = cpewald->fftw3dFlag;
+  //int fftw3dFlag = 1;
+  int numThreads = communicate->numThreads;
+  int onebodyMatrixFlag = cpewald->onebodyMatrixFlag;
+  int pseudoRealFlag = cp->pseudo.pseudoReal.pseudoRealFlag;
+
+  int  *kastore_sm    =  cpewald->kastr_sm;
+  int  *kbstore_sm    =  cpewald->kbstr_sm;
+  int  *kcstore_sm    =  cpewald->kcstr_sm;
+  MPI_Comm comm_states = communicate->comm_states;
+
+  double tpi;
+  double aka,akb,akc,xk,yk,zk,cfact;
+  double eke;
+  double sum_check,sum_check_tmp;
+  double time_st,time_end;
+  double chemPotTrue = stodftInfo->chemPotTrue;
+  double *keMatrix = cpewald->keMatrix;
+  double *ak2Kinetic = cpewald->ak2Kinetic;
+  //double *ak2_sm = cpewald->ak2_sm;
+#define DEBUG_OFF
+#ifdef DEBUG
+  int icount;
+  double c_g,g2,anorm,sum,vol,cre_now,cim_now;
+  double dx,x_pos,y_pos,z_pos,phase_r,phase_i,arg;
+  FILE *fp;
+#endif
+
+  double *cre,*cim,*fcre,*fcim,*fcrek,*fcimk;
+  double *pre_cond;
+  double gcut_sq = 1.0; //TODO change
+
+
+/* ================================================================= */
+/*0) Check the form of the coefficients                              */
+
+  //printf(" NEW routine coefForceCalcHybridSCFReal %i %i %i %i %i \n", ncoef, nfft, nstate, fftw3dFlag, pseudoRealFlag);
+  pre_cond = (double*)calloc(ncoef,sizeof(double))-1;
+  for(i=1;i<=ncoef;i++){
+    if(ak2_sm[i]>gcut_sq)pre_cond[i] = 0.5*ak2_sm[i];
+    else pre_cond[i] = 0.5*gcut_sq;     
+  }
+  ncoef1 = ncoef-1;
+
+  cre = (double*)calloc(2*ncoef,sizeof(double))-1;
+  cim = (double*)calloc(2*ncoef,sizeof(double))-1;
+  fcre = (double*)calloc(2*ncoef,sizeof(double))-1;
+  fcim = (double*)calloc(2*ncoef,sizeof(double))-1;
+  fcrek = (double*)calloc(2*ncoef,sizeof(double))-1;
+  fcimk = (double*)calloc(2*ncoef,sizeof(double))-1;
+
+/*=================================================================*/
+/*  Loop over all orbitals                                         */
+
+  //for(is=0;is<nstate;is++){
+  for(is=0;is<1;is++){
+
+/*-----------------------------------------------------------------*/
+/* I) Copy phi(r)                                                  */
+
+    // dobule check
+    for(i=0;i<nfft2;i++){
+      zfft[2*i+1] = creal(v2[is*nfft2+i]);
+      zfft[2*i+2] = cimag(v2[is*nfft2+i]);
+    }
+
+/*-----------------------------------------------------------------*/
+/*  II) fourier transform  to g-space                              */
+/*     convention exp(igr)                                         */
+
+    if(fftw3dFlag==0){
+      para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+    }
+    else{
+      para_fft_gen3d_bck_to_g_fftw3d_filter(zfft,cp_sclr_fft_pkg3d_sm);
+    }
+
+/*-----------------------------------------------------------------*/
+/* III) Unpack phi(g)                                              */
+
+    time_st = omp_get_wtime();
+    if(fftw3dFlag==0){
+      dble_upack_coef_sum(&cre[0],&cim[0],
+                          &cre[ncoef],&cim[ncoef],
+                          zfft,cp_sclr_fft_pkg3d_sm);
+      //printf("fccreal %lg\n",fccreal[ioff+ncoef]);
+    } 
+    else{
+      dble_upack_coef_sum_fftw3d_filter(&cre[0],&cim[0],
+                                        &cre[ncoef],&cim[ncoef],
+                                        zfft,cp_sclr_fft_pkg3d_sm);
+    }
+    time_end = omp_get_wtime();
+    stodftInfo->cputime4 += time_end-time_st; // CHANGE IT
+
+    for(i=1; i< ncoef ; i++){
+      //cre[i] *= -0.25*pre_cond[i];
+      //cim[i] *= -0.25*pre_cond[i];
+      cre[i] *= -0.25;
+      cim[i] *= -0.25;
+    }
+    //cre[ncoef] *= -0.5*pre_cond[ncoef];
+    cre[ncoef] *= -0.5;
+    cim[ncoef] = 0.0;
+    for(i=1; i< ncoef ; i++){
+      //cre[i+ncoef] *= -0.25*pre_cond[i];
+      //cim[i+ncoef] *= -0.25*pre_cond[i];
+      cre[i+ncoef] *= -0.25;
+      cim[i+ncoef] *= -0.25;
+    }
+    //cre[2*ncoef] *= -0.5*pre_cond[ncoef];
+    cre[2*ncoef] *= -0.5;
+    cim[2*ncoef] = 0.0;
+
+
+/*-----------------------------------------------------------------*/
+/* IV) pack phi(g)                                                 */
+
+    time_st = omp_get_wtime();
+    if(fftw3dFlag==0){
+      dble_pack_coef(&cre[0],&cim[0],&cre[ncoef],&cim[ncoef],
+                     zfft,cp_sclr_fft_pkg3d_sm);
+    }
+    else{
+      dble_pack_coef_fftw3d_filter(&cre[0],&cim[0],&cre[ncoef],
+                     &cim[ncoef],
+                     zfft,cp_sclr_fft_pkg3d_sm);
+    }
+
+/*-----------------------------------------------------------------*/
+/* V) transform phi(g) to phi(r) to complete the projection        */
+
+
+    if(fftw3dFlag==0){
+      para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+    }
+    else{
+      para_fft_gen3d_fwd_to_r_fftw3d_filter(zfft,cp_sclr_fft_pkg3d_sm);
+    }
+
+/*-----------------------------------------------------------------*/
+/* IV) Calculate t|phi(g)>                                         */
+
+    for(i=1; i<= ncoef1 ; i++){
+      fcrek[i] = -2.0*ak2Kinetic[i]*cre[i];
+      fcimk[i] = -2.0*ak2Kinetic[i]*cim[i];
+    }/*endfor i*/
+    fcrek[ncoef] = 0.0;
+    fcimk[ncoef] = 0.0;
+
+    for(i=1; i<= ncoef1 ; i++){
+      fcrek[i+ncoef] = -2.0*ak2Kinetic[i]*cre[i+ncoef];
+      fcimk[i+ncoef] = -2.0*ak2Kinetic[i]*cim[i+ncoef];
+    }/*endfor i*/
+    fcrek[2*ncoef] = 0.0;
+    fcimk[2*ncoef] = 0.0;
+
+/*-----------------------------------------------------------------*/
+/* V) Copy phi(r)                                                  */
+
+    //for(i=0;i<nfft2;i++){
+    //  zfft[2*i+1] = creal(v2[is*nfft2+i]);
+    //  zfft[2*i+2] = cimag(v2[is*nfft2+i]);
+    //}
+
+/*-----------------------------------------------------------------*/
+/* VI) Calculate v|phi>(r)                                         */
+
+    if(pseudoRealFlag==1){
+      cp->pseudo.pseudoReal.energyCalcFlag = 1;
+      time_st = omp_get_wtime();
+      controlPotentialEnergyFilter(cp,class,general_data,v_ks,zfft,1,
+				   cp_sclr_fft_pkg3d_sm);
+      time_end = omp_get_wtime();
+      stodftInfo->cputime_new[0] += time_end-time_st;
+    }
+    else cp_vpsi_threads(zfft,v_ks,nfft);
+
+/*-----------------------------------------------------------------*/
+/* VII) Transform v|phi>(r) back to g space to smooth it           */
+
+    if(fftw3dFlag==0){
+      para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+    }
+    else{
+      para_fft_gen3d_bck_to_g_fftw3d_filter(zfft,cp_sclr_fft_pkg3d_sm);
+    }
+
+/*-----------------------------------------------------------------*/
+/* VIII) Unpack v|phi>(g)                                          */
+
+    time_st = omp_get_wtime();
+    if(fftw3dFlag==0){
+      dble_upack_coef_sum(&fcre[0],&fcim[0],
+                          &fcre[ncoef],&fcim[ncoef],
+                          zfft,cp_sclr_fft_pkg3d_sm);
+      //printf("fccreal %lg\n",fccreal[ioff+ncoef]);
+    }
+    else{
+      dble_upack_coef_sum_fftw3d_filter(&fcre[0],&fcim[0],
+                          &fcre[ncoef],&fcim[ncoef],
+                          zfft,cp_sclr_fft_pkg3d_sm);
+    }
+    time_end = omp_get_wtime();
+    stodftInfo->cputime4 += time_end-time_st;
+
+
+/*-----------------------------------------------------------------*/
+/* IX) Add t|phi>(g) to get h|phi>(g)                              */
+/* We want to make sure v12 share the correct wavefunction cutoff  */
+
+    for(i=1; i<= 2*ncoef ; i++){
+      fcre[i] += fcrek[i];
+      fcim[i] += fcimk[i];
+    }
+    fcim[ncoef] = 0.0;
+    fcim[2*ncoef] = 0.0;
+/*  scaling                                                       */
+    for(i=1; i< ncoef ; i++){
+      fcre[i] *= -0.25;
+      fcim[i] *= -0.25;
+      //fcre[i] *= -0.25/pre_cond[i];
+      //fcim[i] *= -0.25/pre_cond[i];
+    }
+    fcre[ncoef] *= -0.5;
+    //fcre[ncoef] *= -0.5/pre_cond[ncoef];
+    fcim[ncoef] = 0.0;
+    for(i=1; i< ncoef ; i++){
+      fcre[i+ncoef] *= -0.25;
+      fcim[i+ncoef] *= -0.25;
+      //fcre[i+ncoef] *= -0.25/pre_cond[i];
+      //fcim[i+ncoef] *= -0.25/pre_cond[i];
+    }
+    fcre[2*ncoef] *= -0.5;
+    //fcre[2*ncoef] *= -0.5/pre_cond[ncoef];
+    fcim[2*ncoef] = 0.0;
+
+/*-----------------------------------------------------------------*/
+/* X) Pack h|phi>(g) for FFT                                       */
+
+    time_st = omp_get_wtime(); 
+    if(fftw3dFlag==0){
+      dble_pack_coef(&fcre[0],&fcim[0],&fcre[ncoef],&fcim[ncoef],
+                     zfft,cp_sclr_fft_pkg3d_sm);
+    }
+    else{
+      dble_pack_coef_fftw3d_filter(&fcre[0],&fcim[0],&fcre[ncoef],
+		     &fcim[ncoef],
+                     zfft,cp_sclr_fft_pkg3d_sm);
+    }
+    time_end = omp_get_wtime();
+    stodftInfo->cputime2 += time_end-time_st;
+
+/*-----------------------------------------------------------------*/
+/* XI) Transform h|phi>(g) to h|phi>(r)                            */
+
+    if(fftw3dFlag==0){
+      para_fft_gen3d_fwd_to_r(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+    }
+    else{
+      para_fft_gen3d_fwd_to_r_fftw3d_filter(zfft,cp_sclr_fft_pkg3d_sm);
+    }
+
+/*-----------------------------------------------------------------*/
+/* XII) Copy h|phi>(r) to v12                                      */
+
+    for(i=0;i<nfft2;i++){
+      v12[is*nfft2+i] = zfft[2*i+1]+zfft[2*i+2]*I-v2[i]*chemPotTrue;
+    }
+  }//endfor is
+
+/*=================================================================*/
+/*  Free all local allocations                                     */
+
+
+  cfree(&cre[1]);
+  cfree(&cim[1]);
+  cfree(&fcre[1]);
+  cfree(&fcim[1]);
+  cfree(&fcrek[1]);
+  cfree(&fcimk[1]);
+  cfree(&pre_cond[1]);
+
+/*==========================================================================*/
+   }/*end routine*/
+/*==========================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+/* calculate the force on the coeff's (up or down, both) */
+/* given an appropriate v_ks (up or down, both).         */
+/*==========================================================================*/
+void fftWraperRhsReal(CPEWALD *cpewald,int nstate,
+                             double *ccreal,double *ccimag,
+                             double *fccreal,double  *fccimag,
+                             double *zfft,double *zfft_tmp,
+                             double *v_ks,double *v_ks_tau,double *ak2_sm,
+                             double *eke_ret,double *pvten_cp,
+                             int cp_ptens_calc,double *hmati,
+                             COMMUNICATE *communicate,
+                             int icoef_form,int icoef_orth,int ifcoef_form,
+                             int cp_tau_functional,int cp_min_on,
+                             PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm,
+			     CP *cp, CLASS *class,GENERAL_DATA *general_data,double *rhs, int id)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+{/*Begin Routine*/
+/*=======================================================================*/
+/*            Local variable declarations                               */
+#include "../typ_defs/typ_mask.h"
+  STODFTINFO *stodftInfo = cp->stodftInfo;
+  int is,i,iupper;
+  int ioff,ncoef1,ioff2;
+  int iii,iis,nis;
+  int nfft       = cp_sclr_fft_pkg3d_sm->nfft;
+  int nfft2      = nfft/2;
+  int ncoef      = cp_sclr_fft_pkg3d_sm->ncoef;
+  int myid_state = communicate->myid_state;
+  int np_states  = communicate->np_states;
+  int fftw3dFlag = cpewald->fftw3dFlag;
+  //int fftw3dFlag = 1;
+  int numThreads = communicate->numThreads;
+  int onebodyMatrixFlag = cpewald->onebodyMatrixFlag;
+  int pseudoRealFlag = cp->pseudo.pseudoReal.pseudoRealFlag;
+
+  int  *kastore_sm    =  cpewald->kastr_sm;
+  int  *kbstore_sm    =  cpewald->kbstr_sm;
+  int  *kcstore_sm    =  cpewald->kcstr_sm;
+  MPI_Comm comm_states = communicate->comm_states;
+
+  double tpi;
+  double aka,akb,akc,xk,yk,zk,cfact;
+  double eke;
+  double sum_check,sum_check_tmp;
+  double time_st,time_end;
+  double *keMatrix = cpewald->keMatrix;
+  double *ak2Kinetic = cpewald->ak2Kinetic;
+#define DEBUG_OFF
+#ifdef DEBUG
+  int icount;
+  double c_g,g2,anorm,sum,vol,cre_now,cim_now;
+  double dx,x_pos,y_pos,z_pos,phase_r,phase_i,arg;
+  FILE *fp;
+#endif
+
+
+  cp_sclr_fft_pkg3d_sm->numThreads = communicate->numThreads;
+  ncoef1 = ncoef - 1;
+
+/*==========================================================================*/
+/*==========================================================================*/
+/* 4) if there is an odd number of states, go through                       */
+/*      the same procedure using sng_packs                                  */
+
+    is = 1;
+    ioff = (is-1)*ncoef;
+    for(i=0;i<nfft2;i++){
+      zfft[i*2+1] = rhs[i];
+      zfft[i*2+2] = 0.0;
+    }
+
+/*--------------------------------------------------------------------------*/
+/*   II) fourier transform the result back to g-space */
+/*     convention exp(igr)  */
+
+    if(fftw3dFlag==0){
+      para_fft_gen3d_bck_to_g(zfft,zfft_tmp,cp_sclr_fft_pkg3d_sm);
+    }
+    else{
+      para_fft_gen3d_bck_to_g_fftw3d_threads(zfft,cp_sclr_fft_pkg3d_sm);
+    }
+
+/*==========================================================================*/
+/* 6) get forces on coefficients by single unpacking the array zfft         */
+
+    //cputime(&time_st);
+    time_st = omp_get_wtime();
+    if(fftw3dFlag==0){
+      sngl_upack_coef_sum(&fccreal[ioff],&fccimag[ioff],zfft,
+			  cp_sclr_fft_pkg3d_sm);
+    }
+    else{
+      sngl_upack_coef_sum_fftw3d_threads(&fccreal[ioff],&fccimag[ioff],zfft,
+			  cp_sclr_fft_pkg3d_sm);
+    }
+    //cputime(&time_end);
+
+for(i=1; i<ncoef; i++){
+  fccreal[i] *= -0.25;
+  fccimag[i] *= -0.25;
+}
+fccreal[ncoef] *= -0.5;
+fccimag[ncoef] = 0.0;
+
+
+for (int j =1; j <= ncoef; j++){
+ printf("frhs %i %i  %.8f  %.8f \n", myid_state, j, fccreal[j], fccimag[j]);
+}
+
+/*==========================================================================*/
+   }/*end routine*/
+/*==========================================================================*/
+
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/

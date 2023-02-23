@@ -28,7 +28,7 @@
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
 
-double complex fun_test(double complex x, double dmu, double beta, double epsilon) {
+double complex fermi_fun(double complex x, double dmu, double beta, double epsilon) {
   double complex arg_raw, fout;
   double arg_raw_re, arg_raw_im, exp_re;
   arg_raw = beta*(x + dmu);
@@ -41,6 +41,122 @@ double complex fun_test(double complex x, double dmu, double beta, double epsilo
   return fout;
 }
 
+/*========================================================================================*/
+void solve_shifted_eqn_cocg( CP *cp, CLASS *class, GENERAL_DATA *general_data, int id, int is_mu_calc) { 
+/*========================================================================================*/
+/* =------------------------------------------------------------------------------------= */
+#include "../typ_defs/typ_mask.h"
+
+  STODFTINFO *stodftInfo        = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  CPOPTS *cpopts                = &(cp->cpopts);
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  CPCOEFFS_POS *cpcoeffs_pos    = &(cp->cpcoeffs_pos[1]);
+  CLATOMS_POS*  clatoms_pos     = &(class->clatoms_pos[1]);
+  CLATOMS_INFO *clatoms_info    = &(class->clatoms_info);
+  COMMUNICATE *communicate      = &(cp->communicate);
+  RATIONALINFO *rationalInfo    = stodftInfo->rationalInfo;
+
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
+
+  int numStateUpProc = cpcoeffs_info->nstate_up_proc;
+  int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
+  int numCoeff       = cpcoeffs_info->ncoef;
+  int numCoeffUpTotal = numStateUpProc*numCoeff;
+  int numCoeffDnTotal = numStateDnProc*numCoeff;
+
+  int nfft          = cp_para_fft_pkg3d_lg->nfft;
+  int nfft2         = nfft/2;
+
+  double *cre_up = cpcoeffs_pos->cre_up;
+  double *cim_up = cpcoeffs_pos->cim_up;
+  double *cre_dn = cpcoeffs_pos->cre_dn;
+  double *cim_dn = cpcoeffs_pos->cim_dn;
+  double *fcre_up = cpcoeffs_pos->fcre_up;
+  double *fcim_up = cpcoeffs_pos->fcim_up;
+  double *fcre_dn = cpcoeffs_pos->fcre_dn;
+  double *fcim_dn = cpcoeffs_pos->fcim_dn;
+  double *wfUpRe1 = stodftCoefPos->wfUpRe1;
+  double *wfUpIm1 = stodftCoefPos->wfUpIm1;
+  double *wfDnRe1 = stodftCoefPos->wfDnRe1;
+  double *wfDnIm1 = stodftCoefPos->wfDnIm1;
+  int spinFlag;
+
+  int iState,iCoeff, iOff, iCoeffStart,index1,index2;
+
+  int itermax = rationalInfo->itermax;
+  int ntgrid = rationalInfo->ntgrid;
+  double threshold = rationalInfo->threshold;
+  double complex *v12 = rationalInfo->v12;
+  double complex *v2 = rationalInfo->v2;
+  double complex *r_l = rationalInfo->r_l;
+  double complex *zseed = rationalInfo->zseed;
+  double complex *x = rationalInfo->x;
+  double *rhs = rationalInfo->rhs;
+/* =------------------------------------------------------------------------------------= */
+  int status[3];
+
+  int i, j, iter, jiter, ndim, nz;
+
+  nz = 2*ntgrid;
+  ndim = nfft2; // ndim;
+  spinFlag = 0;
+  
+  printf("--- Starting solving shifted COCG eqn  ---- \n");
+  
+  genNoiseOrbitalRealRational(cp,cpcoeffs_pos, v2, id); 
+  
+  if(is_mu_calc == 1) {
+    for (i=0; i < nfft2; i++){
+      rhs[i] = creal(v2[i]);
+    }
+  }
+  
+  //printf("zdim %i dim %i ndim %i \n", zdim, dim, ndim);
+  
+  komega_cocg_init(&ndim, &ndim, &nz, x, zseed, &itermax, &threshold, NULL);
+  
+  for (iter = 0; iter < itermax; iter++){
+  
+    for (i = 0; i < ndim; i++) {
+      r_l[i] = v2[i];
+    }
+  
+    calcCoefForceWrapSCFReal(class,general_data,cp,cpcoeffs_pos,clatoms_pos,v2,v12,spinFlag);
+  
+  
+    komega_cocg_update(v12, v2, x, r_l, status);
+  
+    printf(" DEBUG : %i %i %i %i %lg \n", iter, status[0], status[1], status[2], creal(v12[0]));
+  
+    if(status[0] < 0) break;
+  
+  }
+  
+  switch(status[1]) {
+    case (0) :
+      printf("  Converged in iteration %d \n", abs(status[0]));
+      break;
+    case (1) :
+      printf("  Not Converged in iteration %d \n", abs(status[0]));
+      break;
+    case (2) :
+      printf("  Alpha becomes infinity %d \n", abs(status[0]));
+      break;
+    case (3) :
+      printf("  Pi_seed becomes zero %d \n", abs(status[0]));
+      break;
+    case (4) :
+      printf("  Residual & Shadow residual are orthogonal %d \n", abs(status[0]));
+      break;
+  }
+  
+  komega_cocg_finalize();
+  
+  
+  printf("--- Finished solving shifted COCG eqn  ---- \n");
+}
+/*==========================================================================*/
 
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
@@ -178,6 +294,7 @@ void calcChemPotRational(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   COMMUNICATE *communicate      = &(cp->communicate);
 
   CHEBYSHEVINFO *chebyshevInfo = stodftInfo->chebyshevInfo;
+  RATIONALINFO *rationalInfo    = stodftInfo->rationalInfo;
 
   int iPoly,iState,iChem;
   int iScf = stodftInfo->iScf;
@@ -224,13 +341,188 @@ void calcChemPotRational(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   int nfft          = cp_para_fft_pkg3d_lg->nfft;
   int nfft2         = nfft/2;
 
+  int ntgrid = rationalInfo->ntgrid;
+  double complex *fun_p = rationalInfo->fun_p;
+  double complex *fun_m = rationalInfo->fun_m;
+  double complex *x = rationalInfo->x;
+  double preRat = rationalInfo->preRat;
+  double *frhs = rationalInfo->frhs;
+  double *rhs = rationalInfo->rhs;
 
-
+  double complex sum;
+  double dsum;
+  double NElecTot;
+  NElecTot = 0.0;
 /******************************************************************************/
 printf("Start ChemicalPotential with Rational Approximation\n");
 /******************************************************************************/
 
+init_zseed(cp, 1);
 
+for(iState=0;iState<numStateUpProc;iState++){
+
+  //printf("myidState %i %i %i %i %i \n", myidState, numStateUpProc, iState, numProcStates, numStateStoUp);
+  solve_shifted_eqn_cocg( cp, class, general_data, iState, 1);
+
+  for (int i = 0; i<nfft2;i++){
+    sum = 0.0 + 0.0 *I ;
+    for (int j =0; j < ntgrid; j++){
+      sum = sum + fun_p[j] * x[j*nfft2 + i] + fun_m[j] * x[(j+ntgrid)*nfft2 + i];
+    }
+    frhs[i] = preRat*cimag(sum);
+    dsum = dsum + 2.0*frhs[i]*rhs[i];
+  }
+
+}
+
+dsum = (dsum/numStateStoUp)*(1.0/stodftInfo->rhoRealGridTot);
+if(numProcStates>1)Reduce(&dsum,&NElecTot,1,MPI_DOUBLE,MPI_SUM,0,comm_states);
+printf("==== final results === %lg %lg \n", dsum, NElecTot);
+
+/******************************************************************************/
+printf("Finished ChemicalPotential with Rational Approximation\n");
+/******************************************************************************/
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/
+/*========================================================================================*/
+void init_zseed( CP *cp, int is_fun_sq) {
+
+#include "../typ_defs/typ_mask.h"
+
+
+STODFTINFO *stodftInfo        = cp->stodftInfo;
+RATIONALINFO *rationalInfo    = stodftInfo->rationalInfo;
+
+double K = rationalInfo->K;
+double K_prim = rationalInfo->K_prim;
+double mA = rationalInfo->mA;
+double MA = rationalInfo->MA;
+double k = rationalInfo->k;
+double kinv = rationalInfo->kinv;
+double m = rationalInfo->m;
+double dmu = rationalInfo->dmu;
+double epsilon = rationalInfo->epsilon;
+int ntgrid = rationalInfo->ntgrid;
+double energymax;
+double ktmp;
+
+double complex *tgrid = rationalInfo->tgrid;
+double complex *sn_im = rationalInfo->sn_im;
+double complex *sn_c = rationalInfo->sn_c;
+double complex *cn_c = rationalInfo->cn_c;
+double complex *dn_c = rationalInfo->dn_c;
+double complex *z = rationalInfo->z;
+double complex *ksi_p = rationalInfo->ksi_p;
+double complex *ksi_m = rationalInfo->ksi_m;
+double complex *fun_p = rationalInfo->fun_p;
+double complex *fun_m = rationalInfo->fun_m;
+
+double *tgrid_re  = rationalInfo->tgrid_re;
+double *tgrid_im  = rationalInfo->tgrid_im;
+double *sn_re  = rationalInfo->sn_re;
+double *cn_re  = rationalInfo->cn_re;
+double *dn_re  = rationalInfo->dn_re;
+double *cn_im  = rationalInfo->cn_im;
+double *dn_im  = rationalInfo->dn_im;
+double *sn_tmp  = rationalInfo->sn_tmp;
+double *cn_tmp  = rationalInfo->cn_tmp;
+double *dn_tmp  = rationalInfo->dn_tmp;
+double *z_re  = rationalInfo->z_re;
+double *z_im  = rationalInfo->z_im;
+
+double complex *zseed = rationalInfo->zseed;
+double preRat = rationalInfo->preRat; 
+
+printf("Energy Max= %.16lg.\n", stodftInfo->energyMax);
+printf("Energy Min= %.16lg.\n", stodftInfo->energyMin);
+printf("Beta= %.16lg.\n", stodftInfo->beta);
+printf("Correct Chemical Potential = %.16lg.\n", stodftInfo->chemPotTrue);
+
+
+  energymax = stodftInfo->energyMax -  stodftInfo->chemPotTrue;
+  mA = (M_PI*M_PI)/(stodftInfo->beta*stodftInfo->beta);
+  MA = energymax*energymax + mA;
+//MA = stodftInfo->energyMax*stodftInfo->energyMax + mA;
+  ktmp = sqrt(MA/mA);
+  k = (ktmp - 1.0)/(ktmp + 1.0);
+  kinv = 1.0/k;
+  m = k*k;
+
+  printf(" mA = %lg , MA = %lg \n", mA, MA);
+  printf(" k = %lg , kinv =  %lg , m =  %lg \n", k, kinv, m);
+
+  if (m > 0.9){
+    K = Complete_Elliptic_Integral_First_Kind('m', m);
+  }
+  else {
+    K = Complete_Elliptic_Integral_First_Kind('m', m);
+  }
+
+  K_prim = Complete_Elliptic_Integral_First_Kind('m', 1 - m);
+
+  printf("m= %lg, K= %lg, K_prim = %lg \n", m, K, K_prim);
+
+  printf("from init_zseed %i \n", ntgrid);
+
+
+/*****************************************************/
+/*****************************************************/
+
+for (int i = 0; i < ntgrid; i++){
+  tgrid[i] = -K + 2.0*(i + 0.5)*K/ntgrid + K_prim*0.5 * I ; // 0.0 + (double) i; 
+}
+
+for (int i = 0; i < ntgrid; i++){
+  tgrid_re[i] = creal(tgrid[i]);
+  tgrid_im[i] = cimag(tgrid[i]);
+}
+
+for (int i = 0; i < ntgrid; i++){
+  Jacobi_sn_cn_dn(tgrid_re[i], 'm', m, &sn_re[i], &cn_re[i], &dn_re[i] );
+  Jacobi_sn_cn_dn(tgrid_im[i], 'm', 1-m, &sn_tmp[i], &cn_tmp[i], &dn_tmp[i] );
+  sn_im[i] = sn_tmp[i]/cn_tmp[i] * I;
+  cn_im[i] = 1 / cn_tmp[i];
+  dn_im[i] = dn_tmp[i] / cn_tmp[i];
+}
+
+for (int i = 0; i < ntgrid; i++){
+  sn_c[i] = (sn_re[i]*sn_re[i] - sn_im[i]*sn_im[i]) / (sn_re[i]*cn_im[i]*dn_im[i] - sn_im[i]*cn_re[i]*dn_re[i]);
+  cn_c[i] = (sn_re[i]*cn_re[i]*dn_im[i] - sn_im[i]*cn_im[i]*dn_re[i])/(sn_re[i]*cn_im[i]*dn_im[i] - sn_im[i]*cn_re[i]*dn_re[i]);
+  dn_c[i] = (sn_re[i]*cn_im[i]*dn_re[i] - sn_im[i]*cn_re[i]*dn_im[i])/(sn_re[i]*cn_im[i]*dn_im[i] - sn_im[i]*cn_re[i]*dn_re[i]);
+}
+
+for (int i = 0; i < ntgrid; i++){
+  z[i] = sqrt(mA*MA) * (kinv + sn_c[i]) / (kinv - sn_c[i]) ;
+  z_re[i] = creal(z[i]);
+  z_im[i] = cimag(z[i]);
+}
+
+for (int i = 0; i < ntgrid; i++){
+  ksi_p[i] = csqrt(z[i] - mA);
+  ksi_m[i] = - csqrt(z[i] - mA);
+}
+
+
+for (int i = 0; i < ntgrid; i++){
+  if(is_fun_sq == 1) {
+    fun_p[i] = fermi_fun(ksi_p[i], dmu, stodftInfo->beta, epsilon)*fermi_fun(ksi_p[i], dmu, stodftInfo->beta, epsilon);
+    fun_m[i] = fermi_fun(ksi_m[i], dmu, stodftInfo->beta, epsilon)*fermi_fun(ksi_m[i], dmu, stodftInfo->beta, epsilon);
+  }else{
+    fun_p[i] = fermi_fun(ksi_p[i], dmu, stodftInfo->beta, epsilon);
+    fun_m[i] = fermi_fun(ksi_m[i], dmu, stodftInfo->beta, epsilon);
+  }
+  fun_p[i] = fun_p[i]*cn_c[i]*dn_c[i] / ((kinv - sn_c[i])*(kinv - sn_c[i])) / ksi_p[i];
+  fun_m[i] = fun_m[i]*cn_c[i]*dn_c[i] / ((kinv - sn_c[i])*(kinv - sn_c[i])) / ksi_m[i];
+}
+
+for (int j =0; j < ntgrid; j++){
+  zseed[j] =  ksi_p[j];
+  zseed[j + ntgrid] =  ksi_m[j];
+}
+
+preRat = -2 * K *sqrt(mA*MA) / M_PI / ntgrid * kinv;
+
+}
+/*========================================================================================*/
+/*========================================================================================*/

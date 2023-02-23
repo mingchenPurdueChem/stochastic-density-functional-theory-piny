@@ -1196,3 +1196,448 @@ void calcCoefForceWrapSCF(CLASS *class,GENERAL_DATA *general_data,
 }/*end Routine*/
 /*=======================================================================*/
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void calcCoefForceWrapSCFReal(CLASS *class,GENERAL_DATA *general_data,
+                   CP *cp,CPCOEFFS_POS  *cpcoeffs_pos,CLATOMS_POS *clatoms_pos,
+                    double complex *v2, double complex *v12,int spinFlag)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* This is the wrapper to calculate H|phi> given |phi>                   */
+/* |phi> are stored in cre(im)_up(dn) and H|phi> are stored in           */
+/* fcre(im)_up(dn), for correct H|phi>, you need to scale all coeff      */
+/* with k!=0 by -0.5, and k=0 term by -1. Since this step can be         */
+/* combined with some other scalings, I just output the raw force.       */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+
+  CELL *cell                    = &(general_data->cell);
+  CLATOMS_INFO *clatoms_info    = &(class->clatoms_info);
+  EWALD *ewald                  = &(general_data->ewald);
+  EWD_SCR *ewd_scr              = &(class->ewd_scr);
+  ATOMMAPS *atommaps            = &(class->atommaps);
+  FOR_SCR *for_scr              = &(class->for_scr);
+  STAT_AVG *stat_avg            = &(general_data->stat_avg);
+  PTENS *ptens                  = &(general_data->ptens);
+  SIMOPTS *simopts              = &(general_data->simopts);
+
+
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  STODFTINFO *stodftInfo        = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  CPOPTS *cpopts                = &(cp->cpopts);
+  CPEWALD *cpewald              = &(cp->cpewald);
+  CPSCR *cpscr                  = &(cp->cpscr);
+  PSEUDO *pseudo                = &(cp->pseudo);
+  COMMUNICATE *communicate      = &(cp->communicate);
+  PSEUDO_REAL *pseudoReal	= &(pseudo->pseudoReal);
+
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm             = &(cp->cp_sclr_fft_pkg3d_sm);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_sm             = &(cp->cp_para_fft_pkg3d_sm);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_dens_cp_box    = &(cp->cp_sclr_fft_pkg3d_dens_cp_box);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_dens_cp_box    = &(cp->cp_para_fft_pkg3d_dens_cp_box);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_lg             = &(cp->cp_sclr_fft_pkg3d_lg);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg             = &(cp->cp_para_fft_pkg3d_lg);
+  CP_COMM_STATE_PKG *cp_comm_state_pkg_up          = &(cp->cp_comm_state_pkg_up);
+  CP_COMM_STATE_PKG *cp_comm_state_pkg_dn          = &(cp->cp_comm_state_pkg_dn);
+
+  int cpLsda         = cpopts->cp_lsda;
+  int numStateUpProc = cpcoeffs_info->nstate_up_proc;
+  int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
+  int numCoeff       = cpcoeffs_info->ncoef;
+  int numCoeffUpTotal = numStateUpProc*numCoeff;
+  int numCoeffDnTotal = numStateDnProc*numCoeff;
+  int cpDualGridOptOn  = cpopts->cp_dual_grid_opt;
+  int iState,iCoeff,iCoeffStart,index1,index2;
+  int cpMinOn = 0; //I don't want to calculate cp_hess
+  int myidState = communicate->myid_state;
+  int pseudoRealFlag = pseudoReal->pseudoRealFlag;
+  int numThreads = communicate->numThreads;
+
+  int ncoef_l         =    cp_para_fft_pkg3d_lg->ncoef_proc;
+  int ncoef_l_dens_cp_box = cp_para_fft_pkg3d_dens_cp_box->ncoef_proc;
+  double time_st,time_end;
+
+  double *fcre_up = cpcoeffs_pos->fcre_up;
+  double *fcim_up = cpcoeffs_pos->fcim_up;
+  double *fcre_dn = cpcoeffs_pos->fcre_dn;
+  double *fcim_dn = cpcoeffs_pos->fcim_dn;
+
+  double *vextr          =    cpscr->cpscr_loc.vextr;
+  double *vexti          =    cpscr->cpscr_loc.vexti;
+  double *vextr_loc      =    cpscr->cpscr_loc.vextr_loc;
+  double *vexti_loc      =    cpscr->cpscr_loc.vexti_loc;
+  double *vextr_dens_cp_box =    cpscr->cpscr_loc.vextr_dens_cp_box;
+  double *vexti_dens_cp_box =    cpscr->cpscr_loc.vexti_dens_cp_box;
+  double *vextr_dens_cp_box_loc = cpscr->cpscr_loc.vextr_dens_cp_box_loc;
+  double *vexti_dens_cp_box_loc = cpscr->cpscr_loc.vexti_dens_cp_box_loc;
+
+/*==========================================================================*/
+/* 0) Copy the input wave function to CP coeff and zero the force */
+
+  omp_set_num_threads(numThreads);
+  #pragma omp parallel for private(iCoeff)
+  for(iCoeff=1;iCoeff<=numCoeffUpTotal;iCoeff++){
+    fcre_up[iCoeff] = 0.0;
+    fcim_up[iCoeff] = 0.0;
+  }
+  if(cpLsda==1&&numStateDnProc!=0){
+    #pragma omp parallel for private(iCoeff)
+    for(iCoeff=1;iCoeff<=numCoeffDnTotal;iCoeff++){
+      fcre_dn[iCoeff] = 0.0;
+      fcim_dn[iCoeff] = 0.0;
+    }
+  }
+
+  #pragma omp parallel for private(iCoeff)
+  for(iCoeff=1;iCoeff<=ncoef_l;iCoeff++){
+    vextr[iCoeff] = vextr_loc[iCoeff];
+    vexti[iCoeff] = vexti_loc[iCoeff];
+  }
+
+  //memcpy(&vextr[1],&(vextr_loc[1]),ncoef_l*sizeof(double));
+  //memcpy(&vexti[1],&(vexti_loc[1]),ncoef_l*sizeof(double));
+  if(cpDualGridOptOn==2){
+    memcpy(&vextr_dens_cp_box[1],&vextr_dens_cp_box_loc[1],
+            ncoef_l_dens_cp_box*sizeof(double));
+    memcpy(&vexti_dens_cp_box[1],&vexti_dens_cp_box_loc[1],
+            ncoef_l_dens_cp_box*sizeof(double));
+  }
+
+
+/*==========================================================================*/
+/* 1) Calculate the H/sigma|phi> */
+  //control_vps_atm_list will be done somewhere else (perhaps in density calculation?)
+
+  //calcCoefForceExtRecipWrap(class,general_data,cp,cpcoeffs_pos,clatoms_pos); //nl ps
+  //calcCoefForceForceControlWrapSCF(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+
+  //cputime(&time_st);
+  //printf("pseudoRealFlag %i\n",pseudoRealFlag);
+  if(pseudoRealFlag==0){
+    calcNonLocalPseudoScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+  }
+  //cputime(&time_end);
+  //stodftInfo->cputime1 += time_end-time_st;
+
+  //cputime(&time_st);
+  calcCoefForceScfReal(class,general_data,cp,cpcoeffs_pos,clatoms_pos, v2, v12, spinFlag);
+  //cputime(&time_end);
+  //stodftInfo->cputime2 += time_end-time_st;
+
+/*==========================================================================*/
+}/*end Routine*/
+/*=======================================================================*/
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void calcCoefForceScfReal(CLASS *class,GENERAL_DATA *general_data,
+                   CP *cp,CPCOEFFS_POS  *cpcoeffs_pos,CLATOMS_POS *clatoms_pos,
+                   double complex *v2, double complex *v12,int spinFlag)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* This is the wrapper to calculate the H|phi> without calculating K-S   */
+/* potential. The potential is calculated in calcKSPotWrap so that we    */
+/* would have one less FFT for every step H|phi>.                        */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+/*==========================================================================*/
+/* III) get the force on the states (up and down)                           */
+  CELL *cell                    = &(general_data->cell);
+  CLATOMS_INFO *clatoms_info    = &(class->clatoms_info);
+  EWALD *ewald                  = &(general_data->ewald);
+  EWD_SCR *ewd_scr              = &(class->ewd_scr);
+  ATOMMAPS *atommaps            = &(class->atommaps);
+  FOR_SCR *for_scr              = &(class->for_scr);
+  STAT_AVG *stat_avg            = &(general_data->stat_avg);
+  PTENS *ptens                  = &(general_data->ptens);
+  SIMOPTS *simopts              = &(general_data->simopts);
+
+
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  STODFTINFO *stodftInfo        = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  CPOPTS *cpopts                = &(cp->cpopts);
+  CPEWALD *cpewald              = &(cp->cpewald);
+  CPSCR *cpscr                  = &(cp->cpscr);
+  PSEUDO *pseudo                = &(cp->pseudo);
+  COMMUNICATE *communicate      = &(cp->communicate);
+
+  //PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm             = &(cp->cp_sclr_fft_pkg3d_sm);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_sm             = &(cp->cp_para_fft_pkg3d_sm);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_dens_cp_box    = &(cp->cp_sclr_fft_pkg3d_dens_cp_box);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_dens_cp_box    = &(cp->cp_para_fft_pkg3d_dens_cp_box);
+  //PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_lg             = &(cp->cp_sclr_fft_pkg3d_lg);
+  //PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg             = &(cp->cp_para_fft_pkg3d_lg);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm;
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_lg;
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg;
+  CP_COMM_STATE_PKG *cp_comm_state_pkg_up          = &(cp->cp_comm_state_pkg_up);
+  CP_COMM_STATE_PKG *cp_comm_state_pkg_dn          = &(cp->cp_comm_state_pkg_dn);
+
+  int i,iii;
+  int cp_lda            = cpopts->cp_lda;
+  int cp_lsda           = cpopts->cp_lsda;
+  int cp_sic            = cpopts->cp_sic;
+  int cp_nonint         = cpopts->cp_nonint;
+  int cp_ptens_calc     = cpopts->cp_ptens_calc;
+  int cp_gga            = cpopts->cp_gga;
+  int cp_para_opt       = cpopts->cp_para_opt;
+  int realSparseOpt     = cpopts->realSparseOpt;
+  int nstate_up         = cpcoeffs_info->nstate_up_proc;
+  int nstate_dn         = cpcoeffs_info->nstate_dn_proc;
+  int nstate_up_tot     = cpcoeffs_info->nstate_up;
+  int nstate_dn_tot     = cpcoeffs_info->nstate_dn;
+  int laplacian_on      = cpcoeffs_info->cp_laplacian_on;
+  int cp_tau_functional = cpcoeffs_info->cp_tau_functional;
+  int alpha_conv_dual   = pseudo->alpha_conv_dual;
+  int n_interp_pme_dual = pseudo->n_interp_pme_dual;
+  int cp_dual_grid_opt  = cpopts->cp_dual_grid_opt;
+  int cp_min_on = 0; //I don't want to calculate cp_hess
+  int myid_state           =  communicate->myid_state;
+  int np_states            =  communicate->np_states;
+  int nstate_ncoef_proc_max_up = cpcoeffs_info->nstate_ncoef_proc_max_up;
+  int nstate_ncoef_proc_max_dn = cpcoeffs_info->nstate_ncoef_proc_max_dn;
+  int nstate_ncoef_proc_up     = cpcoeffs_info->nstate_ncoef_proc_up;
+  int nstate_ncoef_proc_dn     = cpcoeffs_info->nstate_ncoef_proc_dn;
+  int icoef_orth_up          =  cpcoeffs_pos->icoef_orth_up;
+  int icoef_form_up          =  cpcoeffs_pos->icoef_form_up;
+  int ifcoef_form_up         =  cpcoeffs_pos->ifcoef_form_up;
+  int icoef_orth_dn          =  cpcoeffs_pos->icoef_orth_dn;
+  int icoef_form_dn          =  cpcoeffs_pos->icoef_form_dn;
+  int ifcoef_form_dn         =  cpcoeffs_pos->ifcoef_form_dn;
+  char *vxc_typ              =  pseudo->vxc_typ;
+
+  double gc_cut         = pseudo->gga_cut;
+  double cp_eke_dn,cp_eke;
+
+  double *creal_up         =  cpcoeffs_pos->cre_up;
+  double *cimag_up         =  cpcoeffs_pos->cim_up;
+  double *cimag_dn         =  cpcoeffs_pos->cim_dn;
+  double *creal_dn         =  cpcoeffs_pos->cre_dn;
+  double *fcreal_up        =  cpcoeffs_pos->fcre_up;
+  double *fcimag_up        =  cpcoeffs_pos->fcim_up;
+  double *fcimag_dn        =  cpcoeffs_pos->fcim_dn;
+  double *fcreal_dn        =  cpcoeffs_pos->fcre_dn;
+  double *kfcre_up         =  cpcoeffs_pos->kfcre_up;
+  double *kfcim_up         =  cpcoeffs_pos->kfcim_up;
+  double *cp_hess_re_up    =  cpcoeffs_pos->cp_hess_re_up;
+  double *cp_hess_im_up    =  cpcoeffs_pos->cp_hess_im_up;
+  double *cp_hess_re_dn    =  cpcoeffs_pos->cp_hess_re_dn;
+  double *cp_hess_im_dn    =  cpcoeffs_pos->cp_hess_im_dn;
+  double *ak2_sm           =  cpewald->ak2_sm;
+  double *v_ks_up          =  cpscr->cpscr_rho.v_ks_up;
+  double *v_ks_dn          =  cpscr->cpscr_rho.v_ks_dn;
+  double *v_ks_tau_up      =  cpscr->cpscr_rho.v_ks_tau_up;
+  double *v_ks_tau_dn      =  cpscr->cpscr_rho.v_ks_tau_dn;
+  double *zfft             =  cpscr->cpscr_wave.zfft;
+  double *zfft_tmp         =  cpscr->cpscr_wave.zfft_tmp;
+  //double *cre_scr          =  cpscr->cpscr_wave.cre_up;
+  //double *cim_scr          =  cpscr->cpscr_wave.cim_up;
+  double *hmati_cp         =  cell->hmati_cp;
+  double *pvten_cp         =  ptens->pvten_tmp;
+  double *cp_eke_ret       =  &(stat_avg->cp_eke);
+  double *ks_offset        =  &(cpcoeffs_pos->ks_offset);
+
+  MPI_Comm comm_states = communicate->comm_states;
+  MPI_Comm world       = communicate->world;
+
+  //if(realSparseOpt==0){
+  cp_sclr_fft_pkg3d_sm = &(cp->cp_sclr_fft_pkg3d_sm);
+  cp_sclr_fft_pkg3d_lg = &(cp->cp_sclr_fft_pkg3d_lg);
+  cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
+  //}
+  /*
+  else{
+    cp_sclr_fft_pkg3d_sm = &(cp->cp_sclr_fft_pkg3d_sparse);
+    cp_sclr_fft_pkg3d_lg = &(cp->cp_sclr_fft_pkg3d_sparse);
+    cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_sparse);
+  }
+  */
+
+/*-------------------------------------------------------------------------*/
+
+ /*-----------------------------------------*/
+ /* i)  Up states                           */
+  if(spinFlag==0){
+    coefForceCalcHybridSCFReal(cpewald,nstate_up,creal_up,cimag_up,
+			  fcreal_up,fcimag_up,
+			  zfft,zfft_tmp,v_ks_up,v_ks_tau_up,ak2_sm,&cp_eke,pvten_cp,
+			  cp_ptens_calc,hmati_cp,communicate,icoef_form_up,
+			  icoef_orth_up,ifcoef_form_up,cp_tau_functional,cp_min_on,
+			  cp_sclr_fft_pkg3d_sm,cp,class,general_data,v2,v12);
+    *cp_eke_ret += cp_eke;
+  }
+ /*--------------------------------------------*/
+ /* ii) down states (if necessary)             */
+
+  if(spinFlag==1){
+    coefForceCalcHybridSCFReal(cpewald,nstate_dn,creal_dn,cimag_dn,
+                          fcreal_dn,fcimag_dn,
+                          zfft,zfft_tmp,v_ks_dn,v_ks_tau_dn,ak2_sm,&cp_eke_dn,pvten_cp,
+                          cp_ptens_calc,hmati_cp,communicate,icoef_form_dn,
+                          icoef_orth_dn,ifcoef_form_dn,cp_tau_functional,cp_min_on,
+                          cp_sclr_fft_pkg3d_sm,cp,class,general_data,v2,v12);
+    *cp_eke_ret += cp_eke_dn;
+  }//endif
+
+
+/*==========================================================================*/
+}/*end Routine*/
+/*=======================================================================*/
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+void rhsReal(CLASS *class,GENERAL_DATA *general_data,
+                   CP *cp,CPCOEFFS_POS  *cpcoeffs_pos,CLATOMS_POS *clatoms_pos,
+                   double *rhs, int id)
+/*==========================================================================*/
+/*         Begin Routine                                                    */
+   {/*Begin Routine*/
+/*************************************************************************/
+/* This is the wrapper to calculate the H|phi> without calculating K-S   */
+/* potential. The potential is calculated in calcKSPotWrap so that we    */
+/* would have one less FFT for every step H|phi>.                        */
+/*************************************************************************/
+/*=======================================================================*/
+/*         Local Variable declarations                                   */
+/*==========================================================================*/
+/* III) get the force on the states (up and down)                           */
+  CELL *cell                    = &(general_data->cell);
+  CLATOMS_INFO *clatoms_info    = &(class->clatoms_info);
+  EWALD *ewald                  = &(general_data->ewald);
+  EWD_SCR *ewd_scr              = &(class->ewd_scr);
+  ATOMMAPS *atommaps            = &(class->atommaps);
+  FOR_SCR *for_scr              = &(class->for_scr);
+  STAT_AVG *stat_avg            = &(general_data->stat_avg);
+  PTENS *ptens                  = &(general_data->ptens);
+  SIMOPTS *simopts              = &(general_data->simopts);
+
+
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  STODFTINFO *stodftInfo        = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  CPOPTS *cpopts                = &(cp->cpopts);
+  CPEWALD *cpewald              = &(cp->cpewald);
+  CPSCR *cpscr                  = &(cp->cpscr);
+  PSEUDO *pseudo                = &(cp->pseudo);
+  COMMUNICATE *communicate      = &(cp->communicate);
+
+  //PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm             = &(cp->cp_sclr_fft_pkg3d_sm);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_sm             = &(cp->cp_para_fft_pkg3d_sm);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_dens_cp_box    = &(cp->cp_sclr_fft_pkg3d_dens_cp_box);
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_dens_cp_box    = &(cp->cp_para_fft_pkg3d_dens_cp_box);
+  //PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_lg             = &(cp->cp_sclr_fft_pkg3d_lg);
+  //PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg             = &(cp->cp_para_fft_pkg3d_lg);
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_sm;
+  PARA_FFT_PKG3D *cp_sclr_fft_pkg3d_lg;
+  PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg;
+  CP_COMM_STATE_PKG *cp_comm_state_pkg_up          = &(cp->cp_comm_state_pkg_up);
+  CP_COMM_STATE_PKG *cp_comm_state_pkg_dn          = &(cp->cp_comm_state_pkg_dn);
+
+  int i,iii;
+  int cp_lda            = cpopts->cp_lda;
+  int cp_lsda           = cpopts->cp_lsda;
+  int cp_sic            = cpopts->cp_sic;
+  int cp_nonint         = cpopts->cp_nonint;
+  int cp_ptens_calc     = cpopts->cp_ptens_calc;
+  int cp_gga            = cpopts->cp_gga;
+  int cp_para_opt       = cpopts->cp_para_opt;
+  int realSparseOpt     = cpopts->realSparseOpt;
+  int nstate_up         = cpcoeffs_info->nstate_up_proc;
+  int nstate_dn         = cpcoeffs_info->nstate_dn_proc;
+  int nstate_up_tot     = cpcoeffs_info->nstate_up;
+  int nstate_dn_tot     = cpcoeffs_info->nstate_dn;
+  int laplacian_on      = cpcoeffs_info->cp_laplacian_on;
+  int cp_tau_functional = cpcoeffs_info->cp_tau_functional;
+  int alpha_conv_dual   = pseudo->alpha_conv_dual;
+  int n_interp_pme_dual = pseudo->n_interp_pme_dual;
+  int cp_dual_grid_opt  = cpopts->cp_dual_grid_opt;
+  int cp_min_on = 0; //I don't want to calculate cp_hess
+  int myid_state           =  communicate->myid_state;
+  int np_states            =  communicate->np_states;
+  int nstate_ncoef_proc_max_up = cpcoeffs_info->nstate_ncoef_proc_max_up;
+  int nstate_ncoef_proc_max_dn = cpcoeffs_info->nstate_ncoef_proc_max_dn;
+  int nstate_ncoef_proc_up     = cpcoeffs_info->nstate_ncoef_proc_up;
+  int nstate_ncoef_proc_dn     = cpcoeffs_info->nstate_ncoef_proc_dn;
+  int icoef_orth_up          =  cpcoeffs_pos->icoef_orth_up;
+  int icoef_form_up          =  cpcoeffs_pos->icoef_form_up;
+  int ifcoef_form_up         =  cpcoeffs_pos->ifcoef_form_up;
+  int icoef_orth_dn          =  cpcoeffs_pos->icoef_orth_dn;
+  int icoef_form_dn          =  cpcoeffs_pos->icoef_form_dn;
+  int ifcoef_form_dn         =  cpcoeffs_pos->ifcoef_form_dn;
+  char *vxc_typ              =  pseudo->vxc_typ;
+
+  double gc_cut         = pseudo->gga_cut;
+  double cp_eke_dn,cp_eke;
+
+  double *creal_up         =  cpcoeffs_pos->cre_up;
+  double *cimag_up         =  cpcoeffs_pos->cim_up;
+  double *cimag_dn         =  cpcoeffs_pos->cim_dn;
+  double *creal_dn         =  cpcoeffs_pos->cre_dn;
+  double *fcreal_up        =  cpcoeffs_pos->fcre_up;
+  double *fcimag_up        =  cpcoeffs_pos->fcim_up;
+  double *fcimag_dn        =  cpcoeffs_pos->fcim_dn;
+  double *fcreal_dn        =  cpcoeffs_pos->fcre_dn;
+  double *kfcre_up         =  cpcoeffs_pos->kfcre_up;
+  double *kfcim_up         =  cpcoeffs_pos->kfcim_up;
+  double *cp_hess_re_up    =  cpcoeffs_pos->cp_hess_re_up;
+  double *cp_hess_im_up    =  cpcoeffs_pos->cp_hess_im_up;
+  double *cp_hess_re_dn    =  cpcoeffs_pos->cp_hess_re_dn;
+  double *cp_hess_im_dn    =  cpcoeffs_pos->cp_hess_im_dn;
+  double *ak2_sm           =  cpewald->ak2_sm;
+  double *v_ks_up          =  cpscr->cpscr_rho.v_ks_up;
+  double *v_ks_dn          =  cpscr->cpscr_rho.v_ks_dn;
+  double *v_ks_tau_up      =  cpscr->cpscr_rho.v_ks_tau_up;
+  double *v_ks_tau_dn      =  cpscr->cpscr_rho.v_ks_tau_dn;
+  double *zfft             =  cpscr->cpscr_wave.zfft;
+  double *zfft_tmp         =  cpscr->cpscr_wave.zfft_tmp;
+  //double *cre_scr          =  cpscr->cpscr_wave.cre_up;
+  //double *cim_scr          =  cpscr->cpscr_wave.cim_up;
+  double *hmati_cp         =  cell->hmati_cp;
+  double *pvten_cp         =  ptens->pvten_tmp;
+  double *cp_eke_ret       =  &(stat_avg->cp_eke);
+  double *ks_offset        =  &(cpcoeffs_pos->ks_offset);
+
+  MPI_Comm comm_states = communicate->comm_states;
+  MPI_Comm world       = communicate->world;
+
+  //if(realSparseOpt==0){
+  cp_sclr_fft_pkg3d_sm = &(cp->cp_sclr_fft_pkg3d_sm);
+  cp_sclr_fft_pkg3d_lg = &(cp->cp_sclr_fft_pkg3d_lg);
+  cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
+  //}
+  /*
+  else{
+    cp_sclr_fft_pkg3d_sm = &(cp->cp_sclr_fft_pkg3d_sparse);
+    cp_sclr_fft_pkg3d_lg = &(cp->cp_sclr_fft_pkg3d_sparse);
+    cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_sparse);
+  }
+  */
+
+/*-------------------------------------------------------------------------*/
+
+ /*-----------------------------------------*/
+ /* i)  Up states                           */
+  fftWraperRhsReal(cpewald,nstate_up,creal_up,cimag_up,
+			  fcreal_up,fcimag_up,
+			  zfft,zfft_tmp,v_ks_up,v_ks_tau_up,ak2_sm,&cp_eke,pvten_cp,
+			  cp_ptens_calc,hmati_cp,communicate,icoef_form_up,
+			  icoef_orth_up,ifcoef_form_up,cp_tau_functional,cp_min_on,
+			  cp_sclr_fft_pkg3d_sm,cp,class,general_data,rhs, id);
+ /*--------------------------------------------*/
+ /* ii) down states (if necessary)             */
+
+
+
+/*==========================================================================*/
+}/*end Routine*/
+/*=======================================================================*/

@@ -9,3 +9,7 @@ double Jacobi_am(double, char, double);
 
 void filterRational(CP *, CLASS *, GENERAL_DATA *, int );
 void calcChemPotRational(CP *,CLASS *,GENERAL_DATA *, int );
+
+double complex fermi_fun(double complex , double , double , double );
+void solve_shifted_eqn_cocg( CP *, CLASS *, GENERAL_DATA *, int , int );
+void init_zseed( CP *, int );

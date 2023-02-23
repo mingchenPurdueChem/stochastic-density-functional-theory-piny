@@ -410,6 +410,11 @@ void fftWraperRhsReal(CPEWALD *cpewald,int nstate,
   FILE *fp;
 #endif
 
+  STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
+  double **stoWfUpRe = stodftCoefPos->stoWfUpRe;
+  double **stoWfUpIm = stodftCoefPos->stoWfUpIm;
+  double **stoWfDnRe = stodftCoefPos->stoWfDnRe;
+  double **stoWfDnIm = stodftCoefPos->stoWfDnIm;
 
   cp_sclr_fft_pkg3d_sm->numThreads = communicate->numThreads;
   ncoef1 = ncoef - 1;
@@ -461,7 +466,9 @@ fccimag[ncoef] = 0.0;
 
 
 for (int j =1; j <= ncoef; j++){
- printf("frhs %i %i  %.8f  %.8f \n", myid_state, j, fccreal[j], fccimag[j]);
+ stoWfUpRe[0][j + (id*ncoef)] = fccreal[j];
+ stoWfUpIm[0][j + (id*ncoef)] = fccimag[j];
+ //printf("frhs %i %i  %.8f  %.8f \n", myid_state, j, fccreal[j], fccimag[j]);
 }
 
 /*==========================================================================*/

@@ -127,7 +127,7 @@ void solve_shifted_eqn_cocg( CP *cp, CLASS *class, GENERAL_DATA *general_data, i
   
     komega_cocg_update(v12, v2, x, r_l, status);
   
-    printf(" DEBUG : %i %i %i %i %lg \n", iter, status[0], status[1], status[2], creal(v12[0]));
+    //printf(" DEBUG : %i %i %i %i %lg \n", iter, status[0], status[1], status[2], creal(v12[0]));
   
     if(status[0] < 0) break;
   
@@ -247,6 +247,14 @@ void filterRational(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 
   int nfft          = cp_para_fft_pkg3d_lg->nfft;
   int nfft2         = nfft/2;
+  double complex sum; 
+  int ntgrid = rationalInfo->ntgrid;
+
+  double complex *fun_p = rationalInfo->fun_p;
+  double complex *fun_m = rationalInfo->fun_m;
+  double complex *x = rationalInfo->x;
+  double preRat = rationalInfo->preRat;
+  double *frhs = rationalInfo->frhs;
 
   printf("start tessssssssssssst RA \n");
 
@@ -256,12 +264,38 @@ void filterRational(CP *cp,CLASS *class,GENERAL_DATA *general_data,
    rationalInfo->small_dmu, rationalInfo->maxmu, rationalInfo->epsilon, expanType,
    rationalInfo->init_mu);
 
+/******************************************************************************/
+printf("Starting Filtering with Rational Approximation\n");
+/******************************************************************************/
+
+init_zseed(cp, 0);
+
+for(iState=0;iState<numStateUpProc;iState++){
+
+  //printf("myidState %i %i %i \n", myidState, numStateUpProc, iState);
+  solve_shifted_eqn_cocg( cp, class, general_data, iState, 0);
+
+  for (int i = 0; i<nfft2;i++){
+    sum = 0.0 + 0.0 *I ;
+    for (int j =0; j < ntgrid; j++){
+      sum = sum + fun_p[j] * x[j*nfft2 + i] + fun_m[j] * x[(j+ntgrid)*nfft2 + i];
+    }
+    frhs[i] = preRat*cimag(sum);
+  }
+
+  rhsReal(class, general_data, cp, cpcoeffs_pos, clatoms_pos, frhs, iState);
+}
+
+/******************************************************************************/
+printf("Finished Filtering with Rational Approximation\n");
+/******************************************************************************/
+/*
   printf("end tessssssssssssst RA \n");
   Barrier(comm_states);
   printf("@@@@@@@@@@@@@@@@@@@@_forced_stop__@@@@@@@@@@@@@@@@@@@@\n");
   fflush(stdout);
   exit(1);
-
+*/
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/
@@ -348,15 +382,23 @@ void calcChemPotRational(CP *cp,CLASS *class,GENERAL_DATA *general_data,
   double preRat = rationalInfo->preRat;
   double *frhs = rationalInfo->frhs;
   double *rhs = rationalInfo->rhs;
+  double maxmu = rationalInfo->maxmu;
+  double large_dmu = rationalInfo->large_dmu;
+  double small_dmu = rationalInfo->small_dmu;
 
   double complex sum;
   double dsum;
   double NElecTot;
+  double dNdm, fmu;
+
   NElecTot = 0.0;
 /******************************************************************************/
 printf("Start ChemicalPotential with Rational Approximation\n");
 /******************************************************************************/
 
+chemPotNew = stodftInfo->chemPotTrue;
+
+/******************************************************************************/
 init_zseed(cp, 1);
 
 for(iState=0;iState<numStateUpProc;iState++){
@@ -377,8 +419,80 @@ for(iState=0;iState<numStateUpProc;iState++){
 
 dsum = (dsum/numStateStoUp)*(1.0/stodftInfo->rhoRealGridTot);
 if(numProcStates>1)Reduce(&dsum,&NElecTot,1,MPI_DOUBLE,MPI_SUM,0,comm_states);
-printf("==== final results === %lg %lg \n", dsum, NElecTot);
+printf("==== final results: NElecTot === %lg %lg \n", dsum, NElecTot);
+/******************************************************************************/
+/******************************************************************************/
+stodftInfo->chemPotTrue = chemPotNew - small_dmu;
+init_zseed(cp, 1);
 
+for(iState=0;iState<numStateUpProc;iState++){
+
+  //printf("myidState %i %i %i %i %i \n", myidState, numStateUpProc, iState, numProcStates, numStateStoUp);
+  solve_shifted_eqn_cocg( cp, class, general_data, iState, 1);
+
+  for (int i = 0; i<nfft2;i++){
+    sum = 0.0 + 0.0 *I ;
+    for (int j =0; j < ntgrid; j++){
+      sum = sum + fun_p[j] * x[j*nfft2 + i] + fun_m[j] * x[(j+ntgrid)*nfft2 + i];
+    }
+    frhs[i] = preRat*cimag(sum);
+    dsum = dsum + 2.0*frhs[i]*rhs[i];
+  }
+
+}
+
+dsum = (dsum/numStateStoUp)*(1.0/stodftInfo->rhoRealGridTot);
+if(numProcStates>1)Reduce(&dsum,&numElecMin,1,MPI_DOUBLE,MPI_SUM,0,comm_states);
+printf("==== final results: numElecMin === %lg %lg \n", dsum, numElecMin);
+/******************************************************************************/
+/******************************************************************************/
+stodftInfo->chemPotTrue = chemPotNew + small_dmu;
+init_zseed(cp, 1);
+
+for(iState=0;iState<numStateUpProc;iState++){
+
+  //printf("myidState %i %i %i %i %i \n", myidState, numStateUpProc, iState, numProcStates, numStateStoUp);
+  solve_shifted_eqn_cocg( cp, class, general_data, iState, 1);
+
+  for (int i = 0; i<nfft2;i++){
+    sum = 0.0 + 0.0 *I ;
+    for (int j =0; j < ntgrid; j++){
+      sum = sum + fun_p[j] * x[j*nfft2 + i] + fun_m[j] * x[(j+ntgrid)*nfft2 + i];
+    }
+    frhs[i] = preRat*cimag(sum);
+    dsum = dsum + 2.0*frhs[i]*rhs[i];
+  }
+
+}
+
+dsum = (dsum/numStateStoUp)*(1.0/stodftInfo->rhoRealGridTot);
+if(numProcStates>1)Reduce(&dsum,&numElecMax,1,MPI_DOUBLE,MPI_SUM,0,comm_states);
+printf("==== final results: numElecMax === %lg %lg \n", dsum, numElecMax);
+/******************************************************************************/
+stodftInfo->chemPotTrue = chemPotNew;
+
+   dNdm = (numElecMax - numElecMin)/(2.0*small_dmu);
+   fmu = -(NElecTot - numElecTrue)*dNdm; 
+
+   if (fabs(fmu*large_dmu) > maxmu ){
+     if(fmu>0) chemPotNew = chemPotNew + maxmu;
+     else chemPotNew = chemPotNew - maxmu;
+   } 
+   else {
+     chemPotNew = chemPotNew + (fmu*large_dmu);
+   }
+
+  if(numProcStates>1){
+    Barrier(comm_states);
+    Bcast(&chemPotNew,1,MPI_DOUBLE,0,comm_states);
+  }
+
+  chemPot[0] = chemPotNew;
+  stodftInfo->chemPotTrue = chemPotNew; // another backup
+  if(myidState==0){
+    printf("Correct Chemical Potential is %.16lg\n",chemPotNew);
+    fflush(stdout);
+  }
 /******************************************************************************/
 printf("Finished ChemicalPotential with Rational Approximation\n");
 /******************************************************************************/

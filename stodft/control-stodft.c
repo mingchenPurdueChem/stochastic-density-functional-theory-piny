@@ -284,6 +284,7 @@ void controlStodftMin(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
       }
     }
     else if(stodftInfo->chemPotOpt==3){ //Rational Approximation
+      stodftInfo->chemPotTrue = stodftInfo->rationalInfo->init_mu;
       scfStodftCheby(class,bonded,general_data,cp,ip_now);
     }
     else if(stodftInfo->chemPotOpt==2){

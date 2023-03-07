@@ -56,6 +56,9 @@ void solve_shifted_eqn_cocg( CP *cp, CLASS *class, GENERAL_DATA *general_data, i
   CLATOMS_INFO *clatoms_info    = &(class->clatoms_info);
   COMMUNICATE *communicate      = &(cp->communicate);
   RATIONALINFO *rationalInfo    = stodftInfo->rationalInfo;
+  KOMEGAINFO *komegaInfo;
+  komegaInfo = (KOMEGAINFO*)malloc(sizeof(KOMEGAINFO));
+
 
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
 
@@ -95,14 +98,19 @@ void solve_shifted_eqn_cocg( CP *cp, CLASS *class, GENERAL_DATA *general_data, i
   double *rhs = rationalInfo->rhs;
 /* =------------------------------------------------------------------------------------= */
   int status[3];
-
+  double timeStart1, timeEnd1;
+  double timeStart2, timeEnd2;
+  double t1, t2, tot, tot1;
   int i, j, iter, jiter, ndim, nz;
 
+  tot = 0.0;
+  tot1 = 0.0;
   nz = 2*ntgrid;
   ndim = nfft2; // ndim;
   spinFlag = 0;
   
   printf("--- Starting solving shifted COCG eqn  ---- \n");
+  timeStart1 = omp_get_wtime();
   
   genNoiseOrbitalRealRational(cp,cpcoeffs_pos, v2, id); 
   
@@ -114,18 +122,25 @@ void solve_shifted_eqn_cocg( CP *cp, CLASS *class, GENERAL_DATA *general_data, i
   
   //printf("zdim %i dim %i ndim %i \n", zdim, dim, ndim);
   
-  komega_cocg_init(&ndim, &ndim, &nz, x, zseed, &itermax, &threshold, NULL);
-  
+  timeEnd1 = omp_get_wtime(); 
+  timeStart2 = omp_get_wtime();
+  //komega_cocg_init(&ndim, &ndim, &nz, x, zseed, &itermax, &threshold, NULL);
+  komega_COCG_init(komegaInfo, ndim, ndim, nz, x, zseed, itermax, threshold);
   for (iter = 0; iter < itermax; iter++){
   
     for (i = 0; i < ndim; i++) {
       r_l[i] = v2[i];
     }
-  
+    t1 = omp_get_wtime(); 
     calcCoefForceWrapSCFReal(class,general_data,cp,cpcoeffs_pos,clatoms_pos,v2,v12,spinFlag);
+    t2 = omp_get_wtime(); 
+    tot = tot + (t2-t1); 
   
-  
-    komega_cocg_update(v12, v2, x, r_l, status);
+    t1 = omp_get_wtime(); 
+    //komega_cocg_update(v12, v2, x, r_l, status);
+    komega_COCG_update(komegaInfo, v12, v2, x, r_l, status);
+    t2 = omp_get_wtime(); 
+    tot1 = tot1 + (t2-t1); 
   
     //printf(" DEBUG : %i %i %i %i %lg \n", iter, status[0], status[1], status[2], creal(v12[0]));
   
@@ -151,10 +166,11 @@ void solve_shifted_eqn_cocg( CP *cp, CLASS *class, GENERAL_DATA *general_data, i
       break;
   }
   
-  komega_cocg_finalize();
+  //komega_cocg_finalize();
+  komega_COCG_finalize(komegaInfo);
   
-  
-  printf("--- Finished solving shifted COCG eqn  ---- \n");
+  timeEnd2 = omp_get_wtime(); 
+  printf("--- Finished solving shifted COCG eqn  ---- %lg %lg %lg %lg \n", timeEnd1-timeStart1, timeEnd2-timeStart2, tot, tot1);
 }
 /*==========================================================================*/
 
@@ -653,3 +669,365 @@ printf("myidStatesin %lg  \n", rationalInfo->preRat);
 }
 /*========================================================================================*/
 /*========================================================================================*/
+/*==========================================================================*/
+/*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*/
+/*==========================================================================*/
+/*                               KOMEGA LIBRARY                             */
+/*                             Solve shifted COCG                           */
+/*==========================================================================*/
+/*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*/
+/*==========================================================================*/
+void komega_COCG_init(KOMEGAINFO *komegaInfo, int ndim0, int nl0, int nz0, double complex *x, double complex *z0, int itermax0, double threshold0){
+
+  int i;
+  //KOMEGAINFO *komegaInfo;
+  //komegaInfo = (KOMEGAINFO*)malloc(sizeof(KOMEGAINFO));
+  
+  komegaInfo->ndim = ndim0;
+  komegaInfo->nl = nl0;
+  komegaInfo->nz = nz0;
+  komegaInfo->itermax = itermax0;
+  komegaInfo->threshold = threshold0;
+  komegaInfo->almost0 = 1.0E-50;
+
+  printf("%i %i %i %i %lg\n", komegaInfo->ndim, komegaInfo->nl, komegaInfo->nz, komegaInfo->itermax, komegaInfo->threshold);
+
+  komegaInfo->z = (double complex*)malloc((komegaInfo->nz)*sizeof(double complex));  
+  komegaInfo->v3 = (double complex*)malloc((komegaInfo->ndim)*sizeof(double complex));  
+  komegaInfo->pi = (double complex*)malloc((komegaInfo->nz)*sizeof(double complex));  
+  komegaInfo->pi_old = (double complex*)malloc((komegaInfo->nz)*sizeof(double complex));  
+  komegaInfo->p = (double complex*)malloc((komegaInfo->nz*komegaInfo->nl)*sizeof(double complex));  
+  komegaInfo->lz_conv = (int*)malloc((komegaInfo->nz)*sizeof(int));  
+
+  //printf("here 000 \n");
+
+  double complex *z = komegaInfo->z;
+  double complex *v3 = komegaInfo->v3;
+  double complex *pi = komegaInfo->pi;
+  double complex *pi_old = komegaInfo->pi_old;
+  double complex *p = komegaInfo->p;
+  int *lz_conv = komegaInfo->lz_conv; 
+  
+
+  for ( i = 0; i < komegaInfo->nz; i++){
+    z[i] = z0[i];
+  }
+
+  //printf("inside %lg %lg \n", creal(z0[0]) , creal(z[0]));
+
+  for ( i = 0; i < komegaInfo->ndim; i++){
+    v3[i] = 0.0 + 0.0*I;
+  }
+
+  for ( i = 0; i < komegaInfo->nl*komegaInfo->nz; i++){
+    p[i] = 0.0 + 0.0*I;
+    x[i] = 0.0 + 0.0*I;
+  }
+
+  for ( i = 0; i < komegaInfo->nz; i++){
+    pi[i] = 1.0 + 0.0*I;
+    pi_old[i] = 1.0 + 0.0*I;
+  }
+ 
+  komegaInfo->rho = 1.0 + 0.0*I; 
+  komegaInfo->alpha = 1.0 + 0.0*I; 
+  komegaInfo->beta = 0.0 + 0.0*I; 
+
+  komegaInfo->iz_seed = 0;
+  komegaInfo->z_seed = z[komegaInfo->iz_seed];
+  komegaInfo->iter = 0;
+
+  for ( i = 0; i < komegaInfo->nz; i++){
+    lz_conv[i] = 0;
+  }
+  
+
+
+} /* End komega_COCG_init */
+/*==========================================================================*/
+
+/*==========================================================================*/
+/*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*/
+/*==========================================================================*/
+void komega_COCG_finalize(KOMEGAINFO *komegaInfo){
+
+
+  free(komegaInfo->z);
+  free(komegaInfo->v3);
+  free(komegaInfo->pi);
+  free(komegaInfo->p);
+  free(komegaInfo->lz_conv);
+  //free(komegaInfo->pi_old);
+
+} /* End komega_COCG_finalize */
+/*==========================================================================*/
+
+/*==========================================================================*/
+/*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*/
+/*==========================================================================*/
+void komega_COCG_update(KOMEGAINFO *komegaInfo, double complex *v12, double complex *v2, double complex *x, double complex *r_l, int *status){
+
+  double complex rho_old, alpha_denom, cdotp;
+  double complex conts1, conts2;
+  int i,j;
+  double complex *v3 = komegaInfo->v3; 
+  double complex *pi = komegaInfo->pi; 
+  int *lz_conv = komegaInfo->lz_conv; 
+
+  komegaInfo->iter = komegaInfo->iter + 1;
+
+  //printf("here 0 %i \n", komegaInfo->iter);
+  for (i = 0; i < 3; i++){
+    status[i] = 0;
+  }
+
+  //printf("here 1 \n");
+
+  rho_old = komegaInfo->rho;
+
+  komegaInfo->rho = 0.0 +0.0*I;
+  for (i = 0; i < komegaInfo->ndim; i++){
+    komegaInfo->rho = komegaInfo->rho + v2[i]*v2[i];
+  }
+  //printf("here 1 %lg %lg \n", creal(komegaInfo->rho), cimag(komegaInfo->rho));
+
+  if(komegaInfo->iter == 1){
+    komegaInfo->beta =  0.0 +0.0*I;
+  }
+  else{
+    komegaInfo->beta = komegaInfo->rho / rho_old;
+  }
+
+  //printf("here 2 \n");
+
+  for (i = 0; i < komegaInfo->ndim; i++){
+    v12[i] = komegaInfo->z_seed * v2[i] - v12[i];
+  }
+
+  komegaInfo->alpha_old = komegaInfo->alpha;
+
+  cdotp = 0.0 +0.0*I;
+  for (i = 0; i < komegaInfo->ndim; i++){
+    cdotp = cdotp + v2[i]*v12[i];
+  }
+
+  //printf("here 2 %lg %lg \n", creal(cdotp), cimag(cdotp));
+
+  //printf("here a %lg %lg \n", creal(komegaInfo->alpha), cimag(komegaInfo->alpha));
+  //printf("here b %lg %lg \n", creal(komegaInfo->beta), cimag(komegaInfo->beta));
+  //printf("here r %lg %lg \n", creal(komegaInfo->rho), cimag(komegaInfo->rho));
+
+  alpha_denom = cdotp - (komegaInfo->beta * komegaInfo->rho / komegaInfo->alpha) ;
+  //printf("here 3 %lg %lg \n", creal(alpha_denom), cimag(alpha_denom));
+  //printf("alpha_denom %lg \n", cabs(alpha_denom));
+  //printf("here 3 %lg %lg \n", creal(komegaInfo->rho), cimag(komegaInfo->rho));
+  //printf("komegaInfo->rho %lg \n", cabs(komegaInfo->rho));
+
+  if( cabs(alpha_denom) < komegaInfo->almost0){
+    status[1] = 2;
+  }
+  else if( cabs(komegaInfo->rho) < komegaInfo->almost0 ){
+    status[1] = 4;
+  }
+
+  komegaInfo->alpha = komegaInfo->rho / alpha_denom;
+
+  //printf("here 4 %lg %lg \n ", creal(komegaInfo->alpha), cimag(komegaInfo->alpha));
+
+  /* call Shifted equation */
+
+  komega_COCG_shiftedeqn(komegaInfo, r_l, x);
+
+  /* Update residual */
+
+  conts1 = (1.0 + komegaInfo->alpha * komegaInfo->beta / komegaInfo->alpha_old);
+  conts2 = komegaInfo->alpha * komegaInfo->beta / komegaInfo->alpha_old;
+
+  for (i = 0; i < komegaInfo->ndim; i++){
+    v12[i] = conts1*v2[i] - komegaInfo->alpha * v12[i] - conts2*v3[i];
+  }
+
+  for (i = 0; i < komegaInfo->ndim; i++){
+    v3[i] = v2[i];
+    v2[i] = v12[i];
+  }
+
+ // printf("v2 %lg %lg \n", creal(v2[0]), cimag(v2[0]));
+ // printf("v2 %lg %lg \n", creal(v2[9]), cimag(v2[9]));
+ // printf("v2 %lg %lg \n", creal(v2[99]), cimag(v2[99]));
+
+ // printf("v3 %lg %lg \n", creal(v3[0]), cimag(v3[0]));
+ // printf("v3 %lg %lg \n", creal(v3[9]), cimag(v3[9]));
+ // printf("v3 %lg %lg \n", creal(v3[99]), cimag(v3[99]));
+  /* Seed Switching  */
+  komega_COCG_seed_switch(komegaInfo, v2,status);
+
+  /* Convergence check  */
+  cdotp = 0.0 + 0.0*I;
+  for (i = 0; i < komegaInfo->ndim; i++){
+   cdotp = cdotp + v2[i]* (creal(v2[i]) - cimag(v2[i])*I);
+  }
+
+    //printf(" %lg %lg \n", creal(cdotp), cimag(cdotp));
+
+    v12[0] = sqrt(creal(cdotp)) + 0.0*I; //TODO
+    komegaInfo->resnorm = creal(v12[0]);
+
+  for (i = 0; i < komegaInfo->nz; i++){
+    if( cabs(v12[0]/pi[i]) < komegaInfo->threshold ) lz_conv[i] = 1;
+  }
+
+  if( creal(v12[0]) < komegaInfo->threshold){
+     /* Converged */
+     status[0] = - komegaInfo->iter;
+     status[1] = 0;
+  }
+  else if(komegaInfo->iter == komegaInfo->itermax){
+     /* NOT Converged in itermax */
+     status[0] = - komegaInfo->iter;
+     status[1] = 1;
+  }
+  else if(status[1] == 2){
+     /* alpha becomes infinite */
+     status[0] = - komegaInfo->iter;
+  }
+  else if(status[1] == 3){
+     /* pi_seed becomes zero */
+     status[0] = - komegaInfo->iter;
+  }
+  else if(status[1] == 4){
+     /* rho becomes zero */
+     status[0] = - komegaInfo->iter;
+  }
+  else {
+     /* Continue */
+     status[0] = komegaInfo->iter;
+     status[1] = 0;
+  }
+
+
+}/* End komega_COCG_update */
+/*==========================================================================*/
+
+/*==========================================================================*/
+/*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*/
+/*==========================================================================*/
+void komega_COCG_shiftedeqn(KOMEGAINFO *komegaInfo, double complex *r_l, double complex *x) {
+
+int *lz_conv = komegaInfo->lz_conv; 
+double complex *z = komegaInfo->z; 
+double complex *p = komegaInfo->p; 
+double complex *pi = komegaInfo->pi; 
+double complex *pi_old = komegaInfo->pi_old; 
+double complex pi_new;
+double complex cons;
+int iz, i;
+
+  for ( iz = 0; iz < komegaInfo->nz; iz++){
+    if(lz_conv[iz] == 1) continue;
+  
+    pi_new = (1.0 + komegaInfo->alpha * (z[iz] - komegaInfo->z_seed)) * pi[iz]
+            - komegaInfo->alpha * komegaInfo->beta / komegaInfo->alpha_old * (pi_old[iz] - pi[iz]);
+  
+    //printf(" %i %lg %lg \n", iz, creal(pi_new), cimag(pi_new));
+    for ( i = 0; i < komegaInfo->nl; i++){
+      p[i*komegaInfo->nz + iz] = r_l[i] / pi[iz] + (pi_old[iz] / pi[iz])*(pi_old[iz] / pi[iz]) * komegaInfo->beta * p[i*komegaInfo->nz + iz];
+    }
+  
+    cons = pi[iz]/ pi_new * komegaInfo->alpha;
+    for ( i = 0; i < komegaInfo->nl; i++){
+      x[i*komegaInfo->nz + iz] = x[i*komegaInfo->nz + iz] + cons * p[i*komegaInfo->nz + iz];
+    }
+  
+    pi_old[iz] = pi[iz];
+    pi[iz] = pi_new;
+  
+  }
+
+  //printf(" %i %lg %lg \n", iz, creal(x[0]), cimag(x[0]));
+  //printf(" %i %lg %lg \n", iz, creal(x[4999]), cimag(x[4999]));
+  //printf(" %i %lg %lg \n", iz, creal(x[komegaInfo->nz*komegaInfo->nl-1]), cimag(x[komegaInfo->nz*komegaInfo->nl-1]));
+
+} /* END komega_COCG_shiftedeqn */
+/*==========================================================================*/
+
+
+/*==========================================================================*/
+/*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*/
+/*==========================================================================*/
+void komega_COCG_seed_switch(KOMEGAINFO *komegaInfo, double complex *v2, int *status) {
+
+double complex *z = komegaInfo->z; 
+double complex *v3 = komegaInfo->v3; 
+double complex *pi = komegaInfo->pi; 
+double complex *pi_old = komegaInfo->pi_old; 
+int *lz_conv = komegaInfo->lz_conv;
+//int iz_seed = komegaInfo->iz_seed;
+int i;
+double complex scale;
+double minimum;
+int location;
+
+  //printf("%lg %lg %lg \n", cabs(pi[0]), creal(pi[0]), cimag(pi[0]) );
+
+  //status[2] = MINLOC(ABS(pi(1:nz)), 1, .NOT. lz_conv(1:nz));
+
+    minimum = cabs(pi[0]);
+    location = 0; 
+    for ( i = 0 ; i < komegaInfo->nz ; i++ ) 
+    {
+        if ( (cabs(pi[i]) < minimum) && (lz_conv[i] == 0) ) 
+        {
+           minimum = cabs(pi[i]);
+           location = i;
+        }
+    }
+
+    //printf("loc %i %lg \n",  location, minimum);
+
+    status[2] = location;
+
+
+  if ( cabs(pi[status[2]]) < komegaInfo->almost0 ) {
+    status[1] = 3;
+  }
+
+
+  if(status[2] != komegaInfo->iz_seed) {
+
+    komegaInfo->iz_seed = status[2];
+    komegaInfo->z_seed = z[komegaInfo->iz_seed];
+
+    komegaInfo->alpha = komegaInfo->alpha * pi_old[komegaInfo->iz_seed] / pi[komegaInfo->iz_seed];
+    komegaInfo->rho = komegaInfo->rho / (pi_old[komegaInfo->iz_seed]*pi_old[komegaInfo->iz_seed]);
+
+    scale = 1.0 / pi[komegaInfo->iz_seed];
+
+    //printf("iz_seed  %i %i \n", iz_seed, komegaInfo->iz_seed);
+    for (i = 0; i < komegaInfo->ndim; i++){
+      v2[i] = scale*v2[i];
+    }
+    for (i = 0; i < komegaInfo->nz; i++){
+      pi[i] = scale*pi[i];
+    }
+
+    //printf("scale %lg %lg \n", creal(scale), cimag(scale));
+
+    scale = 1.0 / pi_old[komegaInfo->iz_seed];
+    //printf("scale %lg %lg \n", creal(scale), cimag(scale));
+    for (i = 0; i < komegaInfo->ndim; i++){
+      v3[i] = scale*v3[i];
+    }
+    for (i = 0; i < komegaInfo->nz; i++){
+      pi_old[i] = scale*pi_old[i];
+    }
+
+
+  }/* end if*/
+
+  //printf("status %i %i %i \n", status[0], status[1], status[2] );
+
+} /* END komega_COCG_seed_switch  */
+/*==========================================================================*/
+
+

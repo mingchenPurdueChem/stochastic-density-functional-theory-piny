@@ -296,6 +296,35 @@ typedef struct cpcoeffs_pos {
 
 } CPCOEFFS_POS;
 
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+
+typedef struct komegaInfo{
+  int iter; /*  Counter of iteration             */
+  int itermax; /* Maximum number of iteration  */
+  int nz; /* Number of Frequency (Shift) */
+  int nl; /* imension of projection */
+  int ndim; /* Dimension of Hamiltonian */
+  int iz_seed; /* Index of frequency of seed */
+
+  double almost0;
+
+  int *lz_conv; /* If converged at this frequency -> .TRUE. */
+
+  double threshold; /* Convergence threshold */
+  double resnorm; /* Residual norm */
+
+  double complex z_seed, rho, alpha, beta, alpha_old;
+
+  double complex *z, *pi, *v3, *p, *pi_old;
+
+} KOMEGAINFO;
+
+/*==========================================================================*/
+/*==========================================================================*/
+
+
 typedef struct rationalInfo{
 /* These following parameters will be read from the input file                             */
 /*=========================================================================================*/

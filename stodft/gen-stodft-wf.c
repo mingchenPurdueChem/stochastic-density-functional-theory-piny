@@ -373,7 +373,10 @@ void genStoOrbitalCheby(CLASS *class,GENERAL_DATA *general_data,
   CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
   CPCOEFFS_POS  *cpcoeffs_pos   = &(cp->cpcoeffs_pos[ip_now]);
   MPI_Comm commStates = commCP->comm_states;
-  
+
+  RATIONALINFO *rationalInfo = stodftInfo->rationalInfo; 
+  KOMEGAINFO *komegaInfo = (KOMEGAINFO*)cmalloc(sizeof(KOMEGAINFO));
+  //rationalInfo->komegaInfo = komegaInfo; 
 
   int iPoly,iState,iState2,iCoeff,iChem;
   int numChemPot = stodftInfo->numChemPot;
@@ -563,7 +566,7 @@ void genStoOrbitalCheby(CLASS *class,GENERAL_DATA *general_data,
 
   timeStart3 = omp_get_wtime();
   if(stodftInfo->chemPotOpt==3){ //Rational Approximation
-    calcChemPotRational(cp,class,general_data,ip_now);
+    calcChemPotRational(cp,class,general_data, komegaInfo, ip_now);
   }
   else{
     calcChemPotCheby(cp,class,general_data,ip_now);
@@ -674,7 +677,7 @@ void genStoOrbitalCheby(CLASS *class,GENERAL_DATA *general_data,
       filterNewtonPolyHerm(cp,class,general_data,ip_now);
       break;
     case 4:
-      filterRational(cp,class,general_data,ip_now); //TEST Rational routines here 
+      filterRational(cp,class,general_data, komegaInfo, ip_now); //TEST Rational routines here 
       break;
   }
   stodftInfo->filterFlag = 0;

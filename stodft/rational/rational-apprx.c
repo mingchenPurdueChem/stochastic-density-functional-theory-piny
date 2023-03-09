@@ -42,7 +42,7 @@ double complex fermi_fun(double complex x, double dmu, double beta, double epsil
 }
 
 /*========================================================================================*/
-void solve_shifted_eqn_cocg( CP *cp, CLASS *class, GENERAL_DATA *general_data, int id, int is_mu_calc) { 
+void solve_shifted_eqn_cocg( CP *cp, CLASS *class, GENERAL_DATA *general_data, KOMEGAINFO *komegaInfo, int id, int is_mu_calc) { 
 /*========================================================================================*/
 /* =------------------------------------------------------------------------------------= */
 #include "../typ_defs/typ_mask.h"
@@ -56,11 +56,13 @@ void solve_shifted_eqn_cocg( CP *cp, CLASS *class, GENERAL_DATA *general_data, i
   CLATOMS_INFO *clatoms_info    = &(class->clatoms_info);
   COMMUNICATE *communicate      = &(cp->communicate);
   RATIONALINFO *rationalInfo    = stodftInfo->rationalInfo;
-  KOMEGAINFO *komegaInfo;
-  komegaInfo = (KOMEGAINFO*)malloc(sizeof(KOMEGAINFO));
+ // KOMEGAINFO *komegaInfo = rationalInfo->komegaInfo;
+  //komegaInfo = (KOMEGAINFO*)malloc(sizeof(KOMEGAINFO));
 
 
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
+
+  int numThreads = communicate->numThreads;
 
   int numStateUpProc = cpcoeffs_info->nstate_up_proc;
   int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
@@ -109,12 +111,14 @@ void solve_shifted_eqn_cocg( CP *cp, CLASS *class, GENERAL_DATA *general_data, i
   ndim = nfft2; // ndim;
   spinFlag = 0;
   
-  printf("--- Starting solving shifted COCG eqn  ---- \n");
+  printf("--- Starting solving shifted COCG eqn  ---- numThreads %i \n", numThreads);
+
   timeStart1 = omp_get_wtime();
   
   genNoiseOrbitalRealRational(cp,cpcoeffs_pos, v2, id); 
   
   if(is_mu_calc == 1) {
+    #pragma omp parallel for private(i)
     for (i=0; i < nfft2; i++){
       rhs[i] = creal(v2[i]);
     }
@@ -127,7 +131,8 @@ void solve_shifted_eqn_cocg( CP *cp, CLASS *class, GENERAL_DATA *general_data, i
   //komega_cocg_init(&ndim, &ndim, &nz, x, zseed, &itermax, &threshold, NULL);
   komega_COCG_init(komegaInfo, ndim, ndim, nz, x, zseed, itermax, threshold);
   for (iter = 0; iter < itermax; iter++){
-  
+ 
+    #pragma omp parallel for private(i) 
     for (i = 0; i < ndim; i++) {
       r_l[i] = v2[i];
     }
@@ -138,7 +143,7 @@ void solve_shifted_eqn_cocg( CP *cp, CLASS *class, GENERAL_DATA *general_data, i
   
     t1 = omp_get_wtime(); 
     //komega_cocg_update(v12, v2, x, r_l, status);
-    komega_COCG_update(komegaInfo, v12, v2, x, r_l, status);
+    komega_COCG_update(komegaInfo, v12, v2, x, r_l, status, numThreads);
     t2 = omp_get_wtime(); 
     tot1 = tot1 + (t2-t1); 
   
@@ -177,7 +182,7 @@ void solve_shifted_eqn_cocg( CP *cp, CLASS *class, GENERAL_DATA *general_data, i
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void filterRational(CP *cp,CLASS *class,GENERAL_DATA *general_data,
+void filterRational(CP *cp,CLASS *class,GENERAL_DATA *general_data, KOMEGAINFO *komegaInfo,
                           int ip_now)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
@@ -200,6 +205,9 @@ void filterRational(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 
   NEWTONINFO *newtonInfo = stodftInfo->newtonInfo;
   RATIONALINFO *rationalInfo = stodftInfo->rationalInfo;
+
+  //KOMEGAINFO *komegaInfo = rationalInfo->komegaInfo; // = (KOMEGAINFO*)cmalloc(sizeof(KOMEGAINFO));
+  //rationalInfo->komegaInfo = komegaInfo; 
 
   int expanType      = stodftInfo->expanType;
   int polynormLength = stodftInfo->polynormLength;
@@ -289,7 +297,7 @@ init_zseed(cp, 0);
 for(iState=0;iState<numStateUpProc;iState++){
 
   //printf("myidState %i %i %i \n", myidState, numStateUpProc, iState);
-  solve_shifted_eqn_cocg( cp, class, general_data, iState, 0);
+  solve_shifted_eqn_cocg( cp, class, general_data, komegaInfo, iState, 0);
 
   for (int i = 0; i<nfft2;i++){
     sum = 0.0 + 0.0 *I ;
@@ -319,7 +327,7 @@ printf("Finished Filtering with Rational Approximation\n");
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
-void calcChemPotRational(CP *cp,CLASS *class,GENERAL_DATA *general_data,
+void calcChemPotRational(CP *cp,CLASS *class,GENERAL_DATA *general_data, KOMEGAINFO *komegaInfo,
                           int ip_now)
 /*==========================================================================*/
 /*         Begin Routine                                                    */
@@ -431,7 +439,7 @@ dsum = 0.0;
 for(iState=0;iState<numStateUpProc;iState++){
 
   //printf("myidState %i %i %i %i %i \n", myidState, numStateUpProc, iState, numProcStates, numStateStoUp);
-  solve_shifted_eqn_cocg( cp, class, general_data, iState, 1);
+  solve_shifted_eqn_cocg( cp, class, general_data, komegaInfo, iState, 1);
 
   for (int i = 0; i<nfft2;i++){
     sum = 0.0 + 0.0 *I ;
@@ -456,7 +464,7 @@ dsum = 0.0;
 for(iState=0;iState<numStateUpProc;iState++){
 
   //printf("myidState %i %i %i %i %i \n", myidState, numStateUpProc, iState, numProcStates, numStateStoUp);
-  solve_shifted_eqn_cocg( cp, class, general_data, iState, 1);
+  solve_shifted_eqn_cocg( cp, class, general_data, komegaInfo, iState, 1);
 
   for (int i = 0; i<nfft2;i++){
     sum = 0.0 + 0.0 *I ;
@@ -481,7 +489,7 @@ dsum = 0.0;
 for(iState=0;iState<numStateUpProc;iState++){
 
   //printf("myidState %i %i %i %i %i \n", myidState, numStateUpProc, iState, numProcStates, numStateStoUp);
-  solve_shifted_eqn_cocg( cp, class, general_data, iState, 1);
+  solve_shifted_eqn_cocg( cp, class, general_data, komegaInfo, iState, 1);
 
   for (int i = 0; i<nfft2;i++){
     sum = 0.0 + 0.0 *I ;
@@ -708,22 +716,25 @@ void komega_COCG_init(KOMEGAINFO *komegaInfo, int ndim0, int nl0, int nz0, doubl
   double complex *p = komegaInfo->p;
   int *lz_conv = komegaInfo->lz_conv; 
   
-
+  #pragma omp parallel for private(i)
   for ( i = 0; i < komegaInfo->nz; i++){
     z[i] = z0[i];
   }
 
   //printf("inside %lg %lg \n", creal(z0[0]) , creal(z[0]));
 
+  #pragma omp parallel for private(i)
   for ( i = 0; i < komegaInfo->ndim; i++){
     v3[i] = 0.0 + 0.0*I;
   }
 
+  #pragma omp parallel for private(i)
   for ( i = 0; i < komegaInfo->nl*komegaInfo->nz; i++){
     p[i] = 0.0 + 0.0*I;
     x[i] = 0.0 + 0.0*I;
   }
 
+  #pragma omp parallel for private(i)
   for ( i = 0; i < komegaInfo->nz; i++){
     pi[i] = 1.0 + 0.0*I;
     pi_old[i] = 1.0 + 0.0*I;
@@ -737,6 +748,7 @@ void komega_COCG_init(KOMEGAINFO *komegaInfo, int ndim0, int nl0, int nz0, doubl
   komegaInfo->z_seed = z[komegaInfo->iz_seed];
   komegaInfo->iter = 0;
 
+  #pragma omp parallel for private(i)
   for ( i = 0; i < komegaInfo->nz; i++){
     lz_conv[i] = 0;
   }
@@ -765,7 +777,7 @@ void komega_COCG_finalize(KOMEGAINFO *komegaInfo){
 /*==========================================================================*/
 /*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*/
 /*==========================================================================*/
-void komega_COCG_update(KOMEGAINFO *komegaInfo, double complex *v12, double complex *v2, double complex *x, double complex *r_l, int *status){
+void komega_COCG_update(KOMEGAINFO *komegaInfo, double complex *v12, double complex *v2, double complex *x, double complex *r_l, int *status, int numThreads){
 
   double complex rho_old, alpha_denom, cdotp;
   double complex conts1, conts2;
@@ -773,10 +785,15 @@ void komega_COCG_update(KOMEGAINFO *komegaInfo, double complex *v12, double comp
   double complex *v3 = komegaInfo->v3; 
   double complex *pi = komegaInfo->pi; 
   int *lz_conv = komegaInfo->lz_conv; 
+  double complex sum;
+
+  double t1, t2, t3, t4, t5, t6;
+
+  t1 = omp_get_wtime();
 
   komegaInfo->iter = komegaInfo->iter + 1;
 
-  //printf("here 0 %i \n", komegaInfo->iter);
+  printf("here 0 inside COCG %i \n", numThreads);
   for (i = 0; i < 3; i++){
     status[i] = 0;
   }
@@ -785,10 +802,13 @@ void komega_COCG_update(KOMEGAINFO *komegaInfo, double complex *v12, double comp
 
   rho_old = komegaInfo->rho;
 
-  komegaInfo->rho = 0.0 +0.0*I;
+  sum = 0.0 +0.0*I;
+  #pragma omp parallel for reduction(+:sum) private(i)
   for (i = 0; i < komegaInfo->ndim; i++){
-    komegaInfo->rho = komegaInfo->rho + v2[i]*v2[i];
+    sum += v2[i]*v2[i];
   }
+
+  komegaInfo->rho = sum;
   //printf("here 1 %lg %lg \n", creal(komegaInfo->rho), cimag(komegaInfo->rho));
 
   if(komegaInfo->iter == 1){
@@ -799,7 +819,8 @@ void komega_COCG_update(KOMEGAINFO *komegaInfo, double complex *v12, double comp
   }
 
   //printf("here 2 \n");
-
+  
+  #pragma omp parallel for private(i)
   for (i = 0; i < komegaInfo->ndim; i++){
     v12[i] = komegaInfo->z_seed * v2[i] - v12[i];
   }
@@ -807,8 +828,9 @@ void komega_COCG_update(KOMEGAINFO *komegaInfo, double complex *v12, double comp
   komegaInfo->alpha_old = komegaInfo->alpha;
 
   cdotp = 0.0 +0.0*I;
+  #pragma omp parallel for reduction(+:cdotp) private(i)
   for (i = 0; i < komegaInfo->ndim; i++){
-    cdotp = cdotp + v2[i]*v12[i];
+    cdotp += v2[i]*v12[i];
   }
 
   //printf("here 2 %lg %lg \n", creal(cdotp), cimag(cdotp));
@@ -834,15 +856,18 @@ void komega_COCG_update(KOMEGAINFO *komegaInfo, double complex *v12, double comp
 
   //printf("here 4 %lg %lg \n ", creal(komegaInfo->alpha), cimag(komegaInfo->alpha));
 
+  t2 = omp_get_wtime();
   /* call Shifted equation */
 
-  komega_COCG_shiftedeqn(komegaInfo, r_l, x);
+  komega_COCG_shiftedeqn(komegaInfo, r_l, x, numThreads);
 
+  t3 = omp_get_wtime();
   /* Update residual */
 
   conts1 = (1.0 + komegaInfo->alpha * komegaInfo->beta / komegaInfo->alpha_old);
   conts2 = komegaInfo->alpha * komegaInfo->beta / komegaInfo->alpha_old;
 
+  #pragma omp parallel for private(i)
   for (i = 0; i < komegaInfo->ndim; i++){
     v12[i] = conts1*v2[i] - komegaInfo->alpha * v12[i] - conts2*v3[i];
   }
@@ -851,7 +876,7 @@ void komega_COCG_update(KOMEGAINFO *komegaInfo, double complex *v12, double comp
     v3[i] = v2[i];
     v2[i] = v12[i];
   }
-
+ t4 = omp_get_wtime();
  // printf("v2 %lg %lg \n", creal(v2[0]), cimag(v2[0]));
  // printf("v2 %lg %lg \n", creal(v2[9]), cimag(v2[9]));
  // printf("v2 %lg %lg \n", creal(v2[99]), cimag(v2[99]));
@@ -862,10 +887,12 @@ void komega_COCG_update(KOMEGAINFO *komegaInfo, double complex *v12, double comp
   /* Seed Switching  */
   komega_COCG_seed_switch(komegaInfo, v2,status);
 
+  t5 = omp_get_wtime();
   /* Convergence check  */
   cdotp = 0.0 + 0.0*I;
+  #pragma omp parallel for reduction(+:cdotp) private(i) 
   for (i = 0; i < komegaInfo->ndim; i++){
-   cdotp = cdotp + v2[i]* (creal(v2[i]) - cimag(v2[i])*I);
+   cdotp += v2[i]* (creal(v2[i]) - cimag(v2[i])*I);
   }
 
     //printf(" %lg %lg \n", creal(cdotp), cimag(cdotp));
@@ -873,6 +900,7 @@ void komega_COCG_update(KOMEGAINFO *komegaInfo, double complex *v12, double comp
     v12[0] = sqrt(creal(cdotp)) + 0.0*I; //TODO
     komegaInfo->resnorm = creal(v12[0]);
 
+  //#pragma omp parallel for private(i)
   for (i = 0; i < komegaInfo->nz; i++){
     if( cabs(v12[0]/pi[i]) < komegaInfo->threshold ) lz_conv[i] = 1;
   }
@@ -905,6 +933,9 @@ void komega_COCG_update(KOMEGAINFO *komegaInfo, double complex *v12, double comp
      status[1] = 0;
   }
 
+  t6 = omp_get_wtime(); 
+
+  printf("TIMES %lg %lg %lg %lg %lg \n", t2-t1, t3-t2, t4-t3, t5-t4, t6-t5);
 
 }/* End komega_COCG_update */
 /*==========================================================================*/
@@ -912,7 +943,7 @@ void komega_COCG_update(KOMEGAINFO *komegaInfo, double complex *v12, double comp
 /*==========================================================================*/
 /*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*/
 /*==========================================================================*/
-void komega_COCG_shiftedeqn(KOMEGAINFO *komegaInfo, double complex *r_l, double complex *x) {
+void komega_COCG_shiftedeqn(KOMEGAINFO *komegaInfo, double complex *r_l, double complex *x, int numThreads) {
 
 int *lz_conv = komegaInfo->lz_conv; 
 double complex *z = komegaInfo->z; 
@@ -921,29 +952,62 @@ double complex *pi = komegaInfo->pi;
 double complex *pi_old = komegaInfo->pi_old; 
 double complex pi_new;
 double complex cons;
+double complex const1;
+double complex const2;
 int iz, i;
+
+double t1, t2, t3, t4, tsum, tsum2;
+
+tsum = 0.0;
+tsum2 = 0.0;
+
+  //omp_set_num_threads(4);
+
+  printf(" threads from COCG_shiftedeqn %i \n", numThreads);
+
+ // #pragma omp parallel
+ //   {
+ //       printf("Hello from process: %d\n", omp_get_thread_num());
+ //   }
 
   for ( iz = 0; iz < komegaInfo->nz; iz++){
     if(lz_conv[iz] == 1) continue;
   
+
     pi_new = (1.0 + komegaInfo->alpha * (z[iz] - komegaInfo->z_seed)) * pi[iz]
             - komegaInfo->alpha * komegaInfo->beta / komegaInfo->alpha_old * (pi_old[iz] - pi[iz]);
   
+    t1 = omp_get_wtime();
     //printf(" %i %lg %lg \n", iz, creal(pi_new), cimag(pi_new));
+    const1 = (pi_old[iz] / pi[iz])*(pi_old[iz] / pi[iz]) * komegaInfo->beta;
+    const2 = 1.0/pi[iz];
+    #pragma omp parallel for private(i) 
     for ( i = 0; i < komegaInfo->nl; i++){
-      p[i*komegaInfo->nz + iz] = r_l[i] / pi[iz] + (pi_old[iz] / pi[iz])*(pi_old[iz] / pi[iz]) * komegaInfo->beta * p[i*komegaInfo->nz + iz];
+      //p[i*komegaInfo->nz + iz] = r_l[i] / pi[iz] + const1 * p[i*komegaInfo->nz + iz];
+      p[i + iz*komegaInfo->nl] = const2 * r_l[i]  + const1 * p[i + iz*komegaInfo->nl];
     }
-  
+    
+    t2 = omp_get_wtime();
+    tsum = tsum + t2 - t1;
+ 
+    t3 = omp_get_wtime();
     cons = pi[iz]/ pi_new * komegaInfo->alpha;
+    #pragma omp parallel for private(i)
     for ( i = 0; i < komegaInfo->nl; i++){
-      x[i*komegaInfo->nz + iz] = x[i*komegaInfo->nz + iz] + cons * p[i*komegaInfo->nz + iz];
+      //x[i*komegaInfo->nz + iz] = x[i*komegaInfo->nz + iz] + cons * p[i*komegaInfo->nz + iz];
+      x[i + iz*komegaInfo->nl] = x[i + iz*komegaInfo->nl] + cons * p[i + iz*komegaInfo->nl];
     }
+    
   
+    t4 = omp_get_wtime();
+    tsum2 = tsum2 + t4 - t3;
+
     pi_old[iz] = pi[iz];
     pi[iz] = pi_new;
   
   }
 
+  printf("times %lg %lg \n", tsum, tsum2);
   //printf(" %i %lg %lg \n", iz, creal(x[0]), cimag(x[0]));
   //printf(" %i %lg %lg \n", iz, creal(x[4999]), cimag(x[4999]));
   //printf(" %i %lg %lg \n", iz, creal(x[komegaInfo->nz*komegaInfo->nl-1]), cimag(x[komegaInfo->nz*komegaInfo->nl-1]));
@@ -1004,9 +1068,11 @@ int location;
     scale = 1.0 / pi[komegaInfo->iz_seed];
 
     //printf("iz_seed  %i %i \n", iz_seed, komegaInfo->iz_seed);
+    #pragma omp parallel for private(i)
     for (i = 0; i < komegaInfo->ndim; i++){
       v2[i] = scale*v2[i];
     }
+    #pragma omp parallel for private(i)
     for (i = 0; i < komegaInfo->nz; i++){
       pi[i] = scale*pi[i];
     }
@@ -1015,9 +1081,11 @@ int location;
 
     scale = 1.0 / pi_old[komegaInfo->iz_seed];
     //printf("scale %lg %lg \n", creal(scale), cimag(scale));
+    #pragma omp parallel for private(i)
     for (i = 0; i < komegaInfo->ndim; i++){
       v3[i] = scale*v3[i];
     }
+    #pragma omp parallel for private(i)
     for (i = 0; i < komegaInfo->nz; i++){
       pi_old[i] = scale*pi_old[i];
     }

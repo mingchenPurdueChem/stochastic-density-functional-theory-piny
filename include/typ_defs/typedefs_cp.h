@@ -357,6 +357,7 @@ typedef struct rationalInfo{
 /*=========================================================================================*/
   double complex *v12, *v2, *r_l;   /* Lst: arrays for shifted COCG solver         */
                                     /* Lth: nfft2                                  */
+  //KOMEGAINFO *komegaInfo; 
 /*=========================================================================================*/
 }RATIONALINFO;
 

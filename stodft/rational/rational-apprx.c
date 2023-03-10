@@ -698,7 +698,7 @@ void komega_COCG_init(KOMEGAINFO *komegaInfo, int ndim0, int nl0, int nz0, doubl
   komegaInfo->threshold = threshold0;
   komegaInfo->almost0 = 1.0E-50;
 
-  printf("%i %i %i %i %lg\n", komegaInfo->ndim, komegaInfo->nl, komegaInfo->nz, komegaInfo->itermax, komegaInfo->threshold);
+  //printf("%i %i %i %i %lg\n", komegaInfo->ndim, komegaInfo->nl, komegaInfo->nz, komegaInfo->itermax, komegaInfo->threshold);
 
   komegaInfo->z = (double complex*)malloc((komegaInfo->nz)*sizeof(double complex));  
   komegaInfo->v3 = (double complex*)malloc((komegaInfo->ndim)*sizeof(double complex));  
@@ -769,7 +769,7 @@ void komega_COCG_finalize(KOMEGAINFO *komegaInfo){
   free(komegaInfo->pi);
   free(komegaInfo->p);
   free(komegaInfo->lz_conv);
-  //free(komegaInfo->pi_old);
+  free(komegaInfo->pi_old);
 
 } /* End komega_COCG_finalize */
 /*==========================================================================*/
@@ -790,15 +790,14 @@ void komega_COCG_update(KOMEGAINFO *komegaInfo, double complex *v12, double comp
   double t1, t2, t3, t4, t5, t6;
 
   t1 = omp_get_wtime();
+  printf("here 0 inside COCG %i \n", numThreads);
 
   komegaInfo->iter = komegaInfo->iter + 1;
 
-  printf("here 0 inside COCG %i \n", numThreads);
   for (i = 0; i < 3; i++){
     status[i] = 0;
   }
 
-  //printf("here 1 \n");
 
   rho_old = komegaInfo->rho;
 
@@ -872,22 +871,22 @@ void komega_COCG_update(KOMEGAINFO *komegaInfo, double complex *v12, double comp
     v12[i] = conts1*v2[i] - komegaInfo->alpha * v12[i] - conts2*v3[i];
   }
 
+  #pragma omp parallel for private(i)
   for (i = 0; i < komegaInfo->ndim; i++){
     v3[i] = v2[i];
+  }
+  #pragma omp parallel for private(i)
+  for (i = 0; i < komegaInfo->ndim; i++){
     v2[i] = v12[i];
   }
- t4 = omp_get_wtime();
- // printf("v2 %lg %lg \n", creal(v2[0]), cimag(v2[0]));
- // printf("v2 %lg %lg \n", creal(v2[9]), cimag(v2[9]));
- // printf("v2 %lg %lg \n", creal(v2[99]), cimag(v2[99]));
 
- // printf("v3 %lg %lg \n", creal(v3[0]), cimag(v3[0]));
- // printf("v3 %lg %lg \n", creal(v3[9]), cimag(v3[9]));
- // printf("v3 %lg %lg \n", creal(v3[99]), cimag(v3[99]));
+  t4 = omp_get_wtime();
+
   /* Seed Switching  */
   komega_COCG_seed_switch(komegaInfo, v2,status);
 
   t5 = omp_get_wtime();
+
   /* Convergence check  */
   cdotp = 0.0 + 0.0*I;
   #pragma omp parallel for reduction(+:cdotp) private(i) 

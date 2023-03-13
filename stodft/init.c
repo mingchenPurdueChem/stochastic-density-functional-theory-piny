@@ -487,7 +487,16 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
    rationalInfo->ksi_m = (double complex*)malloc((ntgrid)*sizeof(double complex));
    rationalInfo->fun_p = (double complex*)malloc((ntgrid)*sizeof(double complex));
    rationalInfo->fun_m = (double complex*)malloc((ntgrid)*sizeof(double complex));
+   rationalInfo->rat_fact_p = (double complex*)malloc((ntgrid)*sizeof(double complex));
+   rationalInfo->rat_fact_m = (double complex*)malloc((ntgrid)*sizeof(double complex));
 
+   rationalInfo->fun_p_0 = (double complex*)malloc((ntgrid)*sizeof(double complex));
+   rationalInfo->fun_m_0 = (double complex*)malloc((ntgrid)*sizeof(double complex));
+   rationalInfo->fun_p_p = (double complex*)malloc((ntgrid)*sizeof(double complex));
+   rationalInfo->fun_m_p = (double complex*)malloc((ntgrid)*sizeof(double complex));
+   rationalInfo->fun_p_m = (double complex*)malloc((ntgrid)*sizeof(double complex));
+   rationalInfo->fun_m_m = (double complex*)malloc((ntgrid)*sizeof(double complex));
+   
    rationalInfo->zseed = (double complex*)malloc((2*ntgrid)*sizeof(double complex));
 
    rationalInfo->x = (double complex*)malloc((nfft2*2*ntgrid)*sizeof(double complex));
@@ -499,7 +508,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
    rationalInfo->v2 = (double complex*)malloc((nfft2)*sizeof(double complex));
    rationalInfo->r_l = (double complex*)malloc((nfft2)*sizeof(double complex));
 
-   if(myidState==0)printf("Memory size (in MBytes) = %i \n", (((36*ntgrid) + (8*nfft2) + (nfft2*4*ntgrid))*sizeof(double)/(1024*1024)));
+   if(myidState==0)printf("Memory size (in MBytes) = %i \n", (((12*ntgrid) + (8*nfft2) + (nfft2*4*ntgrid))*sizeof(double)/(1024*1024)));
    if(myidState==0)printf("Finished Allocating Arrays for the Rational Approximation \n");
   }
 

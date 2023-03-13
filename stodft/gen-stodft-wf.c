@@ -687,7 +687,7 @@ void genStoOrbitalCheby(CLASS *class,GENERAL_DATA *general_data,
 
   timeStart3 = omp_get_wtime();
   if(stodftInfo->chemPotOpt==3){ //Rational Approximation
-    calcChemPotRational(cp,class,general_data, komegaInfo, ip_now);
+    //calcChemPotRational(cp,class,general_data, komegaInfo, ip_now);
   }
   timeEnd3 = omp_get_wtime();
   diffTime3 = timeEnd3-timeStart3;

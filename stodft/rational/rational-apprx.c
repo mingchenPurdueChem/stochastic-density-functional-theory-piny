@@ -216,6 +216,8 @@ void filterRational(CP *cp,CLASS *class,GENERAL_DATA *general_data, KOMEGAINFO *
   int filterDiagFlag = stodftInfo->filterDiagFlag;
   int numStateUpProc = cpcoeffs_info->nstate_up_proc;
   int numStateDnProc = cpcoeffs_info->nstate_dn_proc;
+  int numStateStoUp = stodftInfo->numStateStoUp;
+  int numStateStoDn = stodftInfo->numStateStoDn;
   int numCoeff       = cpcoeffs_info->ncoef;
   int cpLsda         = cpopts->cp_lsda;
   int numCoeffUpTotal = numStateUpProc*numCoeff;
@@ -259,6 +261,8 @@ void filterRational(CP *cp,CLASS *class,GENERAL_DATA *general_data, KOMEGAINFO *
   double *wfUpRe0,*wfUpIm0;
   double *wfDnRe0,*wfDnIm0;
 
+  double *chemPot = stodftCoefPos->chemPot;
+
 
   double *expanCoeff = (double*)stodftCoefPos->expanCoeff;
   double timeStart,timeEnd;
@@ -271,14 +275,42 @@ void filterRational(CP *cp,CLASS *class,GENERAL_DATA *general_data, KOMEGAINFO *
 
   int nfft          = cp_para_fft_pkg3d_lg->nfft;
   int nfft2         = nfft/2;
-  double complex sum; 
+  double complex sum, sum_0, sum_p, sum_m;
+  double dsum_0, dsum_p, dsum_m; 
   int ntgrid = rationalInfo->ntgrid;
 
+  double complex *ksi_p = rationalInfo->ksi_p;
+  double complex *ksi_m = rationalInfo->ksi_m;
   double complex *fun_p = rationalInfo->fun_p;
   double complex *fun_m = rationalInfo->fun_m;
+  double complex *rat_fact_p = rationalInfo->rat_fact_p;
+  double complex *rat_fact_m = rationalInfo->rat_fact_m;
+  double dmu = rationalInfo->dmu;
+  double epsilon = rationalInfo->epsilon; 
+   
+  double complex *fun_p_0 = rationalInfo->fun_p_0;
+  double complex *fun_m_0 = rationalInfo->fun_m_0;
+  double complex *fun_p_p = rationalInfo->fun_p_p;
+  double complex *fun_m_p = rationalInfo->fun_m_p;
+  double complex *fun_p_m = rationalInfo->fun_p_m;
+  double complex *fun_m_m = rationalInfo->fun_m_m;
+
   double complex *x = rationalInfo->x;
   //double preRat = rationalInfo->preRat;
   double *frhs = rationalInfo->frhs;
+  double *rhs = rationalInfo->rhs;
+  double numElecMin,numElecMax, numElecTot;
+
+  double dNdm, fmu;
+  double maxmu = rationalInfo->maxmu;
+  double large_dmu = rationalInfo->large_dmu;
+  double small_dmu = rationalInfo->small_dmu;
+  double numElecTrue = stodftInfo->numElecTrue;
+  double chemPotNew;
+
+  numElecTot = 0.0;
+  numElecMin = 0.0;
+  numElecMax = 0.0;
 
   printf("start tessssssssssssst RA \n");
 
@@ -294,21 +326,121 @@ printf("Starting Filtering with Rational Approximation\n");
 
 init_zseed(cp, 0);
 
+dsum_0 = 0.0;
+dsum_p = 0.0;
+dsum_m = 0.0;
+
+
+//printf(" dmu, stodftInfo->beta, epsilon %lg %lg %lg \n", dmu, stodftInfo->beta, epsilon );
+//printf("==== FINAL RESULTS   === %i %lg %lg %lg %lg \n", myidState, creal(ksi_p[10]), creal(ksi_m[10]), cimag(ksi_p[10]), cimag(ksi_m[10]));
+
+for (int i = 0; i < ntgrid; i++){
+  fun_p[i] = fermi_fun(ksi_p[i], 0.0, stodftInfo->beta, epsilon);
+  fun_m[i] = fermi_fun(ksi_m[i], 0.0, stodftInfo->beta, epsilon);
+
+  fun_p_0[i] = fun_p[i]*fun_p[i];
+  fun_m_0[i] = fun_m[i]*fun_m[i];
+  //double check the sign 
+  fun_p_p[i] = fermi_fun(ksi_p[i], -dmu, stodftInfo->beta, epsilon)*fermi_fun(ksi_p[i], -dmu, stodftInfo->beta, epsilon);
+  fun_m_p[i] = fermi_fun(ksi_m[i], -dmu, stodftInfo->beta, epsilon)*fermi_fun(ksi_m[i], -dmu, stodftInfo->beta, epsilon);
+  fun_p_m[i] = fermi_fun(ksi_p[i], dmu, stodftInfo->beta, epsilon)*fermi_fun(ksi_p[i], dmu, stodftInfo->beta, epsilon);
+  fun_m_m[i] = fermi_fun(ksi_m[i], dmu, stodftInfo->beta, epsilon)*fermi_fun(ksi_m[i], dmu, stodftInfo->beta, epsilon);
+}
+
+/*
+printf("==== final RESULTS   === %i %lg %lg %lg %lg \n", myidState, creal(fun_p[10]), creal(fun_m[10]), creal(fun_p_0[10]), creal(fun_m_0[10]));
+printf("==== final RESULTS I   === %i %lg %lg %lg %lg \n", myidState, cimag(fun_p[10]), cimag(fun_m[10]), cimag(fun_p_0[10]), cimag(fun_m_0[10]));
+
+printf("==== final results:   === %i %lg %lg %lg %lg \n", myidState, creal(fun_p_p[10]), creal(fun_m_p[10]), creal(fun_p_m[10]), creal(fun_m_m[10]));
+printf("==== final results: I   === %i %lg %lg %lg %lg \n", myidState, cimag(fun_p_p[10]), cimag(fun_m_p[10]), cimag(fun_p_m[10]), cimag(fun_m_m[10]));
+
+
+  printf("end tessssssssssssst RA \n");
+  Barrier(comm_states);
+  printf("@@@@@@@@@@@@@@@@@@@@_forced_stop__@@@@@@@@@@@@@@@@@@@@\n");
+  fflush(stdout);
+  exit(1);
+*/
+
 for(iState=0;iState<numStateUpProc;iState++){
 
   //printf("myidState %i %i %i \n", myidState, numStateUpProc, iState);
-  solve_shifted_eqn_cocg( cp, class, general_data, komegaInfo, iState, 0);
+  solve_shifted_eqn_cocg( cp, class, general_data, komegaInfo, iState, 1);
 
   for (int i = 0; i<nfft2;i++){
-    sum = 0.0 + 0.0 *I ;
+    sum   = 0.0 + 0.0 *I ;
+    sum_0 = 0.0 + 0.0 *I ;
+    sum_p = 0.0 + 0.0 *I ;
+    sum_m = 0.0 + 0.0 *I ;
     for (int j =0; j < ntgrid; j++){
-      sum = sum + fun_p[j] * x[j*nfft2 + i] + fun_m[j] * x[(j+ntgrid)*nfft2 + i];
+      sum = sum + fun_p[j] * rat_fact_p[j] * x[j*nfft2 + i] 
+                + fun_m[j] * rat_fact_m[j] * x[(j+ntgrid)*nfft2 + i];
+
+      sum_0 = sum_0 + fun_p_0[j] * rat_fact_p[j] * x[j*nfft2 + i] 
+                    + fun_m_0[j] * rat_fact_m[j] * x[(j+ntgrid)*nfft2 + i];
+      sum_p = sum_p + fun_p_p[j] * rat_fact_p[j] * x[j*nfft2 + i] 
+                    + fun_m_p[j] * rat_fact_m[j] * x[(j+ntgrid)*nfft2 + i];
+      sum_m = sum_m + fun_p_m[j] * rat_fact_p[j] * x[j*nfft2 + i] 
+                    + fun_m_m[j] * rat_fact_m[j] * x[(j+ntgrid)*nfft2 + i];
     }
     frhs[i] = rationalInfo->preRat*cimag(sum);
+    dsum_0 += 2.0 * rationalInfo->preRat * cimag(sum_0) * rhs[i];
+    dsum_p += 2.0 * rationalInfo->preRat * cimag(sum_p) * rhs[i];
+    dsum_m += 2.0 * rationalInfo->preRat * cimag(sum_m) * rhs[i];
   }
 
   rhsReal(class, general_data, cp, cpcoeffs_pos, clatoms_pos, frhs, iState);
 }
+
+
+dsum_0 = (dsum_0/numStateStoUp)*(1.0/stodftInfo->rhoRealGridTot);
+dsum_p = (dsum_p/numStateStoUp)*(1.0/stodftInfo->rhoRealGridTot);
+dsum_m = (dsum_m/numStateStoUp)*(1.0/stodftInfo->rhoRealGridTot);
+
+//printf("==== final results: dsum  === %i %lg %lg %lg %lg \n", myidState, dsum_0, dsum_p, dsum_m, rationalInfo->preRat);
+
+if(numProcStates>1)Reduce(&dsum_0,&numElecTot,1,MPI_DOUBLE,MPI_SUM,0,comm_states);
+if(numProcStates>1)Reduce(&dsum_p,&numElecMax,1,MPI_DOUBLE,MPI_SUM,0,comm_states);
+if(numProcStates>1)Reduce(&dsum_m,&numElecMin,1,MPI_DOUBLE,MPI_SUM,0,comm_states);
+
+if(myidState == 0)printf("==== final results: numElec  === %.10lg %.10lg %.10lg\n", numElecTot, numElecMax, numElecMin);
+
+/******************************************************************************/
+/******************************************************************************/
+   chemPotNew = stodftInfo->chemPotTrue;
+   
+   dNdm = (numElecMax - numElecMin)/(2.0*small_dmu);
+
+   fmu = -(numElecTot - numElecTrue)/(numElecTrue*numElecTrue)*dNdm;
+
+   if(myidState == 0)printf("dNdm fmu fmu*large_dmu %lg %lg %lg %lg \n", dNdm, fmu, 
+             fmu*large_dmu, -(numElecTot - numElecTrue)/(numElecTrue*numElecTrue) );
+
+   if (fabs(fmu*large_dmu) > maxmu ){
+     if(fmu>0) chemPotNew = chemPotNew + maxmu;
+     else chemPotNew = chemPotNew - maxmu;
+   }
+   else {
+     chemPotNew = chemPotNew + (fmu*large_dmu);
+   }
+
+   if(numProcStates>1){
+     Barrier(comm_states);
+     Bcast(&chemPotNew,1,MPI_DOUBLE,0,comm_states);
+   }
+
+   chemPot[0] = chemPotNew;
+
+   stodftInfo->chemPotTrue = chemPotNew;
+
+   if(myidState==0){
+     printf("Correct Chemical Potential is %.16lg\n",chemPotNew);
+     fflush(stdout);
+   }
+
+
+
+
 
 /******************************************************************************/
 printf("Finished Filtering with Rational Approximation\n");
@@ -402,6 +534,8 @@ void calcChemPotRational(CP *cp,CLASS *class,GENERAL_DATA *general_data, KOMEGAI
   int ntgrid = rationalInfo->ntgrid;
   double complex *fun_p = rationalInfo->fun_p;
   double complex *fun_m = rationalInfo->fun_m;
+  double complex *rat_fact_p = rationalInfo->rat_fact_p;
+  double complex *rat_fact_m = rationalInfo->rat_fact_m;
   double complex *x = rationalInfo->x;
   //double preRat = rationalInfo->preRat;
   double *frhs = rationalInfo->frhs;
@@ -569,6 +703,8 @@ double complex *ksi_p = rationalInfo->ksi_p;
 double complex *ksi_m = rationalInfo->ksi_m;
 double complex *fun_p = rationalInfo->fun_p;
 double complex *fun_m = rationalInfo->fun_m;
+double complex *rat_fact_p = rationalInfo->rat_fact_p;
+double complex *rat_fact_m = rationalInfo->rat_fact_m;
 
 double *tgrid_re  = rationalInfo->tgrid_re;
 double *tgrid_im  = rationalInfo->tgrid_im;
@@ -655,7 +791,7 @@ for (int i = 0; i < ntgrid; i++){
   ksi_m[i] = - csqrt(z[i] - mA);
 }
 
-
+/*
 for (int i = 0; i < ntgrid; i++){
   if(is_fun_sq == 1) {
     fun_p[i] = fermi_fun(ksi_p[i], dmu, stodftInfo->beta, epsilon)*fermi_fun(ksi_p[i], dmu, stodftInfo->beta, epsilon);
@@ -667,10 +803,16 @@ for (int i = 0; i < ntgrid; i++){
   fun_p[i] = fun_p[i]*cn_c[i]*dn_c[i] / ((kinv - sn_c[i])*(kinv - sn_c[i])) / ksi_p[i];
   fun_m[i] = fun_m[i]*cn_c[i]*dn_c[i] / ((kinv - sn_c[i])*(kinv - sn_c[i])) / ksi_m[i];
 }
+*/
 
 for (int j =0; j < ntgrid; j++){
   zseed[j] =  ksi_p[j];
   zseed[j + ntgrid] =  ksi_m[j];
+}
+
+for (int i = 0; i < ntgrid; i++){
+  rat_fact_p[i] = cn_c[i]*dn_c[i] / ((kinv - sn_c[i])*(kinv - sn_c[i])) / ksi_p[i];
+  rat_fact_m[i] = cn_c[i]*dn_c[i] / ((kinv - sn_c[i])*(kinv - sn_c[i])) / ksi_m[i];
 }
 
 rationalInfo->preRat = -2 * K *sqrt(mA*MA) / M_PI / ntgrid * kinv;

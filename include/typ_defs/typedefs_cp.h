@@ -345,7 +345,8 @@ typedef struct rationalInfo{
   double complex *tgrid, *sn_im, *sn_c, *cn_c, *dn_c;
   double *tgrid_re, *tgrid_im, *sn_re, *cn_re, *dn_re, *cn_im, *dn_im;
   double *sn_tmp, *cn_tmp, *dn_tmp;
-  double complex *z, *ksi_p, *ksi_m, *fun_p, *fun_m;
+  double complex *z, *ksi_p, *ksi_m, *fun_p, *fun_m, *rat_fact_p, *rat_fact_m;
+  double complex  *fun_p_0, *fun_m_0, *fun_p_p, *fun_m_p, *fun_p_m, *fun_m_m;
   double *z_re, *z_im; 
 /*=========================================================================================*/
   double complex *zseed;            /* Lst: all the +/- zseeds            */

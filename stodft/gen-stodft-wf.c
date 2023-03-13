@@ -565,10 +565,7 @@ void genStoOrbitalCheby(CLASS *class,GENERAL_DATA *general_data,
 /* IV) Calculate the True Chemical Potential                            */
 
   timeStart3 = omp_get_wtime();
-  if(stodftInfo->chemPotOpt==3){ //Rational Approximation
-    calcChemPotRational(cp,class,general_data, komegaInfo, ip_now);
-  }
-  else{
+  if(stodftInfo->chemPotOpt != 3){ //if not Rational Approximation
     calcChemPotCheby(cp,class,general_data,ip_now);
   }
   timeEnd3 = omp_get_wtime();
@@ -683,6 +680,19 @@ void genStoOrbitalCheby(CLASS *class,GENERAL_DATA *general_data,
   stodftInfo->filterFlag = 0;
   timeEnd6 = omp_get_wtime();
   diffTime6 = timeEnd6-timeStart6;
+
+
+/*======================================================================*/
+/* IV) Calculate the True Chemical Potential                            */
+
+  timeStart3 = omp_get_wtime();
+  if(stodftInfo->chemPotOpt==3){ //Rational Approximation
+    calcChemPotRational(cp,class,general_data, komegaInfo, ip_now);
+  }
+  timeEnd3 = omp_get_wtime();
+  diffTime3 = timeEnd3-timeStart3;
+/*======================================================================*/
+
 
   printf("Gen-stowf time myid %i spec-range %.8lg gen-poly-length %.8lg gen-chempot %.8lg gen-poly-coeff %.8lg gen-rand %.8lg filter %.8lg\n",myidState,diffTime1,diffTime2,diffTime3,diffTime4,diffTime5,diffTime6);
 

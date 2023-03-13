@@ -509,7 +509,8 @@ printf("==== final results: numElecMax === %lg %lg \n", dsum, numElecMax);
 stodftInfo->chemPotTrue = chemPotNew;
 
    dNdm = (numElecMax - numElecMin)/(2.0*small_dmu);
-   fmu = -(NElecTot - numElecTrue)*dNdm; 
+   //fmu = -(NElecTot - numElecTrue)*dNdm; 
+   fmu = -(NElecTot - numElecTrue)/(numElecTrue*numElecTrue)*dNdm; 
 
    if (fabs(fmu*large_dmu) > maxmu ){
      if(fmu>0) chemPotNew = chemPotNew + maxmu;
@@ -790,7 +791,7 @@ void komega_COCG_update(KOMEGAINFO *komegaInfo, double complex *v12, double comp
   double t1, t2, t3, t4, t5, t6;
 
   t1 = omp_get_wtime();
-  printf("here 0 inside COCG %i \n", numThreads);
+  //printf("here 0 inside COCG %i \n", numThreads);
 
   komegaInfo->iter = komegaInfo->iter + 1;
 
@@ -934,7 +935,7 @@ void komega_COCG_update(KOMEGAINFO *komegaInfo, double complex *v12, double comp
 
   t6 = omp_get_wtime(); 
 
-  printf("TIMES %lg %lg %lg %lg %lg \n", t2-t1, t3-t2, t4-t3, t5-t4, t6-t5);
+  //printf("TIMES %lg %lg %lg %lg %lg \n", t2-t1, t3-t2, t4-t3, t5-t4, t6-t5);
 
 }/* End komega_COCG_update */
 /*==========================================================================*/
@@ -962,7 +963,7 @@ tsum2 = 0.0;
 
   //omp_set_num_threads(4);
 
-  printf(" threads from COCG_shiftedeqn %i \n", numThreads);
+  //printf(" threads from COCG_shiftedeqn %i \n", numThreads);
 
  // #pragma omp parallel
  //   {
@@ -1006,7 +1007,7 @@ tsum2 = 0.0;
   
   }
 
-  printf("times %lg %lg \n", tsum, tsum2);
+  //printf("times %lg %lg \n", tsum, tsum2);
   //printf(" %i %lg %lg \n", iz, creal(x[0]), cimag(x[0]));
   //printf(" %i %lg %lg \n", iz, creal(x[4999]), cimag(x[4999]));
   //printf(" %i %lg %lg \n", iz, creal(x[komegaInfo->nz*komegaInfo->nl-1]), cimag(x[komegaInfo->nz*komegaInfo->nl-1]));

@@ -5,7 +5,6 @@
 #define FFTW3
 #define MKL_LAPACK
 
-#include <komega.h>
 #include <string.h>
 #include <ctype.h>
 #include <stdlib.h>

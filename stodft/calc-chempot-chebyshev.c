@@ -263,8 +263,8 @@ void calcChemPotCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 
 */
 //////////////////////////////////////////////////////////////
-    dmu = 0.00001;
-    Dmu = 0.000002;
+    dmu = 0.0001;
+    Dmu = 0.005;
     incr = 0.02;
     chemPotNew = stodftInfo->chemPotTrue;
     numElecNew = calcNumElecCheby(cp,chemPotNew,chebyCoeffs); 

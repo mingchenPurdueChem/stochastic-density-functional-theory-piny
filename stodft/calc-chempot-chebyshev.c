@@ -271,8 +271,8 @@ void calcChemPotCheby(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     //while(fabs(numElecNew-numElecTrue)>numElecTol){
 
       dNdm = (calcNumElecCheby(cp,chemPotNew+dmu,chebyCoeffs) - calcNumElecCheby(cp,chemPotNew-dmu,chebyCoeffs))/(2.0*dmu);
-      fmu = -(calcNumElecCheby(cp,chemPotNew,chebyCoeffs) - numElecTrue)*dNdm;   
-      printf("dNdm %.16lg fmu %.16lg mu  %.16lg update to %.16lg \n", dNdm, fmu, chemPotNew, chemPotNew+(fmu*Dmu));
+      fmu = -((calcNumElecCheby(cp,chemPotNew,chebyCoeffs) - numElecTrue)/(numElecTrue*numElecTrue))*dNdm;   
+      printf("dNdm %.16lg fmu %.16lg mu  %.16lg update to %.16lg \n", dNdm, fmu, fmu*Dmu, chemPotNew+(fmu*Dmu));
 
       if (fabs(fmu*Dmu) > incr ){
         if(fmu*Dmu>0) chemPotNew = chemPotNew + incr;

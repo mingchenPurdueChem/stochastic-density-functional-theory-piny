@@ -299,15 +299,18 @@ void filterRational(CP *cp,CLASS *class,GENERAL_DATA *general_data, KOMEGAINFO *
   //double preRat = rationalInfo->preRat;
   double *frhs = rationalInfo->frhs;
   double *rhs = rationalInfo->rhs;
-  double numElecMin,numElecMax, numElecTot;
+  double numElecMin,numElecMax, numElecTot, numElecNew;
 
   double dNdm, fmu;
   double maxmu = rationalInfo->maxmu;
   double large_dmu = rationalInfo->large_dmu;
   double small_dmu = rationalInfo->small_dmu;
   double numElecTrue = stodftInfo->numElecTrue;
+  double numElecTol = 1.0e-10*numElecTrue;
   double chemPotNew;
+  double chemincr;
 
+ 
   numElecTot = 0.0;
   numElecMin = 0.0;
   numElecMax = 0.0;
@@ -320,8 +323,10 @@ void filterRational(CP *cp,CLASS *class,GENERAL_DATA *general_data, KOMEGAINFO *
    rationalInfo->small_dmu, rationalInfo->maxmu, rationalInfo->epsilon, expanType,
    rationalInfo->init_mu);
 
+
+stodftInfo->chemPotTrue = stodftInfo->chemPotTrue + rationalInfo->small_dmu;
 /******************************************************************************/
-printf("Starting Filtering with Rational Approximation\n");
+printf("Starting Filtering with Rational Approximation\n --- %lg %lg --- \n", stodftInfo->chemPotTrue, rationalInfo->small_dmu );
 /******************************************************************************/
 
 init_zseed(cp, 0);
@@ -407,8 +412,122 @@ if(myidState == 0)printf("==== final results: numElec  === %.10lg %.10lg %.10lg\
 
 /******************************************************************************/
 /******************************************************************************/
+/******************************************************************************/
+   if(numProcStates>1){
+     Barrier(comm_states);
+     Bcast(&numElecTot,1,MPI_DOUBLE,0,comm_states);
+     Bcast(&numElecMax,1,MPI_DOUBLE,0,comm_states);
+     Bcast(&numElecMin,1,MPI_DOUBLE,0,comm_states);
+   }
+
+if(numElecTrue > numElecMax){
+  numElecNew = numElecMax;
+  chemincr = dmu;
+
+   if(numProcStates>1){
+     Barrier(comm_states);
+     Bcast(&numElecNew,1,MPI_DOUBLE,0,comm_states);
+   }
+
+} else if (numElecTrue < numElecMin) {
+
+  numElecNew = numElecMin;
+  chemincr = -dmu;
+
+   if(numProcStates>1){
+     Barrier(comm_states);
+     Bcast(&numElecNew,1,MPI_DOUBLE,0,comm_states);
+   }
+
+
+} else {
+
+
+numElecNew = numElecTot;
+chemincr = 0.0;
+if(numElecNew < numElecTrue) {
+while(fabs(numElecNew-numElecTrue)>numElecTol  && fabs(chemincr) < 0.0001 && numElecNew < numElecTrue) {
+  //if(numElecNew > numElecTrue) break;
+  chemincr = chemincr + 0.000001;
+
+  for (int i = 0; i < ntgrid; i++){
+    fun_p[i] = fermi_fun(ksi_p[i], -chemincr, stodftInfo->beta, epsilon);
+    fun_m[i] = fermi_fun(ksi_m[i], -chemincr, stodftInfo->beta, epsilon);
+  
+    fun_p_0[i] = fun_p[i]*fun_p[i];
+    fun_m_0[i] = fun_m[i]*fun_m[i];
+  }
+  
+  for(iState=0;iState<numStateUpProc;iState++){
+    for (int i = 0; i<nfft2;i++){
+      sum_0 = 0.0 + 0.0 *I ;
+      for (int j =0; j < ntgrid; j++){
+  
+        sum_0 = sum_0 + fun_p_0[j] * rat_fact_p[j] * x[j*nfft2 + i] 
+                      + fun_m_0[j] * rat_fact_m[j] * x[(j+ntgrid)*nfft2 + i];
+      }
+      dsum_0 += 2.0 * rationalInfo->preRat * cimag(sum_0) * rhs[i];
+    }
+  }
+  
+  dsum_0 = (dsum_0/numStateStoUp)*(1.0/stodftInfo->rhoRealGridTot);
+  if(numProcStates>1)Reduce(&dsum_0,&numElecNew,1,MPI_DOUBLE,MPI_SUM,0,comm_states);
+   if(numProcStates>1){
+     Barrier(comm_states);
+     Bcast(&numElecNew,1,MPI_DOUBLE,0,comm_states);
+   }
+  if(myidState == 0)printf("==== 1 final results: numElec  === %.10lg %.10lg %.10lg\n", numElecNew, numElecTrue, numElecTol);
+}
+}
+
+/******************************************************************************/
+/******************************************************************************/
+
+else {
+while(fabs(numElecNew-numElecTrue)>numElecTol  && fabs(chemincr) < 0.0001 && numElecNew > numElecTrue) {
+  //if(numElecNew < numElecTrue) break;
+  chemincr = chemincr - 0.000001;
+
+  for (int i = 0; i < ntgrid; i++){
+    fun_p[i] = fermi_fun(ksi_p[i], -chemincr, stodftInfo->beta, epsilon);
+    fun_m[i] = fermi_fun(ksi_m[i], -chemincr, stodftInfo->beta, epsilon);
+  
+    fun_p_0[i] = fun_p[i]*fun_p[i];
+    fun_m_0[i] = fun_m[i]*fun_m[i];
+  }
+  
+  for(iState=0;iState<numStateUpProc;iState++){
+    for (int i = 0; i<nfft2;i++){
+      sum_0 = 0.0 + 0.0 *I ;
+      for (int j =0; j < ntgrid; j++){
+  
+        sum_0 = sum_0 + fun_p_0[j] * rat_fact_p[j] * x[j*nfft2 + i] 
+                      + fun_m_0[j] * rat_fact_m[j] * x[(j+ntgrid)*nfft2 + i];
+      }
+      dsum_0 += 2.0 * rationalInfo->preRat * cimag(sum_0) * rhs[i];
+    }
+  }
+  
+  dsum_0 = (dsum_0/numStateStoUp)*(1.0/stodftInfo->rhoRealGridTot);
+  if(numProcStates>1)Reduce(&dsum_0,&numElecNew,1,MPI_DOUBLE,MPI_SUM,0,comm_states);
+   if(numProcStates>1){
+     Barrier(comm_states);
+     Bcast(&numElecNew,1,MPI_DOUBLE,0,comm_states);
+   }
+  if(myidState == 0)printf("==== 2 final results: numElec  === %.10lg %.10lg %.10lg\n", numElecNew, numElecTrue, numElecTol);
+}
+}
+
+
+} // if else end here
+
+  printf("end tessssssssssssst RA %lg \n", chemincr);
+/******************************************************************************/
+/******************************************************************************/
+/******************************************************************************/
    chemPotNew = stodftInfo->chemPotTrue;
    
+/*
    dNdm = (numElecMax - numElecMin)/(2.0*small_dmu);
 
    fmu = -(numElecTot - numElecTrue)/(numElecTrue*numElecTrue)*dNdm;
@@ -424,11 +543,19 @@ if(myidState == 0)printf("==== final results: numElec  === %.10lg %.10lg %.10lg\
      chemPotNew = chemPotNew + (fmu*large_dmu);
    }
 
+*/
+
+rationalInfo->small_dmu = chemincr;
+
+//chemPotNew = chemPotNew + chemincr;
+
    if(numProcStates>1){
      Barrier(comm_states);
      Bcast(&chemPotNew,1,MPI_DOUBLE,0,comm_states);
    }
 
+
+  // chemPotNew = stodftInfo->chemPotTrue + chemincr;
    chemPot[0] = chemPotNew;
 
    stodftInfo->chemPotTrue = chemPotNew;

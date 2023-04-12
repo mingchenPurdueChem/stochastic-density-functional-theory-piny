@@ -368,13 +368,13 @@ for(iState=0;iState<numStateUpProc;iState++){
   solve_shifted_eqn_cocg( cp, class, general_data, komegaInfo, iState, 1);
 
   for (int i = 0; i<nfft2;i++){
-    sum   = 0.0 + 0.0 *I ;
+    //sum   = 0.0 + 0.0 *I ;
     sum_0 = 0.0 + 0.0 *I ;
     sum_p = 0.0 + 0.0 *I ;
     sum_m = 0.0 + 0.0 *I ;
     for (int j =0; j < ntgrid; j++){
-      sum = sum + fun_p[j] * rat_fact_p[j] * x[j*nfft2 + i] 
-                + fun_m[j] * rat_fact_m[j] * x[(j+ntgrid)*nfft2 + i];
+      //sum = sum + fun_p[j] * rat_fact_p[j] * x[j*nfft2 + i] 
+      //          + fun_m[j] * rat_fact_m[j] * x[(j+ntgrid)*nfft2 + i];
 
       sum_0 = sum_0 + fun_p_0[j] * rat_fact_p[j] * x[j*nfft2 + i] 
                     + fun_m_0[j] * rat_fact_m[j] * x[(j+ntgrid)*nfft2 + i];
@@ -383,13 +383,13 @@ for(iState=0;iState<numStateUpProc;iState++){
       sum_m = sum_m + fun_p_m[j] * rat_fact_p[j] * x[j*nfft2 + i] 
                     + fun_m_m[j] * rat_fact_m[j] * x[(j+ntgrid)*nfft2 + i];
     }
-    frhs[i] = rationalInfo->preRat*cimag(sum);
+    //frhs[i] = rationalInfo->preRat*cimag(sum);
     dsum_0 += 2.0 * rationalInfo->preRat * cimag(sum_0) * rhs[i];
     dsum_p += 2.0 * rationalInfo->preRat * cimag(sum_p) * rhs[i];
     dsum_m += 2.0 * rationalInfo->preRat * cimag(sum_m) * rhs[i];
   }
 
-  rhsReal(class, general_data, cp, cpcoeffs_pos, clatoms_pos, frhs, iState);
+  //rhsReal(class, general_data, cp, cpcoeffs_pos, clatoms_pos, frhs, iState);
 }
 
 
@@ -444,6 +444,34 @@ if(myidState == 0)printf("==== final results: numElec  === %.10lg %.10lg %.10lg\
 
 /******************************************************************************/
 printf("Finished Filtering with Rational Approximation\n");
+/******************************************************************************/
+/******************************************************************************/
+
+init_zseed(cp, 0);
+
+for (int i = 0; i < ntgrid; i++){
+  fun_p[i] = fermi_fun(ksi_p[i], 0.0, stodftInfo->beta, epsilon);
+  fun_m[i] = fermi_fun(ksi_m[i], 0.0, stodftInfo->beta, epsilon);
+}
+
+for(iState=0;iState<numStateUpProc;iState++){
+
+  //printf("myidState %i %i %i \n", myidState, numStateUpProc, iState);
+  solve_shifted_eqn_cocg( cp, class, general_data, komegaInfo, iState, 0);
+
+  for (int i = 0; i<nfft2;i++){
+    sum   = 0.0 + 0.0 *I ;
+    for (int j =0; j < ntgrid; j++){
+      sum = sum + fun_p[j] * rat_fact_p[j] * x[j*nfft2 + i] 
+                + fun_m[j] * rat_fact_m[j] * x[(j+ntgrid)*nfft2 + i];
+
+    }
+    frhs[i] = rationalInfo->preRat*cimag(sum);
+  }
+
+  rhsReal(class, general_data, cp, cpcoeffs_pos, clatoms_pos, frhs, iState);
+}
+/******************************************************************************/
 /******************************************************************************/
 /*
   printf("end tessssssssssssst RA \n");

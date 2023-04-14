@@ -13,6 +13,8 @@ void calcChemPotRational(CP *,CLASS *,GENERAL_DATA *, KOMEGAINFO *, int );
 double complex fermi_fun(double complex , double , double , double );
 void solve_shifted_eqn_cocg( CP *, CLASS *, GENERAL_DATA *, KOMEGAINFO *, int , int );
 void init_zseed( CP *, int );
+double calcNumberElecRational(CP *, double);
+void applyFilterRational(CP *, CLASS *, GENERAL_DATA *, double, int );
 
 void komega_COCG_init(KOMEGAINFO *, int, int, int, double complex*, double complex*, int, double);
 void komega_COCG_finalize(KOMEGAINFO *);

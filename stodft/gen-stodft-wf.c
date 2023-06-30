@@ -775,7 +775,7 @@ void genStoOrbitalFake(CLASS *class,GENERAL_DATA *general_data,
 /*======================================================================*/
 /* IV) Generate random orbital                                          */
 
-  genNoiseOrbitalReal(cp,cpcoeffs_pos);
+  genNoiseOrbital(cp,cpcoeffs_pos);
 
 /*======================================================================*/
 /* II) Filtering by deterministic orbitals                     */
@@ -2431,7 +2431,7 @@ void genStoOrbitalChebyTest(CLASS *class,GENERAL_DATA *general_data,
 /* IV) Generate random orbital                                          */
 
   timeStart5 = omp_get_wtime();
-  genNoiseOrbitalReal(cp,cpcoeffs_pos);
+  genNoiseOrbital(cp,cpcoeffs_pos);
   timeEnd5 = omp_get_wtime();
   diffTime5 = timeEnd5-timeStart5;
 

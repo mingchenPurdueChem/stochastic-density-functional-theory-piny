@@ -1046,7 +1046,7 @@ void calcChebyMomentsFake(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     numStates[0] = numStateUpProc;
   }
 
-  genNoiseOrbitalReal(cp,cpcoeffs_pos);
+  genNoiseOrbital(cp,cpcoeffs_pos);
   /*
   char fileName[100];
   sprintf(fileName,"noise-%i",myidState);

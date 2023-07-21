@@ -318,6 +318,9 @@ typedef struct komegaInfo{
   double complex z_seed, rho, alpha, beta, alpha_old;
 
   double complex *z, *pi, *v3, *p, *pi_old;
+ 
+  /* g-space implementation */
+  // Declear v3 and p in g space
 
 } KOMEGAINFO;
 
@@ -360,6 +363,26 @@ typedef struct rationalInfo{
                                     /* Lth: nfft2                                  */
   //KOMEGAINFO *komegaInfo; 
 /*=========================================================================================*/
+/* Solving COCG in G space */  
+  double *creRex,*cimRex,
+         *creImx,*cimImx;           /* Lst: x in G space                           */
+                                    /* Lth: ncoef*(2*ntgrid)                       */
+                                    /* creRex=real part of G-coefficient for Rex   */
+                                    /* cimRex=imag part of G-coefficient for Rex...*/
+  double *crefrhs,*cimfrhs,
+         *crerhs,*cimrhs;           /* Lst: frhs and rhs in G space                */
+                                    /* Lth: ncoef                                  */
+  double *creRev12,*cimRev12,
+         *creImv12,*cimImv12;       /* Lst: v12 in G space                         */
+                                    /* Lth: ncoef                                  */
+
+  double *creRev2,*cimRev2,       
+         *creImv2,*cimImv2;         /* Lst: v2 in G space                          */
+                                    /* Lth: ncoef                                  */
+  double *creRer_l,*cimRer_l,  
+         *creImr_l,*cimImr_l;       /* Lst: r_l in G space                         */
+                                    /* Lth: ncoef                                  */
+
 }RATIONALINFO;
 
 typedef struct chebyshevInfo{

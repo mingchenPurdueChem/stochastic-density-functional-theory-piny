@@ -674,7 +674,8 @@ void genStoOrbitalCheby(CLASS *class,GENERAL_DATA *general_data,
       filterNewtonPolyHerm(cp,class,general_data,ip_now);
       break;
     case 4:
-      filterRational(cp,class,general_data, komegaInfo, ip_now); //TEST Rational routines here 
+      //filterRational(cp,class,general_data, komegaInfo, ip_now); //TEST Rational routines here 
+      filterRational_g(cp,class,general_data, komegaInfo, ip_now); //TEST Rational routines here 
       break;
   }
   stodftInfo->filterFlag = 0;

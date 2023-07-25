@@ -498,7 +498,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
    rationalInfo->fun_m_m = (double complex*)malloc((ntgrid)*sizeof(double complex));
    
    rationalInfo->zseed = (double complex*)malloc((2*ntgrid)*sizeof(double complex));
-
+/*===========================================================*/
    rationalInfo->x = (double complex*)malloc((nfft2*2*ntgrid)*sizeof(double complex));
 
    rationalInfo->frhs = (double*)malloc((nfft2)*sizeof(double));
@@ -508,6 +508,35 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
    rationalInfo->v2 = (double complex*)malloc((nfft2)*sizeof(double complex));
    rationalInfo->r_l = (double complex*)malloc((nfft2)*sizeof(double complex));
 
+/*===========================================================*/
+
+   rationalInfo->creRex = (double*)cmalloc((numCoeff*2*ntgrid)*sizeof(double));
+   rationalInfo->creImx = (double*)cmalloc((numCoeff*2*ntgrid)*sizeof(double)); 
+   rationalInfo->cimRex = (double*)cmalloc((numCoeff*2*ntgrid)*sizeof(double));
+   rationalInfo->cimImx = (double*)cmalloc((numCoeff*2*ntgrid)*sizeof(double));
+
+   rationalInfo->crefrhs = (double*)cmalloc(numCoeff*sizeof(double));
+   rationalInfo->cimfrhs = (double*)cmalloc(numCoeff*sizeof(double));
+
+   rationalInfo->crerhs = (double*)cmalloc(numCoeff*sizeof(double));
+   rationalInfo->cimrhs = (double*)cmalloc(numCoeff*sizeof(double));
+
+   rationalInfo->creRev12 = (double*)cmalloc(numCoeff*sizeof(double));
+   rationalInfo->creImv12 = (double*)cmalloc(numCoeff*sizeof(double));
+   rationalInfo->cimRev12 = (double*)cmalloc(numCoeff*sizeof(double));
+   rationalInfo->cimImv12 = (double*)cmalloc(numCoeff*sizeof(double));
+
+   rationalInfo->creRev2 = (double*)cmalloc(numCoeff*sizeof(double));
+   rationalInfo->creImv2 = (double*)cmalloc(numCoeff*sizeof(double));
+   rationalInfo->cimRev2 = (double*)cmalloc(numCoeff*sizeof(double));
+   rationalInfo->cimImv2 = (double*)cmalloc(numCoeff*sizeof(double));
+
+   rationalInfo->creRer_l = (double*)cmalloc(numCoeff*sizeof(double));
+   rationalInfo->creImr_l = (double*)cmalloc(numCoeff*sizeof(double));
+   rationalInfo->cimRer_l = (double*)cmalloc(numCoeff*sizeof(double));
+   rationalInfo->cimImr_l = (double*)cmalloc(numCoeff*sizeof(double));
+
+/*===========================================================*/
    if(myidState==0)printf("Memory size (in MBytes) = %i \n", (((12*ntgrid) + (8*nfft2) + (nfft2*4*ntgrid))*sizeof(double)/(1024*1024)));
    if(myidState==0)printf("Finished Allocating Arrays for the Rational Approximation \n");
   }

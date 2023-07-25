@@ -265,6 +265,17 @@ rational-apprx.o:        $(STANDARD) $(DEFINES) \
 	$(ECHO) $@
 	$(COBJ) $(DCODE)/stodft/rational/rational-apprx.c
 
+rational-apprx-g.o:      $(STANDARD) $(DEFINES) \
+                         $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
+                         $(TYP_STAT) \
+                         $(TYP_CP) $(TYP_PAR) $(ENR_CP_LOC) $(ENR_CPCON_LOC)\
+                         $(FRND_ENT) $(MATH) $(COMM_WRAP)\
+                         $(STODFT_LOC) \
+                         $(DCODE)/stodft/rational/rational-apprx-g.c
+
+	$(ECHO) $@
+	$(COBJ) $(DCODE)/stodft/rational/rational-apprx-g.c
+
 elliptic.o:              $(STANDARD) $(DEFINES) \
                          $(TYP_CLASS) $(TYP_BND) $(TYP_GEN) \
                          $(TYP_STAT) \

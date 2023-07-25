@@ -320,8 +320,14 @@ typedef struct komegaInfo{
   double complex *z, *pi, *v3, *p, *pi_old;
  
   /* g-space implementation */
-  // Declear v3 and p in g space
+  //TODO2023: Declear v3 and p in g space
+  double *creRev3,*cimRev3,       
+         *creImv3,*cimImv3;         /* Lst: v3 in G space                          */
+                                    /* Lth: ncoef                                  */
 
+  double *creRep,*cimRep,       
+         *creImp,*cimImp;         /* Lst: p in G space                          */
+                                    /* Lth: ncoef                                  */
 } KOMEGAINFO;
 
 /*==========================================================================*/

@@ -22,3 +22,30 @@ void komega_COCG_update(KOMEGAINFO *, double complex*, double complex*, double c
 void komega_COCG_shiftedeqn(KOMEGAINFO *, double complex *, double complex *, int);
 void komega_COCG_seed_switch(KOMEGAINFO *, double complex *, int *);
 
+
+double complex fermi_fun_g(double complex , double , double , double );
+void solve_shifted_eqn_cocg_g( CP *, CLASS *, GENERAL_DATA *, KOMEGAINFO *, int , int );
+void filterRational_g(CP *,CLASS *,GENERAL_DATA *, KOMEGAINFO *, int );
+void applyFilterRational_g(CP *, CLASS *, GENERAL_DATA *, double , int );
+double calcNumberElecRational_g(CP *, double );
+void calcChemPotRational_g(CP *,CLASS *,GENERAL_DATA *, KOMEGAINFO *, int );
+void init_zseed_g( CP *, int );
+
+void komega_COCG_init_g(KOMEGAINFO *, int, int, int,
+                       double *, double *, double *, double *,
+                       double complex *, int, double );
+void komega_COCG_finalize_g(KOMEGAINFO *);
+void komega_COCG_update_g(KOMEGAINFO *,
+                       double *, double *, double *, double *,
+                       double *, double *, double *, double *,
+                       double *, double *, double *, double *,
+                       double *, double *, double *, double *,
+                       int *, int );
+void komega_COCG_shiftedeqn_g(KOMEGAINFO *,
+                              double *, double *, double *, double *,
+                              double *, double *, double *, double *,
+                              int );
+void komega_COCG_seed_switch_g(KOMEGAINFO *,
+                               double *, double *, double *, double *,
+                               int *);
+

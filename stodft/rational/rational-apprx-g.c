@@ -132,12 +132,26 @@ void solve_shifted_eqn_cocg_g( CP *cp, CLASS *class, GENERAL_DATA *general_data,
   tot = 0.0;
   tot1 = 0.0;
   nz = 2*ntgrid;
-  ndim = nfft2; // ndim TODO;
+  ndim = numCoeff; //nfft2; // ndim TODO;
   spinFlag = 0;
+
+  int ncoef;
+  ncoef = ndim;
 
   printf("--- Starting solving shifted COCG eqn  ---- numThreads %i \n", numThreads);
 
   timeStart1 = omp_get_wtime();
+
+ 
+/* =------------------------------------------------------------------------------------= */
+    #pragma omp parallel for private(i) //TODO CHECK index etc. 
+    for (i = 0; i < ncoef; i++) {
+      creRev2[i] = cre_up[i+1];
+      cimRev2[i] = cim_up[i+1];
+      creImv2[i] = cre_up[ncoef+i+1];
+      cimImv2[i] = cim_up[ncoef+i+1];
+    }
+/* =------------------------------------------------------------------------------------= */
   
   // get stochastic orbital from cre_up and cim_up //TODO
   //genNoiseOrbitalRealRational(cp,cpcoeffs_pos, v2, id); 

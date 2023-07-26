@@ -1521,7 +1521,7 @@ void komega_COCG_update_g(KOMEGAINFO *komegaInfo,
 
 
   komegaInfo->rho = sum;
-  //printf("here 1 %lg %lg \n", creal(komegaInfo->rho), cimag(komegaInfo->rho));
+  printf("here 1 %lg %lg \n", creal(komegaInfo->rho), cimag(komegaInfo->rho));
 
   if(komegaInfo->iter == 1){
     komegaInfo->beta =  0.0 +0.0*I;
@@ -1530,6 +1530,7 @@ void komega_COCG_update_g(KOMEGAINFO *komegaInfo,
     komegaInfo->beta = komegaInfo->rho / rho_old;
   }
 
+  printf("here 2 %lg %lg \n", creal(komegaInfo->beta), cimag(komegaInfo->beta));
   //printf("here 2 \n");
   
   /*-------update v12--------------*/
@@ -1581,12 +1582,12 @@ void komega_COCG_update_g(KOMEGAINFO *komegaInfo,
 
   //printf("here 2 %lg %lg \n", creal(cdotp), cimag(cdotp));
 
-  //printf("here a %lg %lg \n", creal(komegaInfo->alpha), cimag(komegaInfo->alpha));
-  //printf("here b %lg %lg \n", creal(komegaInfo->beta), cimag(komegaInfo->beta));
-  //printf("here r %lg %lg \n", creal(komegaInfo->rho), cimag(komegaInfo->rho));
+  printf("here a %lg %lg \n", creal(komegaInfo->alpha), cimag(komegaInfo->alpha));
+  printf("here b %lg %lg \n", creal(komegaInfo->beta), cimag(komegaInfo->beta));
+  printf("here r %lg %lg \n", creal(komegaInfo->rho), cimag(komegaInfo->rho));
 
   alpha_denom = cdotp - (komegaInfo->beta * komegaInfo->rho / komegaInfo->alpha) ;
-  //printf("here 3 %lg %lg \n", creal(alpha_denom), cimag(alpha_denom));
+  printf("here 3 %lg %lg \n", creal(alpha_denom), cimag(alpha_denom));
   //printf("alpha_denom %lg \n", cabs(alpha_denom));
   //printf("here 3 %lg %lg \n", creal(komegaInfo->rho), cimag(komegaInfo->rho));
   //printf("komegaInfo->rho %lg \n", cabs(komegaInfo->rho));
@@ -1600,7 +1601,7 @@ void komega_COCG_update_g(KOMEGAINFO *komegaInfo,
 
   komegaInfo->alpha = komegaInfo->rho / alpha_denom;
 
-  //printf("here 4 %lg %lg \n ", creal(komegaInfo->alpha), cimag(komegaInfo->alpha));
+  printf("here 4 %lg %lg \n ", creal(komegaInfo->alpha), cimag(komegaInfo->alpha));
 
   t2 = omp_get_wtime();
   /* call Shifted equation */

@@ -422,7 +422,8 @@ void coefForceCalcHybridSCFRationalG(CPEWALD *cpewald,int nstate,
 /* ================================================================= */
 /*0) Check the form of the coefficients                              */
 
-  //printf(" NEW routine coefForceCalcHybridSCFReal %i %i %i %i %i \n", ncoef, nfft, nstate, fftw3dFlag, pseudoRealFlag);
+
+  //printf(" NEW routine coefForceCalcHybridSCFRationalG %i %i %i %i %i \n", ncoef, nfft, nstate, fftw3dFlag, pseudoRealFlag);
   pre_cond = (double*)calloc(ncoef,sizeof(double))-1;
   for(i=1;i<=ncoef;i++){
     if(ak2_sm[i]>gcut_sq)pre_cond[i] = 0.5*ak2_sm[i];

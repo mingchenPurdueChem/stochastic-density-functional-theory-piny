@@ -58,6 +58,7 @@ void solve_shifted_eqn_cocg_g( CP *cp, CLASS *class, GENERAL_DATA *general_data,
   RATIONALINFO *rationalInfo    = stodftInfo->rationalInfo;
  // KOMEGAINFO *komegaInfo = rationalInfo->komegaInfo;
   //komegaInfo = (KOMEGAINFO*)malloc(sizeof(KOMEGAINFO));
+  MPI_Comm comm_states   =    communicate->comm_states;
 
 
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
@@ -138,7 +139,7 @@ void solve_shifted_eqn_cocg_g( CP *cp, CLASS *class, GENERAL_DATA *general_data,
   int ncoef;
   ncoef = ndim;
 
-  printf("--- Starting solving shifted COCG eqn  ---- numThreads %i \n", numThreads);
+  printf("--- Starting solving shifted COCG eqn  ---- numThreads %i numCoeff %i \n", numThreads, numCoeff);
 
   timeStart1 = omp_get_wtime();
 
@@ -148,9 +149,13 @@ void solve_shifted_eqn_cocg_g( CP *cp, CLASS *class, GENERAL_DATA *general_data,
     for (i = 0; i < ncoef; i++) {
       creRev2[i] = cre_up[i+1];
       cimRev2[i] = cim_up[i+1];
-      creImv2[i] = cre_up[ncoef+i+1];
-      cimImv2[i] = cim_up[ncoef+i+1];
+      creImv2[i] = 0.0; //cre_up[ncoef+i+1];
+      cimImv2[i] = 0.0; //cim_up[ncoef+i+1];
     }
+    //printf("creRev2 %lg  %lg \n", creRev2[0], creRev2[100]);
+    //printf("cimRev2 %lg  %lg \n", creRev2[0], creRev2[100]);
+    //printf("creImv2 %lg  %lg \n", creRev2[0], creRev2[100]);
+    //printf("cimImv2 %lg  %lg \n", creRev2[0], creRev2[100]);
 /* =------------------------------------------------------------------------------------= */
   
   // get stochastic orbital from cre_up and cim_up //TODO
@@ -175,7 +180,7 @@ void solve_shifted_eqn_cocg_g( CP *cp, CLASS *class, GENERAL_DATA *general_data,
  
 
 /* =------------------------------------------------------------------------------------= */
-    #pragma omp parallel for private(i) 
+    #pragma omp parallel for private(i) //TODO memcpy? 
     for (i = 0; i < ndim; i++) {
       //r_l[i] = v2[i];
       creRer_l[i] = creRev2[i];
@@ -194,6 +199,11 @@ void solve_shifted_eqn_cocg_g( CP *cp, CLASS *class, GENERAL_DATA *general_data,
     t2 = omp_get_wtime(); 
     tot = tot + (t2-t1); 
   
+    //printf("creRev12 %lg  %lg \n", creRev12[0], creRev12[100]);
+    //printf("cimRev12 %lg  %lg \n", creRev12[0], creRev12[100]);
+    //printf("creImv12 %lg  %lg \n", creRev12[0], creRev12[100]);
+    //printf("cimImv12 %lg  %lg \n", creRev12[0], creRev12[100]);
+
     t1 = omp_get_wtime(); 
     //komega_cocg_update(v12, v2, x, r_l, status);
     komega_COCG_update_g(komegaInfo, creRev12, cimRev12, creImv12, cimImv12,
@@ -234,6 +244,14 @@ void solve_shifted_eqn_cocg_g( CP *cp, CLASS *class, GENERAL_DATA *general_data,
   
   timeEnd2 = omp_get_wtime(); 
   printf("--- Finished solving shifted COCG eqn  ---- %lg %lg %lg %lg \n", timeEnd1-timeStart1, timeEnd2-timeStart2, tot, tot1);
+
+
+  printf("end checking \n");
+  Barrier(comm_states);
+  printf("@@@@@@@@@@@@@@@@@@@@_forced_stop__@@@@@@@@@@@@@@@@@@@@\n");
+  fflush(stdout);
+  exit(1);
+
 }
 /*==========================================================================*/
 

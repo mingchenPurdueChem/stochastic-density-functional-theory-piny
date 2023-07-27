@@ -1798,10 +1798,14 @@ tsum2 = 0.0;
             - komegaInfo->alpha * komegaInfo->beta / komegaInfo->alpha_old * (pi_old[iz] - pi[iz]);
   
     t1 = omp_get_wtime();
-    //printf(" %i %lg %lg \n", iz, creal(pi_new), cimag(pi_new));
+    printf(" %i %lg %lg \n", iz, creal(pi_new), cimag(pi_new));
     const1 = (pi_old[iz] / pi[iz])*(pi_old[iz] / pi[iz]) * komegaInfo->beta;
     const2 = 1.0/pi[iz];
     cons = pi[iz]/ pi_new * komegaInfo->alpha;
+
+    printf("consts %i %lg %lg %lg %lg \n", iz, creal(const1), cimag(const1), creal(const2), cimag(const2));
+    //printf("const2 %i %lg %lg \n", iz, creal(const2), cimag(const2));
+    printf("cons %i %lg %lg \n", iz, creal(cons), cimag(cons));
     /*------updating shifted eq-----------*/
     //#pragma omp parallel for private(i) 
     //for ( i = 0; i < komegaInfo->nl; i++){
@@ -1861,7 +1865,8 @@ tsum2 = 0.0;
 
     pi_old[iz] = pi[iz];
     pi[iz] = pi_new;
-  
+ 
+    printf("pi_old[iz] %i %lg %lg  \n", iz, creal(pi_old[iz]), cimag(pi_old[iz])); 
   }
 
   //printf("times %lg %lg \n", tsum, tsum2);
@@ -1899,7 +1904,7 @@ double *cimImv3 = komegaInfo->cimImv3;
 
 int numCoeff = komegaInfo->ndim; //TODO CHECK
 
-  //printf("%lg %lg %lg \n", cabs(pi[0]), creal(pi[0]), cimag(pi[0]) );
+  printf("%lg %lg %lg \n", cabs(pi[0]), creal(pi[0]), cimag(pi[0]) );
 
   //status[2] = MINLOC(ABS(pi(1:nz)), 1, .NOT. lz_conv(1:nz));
 
@@ -1914,7 +1919,7 @@ int numCoeff = komegaInfo->ndim; //TODO CHECK
         }
     }
 
-    //printf("loc %i %lg \n",  location, minimum);
+    printf("loc %i %lg \n",  location, minimum);
 
     status[2] = location;
 
@@ -1935,6 +1940,7 @@ int numCoeff = komegaInfo->ndim; //TODO CHECK
     scale = 1.0 / pi[komegaInfo->iz_seed];
 
     //printf("iz_seed  %i %i \n", iz_seed, komegaInfo->iz_seed);
+    printf("scale %lg %lg \n", creal(scale), cimag(scale));
     /*----------scale v2-----------------*/
     //#pragma omp parallel for private(i)
     //for (i = 0; i < komegaInfo->ndim; i++){
@@ -1959,7 +1965,7 @@ int numCoeff = komegaInfo->ndim; //TODO CHECK
     //printf("scale %lg %lg \n", creal(scale), cimag(scale));
 
     scale = 1.0 / pi_old[komegaInfo->iz_seed];
-    //printf("scale %lg %lg \n", creal(scale), cimag(scale));
+    printf("scale %lg %lg \n", creal(scale), cimag(scale));
     /*----------scale v3-----------------*/
     //#pragma omp parallel for private(i)
     //for (i = 0; i < komegaInfo->ndim; i++){

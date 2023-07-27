@@ -1580,7 +1580,7 @@ void komega_COCG_update_g(KOMEGAINFO *komegaInfo,
   /*-------end v2\dot v12-----------*/
 
 
-  //printf("here 2 %lg %lg \n", creal(cdotp), cimag(cdotp));
+  printf("here 2 %lg %lg \n", creal(cdotp), cimag(cdotp));
 
   printf("here a %lg %lg \n", creal(komegaInfo->alpha), cimag(komegaInfo->alpha));
   printf("here b %lg %lg \n", creal(komegaInfo->beta), cimag(komegaInfo->beta));

@@ -1462,7 +1462,8 @@ void komega_COCG_update_g(KOMEGAINFO *komegaInfo,
                        int *status, int numThreads){
 
   double complex rho_old, alpha_denom;
-  double cdotp_sq, cdotp;
+  double cdotp_sq;
+  double complex cdotp;
   double complex conts1, conts2;
   int i,j;
   double complex *pi = komegaInfo->pi; 
@@ -1579,7 +1580,7 @@ void komega_COCG_update_g(KOMEGAINFO *komegaInfo,
 
   /*-------end v2\dot v12-----------*/
 
-
+  printf("cdotp %lg %lg %lg %lg \n", sum1, sum2, sum3, sum4);
   printf("here 2 %lg %lg \n", creal(cdotp), cimag(cdotp));
 
   printf("here a %lg %lg \n", creal(komegaInfo->alpha), cimag(komegaInfo->alpha));
@@ -1616,6 +1617,7 @@ void komega_COCG_update_g(KOMEGAINFO *komegaInfo,
   conts1 = (1.0 + komegaInfo->alpha * komegaInfo->beta / komegaInfo->alpha_old);
   conts2 = komegaInfo->alpha * komegaInfo->beta / komegaInfo->alpha_old;
 
+  printf("here 5 %lg %lg  %lg %lg \n ", creal(conts1), cimag(conts1), creal(conts2), cimag(conts2));
   /*-------update v12--------------*/
   conts1_re = creal(conts1);
   conts1_im = cimag(conts1);
@@ -1697,7 +1699,8 @@ void komega_COCG_update_g(KOMEGAINFO *komegaInfo,
   cdotp = sum1+sum2;
   
   /*--------------end c dot p-----------------*/
-    //printf(" %lg %lg \n", creal(cdotp), cimag(cdotp));
+    printf("cdotp %lg %lg \n", creal(cdotp), cimag(cdotp));
+    printf("sum %lg %lg \n", sum1, sum2);
 
     //v12[0] = sqrt(creal(cdotp)) + 0.0*I; //TODO
     //komegaInfo->resnorm = creal(v12[0]);

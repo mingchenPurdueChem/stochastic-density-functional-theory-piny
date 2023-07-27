@@ -1707,9 +1707,13 @@ void komega_COCG_update_g(KOMEGAINFO *komegaInfo,
     cdotp_sq = sqrt(cdotp);
     komegaInfo->resnorm = cdotp_sq;
 
+   printf("cdotp_sq %lg \n", cdotp_sq);
+   //printf("cabs(cdotp_sq/pi[i]) %lg \n", cabs(cdotp_sq/pi[i]));
+  
   //#pragma omp parallel for private(i)
   for (i = 0; i < komegaInfo->nz; i++){
     if( cabs(cdotp_sq/pi[i]) < komegaInfo->threshold ) lz_conv[i] = 1;
+    printf("cabs(cdotp_sq/pi[i]) %i %lg \n", i, cabs(cdotp_sq/pi[i]));
   }
 
   if( cdotp_sq < komegaInfo->threshold){

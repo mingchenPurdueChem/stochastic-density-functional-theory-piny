@@ -139,6 +139,9 @@ void solve_shifted_eqn_cocg_g( CP *cp, CLASS *class, GENERAL_DATA *general_data,
   int ncoef;
   ncoef = ndim;
 
+  komegaInfo->normfact = nfft2; 
+  //threshold = threshold*nfft2;
+  //printf("nfft2 %i %lg \n", nfft2, threshold);
   printf("--- Starting solving shifted COCG eqn  ---- numThreads %i numCoeff %i \n", numThreads, numCoeff);
 
   timeStart1 = omp_get_wtime();
@@ -1756,7 +1759,7 @@ void komega_COCG_update_g(KOMEGAINFO *komegaInfo,
   sum2 = 2.0*sum2+creImv2[numCoeff-1]*creImv2[numCoeff-1];
   cdotp = sum1+sum2;
  
-  cdotp = cdotp*32.0*32.0*32.0;
+  cdotp = cdotp*creal(komegaInfo->normfact);
  
   /*--------------end c dot p-----------------*/
     //printf("cdotp %lg %lg \n", creal(cdotp), cimag(cdotp));
@@ -1767,6 +1770,7 @@ void komega_COCG_update_g(KOMEGAINFO *komegaInfo,
     cdotp_sq = sqrt(creal(cdotp));
     komegaInfo->resnorm = cdotp_sq;
 
+    //printf("komegaInfo->normfact = %i \n", komegaInfo->normfact);
     //printf("v12[0] %lg %lg \n", creal(v12[0]), cimag(v12[0]));
    //printf("cdotp_sq %lg \n", cdotp_sq);
    //printf("cabs(cdotp_sq/pi[i]) %lg \n", cabs(cdotp_sq/pi[i]));

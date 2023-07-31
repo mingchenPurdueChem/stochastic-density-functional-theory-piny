@@ -307,6 +307,7 @@ typedef struct komegaInfo{
   int nl; /* imension of projection */
   int ndim; /* Dimension of Hamiltonian */
   int iz_seed; /* Index of frequency of seed */
+  int normfact; /* Normalization factor (nfft2) for COCG in G*/
 
   double almost0;
 

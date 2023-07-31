@@ -1522,7 +1522,7 @@ void komega_COCG_update_g(KOMEGAINFO *komegaInfo,
 
 
   komegaInfo->rho = sum;
-  printf("here 1 %lg %lg \n", creal(komegaInfo->rho), cimag(komegaInfo->rho));
+  //printf("here 1 %lg %lg \n", creal(komegaInfo->rho), cimag(komegaInfo->rho));
 
   if(komegaInfo->iter == 1){
     komegaInfo->beta =  0.0 +0.0*I;
@@ -1531,7 +1531,7 @@ void komega_COCG_update_g(KOMEGAINFO *komegaInfo,
     komegaInfo->beta = komegaInfo->rho / rho_old;
   }
 
-  printf("here 2 %lg %lg \n", creal(komegaInfo->beta), cimag(komegaInfo->beta));
+  //printf("here 2 %lg %lg \n", creal(komegaInfo->beta), cimag(komegaInfo->beta));
   //printf("here 2 \n");
   
   /*-------update v12--------------*/
@@ -1580,15 +1580,15 @@ void komega_COCG_update_g(KOMEGAINFO *komegaInfo,
 
   /*-------end v2\dot v12-----------*/
 
-  printf("cdotp %lg %lg %lg %lg \n", sum1, sum2, sum3, sum4);
-  printf("here 2 %lg %lg \n", creal(cdotp), cimag(cdotp));
+  //printf("cdotp %lg %lg %lg %lg \n", sum1, sum2, sum3, sum4);
+  //printf("here 2 %lg %lg \n", creal(cdotp), cimag(cdotp));
 
-  printf("here a %lg %lg \n", creal(komegaInfo->alpha), cimag(komegaInfo->alpha));
-  printf("here b %lg %lg \n", creal(komegaInfo->beta), cimag(komegaInfo->beta));
-  printf("here r %lg %lg \n", creal(komegaInfo->rho), cimag(komegaInfo->rho));
+  //printf("here a %lg %lg \n", creal(komegaInfo->alpha), cimag(komegaInfo->alpha));
+  //printf("here b %lg %lg \n", creal(komegaInfo->beta), cimag(komegaInfo->beta));
+  //printf("here r %lg %lg \n", creal(komegaInfo->rho), cimag(komegaInfo->rho));
 
   alpha_denom = cdotp - (komegaInfo->beta * komegaInfo->rho / komegaInfo->alpha) ;
-  printf("here 3 %lg %lg \n", creal(alpha_denom), cimag(alpha_denom));
+  //printf("here 3 %lg %lg \n", creal(alpha_denom), cimag(alpha_denom));
   //printf("alpha_denom %lg \n", cabs(alpha_denom));
   //printf("here 3 %lg %lg \n", creal(komegaInfo->rho), cimag(komegaInfo->rho));
   //printf("komegaInfo->rho %lg \n", cabs(komegaInfo->rho));
@@ -1602,7 +1602,7 @@ void komega_COCG_update_g(KOMEGAINFO *komegaInfo,
 
   komegaInfo->alpha = komegaInfo->rho / alpha_denom;
 
-  printf("here 4 %lg %lg \n ", creal(komegaInfo->alpha), cimag(komegaInfo->alpha));
+  //printf("here 4 %lg %lg \n ", creal(komegaInfo->alpha), cimag(komegaInfo->alpha));
 
   t2 = omp_get_wtime();
   /* call Shifted equation */
@@ -1617,7 +1617,7 @@ void komega_COCG_update_g(KOMEGAINFO *komegaInfo,
   conts1 = (1.0 + komegaInfo->alpha * komegaInfo->beta / komegaInfo->alpha_old);
   conts2 = komegaInfo->alpha * komegaInfo->beta / komegaInfo->alpha_old;
 
-  printf("here 5 %lg %lg  %lg %lg \n ", creal(conts1), cimag(conts1), creal(conts2), cimag(conts2));
+  //printf("here 5 %lg %lg  %lg %lg \n ", creal(conts1), cimag(conts1), creal(conts2), cimag(conts2));
   /*-------update v12--------------*/
   conts1_re = creal(conts1);
   conts1_im = cimag(conts1);
@@ -1625,7 +1625,15 @@ void komega_COCG_update_g(KOMEGAINFO *komegaInfo,
   alpha_im = cimag(komegaInfo->alpha);
   conts2_re = creal(conts2);
   conts2_im = cimag(conts2);
-  for(i=0;i<numCoeff;i++){
+  //printf("here debug sum %lg %lg %lg %lg\n",
+  //       creRev12[numCoeff-1],creImv12[numCoeff-1],
+  //       creRev2[numCoeff-1],creImv2[numCoeff-1]);
+  //printf("alpha check %lg %lg\n",alpha_re,alpha_im);
+  //printf("last coeff check %lg\n",-alpha_re*creImv12[numCoeff-1]-alpha_im*creRev12[numCoeff-1]);
+  double tmp1, tmp2;
+  for(i=0;i<numCoeff;i++){ //TODO CHECK
+    tmp1 = creRev12[i];
+    tmp2 = cimRev12[i];
     creRev12[i] = conts1_re*creRev2[i]-conts1_im*creImv2[i]-
                   alpha_re*creRev12[i]+alpha_im*creImv12[i]-
                   conts2_re*creRev3[i]+conts2_im*creImv3[i];
@@ -1635,13 +1643,42 @@ void komega_COCG_update_g(KOMEGAINFO *komegaInfo,
                   conts2_re*cimRev3[i]+conts2_im*cimImv3[i];
 
     creImv12[i] = conts1_re*creImv2[i]+conts1_im*creRev2[i]-
-                  alpha_re*creImv12[i]-alpha_im*creRev12[i]-
+                  alpha_re*creImv12[i]-alpha_im*tmp1-
                   conts2_re*creImv3[i]-conts2_im*creRev3[i];
+    //creImv12[i] = -alpha_re*creImv12[i]-alpha_im*creRev12[i];
 
     cimImv12[i] = conts1_re*cimImv2[i]+conts1_im*cimRev2[i]-
-                  alpha_re*cimImv12[i]-alpha_im*cimRev12[i]-
+                  alpha_re*cimImv12[i]-alpha_im*tmp2-
                   conts2_re*cimImv3[i]-conts2_im*cimRev3[i];
   }
+
+  //printf("debug %lg %lg %lg %lg\n", creRev12[numCoeff-1], cimRev12[numCoeff-1], creImv12[numCoeff-1], cimImv12[numCoeff-1]);
+
+  /*------- v12\dot v12-----------*/
+
+  //sum = 0.0 +0.0*I;
+  sum1 = 0.0;
+  sum2 = 0.0;
+  sum3 = 0.0;
+  sum4 = 0.0;
+  for(i=0;i<numCoeff-1;i++){
+    sum1 += creRev12[i]*creRev12[i]+cimRev12[i]*cimRev12[i];
+    sum2 += creImv12[i]*creImv12[i]+cimImv12[i]*cimImv12[i];
+    sum3 += creRev12[i]*creImv12[i]+cimRev12[i]*cimImv12[i];
+  }
+  sum1 = sum1*2.0+creRev12[numCoeff-1]*creRev12[numCoeff-1];
+  sum2 = sum2*2.0+creImv12[numCoeff-1]*creImv12[numCoeff-1];
+  sum3 = sum3*2.0+creRev12[numCoeff-1]*creImv12[numCoeff-1];
+  sum = sum1-sum2+2.0*sum3*I;
+
+ // printf("here debug %lg %lg %lg \n", creal(sum), cimag(sum), sum3);
+  //printf("debug %lg %lg %lg %lg\n", creRev12[numCoeff-1], cimRev12[numCoeff-1], creImv12[numCoeff-1], cimImv12[numCoeff-1]);
+  //#pragma omp parallel for reduction(+:sum) private(i)
+  //for (i = 0; i < komegaInfo->ndim; i++){
+  //  sum += v2[i]*v2[i];
+  //}
+  /*-------end v2\dot v2-----------*/
+
 
 
   //#pragma omp parallel for private(i)
@@ -1681,6 +1718,27 @@ void komega_COCG_update_g(KOMEGAINFO *komegaInfo,
 
   t5 = omp_get_wtime();
 
+
+  /*------- v2\dot v2-----------*/
+
+  //sum = 0.0 +0.0*I;
+  sum1 = 0.0;
+  sum2 = 0.0;
+  sum3 = 0.0;
+  sum4 = 0.0;
+  for(i=0;i<numCoeff-1;i++){
+    sum1 += creRev2[i]*creRev2[i]+cimRev2[i]*cimRev2[i];
+    sum2 += creImv2[i]*creImv2[i]+cimImv2[i]*cimImv2[i];
+    sum3 += creRev2[i]*creImv2[i]+cimRev2[i]*cimImv2[i];
+  }
+  sum1 = sum1*2.0+creRev2[numCoeff-1]*creRev2[numCoeff-1];
+  sum2 = sum2*2.0+creImv2[numCoeff-1]*creImv2[numCoeff-1];
+  sum3 = sum3*2.0+creRev2[numCoeff-1]*creImv2[numCoeff-1];
+  sum = sum1-sum2+2.0*sum3*I;
+
+
+  //printf("v2 check %lg %lg \n", creal(sum), cimag(sum));
+
   /* Convergence check  */
   /*--------------c dot p-----------------*/
   //cdotp = 0.0 + 0.0*I;
@@ -1697,23 +1755,27 @@ void komega_COCG_update_g(KOMEGAINFO *komegaInfo,
   sum1 = 2.0*sum1+creRev2[numCoeff-1]*creRev2[numCoeff-1];
   sum2 = 2.0*sum2+creImv2[numCoeff-1]*creImv2[numCoeff-1];
   cdotp = sum1+sum2;
-  
+ 
+  cdotp = cdotp*32.0*32.0*32.0;
+ 
   /*--------------end c dot p-----------------*/
-    printf("cdotp %lg %lg \n", creal(cdotp), cimag(cdotp));
-    printf("sum %lg %lg \n", sum1, sum2);
+    //printf("cdotp %lg %lg \n", creal(cdotp), cimag(cdotp));
+    //printf("sum %lg %lg \n", sum1, sum2);
 
     //v12[0] = sqrt(creal(cdotp)) + 0.0*I; //TODO
     //komegaInfo->resnorm = creal(v12[0]);
-    cdotp_sq = sqrt(cdotp);
+    cdotp_sq = sqrt(creal(cdotp));
     komegaInfo->resnorm = cdotp_sq;
 
-   printf("cdotp_sq %lg \n", cdotp_sq);
+    //printf("v12[0] %lg %lg \n", creal(v12[0]), cimag(v12[0]));
+   //printf("cdotp_sq %lg \n", cdotp_sq);
    //printf("cabs(cdotp_sq/pi[i]) %lg \n", cabs(cdotp_sq/pi[i]));
   
   //#pragma omp parallel for private(i)
   for (i = 0; i < komegaInfo->nz; i++){
+    //if( cabs(v12[0]/pi[i]) < komegaInfo->threshold ) lz_conv[i] = 1;
     if( cabs(cdotp_sq/pi[i]) < komegaInfo->threshold ) lz_conv[i] = 1;
-    printf("cabs(cdotp_sq/pi[i]) %i %lg \n", i, cabs(cdotp_sq/pi[i]));
+    //printf("cabs(v12[0]/pi[i]) %i %lg \n", i, cabs(cdotp_sq/pi[i]));
   }
 
   if( cdotp_sq < komegaInfo->threshold){
@@ -1802,14 +1864,14 @@ tsum2 = 0.0;
             - komegaInfo->alpha * komegaInfo->beta / komegaInfo->alpha_old * (pi_old[iz] - pi[iz]);
   
     t1 = omp_get_wtime();
-    printf(" %i %lg %lg \n", iz, creal(pi_new), cimag(pi_new));
+    //printf(" %i %lg %lg \n", iz, creal(pi_new), cimag(pi_new));
     const1 = (pi_old[iz] / pi[iz])*(pi_old[iz] / pi[iz]) * komegaInfo->beta;
     const2 = 1.0/pi[iz];
     cons = pi[iz]/ pi_new * komegaInfo->alpha;
-
-    printf("consts %i %lg %lg %lg %lg \n", iz, creal(const1), cimag(const1), creal(const2), cimag(const2));
+    
+    //printf("consts %i %lg %lg %lg %lg \n", iz, creal(const1), cimag(const1), creal(const2), cimag(const2));
     //printf("const2 %i %lg %lg \n", iz, creal(const2), cimag(const2));
-    printf("cons %i %lg %lg \n", iz, creal(cons), cimag(cons));
+    //printf("cons %i %lg %lg \n", iz, creal(cons), cimag(cons));
     /*------updating shifted eq-----------*/
     //#pragma omp parallel for private(i) 
     //for ( i = 0; i < komegaInfo->nl; i++){
@@ -1870,7 +1932,7 @@ tsum2 = 0.0;
     pi_old[iz] = pi[iz];
     pi[iz] = pi_new;
  
-    printf("pi_old[iz] %i %lg %lg  \n", iz, creal(pi_old[iz]), cimag(pi_old[iz])); 
+    //printf("pi_old[iz] %i %lg %lg  \n", iz, creal(pi_old[iz]), cimag(pi_old[iz])); 
   }
 
   //printf("times %lg %lg \n", tsum, tsum2);
@@ -1908,7 +1970,7 @@ double *cimImv3 = komegaInfo->cimImv3;
 
 int numCoeff = komegaInfo->ndim; //TODO CHECK
 
-  printf("%lg %lg %lg \n", cabs(pi[0]), creal(pi[0]), cimag(pi[0]) );
+  //printf("%lg %lg %lg \n", cabs(pi[0]), creal(pi[0]), cimag(pi[0]) );
 
   //status[2] = MINLOC(ABS(pi(1:nz)), 1, .NOT. lz_conv(1:nz));
 
@@ -1923,7 +1985,7 @@ int numCoeff = komegaInfo->ndim; //TODO CHECK
         }
     }
 
-    printf("loc %i %lg \n",  location, minimum);
+    //printf("loc %i %lg \n",  location, minimum);
 
     status[2] = location;
 
@@ -1944,19 +2006,22 @@ int numCoeff = komegaInfo->ndim; //TODO CHECK
     scale = 1.0 / pi[komegaInfo->iz_seed];
 
     //printf("iz_seed  %i %i \n", iz_seed, komegaInfo->iz_seed);
-    printf("scale %lg %lg \n", creal(scale), cimag(scale));
+    //printf("scale %lg %lg \n", creal(scale), cimag(scale));
     /*----------scale v2-----------------*/
     //#pragma omp parallel for private(i)
     //for (i = 0; i < komegaInfo->ndim; i++){
     //  v2[i] = scale*v2[i];
     //}
+    double tmp1, tmp2;
     scale_re = creal(scale);
     scale_im = cimag(scale);
     for(i=0;i<numCoeff;i++){
+      tmp1 = creRev2[i];
+      tmp2 = cimRev2[i];
       creRev2[i] = scale_re*creRev2[i]-scale_im*creImv2[i];
-      creImv2[i] = scale_re*creImv2[i]+scale_im*creRev2[i];
+      creImv2[i] = scale_re*creImv2[i]+scale_im*tmp1;
       cimRev2[i] = scale_re*cimRev2[i]-scale_im*cimImv2[i];
-      cimImv2[i] = scale_re*cimImv2[i]+scale_im*cimRev2[i];
+      cimImv2[i] = scale_re*cimImv2[i]+scale_im*tmp2;
     }
 
     /*----------end scale v2-----------------*/
@@ -1969,7 +2034,7 @@ int numCoeff = komegaInfo->ndim; //TODO CHECK
     //printf("scale %lg %lg \n", creal(scale), cimag(scale));
 
     scale = 1.0 / pi_old[komegaInfo->iz_seed];
-    printf("scale %lg %lg \n", creal(scale), cimag(scale));
+    //printf("scale %lg %lg \n", creal(scale), cimag(scale));
     /*----------scale v3-----------------*/
     //#pragma omp parallel for private(i)
     //for (i = 0; i < komegaInfo->ndim; i++){
@@ -1978,10 +2043,12 @@ int numCoeff = komegaInfo->ndim; //TODO CHECK
     scale_re = creal(scale);
     scale_im = cimag(scale);
     for(i=0;i<numCoeff;i++){
+      tmp1 = creRev3[i];
+      tmp2 = cimRev3[i];
       creRev3[i] = scale_re*creRev3[i]-scale_im*creImv3[i];
-      creImv3[i] = scale_re*creImv3[i]+scale_im*creRev3[i];
+      creImv3[i] = scale_re*creImv3[i]+scale_im*tmp1;
       cimRev3[i] = scale_re*cimRev3[i]-scale_im*cimImv3[i];
-      cimImv3[i] = scale_re*cimImv3[i]+scale_im*cimRev3[i];
+      cimImv3[i] = scale_re*cimImv3[i]+scale_im*tmp2;
     } 
     /*----------end scale v3-----------------*/
 

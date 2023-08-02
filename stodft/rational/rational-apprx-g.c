@@ -130,6 +130,9 @@ void solve_shifted_eqn_cocg_g( CP *cp, CLASS *class, GENERAL_DATA *general_data,
   double t1, t2, tot, tot1;
   int i, j, iter, jiter, ndim, nz;
 
+  double sum1, sum2, sum3, sum4, sum;
+
+
   tot = 0.0;
   tot1 = 0.0;
   nz = 2*ntgrid;
@@ -217,7 +220,24 @@ void solve_shifted_eqn_cocg_g( CP *cp, CLASS *class, GENERAL_DATA *general_data,
                       status, numThreads);
     t2 = omp_get_wtime(); 
     tot1 = tot1 + (t2-t1); 
-  
+ 
+  sum1 = 0.0;
+  sum2 = 0.0;
+  sum3 = 0.0;
+  sum4 = 0.0;
+  for(i=0;i<ncoef-1;i++){
+    sum1 += creRex[i]*creRex[i]+cimRex[i]*cimRex[i];
+    sum2 += creImx[i]*creImx[i]+cimImx[i]*cimImx[i];
+    sum3 += creRex[i]*creImx[i]+cimRex[i]*cimImx[i];
+  }
+  sum1 = sum1*2.0+creRex[ncoef-1]*creRex[ncoef-1];
+  sum2 = sum2*2.0+creImx[ncoef-1]*creImx[ncoef-1];
+  sum3 = sum3*2.0+creRex[ncoef-1]*creImx[ncoef-1];
+  sum = sum1-sum2+2.0*sum3*I;
+
+
+   // printf("last term %lg %lg \n", creRex[ncoef-1], creImx[ncoef-1] ); 
+   //printf("x dotp x %lg %lg \n", creal(sum), cimag(sum));
     //printf(" DEBUG : %i %i %i %i %lg \n", iter, status[0], status[1], status[2], creal(v12[0]));
   
     if(status[0] < 0) break;
@@ -249,11 +269,6 @@ void solve_shifted_eqn_cocg_g( CP *cp, CLASS *class, GENERAL_DATA *general_data,
   printf("--- Finished solving shifted COCG eqn  ---- %lg %lg %lg %lg \n", timeEnd1-timeStart1, timeEnd2-timeStart2, tot, tot1);
 
 
-  printf("end checking \n");
-  Barrier(comm_states);
-  printf("@@@@@@@@@@@@@@@@@@@@_forced_stop__@@@@@@@@@@@@@@@@@@@@\n");
-  fflush(stdout);
-  exit(1);
 
 }
 /*==========================================================================*/
@@ -396,6 +411,14 @@ void filterRational_g(CP *cp,CLASS *class,GENERAL_DATA *general_data, KOMEGAINFO
   double timeStart3, timeEnd3;
   double t1, t2, t3, t4, t5, t6, t7, t8, t9;
 
+  double sum_reRe, sum_imRe, sum_reIm, sum_imIm, fact1_real, fact1_imag, fact2_real, fact2_imag;
+  double dsum_re, dsum_im;
+
+  double *creRex = rationalInfo->creRex;
+  double *cimRex = rationalInfo->cimRex;
+  double *creImx = rationalInfo->creImx;
+  double *cimImx = rationalInfo->cimImx;
+
   numElecTot = 0.0;
   numElecMin = 0.0;
   numElecMax = 0.0;
@@ -419,6 +442,8 @@ init_zseed_g(cp, 0);
 dsum_0 = 0.0;
 dsum_p = 0.0;
 dsum_m = 0.0;
+dsum_re = 0.0;
+dsum_im = 0.0;
 
 t2 = omp_get_wtime();
 
@@ -459,26 +484,67 @@ for(iState=0;iState<numStateUpProc;iState++){
   //printf("myidState %i %i %i \n", myidState, numStateUpProc, iState);
   solve_shifted_eqn_cocg_g( cp, class, general_data, komegaInfo, iState, 1);
 
-  for (int i = 0; i<nfft2;i++){
+
+  printf("last term %lg %lg \n", creRex[numCoeff-1], creImx[numCoeff-1] );
+  //for (int i = 0; i<nfft2;i++){
+  for (int i = 0; i<numCoeff;i++){
     //sum   = 0.0 + 0.0 *I ;
     sum_0 = 0.0 + 0.0 *I ;
     sum_p = 0.0 + 0.0 *I ;
     sum_m = 0.0 + 0.0 *I ;
+    sum_reRe = 0.0;
+    sum_imRe = 0.0;
+    sum_reIm = 0.0;
+    sum_imIm = 0.0;
     for (int j =0; j < ntgrid; j++){
       //sum = sum + fun_p[j] * rat_fact_p[j] * x[j*nfft2 + i] 
       //          + fun_m[j] * rat_fact_m[j] * x[(j+ntgrid)*nfft2 + i];
 
-      sum_0 = sum_0 + fun_p_0[j] * rat_fact_p[j] * x[j*nfft2 + i] 
-                    + fun_m_0[j] * rat_fact_m[j] * x[(j+ntgrid)*nfft2 + i];
-      sum_p = sum_p + fun_p_p[j] * rat_fact_p[j] * x[j*nfft2 + i] 
-                    + fun_m_p[j] * rat_fact_m[j] * x[(j+ntgrid)*nfft2 + i];
-      sum_m = sum_m + fun_p_m[j] * rat_fact_p[j] * x[j*nfft2 + i] 
-                    + fun_m_m[j] * rat_fact_m[j] * x[(j+ntgrid)*nfft2 + i];
+      fact1_real = creal(fun_p_0[j] * rat_fact_p[j]);
+      fact1_imag = cimag(fun_p_0[j] * rat_fact_p[j]);
+      fact2_real = creal(fun_m_0[j] * rat_fact_m[j]);
+      fact2_imag = cimag(fun_m_0[j] * rat_fact_m[j]);
+
+      sum_reRe += fact1_real*creRex[j*numCoeff + i] - fact1_imag*creImx[j*numCoeff + i] +
+	      fact2_real*creRex[(j+ntgrid)*numCoeff + i] - fact2_imag*creImx[(j+ntgrid)*numCoeff + i]; 
+
+      sum_imRe += fact1_real*cimRex[j*numCoeff + i] - fact1_imag*cimImx[j*numCoeff + i] +
+	      fact2_real*cimRex[(j+ntgrid)*numCoeff + i] - fact2_imag*cimImx[(j+ntgrid)*numCoeff + i]; 
+
+      sum_reIm += fact1_real*creImx[j*numCoeff + i] + fact1_imag*creRex[j*numCoeff + i] +
+	      fact2_real*creImx[(j+ntgrid)*numCoeff + i] + fact2_imag*creRex[(j+ntgrid)*numCoeff + i]; 
+
+      sum_imIm += fact1_real*cimImx[j*numCoeff + i] + fact1_imag*cimRex[j*numCoeff + i] +
+	      fact2_real*cimImx[(j+ntgrid)*numCoeff + i] + fact2_imag*cimRex[(j+ntgrid)*numCoeff + i]; 
+
+//      sum_0 = sum_0 + fun_p_0[j] * rat_fact_p[j] * x[j*nfft2 + i] 
+//                    + fun_m_0[j] * rat_fact_m[j] * x[(j+ntgrid)*nfft2 + i];
+//      sum_p = sum_p + fun_p_p[j] * rat_fact_p[j] * x[j*nfft2 + i] 
+//                    + fun_m_p[j] * rat_fact_m[j] * x[(j+ntgrid)*nfft2 + i];
+//      sum_m = sum_m + fun_p_m[j] * rat_fact_p[j] * x[j*nfft2 + i] 
+//                   + fun_m_m[j] * rat_fact_m[j] * x[(j+ntgrid)*nfft2 + i];
     }
     //frhs[i] = rationalInfo->preRat*cimag(sum);
-    dsum_0 += 2.0 * rationalInfo->preRat * cimag(sum_0) * rhs[i];
-    dsum_p += 2.0 * rationalInfo->preRat * cimag(sum_p) * rhs[i];
-    dsum_m += 2.0 * rationalInfo->preRat * cimag(sum_m) * rhs[i];
+    //printf("i = %i, %lg %lg \n", i, 
+    stoWfUpRe[0][i+1] = rationalInfo->preRat*sum_reIm;
+    stoWfUpIm[0][i+1] = rationalInfo->preRat*sum_imIm;
+
+    printf("i = %i, %lg %lg \n", i, rationalInfo->preRat*sum_reIm, rationalInfo->preRat*sum_imIm);
+    // get stochastic orbital from cre_up and cim_up to rhs //TODO
+    //dsum_0 += 2.0 * rationalInfo->preRat * cimag(sum_0) * rhs[i];
+    if(i < numCoeff -1) {
+        dsum_0 += 2.0 * (stoWfUpRe[0][i+1] * cre_up[i+1] + stoWfUpIm[0][i+1] * cim_up[i+1]);
+        //dsum_0 += 2.0 * (stoWfUpRe[0][i+1] * stoWfUpRe[0][i+1] + stoWfUpIm[0][i+1] * stoWfUpIm[0][i+1]);
+    }
+    else{
+        dsum_0 += stoWfUpRe[0][i+1] * cre_up[i+1];     
+        //dsum_0 += stoWfUpRe[0][i+1] * stoWfUpRe[0][i+1];     
+    }
+    //dsum_re += 2.0 * stoWfUpRe[0][i+1] * cre_up[i+1];
+    //dsum_im += 2.0 * stoWfUpIm[0][i+1] * cim_up[i+1];
+
+    //dsum_p += 2.0 * rationalInfo->preRat * cimag(sum_p) * rhs[i];
+    //dsum_m += 2.0 * rationalInfo->preRat * cimag(sum_m) * rhs[i];
   }
 
   //rhsReal(class, general_data, cp, cpcoeffs_pos, clatoms_pos, frhs, iState);
@@ -487,11 +553,12 @@ for(iState=0;iState<numStateUpProc;iState++){
 
 t4 = omp_get_wtime();
 
-dsum_0 = (dsum_0/numStateStoUp)*(1.0/stodftInfo->rhoRealGridTot);
-dsum_p = (dsum_p/numStateStoUp)*(1.0/stodftInfo->rhoRealGridTot);
-dsum_m = (dsum_m/numStateStoUp)*(1.0/stodftInfo->rhoRealGridTot);
+dsum_0 = 2.0*(dsum_0/numStateStoUp);
+//dsum_0 = (dsum_0/numStateStoUp)*(1.0/stodftInfo->rhoRealGridTot);
+//dsum_p = (dsum_p/numStateStoUp)*(1.0/stodftInfo->rhoRealGridTot);
+//dsum_m = (dsum_m/numStateStoUp)*(1.0/stodftInfo->rhoRealGridTot);
 
-//printf("==== final results: dsum  === %i %lg %lg %lg %lg \n", myidState, dsum_0, dsum_p, dsum_m, rationalInfo->preRat);
+printf("==== final results: dsum  === %i %lg %lg %lg %lg \n", myidState, dsum_0, dsum_p, dsum_m, rationalInfo->preRat);
 
 if(numProcStates>1)Reduce(&dsum_0,&numElecTot,1,MPI_DOUBLE,MPI_SUM,0,comm_states);
 if(numProcStates>1)Reduce(&dsum_p,&numElecMax,1,MPI_DOUBLE,MPI_SUM,0,comm_states);
@@ -499,12 +566,22 @@ if(numProcStates>1)Reduce(&dsum_m,&numElecMin,1,MPI_DOUBLE,MPI_SUM,0,comm_states
 
 if(myidState == 0)printf("==== final results: numElec  === %.10lg %.10lg %.10lg\n", numElecTot, numElecMax, numElecMin);
 
+
+
    if(numProcStates>1){
      Barrier(comm_states);
      Bcast(&numElecTot,1,MPI_DOUBLE,0,comm_states);
      Bcast(&numElecMax,1,MPI_DOUBLE,0,comm_states);
      Bcast(&numElecMin,1,MPI_DOUBLE,0,comm_states);
    }
+
+
+  printf("end checking \n");
+  Barrier(comm_states);
+  printf("@@@@@@@@@@@@@@@@@@@@_forced_stop__@@@@@@@@@@@@@@@@@@@@\n");
+  fflush(stdout);
+  exit(1);
+/*=====================================================================================*/
 
 
 t5 = omp_get_wtime();
@@ -1892,27 +1969,27 @@ tsum2 = 0.0;
     cons_re = creal(cons);
     cons_im = cimag(cons);
     for(i=0;i<numCoeff;i++){
-      ptemp_cre_re = const2_re*creRer_l[i]-const1_im*creImr_l[i]+
+      ptemp_cre_re = const2_re*creRer_l[i]-const2_im*creImr_l[i]+
                      const1_re*creRep[i+iz*komegaInfo->nl]-const1_im*creImp[i+iz*komegaInfo->nl];
 
-      ptemp_cre_im = const2_re*creImr_l[i]+const1_im*creRer_l[i]+
+      ptemp_cre_im = const2_re*creImr_l[i]+const2_im*creRer_l[i]+
                      const1_re*creImp[i+iz*komegaInfo->nl]+const1_im*creRep[i+iz*komegaInfo->nl];
 
-      ptemp_cim_re = const2_re*cimRer_l[i]-const1_im*cimImr_l[i]+
+      ptemp_cim_re = const2_re*cimRer_l[i]-const2_im*cimImr_l[i]+
                      const1_re*cimRep[i+iz*komegaInfo->nl]-const1_im*cimImp[i+iz*komegaInfo->nl];
 
-      ptemp_cim_im = const2_re*cimImr_l[i]+const1_im*cimRer_l[i]+
+      ptemp_cim_im = const2_re*cimImr_l[i]+const2_im*cimRer_l[i]+
                      const1_re*cimImp[i+iz*komegaInfo->nl]+const1_im*cimRep[i+iz*komegaInfo->nl];
 
-      creRex[i] += cons_re*ptemp_cre_re-cons_im*ptemp_cre_im;
-      creImx[i] += cons_re*ptemp_cre_im+cons_im*ptemp_cre_re;
-      cimRex[i] += cons_re*ptemp_cim_re-cons_im*ptemp_cim_im;
-      cimImx[i] += cons_re*ptemp_cim_im+cons_im*ptemp_cim_re;
+      creRex[i+iz*komegaInfo->nl] += cons_re*ptemp_cre_re-cons_im*ptemp_cre_im;
+      creImx[i+iz*komegaInfo->nl] += cons_re*ptemp_cre_im+cons_im*ptemp_cre_re;
+      cimRex[i+iz*komegaInfo->nl] += cons_re*ptemp_cim_re-cons_im*ptemp_cim_im;
+      cimImx[i+iz*komegaInfo->nl] += cons_re*ptemp_cim_im+cons_im*ptemp_cim_re;
  
-      creRep[i] = ptemp_cre_re;
-      creImp[i] = ptemp_cre_im;
-      cimRep[i] = ptemp_cim_re;
-      cimImp[i] = ptemp_cim_im;
+      creRep[i+iz*komegaInfo->nl] = ptemp_cre_re;
+      creImp[i+iz*komegaInfo->nl] = ptemp_cre_im;
+      cimRep[i+iz*komegaInfo->nl] = ptemp_cim_re;
+      cimImp[i+iz*komegaInfo->nl] = ptemp_cim_im;
 
     }
 

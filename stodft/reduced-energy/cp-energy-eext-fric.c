@@ -132,6 +132,8 @@ void calcNlppRealFriction(CLASS *class,GENERAL_DATA *general_data,CP *cp,
     }//endfor iAng
   }
   */
+  
+
   dotRe = (double**)cmalloc(numAtomFricProc*sizeof(double*));
   dotIm = (double**)cmalloc(numAtomFricProc*sizeof(double*));
   dotDevRe = (double**)cmalloc(numAtomFricProc*sizeof(double*));
@@ -242,6 +244,7 @@ void calcNlppRealFriction(CLASS *class,GENERAL_DATA *general_data,CP *cp,
     }
   }
 
+  /*
   for(iAtom=0;iAtom<numAtomFricProc;iAtom++){
     for(is=0;is<numStateFric;is++){
       printf("dotRe %lg dotIm %lg dotDevRe %lg dotDevIm %lg\n",dotRe[iAtom][(is)*numNlppTemp],
@@ -249,6 +252,7 @@ void calcNlppRealFriction(CLASS *class,GENERAL_DATA *general_data,CP *cp,
              dotDevIm[iAtom][(is)*(numNlppTemp-1)*3]);
     }
   }
+  */
 
 /*======================================================================*/
 /* V) Calculate vnlDevMat                                               */
@@ -283,12 +287,12 @@ void calcNlppRealFriction(CLASS *class,GENERAL_DATA *general_data,CP *cp,
                           dotDevIm[iAtom][iState*(numNlppTemp-1)*3+(countNlppIm+m-1)*3+iDim])*
                           2.0*vpsNormList[radIndex]*volInv;
                       hDevMat[(iAtom*3+iDim)*numStateFric*numStateFric+iState*numStateFric+jState] += temp;
-                      printf("iDim %i iState %i jState %i l %i m %i dotRe %lg dotIm %lg dotDevRe %lg dotDevIm %lg vpsNormList %lg volInv %lg temp %lg\n",
-                             iDim,iState,jState,l,m,dotRe[iAtom][iState*numNlppTemp+countNlppRe+m],
-                             dotIm[iAtom][iState*(numNlppTemp-1)+countNlppIm+m-1],
-                             dotDevRe[iAtom][jState*numNlppTemp*3+(countNlppRe+m)*3+iDim],
-                             dotDevIm[iAtom][jState*(numNlppTemp-1)*3+(countNlppIm+m-1)*3+iDim],
-                             vpsNormList[radIndex],volInv,temp);
+                      //printf("iDim %i iState %i jState %i l %i m %i dotRe %lg dotIm %lg dotDevRe %lg dotDevIm %lg vpsNormList %lg volInv %lg temp %lg\n",
+                      //       iDim,iState,jState,l,m,dotRe[iAtom][iState*numNlppTemp+countNlppRe+m],
+                      //       dotIm[iAtom][iState*(numNlppTemp-1)+countNlppIm+m-1],
+                      //       dotDevRe[iAtom][jState*numNlppTemp*3+(countNlppRe+m)*3+iDim],
+                      //       dotDevIm[iAtom][jState*(numNlppTemp-1)*3+(countNlppIm+m-1)*3+iDim],
+                      //       vpsNormList[radIndex],volInv,temp);
                     }
                     else{
                       temp = 
@@ -298,10 +302,10 @@ void calcNlppRealFriction(CLASS *class,GENERAL_DATA *general_data,CP *cp,
                           dotDevRe[iAtom][iState*numNlppTemp*3+(countNlppRe+m)*3+iDim])*
                           vpsNormList[radIndex]*volInv;
                       hDevMat[(iAtom*3+iDim)*numStateFric*numStateFric+iState*numStateFric+jState] += temp;
-                      printf("iDim %i iState %i jState %i l %i m %i dotRe %lg dotIm 0.0 dotDevRe %lg dotDevIm 0.0 vpsNormList %lg volInv %lg temp %lg\n",
-                             iDim,iState,jState,l,m,dotRe[iAtom][iState*numNlppTemp+countNlppRe+m],
-                             dotDevRe[iAtom][jState*numNlppTemp*3+(countNlppRe+m)*3+iDim],
-                             vpsNormList[radIndex],volInv,temp);
+                      //printf("iDim %i iState %i jState %i l %i m %i dotRe %lg dotIm 0.0 dotDevRe %lg dotDevIm 0.0 vpsNormList %lg volInv %lg temp %lg\n",
+                      //       iDim,iState,jState,l,m,dotRe[iAtom][iState*numNlppTemp+countNlppRe+m],
+                      //       dotDevRe[iAtom][jState*numNlppTemp*3+(countNlppRe+m)*3+iDim],
+                      //       vpsNormList[radIndex],volInv,temp);
                     }//endif m
                   }//endfor m
                   countNlppRe += l+1;
@@ -482,7 +486,7 @@ void calcNlppDot(CLASS *class,GENERAL_DATA *general_data,CP *cp,
                                                 &vnlPhiDzAtomGridRe[gridShiftNowRe],1)*volElem;
               dotDevIm[(countNlppIm+m-1)*3+2] = ddotBlasWrapper(numGrid,wfNbhd,1,
                                                 &vnlPhiDzAtomGridIm[gridShiftNowIm],1)*volElem;
-              printf("l %i m %i dotRe %lg dotIm %lg dotDevRe %lg %lg %lg dotDevIm %lg %lg %lg\n",l,m,dotRe[countNlppRe+m],dotIm[countNlppIm+m-1],dotDevRe[(countNlppRe+m)*3],dotDevRe[(countNlppRe+m)*3+1],dotDevRe[(countNlppRe+m)*3+2],dotDevIm[(countNlppIm+m-1)*3],dotDevIm[(countNlppIm+m-1)*3+1],dotDevIm[(countNlppIm+m-1)*3+2]);
+              //printf("l %i m %i dotRe %lg dotIm %lg dotDevRe %lg %lg %lg dotDevIm %lg %lg %lg\n",l,m,dotRe[countNlppRe+m],dotIm[countNlppIm+m-1],dotDevRe[(countNlppRe+m)*3],dotDevRe[(countNlppRe+m)*3+1],dotDevRe[(countNlppRe+m)*3+2],dotDevIm[(countNlppIm+m-1)*3],dotDevIm[(countNlppIm+m-1)*3+1],dotDevIm[(countNlppIm+m-1)*3+2]);
 
               gridShiftNowRe += numGrid;
               gridShiftNowIm += numGrid;
@@ -498,7 +502,7 @@ void calcNlppDot(CLASS *class,GENERAL_DATA *general_data,CP *cp,
                                            &vnlPhiDyAtomGridRe[gridShiftNowRe],1)*volElem;
               dotDevRe[countNlppRe*3+2] = ddotBlasWrapper(numGrid,wfNbhd,1,
                                            &vnlPhiDzAtomGridRe[gridShiftNowRe],1)*volElem;
-              printf("l %i m %i dotRe %lg dotDevRe %lg %lg %lg\n",l,m,dotRe[countNlppRe],dotDevRe[(countNlppRe)*3],dotDevRe[(countNlppRe)*3+1],dotDevRe[(countNlppRe)*3+2]);
+              //printf("l %i m %i dotRe %lg dotDevRe %lg %lg %lg\n",l,m,dotRe[countNlppRe],dotDevRe[(countNlppRe)*3],dotDevRe[(countNlppRe)*3+1],dotDevRe[(countNlppRe)*3+2]);
               //printf("volElem %lg\n",volElem);
               //printf("11111111 dotRe %.8lg\n",dotRe);
               gridShiftNowRe += numGrid;
@@ -596,6 +600,8 @@ void calcLocalPotFriction(CLASS *class,GENERAL_DATA *general_data,CP *cp,
   int *rhoRealDispls = stodftInfo->rhoRealDispls;
   int *atomFricIndProc = metallic->atomFricIndProc;
 
+  double sum;
+  
   double *ksStateChemPotRe = metallic->ksStateChemPotRe;
   double *ksStateChemPotIm = metallic->ksStateChemPotIm;
   double *wfReal = (double*)cmalloc(numStateFric*rhoRealGridTot*sizeof(double));
@@ -624,21 +630,30 @@ void calcLocalPotFriction(CLASS *class,GENERAL_DATA *general_data,CP *cp,
   double *fx = clatoms_pos->fx;
   double *fy = clatoms_pos->fy;
   double *fz = clatoms_pos->fz;
+  double *fxLoc,*fyLoc,*fzLoc;
 
-  for(iState=0;iState<numStateFric;iState++){
-    rhoCalcRealFriction(general_data,cp,class,ksStateChemPotRe,ksStateChemPotIm,
-                        wfReal,numStateFric);
-  }
+  fxLoc = (double*)cmalloc(numAtomTot*sizeof(double));
+  fyLoc = (double*)cmalloc(numAtomTot*sizeof(double));
+  fzLoc = (double*)cmalloc(numAtomTot*sizeof(double));
+
+
+  //for(iState=0;iState<numStateFric;iState++){
+  rhoCalcRealFriction(general_data,cp,class,ksStateChemPotRe,ksStateChemPotIm,
+                      wfReal,numStateFric);
+  //}
 
   cpewald->ewaldLocalOpt = 1;	  
   for(iState=0;iState<numStateFric;iState++){
     for(jState=0;jState<numStateFric;jState++){
       /* Calculate Real Space "Density" phi_i^*(r)phi_j(r) */
       if(myidState==0){
+        //sum = 0.0;
         for(iGrid=0;iGrid<rhoRealGridTot;iGrid++){
           rhoTemp[iGrid] = wfReal[iState*rhoRealGridTot+iGrid]*wfReal[jState*rhoRealGridTot+iGrid];
+          //sum += rhoTemp[iGrid];
         }
-        printf("rhoTemp %lg\n",rhoTemp[0]);
+        //sum /= rhoRealGridTot;
+        //printf("rho dot %lg\n",sum);
       }
 
       /* Scatter rhoTemp */
@@ -656,7 +671,7 @@ void calcLocalPotFriction(CLASS *class,GENERAL_DATA *general_data,CP *cp,
                          divRhoxUp,divRhoyUp,divRhozUp,d2RhoUp,cpGGA,cpDualGridOptOn,numInterpPmeDual,
                          communicate,&(cp->cp_para_fft_pkg3d_lg),&(cp->cp_para_fft_pkg3d_dens_cp_box));
 
-      printf("rhoCoeffReUp %lg rhoCoeffImUp %lg\n",rhoCoeffReUp[1],rhoCoeffImUp[1]);
+      printf("rhoCoeffReUp %i rhoCoeffImUp %lg\n",rhoCoeffReUp[1],rhoCoeffImUp[1]);
       /* Calculate F_local(ij) */
       for(iAtom=1;iAtom<=numAtomTot;iAtom++){
         fx[iAtom] = 0.0;
@@ -664,16 +679,29 @@ void calcLocalPotFriction(CLASS *class,GENERAL_DATA *general_data,CP *cp,
         fz[iAtom] = 0.0;
       }
       calcLocExtPostScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+      printf("myid %i force CO %lg %lg %lg\n",myidState,fx[9],fy[9],fz[9]);
+      /* Reduce Force    */
+      if(numProcStates==1){
+        memcpy(&fxLoc[0],&fx[1],numAtomTot*sizeof(double));
+        memcpy(&fyLoc[0],&fy[1],numAtomTot*sizeof(double));
+        memcpy(&fzLoc[0],&fz[1],numAtomTot*sizeof(double));
+      }
+      else{
+        Reduce(&fx[1],&fxLoc[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,comm_states);
+        Reduce(&fy[1],&fyLoc[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,comm_states);
+        Reduce(&fz[1],&fzLoc[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,comm_states);
+      }
+
       /* Broadcast Force */
-      Bcast(&fx[1],numAtomTot,MPI_DOUBLE,0,comm_states);
-      Bcast(&fy[1],numAtomTot,MPI_DOUBLE,0,comm_states);
-      Bcast(&fz[1],numAtomTot,MPI_DOUBLE,0,comm_states);
+      Bcast(&fxLoc[0],numAtomTot,MPI_DOUBLE,0,comm_states);
+      Bcast(&fyLoc[0],numAtomTot,MPI_DOUBLE,0,comm_states);
+      Bcast(&fzLoc[0],numAtomTot,MPI_DOUBLE,0,comm_states);
       for(iAtom=0;iAtom<numAtomFricProc;iAtom++){
         atomIndex = atomFricIndProc[iAtom];
-        printf("Fx %lg atomIndex %i\n",fx[1],atomIndex);
-        vlocDevMat[(iAtom*3)*numStateFric*numStateFric+iState*numStateFric+jState] = fx[atomIndex+1];
-        vlocDevMat[(iAtom*3+1)*numStateFric*numStateFric+iState*numStateFric+jState] = fy[atomIndex+1];
-        vlocDevMat[(iAtom*3+2)*numStateFric*numStateFric+iState*numStateFric+jState] = fz[atomIndex+1];
+        printf("Fx %lg %lg %lg atomIndex %i\n",fxLoc[atomIndex],fyLoc[atomIndex],fzLoc[atomIndex],atomIndex);
+        vlocDevMat[(iAtom*3)*numStateFric*numStateFric+iState*numStateFric+jState] = -fxLoc[atomIndex];
+        vlocDevMat[(iAtom*3+1)*numStateFric*numStateFric+iState*numStateFric+jState] = -fyLoc[atomIndex];
+        vlocDevMat[(iAtom*3+2)*numStateFric*numStateFric+iState*numStateFric+jState] = -fzLoc[atomIndex];
       }
     }//endfor jState
   }//endfor iState
@@ -1203,7 +1231,7 @@ void calcDNLPhi(CP *cp,CLASS *class, GENERAL_DATA *general_data,
     atomIndex2 = atomFricIndProc[iAtom2];
 
 /*======================================================================*/
-/* II) FFT states back to real space                                    */
+/* II) FFT states back to k space                                       */
     
     for(iDim=0;iDim<3;iDim++){
       for(iGrid=0;iGrid<numGridAll*2;iGrid++)zfft[iGrid+1] = 0.0;
@@ -1871,4 +1899,7 @@ void daVlocApply(GENERAL_DATA *general_data,CP *cp,CLASS *class,
 /*==============================================================*/
 }/*end routine*/
 /*==============================================================*/
+
+
+
 

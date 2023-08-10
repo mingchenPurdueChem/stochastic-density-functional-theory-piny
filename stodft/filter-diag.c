@@ -1451,12 +1451,13 @@ void diagKSMatrix(CP *cp,CLASS *class,GENERAL_DATA *general_data,
     Bcast(stateFricIndex,countState,MPI_INT,0,comm_states);
     Bcast(ksEnergyFric,countState,MPI_DOUBLE,0,comm_states);
 
-    div = numStateUpIdp/numProcStates;
-    res = numStateUpIdp%numProcStates;
+    div = numStatePrintUp/numProcStates;
+    res = numStatePrintUp%numProcStates;
     for(iState=0;iState<numStateFric;iState++){
       if(stateFricIndex[iState]<res*(div+1))procInd = stateFricIndex[iState]/(div+1);
       else procInd = (stateFricIndex[iState]-res*(div+1))/div+res;
       stateInd = stateFricIndex[iState]-dsplStates2[procInd];
+      //printf("iState %i stateFricIndex %i procInd %i stateInd %i\n",iState,stateFricIndex[iState],procInd,stateInd);
       if(myidState==procInd){
         memcpy(&ksStateChemPotRe[iState*numCoeff],&coeffUpReBackup[stateInd*numCoeff],
                numCoeff*sizeof(double));

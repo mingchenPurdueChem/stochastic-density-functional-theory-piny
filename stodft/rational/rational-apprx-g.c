@@ -362,6 +362,8 @@ void filterRational_g(CP *cp,CLASS *class,GENERAL_DATA *general_data, KOMEGAINFO
   double t1, t2, t3, t4, t5, t6, t7, t8, t9;
 
   double sum_reRe, sum_imRe, sum_reIm, sum_imIm, fact1_real, fact1_imag, fact2_real, fact2_imag;
+  double sum_reRe_p, sum_imRe_p, sum_reIm_p, sum_imIm_p;
+  double sum_reRe_m, sum_imRe_m, sum_reIm_m, sum_imIm_m;
   double dsum_re, dsum_im;
 
   double *creRex = rationalInfo->creRex;
@@ -421,13 +423,20 @@ for(iState=0;iState<numStateUpProc;iState++){
   printf("last term %lg %lg \n", creRex[numCoeff-1], creImx[numCoeff-1] );
   //for (int i = 0; i<nfft2;i++){
   for (int i = 0; i<numCoeff;i++){
-    sum_0 = 0.0 + 0.0 *I ;
-    sum_p = 0.0 + 0.0 *I ;
-    sum_m = 0.0 + 0.0 *I ;
     sum_reRe = 0.0;
     sum_imRe = 0.0;
     sum_reIm = 0.0;
     sum_imIm = 0.0;
+
+    sum_reRe_p = 0.0;
+    sum_imRe_p = 0.0;
+    sum_reIm_p = 0.0;
+    sum_imIm_p = 0.0;
+    sum_reRe_m = 0.0;
+    sum_imRe_m = 0.0;
+    sum_reIm_m = 0.0;
+    sum_imIm_m = 0.0;
+
     for (int j =0; j < ntgrid; j++){
 
       fact1_real = creal(fun_p_0[j] * rat_fact_p[j]);
@@ -447,19 +456,61 @@ for(iState=0;iState<numStateUpProc;iState++){
       sum_imIm += fact1_real*cimImx[j*numCoeff + i] + fact1_imag*cimRex[j*numCoeff + i] +
 	      fact2_real*cimImx[(j+ntgrid)*numCoeff + i] + fact2_imag*cimRex[(j+ntgrid)*numCoeff + i]; 
 
+/**********************************************************************************************************/
+      fact1_real = creal(fun_p_p[j] * rat_fact_p[j]);
+      fact1_imag = cimag(fun_p_p[j] * rat_fact_p[j]);
+      fact2_real = creal(fun_m_p[j] * rat_fact_m[j]);
+      fact2_imag = cimag(fun_m_p[j] * rat_fact_m[j]);
+      sum_reRe_p += fact1_real*creRex[j*numCoeff + i] - fact1_imag*creImx[j*numCoeff + i] +
+	      fact2_real*creRex[(j+ntgrid)*numCoeff + i] - fact2_imag*creImx[(j+ntgrid)*numCoeff + i]; 
+
+      sum_imRe_p += fact1_real*cimRex[j*numCoeff + i] - fact1_imag*cimImx[j*numCoeff + i] +
+	      fact2_real*cimRex[(j+ntgrid)*numCoeff + i] - fact2_imag*cimImx[(j+ntgrid)*numCoeff + i]; 
+
+      sum_reIm_p += fact1_real*creImx[j*numCoeff + i] + fact1_imag*creRex[j*numCoeff + i] +
+	      fact2_real*creImx[(j+ntgrid)*numCoeff + i] + fact2_imag*creRex[(j+ntgrid)*numCoeff + i]; 
+
+      sum_imIm_p += fact1_real*cimImx[j*numCoeff + i] + fact1_imag*cimRex[j*numCoeff + i] +
+	      fact2_real*cimImx[(j+ntgrid)*numCoeff + i] + fact2_imag*cimRex[(j+ntgrid)*numCoeff + i]; 
+
+/**********************************************************************************************************/
+      fact1_real = creal(fun_p_m[j] * rat_fact_p[j]);
+      fact1_imag = cimag(fun_p_m[j] * rat_fact_p[j]);
+      fact2_real = creal(fun_m_m[j] * rat_fact_m[j]);
+      fact2_imag = cimag(fun_m_m[j] * rat_fact_m[j]);
+
+      sum_reRe_m += fact1_real*creRex[j*numCoeff + i] - fact1_imag*creImx[j*numCoeff + i] +
+	      fact2_real*creRex[(j+ntgrid)*numCoeff + i] - fact2_imag*creImx[(j+ntgrid)*numCoeff + i]; 
+
+      sum_imRe_m += fact1_real*cimRex[j*numCoeff + i] - fact1_imag*cimImx[j*numCoeff + i] +
+	      fact2_real*cimRex[(j+ntgrid)*numCoeff + i] - fact2_imag*cimImx[(j+ntgrid)*numCoeff + i]; 
+
+      sum_reIm_m += fact1_real*creImx[j*numCoeff + i] + fact1_imag*creRex[j*numCoeff + i] +
+	      fact2_real*creImx[(j+ntgrid)*numCoeff + i] + fact2_imag*creRex[(j+ntgrid)*numCoeff + i]; 
+
+      sum_imIm_m += fact1_real*cimImx[j*numCoeff + i] + fact1_imag*cimRex[j*numCoeff + i] +
+	      fact2_real*cimImx[(j+ntgrid)*numCoeff + i] + fact2_imag*cimRex[(j+ntgrid)*numCoeff + i]; 
+/**********************************************************************************************************/
     }
     
-    stoWfUpRe[0][iState*numCoeff + i+1] = rationalInfo->preRat*sum_reIm;
-    stoWfUpIm[0][iState*numCoeff + i+1] = rationalInfo->preRat*sum_imIm;
+    //stoWfUpRe[0][iState*numCoeff + i+1] = rationalInfo->preRat*sum_reIm;
+    //stoWfUpIm[0][iState*numCoeff + i+1] = rationalInfo->preRat*sum_imIm;
 
-    printf("i = %i, %lg %lg \n", i, rationalInfo->preRat*sum_reIm, rationalInfo->preRat*sum_imIm);
+    //printf("i = %i, %lg %lg \n", i, rationalInfo->preRat*sum_reIm, rationalInfo->preRat*sum_imIm);
     
     if(i < numCoeff -1) {
-        dsum_0 += 2.0 * (stoWfUpRe[0][iState*numCoeff + i+1] * cre_up[iState*numCoeff + i+1] + 
-                         stoWfUpIm[0][iState*numCoeff + i+1] * cim_up[iState*numCoeff + i+1]);
+        dsum_0 += 2.0 * (rationalInfo->preRat*sum_reIm * cre_up[iState*numCoeff + i+1] + 
+                         rationalInfo->preRat*sum_imIm * cim_up[iState*numCoeff + i+1]);
+
+        dsum_p += 2.0 * (rationalInfo->preRat*sum_reIm_p * cre_up[iState*numCoeff + i+1] + 
+                         rationalInfo->preRat*sum_imIm_p * cim_up[iState*numCoeff + i+1]);
+        dsum_m += 2.0 * (rationalInfo->preRat*sum_reIm_m * cre_up[iState*numCoeff + i+1] + 
+                         rationalInfo->preRat*sum_imIm_m * cim_up[iState*numCoeff + i+1]);
     }
     else{
-        dsum_0 += stoWfUpRe[0][iState*numCoeff + i+1] * cre_up[iState*numCoeff + i+1];     
+        dsum_0 += rationalInfo->preRat*sum_reIm * cre_up[iState*numCoeff + i+1];     
+        dsum_p += rationalInfo->preRat*sum_reIm_p * cre_up[iState*numCoeff + i+1];     
+        dsum_m += rationalInfo->preRat*sum_reIm_m * cre_up[iState*numCoeff + i+1];     
     }
 
   }
@@ -469,6 +520,8 @@ for(iState=0;iState<numStateUpProc;iState++){
 t4 = omp_get_wtime();
 
 dsum_0 = 2.0*(dsum_0/numStateStoUp);
+dsum_p = 2.0*(dsum_p/numStateStoUp);
+dsum_m = 2.0*(dsum_m/numStateStoUp);
 //dsum_0 = (dsum_0/numStateStoUp)*(1.0/stodftInfo->rhoRealGridTot);
 //dsum_p = (dsum_p/numStateStoUp)*(1.0/stodftInfo->rhoRealGridTot);
 //dsum_m = (dsum_m/numStateStoUp)*(1.0/stodftInfo->rhoRealGridTot);
@@ -491,11 +544,11 @@ if(myidState == 0)printf("==== final results: numElec  === %.10lg %.10lg %.10lg\
    }
 
 
-  printf("end checking \n");
-  Barrier(comm_states);
-  printf("@@@@@@@@@@@@@@@@@@@@_forced_stop__@@@@@@@@@@@@@@@@@@@@\n");
-  fflush(stdout);
-  exit(1);
+//  printf("end checking \n");
+//  Barrier(comm_states);
+//  printf("@@@@@@@@@@@@@@@@@@@@_forced_stop__@@@@@@@@@@@@@@@@@@@@\n");
+//  fflush(stdout);
+//  exit(1);
 /*=====================================================================================*/
 
 

@@ -56,8 +56,6 @@ void solve_shifted_eqn_cocg_g( CP *cp, CLASS *class, GENERAL_DATA *general_data,
   CLATOMS_INFO *clatoms_info    = &(class->clatoms_info);
   COMMUNICATE *communicate      = &(cp->communicate);
   RATIONALINFO *rationalInfo    = stodftInfo->rationalInfo;
- // KOMEGAINFO *komegaInfo = rationalInfo->komegaInfo;
-  //komegaInfo = (KOMEGAINFO*)malloc(sizeof(KOMEGAINFO));
   MPI_Comm comm_states   =    communicate->comm_states;
 
 
@@ -117,12 +115,7 @@ void solve_shifted_eqn_cocg_g( CP *cp, CLASS *class, GENERAL_DATA *general_data,
   double *crerhs = rationalInfo->crerhs;
   double *cimrhs = rationalInfo->cimrhs;
 
-  //double complex *v12 = rationalInfo->v12;
-  //double complex *v2 = rationalInfo->v2;
-  //double complex *r_l = rationalInfo->r_l;
   double complex *zseed = rationalInfo->zseed;
-  //double complex *x = rationalInfo->x;
-  //double *rhs = rationalInfo->rhs;
 /* =------------------------------------------------------------------------------------= */
   int status[3];
   double timeStart1, timeEnd1;
@@ -143,8 +136,6 @@ void solve_shifted_eqn_cocg_g( CP *cp, CLASS *class, GENERAL_DATA *general_data,
   ncoef = ndim;
 
   komegaInfo->normfact = nfft2; 
-  //threshold = threshold*nfft2;
-  //printf("nfft2 %i %lg \n", nfft2, threshold);
   printf("--- Starting solving shifted COCG eqn  ---- numThreads %i numCoeff %i \n", numThreads, numCoeff);
 
   timeStart1 = omp_get_wtime();
@@ -153,34 +144,15 @@ void solve_shifted_eqn_cocg_g( CP *cp, CLASS *class, GENERAL_DATA *general_data,
 /* =------------------------------------------------------------------------------------= */
     #pragma omp parallel for private(i) //TODO CHECK index etc. 
     for (i = 0; i < ncoef; i++) {
-      creRev2[i] = cre_up[i+1];
-      cimRev2[i] = cim_up[i+1];
+      creRev2[i] = cre_up[id*ncoef + i+1];
+      cimRev2[i] = cim_up[id*ncoef + i+1];
       creImv2[i] = 0.0; //cre_up[ncoef+i+1];
       cimImv2[i] = 0.0; //cim_up[ncoef+i+1];
     }
-    //printf("creRev2 %lg  %lg \n", creRev2[0], creRev2[100]);
-    //printf("cimRev2 %lg  %lg \n", creRev2[0], creRev2[100]);
-    //printf("creImv2 %lg  %lg \n", creRev2[0], creRev2[100]);
-    //printf("cimImv2 %lg  %lg \n", creRev2[0], creRev2[100]);
-/* =------------------------------------------------------------------------------------= */
-  
-  // get stochastic orbital from cre_up and cim_up //TODO
-  //genNoiseOrbitalRealRational(cp,cpcoeffs_pos, v2, id); 
-  
-  
-//TODO
-//  if(is_mu_calc == 1) {
-//    #pragma omp parallel for private(i)
-//    for (i=0; i < nfft2; i++){
-//      rhs[i] = creal(v2[i]);
-//    }
-//  }
-  
-  //printf("zdim %i dim %i ndim %i \n", zdim, dim, ndim);
   
   timeEnd1 = omp_get_wtime(); 
   timeStart2 = omp_get_wtime();
-  //komega_cocg_init(&ndim, &ndim, &nz, x, zseed, &itermax, &threshold, NULL);
+  
   komega_COCG_init_g(komegaInfo, ndim, ndim, nz, creRex, cimRex, creImx, cimImx, zseed, itermax, threshold);
   for (iter = 0; iter < itermax; iter++){
  
@@ -188,14 +160,11 @@ void solve_shifted_eqn_cocg_g( CP *cp, CLASS *class, GENERAL_DATA *general_data,
 /* =------------------------------------------------------------------------------------= */
     #pragma omp parallel for private(i) //TODO memcpy? 
     for (i = 0; i < ndim; i++) {
-      //r_l[i] = v2[i];
       creRer_l[i] = creRev2[i];
       cimRer_l[i] = cimRev2[i];
       creImr_l[i] = creImv2[i];
       cimImr_l[i] = cimImv2[i];
     }
-
-    
 
 /* =------------------------------------------------------------------------------------= */
 
@@ -205,40 +174,29 @@ void solve_shifted_eqn_cocg_g( CP *cp, CLASS *class, GENERAL_DATA *general_data,
     t2 = omp_get_wtime(); 
     tot = tot + (t2-t1); 
   
-    //printf("creRev12 %lg  %lg \n", creRev12[0], creRev12[100]);
-    //printf("cimRev12 %lg  %lg \n", creRev12[0], creRev12[100]);
-    //printf("creImv12 %lg  %lg \n", creRev12[0], creRev12[100]);
-    //printf("cimImv12 %lg  %lg \n", creRev12[0], creRev12[100]);
-
     t1 = omp_get_wtime(); 
-    //komega_cocg_update(v12, v2, x, r_l, status);
+    
     komega_COCG_update_g(komegaInfo, creRev12, cimRev12, creImv12, cimImv12,
                        creRev2, cimRev2, creImv2, cimImv2,
                        creRex, cimRex, creImx, cimImx,
                        creRer_l, cimRer_l, creImr_l, cimImr_l,
-                     // v12, v2, x, r_l, 
                       status, numThreads);
     t2 = omp_get_wtime(); 
     tot1 = tot1 + (t2-t1); 
  
-  sum1 = 0.0;
-  sum2 = 0.0;
-  sum3 = 0.0;
-  sum4 = 0.0;
-  for(i=0;i<ncoef-1;i++){
-    sum1 += creRex[i]*creRex[i]+cimRex[i]*cimRex[i];
-    sum2 += creImx[i]*creImx[i]+cimImx[i]*cimImx[i];
-    sum3 += creRex[i]*creImx[i]+cimRex[i]*cimImx[i];
-  }
-  sum1 = sum1*2.0+creRex[ncoef-1]*creRex[ncoef-1];
-  sum2 = sum2*2.0+creImx[ncoef-1]*creImx[ncoef-1];
-  sum3 = sum3*2.0+creRex[ncoef-1]*creImx[ncoef-1];
-  sum = sum1-sum2+2.0*sum3*I;
-
-
-   // printf("last term %lg %lg \n", creRex[ncoef-1], creImx[ncoef-1] ); 
-   //printf("x dotp x %lg %lg \n", creal(sum), cimag(sum));
-    //printf(" DEBUG : %i %i %i %i %lg \n", iter, status[0], status[1], status[2], creal(v12[0]));
+    sum1 = 0.0;
+    sum2 = 0.0;
+    sum3 = 0.0;
+    sum4 = 0.0;
+    for(i=0;i<ncoef-1;i++){
+      sum1 += creRex[i]*creRex[i]+cimRex[i]*cimRex[i];
+      sum2 += creImx[i]*creImx[i]+cimImx[i]*cimImx[i];
+      sum3 += creRex[i]*creImx[i]+cimRex[i]*cimImx[i];
+    }
+    sum1 = sum1*2.0+creRex[ncoef-1]*creRex[ncoef-1];
+    sum2 = sum2*2.0+creImx[ncoef-1]*creImx[ncoef-1];
+    sum3 = sum3*2.0+creRex[ncoef-1]*creImx[ncoef-1];
+    sum = sum1-sum2+2.0*sum3*I;
   
     if(status[0] < 0) break;
   
@@ -262,7 +220,7 @@ void solve_shifted_eqn_cocg_g( CP *cp, CLASS *class, GENERAL_DATA *general_data,
       break;
   }
   
-  //komega_cocg_finalize();
+  
   komega_COCG_finalize_g(komegaInfo);
   
   timeEnd2 = omp_get_wtime(); 
@@ -299,9 +257,6 @@ void filterRational_g(CP *cp,CLASS *class,GENERAL_DATA *general_data, KOMEGAINFO
 
   NEWTONINFO *newtonInfo = stodftInfo->newtonInfo;
   RATIONALINFO *rationalInfo = stodftInfo->rationalInfo;
-
-  //KOMEGAINFO *komegaInfo = rationalInfo->komegaInfo; // = (KOMEGAINFO*)cmalloc(sizeof(KOMEGAINFO));
-  //rationalInfo->komegaInfo = komegaInfo; 
 
   int expanType      = stodftInfo->expanType;
   int polynormLength = stodftInfo->polynormLength;
@@ -359,16 +314,13 @@ void filterRational_g(CP *cp,CLASS *class,GENERAL_DATA *general_data, KOMEGAINFO
 
 
   double *expanCoeff = (double*)stodftCoefPos->expanCoeff;
-  //double timeStart,timeEnd;
-  //double timeStart2,timeEnd2;
-  //double timeStart3,timeEnd3;
   double deltaTime = 0.0;
   double deltaTime2 = 0.0;
   double dot;
 
 
-  int nfft          = cp_para_fft_pkg3d_lg->nfft;
-  int nfft2         = nfft/2;
+  //int nfft          = cp_para_fft_pkg3d_lg->nfft;
+  //int nfft2         = nfft/2;
   double complex sum, sum_0, sum_p, sum_m;
   double dsum_0, dsum_p, dsum_m; 
   int ntgrid = rationalInfo->ntgrid;
@@ -389,8 +341,6 @@ void filterRational_g(CP *cp,CLASS *class,GENERAL_DATA *general_data, KOMEGAINFO
   double complex *fun_p_m = rationalInfo->fun_p_m;
   double complex *fun_m_m = rationalInfo->fun_m_m;
 
-  double complex *x = rationalInfo->x;
-  //double preRat = rationalInfo->preRat;
   double *frhs = rationalInfo->frhs;
   double *rhs = rationalInfo->rhs;
   double numElecMin,numElecMax, numElecTot;
@@ -447,16 +397,13 @@ dsum_im = 0.0;
 
 t2 = omp_get_wtime();
 
-//printf(" dmu, stodftInfo->beta, epsilon %lg %lg %lg \n", dmu, stodftInfo->beta, epsilon );
-//printf("==== FINAL RESULTS   === %i %lg %lg %lg %lg \n", myidState, creal(ksi_p[10]), creal(ksi_m[10]), cimag(ksi_p[10]), cimag(ksi_m[10]));
-
 for (int i = 0; i < ntgrid; i++){
   fun_p[i] = fermi_fun_g(ksi_p[i], 0.0, stodftInfo->beta, epsilon);
   fun_m[i] = fermi_fun_g(ksi_m[i], 0.0, stodftInfo->beta, epsilon);
 
   fun_p_0[i] = fun_p[i]*fun_p[i];
   fun_m_0[i] = fun_m[i]*fun_m[i];
-  //double check the sign 
+  
   fun_p_p[i] = fermi_fun_g(ksi_p[i], -dmu, stodftInfo->beta, epsilon)*fermi_fun_g(ksi_p[i], -dmu, stodftInfo->beta, epsilon);
   fun_m_p[i] = fermi_fun_g(ksi_m[i], -dmu, stodftInfo->beta, epsilon)*fermi_fun_g(ksi_m[i], -dmu, stodftInfo->beta, epsilon);
   fun_p_m[i] = fermi_fun_g(ksi_p[i], dmu, stodftInfo->beta, epsilon)*fermi_fun_g(ksi_p[i], dmu, stodftInfo->beta, epsilon);
@@ -464,31 +411,16 @@ for (int i = 0; i < ntgrid; i++){
 }
 
 t3 = omp_get_wtime();
-/*
-printf("==== final RESULTS   === %i %lg %lg %lg %lg \n", myidState, creal(fun_p[10]), creal(fun_m[10]), creal(fun_p_0[10]), creal(fun_m_0[10]));
-printf("==== final RESULTS I   === %i %lg %lg %lg %lg \n", myidState, cimag(fun_p[10]), cimag(fun_m[10]), cimag(fun_p_0[10]), cimag(fun_m_0[10]));
-
-printf("==== final results:   === %i %lg %lg %lg %lg \n", myidState, creal(fun_p_p[10]), creal(fun_m_p[10]), creal(fun_p_m[10]), creal(fun_m_m[10]));
-printf("==== final results: I   === %i %lg %lg %lg %lg \n", myidState, cimag(fun_p_p[10]), cimag(fun_m_p[10]), cimag(fun_p_m[10]), cimag(fun_m_m[10]));
-
-
-  printf("end tessssssssssssst RA \n");
-  Barrier(comm_states);
-  printf("@@@@@@@@@@@@@@@@@@@@_forced_stop__@@@@@@@@@@@@@@@@@@@@\n");
-  fflush(stdout);
-  exit(1);
-*/
 
 for(iState=0;iState<numStateUpProc;iState++){
 
-  //printf("myidState %i %i %i \n", myidState, numStateUpProc, iState);
+  
   solve_shifted_eqn_cocg_g( cp, class, general_data, komegaInfo, iState, 1);
 
 
   printf("last term %lg %lg \n", creRex[numCoeff-1], creImx[numCoeff-1] );
   //for (int i = 0; i<nfft2;i++){
   for (int i = 0; i<numCoeff;i++){
-    //sum   = 0.0 + 0.0 *I ;
     sum_0 = 0.0 + 0.0 *I ;
     sum_p = 0.0 + 0.0 *I ;
     sum_m = 0.0 + 0.0 *I ;
@@ -497,8 +429,6 @@ for(iState=0;iState<numStateUpProc;iState++){
     sum_reIm = 0.0;
     sum_imIm = 0.0;
     for (int j =0; j < ntgrid; j++){
-      //sum = sum + fun_p[j] * rat_fact_p[j] * x[j*nfft2 + i] 
-      //          + fun_m[j] * rat_fact_m[j] * x[(j+ntgrid)*nfft2 + i];
 
       fact1_real = creal(fun_p_0[j] * rat_fact_p[j]);
       fact1_imag = cimag(fun_p_0[j] * rat_fact_p[j]);
@@ -517,37 +447,22 @@ for(iState=0;iState<numStateUpProc;iState++){
       sum_imIm += fact1_real*cimImx[j*numCoeff + i] + fact1_imag*cimRex[j*numCoeff + i] +
 	      fact2_real*cimImx[(j+ntgrid)*numCoeff + i] + fact2_imag*cimRex[(j+ntgrid)*numCoeff + i]; 
 
-//      sum_0 = sum_0 + fun_p_0[j] * rat_fact_p[j] * x[j*nfft2 + i] 
-//                    + fun_m_0[j] * rat_fact_m[j] * x[(j+ntgrid)*nfft2 + i];
-//      sum_p = sum_p + fun_p_p[j] * rat_fact_p[j] * x[j*nfft2 + i] 
-//                    + fun_m_p[j] * rat_fact_m[j] * x[(j+ntgrid)*nfft2 + i];
-//      sum_m = sum_m + fun_p_m[j] * rat_fact_p[j] * x[j*nfft2 + i] 
-//                   + fun_m_m[j] * rat_fact_m[j] * x[(j+ntgrid)*nfft2 + i];
     }
-    //frhs[i] = rationalInfo->preRat*cimag(sum);
-    //printf("i = %i, %lg %lg \n", i, 
-    stoWfUpRe[0][i+1] = rationalInfo->preRat*sum_reIm;
-    stoWfUpIm[0][i+1] = rationalInfo->preRat*sum_imIm;
+    
+    stoWfUpRe[0][iState*numCoeff + i+1] = rationalInfo->preRat*sum_reIm;
+    stoWfUpIm[0][iState*numCoeff + i+1] = rationalInfo->preRat*sum_imIm;
 
     printf("i = %i, %lg %lg \n", i, rationalInfo->preRat*sum_reIm, rationalInfo->preRat*sum_imIm);
-    // get stochastic orbital from cre_up and cim_up to rhs //TODO
-    //dsum_0 += 2.0 * rationalInfo->preRat * cimag(sum_0) * rhs[i];
+    
     if(i < numCoeff -1) {
-        dsum_0 += 2.0 * (stoWfUpRe[0][i+1] * cre_up[i+1] + stoWfUpIm[0][i+1] * cim_up[i+1]);
-        //dsum_0 += 2.0 * (stoWfUpRe[0][i+1] * stoWfUpRe[0][i+1] + stoWfUpIm[0][i+1] * stoWfUpIm[0][i+1]);
+        dsum_0 += 2.0 * (stoWfUpRe[0][iState*numCoeff + i+1] * cre_up[iState*numCoeff + i+1] + 
+                         stoWfUpIm[0][iState*numCoeff + i+1] * cim_up[iState*numCoeff + i+1]);
     }
     else{
-        dsum_0 += stoWfUpRe[0][i+1] * cre_up[i+1];     
-        //dsum_0 += stoWfUpRe[0][i+1] * stoWfUpRe[0][i+1];     
+        dsum_0 += stoWfUpRe[0][iState*numCoeff + i+1] * cre_up[iState*numCoeff + i+1];     
     }
-    //dsum_re += 2.0 * stoWfUpRe[0][i+1] * cre_up[i+1];
-    //dsum_im += 2.0 * stoWfUpIm[0][i+1] * cim_up[i+1];
 
-    //dsum_p += 2.0 * rationalInfo->preRat * cimag(sum_p) * rhs[i];
-    //dsum_m += 2.0 * rationalInfo->preRat * cimag(sum_m) * rhs[i];
   }
-
-  //rhsReal(class, general_data, cp, cpcoeffs_pos, clatoms_pos, frhs, iState);
 }
 
 
@@ -658,17 +573,33 @@ if ((numElecMax > numElecTrue) && (numElecTrue > numElecMin)){
     //printf("myidState %i %i %i \n", myidState, numStateUpProc, iState);
     solve_shifted_eqn_cocg_g( cp, class, general_data, komegaInfo, iState, 0);
   
-    for (int i = 0; i<nfft2;i++){
-      sum   = 0.0 + 0.0 *I ;
+    for (int i = 0; i<numCoeff;i++){
+      sum_reRe = 0.0;
+      sum_imRe = 0.0;
+      sum_reIm = 0.0;
+      sum_imIm = 0.0;
       for (int j =0; j < ntgrid; j++){
-        sum = sum + fun_p[j] * rat_fact_p[j] * x[j*nfft2 + i] 
-                  + fun_m[j] * rat_fact_m[j] * x[(j+ntgrid)*nfft2 + i];
+        fact1_real = creal(fun_p[j] * rat_fact_p[j]);
+        fact1_imag = cimag(fun_p[j] * rat_fact_p[j]);
+        fact2_real = creal(fun_m[j] * rat_fact_m[j]);
+        fact2_imag = cimag(fun_m[j] * rat_fact_m[j]);
+
+        sum_reRe += fact1_real*creRex[j*numCoeff + i] - fact1_imag*creImx[j*numCoeff + i] +
+                fact2_real*creRex[(j+ntgrid)*numCoeff + i] - fact2_imag*creImx[(j+ntgrid)*numCoeff + i];
+
+        sum_imRe += fact1_real*cimRex[j*numCoeff + i] - fact1_imag*cimImx[j*numCoeff + i] +
+                fact2_real*cimRex[(j+ntgrid)*numCoeff + i] - fact2_imag*cimImx[(j+ntgrid)*numCoeff + i];
+
+        sum_reIm += fact1_real*creImx[j*numCoeff + i] + fact1_imag*creRex[j*numCoeff + i] +
+                fact2_real*creImx[(j+ntgrid)*numCoeff + i] + fact2_imag*creRex[(j+ntgrid)*numCoeff + i];
+
+        sum_imIm += fact1_real*cimImx[j*numCoeff + i] + fact1_imag*cimRex[j*numCoeff + i] +
+                fact2_real*cimImx[(j+ntgrid)*numCoeff + i] + fact2_imag*cimRex[(j+ntgrid)*numCoeff + i];
   
       }
-      frhs[i] = rationalInfo->preRat*cimag(sum);
+      stoWfUpRe[0][iState*numCoeff + i+1] = rationalInfo->preRat*sum_reIm;
+      stoWfUpIm[0][iState*numCoeff + i+1] = rationalInfo->preRat*sum_imIm;
     }
-  
-    rhsReal(class, general_data, cp, cpcoeffs_pos, clatoms_pos, frhs, iState);
   }
 /******************************************************************************/
 
@@ -730,17 +661,37 @@ else {
     //printf("myidState %i %i %i \n", myidState, numStateUpProc, iState);
     solve_shifted_eqn_cocg_g( cp, class, general_data, komegaInfo, iState, 0);
   
-    for (int i = 0; i<nfft2;i++){
-      sum   = 0.0 + 0.0 *I ;
+    for (int i = 0; i<numCoeff;i++){
+      sum_reRe = 0.0;
+      sum_imRe = 0.0;
+      sum_reIm = 0.0;
+      sum_imIm = 0.0;
       for (int j =0; j < ntgrid; j++){
-        sum = sum + fun_p[j] * rat_fact_p[j] * x[j*nfft2 + i] 
-                  + fun_m[j] * rat_fact_m[j] * x[(j+ntgrid)*nfft2 + i];
+
+        fact1_real = creal(fun_p[j] * rat_fact_p[j]);
+        fact1_imag = cimag(fun_p[j] * rat_fact_p[j]);
+        fact2_real = creal(fun_m[j] * rat_fact_m[j]);
+        fact2_imag = cimag(fun_m[j] * rat_fact_m[j]);
+
+        sum_reRe += fact1_real*creRex[j*numCoeff + i] - fact1_imag*creImx[j*numCoeff + i] +
+                fact2_real*creRex[(j+ntgrid)*numCoeff + i] - fact2_imag*creImx[(j+ntgrid)*numCoeff + i];
+
+        sum_imRe += fact1_real*cimRex[j*numCoeff + i] - fact1_imag*cimImx[j*numCoeff + i] +
+                fact2_real*cimRex[(j+ntgrid)*numCoeff + i] - fact2_imag*cimImx[(j+ntgrid)*numCoeff + i];
+
+        sum_reIm += fact1_real*creImx[j*numCoeff + i] + fact1_imag*creRex[j*numCoeff + i] +
+                fact2_real*creImx[(j+ntgrid)*numCoeff + i] + fact2_imag*creRex[(j+ntgrid)*numCoeff + i];
+
+        sum_imIm += fact1_real*cimImx[j*numCoeff + i] + fact1_imag*cimRex[j*numCoeff + i] +
+                fact2_real*cimImx[(j+ntgrid)*numCoeff + i] + fact2_imag*cimRex[(j+ntgrid)*numCoeff + i];
+
   
       }
-      frhs[i] = rationalInfo->preRat*cimag(sum);
+
+      stoWfUpRe[0][iState*numCoeff + i+1] = rationalInfo->preRat*sum_reIm;
+      stoWfUpIm[0][iState*numCoeff + i+1] = rationalInfo->preRat*sum_imIm;
+
     }
-  
-    rhsReal(class, general_data, cp, cpcoeffs_pos, clatoms_pos, frhs, iState);
   }
 /******************************************************************************/
 
@@ -943,6 +894,7 @@ CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
 COMMUNICATE *communicate      = &(cp->communicate);
 RATIONALINFO *rationalInfo = stodftInfo->rationalInfo;
 PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
+CPCOEFFS_POS *cpcoeffs_pos    = &(cp->cpcoeffs_pos[1]);
 
 int numStateUpProc = cpcoeffs_info->nstate_up_proc;
 int numStateStoUp = stodftInfo->numStateStoUp;
@@ -950,9 +902,10 @@ int numProcStates = communicate->np_states;
 int myidState       = communicate->myid_state;
 MPI_Comm comm_states   =    communicate->comm_states;
 
-  int nfft          = cp_para_fft_pkg3d_lg->nfft;
-  int nfft2         = nfft/2;
-
+  //int nfft          = cp_para_fft_pkg3d_lg->nfft;
+  //int nfft2         = nfft/2;
+  int numCoeff       = cpcoeffs_info->ncoef;
+ 
   int ntgrid = rationalInfo->ntgrid;
   double complex *ksi_p = rationalInfo->ksi_p;
   double complex *ksi_m = rationalInfo->ksi_m;
@@ -960,15 +913,25 @@ MPI_Comm comm_states   =    communicate->comm_states;
   double complex *fun_m_p = rationalInfo->fun_m_p;
   double complex *rat_fact_p = rationalInfo->rat_fact_p;
   double complex *rat_fact_m = rationalInfo->rat_fact_m;
-  double complex *x = rationalInfo->x;
-  double *rhs = rationalInfo->rhs;
+  //double complex *x = rationalInfo->x;
+  //double *rhs = rationalInfo->rhs;
   double epsilon = rationalInfo->epsilon;
+  double *cre_up = cpcoeffs_pos->cre_up;
+  double *cim_up = cpcoeffs_pos->cim_up;
+
 
 
   double dsum_p;
   int  iState;
   double complex sum_p;
   double numElecMax;
+
+  double *creRex = rationalInfo->creRex;
+  double *cimRex = rationalInfo->cimRex;
+  double *creImx = rationalInfo->creImx;
+  double *cimImx = rationalInfo->cimImx;
+  double sum_reRe, sum_imRe, sum_reIm, sum_imIm, fact1_real, fact1_imag, fact2_real, fact2_imag;
+
 
 printf("delta_mu = %lg \n", delta_mu);
 
@@ -982,18 +945,46 @@ for (int i = 0; i < ntgrid; i++){
 
 for(iState=0;iState<numStateUpProc;iState++){
 
-  for (int i = 0; i<nfft2;i++){
-    sum_p = 0.0 + 0.0 *I ;
+  for (int i = 0; i<numCoeff;i++){
+
+    sum_reRe = 0.0;
+    sum_imRe = 0.0;
+    sum_reIm = 0.0;
+    sum_imIm = 0.0;
     for (int j =0; j < ntgrid; j++){
-      sum_p = sum_p + fun_p_p[j] * rat_fact_p[j] * x[j*nfft2 + i] 
-                    + fun_m_p[j] * rat_fact_m[j] * x[(j+ntgrid)*nfft2 + i];
+
+      fact1_real = creal(fun_p_p[j] * rat_fact_p[j]);
+      fact1_imag = cimag(fun_p_p[j] * rat_fact_p[j]);
+      fact2_real = creal(fun_m_p[j] * rat_fact_m[j]);
+      fact2_imag = cimag(fun_m_p[j] * rat_fact_m[j]);
+
+      sum_reRe += fact1_real*creRex[j*numCoeff + i] - fact1_imag*creImx[j*numCoeff + i] +
+              fact2_real*creRex[(j+ntgrid)*numCoeff + i] - fact2_imag*creImx[(j+ntgrid)*numCoeff + i];
+
+      sum_imRe += fact1_real*cimRex[j*numCoeff + i] - fact1_imag*cimImx[j*numCoeff + i] +
+              fact2_real*cimRex[(j+ntgrid)*numCoeff + i] - fact2_imag*cimImx[(j+ntgrid)*numCoeff + i];
+
+      sum_reIm += fact1_real*creImx[j*numCoeff + i] + fact1_imag*creRex[j*numCoeff + i] +
+              fact2_real*creImx[(j+ntgrid)*numCoeff + i] + fact2_imag*creRex[(j+ntgrid)*numCoeff + i];
+
+      sum_imIm += fact1_real*cimImx[j*numCoeff + i] + fact1_imag*cimRex[j*numCoeff + i] +
+              fact2_real*cimImx[(j+ntgrid)*numCoeff + i] + fact2_imag*cimRex[(j+ntgrid)*numCoeff + i];
+
     }
-    dsum_p += 2.0 * rationalInfo->preRat * cimag(sum_p) * rhs[i];
+
+    if(i < numCoeff -1) {
+        dsum_p += 2.0 * (rationalInfo->preRat*sum_reIm * cre_up[iState*numCoeff + i+1] +
+                         rationalInfo->preRat*sum_imIm * cim_up[iState*numCoeff + i+1]);
+    }
+    else{
+        dsum_p += rationalInfo->preRat*sum_reIm * cre_up[iState*numCoeff + i+1];
+    }
+
   }
 
 }
 
-dsum_p = (dsum_p/numStateStoUp)*(1.0/stodftInfo->rhoRealGridTot);
+dsum_p = 2.0*(dsum_p/numStateStoUp); //*(1.0/stodftInfo->rhoRealGridTot);
 
 if(numProcStates>1)Reduce(&dsum_p,&numElecMax,1,MPI_DOUBLE,MPI_SUM,0,comm_states);
 
@@ -1080,18 +1071,18 @@ void calcChemPotRational_g(CP *cp,CLASS *class,GENERAL_DATA *general_data, KOMEG
 
 
   PARA_FFT_PKG3D *cp_para_fft_pkg3d_lg = &(cp->cp_para_fft_pkg3d_lg);
-  int nfft          = cp_para_fft_pkg3d_lg->nfft;
-  int nfft2         = nfft/2;
+  //int nfft          = cp_para_fft_pkg3d_lg->nfft;
+  //int nfft2         = nfft/2;
 
   int ntgrid = rationalInfo->ntgrid;
   double complex *fun_p = rationalInfo->fun_p;
   double complex *fun_m = rationalInfo->fun_m;
   double complex *rat_fact_p = rationalInfo->rat_fact_p;
   double complex *rat_fact_m = rationalInfo->rat_fact_m;
-  double complex *x = rationalInfo->x;
+  //double complex *x = rationalInfo->x;
   //double preRat = rationalInfo->preRat;
-  double *frhs = rationalInfo->frhs;
-  double *rhs = rationalInfo->rhs;
+  //double *frhs = rationalInfo->frhs;
+  //double *rhs = rationalInfo->rhs;
   double maxmu = rationalInfo->maxmu;
   double large_dmu = rationalInfo->large_dmu;
   double small_dmu = rationalInfo->small_dmu;
@@ -1100,6 +1091,15 @@ void calcChemPotRational_g(CP *cp,CLASS *class,GENERAL_DATA *general_data, KOMEG
   double dsum;
   double NElecTot;
   double dNdm, fmu;
+
+  double *creRex = rationalInfo->creRex;
+  double *cimRex = rationalInfo->cimRex;
+  double *creImx = rationalInfo->creImx;
+  double *cimImx = rationalInfo->cimImx;
+  double sum_reRe, sum_imRe, sum_reIm, sum_imIm, fact1_real, fact1_imag, fact2_real, fact2_imag;
+  double *cre_up = cpcoeffs_pos->cre_up;
+  double *cim_up = cpcoeffs_pos->cim_up;
+
 
   NElecTot = 0.0;
 /******************************************************************************/
@@ -1127,18 +1127,45 @@ for(iState=0;iState<numStateUpProc;iState++){
   //printf("myidState %i %i %i %i %i \n", myidState, numStateUpProc, iState, numProcStates, numStateStoUp);
   solve_shifted_eqn_cocg_g( cp, class, general_data, komegaInfo, iState, 1);
 
-  for (int i = 0; i<nfft2;i++){
-    sum = 0.0 + 0.0 *I ;
+  for (int i = 0; i<numCoeff;i++){
+    sum_reRe = 0.0;
+    sum_imRe = 0.0;
+    sum_reIm = 0.0;
+    sum_imIm = 0.0;
     for (int j =0; j < ntgrid; j++){
-      sum = sum + fun_p[j] * x[j*nfft2 + i] + fun_m[j] * x[(j+ntgrid)*nfft2 + i];
+
+      fact1_real = creal(fun_p[j]);
+      fact1_imag = cimag(fun_p[j]);
+      fact2_real = creal(fun_m[j]);
+      fact2_imag = cimag(fun_m[j]);
+
+      sum_reRe += fact1_real*creRex[j*numCoeff + i] - fact1_imag*creImx[j*numCoeff + i] +
+              fact2_real*creRex[(j+ntgrid)*numCoeff + i] - fact2_imag*creImx[(j+ntgrid)*numCoeff + i];
+
+      sum_imRe += fact1_real*cimRex[j*numCoeff + i] - fact1_imag*cimImx[j*numCoeff + i] +
+              fact2_real*cimRex[(j+ntgrid)*numCoeff + i] - fact2_imag*cimImx[(j+ntgrid)*numCoeff + i];
+
+      sum_reIm += fact1_real*creImx[j*numCoeff + i] + fact1_imag*creRex[j*numCoeff + i] +
+              fact2_real*creImx[(j+ntgrid)*numCoeff + i] + fact2_imag*creRex[(j+ntgrid)*numCoeff + i];
+
+      sum_imIm += fact1_real*cimImx[j*numCoeff + i] + fact1_imag*cimRex[j*numCoeff + i] +
+              fact2_real*cimImx[(j+ntgrid)*numCoeff + i] + fact2_imag*cimRex[(j+ntgrid)*numCoeff + i];
+
     }
-    frhs[i] = rationalInfo->preRat*cimag(sum);
-    dsum = dsum + 2.0*frhs[i]*rhs[i];
+
+    if(i < numCoeff -1) {
+        dsum += 2.0 * (rationalInfo->preRat*sum_reIm * cre_up[iState*numCoeff + i+1] +
+                         rationalInfo->preRat*sum_imIm * cim_up[iState*numCoeff + i+1]);
+    }
+    else{
+        dsum += rationalInfo->preRat*sum_reIm * cre_up[iState*numCoeff + i+1];
+    }
+
   }
 
 }
 
-dsum = (dsum/numStateStoUp)*(1.0/stodftInfo->rhoRealGridTot);
+dsum = 2.0*(dsum/numStateStoUp); //*(1.0/stodftInfo->rhoRealGridTot);
 if(numProcStates>1)Reduce(&dsum,&NElecTot,1,MPI_DOUBLE,MPI_SUM,0,comm_states);
 printf("==== final results: NElecTot === %lg %lg \n", dsum, NElecTot);
 /******************************************************************************/
@@ -1152,18 +1179,44 @@ for(iState=0;iState<numStateUpProc;iState++){
   //printf("myidState %i %i %i %i %i \n", myidState, numStateUpProc, iState, numProcStates, numStateStoUp);
   solve_shifted_eqn_cocg_g( cp, class, general_data, komegaInfo, iState, 1);
 
-  for (int i = 0; i<nfft2;i++){
-    sum = 0.0 + 0.0 *I ;
+  for (int i = 0; i<numCoeff;i++){
+    sum_reRe = 0.0;
+    sum_imRe = 0.0;
+    sum_reIm = 0.0;
+    sum_imIm = 0.0;
     for (int j =0; j < ntgrid; j++){
-      sum = sum + fun_p[j] * x[j*nfft2 + i] + fun_m[j] * x[(j+ntgrid)*nfft2 + i];
+
+      fact1_real = creal(fun_p[j]);
+      fact1_imag = cimag(fun_p[j]);
+      fact2_real = creal(fun_m[j]);
+      fact2_imag = cimag(fun_m[j]);
+
+      sum_reRe += fact1_real*creRex[j*numCoeff + i] - fact1_imag*creImx[j*numCoeff + i] +
+              fact2_real*creRex[(j+ntgrid)*numCoeff + i] - fact2_imag*creImx[(j+ntgrid)*numCoeff + i];
+
+      sum_imRe += fact1_real*cimRex[j*numCoeff + i] - fact1_imag*cimImx[j*numCoeff + i] +
+              fact2_real*cimRex[(j+ntgrid)*numCoeff + i] - fact2_imag*cimImx[(j+ntgrid)*numCoeff + i];
+
+      sum_reIm += fact1_real*creImx[j*numCoeff + i] + fact1_imag*creRex[j*numCoeff + i] +
+              fact2_real*creImx[(j+ntgrid)*numCoeff + i] + fact2_imag*creRex[(j+ntgrid)*numCoeff + i];
+
+      sum_imIm += fact1_real*cimImx[j*numCoeff + i] + fact1_imag*cimRex[j*numCoeff + i] +
+              fact2_real*cimImx[(j+ntgrid)*numCoeff + i] + fact2_imag*cimRex[(j+ntgrid)*numCoeff + i];
+
     }
-    frhs[i] = rationalInfo->preRat*cimag(sum);
-    dsum = dsum + 2.0*frhs[i]*rhs[i];
+
+    if(i < numCoeff -1) {
+        dsum += 2.0 * (rationalInfo->preRat*sum_reIm * cre_up[iState*numCoeff + i+1] +
+                         rationalInfo->preRat*sum_imIm * cim_up[iState*numCoeff + i+1]);
+    }
+    else{
+        dsum += rationalInfo->preRat*sum_reIm * cre_up[iState*numCoeff + i+1];
+
   }
 
 }
 
-dsum = (dsum/numStateStoUp)*(1.0/stodftInfo->rhoRealGridTot);
+dsum = 2.0*(dsum/numStateStoUp); //*(1.0/stodftInfo->rhoRealGridTot);
 if(numProcStates>1)Reduce(&dsum,&numElecMin,1,MPI_DOUBLE,MPI_SUM,0,comm_states);
 printf("==== final results: numElecMin === %lg %lg \n", dsum, numElecMin);
 /******************************************************************************/
@@ -1177,18 +1230,45 @@ for(iState=0;iState<numStateUpProc;iState++){
   //printf("myidState %i %i %i %i %i \n", myidState, numStateUpProc, iState, numProcStates, numStateStoUp);
   solve_shifted_eqn_cocg_g( cp, class, general_data, komegaInfo, iState, 1);
 
-  for (int i = 0; i<nfft2;i++){
-    sum = 0.0 + 0.0 *I ;
+  for (int i = 0; i<numCoeff;i++){
+    sum_reRe = 0.0;
+    sum_imRe = 0.0;
+    sum_reIm = 0.0;
+    sum_imIm = 0.0;
     for (int j =0; j < ntgrid; j++){
-      sum = sum + fun_p[j] * x[j*nfft2 + i] + fun_m[j] * x[(j+ntgrid)*nfft2 + i];
+
+      fact1_real = creal(fun_p[j]);
+      fact1_imag = cimag(fun_p[j]);
+      fact2_real = creal(fun_m[j]);
+      fact2_imag = cimag(fun_m[j]);
+
+      sum_reRe += fact1_real*creRex[j*numCoeff + i] - fact1_imag*creImx[j*numCoeff + i] +
+              fact2_real*creRex[(j+ntgrid)*numCoeff + i] - fact2_imag*creImx[(j+ntgrid)*numCoeff + i];
+
+      sum_imRe += fact1_real*cimRex[j*numCoeff + i] - fact1_imag*cimImx[j*numCoeff + i] +
+              fact2_real*cimRex[(j+ntgrid)*numCoeff + i] - fact2_imag*cimImx[(j+ntgrid)*numCoeff + i];
+
+      sum_reIm += fact1_real*creImx[j*numCoeff + i] + fact1_imag*creRex[j*numCoeff + i] +
+              fact2_real*creImx[(j+ntgrid)*numCoeff + i] + fact2_imag*creRex[(j+ntgrid)*numCoeff + i];
+
+      sum_imIm += fact1_real*cimImx[j*numCoeff + i] + fact1_imag*cimRex[j*numCoeff + i] +
+              fact2_real*cimImx[(j+ntgrid)*numCoeff + i] + fact2_imag*cimRex[(j+ntgrid)*numCoeff + i];
+
     }
-    frhs[i] = rationalInfo->preRat*cimag(sum);
-    dsum = dsum + 2.0*frhs[i]*rhs[i];
+
+    if(i < numCoeff -1) {
+        dsum += 2.0 * (rationalInfo->preRat*sum_reIm * cre_up[iState*numCoeff + i+1] +
+                         rationalInfo->preRat*sum_imIm * cim_up[iState*numCoeff + i+1]);
+    }
+    else{
+        dsum += rationalInfo->preRat*sum_reIm * cre_up[iState*numCoeff + i+1];
+    }
+
   }
 
 }
 
-dsum = (dsum/numStateStoUp)*(1.0/stodftInfo->rhoRealGridTot);
+dsum = 2.0*(dsum/numStateStoUp); //*(1.0/stodftInfo->rhoRealGridTot);
 if(numProcStates>1)Reduce(&dsum,&numElecMax,1,MPI_DOUBLE,MPI_SUM,0,comm_states);
 printf("==== final results: numElecMax === %lg %lg \n", dsum, numElecMax);
 /******************************************************************************/

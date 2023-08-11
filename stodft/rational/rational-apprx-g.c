@@ -1211,7 +1211,7 @@ for(iState=0;iState<numStateUpProc;iState++){
     }
     else{
         dsum += rationalInfo->preRat*sum_reIm * cre_up[iState*numCoeff + i+1];
-
+    }
   }
 
 }
@@ -2225,5 +2225,4 @@ int numCoeff = komegaInfo->ndim; //TODO CHECK
 
 } /* END komega_COCG_seed_switch  */
 /*==========================================================================*/
-
 

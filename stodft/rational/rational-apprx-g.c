@@ -360,6 +360,7 @@ void filterRational_g(CP *cp,CLASS *class,GENERAL_DATA *general_data, KOMEGAINFO
   double timeStart2, timeEnd2;
   double timeStart3, timeEnd3;
   double t1, t2, t3, t4, t5, t6, t7, t8, t9;
+  double time1, time2; 
 
   double sum_reRe, sum_imRe, sum_reIm, sum_imIm, fact1_real, fact1_imag, fact2_real, fact2_imag;
   double sum_reRe_p, sum_imRe_p, sum_reIm_p, sum_imIm_p;
@@ -414,11 +415,15 @@ for (int i = 0; i < ntgrid; i++){
 
 t3 = omp_get_wtime();
 
+double time = 0.00;
 for(iState=0;iState<numStateUpProc;iState++){
 
-  
+ 
+  time1 = omp_get_wtime(); 
   solve_shifted_eqn_cocg_g( cp, class, general_data, komegaInfo, iState, 1);
 
+  time2 = omp_get_wtime(); 
+  time += time2-time1;
 
   printf("last term %lg %lg \n", creRex[numCoeff-1], creImx[numCoeff-1] );
   //for (int i = 0; i<nfft2;i++){
@@ -819,7 +824,8 @@ applyFilterRational_g(cp, class, general_data, delta_mu, ip_now);
 t7 = omp_get_wtime();
 */
 /******************************************************************************/
-printf("Finished Filtering with Rational Approximation times %lg %lg %lg %lg %lg %lg \n", t2-t1, t3-t2, t4-t3, t5-t4, t6-t5, t7-t6);
+t7 = omp_get_wtime();
+printf("Finished Filtering with Rational Approximation times %lg %lg %lg %lg %lg %lg %lg \n", t2-t1, t3-t2, t4-t3, t5-t4, t6-t5, t7-t1, time);
 /******************************************************************************/
 /*
   printf("end tessssssssssssst RA \n");
@@ -1038,6 +1044,8 @@ for(iState=0;iState<numStateUpProc;iState++){
 }
 
 dsum_p = 2.0*(dsum_p/numStateStoUp); //*(1.0/stodftInfo->rhoRealGridTot);
+
+printf("dsum_p = %lg \n", dsum_p);
 
 if(numProcStates>1)Reduce(&dsum_p,&numElecMax,1,MPI_DOUBLE,MPI_SUM,0,comm_states);
 

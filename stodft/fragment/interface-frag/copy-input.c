@@ -558,6 +558,7 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
     cpMini->stodftInfo = (STODFTINFO*)cmalloc(sizeof(STODFTINFO));
     cpMini->stodftCoefPos = (STODFTCOEFPOS*)cmalloc(sizeof(STODFTCOEFPOS));
     cpMini->stodftInfo->metallic = (METALLIC*)cmalloc(sizeof(METALLIC));
+    cpMini->stodftInfo->rationalInfo = (RATIONALINFO*)cmalloc(sizeof(RATIONALINFO));
     // I need fragInfo since frag index is stored in iFrag for each fragment
     cpMini->stodftInfo->fragInfo = (FRAGINFO*)cmalloc(sizeof(FRAGINFO));
     cpMini->stodftInfo->fragInfo->iFrag = stodftInfo->fragInfo->fragInd[iFrag];
@@ -638,6 +639,16 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
     //printf("2222222 readCoeffFlag %i\n",cpMini->stodftInfo->readCoeffFlag);
     cpMini->stodftInfo->calcLocalTraceOpt = stodftInfo->calcLocalTraceOpt;
     cpMini->stodftInfo->orbRealPrintFlag = stodftInfo->orbRealPrintFlag;
+
+    cpMini->stodftInfo->rationalInfo->ntgrid = stodftInfo->rationalInfo->ntgrid;
+    cpMini->stodftInfo->rationalInfo->small_dmu = stodftInfo->rationalInfo->small_dmu;
+    cpMini->stodftInfo->rationalInfo->large_dmu = stodftInfo->rationalInfo->large_dmu;
+    cpMini->stodftInfo->rationalInfo->init_mu = stodftInfo->rationalInfo->init_mu;
+    cpMini->stodftInfo->rationalInfo->maxmu = stodftInfo->rationalInfo->maxmu;
+    cpMini->stodftInfo->rationalInfo->dmu = stodftInfo->rationalInfo->dmu;
+    cpMini->stodftInfo->rationalInfo->epsilon = stodftInfo->rationalInfo->epsilon;
+    cpMini->stodftInfo->rationalInfo->itermax = stodftInfo->rationalInfo->itermax;
+    cpMini->stodftInfo->rationalInfo->threshold = stodftInfo->rationalInfo->threshold;
   }
   
 

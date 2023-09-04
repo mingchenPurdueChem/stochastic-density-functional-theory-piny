@@ -20,6 +20,10 @@ int roundFFT(int);
 /* filter.c                                                        */
 void filterNewtonPolyHerm(CP *,CLASS *,GENERAL_DATA *,int);
 void filterChebyPolyHerm(CP *,CLASS *,GENERAL_DATA *,int);
+void filterChebyPolyFric(CP *,CLASS *,GENERAL_DATA *,
+                         int,int,double *,double *,double *,double *);
+
+
 /*-----------------------------------------------------------------*/
 /* calc-spectral-range.c                                           */
 void genEnergyMax(CP *,CLASS *,GENERAL_DATA *,CPCOEFFS_POS *,CLATOMS_POS *);
@@ -47,8 +51,8 @@ void scfStodftInterp(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 void scfStodftCheby(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 void scfStodftEnergyWindow(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 void scfStodftEnergyWindowFrag(CLASS *,BONDED *,GENERAL_DATA *,
-                    CP *, CP *, GENERAL_DATA *, CLASS *,
-                    int);
+                    CP *, CP *, GENERAL_DATA *, CLASS *,int);
+void scfStodftInterpPostAnalysis(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 #endif
 void scfStodftFilterDiag(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 /*-----------------------------------------------------------------*/
@@ -106,6 +110,8 @@ void calcRhoStoHybridCheby(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 void outputDensity(CP *,CELL *,int);
 void calcRhoFilterDiagHybrid(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 void calcRhoStoHybridEnergyWindow(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
+void calcOrbRealHybrid(CLASS *,GENERAL_DATA *,CP *,int);
+void calcSqOrbPostAnalysis(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 
 /*-----------------------------------------------------------------*/
 /* calc-chempot.c                                                  */
@@ -231,6 +237,18 @@ void calcLocalPotFriction(CLASS *,GENERAL_DATA *,CP *,double *);
 
 void rhoCalcRealFriction(GENERAL_DATA *,CP *,CLASS *,double *,double *,
                         double *,int);
+void genDHPhi(CP *,CLASS *, GENERAL_DATA *,
+           double *, double *,double *, double *,
+           double *, double *,double *, double *);
+void calcDNLPhi(CP *,CLASS *, GENERAL_DATA *,
+           double *, double *,double *, double *,
+           double *, double *,double *, double *);
+void calcDLocPhi(CP *,CLASS *, GENERAL_DATA *,
+           double *, double *,double *, double *,
+           double *, double *,double *, double *);
+
+
+
 
 #ifdef FAST_FILTER   
 void scfStodftCheby(CLASS *,BONDED *,GENERAL_DATA *,
@@ -242,6 +260,8 @@ void scfStodftInterp(CLASS *,BONDED *,GENERAL_DATA *,
 void scfStodftEnergyWindowFrag(CLASS *,BONDED *,GENERAL_DATA *,CP *,
                     CLASS *,BONDED *,GENERAL_DATA *,CP *,
                     CP *, GENERAL_DATA *, CLASS *,int);
+void scfStodftInterpPostAnalysis(CLASS *,BONDED *,GENERAL_DATA *,
+                    CP *,CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 void genStoOrbitalInterpTest(CLASS *,GENERAL_DATA *,CP *,
             CLASS *,GENERAL_DATA *,CP *,int);
 void genStoOrbitalChebyTest(CLASS *,GENERAL_DATA *,
@@ -255,6 +275,8 @@ void scfStodftEnergyWindowFragTest(CLASS *,BONDED *,GENERAL_DATA *,
                     CP *, GENERAL_DATA *, CLASS *,int);
 void filterNewtonPolyHermFake(CP *,CLASS *,GENERAL_DATA *,int);
 void filterChebyPolyHermFake(CP *,CLASS *,GENERAL_DATA *,int,int);
+void filterChebyPolyFricFake(CP *,CLASS *,GENERAL_DATA *,
+                         int,int,double *,double *,double *,double *);
 void broadcastWfDet(CP *,CLASS *,GENERAL_DATA *,CP *);
 void calcChebyMomentsFake(CP *,CLASS *,GENERAL_DATA *,int);
 #endif

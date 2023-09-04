@@ -73,6 +73,7 @@ void calcRhoInit(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }
 
   if(readCoeffFlag==0) calcRhoOffInit(class,bonded,general_data,cp,cpcoeffs_pos);
+  //if(readCoeffFlag==0) calcRhoDetInit(class,bonded,general_data,cp,cpcoeffs_pos);
   if(readCoeffFlag==1) calcRhoStoInit(class,bonded,general_data,cp,cpcoeffs_pos);
   if(readCoeffFlag==2) calcRhoDetInit(class,bonded,general_data,cp,cpcoeffs_pos);
   if(readCoeffFlag==-2) readRho(class,bonded,general_data,cp,cpcoeffs_pos);

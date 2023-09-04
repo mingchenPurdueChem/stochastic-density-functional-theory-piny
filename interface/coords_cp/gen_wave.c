@@ -513,11 +513,11 @@ void gen_wave(CLASS *class,GENERAL_DATA *general_data,CP *cp,
    gpsi3 = (double ***) cmalloc(natm_typ_cp*sizeof(double **))-1;
 
   for(i=1; i<= natm_typ_cp; i++){
-    gpsi0[i] = (double **) cmalloc(3*sizeof(double *))-1;
-    gpsi1[i] = (double **) cmalloc(3*sizeof(double *))-1;
-    gpsi2[i] = (double **) cmalloc(3*sizeof(double *))-1;
-    gpsi3[i] = (double **) cmalloc(3*sizeof(double *))-1;
-    for(j=1; j<=3; j++){
+    gpsi0[i] = (double **) cmalloc(4*sizeof(double *))-1;
+    gpsi1[i] = (double **) cmalloc(4*sizeof(double *))-1;
+    gpsi2[i] = (double **) cmalloc(4*sizeof(double *))-1;
+    gpsi3[i] = (double **) cmalloc(4*sizeof(double *))-1;
+    for(j=1; j<=4; j++){
       gpsi0[i][j] = (double *) cmalloc(nsplin*sizeof(double ))-1;
       gpsi1[i][j] = (double *) cmalloc(nsplin*sizeof(double ))-1;
       gpsi2[i][j] = (double *) cmalloc(nsplin*sizeof(double ))-1;
@@ -525,7 +525,7 @@ void gen_wave(CLASS *class,GENERAL_DATA *general_data,CP *cp,
     }/*endfor*/
   }/*endfor*/
 
-   gpsi_now = cmall_mat(1,natm_typ_cp,1,3);
+   gpsi_now = cmall_mat(1,natm_typ_cp,1,4);
    gpsi00   = (double *) cmalloc(natm_typ_cp*sizeof(double)) -1;
   
   helr = (double*)cmalloc(nab_initio*sizeof(double));

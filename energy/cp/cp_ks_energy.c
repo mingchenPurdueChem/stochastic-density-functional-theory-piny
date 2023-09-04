@@ -676,6 +676,7 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
   
   // We will try to construct and diag ks_mat. Then try to rotate the MO to eigenfunctions
   //test ksmat
+  /*
   int metalFlag = cp->cpopts.metalFlag;
   double *kseig_vals_up,*kseig_vals_dn;
   double *kseig_vecs_up,*kseig_vecs_dn;
@@ -732,6 +733,7 @@ void cp_ks_energy_hybrid(CP *cp,int ip_now,EWALD *ewald,EWD_SCR *ewd_scr,
       //fclose(feige);
     }
   }
+  */
   // Finish testing
   
   

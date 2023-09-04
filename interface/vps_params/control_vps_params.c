@@ -202,7 +202,7 @@ void control_vps_params(PSEUDO *pseudo,CELL *cell,
                            &(pseudo->nl_filter[i]),
                            &(pseudo->phi0_0[i]),
                            &(pseudo->phi0_1[i]),&(pseudo->phi0_2[i]));
-           printf("11111111111111 %i\n",pseudo->iformat[i]);
+           //printf("11111111111111 %i\n",pseudo->iformat[i]);
          }/*endif*/
      }/*endif*/
 /*--------------------------------------------------------------------------*/
@@ -225,7 +225,7 @@ void control_vps_params(PSEUDO *pseudo,CELL *cell,
                            &(pseudo->nl_filter[i]),
                            &(pseudo->phi0_0[i]),
                            &(pseudo->phi0_1[i]),&(pseudo->phi0_2[i]));
-           printf("11111111111111 %i\n",pseudo->iformat[i]);
+           //printf("11111111111111 %i\n",pseudo->iformat[i]);
          }/*endif*/
       }/*endif*/
 /*--------------------------------------------------------------------------*/

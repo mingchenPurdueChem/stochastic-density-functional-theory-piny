@@ -542,8 +542,13 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
   double **zfft_tmp_threads = cpscr->cpscr_wave.zfft_tmp_threads;
   double *rho_scr_threads;
 
-
-  prefact = 1.0/sqrt(2.0*volFrag);
+  if(cp->stodftInfo->calcLocalTraceOpt == 1){
+    prefact = 1.0/sqrt(volFrag);
+  }
+  else {
+    prefact = 1.0/sqrt(2.0*volFrag);
+  }
+  //prefact = 1.0/sqrt(2.0*volFrag);
   if(cp_lsda==1)prefact = sqrt(invVolFrag);
   rho_scr_threads = (double*)cmalloc((numThreads*nfft2+1)*sizeof(double));
 

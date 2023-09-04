@@ -216,25 +216,43 @@ void genChemPotInterpPoints(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   double energyMin = chemPotInit-gapInit*0.5;
   double dE = gapInit/numChemPot;
   double chemPotTrue;
-  FILE *fileTest;
+  FILE *fileTest=NULL;
   
   // Generate Chebyshev nodes
   if(filterDiagFlag==0){
     if(energyWindowOn==0){
-      for(iNode=0;iNode<numChemPot;iNode++){
-	chebyNode[numChemPot-iNode-1] = cos((2.0*iNode+1.0)*factor);
+      if(stodftInfo->calcLocalTraceOpt==1){
+        fileTest = fopen("trace-local-param","r");
+        if(fileTest==NULL){
+          printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+          printf("Please provide a trace-local-param file!\n");
+          printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+          fflush(stdout);
+          exit(0);
+        }
+        for(iNode=0;iNode<numChemPot;iNode++){
+          // Read in Hartree
+          fscanf(fileTest,"%lg",&chemPot[iNode]);
+        }
+        fclose(fileTest);
       }
-      // Scale the nodes to correct chem pot and gap
-      for(iNode=0;iNode<numChemPot;iNode++){
-	chemPot[iNode] = chebyNode[iNode]*0.5*gapInit+chemPotInit;
-	//printf("iNode %i chemPot %lg\n",iNode,chemPot[iNode]);
+      else{
+	for(iNode=0;iNode<numChemPot;iNode++){
+	  chebyNode[numChemPot-iNode-1] = cos((2.0*iNode+1.0)*factor);
+	}
+	// Scale the nodes to correct chem pot and gap
+	for(iNode=0;iNode<numChemPot;iNode++){
+	  chemPot[iNode] = chebyNode[iNode]*0.5*gapInit+chemPotInit;
+	  //printf("iNode %i chemPot %lg\n",iNode,chemPot[iNode]);
+	}
+	chemPot[0] = chemPotInit-gapInit*0.5;
+	chemPot[1] = chemPotInit+gapInit*0.5;
       }
-      chemPot[0] = chemPotInit-gapInit*0.5;
-      chemPot[1] = chemPotInit+gapInit*0.5;
     }
     else{
       if(fragWindowFlag==0){ //regular energy window
         if(iScf<1000000){
+          /*
           energyMin = stodftInfo->energyMin;
           chemPotTrue = stodftInfo->chemPotTrue;
           dE = (chemPotTrue-energyMin)/numChemPot; 
@@ -244,8 +262,16 @@ void genChemPotInterpPoints(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
             //        iNode,energyMin,chemPotTrue,dE,chemPot[iNode]);
           }
           // double check the last chemical potential is correct...
+          */
           // TEST READ chempot
           fileTest = fopen("chempot","r");
+	  if(fileTest==NULL){
+	    printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+	    printf("Please provide a chempot file!\n");
+	    printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+	    fflush(stdout);
+	    exit(0);
+	  }
           for(iNode=0;iNode<numChemPot;iNode++)fscanf(fileTest,"%lg",&chemPot[iNode]);
           fclose(fileTest);
           chemPot[numChemPot-1] = chemPotTrue;
@@ -793,6 +819,12 @@ void calcChemPotMetal(CP *cp,double *numOccDetProc)
       printf("%.8lg %.8lg\n",energyLevel[iState],numOccDetAll[iState]);
     }
   }//endif myidState
+  /*else{
+    printf("Orbital energies and occupation numbers\n");
+    for(iState=0;iState<numStatePrintUp;iState++){
+      printf("%.8lg \n",energyLevel[iState]);
+    }
+  }*/
 
   if(numProcStates>1){
     Barrier(comm_states);

@@ -234,6 +234,7 @@ typedef struct cpcoeffs_info {
   int recordVNLFlag;		/*Opt: Flag to control record vnl energy */
 				/*     and vnl force 1=On 0=Off		 */
   double cputime0,cputime1,cputime2,cputime3,cputime4,cputime5,cputime6;
+  int orbIndexStUp,orbIndexStDn;/*Num: global orbital starting index on each process */
 
 } CPCOEFFS_INFO;
 
@@ -351,6 +352,7 @@ typedef struct fragInfo{
   int numFragProc;		    /* Num: Fragments calculated on one proc	*/
   int numFragTot;		    /* Num: Total number of fragments		*/
   int iFrag;			    /* Num: fragmentation index I'm working on  */
+  int iFragGlobal;                  /* Num: Global fragmentation index          */
   int *fragInd;                     /* Lst: list of frag index on this process  */
                                     /* Lth: numFragProc                         */
   int *numMolTypeFrag;		    /* Lst: Number of molecule types in each	*/
@@ -620,6 +622,7 @@ typedef struct stodftInfo{
 				    /*	    1 = Fermi exponential		*/
 				    /*	    2 = Fermi erfc function		*/
 				    /*	    3 = Gaussian (debug only)		*/
+                                    /*      4 = Entropy                         */
   int numOrbital;	            /* Num: number of stochastic orbitals	*/
   int storeChebyMomentsFlag;        /* Opt: store Chebyshev moments (=1) or not */
                                     /*      (=0)                                */
@@ -854,6 +857,13 @@ typedef struct stodftInfo{
 				    /*	    2=nhg  (non-homogenious)		*/
   int fragDFTMethod;                /* Opt: fragment deterministic DFT method   */
                                     /*      1=cg 2=filter-diag                  */
+  /* Calculate LDOS or local Entropy */
+  int calcLocalTraceOpt;            /* Opt: calculate local trace <r|f(h_KS)|r> */
+                                    /*      0=off 1=on                          */
+  int spinFlag;                     /* Opt: flag of calculating spin up/dn      */
+                                    /*      0=up 1=dn                           */
+  int orbRealPrintFlag;             /* Opt: print real space orbital            */
+                                    /*      0=no 1=yes                          */
   FRAGINFO *fragInfo;
  
 
@@ -873,6 +883,12 @@ typedef struct stodftInfo{
   int smearOpt;                     /* Opt: Do you wanna use smearing On=1,     */
                                     /*      Off=0(default) 1= Fermi-Dirac,      */
                                     /*      2 = Gauss (error function)          */
+  /* In case we want to use different smearing for Fragment calculation.
+   * Relavant in case of "calcLocalTraceOpt" ON option                          */
+  int smearOptFrag;                 /* Opt: Do you wanna use smearing On=1,     */
+                                    /*      Off=0(default) 1= Fermi-Dirac,      */
+                                    /*      2 = Gauss (error function)          */
+
   double smearTemperature;          /* Num: Smearing temperatur. I'm currently  */
                                     /*      using Fermi Dirac smearing          */
   double chemPotUpMetallic;         /* Num: Chemical potential in the smearing  */

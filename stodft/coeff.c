@@ -232,7 +232,8 @@ void genCoeffNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   FERMIFUNLR fermiFunctionLongDouble;
 
   if(energyWindowOn==0){
-    fermiFunction = stodftInfo->fermiFunctionReal;
+    if(stodftInfo->calcLocalTraceOpt==0)fermiFunction = stodftInfo->fermiFunctionReal;
+    else fermiFunction = stodftInfo->fermiFunctionReal;
   }
   else{
     fermiFunctionLongDouble = stodftInfo->fermiFunctionLongDouble;
@@ -983,6 +984,7 @@ void calcChebyCoeffWrapper(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
 /*                 filtering without multiplying F                       */
 /* filterFlag = 3: Energy window with fragmentation, the second time     */
 /*                 filtering with multiplying F                          */
+/* filterFlag = 4: sqrt(Gaussian) Filter for all chemical potentials     */
 /*************************************************************************/
 /*=======================================================================*/
 /*         Local Variable declarations                                   */
@@ -1054,6 +1056,9 @@ void calcChebyCoeffWrapper(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
       calcChebyCoeff(stodftInfo,stodftCoefPos,&chemPot[numChemPot-2],
                      &expanCoeff[(numChemPot-1)*polynormLength],8,chemPotTrue);
       break;
+    case 4: //Gaussian
+      calcChebyCoeff(stodftInfo,stodftCoefPos,&chemPot[0],&expanCoeff[0],14,chemPotTrue);
+      
   }
 
   /*
@@ -1194,6 +1199,8 @@ void calcChebyCoeff(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
       case 13: // Entropy
         funValGridFFT[iGrid] = sqrt(-entropyReal(x,chemPotTest,beta));
         break;
+      case 14:
+        funValGridFFT[iGrid] = gaussianReal(x,chemPotTest,beta);
       default:
         printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
         printf("Unsupported filter function Flag %i!\n",funFlag);

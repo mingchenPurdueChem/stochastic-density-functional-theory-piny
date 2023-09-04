@@ -797,7 +797,7 @@ void control_ewd_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
     /* large sparse grid when cp_dual_grid_opt == 2*/
     idens_opt = 0;
     ipseud_opt= (cp_dual_grid_opt==2 ? 0 : 1);
-    
+    printf("ipseud_opt %i\n",ipseud_opt); 
     //if(realSparseOpt==0){
     kastore   = ewald->kastr;
     kbstore   = ewald->kbstr;
@@ -964,6 +964,7 @@ void control_ewd_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
   koff    = istart-1;
   if(np_states==myid_state+1){ngo--;}
 
+  // No g = 0 term
   for(icount=1;icount<=ngo;icount++){
     //printf("rhocr %lg rhoci %lg\n",rhocr[icount],rhoci[icount]);
 
@@ -1124,10 +1125,14 @@ void control_ewd_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
       sumi_h = sumi;
       sumr = sumr*preg*2.0;
       sumi = sumi*preg*2.0;
+      //ewaldLocalOpt = 1;
       for(ipart=1;ipart<=natm_use;ipart++){
         srx = 0.0;
         sry = 0.0;
         srz = 0.0;
+        six = 0.0;
+        siy = 0.0;
+        siz = 0.0;
         if(ewaldLocalOpt==0||ewaldLocalOpt==2){
           pre = sumr*q[ipart];
           srx = xk*pre;
@@ -1155,6 +1160,14 @@ void control_ewd_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
         }
 
         /*
+        if(ewaldLocalOpt==1&&ipart==9){
+          printf("iiiicount %i g2 %lg rhoc %lg %lg vtemp %lg rvol %lg zk %lg hel %lg %lg\n",
+                   icount,ak2[icount],rhocr[icount],rhoci[icount],vtemp[ipart],rvol,zk,
+                   helr[ipart],heli[ipart]);
+        }
+        */
+
+        /*
 	srx = xk*(sumr*q[ipart]+2.0*rhocr[icount]*vtemp[ipart]*rvol);
 	sry = yk*(sumr*q[ipart]+2.0*rhocr[icount]*vtemp[ipart]*rvol);
 	srz = zk*(sumr*q[ipart]+2.0*rhocr[icount]*vtemp[ipart]*rvol);
@@ -1171,6 +1184,13 @@ void control_ewd_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
         six = xk*(sumi*q[ipart]);
         siy = yk*(sumi*q[ipart]);
         siz = zk*(sumi*q[ipart]);
+        */
+        /*
+        if(ewaldLocalOpt==1&&ipart==9){
+          printf("gggg2 %lg icount %i sz %lg %lg hel %lg %lg force %lg\n",
+                  ak2[icount],icount,srz,siz,helr[ipart],heli[ipart],
+                  srz*heli[ipart]  - siz*helr[ipart]);
+        }
         */
 	fx_tmp[ipart] += (srx*heli[ipart]  - six*helr[ipart]);
 	fy_tmp[ipart] += (sry*heli[ipart]  - siy*helr[ipart]);
@@ -1226,7 +1246,7 @@ void control_ewd_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 /*======================================================================*/
 /* VIII) g=0 term (local pseudopotential) including term for CBCs       */
 
-  if((myid_state+1)==np_states){  
+  if((myid_state+1)==np_states){
     if(ipseud_opt==1){
       ak2[(ngo+1)] = 0.0;
       for(ipart=1;ipart<=natm_use;ipart++){

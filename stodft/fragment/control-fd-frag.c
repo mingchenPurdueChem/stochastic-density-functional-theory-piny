@@ -190,7 +190,8 @@ void controlStodftMinfrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data
 
   scfStodftFilterDiag(class,bonded,general_data,cp,ip_now);
 
-  scaleFragWf(class,general_data,cp,ip_now);
+  //In case of calcLocalTraceOpt==1, do not scale the Fragment wavefunctions!!
+  if(stodftInfo->calcLocalTraceOpt==0)  scaleFragWf(class,general_data,cp,ip_now);
    
 /*======================================================================*/
 /*  III)Write to Screen                                                 */

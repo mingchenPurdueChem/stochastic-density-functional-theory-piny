@@ -435,6 +435,8 @@ void  excpot_pw_lda(double *v_ks,double *rho,double *exc_ret,double *muxc_ret,
 
   for(i=1; i<= nfft2_proc; i++){
     rho_r = rho[i];
+    // same as "pz_lda"
+    if(rho_r<=0.0)rho_r = 1.0e-10;
     fpin = fpi*rho_r;
     rs = pow((3.0/fpin),power);
     sqtrs = sqrt(rs);

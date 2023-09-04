@@ -514,6 +514,7 @@ void calcKNEEnergyFilterDiag(CP *cp,CLASS *class,GENERAL_DATA *general_data,
 /*--------------------------------------------------------------------------*/
 /* II) Entropy term for metallic system                                     */
 
+  // Here we calculate the -TS
   if(smearOpt>0){
     entropy = 0.0;
     for(iState=0;iState<numStateUpProc;iState++){

@@ -12,6 +12,7 @@
 #              STANDARD INCLUDE FILE
 
 STANDARD      = $(INCLUDES)/standard_include.h
+#STANDARD      = /home/mandal13/softwares/piny/source-piny/src/include/pentium_pippen_threads/standard_include.h
 DEFINES       = $(CODE)/include/typ_defs/defines.h 
 
 #-------------------------------------------------------

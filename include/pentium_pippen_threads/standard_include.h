@@ -4,7 +4,6 @@
 #define SIMP_NINT
 #define FFTW3
 #define MKL_LAPACK
-#define _GNU_SOURCE
 
 #include <fenv.h>
 #include <string.h>

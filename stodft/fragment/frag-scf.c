@@ -180,6 +180,33 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
         }
         break;
       case 2:
+        /*
+        sprintf(fileNameFragMO,"frag-MO-%i",myidState);
+        if(numFragProc>0){
+          // If the occupatation number is not 1, orbials will be automatically 
+          // scaled. 
+          fileFragMO = NULL;
+          fileFragMO = fopen(fileNameFragMO,"r");
+          if(fileFragMO!=NULL){
+            printf("I'm reading in fragment MO as initial guess!\n");
+            for(iFrag=0;iFrag<numFragProc;iFrag++){
+              //printf("%p\n",fileFragMO);
+              ncoef = cpMini[iFrag].cpcoeffs_info.ncoef;
+              for(iState=0;iState<numElecUpFragProc[iFrag];iState++){
+                for(icoef=1;icoef<=ncoef;icoef++){
+                  fscanf(fileFragMO,"%lg",&(cpMini[iFrag].cpcoeffs_pos[1].cre_up[iState*ncoef+icoef]));
+                  fscanf(fileFragMO,"%lg",&(cpMini[iFrag].cpcoeffs_pos[1].cim_up[iState*ncoef+icoef]));
+                }
+              }
+            }
+            fclose(fileFragMO);
+          }
+          else{
+            printf("I can't find checkpoint file for process %i\n",myidState);
+            printf("Inseated I'll use gen_wave as initial guess.\n");
+          }
+        }
+        */
         break;
     }//endif numFragProc
     for(iFrag=0;iFrag<numFragProc;iFrag++){

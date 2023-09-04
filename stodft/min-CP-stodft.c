@@ -1373,7 +1373,17 @@ void scfStodftFilterDiag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
 
   printf("SCF time myid %i gen-stowf %.8lg Diag %.8lg energy %.8lg density %.8lg KS potential %.8lg total-energy %.8lg\n",myidState,diffTime1,diffTime2,diffTime3,diffTime4,diffTime5,diffTime6);
 
+  /*
+  char fname[100];
+  FILE *fdetwf;
 
+
+  sprintf(fname,"detwf-%i",i);
+  fdetwf = fopen(fname,"w");
+  for(i=1;i<=nfft2;i++)fprintf(fdetwf,"%.16lg\n", [i]);
+  fclose(fdetwf)
+  */
+  
 /*======================================================================*/
 /* VI) Calculate nuclei forces after SCF loop                           */
 
@@ -2250,3 +2260,299 @@ void scfStodftEnergyWindowFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general
 /*-----------------------------------------------------------------------*/
 }/*end routine*/
 /*==========================================================================*/
+
+
+/*==========================================================================*/
+/*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
+/*==========================================================================*/
+#ifdef FAST_FILTER
+void scfStodftInterpPostAnalysis(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
+                    CP *cp,
+                    CLASS *class2,BONDED *bonded2,GENERAL_DATA *general_data2,CP *cp2,
+                    int ip_now)
+#else
+void scfStodftInterpPostAnalysis(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
+                    CP *cp,int ip_now)
+#endif
+/*========================================================================*/
+{/*begin routine*/
+/*************************************************************************/
+/* This is a post analysis routine that perform non-SCF calculations for */
+/* Tr(f(h_KS)) with local representation <r|f(h_KS)|r>. We use s-orbital */
+/* to represent it such that <r|f(h_KS)|r>=|eta(r)|^2 where |eta>=       */
+/* sqrt(f(h_KS))|chi>. <<chi|f(h_KS)|chi>>, which is a global trace via  */
+/* s-orbital, can be calculated by integral |eta(r)|^2 over r.           */
+/* If we have a single f(), we will use a single chemical potential.     */
+/* Otherwise, we will use different chemical potential to label different*/
+/* f_i(), e.g. local DOS at different energy value.                      */
+/*************************************************************************/
+/*========================================================================*/
+/*             Local variable declarations                                */
+
+  CELL *cell			 = &(general_data->cell);  
+  PTENS *ptens			 = &(general_data->ptens);
+  STAT_AVG *stat_avg            = &(general_data->stat_avg);
+  
+  STODFTINFO *stodftInfo         = cp->stodftInfo;
+  STODFTCOEFPOS *stodftCoefPos   = cp->stodftCoefPos;
+  CPOPTS *cpopts                = &(cp->cpopts);
+  CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
+  CPCOEFFS_POS *cpcoeffs_pos    = &(cp->cpcoeffs_pos[ip_now]);
+  CPEWALD *cpewald              = &(cp->cpewald);
+  CPSCR *cpscr                  = &(cp->cpscr);
+  PSEUDO *pseudo                = &(cp->pseudo);
+  PSEUDO_REAL *pseudoReal	= &(pseudo->pseudoReal);
+  COMMUNICATE *communicate      = &(cp->communicate);
+
+  FOR_SCR      *for_scr         = &(class->for_scr);
+  EWD_SCR      *ewd_scr         = &(class->ewd_scr);
+  CLATOMS_INFO *clatoms_info	= &(class->clatoms_info);
+  CLATOMS_POS *clatoms_pos	= &(class->clatoms_pos[ip_now]);
+  ATOMMAPS *atommaps		= &(class->atommaps);
+
+  int iperd            		= cell->iperd;
+  int iScf,iCell,iCoeff,iState,iChem;
+  int iScfTrue;
+  int numScf			= stodftInfo->numScf; //Need claim this in cp
+  int numChemPot		= stodftInfo->numChemPot;
+  int cpLsda 			= cpopts->cp_lsda;
+  int cpParaOpt			= cpopts->cp_para_opt;
+
+  int checkPerdSize 		= cpopts->icheck_perd_size;
+  int checkDualSize 		= cpopts->icheck_dual_size;
+  int cpDualGridOptOn 	 	= cpopts->cp_dual_grid_opt;
+  int numProcStates 		= communicate->np_states; 
+  int myidState 		= communicate->myid_state;
+  int coefFormUp 		= cpcoeffs_pos->icoef_form_up;
+  int coefOrthUp                = cpcoeffs_pos->icoef_orth_up;
+  int forceCoefFormUp 		= cpcoeffs_pos->ifcoef_form_up;
+  int forceCoefOrthUp           = cpcoeffs_pos->ifcoef_orth_up;
+  int coefFormDn                = cpcoeffs_pos->icoef_form_dn;
+  int coefOrthDn                = cpcoeffs_pos->icoef_orth_dn;
+  int forceCoefFormDn           = cpcoeffs_pos->ifcoef_form_dn;
+  int forceCoefOrthDn           = cpcoeffs_pos->ifcoef_orth_dn;
+  int numStateUp		= cpcoeffs_info->nstate_up_proc;
+  int numStateDn                = cpcoeffs_info->nstate_dn_proc;
+  int numCoeff			= cpcoeffs_info->ncoef;
+  int numCoeffUpTotal = numStateUp*numCoeff;
+  int numCoeffDnTotal = numStateDn*numCoeff;
+  int scfStopFlag = 0; // 0=do scf 1=stop scf
+  int pseudoRealFlag = pseudoReal->pseudoRealFlag;
+  MPI_Comm commStates = communicate->comm_states;
+  int calcFragFlag              = stodftInfo->calcFragFlag;
+
+
+  int *pcoefFormUp		     = &(cpcoeffs_pos->icoef_form_up);
+  int *pcoefOrthUp		     = &(cpcoeffs_pos->icoef_orth_up);
+  int *pforceCoefFormUp              = &(cpcoeffs_pos->ifcoef_form_up);
+  int *pforceCoefOrthUp              = &(cpcoeffs_pos->ifcoef_orth_up);
+  int *pcoefFormDn		     = &(cpcoeffs_pos->icoef_form_dn);
+  int *pcoefOrthDn		     = &(cpcoeffs_pos->icoef_orth_dn);
+  int *pforceCoefFormDn              = &(cpcoeffs_pos->icoef_form_dn);
+  int *pforceCoefOrthDn              = &(cpcoeffs_pos->icoef_orth_dn);
+
+
+  double tolEdgeDist 		= cpopts->tol_edge_dist;
+  double energyDiff		= -1.0;
+  double energyTol		= stodftInfo->energyTol;
+  double timeStart,timeEnd;
+
+  double *coeffReUp        = cpcoeffs_pos->cre_up;
+  double *coeffImUp        = cpcoeffs_pos->cim_up;
+  double *forceCoeffReUp   = cpcoeffs_pos->fcre_up;
+  double *forceCoeffImUp   = cpcoeffs_pos->fcre_up;
+  double *coeffReDn        = cpcoeffs_pos->cre_dn;
+  double *coeffImDn        = cpcoeffs_pos->cim_dn;
+  double *forceCoeffReDn   = cpcoeffs_pos->fcre_dn;
+  double *forceCoeffImDn   = cpcoeffs_pos->fcre_dn;
+  //double *cpScrCoeffReUp   = cpscr->cpscr_wave.cre_up;
+  //double *cpScrCoeffImUp   = cpscr->cpscr_wave.cim_up;
+  //double *cpScrCoeffReDn   = cpscr->cpscr_wave.cre_dn;
+  //double *cpScrCoeffImDn   = cpscr->cpscr_wave.cim_dn;
+  double *ptensPvtenTmp    = ptens->pvten_tmp;
+  double *chemPot          = stodftCoefPos->chemPot;
+
+  double **stoWfUpRe = stodftCoefPos->stoWfUpRe;
+  double **stoWfUpIm = stodftCoefPos->stoWfUpIm;
+  double **stoWfDnRe = stodftCoefPos->stoWfDnRe;
+  double **stoWfDnIm = stodftCoefPos->stoWfDnIm;
+
+
+/*======================================================================*/
+/* 0.05) Check the approximations in the methods                        */
+
+
+  if((iperd<3||iperd==4)&&checkPerdSize==1){
+    cp_boundary_check(cell,clatoms_info,clatoms_pos,tolEdgeDist);
+  }/*endif*/
+  if(cpDualGridOptOn>=1&&checkDualSize==1){
+    cp_dual_check(cell,clatoms_info,clatoms_pos,
+                  atommaps->cp_atm_lst,tolEdgeDist);
+  }/*endif*/
+
+/*======================================================================*/
+/* I) Orthogonalize the coefs if norbing                                */
+
+/*======================================================================*/
+/* II) In parallel, transpose coefs back to normal form                 */
+
+  /*
+  // I do this once in init.c, in case we read in deterministic wf. For 
+  // stochastic wf, we don't need this
+  if(numProcStates>1){
+    cp_transpose_bck(coeffReUp,coeffImUp,pcoefFormUp,
+                    cpScrCoeffReUp,cpScrCoeffImUp,&(cp->cp_comm_state_pkg_up));
+    if(cpLsda==1&&numStateDn>0){
+      cp_transpose_bck(coeffReDn,coeffImDn,pcoefFormDn,
+                     cpScrCoeffReDn,cpScrCoeffImDn,&(cp->cp_comm_state_pkg_dn));
+    }//endif
+  }//endif
+  */
+
+/*======================================================================*/
+/* III) Initialize forces, pressure tensor, inverse hmat                */
+
+  cpcoeffs_pos->ifcoef_form_up = 0;
+  cpcoeffs_pos->ifcoef_orth_up = 1;
+  if(cpLsda==1&&numStateDn>0){
+    cpcoeffs_pos->ifcoef_form_dn = 0;
+    cpcoeffs_pos->ifcoef_orth_dn = 1;
+  }/*endif*/
+
+  for(iCell=1;iCell<=9;iCell++){ptensPvtenTmp[iCell] = 0.0;}
+  gethinv(cell->hmat_cp,cell->hmati_cp,&(cell->vol_cp),iperd);
+  gethinv(cell->hmat,cell->hmati,&(cell->vol),iperd);
+
+/*======================================================================*/
+/* IV) Check the forms                                                   */
+
+/*======================================================================*/
+/* V) Initial KS potential calculation			                */
+
+  stat_avg->cp_ehart = 0.0;
+  stat_avg->cp_eext = 0.0;
+  stat_avg->cp_exc = 0.0;
+  stodftInfo->energyElecTot = 0.0;
+  stodftInfo->energyElecTotOld = 0.0;
+  if(myidState==0)printf("**Calculating Initial Kohn-Sham Potential...\n");
+  calcLocalPseudoScf(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+  calcKSPot(class,general_data,cp,cpcoeffs_pos,clatoms_pos);
+  if(pseudoRealFlag==1){
+    pseudoReal->forceCalcFlag = 1;
+    initRealNlppWf(cp,class,general_data);
+    allocRealNl(cp,class);
+    pseudoReal->forceCalcFlag = 0;
+  }
+
+  if(myidState==0)printf("**Finish Calculating Initial Kohn-Sham Potential\n");
+
+#ifdef FAST_FILTER
+  cp2->cpcoeffs_pos[1].ifcoef_form_up = 0;
+  cp2->cpcoeffs_pos[1].ifcoef_orth_up = 1;
+
+  gethinv(general_data2->cell.hmat_cp,general_data2->cell.hmati_cp,
+          &(general_data2->cell.vol_cp),iperd);
+  gethinv(general_data2->cell.hmat,general_data2->cell.hmati,
+          &(general_data2->cell.vol),iperd);
+  if(calcFragFlag==0){
+    calcLocalPseudoScf(class2,general_data2,cp2,
+                       &(cp2->cpcoeffs_pos[1]),&(class2->clatoms_pos[1]));
+  }
+
+  if(cp2->pseudo.pseudoReal.pseudoRealFlag==1){
+    cp2->pseudo.pseudoReal.forceCalcFlag = 1;
+    initRealNlppWf(cp2,class2,general_data2);
+    allocRealNl(cp2,class2);
+    cp2->pseudo.pseudoReal.forceCalcFlag = 0;
+  }
+  cp->stodftInfo->numStatePrintUp = cp2->stodftInfo->numStatePrintUp;
+  //============
+  cp->stodftInfo->numStates2 = (int*)cmalloc(numProcStates*sizeof(int));
+  cp->stodftInfo->dsplStates2 = (int*)cmalloc(numProcStates*sizeof(int));
+  int div,res,numStatePrintUpProc,iProc;
+  int *numStates22 = cp->stodftInfo->numStates2;
+  int *dsplStates22 = cp->stodftInfo->dsplStates2;
+  div = (int)(cp->stodftInfo->numStatePrintUp/numProcStates);
+  res = (cp->stodftInfo->numStatePrintUp)%numProcStates;
+  if(myidState<res) numStatePrintUpProc = div+1;
+  else numStatePrintUpProc = div;
+  if(numProcStates>1){
+    Allgather(&numStatePrintUpProc,1,MPI_INT,numStates22,1,MPI_INT,0,commStates);
+  }
+  else{
+    numStates22[0] = cp->stodftInfo->numStatePrintUp;
+  }
+
+  dsplStates22[0] = 0;
+  for(iProc=1;iProc<numProcStates;iProc++){
+    dsplStates22[iProc] = dsplStates22[iProc-1]+numStates22[iProc-1];
+  }
+  //===========
+  cp->stodftCoefPos->moUpRePrint = (double*)cmalloc(cp->stodftInfo->numStatePrintUp*numCoeff*sizeof(double));
+  cp->stodftCoefPos->moUpImPrint = (double*)cmalloc(cp->stodftInfo->numStatePrintUp*numCoeff*sizeof(double));
+  // attention: size of cp->stodftCoefPos.energyLevel is different from 
+  // the size of cp2->stodftCoefPos.energyLevel
+  cp->stodftCoefPos->energyLevel = (double*)cmalloc(cp->stodftInfo->numStatePrintUp*sizeof(double));
+#endif
+
+  //exit(0);
+/*======================================================================*/
+/* V) Start non-SCF Calculation          		                */
+
+
+  if(myidState==0){
+    printf("===============================================================================\n");
+    printf("Runing non-SCF Calculation\n");
+    printf("-------------------------------------------------------------------------------\n");
+  }
+  //for(iScf=1;iScf<=numScf;iScf++){
+  iScf = 1;
+  iScfTrue = 1;
+  
+  timeStart = omp_get_wtime();
+  stodftInfo->iScf = iScf;
+  stodftInfo->iScfTrue = iScfTrue;
+
+/*----------------------------------------------------------------------*/
+/* i) Generate stochastic WF for different chemical potentials          */
+
+  if(myidState==0)printf("**Generating Stochastic Orbitals...\n");
+#ifdef FAST_FILTER
+  genStoOrbitalInterpTest(class,general_data,cp,class2,general_data2,cp2,ip_now);
+#else
+  genStoOrbitalInterp(class,general_data,cp,ip_now);
+#endif
+
+  if(myidState==0)printf("**Finish Generating Stochastic Orbitals\n");
+
+/*----------------------------------------------------------------------*/
+/* ii)  Get <|eta(r)|^2>, for each chemical potential.                  */
+
+  if(myidState==0)printf("**Calculating <|eta(r)|^2>...\n");
+  // change to a new function
+  if(cpParaOpt==0) calcSqOrbPostAnalysis(class,bonded,general_data,cp,ip_now); 
+  if(myidState==0)printf("**Finish Calculating <|eta(r)|^2>\n");
+
+/*----------------------------------------------------------------------*/
+/* iii) Rerun if necessary	                                        */
+  
+/*----------------------------------------------------------------------*/
+/* v) Finish this SCF step			                        */
+
+  timeEnd = omp_get_wtime();
+
+  if(myidState==0){
+    printf("The master process spend %lgs in this SCF step.\n",timeEnd-timeStart);
+    printf("--------------------------------------------------------\n");
+    printf("Finish non-SCF Calculation %i\n",iScf);
+    printf("********************************************************\n");
+    printf("\n");
+  }
+  //exit(0);
+
+/*-----------------------------------------------------------------------*/
+}/*end routine*/
+/*==========================================================================*/
+
+
+

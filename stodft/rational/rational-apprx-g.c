@@ -158,14 +158,11 @@ void solve_shifted_eqn_cocg_g( CP *cp, CLASS *class, GENERAL_DATA *general_data,
  
 
 /* =------------------------------------------------------------------------------------= */
-    #pragma omp parallel for private(i) //TODO memcpy? 
-    for (i = 0; i < ndim; i++) {
-      creRer_l[i] = creRev2[i];
-      cimRer_l[i] = cimRev2[i];
-      creImr_l[i] = creImv2[i];
-      cimImr_l[i] = cimImv2[i];
-    }
-
+    memcpy(creRer_l,creRev2,sizeof(double)*ndim);
+    memcpy(cimRer_l,cimRev2,sizeof(double)*ndim);
+    memcpy(creImr_l,creImv2,sizeof(double)*ndim);
+    memcpy(cimImr_l,cimImv2,sizeof(double)*ndim);
+    
 /* =------------------------------------------------------------------------------------= */
 
     t1 = omp_get_wtime(); 
@@ -187,7 +184,7 @@ void solve_shifted_eqn_cocg_g( CP *cp, CLASS *class, GENERAL_DATA *general_data,
     sum1 = 0.0;
     sum2 = 0.0;
     sum3 = 0.0;
-    sum4 = 0.0;
+    #pragma omp parallel for reduction(+:sum1,sum2,sum3) private(i)
     for(i=0;i<ncoef-1;i++){
       sum1 += creRex[i]*creRex[i]+cimRex[i]*cimRex[i];
       sum2 += creImx[i]*creImx[i]+cimImx[i]*cimImx[i];
@@ -276,7 +273,7 @@ void filterRational_g(CP *cp,CLASS *class,GENERAL_DATA *general_data, KOMEGAINFO
   int numThreads = cp_sclr_fft_pkg3d_sm->numThreads;
   int pseudoRealFlag = cp->pseudo.pseudoReal.pseudoRealFlag;
   int imu,iCoeff,iPoly,indexStart,iState;
-  int iOff2;
+  int iOff2, i;
   int startIndex;
   int storeChebyMomentsFlag = stodftInfo->storeChebyMomentsFlag;
   MPI_Comm comm_states   =    communicate->comm_states;
@@ -376,14 +373,14 @@ void filterRational_g(CP *cp,CLASS *class,GENERAL_DATA *general_data, KOMEGAINFO
   numElecMin = 0.0;
   numElecMax = 0.0;
 
-  printf("start tessssssssssssst RA \n");
+//  printf("start tessssssssssssst RA \n");
 
-  printf("myidState = %i %i %lg %lg %i %lg %lg %lg %lg %i %lg \n", 
+/*  printf("myidState = %i %i %lg %lg %i %lg %lg %lg %lg %i %lg \n", 
    myidState,rationalInfo->ntgrid, rationalInfo->dmu, rationalInfo->threshold,
    rationalInfo->itermax, rationalInfo->large_dmu,
    rationalInfo->small_dmu, rationalInfo->maxmu, rationalInfo->epsilon, expanType,
    rationalInfo->init_mu);
-
+*/
 /******************************************************************************/
 printf("Starting Filtering with Rational Approximation\n");
 /******************************************************************************/
@@ -400,7 +397,8 @@ dsum_im = 0.0;
 
 t2 = omp_get_wtime();
 
-for (int i = 0; i < ntgrid; i++){
+#pragma omp parallel for private(i)
+for (i = 0; i < ntgrid; i++){
   fun_p[i] = fermi_fun_g(ksi_p[i], 0.0, stodftInfo->beta, epsilon);
   fun_m[i] = fermi_fun_g(ksi_m[i], 0.0, stodftInfo->beta, epsilon);
 
@@ -421,24 +419,30 @@ for(iState=0;iState<numStateUpProc;iState++){
  
   time1 = omp_get_wtime(); 
   solve_shifted_eqn_cocg_g( cp, class, general_data, komegaInfo, iState, 1);
+  if(myidState == 0){
+    printf("Process ID %i Nlpp %.8lg Apply-KS-pot %.8lg Pack-fft %.8lg Unpack-fft %.8lg kinetic %.8lg scale-H|phi> %.8lg\n",myidState,stodftInfo->cputime_new[0],stodftInfo->cputime3,stodftInfo->cputime2,stodftInfo->cputime4,stodftInfo->cputime5,stodftInfo->cputime7);
+    printf("Process ID Nlpp-part1 %.8lg Nlpp-part2 %.8lg\n",stodftInfo->cputime0,stodftInfo->cputime1);
+    printf("Process ID %i FFTW3D time %.8lg FFTW3D-to-r-pre %.8lg FFTW3D-to-r-post %.8lg FFTW3D-to-g-pre %.8lg FFTW3D-to-g-post %.8lg\n",myidState,cp_sclr_fft_pkg3d_sm->cputime,cp_sclr_fft_pkg3d_sm->cputime1,cp_sclr_fft_pkg3d_sm->cputime2,cp_sclr_fft_pkg3d_sm->cputime3,cp_sclr_fft_pkg3d_sm->cputime4);
+    fflush(stdout);
+  }
 
   time2 = omp_get_wtime(); 
   time += time2-time1;
 
-  printf("last term %lg %lg \n", creRex[numCoeff-1], creImx[numCoeff-1] );
+  //printf("last term %lg %lg \n", creRex[numCoeff-1], creImx[numCoeff-1] );
   //for (int i = 0; i<nfft2;i++){
   for (int i = 0; i<numCoeff;i++){
-    sum_reRe = 0.0;
-    sum_imRe = 0.0;
+    //sum_reRe = 0.0;
+    //sum_imRe = 0.0;
     sum_reIm = 0.0;
     sum_imIm = 0.0;
 
-    sum_reRe_p = 0.0;
-    sum_imRe_p = 0.0;
+   // sum_reRe_p = 0.0;
+   // sum_imRe_p = 0.0;
     sum_reIm_p = 0.0;
     sum_imIm_p = 0.0;
-    sum_reRe_m = 0.0;
-    sum_imRe_m = 0.0;
+    //sum_reRe_m = 0.0;
+    //sum_imRe_m = 0.0;
     sum_reIm_m = 0.0;
     sum_imIm_m = 0.0;
 
@@ -449,12 +453,12 @@ for(iState=0;iState<numStateUpProc;iState++){
       fact2_real = creal(fun_m_0[j] * rat_fact_m[j]);
       fact2_imag = cimag(fun_m_0[j] * rat_fact_m[j]);
 
-      sum_reRe += fact1_real*creRex[j*numCoeff + i] - fact1_imag*creImx[j*numCoeff + i] +
-	      fact2_real*creRex[(j+ntgrid)*numCoeff + i] - fact2_imag*creImx[(j+ntgrid)*numCoeff + i]; 
-
-      sum_imRe += fact1_real*cimRex[j*numCoeff + i] - fact1_imag*cimImx[j*numCoeff + i] +
-	      fact2_real*cimRex[(j+ntgrid)*numCoeff + i] - fact2_imag*cimImx[(j+ntgrid)*numCoeff + i]; 
-
+//      sum_reRe += fact1_real*creRex[j*numCoeff + i] - fact1_imag*creImx[j*numCoeff + i] +
+//	      fact2_real*creRex[(j+ntgrid)*numCoeff + i] - fact2_imag*creImx[(j+ntgrid)*numCoeff + i]; 
+//
+//      sum_imRe += fact1_real*cimRex[j*numCoeff + i] - fact1_imag*cimImx[j*numCoeff + i] +
+//	      fact2_real*cimRex[(j+ntgrid)*numCoeff + i] - fact2_imag*cimImx[(j+ntgrid)*numCoeff + i]; 
+//
       sum_reIm += fact1_real*creImx[j*numCoeff + i] + fact1_imag*creRex[j*numCoeff + i] +
 	      fact2_real*creImx[(j+ntgrid)*numCoeff + i] + fact2_imag*creRex[(j+ntgrid)*numCoeff + i]; 
 
@@ -466,12 +470,13 @@ for(iState=0;iState<numStateUpProc;iState++){
       fact1_imag = cimag(fun_p_p[j] * rat_fact_p[j]);
       fact2_real = creal(fun_m_p[j] * rat_fact_m[j]);
       fact2_imag = cimag(fun_m_p[j] * rat_fact_m[j]);
-      sum_reRe_p += fact1_real*creRex[j*numCoeff + i] - fact1_imag*creImx[j*numCoeff + i] +
-	      fact2_real*creRex[(j+ntgrid)*numCoeff + i] - fact2_imag*creImx[(j+ntgrid)*numCoeff + i]; 
 
-      sum_imRe_p += fact1_real*cimRex[j*numCoeff + i] - fact1_imag*cimImx[j*numCoeff + i] +
-	      fact2_real*cimRex[(j+ntgrid)*numCoeff + i] - fact2_imag*cimImx[(j+ntgrid)*numCoeff + i]; 
-
+//      sum_reRe_p += fact1_real*creRex[j*numCoeff + i] - fact1_imag*creImx[j*numCoeff + i] +
+//	      fact2_real*creRex[(j+ntgrid)*numCoeff + i] - fact2_imag*creImx[(j+ntgrid)*numCoeff + i]; 
+//
+//      sum_imRe_p += fact1_real*cimRex[j*numCoeff + i] - fact1_imag*cimImx[j*numCoeff + i] +
+//	      fact2_real*cimRex[(j+ntgrid)*numCoeff + i] - fact2_imag*cimImx[(j+ntgrid)*numCoeff + i]; 
+//
       sum_reIm_p += fact1_real*creImx[j*numCoeff + i] + fact1_imag*creRex[j*numCoeff + i] +
 	      fact2_real*creImx[(j+ntgrid)*numCoeff + i] + fact2_imag*creRex[(j+ntgrid)*numCoeff + i]; 
 
@@ -484,12 +489,12 @@ for(iState=0;iState<numStateUpProc;iState++){
       fact2_real = creal(fun_m_m[j] * rat_fact_m[j]);
       fact2_imag = cimag(fun_m_m[j] * rat_fact_m[j]);
 
-      sum_reRe_m += fact1_real*creRex[j*numCoeff + i] - fact1_imag*creImx[j*numCoeff + i] +
-	      fact2_real*creRex[(j+ntgrid)*numCoeff + i] - fact2_imag*creImx[(j+ntgrid)*numCoeff + i]; 
-
-      sum_imRe_m += fact1_real*cimRex[j*numCoeff + i] - fact1_imag*cimImx[j*numCoeff + i] +
-	      fact2_real*cimRex[(j+ntgrid)*numCoeff + i] - fact2_imag*cimImx[(j+ntgrid)*numCoeff + i]; 
-
+//      sum_reRe_m += fact1_real*creRex[j*numCoeff + i] - fact1_imag*creImx[j*numCoeff + i] +
+//	      fact2_real*creRex[(j+ntgrid)*numCoeff + i] - fact2_imag*creImx[(j+ntgrid)*numCoeff + i]; 
+//
+//      sum_imRe_m += fact1_real*cimRex[j*numCoeff + i] - fact1_imag*cimImx[j*numCoeff + i] +
+//	      fact2_real*cimRex[(j+ntgrid)*numCoeff + i] - fact2_imag*cimImx[(j+ntgrid)*numCoeff + i]; 
+//
       sum_reIm_m += fact1_real*creImx[j*numCoeff + i] + fact1_imag*creRex[j*numCoeff + i] +
 	      fact2_real*creImx[(j+ntgrid)*numCoeff + i] + fact2_imag*creRex[(j+ntgrid)*numCoeff + i]; 
 
@@ -527,19 +532,10 @@ t4 = omp_get_wtime();
 dsum_0 = 2.0*(dsum_0/numStateStoUp);
 dsum_p = 2.0*(dsum_p/numStateStoUp);
 dsum_m = 2.0*(dsum_m/numStateStoUp);
-//dsum_0 = (dsum_0/numStateStoUp)*(1.0/stodftInfo->rhoRealGridTot);
-//dsum_p = (dsum_p/numStateStoUp)*(1.0/stodftInfo->rhoRealGridTot);
-//dsum_m = (dsum_m/numStateStoUp)*(1.0/stodftInfo->rhoRealGridTot);
-
-printf("==== final results: dsum  === %i %lg %lg %lg %lg \n", myidState, dsum_0, dsum_p, dsum_m, rationalInfo->preRat);
 
 if(numProcStates>1)Reduce(&dsum_0,&numElecTot,1,MPI_DOUBLE,MPI_SUM,0,comm_states);
 if(numProcStates>1)Reduce(&dsum_p,&numElecMax,1,MPI_DOUBLE,MPI_SUM,0,comm_states);
 if(numProcStates>1)Reduce(&dsum_m,&numElecMin,1,MPI_DOUBLE,MPI_SUM,0,comm_states);
-
-if(myidState == 0)printf("==== final results: numElec  === %.10lg %.10lg %.10lg\n", numElecTot, numElecMax, numElecMin);
-
-
 
    if(numProcStates>1){
      Barrier(comm_states);
@@ -548,6 +544,7 @@ if(myidState == 0)printf("==== final results: numElec  === %.10lg %.10lg %.10lg\
      Bcast(&numElecMin,1,MPI_DOUBLE,0,comm_states);
    }
 
+if(myidState == 0)printf("==== final results: numElec  === %.10lg %.10lg %.10lg\n", numElecTot, numElecMax, numElecMin);
 
 //  printf("end checking \n");
 //  Barrier(comm_states);
@@ -611,229 +608,55 @@ if ((numElecMax > numElecTrue) && (numElecTrue > numElecMin)){
    }
 
 /*************************************************/
-//applyFilterRational_g(cp, class, general_data, delta_mu, ip_now);
-/*************************************************/
-
-
-/*************************************************/
-/*************************************************/
-// DELETE LATER
-/*************************************************/
-  init_zseed_g(cp, 0);
-  
-  for (int i = 0; i < ntgrid; i++){
-    fun_p[i] = fermi_fun_g(ksi_p[i], 0.0, stodftInfo->beta, epsilon);
-    fun_m[i] = fermi_fun_g(ksi_m[i], 0.0, stodftInfo->beta, epsilon);
-  }
-  
-  for(iState=0;iState<numStateUpProc;iState++){
-  
-    //printf("myidState %i %i %i \n", myidState, numStateUpProc, iState);
-    solve_shifted_eqn_cocg_g( cp, class, general_data, komegaInfo, iState, 0);
-  
-    for (int i = 0; i<numCoeff;i++){
-      sum_reRe = 0.0;
-      sum_imRe = 0.0;
-      sum_reIm = 0.0;
-      sum_imIm = 0.0;
-      for (int j =0; j < ntgrid; j++){
-        fact1_real = creal(fun_p[j] * rat_fact_p[j]);
-        fact1_imag = cimag(fun_p[j] * rat_fact_p[j]);
-        fact2_real = creal(fun_m[j] * rat_fact_m[j]);
-        fact2_imag = cimag(fun_m[j] * rat_fact_m[j]);
-
-        sum_reRe += fact1_real*creRex[j*numCoeff + i] - fact1_imag*creImx[j*numCoeff + i] +
-                fact2_real*creRex[(j+ntgrid)*numCoeff + i] - fact2_imag*creImx[(j+ntgrid)*numCoeff + i];
-
-        sum_imRe += fact1_real*cimRex[j*numCoeff + i] - fact1_imag*cimImx[j*numCoeff + i] +
-                fact2_real*cimRex[(j+ntgrid)*numCoeff + i] - fact2_imag*cimImx[(j+ntgrid)*numCoeff + i];
-
-        sum_reIm += fact1_real*creImx[j*numCoeff + i] + fact1_imag*creRex[j*numCoeff + i] +
-                fact2_real*creImx[(j+ntgrid)*numCoeff + i] + fact2_imag*creRex[(j+ntgrid)*numCoeff + i];
-
-        sum_imIm += fact1_real*cimImx[j*numCoeff + i] + fact1_imag*cimRex[j*numCoeff + i] +
-                fact2_real*cimImx[(j+ntgrid)*numCoeff + i] + fact2_imag*cimRex[(j+ntgrid)*numCoeff + i];
-  
-      }
-      stoWfUpRe[0][iState*numCoeff + i+1] = rationalInfo->preRat*sum_reIm;
-      stoWfUpIm[0][iState*numCoeff + i+1] = rationalInfo->preRat*sum_imIm;
-    }
-  }
-/******************************************************************************/
-
-printf("here num elec %.16lg \n", calcNumberElecRational_g(cp, 0.0));
-
-/*************************************************/
-// DELETE UPTO HERE
-/*************************************************/
-/*************************************************/
-
-}
-else {
-
-/******************************************************************************/
-/******************************************************************************/
-   chemPotNew = stodftInfo->chemPotTrue;
-   
-   dNdm = (numElecMax - numElecMin)/(2.0*small_dmu);
-
-   fmu = -(numElecTot - numElecTrue)/(numElecTrue*numElecTrue)*dNdm;
-
-   if(myidState == 0)printf("dNdm fmu fmu*large_dmu %lg %lg %lg %lg \n", dNdm, fmu, 
-             fmu*large_dmu, -(numElecTot - numElecTrue)/(numElecTrue*numElecTrue) );
-
-   if (fabs(fmu*large_dmu) > maxmu ){
-     if(fmu>0) chemPotNew = chemPotNew + maxmu;
-     else chemPotNew = chemPotNew - maxmu;
-   }
-   else {
-     chemPotNew = chemPotNew + (fmu*large_dmu);
-   }
-
-/******************************************************************************/
-   if(numProcStates>1){
-     Barrier(comm_states);
-     Bcast(&chemPotNew,1,MPI_DOUBLE,0,comm_states);
-   }
-
-   delta_mu = stodftInfo->chemPotTrue - chemPotNew;
-
-   chemPot[0] = chemPotNew;
-
-   stodftInfo->chemPotTrue = chemPotNew;
-
-   if(myidState==0){
-     printf("Correct Chemical Potential is %.16lg\n",chemPotNew);
-     fflush(stdout);
-   }
-/******************************************************************************/
-  init_zseed_g(cp, 0);
-  
-  for (int i = 0; i < ntgrid; i++){
-    fun_p[i] = fermi_fun_g(ksi_p[i], 0.0, stodftInfo->beta, epsilon);
-    fun_m[i] = fermi_fun_g(ksi_m[i], 0.0, stodftInfo->beta, epsilon);
-  }
-  
-  for(iState=0;iState<numStateUpProc;iState++){
-  
-    //printf("myidState %i %i %i \n", myidState, numStateUpProc, iState);
-    solve_shifted_eqn_cocg_g( cp, class, general_data, komegaInfo, iState, 0);
-  
-    for (int i = 0; i<numCoeff;i++){
-      sum_reRe = 0.0;
-      sum_imRe = 0.0;
-      sum_reIm = 0.0;
-      sum_imIm = 0.0;
-      for (int j =0; j < ntgrid; j++){
-
-        fact1_real = creal(fun_p[j] * rat_fact_p[j]);
-        fact1_imag = cimag(fun_p[j] * rat_fact_p[j]);
-        fact2_real = creal(fun_m[j] * rat_fact_m[j]);
-        fact2_imag = cimag(fun_m[j] * rat_fact_m[j]);
-
-        sum_reRe += fact1_real*creRex[j*numCoeff + i] - fact1_imag*creImx[j*numCoeff + i] +
-                fact2_real*creRex[(j+ntgrid)*numCoeff + i] - fact2_imag*creImx[(j+ntgrid)*numCoeff + i];
-
-        sum_imRe += fact1_real*cimRex[j*numCoeff + i] - fact1_imag*cimImx[j*numCoeff + i] +
-                fact2_real*cimRex[(j+ntgrid)*numCoeff + i] - fact2_imag*cimImx[(j+ntgrid)*numCoeff + i];
-
-        sum_reIm += fact1_real*creImx[j*numCoeff + i] + fact1_imag*creRex[j*numCoeff + i] +
-                fact2_real*creImx[(j+ntgrid)*numCoeff + i] + fact2_imag*creRex[(j+ntgrid)*numCoeff + i];
-
-        sum_imIm += fact1_real*cimImx[j*numCoeff + i] + fact1_imag*cimRex[j*numCoeff + i] +
-                fact2_real*cimImx[(j+ntgrid)*numCoeff + i] + fact2_imag*cimRex[(j+ntgrid)*numCoeff + i];
-
-  
-      }
-
-      stoWfUpRe[0][iState*numCoeff + i+1] = rationalInfo->preRat*sum_reIm;
-      stoWfUpIm[0][iState*numCoeff + i+1] = rationalInfo->preRat*sum_imIm;
-
-    }
-  }
-/******************************************************************************/
-
-printf("here num elec %.16lg \n", calcNumberElecRational_g(cp, 0.0));
-
-}
-
-/*
-   if(numProcStates>1){
-     Barrier(comm_states);
-     Bcast(&chemPotNew,1,MPI_DOUBLE,0,comm_states);
-   }
-
-   delta_mu = stodftInfo->chemPotTrue - chemPotNew;
-
-   chemPot[0] = chemPotNew;
-
-   stodftInfo->chemPotTrue = chemPotNew;
-
-   if(myidState==0){
-     printf("Correct Chemical Potential is %.16lg\n",chemPotNew);
-     fflush(stdout);
-   }
-
-
-t6 = omp_get_wtime();
-
-  printf("delta_mu is %lg \n", delta_mu);
-*/
-/******************************************************************************/
-
-
-/******************************************************************************/
-//printf("Finished Filtering with Rational Approximation times %lg %lg \n", timeEnd2 - timeStart2, timeEnd1 - timeStart1);
-/******************************************************************************/
-/******************************************************************************/
-
-/*
-if(fabs(delta_mu) >  small_dmu) {
-
-  init_zseed_g(cp, 0);
-  
-  for (int i = 0; i < ntgrid; i++){
-    fun_p[i] = fermi_fun_g(ksi_p[i], 0.0, stodftInfo->beta, epsilon);
-    fun_m[i] = fermi_fun_g(ksi_m[i], 0.0, stodftInfo->beta, epsilon);
-  }
-  
-  for(iState=0;iState<numStateUpProc;iState++){
-  
-    //printf("myidState %i %i %i \n", myidState, numStateUpProc, iState);
-    solve_shifted_eqn_cocg_g( cp, class, general_data, komegaInfo, iState, 0);
-  
-    for (int i = 0; i<nfft2;i++){
-      sum   = 0.0 + 0.0 *I ;
-      for (int j =0; j < ntgrid; j++){
-        sum = sum + fun_p[j] * rat_fact_p[j] * x[j*nfft2 + i] 
-                  + fun_m[j] * rat_fact_m[j] * x[(j+ntgrid)*nfft2 + i];
-  
-      }
-      frhs[i] = rationalInfo->preRat*cimag(sum);
-    }
-  
-    rhsReal(class, general_data, cp, cpcoeffs_pos, clatoms_pos, frhs, iState);
-  }
-}
-else {
-
 applyFilterRational_g(cp, class, general_data, delta_mu, ip_now);
+/*************************************************/
+
+/*************************************************/
+
+}
+//else if((numElecMax < numElecTrue) || (numElecTrue < numElecMin)){
+else {
+
+
+  if (numElecMax < numElecTrue){ 
+        chemPotNew = stodftInfo->chemPotTrue + dmu;
+        numElecNew = numElecMax; 
+  }
+  else{
+        chemPotNew = stodftInfo->chemPotTrue - dmu;
+        numElecNew = numElecMin; 
+  }
+
+
+//if(myidState == 0)printf(" while loop %lg %lg %lg %lg %lg %lg %lg \n", chemPotMax, chemPotMin, chemPotNew, numElecMax, numElecMin, numElecNew, stodftInfo->chemPotTrue - chemPotNew );
+
+/*************************************************/
+   if(numProcStates>1){
+     Barrier(comm_states);
+     Bcast(&chemPotNew,1,MPI_DOUBLE,0,comm_states);
+   }
+
+   delta_mu = stodftInfo->chemPotTrue - chemPotNew;
+
+   chemPot[0] = chemPotNew;
+
+   stodftInfo->chemPotTrue = chemPotNew;
+
+   if(myidState==0){
+     printf("Correct Chemical Potential is %.16lg\n",chemPotNew);
+     fflush(stdout);
+   }
+
+/*************************************************/
+   applyFilterRational_g(cp, class, general_data, delta_mu, ip_now);
+/*************************************************/
 
 }
 
-t7 = omp_get_wtime();
-*/
 /******************************************************************************/
 t7 = omp_get_wtime();
 printf("Finished Filtering with Rational Approximation times %lg %lg %lg %lg %lg %lg %lg \n", t2-t1, t3-t2, t4-t3, t5-t4, t6-t5, t7-t1, time);
 /******************************************************************************/
-/*
-  printf("end tessssssssssssst RA \n");
-  Barrier(comm_states);
-  printf("@@@@@@@@@@@@@@@@@@@@_forced_stop__@@@@@@@@@@@@@@@@@@@@\n");
-  fflush(stdout);
-  exit(1);
-*/
 /*==========================================================================*/
 }/*end Routine*/
 /*==========================================================================*/
@@ -843,6 +666,7 @@ printf("Finished Filtering with Rational Approximation times %lg %lg %lg %lg %lg
 void applyFilterRational_g(CP *cp, CLASS *class, GENERAL_DATA *general_data, double delta_mu, int ip_now) {
 
 STODFTINFO *stodftInfo        = cp->stodftInfo;
+STODFTCOEFPOS *stodftCoefPos  = cp->stodftCoefPos;
 CPCOEFFS_INFO *cpcoeffs_info  = &(cp->cpcoeffs_info);
 COMMUNICATE *communicate      = &(cp->communicate);
 CPCOEFFS_POS *cpcoeffs_pos    = &(cp->cpcoeffs_pos[ip_now]);
@@ -877,6 +701,9 @@ int numCoeff       = cpcoeffs_info->ncoef;
   double *cre_up = cpcoeffs_pos->cre_up;
   double *cim_up = cpcoeffs_pos->cim_up;
 
+  double **stoWfUpRe = stodftCoefPos->stoWfUpRe;
+  double **stoWfUpIm = stodftCoefPos->stoWfUpIm;
+
   int  iState, i, j;
   double complex sum;
 
@@ -894,6 +721,7 @@ double *scale1_re = (double*)cmalloc(ntgrid*sizeof(double));
 double *scale1_im = (double*)cmalloc(ntgrid*sizeof(double));
 double *scale2_re = (double*)cmalloc(ntgrid*sizeof(double));
 double *scale2_im = (double*)cmalloc(ntgrid*sizeof(double));
+
 for(j=0;j<ntgrid;j++){
   scale1_re[j] = creal(fun_p[j] * rat_fact_p[j]);
   scale1_im[j] = cimag(fun_p[j] * rat_fact_p[j]);
@@ -903,15 +731,6 @@ for(j=0;j<ntgrid;j++){
 
 for(iState=0;iState<numStateUpProc;iState++){
   /*----------rational-g----------*/
-  //for (int i = 0; i<nfft2;i++){
-  //  sum   = 0.0 + 0.0 *I ;
-  //  for (int j =0; j < ntgrid; j++){
-  //    sum = sum + fun_p[j] * rat_fact_p[j] * x[j*nfft2 + i] 
-  //              + fun_m[j] * rat_fact_m[j] * x[(j+ntgrid)*nfft2 + i];
-
-  //  }
-  //  frhs[i] = rationalInfo->preRat*cimag(sum);
-  //}
 
   for(i=0;i<numCoeff;i++){
     sum_cre = 0.0;
@@ -926,13 +745,12 @@ for(iState=0;iState<numStateUpProc;iState++){
                   scale2_re[j]*cimImx[(j+ntgrid)*numCoeff+i]+
                   scale2_im[j]*cimRex[(j+ntgrid)*numCoeff+i];
     }
-    cre_up[i+1] = sum_cre*rationalInfo->preRat;
-    cim_up[i+1] = sum_cim*rationalInfo->preRat;
+    stoWfUpRe[0][iState*numCoeff + i+1] = rationalInfo->preRat*sum_cre;
+    stoWfUpIm[0][iState*numCoeff + i+1] = rationalInfo->preRat*sum_cim;
   }
 
   /*----------end rational-g----------*/
 
-  //rhsReal(class, general_data, cp, cpcoeffs_pos, clatoms_pos, frhs, iState);
 }
 free(scale1_re);
 free(scale1_im);
@@ -992,7 +810,9 @@ MPI_Comm comm_states   =    communicate->comm_states;
   double sum_reRe, sum_imRe, sum_reIm, sum_imIm, fact1_real, fact1_imag, fact2_real, fact2_imag;
 
 
-printf("delta_mu = %lg \n", delta_mu);
+//printf("delta_mu = %lg \n", delta_mu);
+
+//printf("inside last term %lg %lg \n", creRex[numCoeff-1], creImx[numCoeff-1] );
 
 dsum_p = 0.0;
 
@@ -1045,7 +865,7 @@ for(iState=0;iState<numStateUpProc;iState++){
 
 dsum_p = 2.0*(dsum_p/numStateStoUp); //*(1.0/stodftInfo->rhoRealGridTot);
 
-printf("dsum_p = %lg \n", dsum_p);
+//printf("dsum_p = %lg \n", dsum_p);
 
 if(numProcStates>1)Reduce(&dsum_p,&numElecMax,1,MPI_DOUBLE,MPI_SUM,0,comm_states);
 
@@ -1414,6 +1234,7 @@ double *z_im  = rationalInfo->z_im;
 
 double complex *zseed = rationalInfo->zseed;
 //double preRat = rationalInfo->preRat; 
+int i,j;
 
 printf("Energy Max= %.16lg.\n", stodftInfo->energyMax);
 printf("Energy Min= %.16lg.\n", stodftInfo->energyMin);
@@ -1450,16 +1271,19 @@ printf("Correct Chemical Potential = %.16lg.\n", stodftInfo->chemPotTrue);
 /*****************************************************/
 /*****************************************************/
 
-for (int i = 0; i < ntgrid; i++){
+#pragma omp parallel for private(i)
+for (i = 0; i < ntgrid; i++){
   tgrid[i] = -K + 2.0*(i + 0.5)*K/ntgrid + K_prim*0.5 * I ; // 0.0 + (double) i; 
 }
 
-for (int i = 0; i < ntgrid; i++){
+#pragma omp parallel for private(i)
+for (i = 0; i < ntgrid; i++){
   tgrid_re[i] = creal(tgrid[i]);
   tgrid_im[i] = cimag(tgrid[i]);
 }
 
-for (int i = 0; i < ntgrid; i++){
+#pragma omp parallel for private(i)
+for (i = 0; i < ntgrid; i++){
   Jacobi_sn_cn_dn(tgrid_re[i], 'm', m, &sn_re[i], &cn_re[i], &dn_re[i] );
   Jacobi_sn_cn_dn(tgrid_im[i], 'm', 1-m, &sn_tmp[i], &cn_tmp[i], &dn_tmp[i] );
   sn_im[i] = sn_tmp[i]/cn_tmp[i] * I;
@@ -1467,43 +1291,35 @@ for (int i = 0; i < ntgrid; i++){
   dn_im[i] = dn_tmp[i] / cn_tmp[i];
 }
 
-for (int i = 0; i < ntgrid; i++){
+#pragma omp parallel for private(i)
+for (i = 0; i < ntgrid; i++){
   sn_c[i] = (sn_re[i]*sn_re[i] - sn_im[i]*sn_im[i]) / (sn_re[i]*cn_im[i]*dn_im[i] - sn_im[i]*cn_re[i]*dn_re[i]);
   cn_c[i] = (sn_re[i]*cn_re[i]*dn_im[i] - sn_im[i]*cn_im[i]*dn_re[i])/(sn_re[i]*cn_im[i]*dn_im[i] - sn_im[i]*cn_re[i]*dn_re[i]);
   dn_c[i] = (sn_re[i]*cn_im[i]*dn_re[i] - sn_im[i]*cn_re[i]*dn_im[i])/(sn_re[i]*cn_im[i]*dn_im[i] - sn_im[i]*cn_re[i]*dn_re[i]);
 }
 
-for (int i = 0; i < ntgrid; i++){
+#pragma omp parallel for private(i)
+for (i = 0; i < ntgrid; i++){
   z[i] = sqrt(mA*MA) * (kinv + sn_c[i]) / (kinv - sn_c[i]) ;
   z_re[i] = creal(z[i]);
   z_im[i] = cimag(z[i]);
 }
 
-for (int i = 0; i < ntgrid; i++){
+#pragma omp parallel for private(i)
+for (i = 0; i < ntgrid; i++){
   ksi_p[i] = csqrt(z[i] - mA);
   ksi_m[i] = - csqrt(z[i] - mA);
 }
 
-/*
-for (int i = 0; i < ntgrid; i++){
-  if(is_fun_sq == 1) {
-    fun_p[i] = fermi_fun_g(ksi_p[i], dmu, stodftInfo->beta, epsilon)*fermi_fun_g(ksi_p[i], dmu, stodftInfo->beta, epsilon);
-    fun_m[i] = fermi_fun_g(ksi_m[i], dmu, stodftInfo->beta, epsilon)*fermi_fun_g(ksi_m[i], dmu, stodftInfo->beta, epsilon);
-  }else{
-    fun_p[i] = fermi_fun_g(ksi_p[i], dmu, stodftInfo->beta, epsilon);
-    fun_m[i] = fermi_fun_g(ksi_m[i], dmu, stodftInfo->beta, epsilon);
-  }
-  fun_p[i] = fun_p[i]*cn_c[i]*dn_c[i] / ((kinv - sn_c[i])*(kinv - sn_c[i])) / ksi_p[i];
-  fun_m[i] = fun_m[i]*cn_c[i]*dn_c[i] / ((kinv - sn_c[i])*(kinv - sn_c[i])) / ksi_m[i];
-}
-*/
 
-for (int j =0; j < ntgrid; j++){
+#pragma omp parallel for private(j)
+for (j =0; j < ntgrid; j++){
   zseed[j] =  ksi_p[j];
   zseed[j + ntgrid] =  ksi_m[j];
 }
 
-for (int i = 0; i < ntgrid; i++){
+#pragma omp parallel for private(i)
+for (i = 0; i < ntgrid; i++){
   rat_fact_p[i] = cn_c[i]*dn_c[i] / ((kinv - sn_c[i])*(kinv - sn_c[i])) / ksi_p[i];
   rat_fact_m[i] = cn_c[i]*dn_c[i] / ((kinv - sn_c[i])*(kinv - sn_c[i])) / ksi_m[i];
 }
@@ -1706,9 +1522,9 @@ void komega_COCG_update_g(KOMEGAINFO *komegaInfo,
   int numCoeff    = komegaInfo->ndim; //TODO CHECK
 
   double t1, t2, t3, t4, t5, t6;
+  double tmp1, tmp2;
 
   t1 = omp_get_wtime();
-  //printf("here 0 inside COCG %i \n", numThreads);
 
   komegaInfo->iter = komegaInfo->iter + 1;
 
@@ -1720,11 +1536,10 @@ void komega_COCG_update_g(KOMEGAINFO *komegaInfo,
   rho_old = komegaInfo->rho;
   /*------- v2\dot v2-----------*/
 
-  //sum = 0.0 +0.0*I;
   sum1 = 0.0;
   sum2 = 0.0;
   sum3 = 0.0;
-  sum4 = 0.0;
+  #pragma omp parallel for reduction(+:sum1,sum2,sum3) private(i)
   for(i=0;i<numCoeff-1;i++){
     sum1 += creRev2[i]*creRev2[i]+cimRev2[i]*cimRev2[i];
     sum2 += creImv2[i]*creImv2[i]+cimImv2[i]*cimImv2[i];
@@ -1734,16 +1549,9 @@ void komega_COCG_update_g(KOMEGAINFO *komegaInfo,
   sum2 = sum2*2.0+creImv2[numCoeff-1]*creImv2[numCoeff-1];
   sum3 = sum3*2.0+creRev2[numCoeff-1]*creImv2[numCoeff-1];
   sum = sum1-sum2+2.0*sum3*I;
-
-  //#pragma omp parallel for reduction(+:sum) private(i)
-  //for (i = 0; i < komegaInfo->ndim; i++){
-  //  sum += v2[i]*v2[i];
-  //}
   /*-------end v2\dot v2-----------*/
 
-
   komegaInfo->rho = sum;
-  //printf("here 1 %lg %lg \n", creal(komegaInfo->rho), cimag(komegaInfo->rho));
 
   if(komegaInfo->iter == 1){
     komegaInfo->beta =  0.0 +0.0*I;
@@ -1752,26 +1560,17 @@ void komega_COCG_update_g(KOMEGAINFO *komegaInfo,
     komegaInfo->beta = komegaInfo->rho / rho_old;
   }
 
-  //printf("here 2 %lg %lg \n", creal(komegaInfo->beta), cimag(komegaInfo->beta));
-  //printf("here 2 \n");
-  
   /*-------update v12--------------*/
   zreal = creal(komegaInfo->z_seed);
   zimag = cimag(komegaInfo->z_seed);
+  #pragma omp parallel for private(i)
   for(i=0;i<numCoeff;i++){
     creRev12[i] = (zreal*creRev2[i]-zimag*creImv2[i])-creRev12[i];
     cimRev12[i] = (zreal*cimRev2[i]-zimag*cimImv2[i])-cimRev12[i];
     creImv12[i] = (zreal*creImv2[i]+zimag*creRev2[i])-creImv12[i];
     cimImv12[i] = (zreal*cimImv2[i]+zimag*cimRev2[i])-cimImv12[i];
   }
-
-
-  //#pragma omp parallel for private(i)
-  //for (i = 0; i < komegaInfo->ndim; i++){
-  //  v12[i] = komegaInfo->z_seed * v2[i] - v12[i];
-  //}
   /*-------end update v12--------------*/
-
 
   komegaInfo->alpha_old = komegaInfo->alpha;
 
@@ -1781,6 +1580,7 @@ void komega_COCG_update_g(KOMEGAINFO *komegaInfo,
   sum2 = 0.0;
   sum3 = 0.0;
   sum4 = 0.0;
+  #pragma omp parallel for reduction(+:sum1,sum2,sum3,sum4) private(i)
   for(i=0;i<numCoeff-1;i++){
     sum1 += creRev2[i]*creRev12[i]+cimRev2[i]*cimRev12[i];
     sum2 += creImv2[i]*creImv12[i]+cimImv2[i]*cimImv12[i];
@@ -1793,26 +1593,9 @@ void komega_COCG_update_g(KOMEGAINFO *komegaInfo,
   sum4 = sum4*2.0+creRev12[numCoeff-1]*creImv2[numCoeff-1];
 
   cdotp = sum1-sum2+(sum3+sum4)*I;
-  //cdotp = 0.0 +0.0*I;
-  //#pragma omp parallel for reduction(+:cdotp) private(i)
-  //for (i = 0; i < komegaInfo->ndim; i++){
-  //  cdotp += v2[i]*v12[i];
-  //}
-
   /*-------end v2\dot v12-----------*/
 
-  //printf("cdotp %lg %lg %lg %lg \n", sum1, sum2, sum3, sum4);
-  //printf("here 2 %lg %lg \n", creal(cdotp), cimag(cdotp));
-
-  //printf("here a %lg %lg \n", creal(komegaInfo->alpha), cimag(komegaInfo->alpha));
-  //printf("here b %lg %lg \n", creal(komegaInfo->beta), cimag(komegaInfo->beta));
-  //printf("here r %lg %lg \n", creal(komegaInfo->rho), cimag(komegaInfo->rho));
-
   alpha_denom = cdotp - (komegaInfo->beta * komegaInfo->rho / komegaInfo->alpha) ;
-  //printf("here 3 %lg %lg \n", creal(alpha_denom), cimag(alpha_denom));
-  //printf("alpha_denom %lg \n", cabs(alpha_denom));
-  //printf("here 3 %lg %lg \n", creal(komegaInfo->rho), cimag(komegaInfo->rho));
-  //printf("komegaInfo->rho %lg \n", cabs(komegaInfo->rho));
 
   if( cabs(alpha_denom) < komegaInfo->almost0){
     status[1] = 2;
@@ -1822,8 +1605,6 @@ void komega_COCG_update_g(KOMEGAINFO *komegaInfo,
   }
 
   komegaInfo->alpha = komegaInfo->rho / alpha_denom;
-
-  //printf("here 4 %lg %lg \n ", creal(komegaInfo->alpha), cimag(komegaInfo->alpha));
 
   t2 = omp_get_wtime();
   /* call Shifted equation */
@@ -1846,12 +1627,8 @@ void komega_COCG_update_g(KOMEGAINFO *komegaInfo,
   alpha_im = cimag(komegaInfo->alpha);
   conts2_re = creal(conts2);
   conts2_im = cimag(conts2);
-  //printf("here debug sum %lg %lg %lg %lg\n",
-  //       creRev12[numCoeff-1],creImv12[numCoeff-1],
-  //       creRev2[numCoeff-1],creImv2[numCoeff-1]);
-  //printf("alpha check %lg %lg\n",alpha_re,alpha_im);
-  //printf("last coeff check %lg\n",-alpha_re*creImv12[numCoeff-1]-alpha_im*creRev12[numCoeff-1]);
-  double tmp1, tmp2;
+
+  #pragma omp parallel for private(i,tmp1,tmp2)
   for(i=0;i<numCoeff;i++){ //TODO CHECK
     tmp1 = creRev12[i];
     tmp2 = cimRev12[i];
@@ -1866,7 +1643,6 @@ void komega_COCG_update_g(KOMEGAINFO *komegaInfo,
     creImv12[i] = conts1_re*creImv2[i]+conts1_im*creRev2[i]-
                   alpha_re*creImv12[i]-alpha_im*tmp1-
                   conts2_re*creImv3[i]-conts2_im*creRev3[i];
-    //creImv12[i] = -alpha_re*creImv12[i]-alpha_im*creRev12[i];
 
     cimImv12[i] = conts1_re*cimImv2[i]+conts1_im*cimRev2[i]-
                   alpha_re*cimImv12[i]-alpha_im*tmp2-
@@ -1882,6 +1658,7 @@ void komega_COCG_update_g(KOMEGAINFO *komegaInfo,
   sum2 = 0.0;
   sum3 = 0.0;
   sum4 = 0.0;
+  #pragma omp parallel for reduction(+:sum1,sum2,sum3) private(i)
   for(i=0;i<numCoeff-1;i++){
     sum1 += creRev12[i]*creRev12[i]+cimRev12[i]*cimRev12[i];
     sum2 += creImv12[i]*creImv12[i]+cimImv12[i]*cimImv12[i];
@@ -1892,32 +1669,6 @@ void komega_COCG_update_g(KOMEGAINFO *komegaInfo,
   sum3 = sum3*2.0+creRev12[numCoeff-1]*creImv12[numCoeff-1];
   sum = sum1-sum2+2.0*sum3*I;
 
- // printf("here debug %lg %lg %lg \n", creal(sum), cimag(sum), sum3);
-  //printf("debug %lg %lg %lg %lg\n", creRev12[numCoeff-1], cimRev12[numCoeff-1], creImv12[numCoeff-1], cimImv12[numCoeff-1]);
-  //#pragma omp parallel for reduction(+:sum) private(i)
-  //for (i = 0; i < komegaInfo->ndim; i++){
-  //  sum += v2[i]*v2[i];
-  //}
-  /*-------end v2\dot v2-----------*/
-
-
-
-  //#pragma omp parallel for private(i)
-  //for (i = 0; i < komegaInfo->ndim; i++){
-  //  v12[i] = conts1*v2[i] - komegaInfo->alpha * v12[i] - conts2*v3[i];
-  //}
-  /*-------end update v12--------------*/
-
-  
-  /*-------copy v2 and v12---------*/
-  //#pragma omp parallel for private(i)
-  //for (i = 0; i < komegaInfo->ndim; i++){
-  //  v3[i] = v2[i];
-  //}
-  //#pragma omp parallel for private(i)
-  //for (i = 0; i < komegaInfo->ndim; i++){
-  //  v2[i] = v12[i];
-  //}
   memcpy(creRev3,creRev2,sizeof(double)*numCoeff);
   memcpy(cimRev3,cimRev2,sizeof(double)*numCoeff);
   memcpy(creImv3,creImv2,sizeof(double)*numCoeff);
@@ -1946,7 +1697,7 @@ void komega_COCG_update_g(KOMEGAINFO *komegaInfo,
   sum1 = 0.0;
   sum2 = 0.0;
   sum3 = 0.0;
-  sum4 = 0.0;
+  #pragma omp parallel for reduction(+:sum1,sum2,sum3) private(i)
   for(i=0;i<numCoeff-1;i++){
     sum1 += creRev2[i]*creRev2[i]+cimRev2[i]*cimRev2[i];
     sum2 += creImv2[i]*creImv2[i]+cimImv2[i]*cimImv2[i];
@@ -1957,18 +1708,11 @@ void komega_COCG_update_g(KOMEGAINFO *komegaInfo,
   sum3 = sum3*2.0+creRev2[numCoeff-1]*creImv2[numCoeff-1];
   sum = sum1-sum2+2.0*sum3*I;
 
-
-  //printf("v2 check %lg %lg \n", creal(sum), cimag(sum));
-
   /* Convergence check  */
   /*--------------c dot p-----------------*/
-  //cdotp = 0.0 + 0.0*I;
-  //#pragma omp parallel for reduction(+:cdotp) private(i) 
-  //for (i = 0; i < komegaInfo->ndim; i++){
-  // cdotp += v2[i]* (creal(v2[i]) - cimag(v2[i])*I);
-  //}
   sum1 = 0.0;
   sum2 = 0.0;
+  #pragma omp parallel for reduction(+:sum1,sum2) private(i)
   for(i=0;i<numCoeff-1;i++){
     sum1 += creRev2[i]*creRev2[i]+cimRev2[i]*cimRev2[i];
     sum2 += creImv2[i]*creImv2[i]+cimImv2[i]*cimImv2[i];
@@ -1980,18 +1724,9 @@ void komega_COCG_update_g(KOMEGAINFO *komegaInfo,
   cdotp = cdotp*creal(komegaInfo->normfact);
  
   /*--------------end c dot p-----------------*/
-    //printf("cdotp %lg %lg \n", creal(cdotp), cimag(cdotp));
-    //printf("sum %lg %lg \n", sum1, sum2);
-
-    //v12[0] = sqrt(creal(cdotp)) + 0.0*I; //TODO
-    //komegaInfo->resnorm = creal(v12[0]);
     cdotp_sq = sqrt(creal(cdotp));
     komegaInfo->resnorm = cdotp_sq;
 
-    //printf("komegaInfo->normfact = %i \n", komegaInfo->normfact);
-    //printf("v12[0] %lg %lg \n", creal(v12[0]), cimag(v12[0]));
-   //printf("cdotp_sq %lg \n", cdotp_sq);
-   //printf("cabs(cdotp_sq/pi[i]) %lg \n", cabs(cdotp_sq/pi[i]));
   
   //#pragma omp parallel for private(i)
   for (i = 0; i < komegaInfo->nz; i++){
@@ -2109,6 +1844,7 @@ tsum2 = 0.0;
     const2_im = cimag(const2);
     cons_re = creal(cons);
     cons_im = cimag(cons);
+    #pragma omp parallel for private(i,ptemp_cre_re,ptemp_cre_im,ptemp_cim_re,ptemp_cim_im) 
     for(i=0;i<numCoeff;i++){
       ptemp_cre_re = const2_re*creRer_l[i]-const2_im*creImr_l[i]+
                      const1_re*creRep[i+iz*komegaInfo->nl]-const1_im*creImp[i+iz*komegaInfo->nl];
@@ -2157,7 +1893,7 @@ tsum2 = 0.0;
     //printf("pi_old[iz] %i %lg %lg  \n", iz, creal(pi_old[iz]), cimag(pi_old[iz])); 
   }
 
-  //printf("times %lg %lg \n", tsum, tsum2);
+ // printf("times %lg %lg \n", tsum, tsum2);
   //printf(" %i %lg %lg \n", iz, creal(x[0]), cimag(x[0]));
   //printf(" %i %lg %lg \n", iz, creal(x[4999]), cimag(x[4999]));
   //printf(" %i %lg %lg \n", iz, creal(x[komegaInfo->nz*komegaInfo->nl-1]), cimag(x[komegaInfo->nz*komegaInfo->nl-1]));
@@ -2191,6 +1927,8 @@ double *creImv3 = komegaInfo->creImv3;
 double *cimImv3 = komegaInfo->cimImv3;
 
 int numCoeff = komegaInfo->ndim; //TODO CHECK
+
+double tmp1, tmp2;
 
   //printf("%lg %lg %lg \n", cabs(pi[0]), creal(pi[0]), cimag(pi[0]) );
 
@@ -2234,9 +1972,9 @@ int numCoeff = komegaInfo->ndim; //TODO CHECK
     //for (i = 0; i < komegaInfo->ndim; i++){
     //  v2[i] = scale*v2[i];
     //}
-    double tmp1, tmp2;
     scale_re = creal(scale);
     scale_im = cimag(scale);
+    #pragma omp parallel for private(i,tmp1,tmp2)
     for(i=0;i<numCoeff;i++){
       tmp1 = creRev2[i];
       tmp2 = cimRev2[i];
@@ -2264,6 +2002,7 @@ int numCoeff = komegaInfo->ndim; //TODO CHECK
     //}
     scale_re = creal(scale);
     scale_im = cimag(scale);
+    #pragma omp parallel for private(i,tmp1,tmp2)
     for(i=0;i<numCoeff;i++){
       tmp1 = creRev3[i];
       tmp2 = cimRev3[i];

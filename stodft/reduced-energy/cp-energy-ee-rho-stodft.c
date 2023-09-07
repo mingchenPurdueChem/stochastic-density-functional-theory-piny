@@ -424,12 +424,15 @@ void coefForceCalcHybridSCFRationalG(CPEWALD *cpewald,int nstate,
 
 
   //printf(" NEW routine coefForceCalcHybridSCFRationalG %i %i %i %i %i \n", ncoef, nfft, nstate, fftw3dFlag, pseudoRealFlag);
+  /*
   pre_cond = (double*)calloc(ncoef,sizeof(double))-1;
   for(i=1;i<=ncoef;i++){
     if(ak2_sm[i]>gcut_sq)pre_cond[i] = 0.5*ak2_sm[i];
     else pre_cond[i] = 0.5*gcut_sq;     
   }
+  */
   ncoef1 = ncoef-1;
+  
 
   cre = (double*)calloc(2*ncoef,sizeof(double))-1;
   cim = (double*)calloc(2*ncoef,sizeof(double))-1;
@@ -470,6 +473,9 @@ void coefForceCalcHybridSCFRationalG(CPEWALD *cpewald,int nstate,
                      zfft,cp_sclr_fft_pkg3d_sm);
     }
 
+    time_end = omp_get_wtime();
+    stodftInfo->cputime2 += time_end-time_st;
+
 /*-----------------------------------------------------------------*/
 /* V) transform phi(g) to phi(r) to complete the projection        */
 
@@ -484,6 +490,8 @@ void coefForceCalcHybridSCFRationalG(CPEWALD *cpewald,int nstate,
 /*-----------------------------------------------------------------*/
 /* IV) Calculate t|phi(g)>                                         */
 
+    time_st = omp_get_wtime();
+    #pragma omp parallel for private(i)
     for(i=1; i<= ncoef1 ; i++){
       fcrek[i] = -2.0*ak2Kinetic[i]*cre[i];
       fcimk[i] = -2.0*ak2Kinetic[i]*cim[i];
@@ -491,12 +499,15 @@ void coefForceCalcHybridSCFRationalG(CPEWALD *cpewald,int nstate,
     fcrek[ncoef] = 0.0;
     fcimk[ncoef] = 0.0;
 
+    #pragma omp parallel for private(i)
     for(i=1; i<= ncoef1 ; i++){
       fcrek[i+ncoef] = -2.0*ak2Kinetic[i]*cre[i+ncoef];
       fcimk[i+ncoef] = -2.0*ak2Kinetic[i]*cim[i+ncoef];
     }/*endfor i*/
     fcrek[2*ncoef] = 0.0;
     fcimk[2*ncoef] = 0.0;
+    time_end = omp_get_wtime();
+    stodftInfo->cputime5 += time_end-time_st;
 
 /*-----------------------------------------------------------------*/
 /* V) Copy phi(r)                                                  */
@@ -552,6 +563,8 @@ void coefForceCalcHybridSCFRationalG(CPEWALD *cpewald,int nstate,
 /* IX) Add t|phi>(g) to get h|phi>(g)                              */
 /* We want to make sure v12 share the correct wavefunction cutoff  */
 
+    time_st = omp_get_wtime();
+    #pragma omp parallel for private(i)
     for(i=1; i<= 2*ncoef ; i++){
       fcre[i] += fcrek[i];
       fcim[i] += fcimk[i];
@@ -559,6 +572,7 @@ void coefForceCalcHybridSCFRationalG(CPEWALD *cpewald,int nstate,
     fcim[ncoef] = 0.0;
     fcim[2*ncoef] = 0.0;
 /*  scaling                                                       */
+    #pragma omp parallel for private(i)
     for(i=1; i< ncoef ; i++){
       fcre[i] *= -0.25;
       fcim[i] *= -0.25;
@@ -568,6 +582,7 @@ void coefForceCalcHybridSCFRationalG(CPEWALD *cpewald,int nstate,
     fcre[ncoef] *= -0.5;
     //fcre[ncoef] *= -0.5/pre_cond[ncoef];
     fcim[ncoef] = 0.0;
+    #pragma omp parallel for private(i)
     for(i=1; i< ncoef ; i++){
       fcre[i+ncoef] *= -0.25;
       fcim[i+ncoef] *= -0.25;
@@ -581,12 +596,16 @@ void coefForceCalcHybridSCFRationalG(CPEWALD *cpewald,int nstate,
 /*-----------------------------------------------------------------*/
 /* XII) Copy h|phi>(r) to v12                                      */
 
+    #pragma omp parallel for private(i)
     for(i=0;i<ncoef;i++){
       creRev12[i] = fcre[i+1]-chemPotTrue*creRev2[i];
       cimRev12[i] = fcim[i+1]-chemPotTrue*cimRev2[i];
       creImv12[i] = fcre[ncoef+i+1]-chemPotTrue*creImv2[i];
       cimImv12[i] = fcim[ncoef+i+1]-chemPotTrue*cimImv2[i];
     }
+    time_end = omp_get_wtime();
+    stodftInfo->cputime7 += time_end-time_st;
+
 
   }//endfor is
 
@@ -600,7 +619,7 @@ void coefForceCalcHybridSCFRationalG(CPEWALD *cpewald,int nstate,
   cfree(&fcim[1]);
   cfree(&fcrek[1]);
   cfree(&fcimk[1]);
-  cfree(&pre_cond[1]);
+  //cfree(&pre_cond[1]);
 
 /*==========================================================================*/
    }/*end routine*/

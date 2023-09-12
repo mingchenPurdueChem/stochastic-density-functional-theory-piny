@@ -521,7 +521,7 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
         free(fyTemp);
         free(fzTemp);
       }
-      if(chemPotOpt==2){
+      if(chemPotOpt==2 || chemPotOpt==3){
         for(iAtom=0;iAtom<numAtomTot;iAtom++){
           fxNlTrue[iAtom] = fxNl[0][iAtom];
           fyNlTrue[iAtom] = fyNl[0][iAtom];
@@ -537,8 +537,10 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
         fyNlTrue[iAtom] = 0.0;
         fzNlTrue[iAtom] = 0.0;
       }
+      //printf("numChemPot %i\n",numChemPot);
       for(iChem=0;iChem<numChemPot;iChem++){
         for(iAtom=0;iAtom<numAtomTot;iAtom++){
+          //printf("iChem %i iAtom %i %lg %lg\n",fxNl[iChem][iAtom],fxNlTrue[iAtom]);
           fxNlTrue[iAtom] += fxNl[iChem][iAtom];
           fyNlTrue[iAtom] += fyNl[iChem][iAtom];
           fzNlTrue[iAtom] += fzNl[iChem][iAtom];
@@ -564,6 +566,7 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
       fyUnCor[iAtom] = fyNlTrue[iAtom];
       fzUnCor[iAtom] = fzNlTrue[iAtom];
       // fragmentation correction
+      //printf("iAtom %i %lg %lg\n",iAtom,fxNlTrue[iAtom],vnlFxCor[iAtom]);
       fxNlTrue[iAtom] += vnlFxCor[iAtom];
       fyNlTrue[iAtom] += vnlFyCor[iAtom];
       fzNlTrue[iAtom] += vnlFzCor[iAtom];

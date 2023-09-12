@@ -496,7 +496,13 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
    rationalInfo->fun_m_p = (double complex*)malloc((ntgrid)*sizeof(double complex));
    rationalInfo->fun_p_m = (double complex*)malloc((ntgrid)*sizeof(double complex));
    rationalInfo->fun_m_m = (double complex*)malloc((ntgrid)*sizeof(double complex));
-   
+  
+  rationalInfo->scale1_re = (double*)cmalloc(ntgrid*sizeof(double));
+  rationalInfo->scale1_im = (double*)cmalloc(ntgrid*sizeof(double));
+  rationalInfo->scale2_re = (double*)cmalloc(ntgrid*sizeof(double));
+  rationalInfo->scale2_im = (double*)cmalloc(ntgrid*sizeof(double));
+
+ 
    rationalInfo->zseed = (double complex*)malloc((2*ntgrid)*sizeof(double complex));
 /*===========================================================*/
    rationalInfo->x = (double complex*)malloc((nfft2*2*ntgrid)*sizeof(double complex));

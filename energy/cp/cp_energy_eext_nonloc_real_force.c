@@ -629,44 +629,44 @@ void calcSpHarmDeriv(double *ylm,double *ylmTheta, double *ylmPhi,int l,
       break;
     case 3:
       for(iGrid=0;iGrid<numGrid;iGrid++){ //Y30
-       ylmTheta[iGrid] = pre30*(3*trig[iGrid*4]-15*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4]);
-       ylmPhi[iGrid] = 0.0;
+	ylmTheta[iGrid] = pre30*(3*trig[iGrid*4]-15*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4]);
+	ylmPhi[iGrid] = 0.0;
       }
-      for(iGrid=0;iGrid<numGrid;iGrid++){ //Y31
-       ind = numGrid+iGrid*2;
-       ylmTheta[ind] = pre31*(5*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4+3]-
-                       10*trig[iGrid*4+1]*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+3]-
-                       trig[iGrid*4+1]*trig[iGrid*4+3]);
-       ylmTheta[ind+1] = pre31*(5*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4+2]-
-                         10*trig[iGrid*4+1]*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+2]-
-                         trig[iGrid*4+1]*trig[iGrid*4+2]);
-       ylmPhi[ind] = pre31*(trig[iGrid*4]*trig[iGrid*4+2]-
-                     5*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4]*trig[iGrid*4+2]);
-       ylmPhi[ind+1] = pre31*(5*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4]*trig[iGrid*4+3]-
-                       trig[iGrid*4]*trig[iGrid*4+3]);
+      for(iGrid=0;iGrid<numGrid;iGrid++){ //Y31	
+	ind = numGrid+iGrid*2;
+	ylmTheta[ind] = pre31*(5*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4+3]-
+			10*trig[iGrid*4+1]*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+3]-
+			trig[iGrid*4+1]*trig[iGrid*4+3]);
+	ylmTheta[ind+1] = pre31*(5*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4+2]-
+			  10*trig[iGrid*4+1]*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+2]-
+			  trig[iGrid*4+1]*trig[iGrid*4+2]);
+	ylmPhi[ind] = pre31*(trig[iGrid*4]*trig[iGrid*4+2]-
+		      5*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4]*trig[iGrid*4+2]);
+	ylmPhi[ind+1] = pre31*(5*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4]*trig[iGrid*4+3]-
+			trig[iGrid*4]*trig[iGrid*4+3]);
       }
       for(iGrid=0;iGrid<numGrid;iGrid++){ //Y32
-       ind = numGrid*3+iGrid*2;
-       ylmTheta[ind] = pre32*(4*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4+3]*trig[iGrid*4+3]-
-                       2*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+3]*trig[iGrid*4+3]-
-                       2*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+1]+
-                       trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4]);
-       ylmTheta[ind+1] = pre32*(4*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4+2]*trig[iGrid*4+3]-
-                         2*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+2]*trig[iGrid*4+3]);
-       ylmPhi[ind] = -pre32*(4*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+2]*trig[iGrid*4+3]);
-       ylmPhi[ind+1] = pre32*(2*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+3]*trig[iGrid*4+3]-
-                       2*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+2]*trig[iGrid*4+2]);
+ 	ind = numGrid*3+iGrid*2;
+	ylmTheta[ind] = pre32*(4*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4+3]*trig[iGrid*4+3]-
+			2*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+3]*trig[iGrid*4+3]-
+			2*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+1]+
+			trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4]);
+	ylmTheta[ind+1] = pre32*(4*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+1]*trig[iGrid*4+2]*trig[iGrid*4+3]-
+			  2*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+2]*trig[iGrid*4+3]);
+	ylmPhi[ind] = -pre32*(4*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+2]*trig[iGrid*4+3]);
+	ylmPhi[ind+1] = pre32*(2*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+3]*trig[iGrid*4+3]-
+			2*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+2]*trig[iGrid*4+2]);
       }
       for(iGrid=0;iGrid<numGrid;iGrid++){ //Y33
-       ind = numGrid*5+iGrid*2;
-       ylmTheta[ind] = pre33*(12*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+3]*trig[iGrid*4+3]*trig[iGrid*4+3]-
-                       9*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+3]);
-       ylmTheta[ind+1] = pre33*(9*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+2]-
-                         12*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+2]*trig[iGrid*4+2]*trig[iGrid*4+2]);
-       ylmPhi[ind] = pre33*(3*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+2]-
-                     12*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+2]*trig[iGrid*4+3]*trig[iGrid*4+3]);
-       ylmPhi[ind+1] = pre33*(3*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+2]-
-                       12*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+2]*trig[iGrid*4+2]*trig[iGrid*4+3]);
+	ind = numGrid*5+iGrid*2;
+	ylmTheta[ind] = pre33*(12*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+3]*trig[iGrid*4+3]*trig[iGrid*4+3]-
+			9*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+3]);
+	ylmTheta[ind+1] = pre33*(9*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+2]-
+			  12*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1]*trig[iGrid*4+2]*trig[iGrid*4+2]*trig[iGrid*4+2]);
+	ylmPhi[ind] = pre33*(3*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+2]-
+		      12*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+2]*trig[iGrid*4+3]*trig[iGrid*4+3]);
+	ylmPhi[ind+1] = pre33*(3*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+2]-
+			12*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+2]*trig[iGrid*4+2]*trig[iGrid*4+3]);
       }
       break;
   }

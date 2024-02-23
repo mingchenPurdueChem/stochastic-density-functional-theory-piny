@@ -560,6 +560,7 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
     cpMini->stodftInfo->metallic = (METALLIC*)cmalloc(sizeof(METALLIC));
     // I need fragInfo since frag index is stored in iFrag for each fragment
     cpMini->stodftInfo->fragInfo = (FRAGINFO*)cmalloc(sizeof(FRAGINFO));
+    cpMini->stodftInfo->fragInfo->iFrag = stodftInfo->fragInfo->fragInd[iFrag];
     cpMini->stodftInfo->missionType = stodftInfo->missionType;
     cpMini->stodftInfo->stodftOn = 1; // Here we set it =1 as we are running fd for fragment
     cpMini->stodftInfo->expanType = 2; //Newton
@@ -582,11 +583,19 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
     cpMini->stodftInfo->chemPotOpt = 1;
     cpMini->stodftInfo->filterDiagFlag = 1;
     cpMini->stodftInfo->mixRatioSM = stodftInfo->mixRatioSM;
+    cpMini->stodftInfo->mixRatioSM2 = stodftInfo->mixRatioSM2;
     cpMini->stodftInfo->randSeed = stodftInfo->randSeed;
     cpMini->stodftInfo->energyTol = stodftInfo->energyTol;
     cpMini->stodftInfo->checkpointWriteFreq = 1000;
     cpMini->stodftInfo->checkpointParFlag = 0;
-    cpMini->stodftInfo->smearOpt = stodftInfo->smearOpt;
+    if(stodftInfo->calcLocalTraceOpt==1){
+      cpMini->stodftInfo->smearOpt = stodftInfo->smearOptFrag;
+    }
+    else {
+      cpMini->stodftInfo->smearOpt = stodftInfo->smearOpt;
+    }
+   //cpMini->stodftInfo->smearOpt = stodftInfo->smearOpt;
+   // cpMini->stodftInfo->smearOpt = stodftInfo->smearOpt; another flag for Mini
     cpMini->stodftInfo->smearTemperature = stodftInfo->smearTemperature;
     cpMini->stodftInfo->energyWindowOn = 0;
     cpMini->stodftInfo->printChebyMoment = 0;
@@ -628,6 +637,8 @@ void copySimParam(GENERAL_DATA *general_data,BONDED *bonded,CLASS *class,
       fclose(rhoRead);
     }
     //printf("2222222 readCoeffFlag %i\n",cpMini->stodftInfo->readCoeffFlag);
+    cpMini->stodftInfo->calcLocalTraceOpt = stodftInfo->calcLocalTraceOpt;
+    cpMini->stodftInfo->orbRealPrintFlag = stodftInfo->orbRealPrintFlag;
   }
   
 

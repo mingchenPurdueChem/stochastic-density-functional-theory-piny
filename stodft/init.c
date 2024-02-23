@@ -62,6 +62,7 @@ void commStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
     stodftInfo = cp->stodftInfo;
     stodftCoefPos = cp->stodftCoefPos;
     stodftInfo->metallic = (METALLIC*)cmalloc(sizeof(METALLIC));
+    stodftInfo->fragInfo = (FRAGINFO*)cmalloc(sizeof(FRAGINFO));
   }
  
   if(numProcStates>1){ 
@@ -103,6 +104,7 @@ void commStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
     Bcast(&(stodftInfo->chemPotInit),1,MPI_DOUBLE,0,world);
     Bcast(&(stodftInfo->gapInit),1,MPI_DOUBLE,0,world);
     Bcast(&(stodftInfo->mixRatioSM),1,MPI_DOUBLE,0,world);
+    Bcast(&(stodftInfo->mixRatioSM2),1,MPI_DOUBLE,0,world);
     Bcast(&(stodftInfo->energyTol),1,MPI_DOUBLE,0,world);
     Bcast(&(stodftInfo->smearTemperature),1,MPI_DOUBLE,0,world);
 
@@ -113,6 +115,7 @@ void commStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp)
     Bcast(&(stodftInfo->metallic->electronFricFlag),1,MPI_INT,0,world);
     Bcast(&(stodftInfo->metallic->numAtomFric),1,MPI_INT,0,world);
     Bcast(&(stodftInfo->metallic->sigma),1,MPI_DOUBLE,0,world);
+    Bcast(&(stodftInfo->calcLocalTraceOpt),1,MPI_INT,0,world);
   }
 
 }/*end Routine*/
@@ -272,6 +275,7 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
   stodftInfo->vpsAtomListFlag = 0;
   stodftInfo->filterFlag = 0;
   stodftInfo->numThreads = communicate->numThreads;
+  //stodftInfo->fragInfo->iFrag = 0; //TODO sagar
   // Chebyshev way to calculate chem pot (if we do not use energy window)
   if(chemPotOpt==2&&energyWindowOn==0)stodftInfo->numChemPot = 1;
   
@@ -286,7 +290,9 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
     // numChemPot+1 at reading paramter file step
     //stodftInfo->numChemPot += 1;
     //numChemPot += 1;
-  }  
+  } 
+
+  stodftInfo->orbRealPrintFlag = 0;
 
   stodftInfo->numElecSys = stodftInfo->numElecTrue;
 
@@ -331,6 +337,9 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
         case 3:
           stodftInfo->fermiFunctionReal = &gaussianReal;
           break;
+        case 4:
+          stodftInfo->fermiFunctionReal = &entropyReal;
+          break;
         default:
           printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");
           printf("Internal Error! Bad filter type!\n");
@@ -355,6 +364,9 @@ void initStodft(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,CP *cp,
           break;
         case 3:
           stodftInfo->fermiFunctionReal = &gaussianReal;
+          break;
+        case 4:
+          stodftInfo->fermiFunctionReal = &entropyReal;
           break;
         default:
           printf("@@@@@@@@@@@@@@@@@@@@_ERROR_@@@@@@@@@@@@@@@@@@@@\n");

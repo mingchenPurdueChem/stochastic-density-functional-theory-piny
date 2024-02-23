@@ -765,30 +765,21 @@ void calcSpHarm(double *ylm,int l,double *gridAtomNbhd,int numGrid,
 	ind = numGrid+iGrid*2;
 	ylm[ind] = temp1*trig[iGrid*4+3];
 	ylm[ind+1] = temp1*trig[iGrid*4+2];
-        //printf("theta %.16lg phi %.16lg ylm %.16lg+%.16lgj\n", atan2(trig[iGrid*4],trig[iGrid*4+1]), atan2(trig[iGrid*4+2],trig[iGrid*4+3]), ylm[ind], ylm[ind+1]);
-	//exit(0);
       }
       for(iGrid=0;iGrid<numGrid;iGrid++){
-	temp1 = pre32*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1];
+        temp1 = pre32*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4+1];
 	ind = numGrid*3+iGrid*2;
 	ylm[ind] = temp1*(2.0*trig[iGrid*4+3]*trig[iGrid*4+3]-1.0);
 	ylm[ind+1] = temp1*(2.0*trig[iGrid*4+3]*trig[iGrid*4+2]);
-        //printf("theta %.16lg phi %.16lg ylm %.16lg+%.16lgj \n", atan2(trig[iGrid*4],trig[iGrid*4+1]), atan2(trig[iGrid*4+2],trig[iGrid*4+3]), ylm[ind], ylm[ind+1]);
-        //exit(0);
       }
       for(iGrid=0;iGrid<numGrid;iGrid++){
 	temp1 = pre33*trig[iGrid*4]*trig[iGrid*4]*trig[iGrid*4];
 	ind = numGrid*5+iGrid*2;
 	ylm[ind] = temp1*(4.0*trig[iGrid*4+3]*trig[iGrid*4+3]*trig[iGrid*4+3]-3.0*trig[iGrid*4+3]);
 	ylm[ind+1] = temp1*(3.0*trig[iGrid*4+2]-4.0*trig[iGrid*4+2]*trig[iGrid*4+2]*trig[iGrid*4+2]);
-        //printf("theta %.16lg phi %.16lg ylm %.16lg+%.16lgj \n", atan2(trig[iGrid*4],trig[iGrid*4+1]), atan2(trig[iGrid*4+2],trig[iGrid*4+3]), ylm[ind], ylm[ind+1]);
-        //exit(0);
       }
-      //exit(0);
-      //if(l==1)printf("m=0 ylm %.16lg\n",ylm[1]);
-      //printf("m=1 ylm Re %.16lg im %.16lg\n",ylm[numGrid+2],ylm[numGrid+3]);
-      //exit(0);
       break;
+	
   }
 
 /*--------------------------------------------------------------------------*/

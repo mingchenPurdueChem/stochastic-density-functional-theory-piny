@@ -47,8 +47,8 @@ void scfStodftInterp(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 void scfStodftCheby(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 void scfStodftEnergyWindow(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 void scfStodftEnergyWindowFrag(CLASS *,BONDED *,GENERAL_DATA *,
-                    CP *, CP *, GENERAL_DATA *, CLASS *,
-                    int);
+                    CP *, CP *, GENERAL_DATA *, CLASS *,int);
+void scfStodftInterpPostAnalysis(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 #endif
 void scfStodftFilterDiag(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 /*-----------------------------------------------------------------*/
@@ -106,6 +106,8 @@ void calcRhoStoHybridCheby(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 void outputDensity(CP *,CELL *,int);
 void calcRhoFilterDiagHybrid(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 void calcRhoStoHybridEnergyWindow(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
+void calcOrbRealHybrid(CLASS *,GENERAL_DATA *,CP *,int);
+void calcSqOrbPostAnalysis(CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 
 /*-----------------------------------------------------------------*/
 /* calc-chempot.c                                                  */
@@ -242,6 +244,8 @@ void scfStodftInterp(CLASS *,BONDED *,GENERAL_DATA *,
 void scfStodftEnergyWindowFrag(CLASS *,BONDED *,GENERAL_DATA *,CP *,
                     CLASS *,BONDED *,GENERAL_DATA *,CP *,
                     CP *, GENERAL_DATA *, CLASS *,int);
+void scfStodftInterpPostAnalysis(CLASS *,BONDED *,GENERAL_DATA *,
+                    CP *,CLASS *,BONDED *,GENERAL_DATA *,CP *,int);
 void genStoOrbitalInterpTest(CLASS *,GENERAL_DATA *,CP *,
             CLASS *,GENERAL_DATA *,CP *,int);
 void genStoOrbitalChebyTest(CLASS *,GENERAL_DATA *,

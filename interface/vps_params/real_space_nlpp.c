@@ -911,16 +911,14 @@ void optGCoeff(PSEUDO_REAL *pseudoReal,int numGLg,int numGSm,int numR,
           A[iGridG*numGLg+jGridG] *= dr*qi*qi*qj*qj;
           break;
 	case 3:
-         for(kGridR=1;kGridR<numRCutoff;kGridR++){
-           r = kGridR*dr;
-           arg1 = qi*r;
-           arg2 = qj*r;
-	   //printf("arg1 = %.16f, j3(arg1) = %.16f\n", arg1, j3(arg1));
-           A[iGridG*numGLg+jGridG] += j3(arg1)*j3(arg2)*r*r;
-         }
-         //exit(0);
-	 A[iGridG*numGLg+jGridG] *= dr*qi*qi*qj*qj;
-         break;
+	  for(kGridR=1;kGridR<numRCutoff;kGridR++){
+	    r = kGridR*dr;
+	    arg1 = qi*r;
+	    arg2 = qj*r;
+	    A[iGridG*numGLg+jGridG] += j3(arg1)*j3(arg2)*r*r;
+	  }
+	  A[iGridG*numGLg+jGridG] *= dr*qi*qi*qj*qj;
+	  break;
       }//endswitch l
       A[jGridG*numGLg+iGridG] = A[iGridG*numGLg+jGridG];
     }//endfor jGridG
@@ -1067,9 +1065,7 @@ void bessTransformGrad(double *funIn,int numIn,double dx,int l,double *funOut,
             x = jGrid*dx;
             arg = x*y;
             funOut[iGrid] += dj3(arg)*x*x*funIn[jGrid]*dx;
-	    //printf("arg = %.16f, dj3 = %.16f\n", arg, dj3(arg));
           }//endfor jGrid
-	  //exit(0);
         }//endif y
       }//endfor iGrid
       break;

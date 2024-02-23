@@ -873,6 +873,7 @@ void combineRhoUC(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   CELL *cell	      = &(general_data->cell);
  
   int iFrag,jFrag,iGrid,jGrid,iState,jState,iStateFrag,iProc;
+  int iFragGlobal;
   int iAtom;
   int gridIndex;
   int numGrid,numGridSmall;
@@ -899,6 +900,7 @@ void combineRhoUC(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 
   int *numGridFragProc	    = fragInfo->numGridFragProc;
   int *numGridFragProcSmall = fragInfo->numGridFragProcSmall;
+  int *fragInd              = fragInfo->fragInd;
   int *rhoRealSendCounts = stodftInfo->rhoRealSendCounts;
   int *rhoRealDispls = stodftInfo->rhoRealDispls;
   int *numStateUpAllProc;
@@ -906,6 +908,9 @@ void combineRhoUC(CP *cp,GENERAL_DATA *general_data,CLASS *class,
 
   int **gridMapProc	    = fragInfo->gridMapProc;
   int **gridMapProcSmall    = fragInfo->gridMapProcSmall;
+
+  char fname[100];
+  FILE *fileSmallToMedium, *fileSmallToLarge;
  
   double proj;
   double numElecProj = 0.0;
@@ -1038,6 +1043,30 @@ void combineRhoUC(CP *cp,GENERAL_DATA *general_data,CLASS *class,
     free(fragInfo->rhoUpFragProc[iFrag]);
     free(fragInfo->coefUpFragProc[iFrag]);
 #endif
+    if(stodftInfo->calcLocalTraceOpt==1){
+      // output grid mapping
+      iFragGlobal = fragInd[iFrag];
+      // This file contains gridMapProcSmall[iFrag][i] where 
+      // gridMapProcSmall[iFrag][i]
+      // is printed on the i'th line
+      sprintf(fname,"core-to-fragment-map-%i",iFragGlobal);
+      fileSmallToMedium = fopen(fname,"w");
+      for(iGrid=0;iGrid<numGridSmall;iGrid++){
+	fprintf(fileSmallToMedium,"%i\n",gridMapProcSmall[iFrag][iGrid]);
+      }//endif iGrid
+      fclose(fileSmallToMedium);
+      // This file contains gridMapProc[iFrag][gridMapProcSmall[iFrag][i]] where 
+      // gridMapProc[iFrag][gridMapProcSmall[iFrag][i]]
+      // is printed on the i'th line
+      sprintf(fname,"core-to-system-map-%i",iFragGlobal);
+      fileSmallToLarge = fopen(fname,"w");
+      for(iGrid=0;iGrid<numGridSmall;iGrid++){
+	fprintf(fileSmallToLarge,"%i\n",
+		gridMapProc[iFrag][gridMapProcSmall[iFrag][iGrid]]);
+      }
+      fclose(fileSmallToLarge);
+      // end output grid mapping
+    }
   }//endfor iFrag
   Barrier(commStates);
   //fflush(stdout);
@@ -1233,7 +1262,8 @@ void combineStoUC(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   double *rhoDnFragSum;
   double *noiseWfUpReal,*noiseWfDnReal;
 
-  
+  //char name[100];
+  //FILE *fstochasticwf;  
 /*======================================================================*/
 /* I) Asign local variables				                */
 
@@ -1306,6 +1336,12 @@ void combineStoUC(CP *cp,GENERAL_DATA *general_data,CLASS *class,
   noiseRealReGen(general_data,cp,class,ip_now);
 #endif
 
+  /*
+  sprintf(name,"stochastic-wf");
+  fstochasticwf = fopen(name,"w");
+  for(int i=0; i < cp_para_fft_pkg3d_lg->nfft/2 ;i++)fprintf(fstochasticwf,"%.16lg\n",noiseWfUpReal[i]);
+  fclose(fstochasticwf); 
+  */
 /*======================================================================*/
 /* IV) Project the real space noise wave function                       */
 

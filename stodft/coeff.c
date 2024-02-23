@@ -232,7 +232,8 @@ void genCoeffNewtonHermit(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos)
   FERMIFUNLR fermiFunctionLongDouble;
 
   if(energyWindowOn==0){
-    fermiFunction = stodftInfo->fermiFunctionReal;
+    if(stodftInfo->calcLocalTraceOpt==0)fermiFunction = stodftInfo->fermiFunctionReal;
+    else fermiFunction = stodftInfo->fermiFunctionReal;
   }
   else{
     fermiFunctionLongDouble = stodftInfo->fermiFunctionLongDouble;
@@ -983,6 +984,7 @@ void calcChebyCoeffWrapper(STODFTINFO *stodftInfo,STODFTCOEFPOS *stodftCoefPos,
 /*                 filtering without multiplying F                       */
 /* filterFlag = 3: Energy window with fragmentation, the second time     */
 /*                 filtering with multiplying F                          */
+/* filterFlag = 4: sqrt(Gaussian) Filter for all chemical potentials     */
 /*************************************************************************/
 /*=======================================================================*/
 /*         Local Variable declarations                                   */

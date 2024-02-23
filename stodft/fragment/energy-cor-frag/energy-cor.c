@@ -464,6 +464,7 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
 /*             Local variable declarations                                */
   STODFTINFO *stodftInfo = cp->stodftInfo;
   FRAGINFO *fragInfo = stodftInfo->fragInfo;
+  FRAGINFO *fragInfoMini = cpMini->stodftInfo->fragInfo;
   CPOPTS *cpOpts = &(cpMini->cpopts);
   CPCOEFFS_INFO *cpcoeffs_info = &(cpMini->cpcoeffs_info);
   CPCOEFFS_POS *cpcoeffs_pos = &(cpMini->cpcoeffs_pos[1]);
@@ -479,6 +480,7 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
   int iState,jState,iCoeff,iStoc,iAtom;
   int atomInd;
   int iFrag = fragInfo->iFrag;
+  int iFragGlobal = fragInfoMini->iFrag;
   int cpLsda = cpOpts->cp_lsda;
   int numFragProc           = fragInfo->numFragProc;
   int numFragTot            = fragInfo->numFragTot;
@@ -498,6 +500,8 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
   double vnlFxCorTemp,vnlFyCorTemp,vnlFzCorTemp;
   //double vnl = statAvg->cp_enl;
   double vnl;
+  char fname[100];
+  FILE *fileOrbProj;
 
   double *vnlMatrixUp,*vnlMatrixDn;
   double *vnlFxMatrixUp,*vnlFxMatrixDn;
@@ -561,6 +565,19 @@ void calcVnlCor(CLASS *classMini, CP *cpMini,GENERAL_DATA *generalDataMini,
     }
   }
   */
+  
+  if(stodftInfo->calcLocalTraceOpt==1){
+    sprintf(fname,"frag-orb-proj-chi-%i",iFragGlobal);
+    fileOrbProj = fopen(fname,"w");
+    for(iStoc=0;iStoc<numStateStoUp;iStoc++){
+      for(iState=0;iState<numStateUp;iState++){
+	fprintf(fileOrbProj,"%.16lg\n",wfProjUp[iStoc*numStateUp+iState]);
+      }
+    }  
+    fclose(fileOrbProj);
+  }
+
+  
 
   vnlFxCorFragLoc = (double*)cmalloc(numAtomCalc*sizeof(double));
   vnlFyCorFragLoc = (double*)cmalloc(numAtomCalc*sizeof(double));

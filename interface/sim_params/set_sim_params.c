@@ -4632,7 +4632,9 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   /*  3)\filter_type{#} */
   if(strcasecmp(dict[3].keyarg,"fermi_exp")==0)stodftInfo->filterFunType = 1;
   if(strcasecmp(dict[3].keyarg,"fermi_erfc")==0)stodftInfo->filterFunType = 2;
-  if(strcasecmp(dict[3].keyarg,"gauss")==0)stodftInfo->filterFunType = 3;
+  if(strcasecmp(dict[3].keyarg,"gaussian")==0)stodftInfo->filterFunType = 3;
+  if(strcasecmp(dict[3].keyarg,"entropy")==0)stodftInfo->filterFunType = 4;
+
   /*-----------------------------------------------------------------------*/
   /*  4)poly_fit_error{#} */
   sscanf(dict[4].keyarg,"%lg",&rka);
@@ -4840,9 +4842,27 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
   fragInfo->fragNumChemPot = (int)rka;
 
   /*-----------------------------------------------------------------------*/
-  /*  46)\frag_beta{#} */
+  /*  47)\frag_beta{#} */
   sscanf(dict[47].keyarg,"%lg",&rka);
   fragInfo->fragBeta = rka;
+
+  /*-----------------------------------------------------------------------*/
+  /*  48)\diis_max_ratio_2{#} */
+
+  sscanf(dict[48].keyarg,"%lg",&rka);
+  stodftInfo->mixRatioSM2 = rka;
+
+  /*-----------------------------------------------------------------------*/
+  /*  49)\calc_local_trace{#} */
+
+  if(strcasecmp(dict[49].keyarg,"off")==0)stodftInfo->calcLocalTraceOpt = 0;
+  if(strcasecmp(dict[49].keyarg,"on")==0)stodftInfo->calcLocalTraceOpt = 1;
+
+  /*-----------------------------------------------------------------------*/
+  /*  50)\smear_opt_metal_frag{#} */
+  if(strcasecmp(dict[50].keyarg,"off")==0)stodftInfo->smearOptFrag = 0;
+  if(strcasecmp(dict[50].keyarg,"fermi")==0)stodftInfo->smearOptFrag = 1;
+  if(strcasecmp(dict[50].keyarg,"gauss")==0)stodftInfo->smearOptFrag = 2;
 
 /*=======================================================================*/
 /* Check the conflicate options						 */
@@ -5002,8 +5022,22 @@ void set_sim_params_stodft(CLASS *class, GENERAL_DATA *general_data, CP *cp,
         printf("The smearing type needs to be consistent!\n");
         printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
         fflush(stdout);
-        exit(0);
+        //exit(0);
       }
+    }
+    if(stodftInfo->calcLocalTraceOpt==1&&stodftInfo->chemPotOpt==2){
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      printf("Calculating local trace requires chem_pot_opt=interp\n");      
+      printf("@@@@@@@@@@@@@@@@@@@@_error_@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+      fflush(stdout);
+      exit(0);
+    }
+    if(stodftInfo->calcLocalTraceOpt==1&&stodftInfo->filterDiagFlag==0&&stodftInfo->numScf>1){
+      printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
+      printf("Calculating local trace with sDFT does not support SCF iteraction.\n");
+      printf("A non-SCF calculation will be performed!\n");
+      printf("$$$$$$$$$$$$$$$$$$$$_warning_$$$$$$$$$$$$$$$$$$$$\n");
+      stodftInfo->numScf = 1;
     }
   }//endif stodftOn
 

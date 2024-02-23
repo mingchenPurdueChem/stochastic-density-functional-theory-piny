@@ -195,6 +195,7 @@ void control_sim_params(CLASS *class,GENERAL_DATA *general_data,
 
     nkey  = 0;
     while(get_word(fp,&word,&nline,&nkey,nfun_key,input_name)){
+      //printf("%s",word.keyword);
       switch(ind_key){
         case 1 : put_word_dict(&word,dict_list,num_dict_list,fun_key,nline,
                                nkey,nfun_key,input_name);break;

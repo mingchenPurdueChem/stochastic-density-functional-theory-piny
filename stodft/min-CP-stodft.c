@@ -94,7 +94,7 @@ void scfStodftInterp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   int numCoeff			= cpcoeffs_info->ncoef;
   int numCoeffUpTotal = numStateUp*numCoeff;
   int numCoeffDnTotal = numStateDn*numCoeff;
-  int scfStopFlag = 0; // 0=do scf 1=stop scf
+  int scfStopFlag = 1; // 0=do scf 1=stop scf
   int pseudoRealFlag = pseudoReal->pseudoRealFlag;
   MPI_Comm commStates = communicate->comm_states;
   int calcFragFlag              = stodftInfo->calcFragFlag;
@@ -266,7 +266,9 @@ void scfStodftInterp(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   //for(iScf=1;iScf<=numScf;iScf++){
   iScf = 0;
   iScfTrue = 0;
-  
+ 
+  //scfStopFlag = 1; //DEBUG: STOP SCF
+
   while(scfStopFlag==0){ 
     timeStart = omp_get_wtime();
     iScf += 1;
@@ -734,6 +736,8 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }
   iScfTrue = 0;
 
+  scfStopFlag = 1; //DEBUGG STOP SCF
+
   while(scfStopFlag==0){
     timeStart = omp_get_wtime();
     iScf += 1;
@@ -1171,6 +1175,8 @@ void scfStodftFilterDiag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
     iScf = 0;
   }
   iScfTrue = 0;
+
+  scfStopFlag = 1; //DEBUG: STOP SCF FOR FD
 
   while(scfStopFlag==0){
     timeStart = omp_get_wtime();

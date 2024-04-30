@@ -199,7 +199,7 @@ void calcElectronFricDet(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *
   //Calculate friction
   if(myidState==0){
     gauValue = (double*)cmalloc(numStateFric*sizeof(double));
-    fricTensor = (double*)cmalloc(numAtomFric*numAtomFric*9);
+    fricTensor = (double*)cmalloc(numAtomFric*numAtomFric*9*sizeof(double));
     for(iState=0;iState<numStateFric;iState++){
       gauValue[iState] = gaussianReal(ksEnergyFric[iState],chemPotTrue,1.0/sigma);
       printf("ksEnergyFric %lg chemPotTrue %lg 1.0/sigma %lg gauValue %lg\n",ksEnergyFric[iState],chemPotTrue,1.0/sigma,gauValue[iState]);
@@ -216,6 +216,13 @@ void calcElectronFricDet(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *
                            gauValue[iState]*gauValue[jState]*
                            hDevMatTotal[(iAtom*3+iDim)*numStateFric*numStateFric+iState*numStateFric+jState]*
                            hDevMatTotal[(jAtom*3+jDim)*numStateFric*numStateFric+jState*numStateFric+iState];
+		//if(iAtom==1 && jAtom==1){
+		  //if(iDim==0 && jDim==2){
+		//printf("fricTen %f\n", fricTensor[(iAtom*3+iDim)*numAtomFric*3+(jAtom*3+jDim)]);
+		  //}
+		//}
+		//printf("1111111 fric tensor 23 %.16lg\n", fricTensor[23]);
+		if(iAtom==1&&iDim==0&&jAtom==1&&jDim==2)printf("ttttttttest fric tensor %i %.16lg\n",(iAtom*3+iDim)*numAtomFric*3+(jAtom*3+jDim),fricTensor[(iAtom*3+iDim)*numAtomFric*3+(jAtom*3+jDim)]);
               }//endfor jState
             }//endfor iState
             // Here it should be another negative sign from d(fermi function)/d(energy)

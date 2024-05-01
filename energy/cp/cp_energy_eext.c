@@ -1180,6 +1180,7 @@ void control_ewd_loc(CLATOMS_INFO *clatoms_info,CLATOMS_POS *clatoms_pos,
 
       }/*endfor*/
     } /* endif cluster BC */
+    
 
 /*======================================================================*/
 /* VI) Get the nuclear hessian if necessary                             */

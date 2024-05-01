@@ -458,7 +458,7 @@ void calcNlPseudoPostScf(CLASS *class,GENERAL_DATA *general_data,
         }//endfor
       }//endif:ptens
     }//endif:lsda
-  }//endif : non-local potential on*/
+  }//endif : non-local potential on
 /*======================================================================*/
 /* VII) Get the nl pe, pvten and particle forces then the coef forces   */
 

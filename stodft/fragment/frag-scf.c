@@ -316,6 +316,8 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }
   */
 
+  printf("444444 %i\n", fragOpt);
+
   if(myidState==0){
     printf("**Start Projecting Fragment Density\n");
   }

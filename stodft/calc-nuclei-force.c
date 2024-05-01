@@ -693,6 +693,13 @@ void calcEnergyForce(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *bond
              
     }
     fclose(fileForce);
+    
+    FILE *fileForceNuclei = fopen("nuclei-force","w");
+    for(iAtom=0;iAtom<numAtomTot;iAtom++){
+      fprintf(fileForce,"%.16lg %.16lg %.16lg", fxNuclei[iAtom], fyNuclei[iAtom], fzNuclei[iAtom]);
+    }
+    fclose(fileForceNuclei);
+    
     /*
     FILE *fileForceClass = fopen("atom-force-classic","w");
     for(iAtom=0;iAtom<numAtomTot;iAtom++){
@@ -851,6 +858,9 @@ void calcEnergyForceFilterDiag(CLASS *class,GENERAL_DATA *general_data,CP *cp,BO
   double *fx = clatoms_pos->fx;
   double *fy = clatoms_pos->fy;
   double *fz = clatoms_pos->fz;
+  double *fxCl = clatoms_pos->fxCl;
+  double *fyCl = clatoms_pos->fyCl;
+  double *fzCl = clatoms_pos->fzCl;
   double *vnlFxCor;
   double *vnlFyCor;
   double *vnlFzCor;
@@ -872,6 +882,7 @@ void calcEnergyForceFilterDiag(CLASS *class,GENERAL_DATA *general_data,CP *cp,BO
   double *fxNlTrue,*fyNlTrue,*fzNlTrue;
   double *fxUnCor,*fyUnCor,*fzUnCor;
   double *fxLoc,*fyLoc,*fzLoc;
+  double *fxClTot,*fyClTot,*fzClTot;
 
   MPI_Comm commStates = communicate->comm_states;
 
@@ -934,6 +945,19 @@ void calcEnergyForceFilterDiag(CLASS *class,GENERAL_DATA *general_data,CP *cp,BO
   fxLoc = (double *)cmalloc(numAtomTot*sizeof(double));
   fyLoc = (double *)cmalloc(numAtomTot*sizeof(double));
   fzLoc = (double *)cmalloc(numAtomTot*sizeof(double));
+  fxCl = (double *)cmalloc(numAtomTot*sizeof(double));
+  //clatoms_pos->fxCl = (double *)cmalloc(numAtomTot*sizeof(double));
+  //fxCl = clatoms_pos->fxCl;
+  fyCl = (double *)cmalloc(numAtomTot*sizeof(double));
+  //clatoms_pos->fyCl = (double *)cmalloc(numAtomTot*sizeof(double));
+  //fyCl = clatoms_pos->fyCl;
+  fyCl = (double *)cmalloc(numAtomTot*sizeof(double));
+  fxClTot = (double *)cmalloc(numAtomTot*sizeof(double));
+  fyClTot = (double *)cmalloc(numAtomTot*sizeof(double));
+  fzClTot = (double *)cmalloc(numAtomTot*sizeof(double));
+  
+  //clatoms_pos->fyCl = (double *)cmalloc(numAtomTot*sizeof(double));
+  //fzCl = clatoms_pos->fzCl;
 
   for(iAtom=1;iAtom<=numAtomTot;iAtom++){
     fx[iAtom] = 0.0;
@@ -967,6 +991,10 @@ void calcEnergyForceFilterDiag(CLASS *class,GENERAL_DATA *general_data,CP *cp,BO
     Reduce(&fx[1],&fxLoc[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
     Reduce(&fy[1],&fyLoc[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
     Reduce(&fz[1],&fzLoc[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+    Reduce(&fxCl[1],&fxClTot[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+    Reduce(&fyCl[1],&fyClTot[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+    Reduce(&fzCl[1],&fzClTot[0],numAtomTot,MPI_DOUBLE,MPI_SUM,0,commStates);
+    
     Reduce(&(stat_avg->vrecip),&vrecipLocal,1,MPI_DOUBLE,MPI_SUM,0,commStates);
   }
   //debug
@@ -1132,6 +1160,9 @@ void calcEnergyForceFilterDiag(CLASS *class,GENERAL_DATA *general_data,CP *cp,BO
       fx[iAtom+1] = fxNlTrue[iAtom]+fxLoc[iAtom]+fxNuclei[iAtom];
       fy[iAtom+1] = fyNlTrue[iAtom]+fyLoc[iAtom]+fyNuclei[iAtom];
       fz[iAtom+1] = fzNlTrue[iAtom]+fzLoc[iAtom]+fzNuclei[iAtom];
+      fxClTot[iAtom] += fxNuclei[iAtom];
+      fyClTot[iAtom] += fyNuclei[iAtom];
+      fzClTot[iAtom] += fzNuclei[iAtom];
     }//endfor iAtom
   }//endif myidState
   
@@ -1171,13 +1202,21 @@ void calcEnergyForceFilterDiag(CLASS *class,GENERAL_DATA *general_data,CP *cp,BO
              
     }
     fclose(fileForce);
-    /*
+    
+    FILE *fileForceNuclei = fopen("nuclei-force","w");
+    for(iAtom=0;iAtom<numAtomTot;iAtom++){
+      fprintf(fileForce,"%.16lg %.16lg %.16lg\n", fxNuclei[iAtom], fyNuclei[iAtom], fzNuclei[iAtom]);
+    }
+    fclose(fileForceNuclei);
+    
+    
     FILE *fileForceClass = fopen("atom-force-classic","w");
     for(iAtom=0;iAtom<numAtomTot;iAtom++){
-      fprintf(fileForceClass,"%i %.16lg %.16lg %.16lg\n",
-              fxCl[iAtom+1],fyCl[iAtom+1],fzCl[iAtom+1]);
+      fprintf(fileForceClass,"%.16lg %.16lg %.16lg\n",
+              fxClTot[iAtom],fyClTot[iAtom],fzClTot[iAtom]);
     }
-    */
+    fclose(fileForceClass);
+    
     FILE *fileEnergy = fopen("total-energy","w");
     fprintf(fileEnergy,"%.16lg\n",energyTot);
     fclose(fileEnergy);
@@ -1204,6 +1243,10 @@ void calcEnergyForceFilterDiag(CLASS *class,GENERAL_DATA *general_data,CP *cp,BO
   free(&fxNl[0]);
   free(&fyNl[0]);
   free(&fzNl[0]);
+  free(&fxClTot[0]);
+  free(&fyClTot[0]);
+  free(&fzClTot[0]);
+
   free(&lagFunValue[0]);
 
 /*==========================================================================*/

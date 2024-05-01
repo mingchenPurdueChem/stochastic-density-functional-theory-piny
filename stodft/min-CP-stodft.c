@@ -1172,6 +1172,8 @@ void scfStodftFilterDiag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }
   iScfTrue = 0;
 
+  //scfStopFlag = 1; //DEBUG: STOP SCF
+
   while(scfStopFlag==0){
     timeStart = omp_get_wtime();
     iScf += 1;
@@ -2091,7 +2093,9 @@ void scfStodftEnergyWindowFrag(CLASS *class,BONDED *bonded,GENERAL_DATA *general
   iScfTrue = 0;
 
   stodftInfo->isFirstStepFlag = 1;
- 
+
+  //scfStopFlag     = 1; //DEBUG: STOP SCF
+
   while(scfStopFlag==0){
     timeStart = omp_get_wtime();
     iScf += 1;

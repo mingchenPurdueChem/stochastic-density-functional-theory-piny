@@ -527,6 +527,7 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
   int iThread;
   int gridOff1,gridOff2;
   int fragDFTMethod = cp->stodftInfo->fragDFTMethod;
+  int index;
 
   //printf("nfftttttt2_proc %i\n",nfft2_proc);
   double *zfft           =    cpscr->cpscr_wave.zfft;
@@ -658,6 +659,7 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
 
   if(nstate%2!=0){
     ioff = (nstate-1)*ncoef;
+    gridOff1 = (is-1)*nfft2_proc;
     sngl_pack_coef_fftw3d(&ccreal[ioff],&ccimag[ioff],zfft_threads[0],cp_sclr_fft_pkg3d_sm);
     //sngl_pack_coef(&ccreal[ioff],&ccimag[ioff],zfft,cp_sclr_fft_pkg3d_sm);
 
@@ -680,13 +682,17 @@ void rhoRealCalcFragWrapper(GENERAL_DATA *generalDataMini,CP *cpMini,CLASS *clas
 	  jgrid = k*nkf2*nkf1+j*nkf1+i; //z leading
 	  zfft_threads[0][jgrid*2+1] = zfft_tmp_threads[0][igrid*2+1];
 	  zfft_threads[0][jgrid*2+2] = zfft_tmp_threads[0][igrid*2+2];
+	  //printf("zfft_threads %lg %lg\n", zfft_threads[0][jgrid*2+1], zfft_threads[0][jgrid*2+2]);
 	}
       }
     }
 
     
     for(igrid=0;igrid<nfft2_proc;igrid++){
-      wfReal[ioff*nfft2+igrid] = zfft_threads[0][igrid*2+1]*prefact;
+      index = gridOff1+igrid;
+      //printf("index %i zfft_threads %lg prefect %lg\n", index, zfft_threads[0][igrid*2+1], prefact);
+      //wfReal[ioff*nfft2+igrid] = zfft_threads[0][igrid*2+1]*prefact;
+      wfReal[gridOff1+igrid] = zfft_threads[0][igrid*2+1]*prefact;
       rho[igrid] += zfft_threads[0][igrid*2+1]*zfft_threads[0][igrid*2+1]*occPre[nstate-1];
     }
 

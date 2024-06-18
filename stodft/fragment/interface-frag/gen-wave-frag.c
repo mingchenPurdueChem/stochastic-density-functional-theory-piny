@@ -36,8 +36,11 @@
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
+
+
 void gen_wave_frag(CLASS *class,GENERAL_DATA *general_data,CP *cp,
               CP_PARSE *cp_parse,NAME *vps_name)
+
 /*========================================================================*/
 {/*begin routine*/
 /*========================================================================*/
@@ -309,9 +312,7 @@ void gen_wave_frag(CLASS *class,GENERAL_DATA *general_data,CP *cp,
      Finalize();
     }
      exit(1);
-
      }/*endif*/
-
      if( cp_lsda == 1 && iatm_atm_typ[ind2] == iatm_atm_typ[ind1] &&
          cp_vlnc_dn[ind2] != cp_vlnc_dn[ind1]){
     if(myid == master){
@@ -326,7 +327,6 @@ void gen_wave_frag(CLASS *class,GENERAL_DATA *general_data,CP *cp,
      Finalize();
     }
      exit(1);
-
      }/*endif*/
     }/*endfor*/
   }/*endfor*/
@@ -493,11 +493,11 @@ void gen_wave_frag(CLASS *class,GENERAL_DATA *general_data,CP *cp,
    gpsi3 = (double ***) cmalloc(natm_typ_cp*sizeof(double **))-1;
 
  for(i=1; i<= natm_typ_cp; i++){
-   gpsi0[i] = (double **) cmalloc(3*sizeof(double *))-1;
-   gpsi1[i] = (double **) cmalloc(3*sizeof(double *))-1;
-   gpsi2[i] = (double **) cmalloc(3*sizeof(double *))-1;
-   gpsi3[i] = (double **) cmalloc(3*sizeof(double *))-1;
-   for(j=1; j<=3; j++){
+   gpsi0[i] = (double **) cmalloc(4*sizeof(double *))-1;
+   gpsi1[i] = (double **) cmalloc(4*sizeof(double *))-1;
+   gpsi2[i] = (double **) cmalloc(4*sizeof(double *))-1;
+   gpsi3[i] = (double **) cmalloc(4*sizeof(double *))-1;
+   for(j=1; j<=4; j++){
       gpsi0[i][j] = (double *) cmalloc(nsplin*sizeof(double ))-1;
       gpsi1[i][j] = (double *) cmalloc(nsplin*sizeof(double ))-1;
       gpsi2[i][j] = (double *) cmalloc(nsplin*sizeof(double ))-1;
@@ -505,7 +505,7 @@ void gen_wave_frag(CLASS *class,GENERAL_DATA *general_data,CP *cp,
    }/*endfor*/
  }/*endfor*/
 
-   gpsi_now = cmall_mat(1,natm_typ_cp,1,3);
+   gpsi_now = cmall_mat(1,natm_typ_cp,1,4);
    gpsi00   = (double *) cmalloc(natm_typ_cp*sizeof(double)) -1;
 
 /*===========================================================================*/
@@ -618,11 +618,15 @@ void gen_wave_frag(CLASS *class,GENERAL_DATA *general_data,CP *cp,
               gpsi_now[iatm],gmin,dg,n_ang[iatm]);
    }/*endfor*/
 
-   istate_up = 0;
-   istate_dn = 0;
+    istate_up = 0;
+    istate_dn = 0;
 
-   istate_up_proc = 0;
-   istate_dn_proc = 0;
+    istate_up_proc = 0;
+    istate_dn_proc = 0;
+
+   
+
+
 
    for(ipart = 1; ipart <= nab_initio; ipart++){
 /*  S STATE                                                                 */
@@ -632,6 +636,7 @@ void gen_wave_frag(CLASS *class,GENERAL_DATA *general_data,CP *cp,
 /* SPHERICALIZED P BAND                                                    */
       if(n_ang[iatm_atm_typ_cp[ipart]] >= 1){
 	itemp = (int) (3.0*ran_essl(&qseed));
+
 	itemp = MAX(itemp,0);
 	itemp = MIN(itemp,2);
 	//itemp = 1;
@@ -651,6 +656,10 @@ void gen_wave_frag(CLASS *class,GENERAL_DATA *general_data,CP *cp,
 	  p_a = -rad2*ylmr[3]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
 	  p_c = -rad2*ylmi[3]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
 	 break;
+	 case 3:
+	  p_b = -ylmr[2]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
+	  p_a = -rad2*ylmr[3]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
+	  p_c = -rad2*ylmi[3]*gpsi_now[iatm_atm_typ_cp[ipart]][2]/volrt;
 	}/*end switch*/
 	psi_r[2] = 0.0;
 	psi_i[2] = (p_c + (p_b+p_a)/rad2)/rad2;
@@ -735,11 +744,11 @@ void gen_wave_frag(CLASS *class,GENERAL_DATA *general_data,CP *cp,
     istate_up = 0;
     istate_dn = 0;
   for(ipart=1; ipart <= nab_initio; ipart++){
-   if( ((istate_up + 1 ) >= istate_up_st) && 
+    if( ((istate_up + 1 ) >= istate_up_st) && 
        ((istate_up + 1) <= istate_up_end)){  
-     ind = i + ((1+istate_up) - istate_up_st )*ncoef;
-     creal_up[ind] = ylmr[1]*gpsi00[iatm_atm_typ_cp[ipart]]/volrt;
-     cimag_up[ind] = 0.0;
+      ind = i + ((1+istate_up) - istate_up_st )*ncoef;
+      creal_up[ind] = ylmr[1]*gpsi00[iatm_atm_typ_cp[ipart]]/volrt;
+      cimag_up[ind] = 0.0;
    }/*endif*/
     for(is = 2; is <= nstate_up_atm[iatm_atm_typ_cp[ipart]]; is++){
    if( ((istate_up + is ) >= istate_up_st) && 

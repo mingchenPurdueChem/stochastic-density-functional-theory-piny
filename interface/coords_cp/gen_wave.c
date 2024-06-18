@@ -1210,8 +1210,15 @@ void  splin_btrans(int *nsplin,double **gpsi0,double **gpsi1,
    }
 
     iang_now = iang-1;
+    printf("iang %i iang_now %i\n", iang, iang_now);
 
     bess_trans(rphi,nr,dr,r,gpsi0[iang],*nsplin,g,iang_now,gpsi00);
+    
+    if (gpsi0[iang] == NULL){
+	    fprintf(stderr, "Error: gpsi0[%d] is NULL\n", iang);
+	    exit(EXIT_FAILURE);
+    } 
+
     fit_spline(gpsi0[iang],gpsi1[iang],gpsi2[iang],gpsi3[iang],g,*nsplin);
 
   }/*endfor*/
@@ -1259,7 +1266,7 @@ void bess_trans(double *v_rphi,int nr,double dr,double *r,
    fpi = 4.0*pi;
    fpidr = fpi*dr;
   
-  //fv_rphi = (double *)cmalloc(nr*sizeof(double))-1;
+  fv_rphi = (double *)cmalloc(nr*sizeof(double))-1;
 
   for(ig=1; ig <= nsplin_g; ig++){
     fv_rphi[ig] = 0.0;

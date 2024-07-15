@@ -157,7 +157,7 @@ void calcElectronFricDet(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *
           //hDevMat[(iAtom*3+iDim)*numStateFric*numStateFric+iState*numStateFric+jState] 
           //       = vlocDevMat[iDim*numStateFric*numStateFric+iState*numStateFric+jState]+
           //         vnlDevMat[iDim*numStateFric*numStateFric+iState*numStateFric+jState];
-          printf("myidState %i iAtom %i iDim %i iState %i jState %i nlmat %lg locmat %lg\n",myidState,iAtom, iDim,iState,jState,hDevMat[(iAtom*3+iDim)*numStateFric*numStateFric+iState*numStateFric+jState],vlocDevMat[(iAtom*3+iDim)*numStateFric*numStateFric+iState*numStateFric+jState]);
+          //printf("myidState %i iAtom %i iDim %i iState %i jState %i nlmat %lg locmat %lg\n",myidState,iAtom, iDim,iState,jState,hDevMat[(iAtom*3+iDim)*numStateFric*numStateFric+iState*numStateFric+jState],vlocDevMat[(iAtom*3+iDim)*numStateFric*numStateFric+iState*numStateFric+jState]);
           hDevMat[(iAtom*3+iDim)*numStateFric*numStateFric+iState*numStateFric+jState] += 
                      vlocDevMat[(iAtom*3+iDim)*numStateFric*numStateFric+iState*numStateFric+jState];
         }//endfor iDim
@@ -202,7 +202,7 @@ void calcElectronFricDet(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *
     fricTensor = (double*)cmalloc(numAtomFric*numAtomFric*9*sizeof(double));
     for(iState=0;iState<numStateFric;iState++){
       gauValue[iState] = gaussianReal(ksEnergyFric[iState],chemPotTrue,1.0/sigma);
-      printf("ksEnergyFric %lg chemPotTrue %lg 1.0/sigma %lg gauValue %lg\n",ksEnergyFric[iState],chemPotTrue,1.0/sigma,gauValue[iState]);
+      //printf("ksEnergyFric %lg chemPotTrue %lg 1.0/sigma %lg gauValue %lg\n",ksEnergyFric[iState],chemPotTrue,1.0/sigma,gauValue[iState]);
     }
 
     for(iAtom=0;iAtom<numAtomFric;iAtom++){
@@ -211,7 +211,7 @@ void calcElectronFricDet(CLASS *class,GENERAL_DATA *general_data,CP *cp,BONDED *
           for(jDim=0;jDim<3;jDim++){
             for(iState=0;iState<numStateFric;iState++){
               for(jState=0;jState<numStateFric;jState++){
-                printf("iAtom %i iDim %i jAtom %i jDim %i iState %i jState %i gauValue %lg %lg hdevmat %lg %lg\n",iAtom,iDim,jAtom,jDim,iState,jState,gauValue[iState],gauValue[jState],hDevMatTotal[(iAtom*3+iDim)*numStateFric*numStateFric+iState*numStateFric+jState],hDevMatTotal[(jAtom*3+jDim)*numStateFric*numStateFric+jState*numStateFric+iState]);
+                //printf("iAtom %i iDim %i jAtom %i jDim %i iState %i jState %i gauValue %lg %lg hdevmat %lg %lg\n",iAtom,iDim,jAtom,jDim,iState,jState,gauValue[iState],gauValue[jState],hDevMatTotal[(iAtom*3+iDim)*numStateFric*numStateFric+iState*numStateFric+jState],hDevMatTotal[(jAtom*3+jDim)*numStateFric*numStateFric+jState*numStateFric+iState]);
                 fricTensor[(iAtom*3+iDim)*numAtomFric*3+(jAtom*3+jDim)] += 
                            gauValue[iState]*gauValue[jState]*
                            hDevMatTotal[(iAtom*3+iDim)*numStateFric*numStateFric+iState*numStateFric+jState]*

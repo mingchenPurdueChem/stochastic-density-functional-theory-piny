@@ -736,7 +736,7 @@ void scfStodftCheby(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }
   iScfTrue = 0;
 
-  scfStopFlag = 1; //DEBUGG STOP SCF
+  //scfStopFlag = 1; //DEBUGG STOP SCF
 
   while(scfStopFlag==0){
     timeStart = omp_get_wtime();
@@ -1176,7 +1176,7 @@ void scfStodftFilterDiag(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   }
   iScfTrue = 0;
 
-  scfStopFlag = 1; //DEBUG: STOP SCF FOR FD
+  //scfStopFlag = 1; //DEBUG: STOP SCF FOR FD
 
   while(scfStopFlag==0){
     timeStart = omp_get_wtime();
@@ -1672,7 +1672,7 @@ void scfStodftEnergyWindow(CLASS *class,BONDED *bonded,GENERAL_DATA *general_dat
   else{
     iScf = 0;
   }
-  iScfTrue = 0;
+  iScfTrue = 0; 
 
   while(scfStopFlag==0){
     timeStart = omp_get_wtime();

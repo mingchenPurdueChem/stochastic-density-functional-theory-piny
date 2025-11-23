@@ -159,7 +159,7 @@ STODFT_FILES	      = coeff.o control-stodft.o filters.o init.o \
                         calc-spectral-range.o gen-noise.o gen-stodft-wf.o calc-energy.o \
 			calc-nuclei-force.o cp-energy-ee-rho-stodft.o cp-energy-eext-stodft.o \
 			energy-wrapper-post-scf.o energy-wrapper-scf.o checkpointIO.o \
-                        cp-energy-eext-fric.o calc-friction.o
+                        cp-energy-eext-fric.o calc-friction.o rational-apprx.o elliptic.o
 FRAG_FILES	      = frag-scf.o init-frag.o parse-frag.o copy-input.o \
 			control-cp-min-frag.o all-control-frag.o all-mall-frag.o \
 			all-read-frag.o gen-wave-frag.o init-coord-hmat-fft.o \

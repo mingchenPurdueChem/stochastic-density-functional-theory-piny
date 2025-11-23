@@ -31,6 +31,8 @@
 #include "../proto_defs/proto_interface_frag_entry.h"
 #include "../proto_defs/proto_frag_local.h"
 
+#include "../rational/typedefs_elliptic.h"
+
 /*==========================================================================*/
 /*cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc*/
 /*==========================================================================*/
@@ -147,6 +149,9 @@ void fragScf(CLASS *class,BONDED *bonded,GENERAL_DATA *general_data,
   // as updated fragmentation MO files.
   // DEBUG
   //readCoeffFlag = 3;
+  printf("tessssssssssssst \n");
+  test(0.999701);
+  printf("tessssssssssssst \n");
   printf("readCoeffFlag %i\n",readCoeffFlag);
   if(readCoeffFlag!=3){
     printf("fragDFTMethod %i\n",fragDFTMethod);
